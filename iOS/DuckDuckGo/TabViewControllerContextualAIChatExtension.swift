@@ -18,6 +18,7 @@
 //
 
 import AIChat
+import Core
 import UIKit
 
 // MARK: - Contextual AI Chat
@@ -92,5 +93,9 @@ extension TabViewController: AIChatContextualSheetCoordinatorDelegate {
     func aiChatContextualSheetCoordinator(_ coordinator: AIChatContextualSheetCoordinator, didUpdateContextualChatURL url: URL?) {
         tabModel.contextualChatURL = url?.absoluteString
         delegate?.tabLoadingStateDidChange(tab: self)
+    }
+
+    func aiChatContextualSheetCoordinator(_ coordinator: AIChatContextualSheetCoordinator, didRequestOpenDownloadWithFileName fileName: String) {
+        delegate?.tabDidRequestDownloads(tab: self)
     }
 }

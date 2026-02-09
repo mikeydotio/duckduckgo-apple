@@ -307,6 +307,8 @@ final class SettingsViewModel: ObservableObject {
             set: {
                 self.state.showTrackersBlockedAnimation = $0
                 self.appSettings.showTrackersBlockedAnimation = $0
+                Pixel.fire(pixel: .settingsTrackerCountInAddressBarToggled,
+                          withAdditionalParameters: [PixelParameters.enabled: String($0)])
             }
         )
     }
@@ -1445,11 +1447,25 @@ extension SettingsViewModel {
         )
     }
 
+    var isChatSuggestionsEnabled: Binding<Bool> {
+        Binding<Bool>(
+            get: { self.aiChatSettings.isChatSuggestionsEnabled },
+            set: { newValue in
+                withAnimation {
+                    self.objectWillChange.send()
+                    self.aiChatSettings.enableChatSuggestions(enable: newValue)
+                }
+            }
+        )
+    }
+
     var showTrackerCountInTabSwitcherBinding: Binding<Bool> {
         Binding<Bool>(
             get: { self.tabSwitcherSettings.showTrackerCountInTabSwitcher },
             set: { newValue in
                 self.tabSwitcherSettings.showTrackerCountInTabSwitcher = newValue
+                Pixel.fire(pixel: .settingsTrackerCountInTabSwitcherToggled,
+                          withAdditionalParameters: [PixelParameters.enabled: String(newValue)])
             }
         )
     }

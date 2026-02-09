@@ -202,9 +202,6 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212014826835069?focus=true
     case newTabPageAutoconsentStats
 
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211998610726861?focus=true
-    case tierMessagingEnabled
-
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211998614203544?focus=true
     case allowProTierPurchase
 
@@ -278,6 +275,9 @@ public enum FeatureFlag: String, CaseIterable {
     /// Whether the wide event POST endpoint is enabled
     /// https://app.asana.com/1/137249556945/project/1199333091098016/task/1212738953909168?focus=true
     case wideEventPostEndpoint
+
+    /// Failsafe flag for whether the free trial conversion wide event is enabled
+    case freeTrialConversionWideEvent
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -307,6 +307,7 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .aiChatOmnibarOnboarding,
                 .terminationDeciderSequence,
                 .autofillPasswordSearchPrioritizeDomain,
+                .warnBeforeQuit,
                 .wideEventPostEndpoint,
                 .memoryPressureReporting,
                 .themes:
@@ -381,7 +382,6 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .standaloneMigration,
                 .blackFridayCampaign,
                 .newTabPageAutoconsentStats,
-                .tierMessagingEnabled,
                 .allowProTierPurchase,
                 .popupBlocking,
                 .extendedUserInitiatedPopupTimeout,
@@ -399,7 +399,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .aiChatSync,
                 .heuristicAction,
                 .nextStepsListWidget,
-                .wideEventPostEndpoint:
+                .wideEventPostEndpoint,
+                .freeTrialConversionWideEvent:
             return true
         case .freemiumDBP,
                 .contextualOnboarding,
@@ -532,8 +533,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(AIChatSubfeature.standaloneMigration))
         case .newTabPageAutoconsentStats:
             return .remoteReleasable(.subfeature(HtmlNewTabPageSubfeature.autoconsentStats))
-        case .tierMessagingEnabled:
-            return .remoteReleasable(.subfeature(PrivacyProSubfeature.tierMessagingEnabled))
         case .allowProTierPurchase:
             return .remoteReleasable(.subfeature(PrivacyProSubfeature.allowProTierPurchase))
         case .popupBlocking:
@@ -574,6 +573,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .disabled
         case .wideEventPostEndpoint:
             return .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.wideEventPostEndpoint))
+        case .freeTrialConversionWideEvent:
+            return .remoteReleasable(.subfeature(PrivacyProSubfeature.freeTrialConversionWideEvent))
         }
     }
 }

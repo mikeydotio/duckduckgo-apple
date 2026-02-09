@@ -17,6 +17,7 @@
 //
 
 import AppKit
+import Carbon.HIToolbox
 import BrowserServicesKit
 import Combine
 import Common
@@ -143,6 +144,7 @@ final class PasswordManagementViewController: NSViewController {
 
     var itemModel: PasswordManagementItemModel? {
         didSet {
+            removeEscapeKeyMonitor()
             editingCancellable?.cancel()
             editingCancellable = nil
 
@@ -156,6 +158,12 @@ final class PasswordManagementViewController: NSViewController {
                 self.searchField.isEditable = !isEditing
 
                 self.recalculateKeyViewLoop()
+
+                if isEditing {
+                    self.installEscapeKeyMonitor()
+                } else {
+                    self.removeEscapeKeyMonitor()
+                }
 
                 // If editing ended and we have a pending refresh, do it now
                 if !isEditing && self.pendingRefresh {
@@ -179,6 +187,8 @@ final class PasswordManagementViewController: NSViewController {
     private let urlSort = AutofillDomainNameUrlSort()
     private let syncButtonModel = SyncDeviceButtonModel()
     private lazy var privacyConfigurationManager: PrivacyConfigurationManaging = Application.appDelegate.privacyFeatures.contentBlocking.privacyConfigurationManager
+
+    private var escapeKeyMonitor: Any?
 
     let themeManager: ThemeManaging = NSApp.delegateTyped.themeManager
     var themeUpdateCancellable: AnyCancellable?
@@ -225,11 +235,16 @@ final class PasswordManagementViewController: NSViewController {
     private func setUpEmptyStateMessageView() {
         guard let listModel else { return }
 
-        let message = " \(listModel.emptyStateMessageDescription) [\(listModel.emptyStateMessageLinkText)](\(listModel.emptyStateMessageLinkURL))"
+        let message: String
+        if listModel.emptyStateHideLearnMoreLink {
+            message = listModel.emptyStateMessageDescription
+        } else {
+            message = " \(listModel.emptyStateMessageDescription) [\(listModel.emptyStateMessageLinkText)](\(listModel.emptyStateMessageLinkURL))"
+        }
 
         let hostingView = NSHostingView(rootView: PasswordManagementEmptyStateMessage(
             message: message,
-            image: .lockSolid16
+            image: listModel.emptyStateHideLockIcon ? nil : .lockSolid16
         ).fixedSize())
 
         hostingView.frame = CGRect(origin: .zero, size: hostingView.intrinsicContentSize)
@@ -346,6 +361,11 @@ final class PasswordManagementViewController: NSViewController {
     override func viewDidDisappear() {
         super.viewDidDisappear()
         listView?.removeFromSuperview()
+        removeEscapeKeyMonitor()
+    }
+
+    deinit {
+        removeEscapeKeyMonitor()
     }
 
     private func refetchAndPromptForAuthentication(text: String, selectItemMatchingDomain: String?, clearWhenNoMatches: Bool) {
@@ -626,6 +646,50 @@ final class PasswordManagementViewController: NSViewController {
         }
     }
 
+    /// Install a local key monitor so Escape cancels the form even before any field has been focused.
+    /// SwiftUI's .keyboardShortcut(.cancelAction) on the Cancel button only receives Escape once the
+    /// user has focused a field and dismissed the form once. This monitor ensures Escape works
+    /// immediately when the edit form is shown.
+    private func installEscapeKeyMonitor() {
+        guard escapeKeyMonitor == nil else { return }
+        escapeKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self,
+                  event.keyCode == kVK_Escape,
+                  let ourWindow = view.window else {
+                return event
+            }
+
+            // Check that our window or parent is focused
+            guard let keyWindow = NSApp.keyWindow,
+                  keyWindow === ourWindow || keyWindow === ourWindow.parent else {
+                return event
+            }
+
+            // Check the events are targetted at us or our parent
+            guard event.window === ourWindow || event.window === ourWindow.parent else {
+                return event
+            }
+
+            // Check that no sheets are presented
+            let parentSheets = ourWindow.parent?.sheets ?? []
+            guard ourWindow.sheets.isEmpty,
+                  parentSheets.isEmpty else {
+                return event
+            }
+
+            itemModel?.cancel()
+            removeEscapeKeyMonitor()
+            return nil
+        }
+    }
+
+    private func removeEscapeKeyMonitor() {
+        if let monitor = escapeKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            escapeKeyMonitor = nil
+        }
+    }
+
     private func doSaveCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) {
         let isNew = credentials.account.id == nil
 
@@ -885,15 +949,21 @@ final class PasswordManagementViewController: NSViewController {
 
                     switch response {
                     case .alertFirstButtonReturn: // Save
-                        self?.itemModel?.save()
-                        loadNewItemWithID()
+                        if self?.itemModel?.save() == true {
+                            loadNewItemWithID()
+                        } else {
+                            // Validation failed, revert selection
+                            if let previousValue {
+                                self?.listModel?.select(item: previousValue, notify: false)
+                            }
+                        }
 
                     case .alertSecondButtonReturn: // Discard
                         self?.itemModel?.cancel()
                         loadNewItemWithID()
 
                     default: // Cancel
-                        if let previousValue = previousValue {
+                        if let previousValue {
                             self?.listModel?.select(item: previousValue, notify: false)
                         }
                     }
@@ -1048,8 +1118,9 @@ final class PasswordManagementViewController: NSViewController {
 
                 switch response {
                 case .alertFirstButtonReturn: // Save
-                    self.itemModel?.save()
-                    createNew()
+                    if self.itemModel?.save() == true {
+                        createNew()
+                    }
 
                 case .alertSecondButtonReturn: // Discard
                     self.itemModel?.cancel()
@@ -1082,8 +1153,9 @@ final class PasswordManagementViewController: NSViewController {
 
                 switch response {
                 case .alertFirstButtonReturn: // Save
-                    self.itemModel?.save()
-                    createNew()
+                    if self.itemModel?.save() == true {
+                        createNew()
+                    }
 
                 case .alertSecondButtonReturn: // Discard
                     self.itemModel?.cancel()
@@ -1116,8 +1188,9 @@ final class PasswordManagementViewController: NSViewController {
 
                 switch response {
                 case .alertFirstButtonReturn: // Save
-                    self.itemModel?.save()
-                    createNew()
+                    if self.itemModel?.save() == true {
+                        createNew()
+                    }
 
                 case .alertSecondButtonReturn: // Discard
                     self.itemModel?.cancel()
@@ -1152,7 +1225,7 @@ final class PasswordManagementViewController: NSViewController {
         case .allItems: showEmptyState(image: .passwordsAdd128, title: UserText.pmEmptyStateDefaultTitle, hideMessage: false, hideImportButton: false, hideSyncButton: false)
         case .logins: showEmptyState(image: .passwordsAdd128, title: UserText.pmEmptyStateLoginsTitle, hideMessage: false, hideImportButton: false, hideSyncButton: false)
         case .identities: showEmptyState(image: .identityAdd128, title: UserText.pmEmptyStateIdentitiesTitle, hideMessage: true, hideImportButton: true, hideSyncButton: !privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.syncIdentities))
-        case .cards: showEmptyState(image: .creditCardsAdd128, title: UserText.pmEmptyStateCardsTitle, hideMessage: true, hideImportButton: true, hideSyncButton: !privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.syncCreditCards))
+        case .cards: showEmptyState(image: .creditCardsAdd128, title: UserText.pmEmptyStateCardsTitle, hideMessage: false, hideImportButton: true, hideSyncButton: !privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.syncCreditCards))
         }
     }
 
@@ -1269,18 +1342,26 @@ extension PasswordManagementViewController: NSMenuItemValidation {
 
 struct PasswordManagementEmptyStateMessage: View {
     let message: String
-    let image: ImageResource
+    let image: ImageResource?
 
     var body: some View {
-        (
-            Text(Image(image))
-                .baselineOffset(-1.0)
-                .foregroundColor(.textSecondary)
-            +
-            Text(.init(message))
-                .foregroundColor(.textSecondary)
-        )
-        .multilineTextAlignment(.center)
-        .frame(width: 280)
+        let text = Text(.init(message))
+            .foregroundColor(.textSecondary)
+
+        if let image = image {
+            (
+                Text(Image(image))
+                    .baselineOffset(-1.0)
+                    .foregroundColor(.textSecondary)
+                +
+                text
+            )
+            .multilineTextAlignment(.center)
+            .frame(width: 280)
+        } else {
+            text
+                .multilineTextAlignment(.center)
+                .frame(width: 280)
+        }
     }
 }

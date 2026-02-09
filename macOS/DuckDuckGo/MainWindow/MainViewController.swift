@@ -177,7 +177,8 @@ final class MainViewController: NSViewController {
             return NetworkProtectionNavBarPopoverManager(
                 ipcClient: vpnXPCClient,
                 vpnUninstaller: vpnUninstaller,
-                vpnUIPresenting: Application.appDelegate.windowControllersManager)
+                vpnUIPresenting: Application.appDelegate.windowControllersManager,
+                freeTrialConversionService: Application.appDelegate.freeTrialConversionService)
         }()
         let networkProtectionStatusReporter: NetworkProtectionStatusReporter = {
             var connectivityIssuesObserver: ConnectivityIssueObserver!
@@ -274,8 +275,8 @@ final class MainViewController: NSViewController {
 
         // Create the shared AI Chat omnibar controller
         let suggestionsReader = AIChatSuggestionsReader(
-            featureFlagger: featureFlagger,
-            privacyConfig: NSApp.delegateTyped.privacyFeatures.contentBlocking.privacyConfigurationManager
+            suggestionsReader: SuggestionsReader(featureFlagger: featureFlagger, privacyConfig: contentBlocking.privacyConfigurationManager),
+            historySettings: AIChatHistorySettings(privacyConfig: contentBlocking.privacyConfigurationManager)
         )
         let aiChatOmnibarController = AIChatOmnibarController(
             aiChatTabOpener: aiChatTabOpener,

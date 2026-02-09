@@ -6,8 +6,26 @@ defaults:
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      branch:
+        description: "Branch name"
+        required: false
+        type: string
   schedule:
     - cron: '0 5 * * *' # run at 5 AM UTC
+  push:
+    branches: [ main, "release/macos/**", "hotfix/macos/**" ]
+    paths:
+      - 'SharedPackages/BrowserServicesKit/**'
+      - 'macOS/**'
+  pull_request:
+    # opened, synchronize, reopened are the default triggering events for a pull request
+    # We're also adding ready_for_review to run checks when a draft PR becomes ready for review.
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.github/**'
+      - '.xcode-version'
 
 concurrency:
   group: ${{ github.workflow }}
@@ -20,7 +38,7 @@ jobs:
     with:
       release-type: review
       create-dmg: false
-      branch: ${{ github.sha }}
+      branch: ${{ inputs.branch || github.sha }}
       skip-notify: true
     secrets: inherit
 
@@ -49,6 +67,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        ref: ${{ inputs.branch || github.sha }}
 
     - name: Start measuring duration
       id: start-duration
@@ -134,6 +153,11 @@ jobs:
         log stream --debug --info --predicate 'process == "DuckDuckGo Review" OR process == "UI Tests-Runner"' --style syslog > app-console.log 2>&1 &
         echo $! > log_stream.pid
 
+    - name: Override XCTest Baseline HW Specs
+      working-directory: macOS
+      run: |
+        ./scripts/override-test-baseline-specs.sh
+
     - name: Build Memory Usage Tests
       working-directory: macOS
       run: |
@@ -174,6 +198,39 @@ jobs:
           -skipMacroValidation \
         | tee -a xcodebuild.log \
         | tee ui-tests.log
+
+    - name: Build Memory Metrics Report
+      working-directory: macOS
+      run: |
+        XCRESULT_PATH=$(find DerivedData/Logs/Test -name "*.xcresult" | head -1)
+        if [[ -z "$XCRESULT_PATH" ]]; then
+          echo "No .xcresult bundle found"
+          exit 1
+        fi
+
+        START_TIME=$(date -u -r "${{ steps.start-duration.outputs.start-timestamp }}" '+%Y-%m-%d %H:%M:%S')
+
+        ./scripts/build-memory-metrics-sql.sh \
+          --runner "${{ matrix.runner }}" \
+          --xcresult-path "$XCRESULT_PATH" \
+          --run-id "${{ github.run_id }}" \
+          --branch "${{ github.ref_name }}" \
+          --commit-hash "${{ github.sha }}" \
+          --start-time "$START_TIME" \
+          > insert-statements.sql
+
+    - name: Debug Insert SQL
+      working-directory: macOS
+      run: |
+        echo "Generated insert-statements.sql:"
+        cat insert-statements.sql
+
+    - name: Upload memory metrics
+      uses: actions/upload-artifact@v4
+      with:
+        name: memory-metrics
+        path: macOS/insert-statements.sql
+        retention-days: 1
 
     - name: Stop log stream
       if: always()
@@ -267,6 +324,27 @@ jobs:
         path: "macOS/${{ env.ARCHIVE_NAME }}"
         retention-days: 7
 
+  report-memory-metrics-to-clickhouse:
+    name: Report Memory Metrics to ClickHouse
+    needs: memory-usage-tests
+    runs-on: [ self-hosted, apple ]
+
+    steps:
+      - name: Download memory metrics
+        uses: actions/download-artifact@v4
+        with:
+          name: memory-metrics
+
+      - name: Report Memory Metrics to ClickHouse
+        working-directory: .
+        run: |
+          echo "🏁🏁🏁 Reporting Memory Metrics 🏁"
+          cat insert-statements.sql
+
+          clickhouse-client --no-warnings -m -n --user dev-rw -h clickhouse.duckduckgo.com --queries-file insert-statements.sql
+
+          echo "🏁🏁🏁 Report complete 🏁🏁🏁"
+
   notify-failure:
     name: Notify on failure
     if: ${{ always() && github.event_name == 'schedule' && (needs.memory-usage-tests.result == 'failure' || needs.memory-usage-tests.result == 'cancelled') }}
@@ -276,6 +354,9 @@ jobs:
     steps:
     - name: Check out the code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch || github.sha }}
+
     - name: Create Asana task when workflow failed
       uses: duckduckgo/native-github-asana-sync@v1.1
       with:
