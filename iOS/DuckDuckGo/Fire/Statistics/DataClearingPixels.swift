@@ -42,7 +42,6 @@ enum DataClearingPixels {
     // MARK: - Website Data
 
     case burnWebsiteDataHasResidue(step: String, scope: String?)
-    case burnWebsiteDataError(Error)
 
     // MARK: - History
 
@@ -82,8 +81,6 @@ extension DataClearingPixels: PixelKitEvent {
 
         case .burnWebsiteDataHasResidue:
             return "m_fire_burn_website_data_has_residue"
-        case .burnWebsiteDataError:
-            return "m_fire_burn_website_data_error"
 
         case .burnHistoryDuration:
             return "m_fire_burn_history_duration"
@@ -128,7 +125,7 @@ extension DataClearingPixels: PixelKitEvent {
             
         case .retriggerIn20s, .userActionBeforeCompletion,
              .burnURLCacheHasResidue,
-             .burnTabsError, .burnHistoryError, .burnWebsiteDataError, .burnAIChatHistoryError:
+             .burnTabsError, .burnHistoryError, .burnAIChatHistoryError:
             return nil
         }
     }
@@ -136,7 +133,6 @@ extension DataClearingPixels: PixelKitEvent {
     var error: NSError? {
         switch self {
         case .burnTabsError(let error),
-             .burnWebsiteDataError(let error),
              .burnHistoryError(let error),
              .burnAIChatHistoryError(let error):
             return error as NSError

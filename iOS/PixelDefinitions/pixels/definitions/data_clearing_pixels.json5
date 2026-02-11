@@ -143,14 +143,6 @@
         ]
     },
 
-    "m_fire_burn_website_data_error": {
-        "description": "Fired when an error occurs while clearing website data",
-        "owners": ["hanyutang-sandra"],
-        "triggers": ["other"],
-        "suffixes": ["daily_standard", "platform", "form_factor"],
-        "parameters": ["appVersion", "pixelSource", "errorDomain", "errorCode"]
-    },
-
     "m_fire_burn_history_duration": {
         "description": "Fired to report the duration of history clearing",
         "owners": ["hanyutang-sandra"],

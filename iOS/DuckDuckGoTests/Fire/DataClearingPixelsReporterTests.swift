@@ -202,18 +202,18 @@ final class DataClearingPixelsReporterTests: XCTestCase {
         let testError = NSError(domain: "WebKit", code: 500)
         
         // When
-        sut.fireErrorPixel(DataClearingPixels.burnWebsiteDataError(testError))
+        sut.fireErrorPixel(DataClearingPixels.burnHistoryError(testError))
         
         // Then
         XCTAssertEqual(mockPixelFiring.actualFireCalls.count, 1)
         XCTAssertEqual(mockPixelFiring.actualFireCalls.first?.frequency, .dailyAndStandard)
         
-        if case .burnWebsiteDataError(let error) =
+        if case .burnHistoryError(let error) =
             mockPixelFiring.actualFireCalls.first?.pixel as? DataClearingPixels {
             XCTAssertEqual((error as NSError).domain, testError.domain)
             XCTAssertEqual((error as NSError).code, testError.code)
         } else {
-            XCTFail("Expected burnWebsiteDataError pixel")
+            XCTFail("Expected burnHistoryError pixel")
         }
     }
     
