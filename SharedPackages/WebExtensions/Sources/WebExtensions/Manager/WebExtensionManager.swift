@@ -20,6 +20,7 @@ import Foundation
 import os.log
 import WebKit
 import BrowserServicesKit
+import PrivacyConfig
 
 /// Manages web extensions including installation, loading, and lifecycle.
 /// Platform-specific behavior is delegated to the windowTabProvider and lifecycleDelegate.
@@ -45,6 +46,8 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
 
     /// Privacy configuration JSON string
     public let privacyConfigString: String?
+    public let privacyConfig: PrivacyConfiguration?
+    public let privacyConfigData: PrivacyConfigurationData?
 
     // MARK: - Native Messaging Ports
     // Stores active message ports for bidirectional communication with extensions
@@ -130,7 +133,9 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
                 eventsListener: WebExtensionEventsListening = WebExtensionEventsListener(),
                 lifecycleDelegate: WebExtensionLifecycleDelegate? = nil,
                 internalSiteHandler: (any WebExtensionInternalSiteHandling)? = nil,
-                privacyConfigString: String? = nil) {
+                privacyConfigString: String? = nil,
+                privacyConfig: PrivacyConfiguration? = nil,
+                privacyConfigData: PrivacyConfigurationData?) {
         let controllerConfiguration = WKWebExtensionController.Configuration.default()
         controllerConfiguration.webViewConfiguration.applicationNameForUserAgent = configuration.applicationNameForUserAgent
         self.controller = WKWebExtensionController(configuration: controllerConfiguration)
@@ -143,12 +148,9 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
         self.lifecycleDelegate = lifecycleDelegate
         self.internalSiteHandler = internalSiteHandler
 
-        if let privacyConfigString {
-            self.privacyConfigString = String(repeating: privacyConfigString, count: 15)
-        } else {
-            self.privacyConfigString = "(privacyConfig missing)"
-        }
-
+        self.privacyConfigString = privacyConfigString
+        self.privacyConfig = privacyConfig
+        self.privacyConfigData = privacyConfigData
         super.init()
 
         controller.delegate = self
@@ -400,24 +402,83 @@ extension WebExtensionManager: WKWebExtensionControllerDelegate {
 
         // Log the received message from web extension
         if let messageDict = message as? [String: Any] {
-            let messageType = messageDict["type"] as? String ?? "unknown"
-            let userMessage = messageDict["message"] as? String ?? ""
+            let messageType = messageDict["method"] as? String ?? "unknown"
+            let messageParams = messageDict["params"] as? [String: Any] ?? [:]
+            let messageId = messageDict["id"] as? String
+            let messageContext = messageDict["context"] as? String
+            let messageFeatureName = messageDict["featureName"] as? String
 
             Logger.webExtensions.log("   Type: \(messageType)")
-            Logger.webExtensions.log("   Message: \(userMessage)")
-            Logger.webExtensions.log("   Full payload: \(messageDict)")
+            Logger.webExtensions.log("   Params: \(String(describing: messageParams))")
+            Logger.webExtensions.log("   Id: \(messageId ?? "nil")")
+            Logger.webExtensions.log("   Full payload: \(String(describing: message))")
 
-            let response: [String: Any] = [
-                "status": "received",
-                "nativeTimestamp": Date().timeIntervalSince1970
-            ]
+            var response: [String: Any] = [:]
 
-            // Log response size before sending
-            if let responseSize = calculateMessageSize(response) {
-                let size = formatByteSize(responseSize)
-                Logger.webExtensions.log("📤 Sending response (size: \(size))")
+            guard messageContext == "ddgInternalExtension", messageFeatureName == "autoconsent" else {
+                Logger.webExtensions.error("❌ unexpected message context or feature name: \(String(describing: messageContext)) \(String(describing: messageFeatureName))")
+                response["error"] = [
+                    "message": "unexpected message context or feature name: \(String(describing: messageContext)) \(String(describing: messageFeatureName))"
+                ]
+                return response
             }
 
+            if let messageId {
+                // if message has an id, we need to send a response, see https://duckduckgo.github.io/content-scope-scripts/documents/Messaging.Implementation_Guide.html
+                response["id"] = messageId
+                response["context"] = messageContext
+                response["featureName"] = messageFeatureName
+
+                switch messageType {
+                case "isFeatureEnabled":
+                    response["result"] = [
+                        "enabled": true
+                    ]
+                case "isSubFeatureEnabled":
+                    response["result"] = [
+                        "enabled": true
+                    ]
+                case "getResourceIfNew":
+                    guard let privacyConfigData = privacyConfigData else {
+                        Logger.webExtensions.error("❌ privacy config not available")
+                        response["error"] = [
+                            "message": "privacy config not available"
+                        ]
+                        break
+                    }
+                    let requestedResourceName = messageParams["name"] as? String
+                    guard requestedResourceName == "config" else {
+                        Logger.webExtensions.error("❌ unexpected resource name: \(String(describing: requestedResourceName))")
+                        response["error"] = [
+                            "message": "unexpected resource name: \(String(describing: requestedResourceName))"
+                        ]
+                        break
+                    }
+                    let requestedVersion = messageParams["version"] as? String
+                    if requestedVersion == privacyConfig?.version {
+                        response["result"] = [
+                            "updated": false
+                        ]
+                    } else {
+                        response["result"] = [
+                            "updated": true,
+                            "data": privacyConfigData.toJSONDictionary(),
+                            "version": privacyConfig?.version
+                        ]
+                    }
+                default:
+                    Logger.webExtensions.error("❌ unexpected message type: \(messageType)")
+                    response["error"] = [
+                        "message": "unexpected message type: \(messageType)"
+                    ]
+                }
+
+                // Log response size before sending
+                if let responseSize = calculateMessageSize(response) {
+                    let size = formatByteSize(responseSize)
+                    Logger.webExtensions.log("📤 Sending response (size: \(size))")
+                }
+            }
             return response
         } else {
             Logger.webExtensions.log("   Raw payload: \(String(describing: message))")
@@ -435,11 +496,11 @@ extension WebExtensionManager: WKWebExtensionControllerDelegate {
 
         // Encode privacy config as base64 for transmission
         let encodedPrivacyConfig = privacyConfigString?.data(using: .utf8)?.base64EncodedString()
-        
+
         // Log privacy config availability and size
         if let privacyConfigString = privacyConfigString {
             Logger.webExtensions.log("📜 Privacy config available (length: \(privacyConfigString.count) characters)")
-            
+
             if let encodedPrivacyConfig = encodedPrivacyConfig {
                 let dataSize = encodedPrivacyConfig.lengthOfBytes(using: .utf8)
                 Logger.webExtensions.log("ℹ️ Encoded privacy config size: \(dataSize) bytes")

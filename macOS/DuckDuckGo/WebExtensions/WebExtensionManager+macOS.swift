@@ -20,6 +20,7 @@ import AppKit
 import BrowserServicesKit
 import WebExtensions
 import WebKit
+import PrivacyConfig
 
 // MARK: - macOS-specific WebExtensionManager Extensions
 
@@ -94,13 +95,18 @@ enum WebExtensionManagerFactory {
 
         // Get privacy config as raw JSON string
         let privacyConfigString = getPrivacyConfigString()
+        let currentConfig = DefaultScriptSourceProvider().privacyConfigurationManager.currentConfig
+        let privacyConfigData = try? PrivacyConfigurationData(data: currentConfig)
 
         let manager = WebExtensionManager(
             configuration: WebExtensionConfigurationProvider(),
             windowTabProvider: WebExtensionWindowTabProvider(),
             storageProvider: WebExtensionStorageProvider(),
             internalSiteHandler: internalSiteHandler,
-            privacyConfigString: privacyConfigString
+            privacyConfigString: privacyConfigString,
+            // FIXME: make sure it's updated when the privacy config changes
+            privacyConfig: DefaultScriptSourceProvider().privacyConfigurationManager.privacyConfig,
+            privacyConfigData: privacyConfigData
         )
 
         internalSiteHandler.dataSource = manager
