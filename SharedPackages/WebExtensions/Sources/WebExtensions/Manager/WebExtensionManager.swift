@@ -430,6 +430,10 @@ extension WebExtensionManager: WKWebExtensionControllerDelegate {
                 response["featureName"] = messageFeatureName
 
                 switch messageType {
+                case "isAutoconsentSettingEnabled":
+                    response["result"] = [
+                        "enabled": true
+                    ]
                 case "isFeatureEnabled":
                     response["result"] = [
                         "enabled": true
