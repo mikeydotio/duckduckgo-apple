@@ -4,13 +4,12 @@ description: Design guidance for wide events - when to use them, event formattin
 ---
 # Wide Events
 
-Wide events measure a user journey through a multi-step feature flow, sending a single event when the journey ends. They are the right choice when you need to understand the full picture of a user's experience through a process, rather than individual actions.
+Wide events measure a user's complete journey through a multi-step feature flow, sending a single event when the journey fully concludes. The event should capture the entire experience from start to final outcome -- not just the technical operations, but the user-facing result.
 
 ## When to Use a Wide Event vs a Pixel
 
 **Use a wide event when:**
 - A user journey has multiple steps that can succeed or fail independently (e.g., subscription purchase: select plan -> create account -> process payment -> activate)
-- You need to measure latency across multiple stages of a flow
 - You need to understand where users drop off or encounter errors in a multi-step process
 - The outcome of earlier steps affects the interpretation of later steps
 
@@ -46,16 +45,16 @@ Custom event properties live under `feature.data.ext.*`.
 
 ### Status
 
-Every wide event ends with exactly one status:
+Every wide event ends with exactly one status. The status should reflect the final outcome of the user's journey -- don't complete the event at an intermediate step just because a technical operation finished. Ask "has the user achieved what they set out to do?" before ending the flow.
 
 - **Success**: The journey completed as intended. Optionally include a `reason` for additional context (e.g., `delayed_activation`)
 - **Failure**: A required operation failed and the journey could not complete
 - **Cancelled**: The user explicitly chose to abandon the journey
 - **Unknown**: The journey stopped unexpectedly (timeout, crash, app termination) - requires a `reason` string explaining what happened
 
-### Failing Step
+### Last Step
 
-Always maintain a `failing_step` field that records the last step attempted before a failure. Update this as the flow progresses so it's always current. Name the steps in a way that makes sense for your feature -- there is no standard naming convention. Use snake_case for the values (e.g., `account_create`, `flow_start`).
+If a flow can end with `failure` or `unknown` status, maintain a `last_step` field that records the last step that was reached when the journey ended. Update this as the flow progresses so it's always current - this field exists to explain where a journey went wrong. Name the steps in a way that makes sense for your feature -- there is no standard naming convention. Use snake_case for the values (e.g., `account_create`, `flow_start`).
 
 ### What Data to Include
 
@@ -63,7 +62,7 @@ Always maintain a `failing_step` field that records the last step attempted befo
 - The current step/stage of the flow (as `failing_step`)
 - Latency measurements for user-blocking operations (network calls, processing steps)
 - Configuration choices that affect the flow path (e.g., which payment platform, which import source)
-- Error information when a step fails (domain, code, description, underlying errors)
+- Error information when a step fails (domain, code, description, underlying errors) -- only include error fields when the journey can end with a `failure` status
 - Feature-relevant boolean flags (e.g., free trial eligible, onboarding completed)
 - Entry point context when multiple paths lead to the same flow
 
@@ -71,7 +70,8 @@ Always maintain a `failing_step` field that records the last step attempted befo
 - Personally identifiable information (emails, names, account IDs)
 - High-cardinality string values that create unbounded parameter spaces (free-form user input, URLs, file paths)
 - Data that duplicates what's already in the base event (app version, platform)
-- Flow state that isn't useful for post-hoc debugging or alerting (e.g., retry counters, temporary buffer sizes) -- only capture state that helps explain outcomes, like `failing_step` for failed flows
+- Flow state that isn't useful for debugging or alerting -- only capture state that helps explain outcomes, like `last_step` for failed flows
+- Redundant fields that can be derived from each other -- each field should provide independent information. If one field's value can be inferred from another, keep only the one that's more directly useful for debugging or alerting
 - Granular timing data - use bucketed latency values instead (see Latency Measurement below)
 
 ### Latency Measurement
@@ -104,3 +104,4 @@ For flows that may never complete (e.g., waiting for backend activation), define
 4. **Include enough to debug failures**: A failed wide event should contain everything needed to understand _why_ it failed -- error details, failing step, and relevant configuration
 5. **Handle stale flows**: Implement a completion decision for flows that may survive app restarts -- check on app launch whether the flow should be completed with a timeout or delayed-success status
 6. **Keep parameters flat**: Use dot-notation keys (e.g., `feature.data.ext.purchase_platform`) -- these are automatically converted to nested JSON for the POST endpoint
+7. **Only model production behavior**: Design events around the user experience available in production builds. Ignore debug menus, internal tester flags, feature flags gated to employees, and other non-production code paths -- these should not influence event status, flow steps, or data fields
