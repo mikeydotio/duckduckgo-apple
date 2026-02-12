@@ -23,6 +23,8 @@ import Foundation
 @available(macOS 15.4, iOS 18.4, *)
 final class WebExtensionLoadingMock: WebExtensionLoading {
 
+    weak var delegate: WebExtensionLoadingDelegate?
+
     var loadWebExtensionCalled = false
     var loadWebExtensionsCalled = false
     var unloadExtensionCalled = false
@@ -44,14 +46,20 @@ final class WebExtensionLoadingMock: WebExtensionLoading {
             throw mockError
         }
 
-        guard let mockLoadResult = mockLoadResult else {
+        let result: WebExtensionLoadResult
+        if let mockLoadResult = mockLoadResult {
+            result = mockLoadResult
+        } else {
             let testExtensionURL = try createTestWebExtension()
             let mockExtension = try await WKWebExtension(resourceBaseURL: testExtensionURL)
             let mockContext = await WKWebExtensionContext(for: mockExtension)
-            return WebExtensionLoadResult(context: mockContext, identifier: identifier)
+            result = WebExtensionLoadResult(context: mockContext, identifier: identifier)
         }
 
-        return mockLoadResult
+        // Notify delegate before returning (simulating the real loader's behavior)
+        delegate?.webExtensionLoader(self, willLoad: result.context, identifier: identifier)
+
+        return result
     }
 
     func loadWebExtensions(identifiers: [String], into controller: WKWebExtensionController) async -> [Result<WebExtensionLoadResult, Error>] {

@@ -90,6 +90,7 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
         super.init()
 
         controller.delegate = self
+        self.loader.delegate = self
     }
 
     // MARK: - Computed Properties
@@ -131,8 +132,6 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
             )
 
             installationStore.add(installedExtension)
-
-            registerHandlersForExtension(identifier: identifier, context: loadResult.context)
 
             Logger.webExtensions.info("✅ Successfully installed extension \(installedExtension.filename) (\(identifier))")
             pixelFiring.fire(.installed)
@@ -225,9 +224,8 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
         var successCount = 0
         for (installedExtension, result) in zip(extensions, results) {
             switch result {
-            case .success(let loadResult):
+            case .success:
                 Logger.webExtensions.debug("✅ Loaded extension \(installedExtension.filename) (\(installedExtension.uniqueIdentifier))")
-                registerHandlersForExtension(identifier: installedExtension.uniqueIdentifier, context: loadResult.context)
                 successCount += 1
             case .failure(let failure):
                 Logger.webExtensions.error("❌ Failed to load web extension \(installedExtension.filename) (\(installedExtension.uniqueIdentifier)): \(failure.localizedDescription)")

@@ -50,6 +50,18 @@ extension WebExtensionManager {
     }
 }
 
+// MARK: - WebExtensionLoadingDelegate
+
+@available(macOS 15.4, iOS 18.4, *)
+extension WebExtensionManager: WebExtensionLoadingDelegate {
+
+    public func webExtensionLoader(_ loader: WebExtensionLoading,
+                                   willLoad context: WKWebExtensionContext,
+                                   identifier: String) {
+        registerHandlersForExtension(identifier: identifier, context: context)
+    }
+}
+
 // MARK: - Native Messaging
 
 @available(macOS 15.4, iOS 18.4, *)
