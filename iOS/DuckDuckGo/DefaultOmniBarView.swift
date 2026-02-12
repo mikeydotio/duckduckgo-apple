@@ -282,6 +282,17 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     private var aiChatBrandingView: AIChatFullModeOmniBrandingView?
     private var aiChatModeConstraints: [NSLayoutConstraint] = []
 
+    let duckAITextView: UITextView = {
+        let textView = UITextView()
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.isHidden = true
+        textView.backgroundColor = .clear
+        // Match the UITextField's vertical text centering (~12pt from top in a 44pt field)
+        textView.textContainerInset = UIEdgeInsets(top: 12, left: 0, bottom: 0, right: 0)
+        textView.textContainer.lineFragmentPadding = 0
+        return textView
+    }()
+
     var searchContainerWidth: CGFloat { searchAreaView.frame.width }
 
     private var masksTop: Bool = true
@@ -343,6 +354,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         searchAreaStackView.addArrangedSubview(searchAreaContainerView)
 
         searchAreaContainerView.addSubview(searchAreaView)
+        searchAreaContainerView.addSubview(duckAITextView)
         searchAreaContainerView.addSubview(omniBarProgressView)
 
         trailingButtonsContainer.addArrangedSubview(bookmarksButtonView)
@@ -424,6 +436,14 @@ final class DefaultOmniBarView: UIView, OmniBarView {
             fieldContainerLayoutGuide.trailingAnchor.constraint(equalTo: searchAreaContainerView.trailingAnchor),
             fieldContainerLayoutGuide.topAnchor.constraint(equalTo: searchAreaContainerView.topAnchor),
             fieldContainerLayoutGuide.bottomAnchor.constraint(equalTo: searchAreaContainerView.bottomAnchor)
+        ])
+
+        // Duck.ai multi-line text view — overlays the text field's position, extends to container bottom
+        NSLayoutConstraint.activate([
+            duckAITextView.topAnchor.constraint(equalTo: searchAreaView.textField.topAnchor),
+            duckAITextView.leadingAnchor.constraint(equalTo: searchAreaView.textField.leadingAnchor),
+            duckAITextView.trailingAnchor.constraint(equalTo: searchAreaView.textField.trailingAnchor),
+            duckAITextView.bottomAnchor.constraint(equalTo: searchAreaContainerView.bottomAnchor, constant: -Metrics.duckAITextViewBottomPadding),
         ])
 
         // Search stack bottom constraint — == for normal, >= for expanded (allows overflow)
@@ -542,6 +562,13 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         aiChatLeftButton.setImage(DesignSystemImages.Glyphs.Size24.aiChatHistory, for: .normal)
         aiChatLeftButton.isHidden = true
         DefaultOmniBarView.setUpCommonProperties(for: aiChatLeftButton)
+
+        duckAITextView.font = UIFont.daxBodyRegular()
+        duckAITextView.textColor = UIColor(designSystemColor: .textPrimary)
+        duckAITextView.tintColor = UIColor(designSystemColor: .accent)
+        duckAITextView.autocapitalizationType = .sentences
+        duckAITextView.autocorrectionType = .default
+        duckAITextView.isScrollEnabled = true
 
         progressView?.hide()
 
@@ -785,6 +812,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         static let textAreaVerticalPaddingRegularSpacing: CGFloat = 8
 
         static let expandedSearchAreaHeight: CGFloat = 120.0
+        static let duckAITextViewBottomPadding: CGFloat = 8.0
         static let disabledButtonAlpha: CGFloat = 0.3
         static let expansionAnimationDuration: TimeInterval = 0.25
         static let expandedSizeSpacing: CGFloat = 24.0
@@ -905,6 +933,8 @@ extension DefaultOmniBarView {
     /// This works by swapping the inner stack's bottom constraint from `==` to `>=`,
     /// which releases the height lock imposed by the outer stack's `.fill` alignment.
     func updateSearchAreaExpansion(animated: Bool) {
+        applyTextViewVisibility()
+
         guard animated else {
             applyExpansionConstraints()
             applyExpansionClipping()
@@ -926,6 +956,24 @@ extension DefaultOmniBarView {
             if !self.isSearchAreaExpanded {
                 self.applyExpansionClipping()
             }
+            if self.isSearchAreaExpanded {
+                self.duckAITextView.becomeFirstResponder()
+            }
+        }
+    }
+
+    private func applyTextViewVisibility() {
+        if isSearchAreaExpanded {
+            // Transfer text and overlay — text field stays in layout to preserve stack sizing
+            duckAITextView.text = textField.text
+            duckAITextView.isHidden = false
+            textField.alpha = 0
+            searchAreaContainerView.bringSubviewToFront(duckAITextView)
+        } else {
+            // Transfer text back and restore
+            textField.text = duckAITextView.text
+            textField.alpha = 1
+            duckAITextView.isHidden = true
         }
     }
 
