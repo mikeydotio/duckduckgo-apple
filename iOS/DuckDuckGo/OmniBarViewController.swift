@@ -247,8 +247,8 @@ class OmniBarViewController: UIViewController, OmniBar {
         barView.onAIChatPressed = { [weak self] in
             self?.onAIChatPressed()
         }
-        barView.onSearchModeSwitcherChanged = { [weak self] selectedIndex in
-            self?.onSearchModeSwitcherChanged(selectedIndex: selectedIndex)
+        barView.onSearchModeChanged = { [weak self] mode in
+            self?.onSearchModeChanged(mode)
         }
         barView.onDismissPressed = { [weak self] in
             self?.onDismissPressed()
@@ -672,27 +672,40 @@ class OmniBarViewController: UIViewController, OmniBar {
         barView.isBackButtonHidden = !state.showBackButton
         barView.isForwardButtonHidden = !state.showForwardButton
         barView.isBookmarksButtonHidden = !state.showBookmarksButton
-        if state.hasLargeWidth {
-            barView.isAIChatButtonHidden = true
-            barView.isSearchModeSwitcherHidden = !state.showAIChatButton
-            let isAIChatMode = state is LargeOmniBarState.AIChatModeState
-            barView.searchModeSwitcherSelectedIndex = isAIChatMode ? 1 : 0
-            if !isAIChatMode {
-                barView.isSearchAreaExpanded = false
-            }
-            barView.isPadReloadButtonHidden = false
-            barView.isPadReloadButtonEnabled = state.showRefresh
-            barView.isRefreshButtonHidden = true
-        } else {
-            barView.isAIChatButtonHidden = !state.showAIChatButton
-            barView.isSearchModeSwitcherHidden = true
-            barView.isPadReloadButtonHidden = true
-        }
+        applyPadLayout(for: state)
 
         applyCustomization()
 
         let shouldShowAIChat = state.showAIChatFullModeBranding
         barView.isFullAIChatHidden = !shouldShowAIChat
+    }
+
+    /// Applies iPad-specific layout: replaces the AI chat button with a search mode switcher
+    /// and shows the pad reload button outside the address bar.
+    private func applyPadLayout(for state: any OmniBarState) {
+        guard state.hasLargeWidth else {
+            barView.isSearchModeSwitcherHidden = true
+            barView.isPadReloadButtonHidden = true
+            return
+        }
+
+        // On iPad, the segmented control replaces the AI chat button
+        barView.isAIChatButtonHidden = true
+        barView.isSearchModeSwitcherHidden = !state.showAIChatButton
+
+        // Select duck.ai segment when on an AI chat page
+        if state is LargeOmniBarState.AIChatModeState {
+            barView.searchMode = .duckAI
+        } else {
+            barView.searchMode = .search
+        }
+
+        // Pad reload button is always visible, disabled when there's nothing to reload
+        barView.isPadReloadButtonHidden = false
+        barView.isPadReloadButtonEnabled = state.isBrowsing && !state.isLoading
+
+        // Hide the in-bar refresh since we have the external pad reload button
+        barView.isRefreshButtonHidden = true
     }
 
     private func applyCustomization() {
@@ -886,11 +899,12 @@ class OmniBarViewController: UIViewController, OmniBar {
         omniDelegate?.onAIChatPressed()
     }
 
-    private func onSearchModeSwitcherChanged(selectedIndex: Int) {
-        if selectedIndex == 1 {
+    private func onSearchModeChanged(_ mode: OmniBarSearchMode) {
+        switch mode {
+        case .duckAI:
             print("[OmniBar] Duck.ai mode selected")
             barView.isSearchAreaExpanded = true
-        } else {
+        case .search:
             print("[OmniBar] Search mode selected")
             barView.isSearchAreaExpanded = false
         }

@@ -154,9 +154,9 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         set { searchAreaView.searchModeSwitcher.isHidden = newValue }
     }
 
-    var searchModeSwitcherSelectedIndex: Int {
-        get { searchAreaView.searchModeSwitcher.selectedSegmentIndex }
-        set { searchAreaView.searchModeSwitcher.selectedSegmentIndex = newValue }
+    var searchMode: OmniBarSearchMode {
+        get { OmniBarSearchMode(rawValue: searchAreaView.searchModeSwitcher.selectedSegmentIndex) ?? .search }
+        set { searchAreaView.searchModeSwitcher.selectedSegmentIndex = newValue.rawValue }
     }
 
     var isPadReloadButtonHidden: Bool {
@@ -168,7 +168,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         get { padReloadButtonView.isEnabled }
         set {
             padReloadButtonView.isEnabled = newValue
-            padReloadButtonView.alpha = newValue ? 1.0 : 0.3
+            padReloadButtonView.alpha = newValue ? 1.0 : Metrics.disabledButtonAlpha
         }
     }
 
@@ -245,7 +245,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     var onForwardPressed: (() -> Void)?
     var onBookmarksPressed: (() -> Void)?
     var onAIChatPressed: (() -> Void)?
-    var onSearchModeSwitcherChanged: ((Int) -> Void)?
+    var onSearchModeChanged: ((OmniBarSearchMode) -> Void)?
     var onDismissPressed: (() -> Void)?
     
     /// Callback fired when the AI Chat left button is tapped
@@ -659,63 +659,6 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         updateShadows()
     }
 
-    private func updateSearchAreaExpansion(animated: Bool) {
-        if animated {
-            layoutIfNeeded()
-
-            if isSearchAreaExpanded {
-                // Disable clipping BEFORE expanding so overflow is visible during growth
-                updateClippingForExpansion()
-            }
-
-            applyExpansionConstraints()
-
-            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
-                self.layoutIfNeeded()
-            } completion: { _ in
-                if !self.isSearchAreaExpanded {
-                    // Restore clipping AFTER collapse animation finishes
-                    self.updateClippingForExpansion()
-                }
-            }
-        } else {
-            applyExpansionConstraints()
-            updateClippingForExpansion()
-            layoutIfNeeded()
-        }
-    }
-
-    private func applyExpansionConstraints() {
-        if isSearchAreaExpanded {
-            searchStackBottomEqualConstraint?.isActive = false
-            searchStackBottomGTEConstraint?.isActive = true
-            expandedHeightConstraint?.isActive = true
-            searchAreaCenterYConstraint?.isActive = false
-            searchAreaTopPinConstraint?.isActive = true
-        } else {
-            expandedHeightConstraint?.isActive = false
-            searchStackBottomGTEConstraint?.isActive = false
-            searchStackBottomEqualConstraint?.isActive = true
-            searchAreaTopPinConstraint?.isActive = false
-            searchAreaCenterYConstraint?.isActive = true
-        }
-    }
-
-    private func updateClippingForExpansion() {
-        let disable = isSearchAreaExpanded
-        clipsToBounds = !disable
-        stackView.clipsToBounds = !disable
-        searchAreaAlignmentView.clipsToBounds = !disable
-        searchAreaStackView.clipsToBounds = !disable
-        searchAreaContainerView.clipsToBounds = !disable
-
-        if disable {
-            layer.mask = nil
-        } else {
-            updateMaskLayer()
-        }
-    }
-
     private func updateVerticalSpacing() {
         textAreaTopPaddingConstraint?.constant = isUsingSmallTopSpacing ? Metrics.textAreaTopPaddingAdjustedSpacing : Metrics.textAreaVerticalPaddingRegularSpacing
         textAreaBottomPaddingConstraint?.constant = -(isUsingSmallTopSpacing ? Metrics.textAreaBottomPaddingAdjustedSpacing : Metrics.textAreaVerticalPaddingRegularSpacing)
@@ -806,7 +749,8 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     }
 
     @objc private func searchModeSwitcherValueChanged() {
-        onSearchModeSwitcherChanged?(searchAreaView.searchModeSwitcher.selectedSegmentIndex)
+        guard let mode = OmniBarSearchMode(rawValue: searchAreaView.searchModeSwitcher.selectedSegmentIndex) else { return }
+        onSearchModeChanged?(mode)
     }
 
     @objc private func searchAreaPressed() {
@@ -841,6 +785,8 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         static let textAreaVerticalPaddingRegularSpacing: CGFloat = 8
 
         static let expandedSearchAreaHeight: CGFloat = 120.0
+        static let disabledButtonAlpha: CGFloat = 0.3
+        static let expansionAnimationDuration: TimeInterval = 0.25
         static let expandedSizeSpacing: CGFloat = 24.0
         static let expandedSizeMargins = NSDirectionalEdgeInsets(
             top: 0,
@@ -946,5 +892,68 @@ extension DefaultOmniBarView {
         maskLayer.backgroundColor = UIColor.black.cgColor
 
         layer.mask = maskLayer
+    }
+}
+
+// MARK: - Search Area Expansion (iPad)
+
+extension DefaultOmniBarView {
+
+    /// Animates or immediately applies expansion/collapse of the search area.
+    ///
+    /// When expanded, the search area container overflows its parent stack view downward.
+    /// This works by swapping the inner stack's bottom constraint from `==` to `>=`,
+    /// which releases the height lock imposed by the outer stack's `.fill` alignment.
+    func updateSearchAreaExpansion(animated: Bool) {
+        guard animated else {
+            applyExpansionConstraints()
+            applyExpansionClipping()
+            layoutIfNeeded()
+            return
+        }
+
+        layoutIfNeeded()
+
+        if isSearchAreaExpanded {
+            applyExpansionClipping()
+        }
+
+        applyExpansionConstraints()
+
+        UIView.animate(withDuration: Metrics.expansionAnimationDuration, delay: 0, options: .curveEaseInOut) {
+            self.layoutIfNeeded()
+        } completion: { _ in
+            if !self.isSearchAreaExpanded {
+                self.applyExpansionClipping()
+            }
+        }
+    }
+
+    private func applyExpansionConstraints() {
+        let expanded = isSearchAreaExpanded
+
+        // Allow the inner stack to overflow below its parent when expanded
+        searchStackBottomEqualConstraint?.isActive = !expanded
+        searchStackBottomGTEConstraint?.isActive = expanded
+
+        // Set target height
+        expandedHeightConstraint?.isActive = expanded
+
+        // Pin content to top when expanded, center when collapsed
+        searchAreaCenterYConstraint?.isActive = !expanded
+        searchAreaTopPinConstraint?.isActive = expanded
+    }
+
+    private func applyExpansionClipping() {
+        let allowOverflow = isSearchAreaExpanded
+
+        let clippingViews: [UIView] = [self, stackView, searchAreaAlignmentView, searchAreaStackView, searchAreaContainerView]
+        clippingViews.forEach { $0.clipsToBounds = !allowOverflow }
+
+        if allowOverflow {
+            layer.mask = nil
+        } else {
+            updateMaskLayer()
+        }
     }
 }

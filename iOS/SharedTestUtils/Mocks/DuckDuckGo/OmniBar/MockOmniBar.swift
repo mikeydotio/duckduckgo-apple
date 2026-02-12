@@ -124,7 +124,7 @@ final class MockOmniBar: OmniBar {
         var onForwardPressed: (() -> Void)?
         var onBookmarksPressed: (() -> Void)?
         var onAIChatPressed: (() -> Void)?
-        var onSearchModeSwitcherChanged: ((Int) -> Void)?
+        var onSearchModeChanged: ((OmniBarSearchMode) -> Void)?
         var onDismissPressed: (() -> Void)?
         var onSettingsLongPress: (() -> Void)?
         var onCustomizableButtonPressed: (() -> Void)?
@@ -148,7 +148,7 @@ final class MockOmniBar: OmniBar {
         var isBookmarksButtonHidden: Bool = true
         var isAIChatButtonHidden: Bool = true
         var isSearchModeSwitcherHidden: Bool = true
-        var searchModeSwitcherSelectedIndex: Int = 0
+        var searchMode: OmniBarSearchMode = .search
         var isPadReloadButtonHidden: Bool = true
         var isPadReloadButtonEnabled: Bool = false
         var isSearchAreaExpanded: Bool = false
