@@ -16,7 +16,7 @@ For the cross-platform overview of the remote config system, see the [Feature Fl
 
 **Changing a default on a shipped feature**: if flipping from `false` to `true`, set `minSupportedVersion` in the remote config to the version that includes the change. Otherwise older versions without the finished implementation will activate the feature when they can't reach the config.
 
-## Footguns
+## Pitfalls
 
 **Always use `.remoteReleasable(.subfeature(...))`** -- mapping to a parent feature via `.remoteReleasable(.feature(...))` silently loses rollout, target, and cohort support. This has caused incidents. If no sub-feature exists, add one to [`PrivacyFeature.swift`](../Features/PrivacyFeature.swift) under the appropriate parent (`iOSBrowserConfigSubfeature`, `MacOSBrowserConfigSubfeature`, or a domain-specific parent like `AIChatSubfeature`).
 
