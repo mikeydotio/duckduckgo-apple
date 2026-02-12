@@ -1,4 +1,4 @@
-// Data Clearing (Fire) pixels for tracking fire button performance and quality metrics
+// Data Clearing pixels for measuring performance and quality metrics
 {
     // ==================== Overall Flow Metrics ====================
 
@@ -114,7 +114,7 @@
         "parameters": ["appVersion", "pixelSource", "errorDomain", "errorCode"]
     },
 
-    "m_mac_data_clearing_clear_history_duration": {
+    "m_mac_data_clearing_clear_chat_history_duration": {
         "description": "Fired to report the duration of chat history clearing",
         "owners": ["hanyutang-sandra"],
         "triggers": ["other"],
@@ -267,12 +267,5 @@
                 "description": "Duration of recently closed tabs clearing in milliseconds"
             }
         ]
-    },
-
-    "m_mac_data_clearing_clear_recently_closed_has_residue": {
-        "description": "Fired when residual recently closed data is detected after clearing",
-        "owners": ["hanyutang-sandra"],
-        "triggers": ["other"],
-        "parameters": ["appVersion", "pixelSource"]
     }
 }

@@ -91,7 +91,7 @@ extension HistoryCoordinating {
 public struct DataClearingHistoryPixelsHandlers {
     let historyHandler: DataClearingPixelsHandling?
     let visitsHandler: DataClearingPixelsHandling?
-    
+
     public init(historyHandler: DataClearingPixelsHandling? = nil, visitsHandler: DataClearingPixelsHandling? = nil) {
         self.historyHandler = historyHandler
         self.visitsHandler = visitsHandler

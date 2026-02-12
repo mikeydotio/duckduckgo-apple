@@ -41,7 +41,7 @@ struct DataClearingPixelsClearVisitsHandler: DataClearingPixelsHandling {
     func fireDurationPixel(_ startTime: CFTimeInterval) {
         dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.clearVisitsDuration, startTime: startTime)
     }
-    
+
     func fireErrorPixel(_ error: Error) {
         dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.clearVisitsError(error))
     }
