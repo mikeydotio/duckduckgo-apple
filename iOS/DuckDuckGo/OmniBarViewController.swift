@@ -677,6 +677,7 @@ class OmniBarViewController: UIViewController, OmniBar {
         // iPad search mode switcher and external reload button
         barView.isSearchModeSwitcherHidden = !state.showSearchModeSwitcher
         barView.searchMode = state.searchMode
+        barView.isSearchAreaExpanded = state.searchMode == .duckAI
         barView.isPadReloadButtonHidden = !state.showPadReloadButton
         barView.isPadReloadButtonEnabled = state.padReloadButtonEnabled
 

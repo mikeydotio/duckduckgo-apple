@@ -873,7 +873,7 @@ extension DefaultOmniBarView {
     }
 
     private func updateMaskLayer() {
-        guard clipsContent else {
+        guard clipsContent, !isSearchAreaExpanded else {
             layer.mask = nil
             return
         }
