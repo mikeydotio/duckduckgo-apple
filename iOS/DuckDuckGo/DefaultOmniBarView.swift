@@ -69,6 +69,12 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     private var textAreaTopPaddingConstraint: NSLayoutConstraint?
     private var textAreaBottomPaddingConstraint: NSLayoutConstraint?
 
+    private var searchAreaCenterYConstraint: NSLayoutConstraint?
+    private var searchAreaTopPinConstraint: NSLayoutConstraint?
+    private var expandedHeightConstraint: NSLayoutConstraint?
+    private var searchStackBottomEqualConstraint: NSLayoutConstraint?
+    private var searchStackBottomGTEConstraint: NSLayoutConstraint?
+
     let fieldContainerLayoutGuide = UILayoutGuide()
 
     // iPad elements
@@ -207,6 +213,13 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     var isShowingSeparator: Bool = false {
         didSet {
             searchAreaView.separatorView.isHidden = !isShowingSeparator
+        }
+    }
+
+    var isSearchAreaExpanded: Bool = false {
+        didSet {
+            guard oldValue != isSearchAreaExpanded else { return }
+            updateSearchAreaExpansion(animated: true)
         }
     }
 
@@ -386,7 +399,6 @@ final class DefaultOmniBarView: UIView, OmniBarView {
             searchAreaView.bottomAnchor.constraint(lessThanOrEqualTo: searchAreaContainerView.bottomAnchor),
             searchAreaView.leadingAnchor.constraint(equalTo: searchAreaContainerView.leadingAnchor),
             searchAreaView.trailingAnchor.constraint(equalTo: searchAreaContainerView.trailingAnchor),
-            searchAreaView.centerYAnchor.constraint(equalTo: searchAreaContainerView.centerYAnchor),
 
             searchAreaContainerView.centerXAnchor.constraint(equalTo: centerXAnchor),
             readableSearchAreaWidth,
@@ -402,7 +414,6 @@ final class DefaultOmniBarView: UIView, OmniBarView {
             omniBarProgressView.bottomAnchor.constraint(equalTo: searchAreaContainerView.bottomAnchor),
 
             searchAreaStackView.topAnchor.constraint(equalTo: searchAreaAlignmentView.topAnchor),
-            searchAreaStackView.bottomAnchor.constraint(equalTo: searchAreaAlignmentView.bottomAnchor),
             searchAreaStackView.leadingAnchor.constraint(greaterThanOrEqualTo: searchAreaAlignmentView.leadingAnchor),
             searchAreaStackView.trailingAnchor.constraint(lessThanOrEqualTo: searchAreaAlignmentView.trailingAnchor),
 
@@ -414,6 +425,29 @@ final class DefaultOmniBarView: UIView, OmniBarView {
             fieldContainerLayoutGuide.topAnchor.constraint(equalTo: searchAreaContainerView.topAnchor),
             fieldContainerLayoutGuide.bottomAnchor.constraint(equalTo: searchAreaContainerView.bottomAnchor)
         ])
+
+        // Search stack bottom constraint — == for normal, >= for expanded (allows overflow)
+        let bottomEqual = searchAreaStackView.bottomAnchor.constraint(equalTo: searchAreaAlignmentView.bottomAnchor)
+        bottomEqual.isActive = true
+        searchStackBottomEqualConstraint = bottomEqual
+
+        let bottomGTE = searchAreaStackView.bottomAnchor.constraint(greaterThanOrEqualTo: searchAreaAlignmentView.bottomAnchor)
+        bottomGTE.isActive = false
+        searchStackBottomGTEConstraint = bottomGTE
+
+        // Search area vertical positioning — centerY active by default, top pin for expanded mode
+        let centerY = searchAreaView.centerYAnchor.constraint(equalTo: searchAreaContainerView.centerYAnchor)
+        centerY.isActive = true
+        searchAreaCenterYConstraint = centerY
+
+        let topPin = searchAreaView.topAnchor.constraint(equalTo: searchAreaContainerView.topAnchor)
+        topPin.isActive = false
+        searchAreaTopPinConstraint = topPin
+
+        // Expanded height constraint (inactive by default)
+        let expandedHeight = searchAreaContainerView.heightAnchor.constraint(equalToConstant: Metrics.expandedSearchAreaHeight)
+        expandedHeight.isActive = false
+        expandedHeightConstraint = expandedHeight
 
         DefaultOmniBarView.activateItemSizeConstraints(for: backButtonView)
         DefaultOmniBarView.activateItemSizeConstraints(for: forwardButtonView)
@@ -625,9 +659,70 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         updateShadows()
     }
 
+    private func updateSearchAreaExpansion(animated: Bool) {
+        let applyChanges = {
+            if self.isSearchAreaExpanded {
+                // Swap bottom == to >= so inner stack can overflow below alignment view
+                self.searchStackBottomEqualConstraint?.isActive = false
+                self.searchStackBottomGTEConstraint?.isActive = true
+                self.expandedHeightConstraint?.isActive = true
+                self.searchAreaCenterYConstraint?.isActive = false
+                self.searchAreaTopPinConstraint?.isActive = true
+            } else {
+                self.expandedHeightConstraint?.isActive = false
+                self.searchStackBottomGTEConstraint?.isActive = false
+                self.searchStackBottomEqualConstraint?.isActive = true
+                self.searchAreaTopPinConstraint?.isActive = false
+                self.searchAreaCenterYConstraint?.isActive = true
+            }
+            self.updateClippingForExpansion()
+            self.layoutIfNeeded()
+        }
+
+        if animated {
+            layoutIfNeeded()
+            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+                applyChanges()
+            }
+        } else {
+            applyChanges()
+        }
+    }
+
+    private func updateClippingForExpansion() {
+        let disable = isSearchAreaExpanded
+        clipsToBounds = !disable
+        stackView.clipsToBounds = !disable
+        searchAreaAlignmentView.clipsToBounds = !disable
+        searchAreaStackView.clipsToBounds = !disable
+        searchAreaContainerView.clipsToBounds = !disable
+
+        if disable {
+            layer.mask = nil
+        } else {
+            updateMaskLayer()
+        }
+    }
+
     private func updateVerticalSpacing() {
         textAreaTopPaddingConstraint?.constant = isUsingSmallTopSpacing ? Metrics.textAreaTopPaddingAdjustedSpacing : Metrics.textAreaVerticalPaddingRegularSpacing
         textAreaBottomPaddingConstraint?.constant = -(isUsingSmallTopSpacing ? Metrics.textAreaBottomPaddingAdjustedSpacing : Metrics.textAreaVerticalPaddingRegularSpacing)
+    }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        if let result = super.hitTest(point, with: event) {
+            return result
+        }
+
+        // When expanded, check if the touch falls within the overflowed search area
+        if isSearchAreaExpanded {
+            let convertedPoint = searchAreaContainerView.convert(point, from: self)
+            if searchAreaContainerView.bounds.contains(convertedPoint) {
+                return searchAreaContainerView.hitTest(convertedPoint, with: event)
+            }
+        }
+
+        return nil
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -733,6 +828,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
 
         static let textAreaVerticalPaddingRegularSpacing: CGFloat = 8
 
+        static let expandedSearchAreaHeight: CGFloat = 120.0
         static let expandedSizeSpacing: CGFloat = 24.0
         static let expandedSizeMargins = NSDirectionalEdgeInsets(
             top: 0,

@@ -111,6 +111,7 @@ protocol OmniBarStatusUpdateable: AnyObject {
     var searchModeSwitcherSelectedIndex: Int { get set }
     var isPadReloadButtonHidden: Bool { get set }
     var isPadReloadButtonEnabled: Bool { get set }
+    var isSearchAreaExpanded: Bool { get set }
     var isSearchLoupeHidden: Bool { get set }
     var isDismissButtonHidden: Bool { get set }
     var isFullAIChatHidden: Bool { get set }

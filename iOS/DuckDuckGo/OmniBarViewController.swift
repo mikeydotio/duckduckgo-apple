@@ -675,7 +675,11 @@ class OmniBarViewController: UIViewController, OmniBar {
         if state.hasLargeWidth {
             barView.isAIChatButtonHidden = true
             barView.isSearchModeSwitcherHidden = !state.showAIChatButton
-            barView.searchModeSwitcherSelectedIndex = (state is LargeOmniBarState.AIChatModeState) ? 1 : 0
+            let isAIChatMode = state is LargeOmniBarState.AIChatModeState
+            barView.searchModeSwitcherSelectedIndex = isAIChatMode ? 1 : 0
+            if !isAIChatMode {
+                barView.isSearchAreaExpanded = false
+            }
             barView.isPadReloadButtonHidden = false
             barView.isPadReloadButtonEnabled = state.showRefresh
             barView.isRefreshButtonHidden = true
@@ -885,8 +889,10 @@ class OmniBarViewController: UIViewController, OmniBar {
     private func onSearchModeSwitcherChanged(selectedIndex: Int) {
         if selectedIndex == 1 {
             print("[OmniBar] Duck.ai mode selected")
+            barView.isSearchAreaExpanded = true
         } else {
             print("[OmniBar] Search mode selected")
+            barView.isSearchAreaExpanded = false
         }
     }
 
