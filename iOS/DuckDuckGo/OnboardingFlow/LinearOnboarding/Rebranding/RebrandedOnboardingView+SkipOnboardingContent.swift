@@ -22,10 +22,8 @@ import DuckUI
 import Onboarding
 
 private enum SkipOnboardingContentMetrics {
-    static let titleFont = Font.system(size: 20, weight: .bold)
-    static let messageFont = Font.system(size: 16)
-    static let buttonMaxHeight: CGFloat = 50.0
-    static let additionalTopMargin: CGFloat = 0
+    static let textSpacing: CGFloat = 28.0
+    static let buttonSpacing: CGFloat = 8.0
 }
 
 extension OnboardingRebranding.OnboardingView {
@@ -37,73 +35,72 @@ extension OnboardingRebranding.OnboardingView {
 
         @Environment(\.onboardingTheme) private var onboardingTheme
 
-        private var animateTitle: Binding<Bool>
-        private var animateMessage: Binding<Bool>
-        private var showCTA: Binding<Bool>
-        private var isSkipped: Binding<Bool>
         private let startBrowsingAction: () -> Void
         private let resumeOnboardingAction: () -> Void
 
         init(
-            animateTitle: Binding<Bool>,
-            animateMessage: Binding<Bool>,
-            showCTA: Binding<Bool>,
-            isSkipped: Binding<Bool>,
             startBrowsingAction: @escaping () -> Void,
             resumeOnboardingAction: @escaping () -> Void
         ) {
-            self.animateTitle = animateTitle
-            self.animateMessage = animateMessage
-            self.showCTA = showCTA
-            self.isSkipped = isSkipped
             self.startBrowsingAction = startBrowsingAction
             self.resumeOnboardingAction = resumeOnboardingAction
         }
 
         var body: some View {
-            LinearDialogContentContainer(
-                metrics: .init(
-                    outerSpacing: onboardingTheme.linearOnboardingMetrics.contentOuterSpacing,
-                    textSpacing: onboardingTheme.linearOnboardingMetrics.contentOuterSpacing,
-                    contentSpacing: 0,
-                    actionsSpacing: onboardingTheme.linearOnboardingMetrics.actionsSpacing
-                ),
-                message: AnyView(
-                    AnimatableTypingText(Copy.message.attributed.withFont(.daxBodyBold(), forText: Self.fireButtonCopy), startAnimating: animateMessage, skipAnimation: isSkipped) {
-                        withAnimation {
-                            showCTA.wrappedValue = true
-                        }
-                    }
-                    .foregroundColor(.primary)
-                    .font(SkipOnboardingContentMetrics.messageFont)
-                ),
-                title: {
-                    AnimatableTypingText(Copy.title, startAnimating: animateTitle, skipAnimation: isSkipped) {
-                        withAnimation {
-                            animateMessage.wrappedValue = true
-                        }
-                    }
-                    .foregroundColor(.primary)
-                    .font(SkipOnboardingContentMetrics.titleFont)
-                },
-                actions: {
-                    VStack {
-                        Button(action: startBrowsingAction) {
-                            Text(Copy.confirmSkipOnboardingCTA)
-                        }
-                        .buttonStyle(PrimaryButtonStyle())
-
-                        OnboardingBorderedButton(
-                            maxHeight: SkipOnboardingContentMetrics.buttonMaxHeight,
-                            content: {
-                                Text(Copy.resumeOnboardingCTA)
-                            },
-                            action: resumeOnboardingAction
-                        )
-                    }
-                    .visibility(showCTA.wrappedValue ? .visible : .invisible)
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    bubbleContent
+                    Spacer()
                 }
-            )
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(.top, onboardingTheme.linearOnboardingMetrics.minTopMargin)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+
+        private var bubbleContent: some View {
+            OnboardingBubbleView(
+                tailPosition: .bottom(offset: onboardingTheme.linearOnboardingMetrics.bubbleTailOffset, direction: .leading),
+                contentInsets: onboardingTheme.linearBubbleMetrics.contentInsets,
+                arrowLength: onboardingTheme.linearBubbleMetrics.arrowLength,
+                arrowWidth: onboardingTheme.linearBubbleMetrics.arrowWidth
+            ) {
+                LinearDialogContentContainer(
+                    metrics: .init(
+                        outerSpacing: onboardingTheme.linearOnboardingMetrics.contentOuterSpacing,
+                        textSpacing: SkipOnboardingContentMetrics.textSpacing,
+                        contentSpacing: 0,
+                        actionsSpacing: onboardingTheme.linearOnboardingMetrics.actionsSpacing
+                    ),
+                    message: AnyView(
+                        Text(AttributedString(Copy.message.attributed.withFont(.daxBodyBold(), forText: Self.fireButtonCopy)))
+                            .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .font(onboardingTheme.typography.body)
+                    ),
+                    title: {
+                        Text(Copy.title)
+                            .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .font(onboardingTheme.typography.title)
+                    },
+                    actions: {
+                        VStack(spacing: SkipOnboardingContentMetrics.buttonSpacing) {
+                            Button(action: startBrowsingAction) {
+                                Text(Copy.confirmSkipOnboardingCTA)
+                            }
+                            .buttonStyle(onboardingTheme.primaryButtonStyle.style)
+
+                            Button(action: resumeOnboardingAction) {
+                                Text(Copy.resumeOnboardingCTA)
+                            }
+                            .buttonStyle(onboardingTheme.secondaryButtonStyle.style)
+                        }
+                    }
+                )
+            }
+            .frame(maxWidth: onboardingTheme.linearOnboardingMetrics.bubbleMaxWidth)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
 
     }

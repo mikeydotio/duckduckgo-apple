@@ -204,10 +204,6 @@ extension OnboardingRebranding {
             let skipOnboardingView: AnyView? = if shouldShowSkipOnboardingButton {
                 AnyView(
                     SkipOnboardingContent(
-                        animateTitle: $model.skipOnboardingState.animateTitle,
-                        animateMessage: $model.skipOnboardingState.animateMessage,
-                        showCTA: $model.skipOnboardingState.showContent,
-                        isSkipped: $model.isSkipped,
                         startBrowsingAction: model.confirmSkipOnboardingAction,
                         resumeOnboardingAction: {
                             animateBrowserComparisonViewState(isResumingOnboarding: true)
