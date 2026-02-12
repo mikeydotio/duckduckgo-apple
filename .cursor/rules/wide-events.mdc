@@ -101,7 +101,8 @@ For flows that may never complete (e.g., waiting for backend activation), define
 1. **Start flows early**: Call `startFlow` as soon as the user begins a journey, not after the first step completes
 2. **Update incrementally**: Persist progress after each significant state change so that app termination doesn't lose data
 3. **Always complete or discard**: Every started flow must eventually be completed (sending the event) or discarded (silently removed)
-4. **Include enough to debug failures**: A failed wide event should contain everything needed to understand _why_ it failed -- error details, failing step, and relevant configuration
+4. **Include enough to debug failures**: A failed wide event should contain enough information to understand what caused the failure, such as the step in the journey that the user was on, and relevant error parameters
 5. **Handle stale flows**: Implement a completion decision for flows that may survive app restarts -- check on app launch whether the flow should be completed with a timeout or delayed-success status
 6. **Keep parameters flat**: Use dot-notation keys (e.g., `feature.data.ext.purchase_platform`) -- these are automatically converted to nested JSON for the POST endpoint
 7. **Only model production behavior**: Design events around the user experience available in production builds. Ignore debug menus, internal tester flags, feature flags gated to employees, and other non-production code paths -- these should not influence event status, flow steps, or data fields
+8. **Follow platform conventions for implementation**: This document covers event design. When implementing a wide event, consult the project's platform-specific rules and existing implementations for guidance on code structure, testing, and abstractions.
