@@ -12,7 +12,7 @@ For the cross-platform overview of the remote config system, see the [Feature Fl
 
 **`false` (opt-in)** -- for new or experimental features. The feature stays off unless remote config enables it.
 
-**`true` (failsafe / kill-switch)** -- for stable, already-shipping features. The feature is on by default; you can disable it remotely if problems arise. See [Using failsafe feature flags](https://app.asana.com/0/0/1209498782498498/f).
+**`true` (failsafe / kill-switch)** -- for stable, already-shipping features. The feature is on by default; you can disable it remotely if problems arise. See [Using failsafe feature flags](https://app.asana.com/1/137249556945/task/1210572145398078).
 
 **Changing a default on a shipped feature**: if flipping from `false` to `true`, set `minSupportedVersion` in the remote config to the version that includes the change. Otherwise older versions without the finished implementation will pick up the new default when they download the config update.
 
@@ -35,4 +35,4 @@ For the cross-platform overview of the remote config system, see the [Feature Fl
 ## Related Documentation
 
 - [Feature Flagging Guide (cross-platform)](https://github.com/duckduckgo/privacy-configuration/blob/main/docs/feature-flagging-guide.md)
-- [Using failsafe feature flags](https://app.asana.com/0/0/1209498782498498/f)
+- [Using failsafe feature flags](https://app.asana.com/1/137249556945/task/1210572145398078)
