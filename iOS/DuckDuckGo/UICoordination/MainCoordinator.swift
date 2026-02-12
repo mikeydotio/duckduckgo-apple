@@ -301,7 +301,7 @@ final class MainCoordinator {
 
     private static func makeWebsiteDataManager(fireproofing: Fireproofing,
                                                dataStoreIDManager: DataStoreIDManaging = DataStoreIDManager.shared) -> WebsiteDataManaging {
-        return WebCacheManager(cookieStorage: MigratableCookieStorage(),
+        WebCacheManager(cookieStorage: MigratableCookieStorage(),
                         fireproofing: fireproofing,
                         dataStoreIDManager: dataStoreIDManager)
     }
