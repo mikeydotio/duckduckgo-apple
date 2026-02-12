@@ -143,6 +143,11 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         set { searchAreaView.aiChatButton.isHidden = newValue }
     }
 
+    var isSearchModeSwitcherHidden: Bool {
+        get { searchAreaView.searchModeSwitcher.isHidden }
+        set { searchAreaView.searchModeSwitcher.isHidden = newValue }
+    }
+
     var isSearchLoupeHidden: Bool {
         get { searchLoupe.isHidden }
         set { searchLoupe.isHidden = newValue }
@@ -209,6 +214,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     var onForwardPressed: (() -> Void)?
     var onBookmarksPressed: (() -> Void)?
     var onAIChatPressed: (() -> Void)?
+    var onSearchModeSwitcherChanged: ((Int) -> Void)?
     var onDismissPressed: (() -> Void)?
     
     /// Callback fired when the AI Chat left button is tapped
@@ -492,6 +498,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         searchAreaView.customizableButton.addTarget(self, action: #selector(customizableButtonTap), for: .touchUpInside)
         searchAreaView.cancelButton.addTarget(self, action: #selector(cancelButtonTap), for: .touchUpInside)
         searchAreaView.aiChatButton.addTarget(self, action: #selector(aiChatButtonTap), for: .touchUpInside)
+        searchAreaView.searchModeSwitcher.addTarget(self, action: #selector(searchModeSwitcherValueChanged), for: .valueChanged)
 
         forwardButtonView.addTarget(self, action: #selector(forwardButtonTap), for: .touchUpInside)
         backButtonView.addTarget(self, action: #selector(backButtonTap), for: .touchUpInside)
@@ -542,6 +549,8 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         aiChatButton.accessibilityLabel = UserText.duckAiFeatureName
         aiChatButton.accessibilityIdentifier = "\(Constant.accessibilityPrefix).Button.AIChat"
         aiChatButton.accessibilityTraits = .button
+
+        searchAreaView.searchModeSwitcher.accessibilityIdentifier = "\(Constant.accessibilityPrefix).SearchModeSwitcher"
 
         // This is for compatibility purposes with old OmniBar
         searchAreaView.textField.accessibilityIdentifier = "searchEntry"
@@ -658,6 +667,10 @@ final class DefaultOmniBarView: UIView, OmniBarView {
 
     @objc private func aiChatButtonTap() {
         onAIChatPressed?()
+    }
+
+    @objc private func searchModeSwitcherValueChanged() {
+        onSearchModeSwitcherChanged?(searchAreaView.searchModeSwitcher.selectedSegmentIndex)
     }
 
     @objc private func searchAreaPressed() {

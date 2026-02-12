@@ -247,6 +247,9 @@ class OmniBarViewController: UIViewController, OmniBar {
         barView.onAIChatPressed = { [weak self] in
             self?.onAIChatPressed()
         }
+        barView.onSearchModeSwitcherChanged = { [weak self] selectedIndex in
+            self?.onSearchModeSwitcherChanged(selectedIndex: selectedIndex)
+        }
         barView.onDismissPressed = { [weak self] in
             self?.onDismissPressed()
         }
@@ -669,7 +672,13 @@ class OmniBarViewController: UIViewController, OmniBar {
         barView.isBackButtonHidden = !state.showBackButton
         barView.isForwardButtonHidden = !state.showForwardButton
         barView.isBookmarksButtonHidden = !state.showBookmarksButton
-        barView.isAIChatButtonHidden = !state.showAIChatButton
+        if state.hasLargeWidth {
+            barView.isAIChatButtonHidden = true
+            barView.isSearchModeSwitcherHidden = !state.showAIChatButton
+        } else {
+            barView.isAIChatButtonHidden = !state.showAIChatButton
+            barView.isSearchModeSwitcherHidden = true
+        }
 
         applyCustomization()
 
@@ -866,6 +875,14 @@ class OmniBarViewController: UIViewController, OmniBar {
 
     private func onAIChatPressed() {
         omniDelegate?.onAIChatPressed()
+    }
+
+    private func onSearchModeSwitcherChanged(selectedIndex: Int) {
+        if selectedIndex == 1 {
+            print("[OmniBar] Duck.ai mode selected")
+        } else {
+            print("[OmniBar] Search mode selected")
+        }
     }
 
     private func onDismissPressed() {

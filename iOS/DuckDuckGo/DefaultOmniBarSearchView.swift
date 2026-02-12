@@ -55,6 +55,16 @@ final class DefaultOmniBarSearchView: UIView {
     let voiceSearchButton = BrowserChromeButton()
     let aiChatButton = BrowserChromeButton()
 
+    let searchModeSwitcher: UISegmentedControl = {
+        let control = UISegmentedControl(items: [
+            UserText.omniBarSearchMode,
+            UserText.omniBarDuckAIMode
+        ])
+        control.selectedSegmentIndex = 0
+        control.isHidden = true
+        return control
+    }()
+
     private let mainStackView = UIStackView()
 
     init() {
@@ -108,6 +118,7 @@ final class DefaultOmniBarSearchView: UIView {
         trailingItemsContainer.addArrangedSubview(customizableButton)
         trailingItemsContainer.addArrangedSubview(separatorView)
         trailingItemsContainer.addArrangedSubview(aiChatButton)
+        trailingItemsContainer.addArrangedSubview(searchModeSwitcher)
 
         leftIconContainer.addSubview(loupeIconView)
         leftIconContainer.addSubview(dismissButtonView)

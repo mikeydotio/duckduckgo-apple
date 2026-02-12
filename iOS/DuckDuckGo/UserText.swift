@@ -1972,6 +1972,9 @@ public struct UserText {
     // This is used for accessibility labels so leaving in place to avoid confusing translation memory.
     public static let duckAiFeatureName = NSLocalizedString("duckai.settings.title", value: "Duck.ai", comment: "Accessibility label for Duck.ai")
 
+    public static let omniBarSearchMode = NSLocalizedString("omnibar.search.mode", value: "Search", comment: "Label for the Search segment in the omnibar mode switcher on iPad")
+    public static let omniBarDuckAIMode = NSLocalizedString("omnibar.duckai.mode", value: "Duck.ai", comment: "Label for the Duck.ai segment in the omnibar mode switcher on iPad")
+
     public static let settingsAiFeatures = NSLocalizedString("ai-features.settings.title", value: "AI Features", comment: "Settings screen title for AI features")
 
     static let aiFeaturesDescription = NSLocalizedString("duckai.preferences.text.markdown", value: "DuckDuckGo AI features are private and optional. Your data is not used to train AI.", comment: "AI features settings explanation")

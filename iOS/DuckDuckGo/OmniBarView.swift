@@ -76,6 +76,7 @@ protocol OmniBarView: UIView, OmniBarStatusUpdateable {
     var onForwardPressed: (() -> Void)? { get set }
     var onBookmarksPressed: (() -> Void)? { get set }
     var onAIChatPressed: (() -> Void)? { get set }
+    var onSearchModeSwitcherChanged: ((Int) -> Void)? { get set }
     var onDismissPressed: (() -> Void)? { get set }
     
     /// Callback triggered when the AI Chat left button is tapped
@@ -106,6 +107,7 @@ protocol OmniBarStatusUpdateable: AnyObject {
     var isForwardButtonHidden: Bool { get set }
     var isBookmarksButtonHidden: Bool { get set }
     var isAIChatButtonHidden: Bool { get set }
+    var isSearchModeSwitcherHidden: Bool { get set }
     var isSearchLoupeHidden: Bool { get set }
     var isDismissButtonHidden: Bool { get set }
     var isFullAIChatHidden: Bool { get set }
