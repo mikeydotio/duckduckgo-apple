@@ -675,9 +675,14 @@ class OmniBarViewController: UIViewController, OmniBar {
         if state.hasLargeWidth {
             barView.isAIChatButtonHidden = true
             barView.isSearchModeSwitcherHidden = !state.showAIChatButton
+            barView.searchModeSwitcherSelectedIndex = (state is LargeOmniBarState.AIChatModeState) ? 1 : 0
+            barView.isPadReloadButtonHidden = false
+            barView.isPadReloadButtonEnabled = state.showRefresh
+            barView.isRefreshButtonHidden = true
         } else {
             barView.isAIChatButtonHidden = !state.showAIChatButton
             barView.isSearchModeSwitcherHidden = true
+            barView.isPadReloadButtonHidden = true
         }
 
         applyCustomization()

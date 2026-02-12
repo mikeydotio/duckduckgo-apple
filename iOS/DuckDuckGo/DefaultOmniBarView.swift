@@ -148,6 +148,24 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         set { searchAreaView.searchModeSwitcher.isHidden = newValue }
     }
 
+    var searchModeSwitcherSelectedIndex: Int {
+        get { searchAreaView.searchModeSwitcher.selectedSegmentIndex }
+        set { searchAreaView.searchModeSwitcher.selectedSegmentIndex = newValue }
+    }
+
+    var isPadReloadButtonHidden: Bool {
+        get { padReloadButtonView.isHidden }
+        set { padReloadButtonView.isHidden = newValue }
+    }
+
+    var isPadReloadButtonEnabled: Bool {
+        get { padReloadButtonView.isEnabled }
+        set {
+            padReloadButtonView.isEnabled = newValue
+            padReloadButtonView.alpha = newValue ? 1.0 : 0.3
+        }
+    }
+
     var isSearchLoupeHidden: Bool {
         get { searchLoupe.isHidden }
         set { searchLoupe.isHidden = newValue }
@@ -245,6 +263,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     let menuButtonView = BrowserChromeButton()
     let forwardButtonView = BrowserChromeButton()
     let backButtonView = BrowserChromeButton()
+    let padReloadButtonView = BrowserChromeButton()
 
     private let aiChatLeftButton = BrowserChromeButton()
     private var aiChatBrandingView: AIChatFullModeOmniBrandingView?
@@ -304,6 +323,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
 
         leadingButtonsContainer.addArrangedSubview(backButtonView)
         leadingButtonsContainer.addArrangedSubview(forwardButtonView)
+        leadingButtonsContainer.addArrangedSubview(padReloadButtonView)
 
         searchAreaAlignmentView.addSubview(searchAreaStackView)
 
@@ -397,6 +417,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
 
         DefaultOmniBarView.activateItemSizeConstraints(for: backButtonView)
         DefaultOmniBarView.activateItemSizeConstraints(for: forwardButtonView)
+        DefaultOmniBarView.activateItemSizeConstraints(for: padReloadButtonView)
         DefaultOmniBarView.activateItemSizeConstraints(for: bookmarksButtonView)
         DefaultOmniBarView.activateItemSizeConstraints(for: menuButtonView)
         DefaultOmniBarView.activateItemSizeConstraints(for: settingsButtonView)
@@ -478,6 +499,9 @@ final class DefaultOmniBarView: UIView, OmniBarView {
 
         settingsButtonView.setImage(DesignSystemImages.Glyphs.Size24.settings)
         DefaultOmniBarView.setUpCommonProperties(for: settingsButtonView)
+
+        padReloadButtonView.setImage(DesignSystemImages.Glyphs.Size24.reloadSmall)
+        DefaultOmniBarView.setUpCommonProperties(for: padReloadButtonView)
         
         refreshButton.setImage(DesignSystemImages.Glyphs.Size24.reloadSmall, for: .normal)
 
@@ -502,6 +526,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
 
         forwardButtonView.addTarget(self, action: #selector(forwardButtonTap), for: .touchUpInside)
         backButtonView.addTarget(self, action: #selector(backButtonTap), for: .touchUpInside)
+        padReloadButtonView.addTarget(self, action: #selector(reloadButtonTap), for: .touchUpInside)
         settingsButtonView.addTarget(self, action: #selector(settingsButtonTap), for: .touchUpInside)
         bookmarksButtonView.addTarget(self, action: #selector(bookmarksButtonTap), for: .touchUpInside)
         menuButtonView.addTarget(self, action: #selector(menuButtonTap), for: .touchUpInside)
@@ -545,6 +570,10 @@ final class DefaultOmniBarView: UIView, OmniBarView {
         settingsButtonView.accessibilityLabel = "Settings"
         settingsButtonView.accessibilityIdentifier = "\(Constant.accessibilityPrefix).Button.Settings"
         settingsButtonView.accessibilityTraits = .button
+
+        padReloadButtonView.accessibilityLabel = "Refresh page"
+        padReloadButtonView.accessibilityIdentifier = "\(Constant.accessibilityPrefix).Button.PadRefresh"
+        padReloadButtonView.accessibilityTraits = .button
 
         aiChatButton.accessibilityLabel = UserText.duckAiFeatureName
         aiChatButton.accessibilityIdentifier = "\(Constant.accessibilityPrefix).Button.AIChat"

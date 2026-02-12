@@ -270,7 +270,7 @@ struct LargeOmniBarState {
         let showBackButton = true
         let showForwardButton = true
         let showBookmarksButton = true
-        let showAIChatButton = false
+        let showAIChatButton = true
         let clearTextOnStart = false
         let allowsTrackersAnimation = false
         let showSearchLoupe = false

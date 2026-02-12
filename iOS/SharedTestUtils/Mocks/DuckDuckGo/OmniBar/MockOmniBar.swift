@@ -148,6 +148,9 @@ final class MockOmniBar: OmniBar {
         var isBookmarksButtonHidden: Bool = true
         var isAIChatButtonHidden: Bool = true
         var isSearchModeSwitcherHidden: Bool = true
+        var searchModeSwitcherSelectedIndex: Int = 0
+        var isPadReloadButtonHidden: Bool = true
+        var isPadReloadButtonEnabled: Bool = false
         var isSearchLoupeHidden: Bool = true
         var isDismissButtonHidden: Bool = true
         var isCustomizableButtonHidden: Bool = true
