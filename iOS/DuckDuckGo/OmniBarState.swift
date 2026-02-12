@@ -49,6 +49,12 @@ protocol OmniBarState: CustomStringConvertible {
     
     var allowCustomization: Bool { get } // If the state allows customization
 
+    // iPad — search/duck.ai mode switcher and external reload button
+    var showSearchModeSwitcher: Bool { get }
+    var searchMode: OmniBarSearchMode { get }
+    var showPadReloadButton: Bool { get }
+    var padReloadButtonEnabled: Bool { get }
+
     var onEditingStoppedState: OmniBarState { get }
     var onEditingSuspendedState: OmniBarState { get }
     var onEditingStartedState: OmniBarState { get }
@@ -98,6 +104,12 @@ extension OmniBarState {
     var showAIChatFullModeBranding: Bool { false }
     
     var allowCustomization: Bool { true }
+
+    // Defaults for iPhone — iPad states override these
+    var showSearchModeSwitcher: Bool { false }
+    var searchMode: OmniBarSearchMode { .search }
+    var showPadReloadButton: Bool { false }
+    var padReloadButtonEnabled: Bool { false }
 }
 
 protocol OmniBarLoadingBearerStateCreating {

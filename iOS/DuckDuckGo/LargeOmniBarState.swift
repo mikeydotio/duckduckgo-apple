@@ -40,6 +40,11 @@ struct LargeOmniBarState {
         let showSettings = false
         let showCancel = false
         let showDismiss = true
+
+        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        let searchMode: OmniBarSearchMode = .search
+        let showPadReloadButton = true
+        let padReloadButtonEnabled = false
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return HomeNonEditingState(dependencies: dependencies, isLoading: isLoading) }
         var onEditingStartedState: OmniBarState { return self }
@@ -87,6 +92,11 @@ struct LargeOmniBarState {
         let showSettings = false
         let showCancel = false
         let showDismiss = false
+
+        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        let searchMode: OmniBarSearchMode = .search
+        let showPadReloadButton = true
+        let padReloadButtonEnabled = false
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return HomeNonEditingState(dependencies: dependencies, isLoading: isLoading) }
         var onEditingStartedState: OmniBarState { return self }
@@ -127,6 +137,11 @@ struct LargeOmniBarState {
         let showSettings = false
         let showCancel = false
         let showDismiss = false
+
+        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        let searchMode: OmniBarSearchMode = .search
+        let showPadReloadButton = true
+        let padReloadButtonEnabled = false
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return self }
         var onEditingStartedState: OmniBarState { return HomeEmptyEditingState(dependencies: dependencies, isLoading: isLoading) }
@@ -165,6 +180,11 @@ struct LargeOmniBarState {
         let showSettings = false
         let showCancel = false
         let showDismiss = false
+
+        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        let searchMode: OmniBarSearchMode = .search
+        let showPadReloadButton = true
+        var padReloadButtonEnabled: Bool { !isLoading }
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return BrowsingNonEditingState(dependencies: dependencies, isLoading: isLoading) }
         var onEditingStartedState: OmniBarState { return self }
@@ -204,6 +224,11 @@ struct LargeOmniBarState {
         let showSettings = false
         let showCancel = false
         let showDismiss = true
+
+        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        let searchMode: OmniBarSearchMode = .search
+        let showPadReloadButton = true
+        var padReloadButtonEnabled: Bool { !isLoading }
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return BrowsingNonEditingState(dependencies: dependencies, isLoading: isLoading) }
         var onEditingStartedState: OmniBarState { return self }
@@ -245,6 +270,11 @@ struct LargeOmniBarState {
         let showCancel = false
         let showDismiss = false
         let showVoiceSearch = false
+
+        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        let searchMode: OmniBarSearchMode = .search
+        let showPadReloadButton = true
+        var padReloadButtonEnabled: Bool { !isLoading }
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return self }
         var onEditingStartedState: OmniBarState { return BrowsingTextEditingState(dependencies: dependencies, isLoading: isLoading) }
@@ -286,6 +316,11 @@ struct LargeOmniBarState {
         let showDismiss = false
         let showVoiceSearch = false
         let isBrowsing = true
+
+        let showSearchModeSwitcher = true
+        let searchMode: OmniBarSearchMode = .duckAI
+        let showPadReloadButton = true
+        var padReloadButtonEnabled: Bool { !isLoading }
 
         var name: String { "Pad" + Type.name(self) }
 

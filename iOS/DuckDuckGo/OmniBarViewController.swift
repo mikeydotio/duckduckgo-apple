@@ -672,6 +672,14 @@ class OmniBarViewController: UIViewController, OmniBar {
         barView.isBackButtonHidden = !state.showBackButton
         barView.isForwardButtonHidden = !state.showForwardButton
         barView.isBookmarksButtonHidden = !state.showBookmarksButton
+        barView.isAIChatButtonHidden = !state.showAIChatButton
+
+        // iPad search mode switcher and external reload button
+        barView.isSearchModeSwitcherHidden = !state.showSearchModeSwitcher
+        barView.searchMode = state.searchMode
+        barView.isPadReloadButtonHidden = !state.showPadReloadButton
+        barView.isPadReloadButtonEnabled = state.padReloadButtonEnabled
+
         applyPadLayout(for: state)
 
         applyCustomization()
@@ -680,31 +688,12 @@ class OmniBarViewController: UIViewController, OmniBar {
         barView.isFullAIChatHidden = !shouldShowAIChat
     }
 
-    /// Applies iPad-specific layout: replaces the AI chat button with a search mode switcher
-    /// and shows the pad reload button outside the address bar.
+    /// On iPad, the segmented control replaces the AI chat button and the external
+    /// pad reload button replaces the in-bar refresh.
     private func applyPadLayout(for state: any OmniBarState) {
-        guard state.hasLargeWidth else {
-            barView.isSearchModeSwitcherHidden = true
-            barView.isPadReloadButtonHidden = true
-            return
-        }
+        guard state.hasLargeWidth else { return }
 
-        // On iPad, the segmented control replaces the AI chat button
         barView.isAIChatButtonHidden = true
-        barView.isSearchModeSwitcherHidden = !state.showAIChatButton
-
-        // Select duck.ai segment when on an AI chat page
-        if state is LargeOmniBarState.AIChatModeState {
-            barView.searchMode = .duckAI
-        } else {
-            barView.searchMode = .search
-        }
-
-        // Pad reload button is always visible, disabled when there's nothing to reload
-        barView.isPadReloadButtonHidden = false
-        barView.isPadReloadButtonEnabled = state.isBrowsing && !state.isLoading
-
-        // Hide the in-bar refresh since we have the external pad reload button
         barView.isRefreshButtonHidden = true
     }
 
