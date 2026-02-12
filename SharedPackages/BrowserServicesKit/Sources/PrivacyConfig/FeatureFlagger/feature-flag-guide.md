@@ -1,4 +1,4 @@
-# Feature Flag Guide (Apple)
+# Feature Flag Guide
 
 This guide covers how feature flags work in DuckDuckGo's iOS and macOS apps, how they connect to the remote privacy configuration, and the patterns to follow when adding or reviewing them.
 
