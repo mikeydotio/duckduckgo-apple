@@ -98,6 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let faviconManager: FaviconManager
     let pinnedTabsManager = PinnedTabsManager()
+    let pinningManager = LocalPinningManager()
     let tabDragAndDropManager: TabDragAndDropManager
     let pinnedTabsManagerProvider: PinnedTabsManagerProvider
     private(set) var stateRestorationManager: AppStateRestorationManager!
@@ -201,7 +202,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         nextStepsCardsPersistor: homePageSetUpDependencies.nextStepsCardsPersistor,
         subscriptionCardPersistor: homePageSetUpDependencies.subscriptionCardPersistor,
         duckPlayerPreferences: DuckPlayerPreferencesUserDefaultsPersistor(),
-        syncService: syncService
+        syncService: syncService,
+        pinningManager: pinningManager
     )
 
     private(set) lazy var aiChatTabOpener: AIChatTabOpening = AIChatTabOpener(
@@ -240,10 +242,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     let themeManager: ThemeManager
 
-    let displaysTabsProgressIndicator: Bool
-
     let wideEvent: WideEventManaging
-    let freeTrialConversionService: FreeTrialConversionWideEventService
+    let freeTrialConversionService: FreeTrialConversionInstrumentationService
     let subscriptionManager: any SubscriptionManager
     static let deadTokenRecoverer = DeadTokenRecoverer()
 
@@ -269,7 +269,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     public let vpnSettings = VPNSettings(defaults: .netP)
 
     private lazy var vpnAppEventsHandler = VPNAppEventsHandler(
-        featureGatekeeper: DefaultVPNFeatureGatekeeper(subscriptionManager: subscriptionManager),
+        featureGatekeeper: DefaultVPNFeatureGatekeeper(vpnUninstaller: VPNUninstaller(pinningManager: pinningManager), subscriptionManager: subscriptionManager),
         featureFlagOverridesPublisher: featureFlagOverridesPublishingHandler.flagDidChangePublisher,
         loginItemsManager: LoginItemsManager(),
         defaults: .netP)
@@ -387,6 +387,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let memoryUsageMonitor: MemoryUsageMonitor
     let memoryPressureReporter: MemoryPressureReporter
+    let memoryUsageThresholdReporter: MemoryUsageThresholdReporter
 
     @MainActor
     // swiftlint:disable cyclomatic_complexity
@@ -548,12 +549,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.featureFlagger = featureFlagger
 
         wideEvent = WideEvent(featureFlagProvider: WideEventFeatureFlagAdapter(featureFlagger: featureFlagger))
-        freeTrialConversionService = DefaultFreeTrialConversionWideEventService(
+        freeTrialConversionService = DefaultFreeTrialConversionInstrumentationService(
             wideEvent: wideEvent,
+            pixelHandler: FreeTrialPixelHandler(),
             isFeatureEnabled: { [featureFlagger] in featureFlagger.isFeatureOn(.freeTrialConversionWideEvent) }
         )
         freeTrialConversionService.startObservingSubscriptionChanges()
-        displaysTabsProgressIndicator = featureFlagger.isFeatureOn(.tabProgressIndicator)
 
         aiChatSidebarProvider = AIChatSidebarProvider(featureFlagger: featureFlagger)
         aiChatMenuConfiguration = AIChatMenuConfiguration(
@@ -617,7 +618,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let subscriptionEnvironment = DefaultSubscriptionManager.getSavedOrDefaultEnvironment(userDefaults: subscriptionUserDefaults)
 
         // Configuring V2 for migration
-        let pixelHandler: SubscriptionPixelHandling = SubscriptionPixelHandler(source: .mainApp)
+        let pixelHandler: SubscriptionPixelHandling = SubscriptionPixelHandler(source: .mainApp, pixelKit: PixelKit.shared)
         let keychainType = KeychainType.dataProtection(.named(subscriptionAppGroup))
         let keychainManager = KeychainManager(attributes: SubscriptionTokenKeychainStorage.defaultAttributes(keychainType: keychainType), pixelHandler: pixelHandler)
         let authService = DefaultOAuthService(baseURL: subscriptionEnvironment.authEnvironment.url,
@@ -717,7 +718,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 featureFlagProvider: SubscriptionPageFeatureFlagAdapter(featureFlagger: featureFlagger)
             ),
             internalUserDecider: internalUserDecider,
-            featureFlagger: featureFlagger
+            featureFlagger: featureFlagger,
+            pinningManager: pinningManager
         )
         tabsPreferences = TabsPreferences(
             persistor: TabsPreferencesUserDefaultsPersistor(keyValueStore: UserDefaults.standard),
@@ -780,6 +782,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         visualizeFireSettingsDecider = DefaultVisualizeFireSettingsDecider(featureFlagger: featureFlagger, dataClearingPreferences: dataClearingPreferences)
         startupPreferences = StartupPreferences(
+            pinningManager: pinningManager,
             persistor: StartupPreferencesUserDefaultsPersistor(keyValueStore: keyValueStore),
             appearancePreferences: appearancePreferences
         )
@@ -827,6 +830,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 duckPlayer: duckPlayer,
                 windowControllersManager: windowControllersManager,
                 bookmarkManager: bookmarkManager,
+                pinningManager: pinningManager,
                 historyCoordinator: historyCoordinator,
                 fireproofDomains: fireproofDomains,
                 fireCoordinator: fireCoordinator,
@@ -856,6 +860,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             duckPlayer: duckPlayer,
             windowControllersManager: windowControllersManager,
             bookmarkManager: bookmarkManager,
+            pinningManager: pinningManager,
             historyCoordinator: historyCoordinator,
             fireproofDomains: fireproofDomains,
             fireCoordinator: fireCoordinator,
@@ -1053,8 +1058,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                                settingsProvider: settingsProvider)
         self.attributedMetricManager.addNotificationsObserver()
 
-        memoryUsageMonitor = MemoryUsageMonitor(logger: .memory)
+        memoryUsageMonitor = MemoryUsageMonitor(internalUserDecider: internalUserDecider, logger: .memory)
         memoryPressureReporter = MemoryPressureReporter(featureFlagger: featureFlagger, pixelFiring: PixelKit.shared, logger: .memory)
+        memoryUsageThresholdReporter = MemoryUsageThresholdReporter(
+            memoryUsageMonitor: memoryUsageMonitor,
+            featureFlagger: featureFlagger,
+            pixelFiring: PixelKit.shared,
+            logger: .memory
+        )
 
         super.init()
 
@@ -1104,8 +1115,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if AppVersion.runType.requiresEnvironment {
             // Configure Event handlers
-            let tunnelController = NetworkProtectionIPCTunnelController(ipcClient: vpnXPCClient)
-            let vpnUninstaller = VPNUninstaller(ipcClient: vpnXPCClient)
+            let vpnUninstaller = VPNUninstaller(pinningManager: pinningManager, ipcClient: vpnXPCClient)
+            let featureGatekeeper = DefaultVPNFeatureGatekeeper(vpnUninstaller: vpnUninstaller, subscriptionManager: subscriptionManager)
+            let tunnelController = NetworkProtectionIPCTunnelController(featureGatekeeper: featureGatekeeper, ipcClient: vpnXPCClient)
 
             vpnSubscriptionEventHandler = VPNSubscriptionEventsHandler(subscriptionManager: subscriptionManager,
                                                                        tunnelController: tunnelController,
@@ -1200,7 +1212,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyPreferredTheme()
 
 #if APPSTORE
-        crashCollection.startAttachingCrashLogMessages { [weak self] pixelParameters, payloads, completion in
+        let sortKeys = !featureFlagger.isFeatureOn(.crashCollectionDisableKeysSorting)
+        let isCallStackLimitingEnabled = featureFlagger.isFeatureOn(.crashCollectionLimitCallStackTreeDepth)
+        let callStackDepthLimit: Int? = isCallStackLimitingEnabled ? 250 : nil
+
+        crashCollection.startAttachingCrashLogMessages(callStackDepthLimit: callStackDepthLimit, sortKeys: sortKeys) { [weak self] pixelParameters, payloads, completion in
 
             pixelParameters.forEach { parameters in
                 var params = parameters
@@ -1940,7 +1956,8 @@ extension AppDelegate: UserScriptDependenciesProviding {
             nextStepsCardsPersistor: homePageSetUpDependencies.nextStepsCardsPersistor,
             subscriptionCardPersistor: homePageSetUpDependencies.subscriptionCardPersistor,
             duckPlayerPreferences: DuckPlayerPreferencesUserDefaultsPersistor(),
-            syncService: syncService
+            syncService: syncService,
+            pinningManager: pinningManager
         )
     }
 }

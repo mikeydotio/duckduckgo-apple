@@ -43,6 +43,8 @@ protocol TabManaging {
                              shouldCreateEmptyTabAtSamePosition: Bool,
                              clearTabHistory: Bool)
     func controller(for tab: Tab) -> TabViewController?
+    /// Closes the tab and navigates to homepage reusing an existing homepage or creating a new one
+    @MainActor func closeTabAndNavigateToHomepage(_ tab: Tab, clearTabHistory: Bool)
 
 }
 
@@ -489,8 +491,17 @@ class TabManager: TabManaging {
     
     @MainActor
     func closeTab(_ tab: Tab, shouldCreateEmptyTabAtSamePosition: Bool, clearTabHistory: Bool) {
+        let behavior: TabClosingBehavior = shouldCreateEmptyTabAtSamePosition ? .createEmptyTabAtSamePosition : .onlyClose
         delegate?.tabDidRequestClose(tab,
-                                     shouldCreateEmptyTabAtSamePosition: shouldCreateEmptyTabAtSamePosition,
+                                     behavior: behavior,
+                                     clearTabHistory: clearTabHistory)
+    }
+
+    @MainActor
+    func closeTabAndNavigateToHomepage(_ tab: Tab, clearTabHistory: Bool) {
+        // Close the tab and create or reuse an empty tab
+        delegate?.tabDidRequestClose(tab,
+                                     behavior: .createOrReuseEmptyTab,
                                      clearTabHistory: clearTabHistory)
     }
 
