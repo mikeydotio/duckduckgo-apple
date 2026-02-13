@@ -21,6 +21,7 @@ import AutomationServer
 import Core
 import Foundation
 import WebKit
+import os.log
 
 /// iOS-specific implementation of BrowserAutomationProvider
 @MainActor
@@ -118,10 +119,15 @@ final class IOSAutomationProvider: BrowserAutomationProvider {
 /// Wrapper that creates the automation server with the iOS provider
 @MainActor
 final class AutomationServer {
-    private let core: AutomationServerCore
+    private let core: AutomationServerCore?
 
     init(main: MainViewController, port: Int?) {
         let provider = IOSAutomationProvider(main: main)
-        self.core = AutomationServerCore(provider: provider, port: port)
+        do {
+            self.core = try AutomationServerCore(provider: provider, port: port)
+        } catch {
+            Logger.automationServer.error("Failed to start automation server: \(error)")
+            self.core = nil
+        }
     }
 }

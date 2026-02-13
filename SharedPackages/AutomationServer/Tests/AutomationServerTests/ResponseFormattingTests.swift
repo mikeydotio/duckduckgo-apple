@@ -28,7 +28,7 @@ final class ResponseFormattingTests: XCTestCase {
     override func setUp() async throws {
         mockProvider = MockBrowserAutomationProvider()
         // Use a random high port to avoid conflicts
-        server = AutomationServerCore(provider: mockProvider, port: 59999)
+        server = try AutomationServerCore(provider: mockProvider, port: 59999)
     }
 
     override func tearDown() async throws {

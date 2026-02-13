@@ -42,8 +42,9 @@ public func encodeToJsonString(_ value: Any?) -> String {
 
         // Handle primitive types explicitly (as? Encodable doesn't work from Any)
         if let stringValue = value as? String {
-            // Return the string directly - it may already be JSON
-            return stringValue
+            // Properly encode the string as JSON to ensure it's quoted
+            let jsonData = try JSONEncoder().encode(stringValue)
+            return String(data: jsonData, encoding: .utf8) ?? "\"\(stringValue.replacingOccurrences(of: "\"", with: "\\\""))\""
         }
         if let intValue = value as? Int {
             return String(intValue)

@@ -27,7 +27,7 @@ final class RouteHandlerTests: XCTestCase {
 
     override func setUp() async throws {
         mockProvider = MockBrowserAutomationProvider()
-        server = AutomationServerCore(provider: mockProvider, port: 59998)
+        server = try AutomationServerCore(provider: mockProvider, port: 59998)
     }
 
     override func tearDown() async throws {
@@ -42,7 +42,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.currentURL = URL(string: "https://duckduckgo.com")
         let url = URLComponents(string: "/getUrl")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .success(let message) = result {
             XCTAssertEqual(message, "https://duckduckgo.com")
@@ -55,7 +55,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.currentURL = nil
         let url = URLComponents(string: "/getUrl")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .success(let message) = result {
             XCTAssertEqual(message, "")
@@ -70,7 +70,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.currentTabHandle = "test-handle-123"
         let url = URLComponents(string: "/getWindowHandle")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .success(let message) = result {
             XCTAssertEqual(message, "test-handle-123")
@@ -83,7 +83,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.currentTabHandle = nil
         let url = URLComponents(string: "/getWindowHandle")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .noWindow)
@@ -98,7 +98,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.tabHandles = ["tab-1", "tab-2", "tab-3"]
         let url = URLComponents(string: "/getWindowHandles")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .success(let message) = result {
             // Parse the JSON array
@@ -118,7 +118,7 @@ final class RouteHandlerTests: XCTestCase {
     func testNavigate_CallsProviderWithURL() async {
         let url = URLComponents(string: "/navigate?url=https%3A%2F%2Fexample.com")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         XCTAssertEqual(mockProvider.navigateCalled?.absoluteString, "https://example.com")
         if case .success(let message) = result {
@@ -131,7 +131,7 @@ final class RouteHandlerTests: XCTestCase {
     func testNavigate_ReturnsErrorForMissingURL() async {
         let url = URLComponents(string: "/navigate")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .invalidURL)
@@ -144,7 +144,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.navigateResult = false
         let url = URLComponents(string: "/navigate?url=https%3A%2F%2Fexample.com")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .noWindow)
@@ -158,7 +158,7 @@ final class RouteHandlerTests: XCTestCase {
     func testCloseWindow_CallsCloseCurrentTab() async {
         let url = URLComponents(string: "/closeWindow")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         XCTAssertTrue(mockProvider.closeCurrentTabCalled)
         if case .success(let message) = result {
@@ -172,7 +172,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.currentTabHandle = nil
         let url = URLComponents(string: "/closeWindow")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .noWindow)
@@ -186,7 +186,7 @@ final class RouteHandlerTests: XCTestCase {
     func testSwitchToWindow_CallsProviderWithHandle() async {
         let url = URLComponents(string: "/switchToWindow?handle=target-tab")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         XCTAssertEqual(mockProvider.switchToTabCalled, "target-tab")
         if case .success(let message) = result {
@@ -199,7 +199,7 @@ final class RouteHandlerTests: XCTestCase {
     func testSwitchToWindow_ReturnsErrorForMissingHandle() async {
         let url = URLComponents(string: "/switchToWindow")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .invalidWindowHandle)
@@ -212,7 +212,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.switchToTabResult = false
         let url = URLComponents(string: "/switchToWindow?handle=nonexistent")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .tabNotFound)
@@ -227,7 +227,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.newTabResult = "new-tab-handle"
         let url = URLComponents(string: "/newWindow")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         XCTAssertTrue(mockProvider.newTabCalled)
         if case .success(let message) = result {
@@ -247,7 +247,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.newTabResult = nil
         let url = URLComponents(string: "/newWindow")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .noWindow)
@@ -262,7 +262,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.isContentBlockerReady = true
         let url = URLComponents(string: "/contentBlockerReady")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .success(let message) = result {
             XCTAssertEqual(message, "true")
@@ -275,7 +275,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.isContentBlockerReady = false
         let url = URLComponents(string: "/contentBlockerReady")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .success(let message) = result {
             XCTAssertEqual(message, "false")
@@ -289,7 +289,7 @@ final class RouteHandlerTests: XCTestCase {
     func testUnknownRoute_ReturnsError() async {
         let url = URLComponents(string: "/unknownEndpoint")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "GET")
 
         if case .failure(let error) = result {
             XCTAssertEqual(error, .unknownMethod)
@@ -304,7 +304,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.executeScriptResult = .success(42)
         let url = URLComponents(string: "/execute?script=return%201%2B1")!
 
-        _ = await server.handlePath(url)
+        _ = await server.handlePath(url, method: "POST")
 
         XCTAssertEqual(mockProvider.executeScriptCalled?.script, "return 1+1")
     }
@@ -313,7 +313,7 @@ final class RouteHandlerTests: XCTestCase {
         mockProvider.executeScriptResult = .success(42)
         let url = URLComponents(string: "/execute?script=return%2042")!
 
-        let result = await server.handlePath(url)
+        let result = await server.handlePath(url, method: "POST")
 
         if case .success(let message) = result {
             XCTAssertEqual(message, "42")

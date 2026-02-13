@@ -19,6 +19,9 @@
 import Foundation
 import Network
 import os.log
+#if os(macOS)
+import AppKit
+#endif
 
 public extension Logger {
     static var automationServer = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Automation Server") }()
@@ -61,17 +64,21 @@ public final class AutomationServerCore {
     public let listener: NWListener
     public let provider: BrowserAutomationProvider
     public var connectionQueues: [ObjectIdentifier: PerConnectionQueue] = [:]
+    private let authToken: String?
+    private let maxRequestSize = 1_048_576 // 1MB
 
-    public init(provider: BrowserAutomationProvider, port: Int?) {
+    public init(provider: BrowserAutomationProvider, port: Int?) throws {
         let port = port ?? 8788
         self.provider = provider
+        self.authToken = ProcessInfo.processInfo.environment["AUTOMATION_TOKEN"]
+
         Logger.automationServer.info("Starting automation server on port \(port)")
-        do {
-            listener = try NWListener(using: .tcp, on: NWEndpoint.Port(integerLiteral: UInt16(port)))
-        } catch {
-            Logger.automationServer.error("Failed to start listener: \(error)")
-            fatalError("Failed to start automation listener: \(error)")
-        }
+
+        // Configure listener to bind to localhost only for security
+        let parameters = NWParameters.tcp
+        parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: NWEndpoint.Port(integerLiteral: UInt16(port)))
+
+        listener = try NWListener(using: parameters)
         listener.newConnectionHandler = { connection in
             Task { @MainActor in
                 connection.start(queue: .main)
@@ -86,24 +93,29 @@ public final class AutomationServerCore {
     public func receive(from connection: NWConnection) {
         connection.receive(
             minimumIncompleteLength: 1,
-            maximumLength: connection.maximumDatagramSize
+            maximumLength: min(connection.maximumDatagramSize, self.maxRequestSize)
         ) { (content: Data?, _: NWConnection.ContentContext?, isComplete: Bool, error: NWError?) in
+            // Ensure connection queue is cleaned up when request completes or fails
+            defer {
+                if isComplete || error != nil || connection.state != .ready {
+                    self.connectionQueues.removeValue(forKey: ObjectIdentifier(connection))
+                }
+            }
+
             guard connection.state == .ready else {
-                Logger.automationServer.info("Receive aborted as connection is no longer ready.")
-                self.connectionQueues.removeValue(forKey: ObjectIdentifier(connection))
+                Logger.automationServer.debug("Receive aborted as connection is no longer ready.")
                 return
             }
-            Logger.automationServer.info("Received request - Content: \(String(describing: content)) isComplete: \(isComplete) Error: \(String(describing: error))")
+            Logger.automationServer.debug("Received request - Content: \(String(describing: content)) isComplete: \(isComplete) Error: \(String(describing: error))")
 
             if let error {
                 Logger.automationServer.error("Error in request: \(error)")
-                self.connectionQueues.removeValue(forKey: ObjectIdentifier(connection))
                 connection.cancel()
                 return
             }
 
             if let content {
-                Logger.automationServer.info("Handling content")
+                Logger.automationServer.debug("Handling content")
                 let queue = self.connectionQueues[ObjectIdentifier(connection)] ?? PerConnectionQueue()
                 self.connectionQueues[ObjectIdentifier(connection)] = queue
                 Task { @MainActor in
@@ -118,91 +130,118 @@ public final class AutomationServerCore {
                 }
             }
             if isComplete {
-                Logger.automationServer.info("Connection marked complete. Cleaning up queue tracking.")
-                self.connectionQueues.removeValue(forKey: ObjectIdentifier(connection))
+                Logger.automationServer.debug("Connection marked complete.")
                 // Only cancel immediately if there was no content to process.
                 // When content is present, respond() will cancel the connection
                 // after successfully sending the response.
                 if content == nil {
-                    Logger.automationServer.info("No pending content - cancelling connection.")
+                    Logger.automationServer.debug("No pending content - cancelling connection.")
                     connection.cancel()
                 }
                 return
             }
 
             if connection.state == .ready {
-                Logger.automationServer.info("Handling not complete, continuing receive.")
+                Logger.automationServer.debug("Handling not complete, continuing receive.")
                 Task { @MainActor in
                     self.receive(from: connection)
                 }
             } else {
-                Logger.automationServer.info("Connection is no longer ready, stopping receive.")
-                self.connectionQueues.removeValue(forKey: ObjectIdentifier(connection))
+                Logger.automationServer.debug("Connection is no longer ready, stopping receive.")
             }
         }
     }
 
     public func processContentWhenReady(content: Data) async -> ConnectionResultWithPath {
+        let timeout = Date().addingTimeInterval(30) // 30 second timeout
         while provider.isLoading {
-            Logger.automationServer.info("Still loading, waiting...")
-            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+            guard Date() < timeout else {
+                Logger.automationServer.error("Timeout waiting for content to be ready")
+                return ("timeout", .failure(.timeout))
+            }
+            Logger.automationServer.debug("Still loading, waiting...")
+            try await Task.sleep(for: .milliseconds(200))
         }
         return await handleConnection(content)
     }
 
     public func handleConnection(_ content: Data) async -> ConnectionResultWithPath {
-        Logger.automationServer.info("Handling request:")
+        Logger.automationServer.debug("Handling request")
         let stringContent = String(bytes: content, encoding: .utf8) ?? ""
 
         if let firstLine = stringContent.components(separatedBy: CharacterSet.newlines).first {
-            Logger.automationServer.info("First line: \(firstLine)")
+            Logger.automationServer.debug("First line: \(firstLine)")
         }
 
-        guard let pathString = extractPath(from: stringContent) else {
+        // Validate authentication token if configured
+        if let expectedToken = authToken {
+            let tokenValid = stringContent.range(of: "Authorization: Bearer \(expectedToken)") != nil
+            guard tokenValid else {
+                Logger.automationServer.error("Unauthorized request - invalid or missing auth token")
+                return ("unauthorized", .failure(.unauthorized))
+            }
+        }
+
+        guard let (method, pathString) = extractMethodAndPath(from: stringContent) else {
             return ("unknown", .failure(.unknownMethod))
         }
-        Logger.automationServer.info("Path: \(pathString)")
+        Logger.automationServer.debug("Method: \(method) Path: \(pathString)")
 
         guard let url = URLComponents(string: pathString) else {
             Logger.automationServer.error("Invalid URL: \(pathString)")
             return ("unknown", .failure(.invalidURL))
         }
-        return (url.path, await handlePath(url))
+        return (url.path, await handlePath(url, method: method))
     }
 
-    private func extractPath(from httpRequest: String) -> String? {
+    private func extractMethodAndPath(from httpRequest: String) -> (method: String, path: String)? {
         let pattern = "^(GET|POST) (\\/[^ ]*) HTTP"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
               let match = regex.firstMatch(in: httpRequest, options: [], range: NSRange(httpRequest.startIndex..., in: httpRequest)),
+              let methodRange = Range(match.range(at: 1), in: httpRequest),
               let pathRange = Range(match.range(at: 2), in: httpRequest) else {
             return nil
         }
-        return String(httpRequest[pathRange])
+        let method = String(httpRequest[methodRange])
+        let path = String(httpRequest[pathRange])
+        return (method, path)
     }
 
-    public func handlePath(_ url: URLComponents) async -> ConnectionResult {
+    public func handlePath(_ url: URLComponents, method: String) async -> ConnectionResult {
+        // Validate HTTP method for each endpoint
         switch url.path {
         case "/navigate":
+            guard method == "GET" || method == "POST" else { return .failure(.methodNotAllowed) }
             return navigate(url: url)
         case "/execute":
+            guard method == "POST" else { return .failure(.methodNotAllowed) }
             return await execute(url: url)
         case "/getUrl":
+            guard method == "GET" else { return .failure(.methodNotAllowed) }
             return .success(provider.currentURL?.absoluteString ?? "")
         case "/getWindowHandles":
+            guard method == "GET" else { return .failure(.methodNotAllowed) }
             return getWindowHandles(url: url)
         case "/closeWindow":
+            guard method == "POST" else { return .failure(.methodNotAllowed) }
             return closeWindow(url: url)
         case "/switchToWindow":
+            guard method == "POST" else { return .failure(.methodNotAllowed) }
             return switchToWindow(url: url)
         case "/newWindow":
+            guard method == "POST" else { return .failure(.methodNotAllowed) }
             return newWindow(url: url)
         case "/getWindowHandle":
+            guard method == "GET" else { return .failure(.methodNotAllowed) }
             return getWindowHandle(url: url)
         case "/shutdown":
+            guard method == "POST" else { return .failure(.methodNotAllowed) }
             return shutdown()
         case "/screenshot":
+            guard method == "GET" || method == "POST" else { return .failure(.methodNotAllowed) }
             return await takeScreenshot(url: url)
         case "/contentBlockerReady":
+            guard method == "GET" else { return .failure(.methodNotAllowed) }
             return contentBlockerReady()
         default:
             return .failure(.unknownMethod)
@@ -224,10 +263,14 @@ public final class AutomationServerCore {
 
         // Schedule app termination after a short delay to allow this response to be sent
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            Logger.automationServer.info("Terminating app via exit(0)")
-            // Use exit(0) for clean termination without crash dialogs
-            // This is safe because we've already cleaned up the automation server
+            Logger.automationServer.info("Terminating app")
+            #if os(macOS)
+            NSApplication.shared.terminate(nil)
+            #else
+            // iOS doesn't support programmatic termination
+            // Use exit(0) as last resort for testing scenarios
             exit(0)
+            #endif
         }
 
         return .success("shutdown")
@@ -295,7 +338,7 @@ public final class AutomationServerCore {
         guard let handleString = getQueryStringParameter(url: url, param: "handle") else {
             return .failure(.invalidWindowHandle)
         }
-        Logger.automationServer.info("Switch to window \(handleString)")
+        Logger.automationServer.debug("Switch to window \(handleString)")
 
         if provider.switchToTab(handle: handleString) {
             return .success("done")
@@ -340,18 +383,18 @@ public final class AutomationServerCore {
     /// WebDriver should wait for this before considering the browser ready for testing
     public func contentBlockerReady() -> ConnectionResult {
         let isReady = provider.isContentBlockerReady
-        Logger.automationServer.info("Content blocker ready: \(isReady)")
+        Logger.automationServer.debug("Content blocker ready: \(isReady)")
         return .success(isReady ? "true" : "false")
     }
 
     public func executeScript(_ script: String, args: [String: Any]) async -> ConnectionResult {
-        Logger.automationServer.info("Script: \(script), Args: \(args)")
+        Logger.automationServer.debug("Script: \(script), Args: \(args)")
 
         let result = await provider.executeScript(script, args: args)
 
         switch result {
         case .success(let value):
-            Logger.automationServer.info("Have result to execute script: \(String(describing: value))")
+            Logger.automationServer.debug("Have result to execute script: \(String(describing: value))")
             let jsonString = encodeToJsonString(value)
             return .success(jsonString)
         case .failure(let error):

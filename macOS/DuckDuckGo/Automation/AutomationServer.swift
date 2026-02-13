@@ -21,6 +21,7 @@ import AutomationServer
 import BrowserServicesKit
 import Foundation
 import WebKit
+import os.log
 
 /// macOS-specific implementation of BrowserAutomationProvider
 @MainActor
@@ -195,10 +196,15 @@ final class MacOSAutomationProvider: BrowserAutomationProvider {
 /// Wrapper that creates the automation server with the macOS provider
 @MainActor
 final class AutomationServer {
-    private let core: AutomationServerCore
+    private let core: AutomationServerCore?
 
     init(windowControllersManager: WindowControllersManager, contentBlockingManager: ContentBlockerRulesManagerProtocol, port: Int?) {
         let provider = MacOSAutomationProvider(windowControllersManager: windowControllersManager, contentBlockingManager: contentBlockingManager)
-        self.core = AutomationServerCore(provider: provider, port: port)
+        do {
+            self.core = try AutomationServerCore(provider: provider, port: port)
+        } catch {
+            Logger.automationServer.error("Failed to start automation server: \(error)")
+            self.core = nil
+        }
     }
 }

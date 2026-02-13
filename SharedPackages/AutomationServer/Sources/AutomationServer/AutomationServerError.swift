@@ -28,4 +28,8 @@ public enum AutomationServerError: Error {
     case invalidURL
     case scriptExecutionFailed
     case screenshotFailed
+    case timeout
+    case methodNotAllowed
+    case unauthorized
+    case requestTooLarge
 }
