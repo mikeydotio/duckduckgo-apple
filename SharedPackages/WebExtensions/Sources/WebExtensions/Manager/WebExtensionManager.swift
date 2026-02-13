@@ -137,6 +137,7 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
             pixelFiring.fire(.installed)
         } catch {
             Logger.webExtensions.error("❌ Failed to load extension '\(identifier)': \(error.localizedDescription)")
+            unregisterHandlers(for: identifier)
             try? storageProvider.removeExtension(identifier: identifier)
             pixelFiring.fire(.installError(error: error))
             throw WebExtensionError.failedToLoadWebExtension(error)
