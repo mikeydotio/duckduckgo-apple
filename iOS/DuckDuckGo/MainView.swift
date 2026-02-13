@@ -145,7 +145,9 @@ extension MainViewFactory {
             if let result = super.hitTest(point, with: event) {
                 return result
             }
-            // For out-of-bounds points, search descendants that may overflow (e.g. expanded search area)
+            // Only check overflow below the container (expanded search area grows downward).
+            // Points above the container must fall through to the tab bar.
+            guard point.y >= bounds.maxY else { return nil }
             return Self.deepHitTest(in: self, point: point, event: event)
         }
 
@@ -153,7 +155,9 @@ extension MainViewFactory {
             if super.point(inside: point, with: event) {
                 return true
             }
-            // Claim the overflow area so the parent includes this container in hit testing
+            // Only claim overflow below the container (expanded search area grows downward).
+            // Points above the container must fall through to the tab bar.
+            guard point.y >= bounds.maxY else { return false }
             return Self.deepHitTest(in: self, point: point, event: event) != nil
         }
 
