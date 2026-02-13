@@ -1,5 +1,5 @@
 //
-//  ExampleMessageHandler.swift
+//  AutoconsentWebExtensionMessageHandler.swift
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -20,20 +20,26 @@ import Foundation
 import os.log
 
 @available(macOS 15.4, iOS 18.4, *)
-public final class ExampleMessageHandler: WebExtensionMessageHandler {
+public final class AutoconsentWebExtensionMessageHandler: WebExtensionMessageHandler {
+
+    enum Method: String {
+        case extensionLog
+    }
 
     public var handledFeatureName: String { "autoconsent" }
 
     public init() {}
 
     public func handleMessage(_ message: WebExtensionMessage) async -> WebExtensionMessageResult {
-        Logger.webExtensions.debug("📝 ExampleMessageHandler received method: \(message.method)")
+        Logger.webExtensions.debug("📝 AutoconsentWebExtensionMessageHandler received method: \(message.method)")
 
-        switch message.method {
-        case "extensionLog":
-            return handleExtensionLog(message.params)
-        default:
+        guard let method = Method(rawValue: message.method) else {
             return .failure(WebExtensionMessageHandlerError.unknownMethod(message.method))
+        }
+
+        switch method {
+        case .extensionLog:
+            return handleExtensionLog(message.params)
         }
     }
 

@@ -29,9 +29,9 @@ final class WebExtensionHandlerProvider: WebExtensionHandlerProviding {
     func makeHandlers(for context: WKWebExtensionContext) -> [WebExtensionMessageHandler] {
         switch context.duckDuckGoExtensionType {
         case .ddgInternalExtension:
-            return [ExampleMessageHandler()]
+            return [AutoconsentWebExtensionMessageHandler()]
         default:
-            return [ExampleMessageHandler()]
+            return [AutoconsentWebExtensionMessageHandler()]
         }
     }
 }
