@@ -59,7 +59,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         static let modelPickerTrailingSpacing: CGFloat = 6
         static let modelPickerHeight: CGFloat = 28
         static let attachmentsLeadingInset: CGFloat = 13
-        static let attachmentsBottomSpacing: CGFloat = 4
+        static let attachmentsBottomSpacing: CGFloat = 16
         static let attachmentsRowHeight: CGFloat = AIChatImageAttachmentThumbnailView.totalHeight
         static let maxAttachments: Int = 3
         static let suggestionsBottomPadding: CGFloat = 4

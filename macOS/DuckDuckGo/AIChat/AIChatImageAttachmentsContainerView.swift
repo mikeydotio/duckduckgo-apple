@@ -60,11 +60,14 @@ final class AIChatImageAttachmentsContainerView: NSView {
     private func setupView() {
         addSubview(stackView)
 
+        let bottomConstraint = stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
+        bottomConstraint.priority = .defaultHigh
+
         NSLayoutConstraint.activate([
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.topAnchor.constraint(equalTo: topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            bottomConstraint,
         ])
     }
 

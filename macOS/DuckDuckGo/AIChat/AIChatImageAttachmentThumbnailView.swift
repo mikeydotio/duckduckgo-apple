@@ -18,6 +18,7 @@
 
 import AppKit
 import AIChat
+import DesignResourcesKitIcons
 
 /// A square thumbnail view that displays an attached image with a remove button overlay.
 /// Clicking the thumbnail opens the file in Finder; clicking the X removes the attachment.
@@ -25,12 +26,15 @@ final class AIChatImageAttachmentThumbnailView: NSView {
 
     private enum Constants {
         static let thumbnailSize: CGFloat = 50
-        static let cornerRadius: CGFloat = 8
-        static let borderWidth: CGFloat = 0.5
+        static let cornerRadius: CGFloat = 12
+        static let borderWidth: CGFloat = 2
         static let removeButtonSize: CGFloat = 20
         static let removeButtonInset: CGFloat = 4
         /// How far the remove button extends beyond the thumbnail edge.
-        static let removeButtonOverflow: CGFloat = 6
+        static let removeButtonOverflow: CGFloat = 8
+        static let shadowRadius: CGFloat = 3
+        static let shadowOpacity: Float = 0.15
+        static let shadowOffset = CGSize(width: 0, height: -1)
     }
 
     /// Total height of the view including the remove button overflow.
@@ -47,6 +51,21 @@ final class AIChatImageAttachmentThumbnailView: NSView {
         view.layer?.masksToBounds = true
         view.layer?.cornerRadius = Constants.cornerRadius
         view.layer?.borderWidth = Constants.borderWidth
+        return view
+    }()
+
+    private let shadowBackingView: NSView = {
+        let view = NSView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.wantsLayer = true
+        view.shadow = NSShadow()
+        view.layer?.backgroundColor = NSColor.white.cgColor
+        view.layer?.cornerRadius = Constants.cornerRadius
+        view.layer?.shadowColor = NSColor.black.cgColor
+        view.layer?.shadowRadius = Constants.shadowRadius
+        view.layer?.shadowOpacity = Constants.shadowOpacity
+        view.layer?.shadowOffset = Constants.shadowOffset
+        view.layer?.masksToBounds = false
         return view
     }()
 
@@ -92,10 +111,24 @@ final class AIChatImageAttachmentThumbnailView: NSView {
 
         configureRemoveButtonImage()
         imageContainerView.layer?.addSublayer(imageLayer)
+        addSubview(shadowBackingView)
         addSubview(imageContainerView)
         addSubview(removeButton)
 
+        removeButton.wantsLayer = true
+        removeButton.layer?.cornerRadius = Constants.removeButtonSize / 2
+        removeButton.layer?.backgroundColor = NSColor.white.cgColor
+        removeButton.layer?.borderWidth = 2
+        removeButton.layer?.borderColor = NSColor.white.cgColor
+        removeButton.layer?.masksToBounds = true
+        removeButton.toolTip = UserText.aiChatRemoveAttachmentButtonTooltip
+
         NSLayoutConstraint.activate([
+            shadowBackingView.leadingAnchor.constraint(equalTo: imageContainerView.leadingAnchor),
+            shadowBackingView.trailingAnchor.constraint(equalTo: imageContainerView.trailingAnchor),
+            shadowBackingView.topAnchor.constraint(equalTo: imageContainerView.topAnchor),
+            shadowBackingView.bottomAnchor.constraint(equalTo: imageContainerView.bottomAnchor),
+
             imageContainerView.leadingAnchor.constraint(equalTo: leadingAnchor),
             imageContainerView.bottomAnchor.constraint(equalTo: bottomAnchor),
             imageContainerView.widthAnchor.constraint(equalToConstant: Constants.thumbnailSize),
@@ -182,26 +215,14 @@ final class AIChatImageAttachmentThumbnailView: NSView {
     }
 
     private func configureRemoveButtonImage() {
-        guard let baseImage = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: nil) else { return }
-        if #available(macOS 12.0, *) {
-            let config = NSImage.SymbolConfiguration(paletteColors: [.white, NSColor(white: 0, alpha: 0.75)])
-            removeButton.image = baseImage.withSymbolConfiguration(config)
-        } else {
-            removeButton.image = baseImage
-            removeButton.contentTintColor = NSColor(white: 0, alpha: 0.75)
-        }
+        removeButton.image = DesignSystemImages.Glyphs.Size16.clearSolid
+        removeButton.contentTintColor = .black
+        removeButton.imageScaling = .scaleNone
     }
 
     // MARK: - Appearance
 
     private func updateBorderColor() {
-        NSAppearance.withAppAppearance {
-            imageContainerView.layer?.borderColor = NSColor.separatorColor.cgColor
-        }
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        updateBorderColor()
+        imageContainerView.layer?.borderColor = NSColor.white.cgColor
     }
 }
