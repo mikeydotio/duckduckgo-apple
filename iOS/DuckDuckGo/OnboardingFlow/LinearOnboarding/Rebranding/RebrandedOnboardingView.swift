@@ -35,6 +35,7 @@ private enum BubbleBackedDialogMetrics {
     static let introAdditionalTopMargin: CGFloat = 40
     static let browsersComparisonAdditionalTopMargin: CGFloat = 0
     static let addressBarPositionAdditionalTopMargin: CGFloat = 0
+    static let searchExperienceAdditionalTopMargin: CGFloat = 0
 }
 
 extension OnboardingRebranding.OnboardingView {
@@ -174,8 +175,6 @@ extension OnboardingRebranding {
                                     addToDockPromoView
                                 case .chooseAppIconDialog:
                                     appIconPickerView
-                                case .chooseSearchExperienceDialog:
-                                    searchExperienceSelectionView
                                 default:
                                     EmptyView()
                                 }
@@ -296,6 +295,8 @@ extension OnboardingRebranding {
                 browsersComparisonView
             case .chooseAddressBarPositionDialog:
                 addressBarPositionView
+            case .chooseSearchExperienceDialog:
+                searchExperienceSelectionView
             default:
                 EmptyView()
             }
@@ -324,6 +325,14 @@ extension OnboardingRebranding {
                     tailOffset: onboardingTheme.linearOnboardingMetrics.bubbleTailOffset,
                     tailDirection: .leading,
                     additionalTopMargin: BubbleBackedDialogMetrics.addressBarPositionAdditionalTopMargin,
+                    isVisible: true,
+                    showsStepCounter: true
+                )
+            case .chooseSearchExperienceDialog:
+                BubbleBackedDialogConfiguration(
+                    tailOffset: onboardingTheme.linearOnboardingMetrics.bubbleTailOffset,
+                    tailDirection: .leading,
+                    additionalTopMargin: BubbleBackedDialogMetrics.searchExperienceAdditionalTopMargin,
                     isVisible: true,
                     showsStepCounter: true
                 )
@@ -365,10 +374,10 @@ extension OnboardingRebranding {
         private var searchExperienceSelectionView: some View {
             SearchExperienceContent(
                 animateTitle: $model.searchExperienceContentState.animateTitle,
+                showContent: $model.searchExperienceContentState.showContent,
                 isSkipped: $model.isSkipped,
                 action: model.selectSearchExperienceAction
             )
-            .onboardingDaxDialogStyle()
         }
 
         private func animateBrowserComparisonViewState(isResumingOnboarding: Bool) {
