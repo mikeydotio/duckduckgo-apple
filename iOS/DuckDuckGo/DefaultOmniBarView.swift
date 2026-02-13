@@ -155,8 +155,8 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     }
 
     var searchMode: OmniBarSearchMode {
-        get { OmniBarSearchMode(rawValue: searchAreaView.searchModeSwitcher.selectedSegmentIndex) ?? .search }
-        set { searchAreaView.searchModeSwitcher.selectedSegmentIndex = newValue.rawValue }
+        get { searchAreaView.searchModeSwitcher.selectedMode }
+        set { searchAreaView.searchModeSwitcher.setMode(newValue, animated: false) }
     }
 
     var isPadReloadButtonHidden: Bool {
@@ -787,8 +787,7 @@ final class DefaultOmniBarView: UIView, OmniBarView {
     }
 
     @objc private func searchModeSwitcherValueChanged() {
-        guard let mode = OmniBarSearchMode(rawValue: searchAreaView.searchModeSwitcher.selectedSegmentIndex) else { return }
-        onSearchModeChanged?(mode)
+        onSearchModeChanged?(searchAreaView.searchModeSwitcher.selectedMode)
     }
 
     @objc private func searchAreaPressed() {
@@ -975,9 +974,11 @@ extension DefaultOmniBarView {
 
     private func applyTextViewVisibility() {
         if isSearchAreaExpanded {
-            // Transfer text and overlay — text field stays in layout to preserve stack sizing
+            // Transfer text to the multi-line view and hide the text field entirely
+            // so no ghost text is visible behind the overlay.
             duckAITextView.text = textField.text
             duckAITextView.isHidden = false
+            textField.text = ""
             textField.alpha = 0
             searchAreaContainerView.bringSubviewToFront(duckAITextView)
         } else {

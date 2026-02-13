@@ -140,6 +140,7 @@
 		3132FA2827A0788400DD7A12 /* PassKitPreviewHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3132FA2727A0788400DD7A12 /* PassKitPreviewHelper.swift */; };
 		3132FA2A27A0788F00DD7A12 /* QuickLookPreviewHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3132FA2927A0788F00DD7A12 /* QuickLookPreviewHelper.swift */; };
 		3132FA2C27A07A1B00DD7A12 /* FilePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3132FA2B27A07A1B00DD7A12 /* FilePreview.swift */; };
+		3141D0BC2F3F4C6700B3A770 /* OmniBarSearchModeToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3141D0BB2F3F4C6700B3A770 /* OmniBarSearchModeToggle.swift */; };
 		314A3EFC293905EC00D3D4C8 /* BrokenSiteReportingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314A3EFB293905EC00D3D4C8 /* BrokenSiteReportingTests.swift */; };
 		314C92B827C3DD660042EC96 /* QuickLookPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314C92B727C3DD660042EC96 /* QuickLookPreviewView.swift */; };
 		314C92BA27C3E7CB0042EC96 /* QuickLookContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314C92B927C3E7CB0042EC96 /* QuickLookContainerViewController.swift */; };
@@ -2473,6 +2474,7 @@
 		3132FA2727A0788400DD7A12 /* PassKitPreviewHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassKitPreviewHelper.swift; sourceTree = "<group>"; };
 		3132FA2927A0788F00DD7A12 /* QuickLookPreviewHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookPreviewHelper.swift; sourceTree = "<group>"; };
 		3132FA2B27A07A1B00DD7A12 /* FilePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePreview.swift; sourceTree = "<group>"; };
+		3141D0BB2F3F4C6700B3A770 /* OmniBarSearchModeToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmniBarSearchModeToggle.swift; sourceTree = "<group>"; };
 		314A3EFB293905EC00D3D4C8 /* BrokenSiteReportingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrokenSiteReportingTests.swift; sourceTree = "<group>"; };
 		314C92B727C3DD660042EC96 /* QuickLookPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookPreviewView.swift; sourceTree = "<group>"; };
 		314C92B927C3E7CB0042EC96 /* QuickLookContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookContainerViewController.swift; sourceTree = "<group>"; };
@@ -6736,6 +6738,7 @@
 				9FE7E7A22EAAF7B700AEAD83 /* WhatsNew */,
 				7B059F0E2D0387E900371ED0 /* Widgets */,
 				706735CF163EBF67938A9DFC /* OnboardingFlow */,
+				3141D0BB2F3F4C6700B3A770 /* OmniBarSearchModeToggle.swift */,
 			);
 			path = DuckDuckGo;
 			sourceTree = "<group>";
@@ -11660,6 +11663,7 @@
 				9FDEC7BF2C91264C00C7A692 /* OnboardingAddressBarPositionPicker.swift in Sources */,
 				65EBA0B42D7F489700E34997 /* NativeDuckPlayerNavigationHandler.swift in Sources */,
 				8536A1FD2ACF114B003AC5BA /* Theme+DesignSystem.swift in Sources */,
+				3141D0BC2F3F4C6700B3A770 /* OmniBarSearchModeToggle.swift in Sources */,
 				F114C55B1E66EB020018F95F /* NibLoading.swift in Sources */,
 				D6BFCB612B7525160051FF81 /* SubscriptionPIRViewModel.swift in Sources */,
 				80DD30342F27F435006E1A78 /* ScopedFireConfirmationView.swift in Sources */,

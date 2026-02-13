@@ -102,6 +102,9 @@ protocol OmniBarDelegate: AnyObject {
     /// Called when user selects a chat from the AI Chat history list
     func onChatHistorySelected(url: URL)
 
+    /// Called when the iPad search/duck.ai toggle changes.
+    func onPadSearchModeChanged(_ mode: OmniBarSearchMode)
+
     // MARK: - Experimental Address Bar
     func onExperimentalAddressBarTapped()
     func onExperimentalAddressBarClearPressed()
@@ -171,6 +174,8 @@ extension OmniBarDelegate {
 
     func onChatHistorySelected(url: URL) {
     }
+
+    func onPadSearchModeChanged(_ mode: OmniBarSearchMode) {}
 
     // Default no-op implementations for experimental address bar pixel hooks
     func onExperimentalAddressBarTapped() {}

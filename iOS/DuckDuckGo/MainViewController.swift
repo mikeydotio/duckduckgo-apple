@@ -3162,6 +3162,15 @@ extension MainViewController: OmniBarDelegate {
         }
     }
 
+    func onPadSearchModeChanged(_ mode: OmniBarSearchMode) {
+        switch mode {
+        case .duckAI:
+            hideSuggestionTray()
+        case .search:
+            break
+        }
+    }
+
     private func shareCurrentURLFromAddressBar() {
         Pixel.fire(pixel: .addressBarShare)
         guard let link = currentTab?.link else { return }
