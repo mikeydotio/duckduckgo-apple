@@ -16,9 +16,8 @@
 //  limitations under the License.
 //
 
-#if os(macOS)
-import Navigation
-#endif
+#if os(iOS)
+
 import WebKit
 import XCTest
 @testable import BrowserServicesKit
@@ -166,3 +165,5 @@ class MockPrintingSubfeatureDelegate: PrintingSubfeatureDelegate {
         receivedWebView = webView
     }
 }
+
+#endif
