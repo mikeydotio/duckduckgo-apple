@@ -226,7 +226,7 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
         for (installedExtension, result) in zip(extensions, results) {
             switch result {
             case .success:
-                Logger.webExtensions.debug("✅ Loaded extension \(installedExtension.filename) (\(installedExtension.uniqueIdentifier))")
+                Logger.webExtensions.debug("✅ Loaded extension `\(installedExtension.name ?? "")` | \(installedExtension.filename) | \(installedExtension.uniqueIdentifier)")
                 successCount += 1
             case .failure(let failure):
                 Logger.webExtensions.error("❌ Failed to load web extension \(installedExtension.filename) (\(installedExtension.uniqueIdentifier)): \(failure.localizedDescription)")
