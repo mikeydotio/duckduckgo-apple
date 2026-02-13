@@ -102,8 +102,6 @@ final class DefaultOmniBarSearchView: UIView {
         // Center alignment lets the search mode toggle (shorter than 44pt
         // buttons) keep its intrinsic height without conflicting constraints.
         trailingItemsContainer.alignment = .center
-        trailingItemsContainer.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 6)
-        trailingItemsContainer.isLayoutMarginsRelativeArrangement = true
 
         mainStackView.addArrangedSubview(leftIconContainerPlaceholder)
         mainStackView.addArrangedSubview(textField)
@@ -211,5 +209,12 @@ final class DefaultOmniBarSearchView: UIView {
         customIconView.contentMode = .center
         customIconView.isHidden = true
         customIconView.image = nil
+    }
+
+    /// Applies iPadAIToggle layout tweaks: trailing padding and compact toggle height.
+    func applyIPadAIToggleLayout() {
+        trailingItemsContainer.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 6)
+        trailingItemsContainer.isLayoutMarginsRelativeArrangement = true
+        searchModeSwitcher.applyCompactLayout()
     }
 }

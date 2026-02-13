@@ -41,9 +41,9 @@ struct LargeOmniBarState {
         let showCancel = false
         let showDismiss = true
 
-        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        var showSearchModeSwitcher: Bool { dependencies.isIPadAIToggleEnabled && dependencies.isAIChatEnabledInSettings }
         let searchMode: OmniBarSearchMode = .search
-        let showPadReloadButton = true
+        var showPadReloadButton: Bool { dependencies.isIPadAIToggleEnabled }
         let padReloadButtonEnabled = false
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return HomeNonEditingState(dependencies: dependencies, isLoading: isLoading) }
@@ -93,9 +93,9 @@ struct LargeOmniBarState {
         let showCancel = false
         let showDismiss = false
 
-        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        var showSearchModeSwitcher: Bool { dependencies.isIPadAIToggleEnabled && dependencies.isAIChatEnabledInSettings }
         let searchMode: OmniBarSearchMode = .search
-        let showPadReloadButton = true
+        var showPadReloadButton: Bool { dependencies.isIPadAIToggleEnabled }
         let padReloadButtonEnabled = false
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return HomeNonEditingState(dependencies: dependencies, isLoading: isLoading) }
@@ -138,9 +138,9 @@ struct LargeOmniBarState {
         let showCancel = false
         let showDismiss = false
 
-        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        var showSearchModeSwitcher: Bool { dependencies.isIPadAIToggleEnabled && dependencies.isAIChatEnabledInSettings }
         let searchMode: OmniBarSearchMode = .search
-        let showPadReloadButton = true
+        var showPadReloadButton: Bool { dependencies.isIPadAIToggleEnabled }
         let padReloadButtonEnabled = false
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return self }
@@ -181,9 +181,9 @@ struct LargeOmniBarState {
         let showCancel = false
         let showDismiss = false
 
-        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        var showSearchModeSwitcher: Bool { dependencies.isIPadAIToggleEnabled && dependencies.isAIChatEnabledInSettings }
         let searchMode: OmniBarSearchMode = .search
-        let showPadReloadButton = true
+        var showPadReloadButton: Bool { dependencies.isIPadAIToggleEnabled }
         var padReloadButtonEnabled: Bool { !isLoading }
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return BrowsingNonEditingState(dependencies: dependencies, isLoading: isLoading) }
@@ -225,9 +225,9 @@ struct LargeOmniBarState {
         let showCancel = false
         let showDismiss = true
 
-        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        var showSearchModeSwitcher: Bool { dependencies.isIPadAIToggleEnabled && dependencies.isAIChatEnabledInSettings }
         let searchMode: OmniBarSearchMode = .search
-        let showPadReloadButton = true
+        var showPadReloadButton: Bool { dependencies.isIPadAIToggleEnabled }
         var padReloadButtonEnabled: Bool { !isLoading }
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return BrowsingNonEditingState(dependencies: dependencies, isLoading: isLoading) }
@@ -271,9 +271,9 @@ struct LargeOmniBarState {
         let showDismiss = false
         let showVoiceSearch = false
 
-        var showSearchModeSwitcher: Bool { dependencies.isAIChatEnabledInSettings }
+        var showSearchModeSwitcher: Bool { dependencies.isIPadAIToggleEnabled && dependencies.isAIChatEnabledInSettings }
         let searchMode: OmniBarSearchMode = .search
-        let showPadReloadButton = true
+        var showPadReloadButton: Bool { dependencies.isIPadAIToggleEnabled }
         var padReloadButtonEnabled: Bool { !isLoading }
         var name: String { return "Pad" + Type.name(self) }
         var onEditingStoppedState: OmniBarState { return self }
@@ -317,9 +317,9 @@ struct LargeOmniBarState {
         let showVoiceSearch = false
         let isBrowsing = true
 
-        let showSearchModeSwitcher = true
-        let searchMode: OmniBarSearchMode = .duckAI
-        let showPadReloadButton = true
+        var showSearchModeSwitcher: Bool { dependencies.isIPadAIToggleEnabled }
+        var searchMode: OmniBarSearchMode { dependencies.isIPadAIToggleEnabled ? .duckAI : .search }
+        var showPadReloadButton: Bool { dependencies.isIPadAIToggleEnabled }
         var padReloadButtonEnabled: Bool { !isLoading }
 
         var name: String { "Pad" + Type.name(self) }

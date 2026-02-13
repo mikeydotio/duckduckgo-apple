@@ -331,6 +331,8 @@ public enum FeatureFlag: String {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213001736131250?focus=true
     case webExtensions
+
+    case iPadAIToggle
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -450,7 +452,8 @@ extension FeatureFlag: FeatureFlagDescribing {
              .freeTrialConversionWideEvent,
              .uiTestExperiment,
              .onboardingRebranding,
-             .webExtensions:
+             .webExtensions,
+             .iPadAIToggle:
             return true
         case .showSettingsCompleteSetupSection:
             if #available(iOS 18.2, *) {
@@ -697,6 +700,8 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .onboardingRebranding:
             return .disabled
         case .webExtensions:
+            return .internalOnly()
+        case .iPadAIToggle:
             return .internalOnly()
         }
     }

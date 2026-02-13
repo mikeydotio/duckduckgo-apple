@@ -27,7 +27,8 @@ final class OmniBarSearchModeToggle: UIControl {
 
     private enum Metrics {
         static let toggleWidth: CGFloat = 122
-        static let toggleHeight: CGFloat = 35
+        static let defaultToggleHeight: CGFloat = 22
+        static let compactToggleHeight: CGFloat = 35
         static let selectorInset: CGFloat = 2
         static let shadowRadius: CGFloat = 4
         static let shadowOffset = CGSize(width: 0, height: 2)
@@ -38,6 +39,7 @@ final class OmniBarSearchModeToggle: UIControl {
     // MARK: - State
 
     private(set) var selectedMode: OmniBarSearchMode = .search
+    private var heightConstraint: NSLayoutConstraint?
 
     // MARK: - Subviews
 
@@ -70,7 +72,7 @@ final class OmniBarSearchModeToggle: UIControl {
     // MARK: - Intrinsic size
 
     override var intrinsicContentSize: CGSize {
-        CGSize(width: Metrics.toggleWidth, height: Metrics.toggleHeight)
+        CGSize(width: Metrics.toggleWidth, height: heightConstraint?.constant ?? Metrics.defaultToggleHeight)
     }
 
     // MARK: - Layout
@@ -131,10 +133,19 @@ final class OmniBarSearchModeToggle: UIControl {
 
         // Fixed size
         translatesAutoresizingMaskIntoConstraints = false
+        let height = heightAnchor.constraint(equalToConstant: Metrics.defaultToggleHeight)
+        heightConstraint = height
         NSLayoutConstraint.activate([
             widthAnchor.constraint(equalToConstant: Metrics.toggleWidth),
-            heightAnchor.constraint(equalToConstant: Metrics.toggleHeight)
+            height
         ])
+    }
+
+    /// Switches the toggle to the compact (shorter) height used when the
+    /// iPadAIToggle feature flag is enabled.
+    func applyCompactLayout() {
+        heightConstraint?.constant = Metrics.compactToggleHeight
+        invalidateIntrinsicContentSize()
     }
 
     private func updateColors() {

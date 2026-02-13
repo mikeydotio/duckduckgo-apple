@@ -54,6 +54,10 @@ class OmniBarViewController: UIViewController, OmniBar {
     let dependencies: OmnibarDependencyProvider
     weak var omniDelegate: OmniBarDelegate?
 
+    var isIPadAIToggleEnabled: Bool {
+        dependencies.featureFlagger.isFeatureOn(.iPadAIToggle)
+    }
+
     // MARK: - State
     private(set) lazy var state: OmniBarState = SmallOmniBarState.HomeNonEditingState(dependencies: dependencies, isLoading: false)
 
@@ -651,15 +655,23 @@ class OmniBarViewController: UIViewController, OmniBar {
                     clear()
                 }
                 cancelAllAnimations()
-                // Clear the user's manual toggle override when entering a
-                // non-editing "resting" state (e.g. tab switch, editing stopped).
-                // A resting state is one whose onEditingStoppedState is itself.
-                // Transitions between editing sub-states (e.g. empty ↔ text)
-                // preserve the override so the user's toggle choice persists
-                // while they type.
-                let isNewStateResting = !newState.isDifferentState(than: newState.onEditingStoppedState)
-                if isNewStateResting || !newState.showSearchModeSwitcher {
-                    userOverrideSearchMode = nil
+                if isIPadAIToggleEnabled {
+                    // Clear the user's manual toggle override when entering a
+                    // non-editing "resting" state (e.g. tab switch, editing stopped).
+                    // A resting state is one whose onEditingStoppedState is itself.
+                    // Transitions between editing sub-states (e.g. empty ↔ text)
+                    // preserve the override so the user's toggle choice persists
+                    // while they type.
+                    let isNewStateResting = !newState.isDifferentState(than: newState.onEditingStoppedState)
+                    if isNewStateResting || !newState.showSearchModeSwitcher {
+                        userOverrideSearchMode = nil
+                    }
+                } else {
+                    if !newState.showSearchModeSwitcher {
+                        userOverrideSearchMode = nil
+                    } else if let override = userOverrideSearchMode, newState.searchMode != .search, newState.searchMode != override {
+                        userOverrideSearchMode = nil
+                    }
                 }
             }
             state = newState
@@ -695,8 +707,12 @@ class OmniBarViewController: UIViewController, OmniBar {
         // Respect user's manual toggle selection; fall back to what the state dictates.
         let effectiveSearchMode = userOverrideSearchMode ?? state.searchMode
         barView.searchMode = effectiveSearchMode
-        // State-driven updates use non-animated expansion to avoid jank during tab switches
-        barView.setSearchAreaExpanded(effectiveSearchMode == .duckAI, animated: false)
+        if isIPadAIToggleEnabled {
+            // State-driven updates use non-animated expansion to avoid jank during tab switches
+            barView.setSearchAreaExpanded(effectiveSearchMode == .duckAI, animated: false)
+        } else {
+            barView.isSearchAreaExpanded = effectiveSearchMode == .duckAI
+        }
 
         barView.isPadReloadButtonHidden = !state.showPadReloadButton
         barView.isPadReloadButtonEnabled = state.padReloadButtonEnabled
@@ -712,7 +728,7 @@ class OmniBarViewController: UIViewController, OmniBar {
     /// On iPad, the segmented control replaces the AI chat button and the external
     /// pad reload button replaces the in-bar refresh.
     private func applyPadLayout(for state: any OmniBarState) {
-        guard state.hasLargeWidth else { return }
+        guard isIPadAIToggleEnabled, state.hasLargeWidth else { return }
 
         barView.isAIChatButtonHidden = true
         barView.isRefreshButtonHidden = true
@@ -912,8 +928,17 @@ class OmniBarViewController: UIViewController, OmniBar {
     private func onSearchModeChanged(_ mode: OmniBarSearchMode) {
         userOverrideSearchMode = mode
 
-        // User-driven toggle uses animated expansion for a smooth transition
-        barView.setSearchAreaExpanded(mode == .duckAI, animated: true)
+        if isIPadAIToggleEnabled {
+            // User-driven toggle uses animated expansion for a smooth transition
+            barView.setSearchAreaExpanded(mode == .duckAI, animated: true)
+        } else {
+            switch mode {
+            case .duckAI:
+                barView.isSearchAreaExpanded = true
+            case .search:
+                barView.isSearchAreaExpanded = false
+            }
+        }
 
         omniDelegate?.onPadSearchModeChanged(mode)
     }

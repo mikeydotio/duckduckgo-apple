@@ -397,6 +397,10 @@ extension OmnibarDependencyProvider {
         aiChatSettings.isAIChatAddressBarUserSettingsEnabled
     }
 
+    var isIPadAIToggleEnabled: Bool {
+        featureFlagger.isFeatureOn(.iPadAIToggle)
+    }
+
     var shouldShowSearchLoupeIfPossible: Bool {
         return false
     }

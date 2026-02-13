@@ -858,6 +858,11 @@ extension DefaultOmniBarView {
     static func setUpCommonProperties(for button: UIButton) {
         button.isHidden = true
     }
+
+    /// Applies iPadAIToggle visual tweaks to the search area subviews.
+    func applyIPadAIToggleLayout() {
+        searchAreaView.applyIPadAIToggleLayout()
+    }
 }
 
 extension DefaultOmniBarView {

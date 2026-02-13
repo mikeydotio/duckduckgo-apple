@@ -47,6 +47,10 @@ final class DefaultOmniBarViewController: OmniBarViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        if isIPadAIToggleEnabled {
+            omniBarView.applyIPadAIToggleLayout()
+        }
+
         // Handle address bar position changes to set the shadow correctly
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(addressBarPositionChanged),
