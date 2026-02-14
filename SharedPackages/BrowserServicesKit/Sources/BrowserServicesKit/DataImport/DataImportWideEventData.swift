@@ -23,8 +23,13 @@ public class DataImportWideEventData: WideEventData {
 
     typealias DataType = DataImport.DataType
 
-    public static let pixelName = "data_import"
-    public static let featureName = "data-import"
+    public static let metadata = WideEventMetadata(
+        pixelName: "data_import",
+        featureName: "data-import",
+        mobileMetaType: "ios-data-import",
+        desktopMetaType: "macos-data-import",
+        version: "1.0.0"
+    )
     public static let importTimeout: TimeInterval = .minutes(15)
 
     // Protocol Properties

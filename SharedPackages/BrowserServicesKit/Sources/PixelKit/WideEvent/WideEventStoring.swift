@@ -24,6 +24,9 @@ public protocol WideEventStoring {
     func update<T: WideEventData>(_ data: T) throws
     func delete<T: WideEventData>(_ data: T)
     func allWideEvents<T: WideEventData>(for type: T.Type) -> [T]
+
+    func lastSentTimestamp(for eventType: String) -> Date?
+    func recordSentTimestamp(for eventType: String, date: Date)
 }
 
 public final class WideEventUserDefaultsStorage: WideEventStoring {
@@ -50,7 +53,7 @@ public final class WideEventUserDefaultsStorage: WideEventStoring {
         let key = storageKey(T.self, globalID: globalID)
 
         guard let data = defaults.data(forKey: key) else {
-            throw WideEventError.flowNotFound(pixelName: T.pixelName)
+            throw WideEventError.flowNotFound(pixelName: T.metadata.pixelName)
         }
 
         do {
@@ -62,7 +65,7 @@ public final class WideEventUserDefaultsStorage: WideEventStoring {
 
     public func update<T: WideEventData>(_ data: T) throws {
         guard defaults.data(forKey: storageKey(T.self, globalID: data.globalData.id)) != nil else {
-            throw WideEventError.flowNotFound(pixelName: T.pixelName)
+            throw WideEventError.flowNotFound(pixelName: T.metadata.pixelName)
         }
 
         try save(data)
@@ -78,8 +81,8 @@ public final class WideEventUserDefaultsStorage: WideEventStoring {
         var results: [T] = []
 
         for key in allKeys {
-            guard key.hasPrefix("\(T.pixelName).") else { continue }
-            let globalID = String(key.dropFirst(T.pixelName.count + 1))
+            guard key.hasPrefix("\(T.metadata.pixelName).") else { continue }
+            let globalID = String(key.dropFirst(T.metadata.pixelName.count + 1))
             guard !globalID.isEmpty, UUID(uuidString: globalID) != nil else { continue }
             if let decoded: T = (try? load(globalID: globalID)) {
                 results.append(decoded)
@@ -90,7 +93,23 @@ public final class WideEventUserDefaultsStorage: WideEventStoring {
     }
 
     private func storageKey<T: WideEventData>(_ type: T.Type, globalID: String) -> String {
-        return "\(T.pixelName).\(globalID)"
+        return "\(T.metadata.pixelName).\(globalID)"
+    }
+
+    // MARK: - Daily Occurrence Tracking
+
+    public func lastSentTimestamp(for eventType: String) -> Date? {
+        let key = lastSentKey(for: eventType)
+        return defaults.object(forKey: key) as? Date
+    }
+
+    public func recordSentTimestamp(for eventType: String, date: Date) {
+        let key = lastSentKey(for: eventType)
+        defaults.set(date, forKey: key)
+    }
+
+    private func lastSentKey(for eventType: String) -> String {
+        return "last_sent.\(eventType)"
     }
 
 }

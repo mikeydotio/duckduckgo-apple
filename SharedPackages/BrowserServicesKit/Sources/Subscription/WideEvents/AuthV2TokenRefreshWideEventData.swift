@@ -26,8 +26,13 @@ import UIKit
 #endif
 
 public class AuthV2TokenRefreshWideEventData: WideEventData {
-    public static let pixelName = "auth_v2_token_refresh"
-    public static let featureName = "authv2-token-refresh"
+    public static let metadata = WideEventMetadata(
+        pixelName: "auth_v2_token_refresh",
+        featureName: "authv2-token-refresh",
+        mobileMetaType: "ios-authv2-token-refresh",
+        desktopMetaType: "macos-authv2-token-refresh",
+        version: "1.0.0"
+    )
 
     public var globalData: WideEventGlobalData
     public var contextData: WideEventContextData

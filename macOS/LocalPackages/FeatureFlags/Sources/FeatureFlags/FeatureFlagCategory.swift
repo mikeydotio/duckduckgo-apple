@@ -51,9 +51,10 @@ extension FeatureFlag: FeatureFlagCategorization {
         switch self {
         case .aiChatPageContext,
                 .aiChatKeepSession,
-                .aiChatDataClearing,
                 .aiChatOmnibarToggle,
                 .aiChatOmnibarCluster,
+                .aiChatSuggestions,
+                .aiChatOmnibarTools,
                 .aiChatOmnibarOnboarding,
                 .standaloneMigration:
             return .duckAI
@@ -68,6 +69,7 @@ extension FeatureFlag: FeatureFlagCategorization {
             return .sync
         case .updatesWontAutomaticallyRestartApp,
                 .autoUpdateInDEBUG,
+                .autoUpdateInREVIEW,
                 .appStoreUpdateFlow,
                 .updatesSimplifiedFlow:
             return .updates
@@ -82,7 +84,6 @@ extension FeatureFlag: FeatureFlagCategorization {
         case .paidAIChat,
                 .supportsAlternateStripePaymentFlow,
                 .blackFridayCampaign,
-                .tierMessagingEnabled,
                 .allowProTierPurchase:
             return .subscription
         case .popupBlocking,

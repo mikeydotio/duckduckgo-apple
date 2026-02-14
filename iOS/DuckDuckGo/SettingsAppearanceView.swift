@@ -80,8 +80,6 @@ struct SettingsAppearanceView: View {
 
                 showFullSiteAddressSetting()
 
-                showTrackersBlockedAnimationSetting()
-
                 showReloadButtonSetting()
 
             } header: {
@@ -106,6 +104,16 @@ struct SettingsAppearanceView: View {
                     SettingsCellView(label: UserText.settingsExperimentalMenu,
                                      accessory: .toggle(isOn: viewModel.showMenuInSheetBinding))
                 }
+            }
+
+            Section {
+                showTrackersBlockedAnimationSetting()
+
+                if viewModel.isTabSwitcherTrackerCountEnabled {
+                    showTrackerCountSetting()
+                }
+            } header: {
+                Text(UserText.settingsTrackerBlockingAnimationSection)
             }
 
         }
@@ -177,6 +185,12 @@ struct SettingsAppearanceView: View {
     func showFullSiteAddressSetting() -> some View {
         SettingsCellView(label: UserText.settingsFullURL,
                          accessory: .toggle(isOn: viewModel.addressBarShowsFullURL))
+    }
+
+    @ViewBuilder
+    func showTrackerCountSetting() -> some View {
+        SettingsCellView(label: UserText.tabSwitcherShowTrackerCount,
+                         accessory: .toggle(isOn: viewModel.showTrackerCountInTabSwitcherBinding))
     }
 
     @ViewBuilder

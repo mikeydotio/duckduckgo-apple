@@ -53,7 +53,8 @@ struct SettingsSubscriptionView: View {
                                                            userScriptsDependencies: settingsViewModel.userScriptsDependencies,
                                                            internalUserDecider: AppDependencyProvider.shared.internalUserDecider,
                                                            wideEvent: AppDependencyProvider.shared.wideEvent,
-                                                           dataBrokerProtectionViewControllerProvider: settingsViewModel.dataBrokerProtectionViewControllerProvider)
+                                                           dataBrokerProtectionViewControllerProvider: settingsViewModel.dataBrokerProtectionViewControllerProvider,
+                                                           featureFlagger: settingsViewModel.featureFlagger)
     }
 
     private var manageSubscriptionView: some View {
@@ -168,18 +169,23 @@ struct SettingsSubscriptionView: View {
         }
 
         if subscriptionFeatures.contains(.dataBrokerProtection) {
+            let shouldShowPIRNewBadge = settingsViewModel.shouldShowNewBadge(for: .personalInformationRemoval)
             SettingsCellView(
                 label: UserText.settingsPProDBPTitle,
                 image: Image(uiImage: DesignSystemImages.Color.Size24.identityBlockedPIR),
                 statusIndicator: StatusIndicatorView(status: .off),
-                isGreyedOut: true
+                isGreyedOut: true,
+                optionalBadgeText: shouldShowPIRNewBadge ? UserText.settingsItemNewBadge : nil
             )
+            .onAppear {
+                settingsViewModel.storeNewBadgeFirstImpressionDateIfNeeded(for: .personalInformationRemoval)
+            }
         }
 
         if subscriptionFeatures.contains(.paidAIChat) && settingsViewModel.isPaidAIChatEnabled {
             SettingsCellView(
                 label: UserText.settingsSubscriptionAiChatTitle,
-                image: Image(uiImage: DesignSystemImages.Color.Size24.aiChat),
+                image: Image(uiImage: DesignSystemImages.Color.Size24.paidAiChat),
                 statusIndicator: StatusIndicatorView(status: .off),
                 isGreyedOut: true
             )
@@ -291,6 +297,7 @@ struct SettingsSubscriptionView: View {
         if subscriptionFeatures.contains(.dataBrokerProtection) {
             let hasDBPEntitlement = userEntitlements.contains(.dataBrokerProtection)
             let hasValidStoredProfile = settingsViewModel.dbpMeetsProfileRunPrequisite
+            let shouldShowPIRNewBadge = settingsViewModel.shouldShowNewBadge(for: .personalInformationRemoval)
             var statusIndicator: StatusIndicator = hasDBPEntitlement && hasValidStoredProfile ? .on : .off
 
             let destination: LazyView<AnyView> = {
@@ -308,10 +315,14 @@ struct SettingsSubscriptionView: View {
                     label: UserText.settingsPProDBPTitle,
                     image: Image(uiImage: DesignSystemImages.Color.Size24.identityBlockedPIR),
                     statusIndicator: StatusIndicatorView(status: statusIndicator),
-                    isGreyedOut: !hasDBPEntitlement
+                    isGreyedOut: !hasDBPEntitlement,
+                    optionalBadgeText: shouldShowPIRNewBadge ? UserText.settingsItemNewBadge : nil
                 )
             }
             .disabled(!hasDBPEntitlement)
+            .onAppear {
+                settingsViewModel.storeNewBadgeFirstImpressionDateIfNeeded(for: .personalInformationRemoval)
+            }
         }
 
         if subscriptionFeatures.contains(.paidAIChat) && settingsViewModel.isPaidAIChatEnabled {
@@ -320,10 +331,9 @@ struct SettingsSubscriptionView: View {
             NavigationLink(destination: LazyView(SubscriptionAIChatView(viewModel: settingsViewModel)), isActive: $isShowingPaidAIChat) {
                 SettingsCellView(
                     label: UserText.settingsSubscriptionAiChatTitle,
-                    image: Image(uiImage: DesignSystemImages.Color.Size24.aiChat),
+                    image: Image(uiImage: DesignSystemImages.Color.Size24.paidAiChat),
                     statusIndicator: StatusIndicatorView(status: (hasAIChatEntitlement && settingsViewModel.isAIChatEnabled) ? .on : .off),
-                    isGreyedOut: !hasAIChatEntitlement,
-                    optionalBadgeText: UserText.settingsItemNewBadge
+                    isGreyedOut: !hasAIChatEntitlement
                 )
             }
             .disabled(!hasAIChatEntitlement)
@@ -334,7 +344,8 @@ struct SettingsSubscriptionView: View {
 
             let model = SubscriptionITPViewModel(subscriptionManager: AppDependencyProvider.shared.subscriptionManager,
                                                  userScriptsDependencies: settingsViewModel.userScriptsDependencies,
-                                                 isInternalUser: AppDependencyProvider.shared.internalUserDecider.isInternalUser)
+                                                 isInternalUser: AppDependencyProvider.shared.internalUserDecider.isInternalUser,
+                                                 featureFlagger: settingsViewModel.featureFlagger)
             NavigationLink(destination: LazyView(SubscriptionITPView(viewModel: model)), isActive: $isShowingITP) {
                 SettingsCellView(
                     label: UserText.settingsPProITRTitle,

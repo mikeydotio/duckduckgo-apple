@@ -23,9 +23,10 @@ import Persistence
 import PrivacyConfig
 
 protocol BrowsingMenuSheetCapable {
-    var isExperimentalMenuOptInEnabled: Bool { get }
     var isEnabled: Bool { get }
     var isSettingsOptionVisible: Bool { get }
+    var isWebsiteHeaderEnabled: Bool { get }
+    var mergeActionsAndBookmarks: Bool { get }
 
     func setEnabled(_ enabled: Bool)
 }
@@ -47,16 +48,16 @@ enum BrowsingMenuSheetCapability {
 }
 
 struct BrowsingMenuSheetUnavailableCapability: BrowsingMenuSheetCapable {
-    let isExperimentalMenuOptInEnabled: Bool = false
     let isEnabled: Bool = false
     let isSettingsOptionVisible: Bool = false
+    let isWebsiteHeaderEnabled: Bool = false
+    let mergeActionsAndBookmarks: Bool = false
 
     func setEnabled(_ enabled: Bool) {
         // no-op
     }
 }
 
-@available(iOS 17.0, *)
 struct BrowsingMenuSheetDefaultCapability: BrowsingMenuSheetCapable {
     let featureFlagger: FeatureFlagger
     private let keyValueStore: ThrowingKeyValueStoring
@@ -66,10 +67,6 @@ struct BrowsingMenuSheetDefaultCapability: BrowsingMenuSheetCapable {
         self.keyValueStore = keyValueStore
     }
 
-    var isExperimentalMenuOptInEnabled: Bool {
-        featureFlagger.isFeatureOn(.browsingMenuSheetPresentation)
-    }
-
     var isEnabled: Bool {
         if isEnabledByDefault {
             if featureFlagger.internalUserDecider.isInternalUser {
@@ -77,14 +74,19 @@ struct BrowsingMenuSheetDefaultCapability: BrowsingMenuSheetCapable {
             }
             return true
         }
-        return isExperimentalMenuOptInEnabled && (storedEnabledValue ?? false)
+        return storedEnabledValue ?? false
     }
 
     var isSettingsOptionVisible: Bool {
-        if isEnabledByDefault {
-            return featureFlagger.internalUserDecider.isInternalUser
-        }
-        return isExperimentalMenuOptInEnabled
+        isEnabledByDefault && featureFlagger.internalUserDecider.isInternalUser
+    }
+
+    var isWebsiteHeaderEnabled: Bool {
+        isEnabledByDefault
+    }
+
+    var mergeActionsAndBookmarks: Bool {
+        isEnabledByDefault
     }
 
     func setEnabled(_ enabled: Bool) {

@@ -78,6 +78,9 @@ enum SubscriptionPixel: PixelKitEvent {
     case subscriptionTierOptionsSuccess
     case subscriptionTierOptionsFailure(error: Error)
     case subscriptionTierOptionsUnexpectedProTier
+    // Plan Change
+    case subscriptionViewAllPlansClick
+    case subscriptionUpgradeClick
     // Auth
     case subscriptionInvalidRefreshTokenDetected(SubscriptionPixelHandler.Source)
     case subscriptionInvalidRefreshTokenSignedOut
@@ -116,6 +119,12 @@ enum SubscriptionPixel: PixelKitEvent {
     // New Tab Page Next Steps Card
     case subscriptionNewTabPageNextStepsCardClicked
     case subscriptionNewTabPageNextStepsCardDismissed
+
+    // Free Trial Journey
+    case freeTrialStart
+    case freeTrialVPNActivation(activationDay: FreeTrialActivationDay)
+    case freeTrialPIRActivation(activationDay: FreeTrialActivationDay)
+    case freeTrialDuckAIActivation(activationDay: FreeTrialActivationDay)
 
     var name: String {
         switch self {
@@ -167,6 +176,9 @@ enum SubscriptionPixel: PixelKitEvent {
         case .subscriptionTierOptionsSuccess: return "m_mac_\(appDistribution)_subscription_tier-options_success"
         case .subscriptionTierOptionsFailure: return "m_mac_\(appDistribution)_subscription_tier-options_failure"
         case .subscriptionTierOptionsUnexpectedProTier: return "m_mac_\(appDistribution)_subscription_tier-options_unexpected-pro-tier"
+            // Plan Change
+        case .subscriptionViewAllPlansClick: return "m_mac_\(appDistribution)_subscription_settings_view-all-plans_click"
+        case .subscriptionUpgradeClick: return "m_mac_\(appDistribution)_subscription_settings_upgrade_click"
             // Auth
         case .subscriptionInvalidRefreshTokenDetected: return "m_mac_\(appDistribution)_privacy-pro_auth_invalid_refresh_token_detected"
         case .subscriptionInvalidRefreshTokenSignedOut: return "m_mac_\(appDistribution)_privacy-pro_auth_invalid_refresh_token_signed_out"
@@ -206,14 +218,19 @@ enum SubscriptionPixel: PixelKitEvent {
             // New Tab Page Next Steps Card
         case .subscriptionNewTabPageNextStepsCardClicked: return "m_mac_\(appDistribution)_privacy-pro_new_tab_page_next_steps_card_clicked"
         case .subscriptionNewTabPageNextStepsCardDismissed: return "m_mac_\(appDistribution)_privacy-pro_new_tab_page_next_steps_card_dismissed"
+            // Free Trial Journey
+        case .freeTrialStart: return "m_mac_\(appDistribution)_privacy-pro_freetrial_start"
+        case .freeTrialVPNActivation: return "m_mac_\(appDistribution)_privacy-pro_freetrial_vpn_activation"
+        case .freeTrialPIRActivation: return "m_mac_\(appDistribution)_privacy-pro_freetrial_pir_activation"
+        case .freeTrialDuckAIActivation: return "m_mac_\(appDistribution)_privacy-pro_freetrial_duck_ai_activation"
         }
     }
 
     private struct SubscriptionPixelsDefaults {
-        static let errorKey = "error"
         static let policyCacheKey = "policycache"
         static let sourceKey = "source"
         static let platformKey = "platform"
+        static let activationDayKey = "activation_day"
     }
 
     var parameters: [String: String]? {
@@ -226,12 +243,15 @@ enum SubscriptionPixel: PixelKitEvent {
                 .subscriptionKeychainManagerDataWroteFromBacklog(let source),
                 .subscriptionKeychainManagerFailedToWriteDataFromBacklog(let source):
             return [SubscriptionPixelsDefaults.sourceKey: source.description]
-        case .subscriptionAuthV2GetTokensError(let policy, let source, let error):
-            return [SubscriptionPixelsDefaults.errorKey: error.localizedDescription,
-                    SubscriptionPixelsDefaults.policyCacheKey: policy.description,
+        case .subscriptionAuthV2GetTokensError(let policy, let source, _):
+            return [SubscriptionPixelsDefaults.policyCacheKey: policy.description,
                     SubscriptionPixelsDefaults.sourceKey: source.description]
         case .subscriptionActive(let authVersion):
             return [AuthVersion.key: authVersion.rawValue]
+        case .freeTrialVPNActivation(let activationDay),
+             .freeTrialPIRActivation(let activationDay),
+             .freeTrialDuckAIActivation(let activationDay):
+            return [SubscriptionPixelsDefaults.activationDayKey: activationDay.rawValue]
         default:
             return nil
         }
@@ -310,7 +330,13 @@ enum SubscriptionPixel: PixelKitEvent {
                 .subscriptionTierOptionsRequested,
                 .subscriptionTierOptionsSuccess,
                 .subscriptionTierOptionsFailure,
-                .subscriptionTierOptionsUnexpectedProTier:
+                .subscriptionTierOptionsUnexpectedProTier,
+                .subscriptionViewAllPlansClick,
+                .subscriptionUpgradeClick,
+                .freeTrialStart,
+                .freeTrialVPNActivation,
+                .freeTrialPIRActivation,
+                .freeTrialDuckAIActivation:
             return [.pixelSource]
         }
     }

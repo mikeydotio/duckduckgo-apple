@@ -32,9 +32,10 @@ final class SubscriptionWideEventTests: XCTestCase {
 
         testSuiteName = "\(type(of: self))-\(UUID().uuidString)"
         testDefaults = UserDefaults(suiteName: testSuiteName) ?? .standard
-        wideEvent = WideEvent(storage: WideEventUserDefaultsStorage(userDefaults: testDefaults), pixelKitProvider: { PixelKit.shared })
-        firedPixels.removeAll()
         setupMockPixelKit()
+        wideEvent = WideEvent(storage: WideEventUserDefaultsStorage(userDefaults: testDefaults),
+                              featureFlagProvider: MockWideEventFeatureFlagProvider(isPostEndpointEnabled: true))
+        firedPixels.removeAll()
     }
 
     override func tearDown() {
@@ -338,7 +339,7 @@ final class SubscriptionWideEventTests: XCTestCase {
         XCTAssert(firedPixels.count >= 1 && firedPixels.count <= 2)
         let params = firedPixels[0].parameters
         XCTAssertEqual(params["feature.status"], "UNKNOWN")
-        XCTAssertEqual(params["feature.status_reason"], "activation_timeout")
+        XCTAssertEqual(params["feature.data.ext.status_reason"], "activation_timeout")
         XCTAssertEqual(params["feature.data.ext.account_activation_latency_ms_bucketed"], "300000") // Max bucket
     }
 
@@ -465,4 +466,15 @@ final class SubscriptionWideEventTests: XCTestCase {
         }
     }
 
+}
+
+struct MockWideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
+    let isPostEndpointEnabled: Bool
+
+    func isEnabled(_ flag: WideEventFeatureFlag) -> Bool {
+        switch flag {
+        case .postEndpoint:
+            return isPostEndpointEnabled
+        }
+    }
 }

@@ -437,7 +437,7 @@ final class SubscriptionSettingsViewModelTests: XCTestCase {
 
     // MARK: - Navigate To Plans (Upgrade) Action Tests
 
-    func testNavigateToPlans_WithGoToUpgrade_WhenApplePlatform_SetsIsShowingUpgradeViewTrue() async {
+    func testNavigateToPlans_WithTier_WhenApplePlatform_SetsIsShowingUpgradeViewTrue() async {
         // Given - Apple platform subscription
         let availableChanges = DuckDuckGoSubscription.AvailableChanges(
             upgrade: [DuckDuckGoSubscription.TierChange(tier: "pro", productIds: [], order: 1)],
@@ -454,15 +454,16 @@ final class SubscriptionSettingsViewModelTests: XCTestCase {
         sut = makeSUT()
         await waitForSubscriptionUpdate()
 
-        // When
-        sut.navigateToPlans(goToUpgrade: true)
+        // When - pass tier to simulate upgrade button click
+        sut.navigateToPlans(tier: "pro")
 
         // Then
         XCTAssertTrue(sut.state.isShowingUpgradeView)
         XCTAssertFalse(sut.state.isShowingPlansView)
+        XCTAssertEqual(sut.state.pendingUpgradeTier, "pro")
     }
 
-    func testNavigateToPlans_WithoutGoToUpgrade_WhenApplePlatform_SetsIsShowingPlansViewTrue() async {
+    func testNavigateToPlans_WithoutTier_WhenApplePlatform_SetsIsShowingPlansViewTrue() async {
         // Given - Apple platform subscription
         mockFeatureFlagger.enabledFeatureFlags = [.allowProTierPurchase]
         mockSubscriptionManager.resultSubscription = .success(SubscriptionMockFactory.subscription(
@@ -474,15 +475,15 @@ final class SubscriptionSettingsViewModelTests: XCTestCase {
         sut = makeSUT()
         await waitForSubscriptionUpdate()
 
-        // When
-        sut.navigateToPlans(goToUpgrade: false)
+        // When - no tier means "View All Plans" not upgrade
+        sut.navigateToPlans()
 
         // Then
         XCTAssertTrue(sut.state.isShowingPlansView)
         XCTAssertFalse(sut.state.isShowingUpgradeView)
     }
 
-    func testNavigateToPlans_WithGoToUpgrade_WhenGooglePlatform_SetsIsShowingGoogleViewTrue() async {
+    func testNavigateToPlans_WithTier_WhenGooglePlatform_SetsIsShowingGoogleViewTrue() async {
         // Given - Google platform subscription
         mockFeatureFlagger.enabledFeatureFlags = [.allowProTierPurchase]
         mockSubscriptionManager.resultSubscription = .success(SubscriptionMockFactory.subscription(
@@ -494,10 +495,10 @@ final class SubscriptionSettingsViewModelTests: XCTestCase {
         sut = makeSUT()
         await waitForSubscriptionUpdate()
 
-        // When
-        sut.navigateToPlans(goToUpgrade: true)
+        // When - pass tier to simulate upgrade button click
+        sut.navigateToPlans(tier: "pro")
 
-        // Then - Google shows the same view regardless of goToUpgrade
+        // Then - Google shows the same view regardless of tier
         XCTAssertTrue(sut.state.isShowingGoogleView)
     }
 
@@ -634,11 +635,13 @@ final class SubscriptionSettingsViewModelTests: XCTestCase {
     }
 
     private func waitForSubscriptionUpdate() async {
-        let expectation = expectation(description: "Subscription details updated")
+        let expectation = expectation(description: "Subscription info updated")
 
+        // Wait for subscriptionDetails to be non-empty, which indicates the full
+        // update has completed (subscriptionInfo is set first, then subscriptionDetails)
         sut.$state
             .map { $0.subscriptionDetails }
-            .filter { !$0.isEmpty }  // Wait for subscriptionDetails to be non-empty
+            .filter { !$0.isEmpty }
             .first()
             .sink { _ in expectation.fulfill() }
             .store(in: &cancellables)

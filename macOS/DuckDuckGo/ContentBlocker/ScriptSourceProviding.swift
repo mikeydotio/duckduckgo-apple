@@ -28,6 +28,7 @@ import TrackerRadarKit
 import PixelKit
 import PrivacyConfig
 import enum UserScript.UserScriptError
+import DDGSync
 
 protocol ScriptSourceProviding {
 
@@ -47,6 +48,7 @@ protocol ScriptSourceProviding {
     var webTrackingProtectionPreferences: WebTrackingProtectionPreferences { get }
     var cookiePopupProtectionPreferences: CookiePopupProtectionPreferences { get }
     var duckPlayer: DuckPlayer { get }
+    var syncServiceProvider: () -> DDGSyncing? { get }
     func buildAutofillSource() -> AutofillUserScriptSourceProvider
 
 }
@@ -71,11 +73,15 @@ protocol ScriptSourceProviding {
         startupPreferences: Application.appDelegate.startupPreferences,
         windowControllersManager: Application.appDelegate.windowControllersManager,
         bookmarkManager: Application.appDelegate.bookmarkManager,
+        pinningManager: Application.appDelegate.pinningManager,
         historyCoordinator: Application.appDelegate.historyCoordinator,
         fireproofDomains: Application.appDelegate.fireproofDomains,
         fireCoordinator: Application.appDelegate.fireCoordinator,
         autoconsentManagement: Application.appDelegate.autoconsentManagement,
-        newTabPageActionsManager: nil
+        newTabPageActionsManager: nil,
+        syncServiceProvider: { [weak appDelegate = Application.appDelegate] in
+            return appDelegate?.syncService
+        }
     )
 }
 
@@ -101,9 +107,11 @@ struct ScriptSourceProvider: ScriptSourceProviding {
     let tld: TLD
     let experimentManager: ContentScopeExperimentsManaging
     let bookmarkManager: BookmarkManager & HistoryViewBookmarksHandling
+    let pinningManager: PinningManager
     let historyCoordinator: HistoryDataSource
     let windowControllersManager: WindowControllersManagerProtocol
     let autoconsentManagement: AutoconsentManagement
+    let syncServiceProvider: () -> DDGSyncing?
 
     @MainActor
     init(configStorage: ConfigurationStoring,
@@ -122,11 +130,13 @@ struct ScriptSourceProvider: ScriptSourceProviding {
          startupPreferences: StartupPreferences,
          windowControllersManager: WindowControllersManagerProtocol,
          bookmarkManager: BookmarkManager & HistoryViewBookmarksHandling,
+         pinningManager: PinningManager,
          historyCoordinator: HistoryDataSource,
          fireproofDomains: DomainFireproofStatusProviding,
          fireCoordinator: FireCoordinator,
          autoconsentManagement: AutoconsentManagement,
-         newTabPageActionsManager: NewTabPageActionsManager?
+         newTabPageActionsManager: NewTabPageActionsManager?,
+         syncServiceProvider: @escaping () -> DDGSyncing?
     ) {
 
         self.configStorage = configStorage
@@ -140,9 +150,11 @@ struct ScriptSourceProvider: ScriptSourceProviding {
         self.tld = tld
         self.featureFlagger = featureFlagger
         self.bookmarkManager = bookmarkManager
+        self.pinningManager = pinningManager
         self.historyCoordinator = historyCoordinator
         self.windowControllersManager = windowControllersManager
         self.autoconsentManagement = autoconsentManagement
+        self.syncServiceProvider = syncServiceProvider
 
         self.newTabPageActionsManager = newTabPageActionsManager
         self.contentBlockerRulesConfig = buildContentBlockerRulesConfig()
@@ -169,12 +181,14 @@ struct ScriptSourceProvider: ScriptSourceProviding {
 
     public func buildAutofillSource() -> AutofillUserScriptSourceProvider {
         let privacyConfig = self.privacyConfigurationManager.privacyConfig
+        let themeVariant = Application.appDelegate.appearancePreferences.themeName.rawValue
         do {
             return try DefaultAutofillSourceProvider.Builder(privacyConfigurationManager: privacyConfigurationManager,
                                                              properties: ContentScopeProperties(gpcEnabled: webTrackingProtectionPreferences.isGPCEnabled,
                                                                                                 sessionKey: self.sessionKey ?? "",
                                                                                                 messageSecret: self.messageSecret ?? "",
-                                                                                                featureToggles: ContentScopeFeatureToggles.supportedFeaturesOnMacOS(privacyConfig)),
+                                                                                                featureToggles: ContentScopeFeatureToggles.supportedFeaturesOnMacOS(privacyConfig),
+                                                                                                themeVariant: themeVariant),
                                                              isDebug: AutofillPreferences().debugScriptEnabled)
             .withJSLoading()
             .build()
@@ -245,6 +259,7 @@ struct ScriptSourceProvider: ScriptSourceProviding {
             appearancePreferences: appearancePreferences,
             startupPreferences: startupPreferences,
             bookmarkManager: bookmarkManager,
+            pinningManager: pinningManager,
             featureFlagger: featureFlagger
         )
     }

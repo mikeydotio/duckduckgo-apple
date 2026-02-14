@@ -1,4 +1,13 @@
 /* No comment provided by engineer. */
+"-config.rollout.<parent>.<subfeature> true/false" = "-config.rollout.<parent>.<subfeature> true/false";
+
+/* No comment provided by engineer. */
+"-experiment.<flagRawValue> <cohortId>" = "-experiment.<flagRawValue> <cohortId>";
+
+/* No comment provided by engineer. */
+"-ff.<flagRawValue> true/false" = "-ff.<flagRawValue> true/false";
+
+/* No comment provided by engineer. */
 "(%@)" = "(%@)";
 
 /* No comment provided by engineer. */
@@ -8,7 +17,13 @@
 "%@ " = "%@ ";
 
 /* No comment provided by engineer. */
+"%@ items" = "%@ items";
+
+/* No comment provided by engineer. */
 "%@%%" = "%@%%";
+
+/* No comment provided by engineer. */
+"%@s" = "%@s";
 
 /* No comment provided by engineer. */
 "Account" = "account";
@@ -1055,10 +1070,19 @@
 "Cohorts:" = "Cohorts:";
 
 /* No comment provided by engineer. */
+"Config Rollout:" = "Config Rollout:";
+
+/* No comment provided by engineer. */
 "Configuration" = "Configurație";
 
 /* No comment provided by engineer. */
 "Confirm" = "Confirmare";
+
+/* No comment provided by engineer. */
+"Contextual Onboarding" = "Familiarizare contextuală";
+
+/* No comment provided by engineer. */
+"Contextual Session Timer" = "Contextual Session Timer";
 
 /* Button to continue the onboarding process */
 "contextual.onboarding.addToDock.buttons.skip" = "Ignorare";
@@ -1179,6 +1203,12 @@
 
 /* No comment provided by engineer. */
 "CUSTOM CELL CONTENT" = "CONȚINUT PERSONALIZAT CELULE";
+
+/* No comment provided by engineer. */
+"Custom Duration" = "Custom Duration";
+
+/* No comment provided by engineer. */
+"Custom Session Timer Duration" = "Custom Session Timer Duration";
 
 /* No comment provided by engineer. */
 "Custom URL: %@" = "URL personalizat: %@";
@@ -1423,9 +1453,6 @@
 /* Info text shown below the context chip explaining that content will be sent with the message */
 "duckai.context.chip.info" = "Trimis cu mesajul tău către Duck.ai";
 
-/* Subtitle shown on the context chip indicating page content is attached */
-"duckai.context.chip.subtitle" = "Conținutul paginii";
-
 /* Body text for the Duck.ai contextual onboarding screen explaining the feature */
 "duckai.contextual.onboarding.body" = "Duck.ai poate acum să răspundă la întrebări despre pagina pe care o vizualizezi.\n\nConținutul paginii este inclus doar atunci când îl atașezi. Poți schimba oricând acest lucru din Setări.";
 
@@ -1440,6 +1467,9 @@
 
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "Funcțiile AI ale DuckDuckGo sunt private și opționale. Datele tale nu sunt folosite pentru a antrena AI.";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Atașează conținutul paginii";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Rezumă această pagină";
@@ -1703,6 +1733,9 @@
 "Enrolled" = "Enrolled";
 
 /* No comment provided by engineer. */
+"Enter duration in seconds. Examples: 30, 60, 300" = "Enter duration in seconds. Examples: 30, 60, 300";
+
+/* No comment provided by engineer. */
 "Entry Pill" = "Entry Pill";
 
 /* Button title to Sign In */
@@ -1736,6 +1769,12 @@
 "error.unknown.try.again" = "S-a produs o eroare necunoscută.";
 
 /* No comment provided by engineer. */
+"Experiment:" = "Experiment:";
+
+/* No comment provided by engineer. */
+"Experiment: %@" = "Experiment: %@";
+
+/* No comment provided by engineer. */
 "External ID: %@" = "Identificator extern: %@";
 
 /* No comment provided by engineer. */
@@ -1758,6 +1797,9 @@
 
 /* Display Mode for favorites */
 "favorites.settings.mobile-only" = "Doar favoritele pentru mobil";
+
+/* No comment provided by engineer. */
+"Feature Flag:" = "Feature Flag:";
 
 /* No comment provided by engineer. */
 "feedback.browserFeatures.ads" = "Blocarea anunțurilor și ferestrelor pop-up";
@@ -2038,6 +2080,9 @@
 /* No comment provided by engineer. */
 "fireButtonAnimation.waterSwirl.name" = "Vârtej de apă";
 
+/* No comment provided by engineer. */
+"Flag: %@" = "Flag: %@";
+
 /* Description text above the Share Link button */
 "get.browser.on-your-desktop-go-to" = "De pe computerul tău, accesează:";
 
@@ -2085,6 +2130,12 @@
 
 /* Placeholder text for the duck.ai input field */
 "input.field.placeholder.duckai" = "Întreabă în mod privat";
+
+/* No comment provided by engineer. */
+"Install Extension" = "Instalează extensia";
+
+/* No comment provided by engineer. */
+"Installed Extensions (%@)" = "Extensii instalate (%@)";
 
 /* Message that comes up when trying to enable the VPN from intents, asking the user to enable it from the app so it's configured */
 "intent.vpn.needs.to.be.enabled.from.app" = "Trebuie să activezi VPN-ul din aplicația DuckDuckGo.";
@@ -2205,6 +2256,15 @@
 
 /* Title for the Mac Waitlist feature */
 "mac-waitlist.title" = "Aplicația DuckDuckGo pentru Mac";
+
+/* No comment provided by engineer. */
+"Maestro Launch Arguments:" = "Maestro Launch Arguments:";
+
+/* No comment provided by engineer. */
+"Maestro: -experiment.uiTestExperiment control|treatment" = "Maestro: -experiment.uiTestExperiment control|treatment";
+
+/* No comment provided by engineer. */
+"Maestro: -ff.%@ true" = "Maestro: -ff.%@ true";
 
 /* Text explaining what happens when Malicious Site Protection is enabled */
 "malicious-site-protection-with-scam.settings.toggle.message" = "Avertizează-mă cu privire la site-urile marcate pentru escrocherii, phishing sau programe rău intenționate";
@@ -2523,6 +2583,9 @@
 
 /* No comment provided by engineer. */
 "No experiments defined in contentScopeExperiments" = "No experiments defined in contentScopeExperiments";
+
+/* No comment provided by engineer. */
+"No extensions installed" = "Nu sunt instalate extensii";
 
 /* No comment provided by engineer. */
 "No Logs" = "Niciun jurnal";
@@ -2909,6 +2972,9 @@
 "prompt.custom.url.scheme.title" = "Deschizi în altă aplicație?";
 
 /* No comment provided by engineer. */
+"REBRANDED" = "NE-AM REDEFINIT BRANDUL";
+
+/* No comment provided by engineer. */
 "Recent Processing Logs" = "Jurnale de procesare recente";
 
 /* No comment provided by engineer. */
@@ -2924,10 +2990,43 @@
 "Reset Priming Modal State" = "Reset Priming Modal State";
 
 /* No comment provided by engineer. */
+"Reset to Default" = "Reset to Default";
+
+/* No comment provided by engineer. */
 "Results" = "Rezultate";
 
 /* No comment provided by engineer. */
 "Rollout:" = "Rollout:";
+
+/* No comment provided by engineer. */
+"Save" = "Save";
+
+/* No comment provided by engineer. */
+"Scanning..." = "Scanare...";
+
+/* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
+"scoped.fire.confirmation.alert.title" = "Dorești să ștergi filele și datele site-ului?";
+
+/* Title for scoped fire confirmation dialog when AI chat clearing is enabled */
+"scoped.fire.confirmation.alert.title.with.aichat" = "Dorești să ștergi filele, datele site-ului și chaturile?";
+
+/* Button to delete all tabs and data in scoped fire confirmation dialog */
+"scoped.fire.confirmation.delete.all.button" = "Șterge toate";
+
+/* Button to delete only the current tab in scoped fire confirmation dialog */
+"scoped.fire.confirmation.delete.this.chat.button" = "Șterge acest chat";
+"scoped.fire.confirmation.delete.this.chat.description" = "„Șterge tot” nu va șterge istoricul chaturilor tale Duck.ai.";
+"scoped.fire.confirmation.delete.this.tab.button" = "Șterge această filă";
+
+
+/* Warning message that deleting will cancel any active downloads */
+"scoped.fire.confirmation.downloads.warning" = "Aceasta va anula descărcările în desfășurare.";
+
+/* Informational message explaining that new tabs can also be deleted individually */
+"scoped.fire.confirmation.new.tabs.info" = "Filele noi pe care le-ai creat pot fi, de asemenea, șterse individual.";
+
+/* Warning message explaining that deleting site data may sign users out of accounts */
+"scoped.fire.confirmation.sign.out.warning" = "Ștergerea datelor de pe site te poate deconecta de la conturi.";
 
 /* No comment provided by engineer. */
 "search.hint.duckduckgo" = "Caută sau introdu adresa";
@@ -2974,6 +3073,9 @@
 /* about tagline */
 "settings.about.tagline" = "Protecție. Confidențialitate. Liniște sufletească.";
 
+/* About page template with placeholder for subscription sentence */
+"settings.about.text.template" = "DuckDuckGo este o companie independentă din domeniul protecției online care se adresează oricărei persoane care dorește să recâștige controlul asupra datelor cu caracter personal.\n\nCredem că cel mai bun mod de a-ți proteja datele cu caracter personal împotriva hackerilor, a escrocilor și a companiilor care încalcă viața privată este să împiedici colectarea lor. De aceea, milioane de persoane [aleg DuckDuckGo în locul Chrome și al altor browsere](ddgQuickLink://duckduckgo.com/compare-privacy) pentru a căuta și naviga online. Motorul nostru de căutare încorporat este asemănător cu Google, dar nu îți urmărește niciodată căutările. Iar mecanismele noastre de protecție pentru navigare, cum ar fi blocarea tehnologiilor de urmărire a reclamelor și blocarea modulelor cookie, contribuie la împiedicarea colectării datelor tale de alte companii. Oh, și browserul nostru este gratuit: obținem câștiguri din [anunțuri de căutare care respectă viața privată](ddgQuickLink://duckduckgo.com/duckduckgo-help-pages/company/how-duckduckgo-makes-money/), nu din exploatarea datelor tale. \n\n%@ \n\nPreia din nou controlul asupra informațiilor tale personale cu browserul conceput pentru protecția datelor, nu pentru colectarea lor.";
+
 /* Settings screen accessibility section title */
 "settings.accessibility" = "Accesibilitate";
 
@@ -2992,8 +3094,8 @@
 /* Settings screen cell title for toggling full URL visibility in address bar */
 "settings.address.full.url" = "Afișați adresa completă a site-ului";
 
-/* Settings screen cell title for toggling trackers blocked animation in address bar */
-"settings.address.trackers.animation" = "Afișează animația de blocare a tehnologiilor de urmărire";
+/* Settings screen cell title for toggling tracker blocking animation in address bar */
+"settings.address.trackers.animation" = "Afișează în bara de adrese";
 
 /* Title for the 'Search & Duck.ai' option in the AI experimental picker */
 "settings.ai.experimental.picker.search_and_duckai" = "Caută pe Duck.ai";
@@ -3019,11 +3121,11 @@
 /* Title of search assist settings link */
 "settings.aifeatures.assist" = "Setări Search Assist";
 
-/* Settings screen cell subtitle for enabling automatic page context */
-"settings.aifeatures.automatic.context.subtitle" = "Trimite automat contextul paginii către Duck.ai";
+/* Settings screen cell subtitle for enabling automatic page content attachment */
+"settings.aifeatures.automatic.context.subtitle" = "Trimite automat conținutul paginii către Duck.ai";
 
-/* Settings screen cell title for enabling automatic page context */
-"settings.aifeatures.automatic.context.title" = "Trimite automat contextul";
+/* Settings screen cell title for enabling automatic page content attachment */
+"settings.aifeatures.automatic.context.title" = "Trimite automat conținut";
 
 /* Title of hide AI-generated images settings link */
 "settings.aifeatures.hide.ai.generated.images" = "Ascunde imaginile generate de IA";
@@ -3118,8 +3220,14 @@
 /* Section footer Autolock description */
 "settings.autolock.description" = "Dacă identificatorul tactil, identificatorul facial sau parola de sistem sunt activate, ți se va solicita să deblochezi aplicația la deschidere.";
 
+/* Section title in automatic data clearing settings */
+"settings.automatic.data.clearing.delete.section.title" = "Ștergere";
+
 /* Settings row title for automatic data clearing */
 "settings.automatic.data.clearing.title" = "Ștergerea automată a datelor";
+
+/* Settings screen cell text for automatic data deletion option */
+"settings.automatically.delete.data" = "Șterge automat datele";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Feedback browser";
@@ -3148,6 +3256,9 @@
 /* Settings screen cell text for Cookie popups */
 "settings.cookie.popups" = "Gestionare pop-up-uri pentru module cookie";
 
+/* Label for customizable toolbar button that deletes tabs and data */
+"settings.customizable.button.delete.tabs.and.data" = "Șterge filele și datele";
+
 /* Settings title for the customize section */
 "settings.customize" = "Personalizare";
 
@@ -3165,6 +3276,12 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Browser implicit";
+
+/* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
+"settings.delete.duckai.chats" = "Șterge chaturile Duck.ai";
+
+/* Settings screen cell text for option to delete tabs and data */
+"settings.delete.tabs.and.data" = "Șterge filele și datele";
 
 /* Label of a button disabling email protection */
 "settings.disable.email.protection.autofill" = "Dezactivează completarea automată în Email Protection";
@@ -3370,6 +3487,12 @@
 /* Settings screen cell text for sync and backup */
 "settings.sync" = "Sincronizare și copiere de rezervă";
 
+/* Settings screen cell title for toggling tracker blocking animation in tabs manager */
+"settings.tab.switcher.show.tracker.count" = "Afișează în managerul de file";
+
+/* Settings screen section title for tab-related appearance options */
+"settings.tabs" = "File";
+
 /* Settings screen cell text for text size */
 "settings.text.size" = "Zoom text implicit";
 
@@ -3378,6 +3501,9 @@
 
 /* Title for the Settings View */
 "settings.title" = "Setări";
+
+/* Settings screen section title for tracker blocking animation options */
+"settings.tracker.blocking.animation.section" = "Animația de blocare a tehnologiilor de urmărire";
 
 /* Description for CNAME cloaking protection feature */
 "settings.tracking.protection.cname.cloaking.description" = "Ajută la blocarea tehnologiilor de urmărire externe care încearcă să se deghizeze pe un site web folosind DNS.";
@@ -3509,6 +3635,9 @@
 "Status" = "Stare";
 
 /* No comment provided by engineer. */
+"Status:" = "Status:";
+
+/* No comment provided by engineer. */
 "Status: Invalidated" = "Stare: invalidat";
 
 /* No comment provided by engineer. */
@@ -3619,6 +3748,9 @@
 /* Help and support Section header */
 "subscription.help" = "Ajutor și suport";
 
+/* Manage Payment or cancel action title */
+"subscription.manage.payment" = "Gestionează plata sau anulează";
+
 /* Manage Plan header */
 "subscription.manage.plan" = "Gestionează planul";
 
@@ -3718,6 +3850,15 @@
 /* Annual subscription expiration info where parameter is expiration date. This reads as 'Your annual subscription expires on (date)' */
 "subscription.subscription.expiring.yearly.caption" = "Abonamentul tău anual expiră la data de %@.";
 
+/* Pending downgrade info for monthly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus Monthly on (date).' */
+"subscription.subscription.pending.downgrade.monthly.caption" = "Planul tău va fi retrogradat la %1$@ lunar la data de %2$@.";
+
+/* Pending downgrade info for unknown billing period. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus on (date).' */
+"subscription.subscription.pending.downgrade.unknown.caption" = "Planul tău va fi retrogradat la %1$@ la data de %2$@.";
+
+/* Pending downgrade info for yearly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus Yearly on (date).' */
+"subscription.subscription.pending.downgrade.yearly.caption" = "Planul tău va fi retrogradat la %1$@ anual la data de %2$@.";
+
 /* Monthly subscription renewal info where parameter is renewal date. This reads as 'Your monthly subscription renews on (date)' */
 "subscription.subscription.renewing.monthly.caption" = "Abonamentul tău lunar se reînnoiește la data de %@.";
 
@@ -3738,6 +3879,15 @@
 
 /* Subtitle in header when on a free trial subscription */
 "subscription.trial" = "Perioada de încercare gratuită este activă";
+
+/* Button to upgrade subscription. Parameter is the tier name (e.g., 'Pro') */
+"subscription.upgrade.button" = "Fă upgrade la %@";
+
+/* Caption text in the upgrade section promoting AI features */
+"subscription.upgrade.section.caption" = "Deblochează servicii de IA mai inteligente și mai puternice";
+
+/* Header for the upgrade section in subscription settings */
+"subscription.upgrade.section.title" = "Fă upgrade";
 
 /* View All Plans button to see available subscription tiers */
 "subscription.view.all.plans" = "Vezi toate planurile";
@@ -3765,6 +3915,12 @@
 
 /* Title for a button in the Sync Promotion banner to set up Sync */
 "sync.promo.confirm.action" = "Configurează sincronizarea";
+
+/* Title for the Sync Promotion banner */
+"sync.promo.credit-cards.title" = "Sincronizează și creează copii de rezervă pentru cardurile tale de credit";
+
+/* Title for the Sync Promotion banner */
+"sync.promo.data.import.title" = "Sincronizează și creează copii de rezervă pentru datele tale";
 
 /* Title for a button in the Sync Promotion banner to dismiss Sync promotion banner */
 "sync.promo.dismiss.action" = "Nu, mulțumesc";
@@ -3856,6 +4012,30 @@
 /* Bookmark all tabs menu item */
 "tab.switcher.bookmarkAll" = "Marchează toate filele";
 
+/* Action button to hide tracker count banner */
+"tab.switcher.tracker.count.hide.action" = "Ascunde";
+
+/* Alert message explaining how to re-enable tracker count */
+"tab.switcher.tracker.count.hide.message" = "Poți să activezi din nou această opțiune în Setări > Aspect.";
+
+/* Alert title asking user to hide the tracker count banner */
+"tab.switcher.tracker.count.hide.title" = "Ascunzi contorul tehnologiilor de urmărire?";
+
+/* Accessibility label for tracker count info button */
+"tab.switcher.tracker.count.info.a11y" = "Opțiuni pentru contorizarea tehnologiilor de urmărire";
+
+/* Accessibility hint for tracker count info button */
+"tab.switcher.tracker.count.info.hint.a11y" = "Atinge de două ori pentru a afișa opțiunile de ascundere a acestui banner";
+
+/* Action button to keep showing tracker count banner */
+"tab.switcher.tracker.count.keep.action" = "Păstrează";
+
+/* Subtitle for tracker count banner indicating time window */
+"tab.switcher.tracker.count.subtitle" = "in last 7 days";
+
+/* Do not translate - stringsdict entry */
+"tab.switcher.tracker.count.title" = "tab.switcher.tracker.count.title";
+
 /* Description text for the text size adjustment setting */
 "textSize.description" = "Mărește sau micșorează dimensiunea textului pe toate site-urile.";
 
@@ -3894,6 +4074,9 @@
 
 /* Confirmation of an action - populated with a domain name */
 "toast.protection.enabled" = "Protecția confidențialității este activată pentru %@";
+
+/* No comment provided by engineer. */
+"Total stored: %@" = "Total stored: %@";
 
 /* No comment provided by engineer. */
 "UIAlert" = "UIAlert";
@@ -4137,6 +4320,9 @@
 
 /* Title for the share sheet entry */
 "waitlist.share-sheet.title" = "Ești invitat(ă)!";
+
+/* No comment provided by engineer. */
+"Web Extensions not available" = "Extensiile web nu sunt disponibile";
 
 /* Confirmation message */
 "web.url.remove.favorite.done" = "Favorit eliminat";

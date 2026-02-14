@@ -19,6 +19,8 @@
 import AppKit
 import Combine
 import Foundation
+import AIChat
+import PixelKit
 
 protocol AutoClearAlertPresenting {
     func confirmAutoClear(clearChats: Bool) -> NSApplication.ModalResponse
@@ -36,21 +38,21 @@ final class AutoClearHandler: ApplicationTerminationDecider {
     private let dataClearingPreferences: DataClearingPreferences
     private let startupPreferences: StartupPreferences
     private let fireViewModel: FireViewModel
-    private let stateRestorationManager: AppStateRestorationManager
-    private let syncAIChatsCleaner: SyncAIChatsCleaning?
+    private let stateRestorationManager: AppStateRestorationManaging
+    private let aiChatSyncCleaner: AIChatSyncCleaning?
     private let alertPresenter: AutoClearAlertPresenting
 
     init(dataClearingPreferences: DataClearingPreferences,
          startupPreferences: StartupPreferences,
          fireViewModel: FireViewModel,
-         stateRestorationManager: AppStateRestorationManager,
-         syncAIChatsCleaner: SyncAIChatsCleaning?,
+         stateRestorationManager: AppStateRestorationManaging,
+         aiChatSyncCleaner: AIChatSyncCleaning?,
          alertPresenter: AutoClearAlertPresenting = DefaultAutoClearAlertPresenter()) {
         self.dataClearingPreferences = dataClearingPreferences
         self.startupPreferences = startupPreferences
         self.fireViewModel = fireViewModel
         self.stateRestorationManager = stateRestorationManager
-        self.syncAIChatsCleaner = syncAIChatsCleaner
+        self.aiChatSyncCleaner = aiChatSyncCleaner
         self.alertPresenter = alertPresenter
     }
 
@@ -65,6 +67,12 @@ final class AutoClearHandler: ApplicationTerminationDecider {
     @MainActor
     func shouldTerminate(isAsync: Bool) -> TerminationQuery {
         guard dataClearingPreferences.isAutoClearEnabled else { return .sync(.next) }
+
+        // Skip auto-clear if app is relaunching for an update
+        if stateRestorationManager.isRelaunchingAutomatically {
+            appTerminationHandledCorrectly = true
+            return .sync(.next)
+        }
 
         if dataClearingPreferences.isWarnBeforeClearingEnabled {
             switch confirmAutoClear() {
@@ -91,6 +99,18 @@ final class AutoClearHandler: ApplicationTerminationDecider {
         })
     }
 
+    @MainActor
+    func deciderSequenceCompleted(shouldProceed: Bool) {
+        // Reset stale relaunch flag if termination was cancelled.
+        // Scenario: User clicks "Restart to Update" (sets flag=true), but an earlier
+        // decider (e.g., ActiveDownloadsAppTerminationDecider) cancels termination.
+        // Without this reset, the flag stays true and the next normal quit would
+        // incorrectly skip data clearing.
+        if !shouldProceed && stateRestorationManager.isRelaunchingAutomatically {
+            stateRestorationManager.resetRelaunchFlag()
+        }
+    }
+
     func resetTheCorrectTerminationFlag() {
         appTerminationHandledCorrectly = false
     }
@@ -104,9 +124,13 @@ final class AutoClearHandler: ApplicationTerminationDecider {
     @MainActor
     private func performAutoClear() async {
         if dataClearingPreferences.isAutoClearAIChatHistoryEnabled {
-            syncAIChatsCleaner?.recordLocalClear(date: Date())
+            Task {
+                await aiChatSyncCleaner?.recordLocalClear(date: Date())
+            }
         }
+        let startTime = CACurrentMediaTime()
         await fireViewModel.fire.burnAll(isBurnOnExit: true, includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
+        Self.fireCompletionPixel(from: startTime, isAutoClearAIChatHistoryEnabled: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
         appTerminationHandledCorrectly = true
     }
 
@@ -115,6 +139,12 @@ final class AutoClearHandler: ApplicationTerminationDecider {
     @MainActor
     func handleAppTerminationFallback() -> NSApplication.TerminateReply? {
         guard dataClearingPreferences.isAutoClearEnabled else { return nil }
+
+        // Skip auto-clear if app is relaunching for an update
+        if stateRestorationManager.isRelaunchingAutomatically {
+            appTerminationHandledCorrectly = true
+            return .terminateNow
+        }
 
         if dataClearingPreferences.isWarnBeforeClearingEnabled {
             switch confirmAutoClear() {
@@ -140,7 +170,9 @@ final class AutoClearHandler: ApplicationTerminationDecider {
     @MainActor
     private func performAutoClearSyncFallback() {
         if dataClearingPreferences.isAutoClearAIChatHistoryEnabled {
-            syncAIChatsCleaner?.recordLocalClear(date: Date())
+            Task {
+                await aiChatSyncCleaner?.recordLocalClear(date: Date())
+            }
         }
         fireViewModel.fire.burnAll(isBurnOnExit: true, includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled) { [weak self] in
             self?.appTerminationHandledCorrectly = true
@@ -160,8 +192,29 @@ final class AutoClearHandler: ApplicationTerminationDecider {
         let shouldBurnOnStart = dataClearingPreferences.isAutoClearEnabled && !appTerminationHandledCorrectly
         guard shouldBurnOnStart else { return false }
 
-        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
+        let startTime = CACurrentMediaTime()
+        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled) { [weak self] in
+            guard let self else { return }
+            Self.fireCompletionPixel(from: startTime, isAutoClearAIChatHistoryEnabled: self.dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
+        }
         return true
     }
 
+}
+
+// MARK: - Instrumentation
+
+extension AutoClearHandler {
+    private static func fireCompletionPixel(from startTime: CFTimeInterval, isAutoClearAIChatHistoryEnabled: Bool) {
+        PixelKit.fire(
+            DataClearingPixels.fireCompletion(
+                duration: Int((CACurrentMediaTime() - startTime) * 1000),
+                option: "all_data",
+                domains: isAutoClearAIChatHistoryEnabled ? "CookiesAndSiteData,ChatHistory": "CookiesAndSiteData",
+                path: "burnAll",
+                autoClear: "true"
+            ),
+            frequency: .standard
+        )
+    }
 }

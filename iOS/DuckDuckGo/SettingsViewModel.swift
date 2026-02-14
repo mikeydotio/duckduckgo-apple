@@ -41,7 +41,8 @@ final class SettingsViewModel: ObservableObject {
     // Dependencies
     private(set) lazy var appSettings = AppDependencyProvider.shared.appSettings
     private(set) var privacyStore = PrivacyUserDefaults()
-    private lazy var featureFlagger = AppDependencyProvider.shared.featureFlagger
+    lazy var featureFlagger = AppDependencyProvider.shared.featureFlagger
+    private lazy var dataClearingCapability: DataClearingCapable = DataClearingCapability.create(using: featureFlagger)
     private lazy var animator: FireButtonAnimator = FireButtonAnimator(appSettings: AppUserDefaults())
     private var legacyViewProvider: SettingsLegacyViewProvider
     private lazy var versionProvider: AppVersion = AppVersion.shared
@@ -54,6 +55,7 @@ final class SettingsViewModel: ObservableObject {
     let aiChatSettings: AIChatSettingsProvider
     let serpSettings: SERPSettingsProviding
     let maliciousSiteProtectionPreferencesManager: MaliciousSiteProtectionPreferencesManaging
+    private let tabSwitcherSettings: TabSwitcherSettings
     let themeManager: ThemeManaging
     var experimentalAIChatManager: ExperimentalAIChatManager
     private let duckPlayerSettings: DuckPlayerSettings
@@ -67,6 +69,17 @@ final class SettingsViewModel: ObservableObject {
     let userScriptsDependencies: DefaultScriptSourceProvider.Dependencies
     var browsingMenuSheetCapability: BrowsingMenuSheetCapable
     private let onboardingSearchExperienceSettingsResolver: OnboardingSearchExperienceSettingsResolver
+    
+    private lazy var newBadgeVisibilityManager: NewBadgeVisibilityManaging = {
+        NewBadgeVisibilityManager(
+            keyValueStore: keyValueStore,
+            configProvider: DefaultNewBadgeConfigProvider(
+                featureFlagger: featureFlagger,
+                privacyConfigurationManager: privacyConfigurationManager
+            ),
+            currentAppVersionProvider: { AppVersion.shared.versionNumber }
+        )
+    }()
 
     // What's New Dependencies
     private let whatsNewCoordinator: ModalPromptProvider & OnDemandModalPromptProvider
@@ -114,7 +127,7 @@ final class SettingsViewModel: ObservableObject {
     var onRequestPresentLegacyView: ((UIViewController, _ modal: Bool) -> Void)?
     var onRequestPopLegacyView: (() -> Void)?
     var onRequestDismissSettings: (() -> Void)?
-    var onRequestPresentFireConfirmation: ((_ sourceRect: CGRect, _ onConfirm: @escaping (FireOptions) -> Void, _ onCancel: @escaping () -> Void) -> Void)?
+    var onRequestPresentFireConfirmation: ((_ sourceRect: CGRect, _ onConfirm: @escaping (FireRequest) -> Void, _ onCancel: @escaping () -> Void) -> Void)?
 
     // View State
     @Published private(set) var state: SettingsState
@@ -143,6 +156,10 @@ final class SettingsViewModel: ObservableObject {
         featureFlagger.isFeatureOn(.personalInformationRemoval)
     }
 
+    var meetsLocaleRequirement: Bool {
+        runPrerequisitesDelegate?.meetsLocaleRequirement ?? false
+    }
+
     var dbpMeetsProfileRunPrequisite: Bool {
         get {
             (try? runPrerequisitesDelegate?.meetsProfileRunPrequisite) ?? false
@@ -151,6 +168,10 @@ final class SettingsViewModel: ObservableObject {
 
     var shouldShowHideAIGeneratedImagesSection: Bool {
         featureFlagger.isFeatureOn(.showHideAIGeneratedImagesSection)
+    }
+
+    var isTabSwitcherTrackerCountEnabled: Bool {
+        featureFlagger.isFeatureOn(.tabSwitcherTrackerCount)
     }
 
     var isBlackFridayCampaignEnabled: Bool {
@@ -302,6 +323,8 @@ final class SettingsViewModel: ObservableObject {
             set: {
                 self.state.showTrackersBlockedAnimation = $0
                 self.appSettings.showTrackersBlockedAnimation = $0
+                Pixel.fire(pixel: .settingsTrackerCountInAddressBarToggled,
+                          withAdditionalParameters: [PixelParameters.enabled: String($0)])
             }
         )
     }
@@ -583,11 +606,7 @@ final class SettingsViewModel: ObservableObject {
     var autoClearAIChatHistoryBinding: Binding<Bool> {
         Binding<Bool>(
             get: {
-                if self.featureFlagger.isFeatureOn(.duckAiDataClearing) {
-                    return self.state.autoClearAIChatHistory
-                } else {
-                    return false
-                }
+                self.state.autoClearAIChatHistory
             },
             set: {
                 self.appSettings.autoClearAIChatHistory = $0
@@ -652,10 +671,12 @@ final class SettingsViewModel: ObservableObject {
          userScriptsDependencies: DefaultScriptSourceProvider.Dependencies,
          browsingMenuSheetCapability: BrowsingMenuSheetCapable,
          onboardingSearchExperienceSettingsResolver: OnboardingSearchExperienceSettingsResolver? = nil,
-         whatsNewCoordinator: ModalPromptProvider & OnDemandModalPromptProvider
+         whatsNewCoordinator: ModalPromptProvider & OnDemandModalPromptProvider,
+         tabSwitcherSettings: TabSwitcherSettings = DefaultTabSwitcherSettings()
     ) {
 
         self.state = SettingsState.defaults
+        self.tabSwitcherSettings = tabSwitcherSettings
         self.legacyViewProvider = legacyViewProvider
         self.subscriptionManager = subscriptionManager
         self.subscriptionFeatureAvailability = subscriptionFeatureAvailability
@@ -974,6 +995,23 @@ extension SettingsViewModel {
 
     func openEmailSupport() {
         urlOpener.open(URL.emailProtectionSupportLink)
+    }
+
+    func shouldShowNewBadge(for feature: NewBadgeFeature) -> Bool {
+        guard isFeatureAvailableForNewBadge(feature) else { return false }
+        return newBadgeVisibilityManager.shouldShowBadge(for: feature)
+    }
+
+    func storeNewBadgeFirstImpressionDateIfNeeded(for feature: NewBadgeFeature) {
+        guard isFeatureAvailableForNewBadge(feature) else { return }
+        newBadgeVisibilityManager.storeFirstImpressionDateIfNeeded(for: feature)
+    }
+
+    private func isFeatureAvailableForNewBadge(_ feature: NewBadgeFeature) -> Bool {
+        switch feature {
+        case .personalInformationRemoval:
+            return isPIREnabled && meetsLocaleRequirement && dataBrokerProtectionViewControllerProvider != nil
+        }
     }
 
     func openOtherPlatforms() {
@@ -1299,8 +1337,8 @@ extension SettingsViewModel {
         }
     }
 
-    func forgetAll(with options: FireOptions) {
-        autoClearActionDelegate?.performDataClearing(with: options)
+    func forgetAll(fireRequest: FireRequest) {
+        autoClearActionDelegate?.performDataClearing(for: fireRequest)
     }
 
     func restoreAccountPurchase() async {
@@ -1442,6 +1480,29 @@ extension SettingsViewModel {
         )
     }
 
+    var isChatSuggestionsEnabled: Binding<Bool> {
+        Binding<Bool>(
+            get: { self.aiChatSettings.isChatSuggestionsEnabled },
+            set: { newValue in
+                withAnimation {
+                    self.objectWillChange.send()
+                    self.aiChatSettings.enableChatSuggestions(enable: newValue)
+                }
+            }
+        )
+    }
+
+    var showTrackerCountInTabSwitcherBinding: Binding<Bool> {
+        Binding<Bool>(
+            get: { self.tabSwitcherSettings.showTrackerCountInTabSwitcher },
+            set: { newValue in
+                self.tabSwitcherSettings.showTrackerCountInTabSwitcher = newValue
+                Pixel.fire(pixel: .settingsTrackerCountInTabSwitcherToggled,
+                          withAdditionalParameters: [PixelParameters.enabled: String(newValue)])
+            }
+        )
+    }
+
     func launchAIFeaturesLearnMore() {
         urlOpener.open(URL.aiFeaturesLearnMore)
     }
@@ -1456,7 +1517,7 @@ extension SettingsViewModel: DataClearingSettingsViewModelDelegate {
     }
 
     func navigateToAutoClearData() {
-        if featureFlagger.isFeatureOn(.enhancedDataClearingSettings) {
+        if dataClearingCapability.isEnhancedDataClearingEnabled {
             let viewModel = AutoClearSettingsViewModel(
                 appSettings: appSettings,
                 aiChatSettings: aiChatSettings
@@ -1471,8 +1532,8 @@ extension SettingsViewModel: DataClearingSettingsViewModelDelegate {
     }
 
     func presentFireConfirmation(from sourceRect: CGRect) {
-        onRequestPresentFireConfirmation?(sourceRect, { [weak self] options in
-            self?.forgetAll(with: options)
+        onRequestPresentFireConfirmation?(sourceRect, { [weak self] fireRequest in
+            self?.forgetAll(fireRequest: fireRequest)
         }, {
             // Cancelled - no action needed
         })

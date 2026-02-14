@@ -65,7 +65,6 @@ public protocol SubscriptionManager: SubscriptionTokenProvider, SubscriptionAuth
 
     /// Publisher that emits a boolean value indicating whether the user can purchase through the App Store.
     var hasAppStoreProductsAvailablePublisher: AnyPublisher<Bool, Never> { get }
-    func getProducts() async throws -> [GetProductsItem]
     func getTierProducts(region: String?, platform: String?) async throws -> GetTierProductsResponse
 
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
@@ -339,10 +338,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
-    public func getProducts() async throws -> [GetProductsItem] {
-        try await subscriptionEndpointService.getProducts()
-    }
-
     public func getTierProducts(region: String?, platform: String?) async throws -> GetTierProductsResponse {
         try await subscriptionEndpointService.getTierProducts(region: region, platform: platform)
     }
@@ -466,19 +461,15 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             throw SubscriptionManagerError.noTokenAvailable
         } catch {
             pixelHandler.handle(pixel: SubscriptionPixelType.getTokensError(policy, error))
+            Logger.subscription.error("Getting token \(policy, privacy: .public) failed: \(error, privacy: .public)")
 
             switch error {
-
             case OAuthClientError.unknownAccount:
-
-                Logger.subscription.error("Refresh failed, the account is unknown. Logging out...")
                 await signOut(notifyUI: true, userInitiated: false)
                 throw SubscriptionManagerError.noTokenAvailable
 
             case OAuthClientError.invalidTokenRequest:
-
                 pixelHandler.handle(pixel: .invalidRefreshToken)
-                Logger.subscription.error("Refresh failed, invalid token request")
                 do {
                     let recoveredTokenContainer = try await attemptTokenRecovery()
                     pixelHandler.handle(pixel: .invalidRefreshTokenRecovered)

@@ -686,6 +686,17 @@ class MockAIChatSidebarProvider: AIChatSidebarProviding {
     func resetSidebar(for tabID: TabIdentifier) {
         sidebarsByTab.removeValue(forKey: tabID)
     }
+
+    @discardableResult
+    func clearSidebarIfSessionExpired(for tabID: TabIdentifier) -> Bool {
+        guard let existingSidebar = sidebarsByTab[tabID],
+              existingSidebar.isSessionExpired else {
+            return false
+        }
+        sidebarsByTab.removeValue(forKey: tabID)
+        _isShowingSidebar[tabID] = false
+        return true
+    }
 }
 
 class MockAIChatTabOpener: AIChatTabOpening {
@@ -728,6 +739,8 @@ class MockAIChatTabOpener: AIChatTabOpening {
             lastPayload = payload
         case .restoration(let data):
             lastRestorationData = data
+        case .existingChat:
+            break
         }
 
         openMethodCalledExpectation?.fulfill()

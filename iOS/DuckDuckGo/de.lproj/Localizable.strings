@@ -1,4 +1,13 @@
 /* No comment provided by engineer. */
+"-config.rollout.<parent>.<subfeature> true/false" = "-config.rollout.<parent>.<subfeature> true/false";
+
+/* No comment provided by engineer. */
+"-experiment.<flagRawValue> <cohortId>" = "-experiment.<flagRawValue> <cohortId>";
+
+/* No comment provided by engineer. */
+"-ff.<flagRawValue> true/false" = "-ff.<flagRawValue> true/false";
+
+/* No comment provided by engineer. */
 "(%@)" = "(%@)";
 
 /* No comment provided by engineer. */
@@ -8,7 +17,13 @@
 "%@ " = "%@ ";
 
 /* No comment provided by engineer. */
+"%@ items" = "%@ items";
+
+/* No comment provided by engineer. */
 "%@%%" = "%@%%";
+
+/* No comment provided by engineer. */
+"%@s" = "%@s";
 
 /* No comment provided by engineer. */
 "Account" = "Konto";
@@ -1055,10 +1070,19 @@
 "Cohorts:" = "Cohorts:";
 
 /* No comment provided by engineer. */
+"Config Rollout:" = "Config Rollout:";
+
+/* No comment provided by engineer. */
 "Configuration" = "Konfiguration";
 
 /* No comment provided by engineer. */
 "Confirm" = "Bestätigen";
+
+/* No comment provided by engineer. */
+"Contextual Onboarding" = "Kontextbezogenes Onboarding.";
+
+/* No comment provided by engineer. */
+"Contextual Session Timer" = "Contextual Session Timer";
 
 /* Button to continue the onboarding process */
 "contextual.onboarding.addToDock.buttons.skip" = "Überspringen";
@@ -1179,6 +1203,12 @@
 
 /* No comment provided by engineer. */
 "CUSTOM CELL CONTENT" = "BENUTZERDEFINIERTER ZELLENINHALT";
+
+/* No comment provided by engineer. */
+"Custom Duration" = "Custom Duration";
+
+/* No comment provided by engineer. */
+"Custom Session Timer Duration" = "Custom Session Timer Duration";
 
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Benutzerdefinierte URL: %@";
@@ -1423,9 +1453,6 @@
 /* Info text shown below the context chip explaining that content will be sent with the message */
 "duckai.context.chip.info" = "Mit deiner Nachricht an Duck.ai gesendet";
 
-/* Subtitle shown on the context chip indicating page content is attached */
-"duckai.context.chip.subtitle" = "Seiteninhalt";
-
 /* Body text for the Duck.ai contextual onboarding screen explaining the feature */
 "duckai.contextual.onboarding.body" = "Duck.ai kann jetzt helfen, Fragen zu der Seite zu beantworten, die du gerade ansiehst.\n\nDer Seiteninhalt wird nur einbezogen, wenn du ihn anhängst. Du kannst dies jederzeit in den Einstellungen ändern.";
 
@@ -1440,6 +1467,9 @@
 
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "Die KI-Funktionen von DuckDuckGo sind privat und optional. Ihre Daten werden nicht zum Trainieren von KI verwendet.";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Seiteninhalt anhängen";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Diese Seite zusammenfassen";
@@ -1703,6 +1733,9 @@
 "Enrolled" = "Enrolled";
 
 /* No comment provided by engineer. */
+"Enter duration in seconds. Examples: 30, 60, 300" = "Enter duration in seconds. Examples: 30, 60, 300";
+
+/* No comment provided by engineer. */
 "Entry Pill" = "Entry Pill";
 
 /* Button title to Sign In */
@@ -1736,6 +1769,12 @@
 "error.unknown.try.again" = "Ein unbekannter Fehler ist aufgetreten";
 
 /* No comment provided by engineer. */
+"Experiment:" = "Experiment:";
+
+/* No comment provided by engineer. */
+"Experiment: %@" = "Experiment: %@";
+
+/* No comment provided by engineer. */
 "External ID: %@" = "Externe ID: %@";
 
 /* No comment provided by engineer. */
@@ -1758,6 +1797,9 @@
 
 /* Display Mode for favorites */
 "favorites.settings.mobile-only" = "Nur mobile Favoriten";
+
+/* No comment provided by engineer. */
+"Feature Flag:" = "Feature Flag:";
 
 /* No comment provided by engineer. */
 "feedback.browserFeatures.ads" = "Blockieren von Werbungen und Pop-ups";
@@ -2038,6 +2080,9 @@
 /* No comment provided by engineer. */
 "fireButtonAnimation.waterSwirl.name" = "Whirlpool";
 
+/* No comment provided by engineer. */
+"Flag: %@" = "Flag: %@";
+
 /* Description text above the Share Link button */
 "get.browser.on-your-desktop-go-to" = "Gehe auf deinem Computer zu:";
 
@@ -2085,6 +2130,12 @@
 
 /* Placeholder text for the duck.ai input field */
 "input.field.placeholder.duckai" = "Privat fragen";
+
+/* No comment provided by engineer. */
+"Install Extension" = "Erweiterung installieren";
+
+/* No comment provided by engineer. */
+"Installed Extensions (%@)" = "Installierte Erweiterungen (%@)";
 
 /* Message that comes up when trying to enable the VPN from intents, asking the user to enable it from the app so it's configured */
 "intent.vpn.needs.to.be.enabled.from.app" = "Du musst das VPN in der DuckDuckGo-App aktivieren.";
@@ -2205,6 +2256,15 @@
 
 /* Title for the Mac Waitlist feature */
 "mac-waitlist.title" = "DuckDuckGo-App für Mac";
+
+/* No comment provided by engineer. */
+"Maestro Launch Arguments:" = "Maestro Launch Arguments:";
+
+/* No comment provided by engineer. */
+"Maestro: -experiment.uiTestExperiment control|treatment" = "Maestro: -experiment.uiTestExperiment control|treatment";
+
+/* No comment provided by engineer. */
+"Maestro: -ff.%@ true" = "Maestro: -ff.%@ true";
 
 /* Text explaining what happens when Malicious Site Protection is enabled */
 "malicious-site-protection-with-scam.settings.toggle.message" = "Warne mich vor Websites, die als betrügerische, Phishing- oder Malware-Websites gekennzeichnet sind";
@@ -2523,6 +2583,9 @@
 
 /* No comment provided by engineer. */
 "No experiments defined in contentScopeExperiments" = "No experiments defined in contentScopeExperiments";
+
+/* No comment provided by engineer. */
+"No extensions installed" = "Keine Erweiterungen installiert";
 
 /* No comment provided by engineer. */
 "No Logs" = "Keine Protokolle";
@@ -2909,6 +2972,9 @@
 "prompt.custom.url.scheme.title" = "In einer anderen App öffnen?";
 
 /* No comment provided by engineer. */
+"REBRANDED" = "REBRANDED";
+
+/* No comment provided by engineer. */
 "Recent Processing Logs" = "Aktuelle Verarbeitungsprotokolle";
 
 /* No comment provided by engineer. */
@@ -2924,10 +2990,43 @@
 "Reset Priming Modal State" = "Reset Priming Modal State";
 
 /* No comment provided by engineer. */
+"Reset to Default" = "Reset to Default";
+
+/* No comment provided by engineer. */
 "Results" = "Ergebnisse";
 
 /* No comment provided by engineer. */
 "Rollout:" = "Rollout:";
+
+/* No comment provided by engineer. */
+"Save" = "Save";
+
+/* No comment provided by engineer. */
+"Scanning..." = "Scannen ...";
+
+/* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
+"scoped.fire.confirmation.alert.title" = "Tabs und Seitendaten löschen?";
+
+/* Title for scoped fire confirmation dialog when AI chat clearing is enabled */
+"scoped.fire.confirmation.alert.title.with.aichat" = "Tabs, Seitendaten und Chats löschen?";
+
+/* Button to delete all tabs and data in scoped fire confirmation dialog */
+"scoped.fire.confirmation.delete.all.button" = "Alle löschen";
+
+/* Button to delete only the current tab in scoped fire confirmation dialog */
+"scoped.fire.confirmation.delete.this.chat.button" = "Diesen Chat löschen";
+"scoped.fire.confirmation.delete.this.chat.description" = "Mit „Alle löschen“ wird dein Duck.ai-Chatverlauf nicht gelöscht.";
+"scoped.fire.confirmation.delete.this.tab.button" = "Diesen Tab löschen";
+
+
+/* Warning message that deleting will cancel any active downloads */
+"scoped.fire.confirmation.downloads.warning" = "Dadurch werden bereits gestartete Downloads abgebrochen.";
+
+/* Informational message explaining that new tabs can also be deleted individually */
+"scoped.fire.confirmation.new.tabs.info" = "Neu erstellte Tabs können auch einzeln gelöscht werden.";
+
+/* Warning message explaining that deleting site data may sign users out of accounts */
+"scoped.fire.confirmation.sign.out.warning" = "Das Löschen von Website-Daten kann dazu führen, dass du aus deinen Konten abgemeldet wirst.";
 
 /* No comment provided by engineer. */
 "search.hint.duckduckgo" = "Adresse suchen oder eingeben";
@@ -2974,6 +3073,9 @@
 /* about tagline */
 "settings.about.tagline" = "Schutz. Privatsphäre. Extra an Sicherheit.";
 
+/* About page template with placeholder for subscription sentence */
+"settings.about.text.template" = "DuckDuckGo ist das unabhängige Unternehmen im Bereich Online-Schutz für alle, die die Kontrolle über ihre personenbezogene Daten zurückerlangen möchten.\n\nWir glauben, dass der beste Weg, deine persönlichen Daten vor Hackern, Betrügern und Unternehmen, die deine Privatsphäre verletzen, zu schützen, darin besteht, gar nicht erst zuzulassen, dass sie gesammelt werden. Deshalb entscheiden sich Millionen von Menschen [für DuckDuckGo anstelle von Chrome und anderen Browsern](ddgQuickLink://duckduckgo.com/compare-privacy) für DuckDuckGo anstelle von Chrome und anderen Browsern, um online zu suchen und zu surfen. Unsere integrierte Suchmaschine ähnelt Google, trackt deine Suchanfragen jedoch nie. Und unsere Browsing-Schutzfunktionen, wie die Tracker-Blockade von Werbung und das Blockieren von Cookies, verhindern, dass andere Unternehmen deine Daten sammeln. Ach ja, und unser Browser ist kostenlos – wir verdienen unser Geld mit [datenschutzfreundlichen Suchanzeigen](ddgQuickLink://duckduckgo.com/duckduckgo-help-pages/company/how-duckduckgo-makes-money/), nicht durch die Ausbeutung deiner Daten. \n\n%@ \n\nGewinne mit dem Browser, der für den Datenschutz und nicht für die Datensammlung entwickelt wurde, die Kontrolle über deine persönlichen Daten zurück.";
+
 /* Settings screen accessibility section title */
 "settings.accessibility" = "Barrierefreiheit";
 
@@ -2992,8 +3094,8 @@
 /* Settings screen cell title for toggling full URL visibility in address bar */
 "settings.address.full.url" = "Vollständige Website-Adresse anzeigen";
 
-/* Settings screen cell title for toggling trackers blocked animation in address bar */
-"settings.address.trackers.animation" = "Animation für blockierte Tracker anzeigen";
+/* Settings screen cell title for toggling tracker blocking animation in address bar */
+"settings.address.trackers.animation" = "In der Adresszeile anzeigen";
 
 /* Title for the 'Search & Duck.ai' option in the AI experimental picker */
 "settings.ai.experimental.picker.search_and_duckai" = "Suche & Duck.ai";
@@ -3019,11 +3121,11 @@
 /* Title of search assist settings link */
 "settings.aifeatures.assist" = "Such-Assist-Einstellungen";
 
-/* Settings screen cell subtitle for enabling automatic page context */
-"settings.aifeatures.automatic.context.subtitle" = "Seitenkontext automatisch an Duck.ai senden";
+/* Settings screen cell subtitle for enabling automatic page content attachment */
+"settings.aifeatures.automatic.context.subtitle" = "Seiteninhalt automatisch an Duck.ai senden";
 
-/* Settings screen cell title for enabling automatic page context */
-"settings.aifeatures.automatic.context.title" = "Automatisch Kontext senden";
+/* Settings screen cell title for enabling automatic page content attachment */
+"settings.aifeatures.automatic.context.title" = "Automatisch Inhalt senden";
 
 /* Title of hide AI-generated images settings link */
 "settings.aifeatures.hide.ai.generated.images" = "AI-generierte Bilder ausblenden";
@@ -3118,8 +3220,14 @@
 /* Section footer Autolock description */
 "settings.autolock.description" = "Wenn Touch ID, Face ID oder ein Systempasswort aktiviert ist, wirst du aufgefordert, die App beim Öffnen zu entsperren.";
 
+/* Section title in automatic data clearing settings */
+"settings.automatic.data.clearing.delete.section.title" = "Löschen";
+
 /* Settings row title for automatic data clearing */
 "settings.automatic.data.clearing.title" = "Automatische Datenlöschung";
+
+/* Settings screen cell text for automatic data deletion option */
+"settings.automatically.delete.data" = "Daten automatisch löschen";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Browser-Feedback";
@@ -3148,6 +3256,9 @@
 /* Settings screen cell text for Cookie popups */
 "settings.cookie.popups" = "Cookie-Pop-ups verwalten";
 
+/* Label for customizable toolbar button that deletes tabs and data */
+"settings.customizable.button.delete.tabs.and.data" = "Tabs und Daten löschen";
+
 /* Settings title for the customize section */
 "settings.customize" = "Anpassen";
 
@@ -3165,6 +3276,12 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Standard-Browser";
+
+/* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
+"settings.delete.duckai.chats" = "Duck.ai-Chats löschen";
+
+/* Settings screen cell text for option to delete tabs and data */
+"settings.delete.tabs.and.data" = "Tabs und Daten löschen";
 
 /* Label of a button disabling email protection */
 "settings.disable.email.protection.autofill" = "Autovervollständigen für den E-Mail-Schutz deaktivieren";
@@ -3370,6 +3487,12 @@
 /* Settings screen cell text for sync and backup */
 "settings.sync" = "Synchronisieren und sichern";
 
+/* Settings screen cell title for toggling tracker blocking animation in tabs manager */
+"settings.tab.switcher.show.tracker.count" = "Im Tabs-Manager anzeigen";
+
+/* Settings screen section title for tab-related appearance options */
+"settings.tabs" = "Tabs";
+
 /* Settings screen cell text for text size */
 "settings.text.size" = "Standardmäßiger Textzoom";
 
@@ -3378,6 +3501,9 @@
 
 /* Title for the Settings View */
 "settings.title" = "Einstellungen";
+
+/* Settings screen section title for tracker blocking animation options */
+"settings.tracker.blocking.animation.section" = "Animation für blockierte Tracker";
 
 /* Description for CNAME cloaking protection feature */
 "settings.tracking.protection.cname.cloaking.description" = "Hilft dabei, Tracker von Drittanbietern zu blockieren, die versuchen, sich innerhalb einer Website mit DNS zu tarnen.";
@@ -3509,6 +3635,9 @@
 "Status" = "Status";
 
 /* No comment provided by engineer. */
+"Status:" = "Status:";
+
+/* No comment provided by engineer. */
 "Status: Invalidated" = "Status: Ungültig gemacht";
 
 /* No comment provided by engineer. */
@@ -3619,6 +3748,9 @@
 /* Help and support Section header */
 "subscription.help" = "Hilfe und Support";
 
+/* Manage Payment or cancel action title */
+"subscription.manage.payment" = "Zahlung verwalten oder stornieren";
+
 /* Manage Plan header */
 "subscription.manage.plan" = "Tarif verwalten";
 
@@ -3718,6 +3850,15 @@
 /* Annual subscription expiration info where parameter is expiration date. This reads as 'Your annual subscription expires on (date)' */
 "subscription.subscription.expiring.yearly.caption" = "Dein Jahresabonnement läuft am %@ ab.";
 
+/* Pending downgrade info for monthly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus Monthly on (date).' */
+"subscription.subscription.pending.downgrade.monthly.caption" = "Dein Tarif wird am %2$@ auf %1$@ monatlich herabgestuft.";
+
+/* Pending downgrade info for unknown billing period. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus on (date).' */
+"subscription.subscription.pending.downgrade.unknown.caption" = "Dein Tarif wird am %2$@ auf %1$@ herabgestuft.";
+
+/* Pending downgrade info for yearly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus Yearly on (date).' */
+"subscription.subscription.pending.downgrade.yearly.caption" = "Dein Tarif wird am %2$@ zu %1$@ jährlich herabgestuft.";
+
 /* Monthly subscription renewal info where parameter is renewal date. This reads as 'Your monthly subscription renews on (date)' */
 "subscription.subscription.renewing.monthly.caption" = "Dein monatliches Abonnement verlängert sich am %@.";
 
@@ -3738,6 +3879,15 @@
 
 /* Subtitle in header when on a free trial subscription */
 "subscription.trial" = "Kostenlose Testphase aktiv";
+
+/* Button to upgrade subscription. Parameter is the tier name (e.g., 'Pro') */
+"subscription.upgrade.button" = "Upgrade auf %@";
+
+/* Caption text in the upgrade section promoting AI features */
+"subscription.upgrade.section.caption" = "Nutze intelligentere und leistungsfähigere KI";
+
+/* Header for the upgrade section in subscription settings */
+"subscription.upgrade.section.title" = "Upgrade";
 
 /* View All Plans button to see available subscription tiers */
 "subscription.view.all.plans" = "Alle Tarife anzeigen";
@@ -3765,6 +3915,12 @@
 
 /* Title for a button in the Sync Promotion banner to set up Sync */
 "sync.promo.confirm.action" = "Sync einrichten";
+
+/* Title for the Sync Promotion banner */
+"sync.promo.credit-cards.title" = "Kreditkarten synchronisieren und sichern";
+
+/* Title for the Sync Promotion banner */
+"sync.promo.data.import.title" = "Daten synchronisieren und sichern";
 
 /* Title for a button in the Sync Promotion banner to dismiss Sync promotion banner */
 "sync.promo.dismiss.action" = "Nein, danke";
@@ -3856,6 +4012,30 @@
 /* Bookmark all tabs menu item */
 "tab.switcher.bookmarkAll" = "Alle Tabs mit Lesezeichen versehen";
 
+/* Action button to hide tracker count banner */
+"tab.switcher.tracker.count.hide.action" = "Ausblenden";
+
+/* Alert message explaining how to re-enable tracker count */
+"tab.switcher.tracker.count.hide.message" = "Du kannst dies in den Einstellungen > Erscheinungsbild wieder aktivieren.";
+
+/* Alert title asking user to hide the tracker count banner */
+"tab.switcher.tracker.count.hide.title" = "Tracker-Anzahl ausblenden?";
+
+/* Accessibility label for tracker count info button */
+"tab.switcher.tracker.count.info.a11y" = "Tracker-Zähloptionen";
+
+/* Accessibility hint for tracker count info button */
+"tab.switcher.tracker.count.info.hint.a11y" = "Doppeltippen, um Optionen zum Ausblenden dieses Banners anzuzeigen";
+
+/* Action button to keep showing tracker count banner */
+"tab.switcher.tracker.count.keep.action" = "Behalten";
+
+/* Subtitle for tracker count banner indicating time window */
+"tab.switcher.tracker.count.subtitle" = "in last 7 days";
+
+/* Do not translate - stringsdict entry */
+"tab.switcher.tracker.count.title" = "tab.switcher.tracker.count.title";
+
 /* Description text for the text size adjustment setting */
 "textSize.description" = "Erhöhe oder verringere die Textgröße auf allen Seiten.";
 
@@ -3894,6 +4074,9 @@
 
 /* Confirmation of an action - populated with a domain name */
 "toast.protection.enabled" = "Datenschutz für %@ aktivieren";
+
+/* No comment provided by engineer. */
+"Total stored: %@" = "Total stored: %@";
 
 /* No comment provided by engineer. */
 "UIAlert" = "UIAlert";
@@ -4137,6 +4320,9 @@
 
 /* Title for the share sheet entry */
 "waitlist.share-sheet.title" = "Du bist eingeladen!";
+
+/* No comment provided by engineer. */
+"Web Extensions not available" = "Web-Erweiterungen nicht verfügbar";
 
 /* Confirmation message */
 "web.url.remove.favorite.done" = "Favorit wurde entfernt";

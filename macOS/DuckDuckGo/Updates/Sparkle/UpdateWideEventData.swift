@@ -41,8 +41,13 @@ import PixelKit
 /// - Complete at milestone exit: `.complete()`
 /// - Incomplete intervals (not completed before flow ends) won't be included in pixel parameters
 final class UpdateWideEventData: WideEventData {
-    static let pixelName = "sparkle_update_cycle"
-    static let featureName = "sparkle-update"
+    static let metadata = WideEventMetadata(
+        pixelName: "sparkle_update_cycle",
+        featureName: "sparkle-update",
+        mobileMetaType: "ios-sparkle-update",
+        desktopMetaType: "macos-sparkle-update",
+        version: "1.0.0"
+    )
 
     // Required protocol properties
     var globalData: WideEventGlobalData

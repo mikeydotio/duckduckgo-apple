@@ -57,10 +57,12 @@ final class ScriptSourceProviderTests: XCTestCase {
         let appearancePreferences = AppearancePreferences(
             keyValueStore: try MockKeyValueFileStore(),
             privacyConfigurationManager: privacyConfigurationManager,
-            featureFlagger: featureFlagger
+            featureFlagger: featureFlagger,
+            aiChatMenuConfig: MockAIChatConfig()
         )
         let windowControllersManager = WindowControllersManagerMock()
         let startupPreferences = StartupPreferences(
+            pinningManager: MockPinningManager(),
             persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: false, customHomePageURL: ""),
             appearancePreferences: appearancePreferences
         )
@@ -91,11 +93,13 @@ final class ScriptSourceProviderTests: XCTestCase {
             startupPreferences: startupPreferences,
             windowControllersManager: windowControllersManager,
             bookmarkManager: MockBookmarkManager(),
+            pinningManager: MockPinningManager(),
             historyCoordinator: HistoryCoordinatingMock(),
             fireproofDomains: MockFireproofDomains(domains: []),
             fireCoordinator: fireCoordinator,
             autoconsentManagement: AutoconsentManagement(),
-            newTabPageActionsManager: nil
+            newTabPageActionsManager: nil,
+            syncServiceProvider: { nil }
         )
 
         let cohorts = try XCTUnwrap(sourceProvider.currentCohorts)

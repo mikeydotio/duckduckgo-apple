@@ -120,7 +120,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
     }
 
     private let notificationCenter: NetworkProtectionNotificationCenter = DistributedNotificationCenter.default()
-    private let wideEvent: WideEventManaging = WideEvent()
+    private let wideEvent: WideEventManaging
 
     // MARK: - PacketTunnelProvider.Event reporting
 
@@ -499,6 +499,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
         APIRequest.Headers.setUserAgent(UserAgent.duckDuckGoUserAgent(systemVersion: trimmedOSVersion))
         NetworkProtectionLastVersionRunStore(userDefaults: defaults).lastExtensionVersionRun = AppVersion.shared.versionAndBuildNumber
         let settings = VPNSettings(defaults: defaults) // Note, settings here is not yet populated with the startup options
+        self.wideEvent = WideEvent(featureFlagProvider: WideEventFeatureFlagProvider(settings: settings))
 
         // MARK: - Subscription configuration
 
@@ -532,7 +533,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
 
         let subscriptionEndpointService = DefaultSubscriptionEndpointService(apiService: APIServiceFactory.makeAPIServiceForSubscription(withUserAgent: UserAgent.duckDuckGoUserAgent()),
                                                                                  baseURL: subscriptionEnvironment.serviceEnvironment.url)
-        let pixelHandler = SubscriptionPixelHandler(source: .systemExtension)
+        let pixelHandler = SubscriptionPixelHandler(source: .systemExtension, pixelKit: PixelKit.shared)
         let subscriptionManager = DefaultSubscriptionManager(oAuthClient: authClient,
                                                                userDefaults: subscriptionUserDefaults,
                                                                subscriptionEndpointService: subscriptionEndpointService,
@@ -573,6 +574,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
                    providerEvents: Self.packetTunnelProviderEvents,
                    settings: settings,
                    defaults: defaults,
+                   wideEvent: wideEvent,
                    entitlementCheck: entitlementsCheck)
 
         setupPixels()
@@ -677,13 +679,6 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
     // MARK: - Pixels
 
     private func setupPixels(defaultHeaders: [String: String] = [:]) {
-        let dryRun: Bool
-#if DEBUG
-        dryRun = true
-#else
-        dryRun = false
-#endif
-
         let source: String
 
 #if NETP_SYSTEM_EXTENSION && !APPSTORE
@@ -696,7 +691,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
 
         let userAgent = UserAgent.duckDuckGoUserAgent()
 
-        PixelKit.setUp(dryRun: dryRun,
+        PixelKit.setUp(dryRun: PixelKitConfig.isDryRun(isProductionBuild: BuildFlags.isProductionBuild),
                        appVersion: AppVersion.shared.versionNumber,
                        source: source,
                        defaultHeaders: defaultHeaders,
@@ -713,6 +708,21 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
         }
     }
 
+}
+
+private struct WideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
+    let settings: VPNSettings
+
+    func isEnabled(_ flag: WideEventFeatureFlag) -> Bool {
+        switch flag {
+        case .postEndpoint:
+#if DEBUG || REVIEW || ALPHA
+            return false
+#else
+            return settings.wideEventPostEndpointEnabled
+#endif
+        }
+    }
 }
 
 final class DefaultWireGuardInterface: WireGuardGoInterface {

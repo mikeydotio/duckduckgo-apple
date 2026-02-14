@@ -19,13 +19,55 @@
 import Foundation
 import Common
 
-public protocol WideEventData: Codable, WideEventParameterProviding {
+public struct WideEventMetadata {
     /// The name used when sending the pixel.
     /// This will be appended to `m_(ios|macos)_wide_`.
-    static var pixelName: String { get }
+    public let pixelName: String
 
     /// The name used in the event payload. This is used to identify the feature that the event is related to, and can be the same across platforms.
-    static var featureName: String { get }
+    public let featureName: String
+
+    /// Globally unique identifier for the event type.
+    public let type: String
+
+    /// The version of the event schema (semantic versioning, e.g., "1.0.0").
+    /// The major version should ONLY be bumped when the base wide event format (`base_event.json`) changes.
+    /// The minor and patch versions should always be incremented when changing an event format, but it's up to the developer to decide which one
+    /// to bump in this case. The PixelDefinition infrastructure will generate a new definition file when the version has changed.
+    public let version: String
+
+    public init(pixelName: String,
+                featureName: String,
+                mobileMetaType: String,
+                desktopMetaType: String,
+                version: String) {
+        #if os(iOS)
+        let type = mobileMetaType
+        #elseif os(macOS)
+        let type = desktopMetaType
+        #else
+        fatalError("Platform type is required")
+        #endif
+
+        self.pixelName = pixelName
+        self.featureName = featureName
+        self.type = type
+        self.version = version
+    }
+}
+
+extension WideEventMetadata: WideEventParameterProviding {
+    public func pixelParameters() -> [String: String] {
+        Dictionary(compacting: [
+            (WideEventParameter.Meta.type, type),
+            (WideEventParameter.Meta.version, version),
+        ])
+    }
+}
+
+public protocol WideEventData: Codable, WideEventParameterProviding {
+    /// Metadata describing the wide event.
+    static var metadata: WideEventMetadata { get }
 
     /// Data about the context that the event was sent in, such as the parent feature that the event is operating in.
     /// For example, the context name for a data import event could be the flow that triggered the import, such as onboarding.
@@ -144,6 +186,16 @@ extension WideEventGlobalData: WideEventParameterProviding {
         parameters[WideEventParameter.Global.platform] = platform
         parameters[WideEventParameter.Global.type] = type
         parameters[WideEventParameter.Global.sampleRate] = String(sampleRate)
+
+        return parameters
+    }
+
+    public func jsonParameters() -> [String: Encodable] {
+        var parameters: [String: Encodable] = [:]
+
+        parameters[WideEventParameter.Global.platform] = platform
+        parameters[WideEventParameter.Global.type] = type
+        parameters[WideEventParameter.Global.sampleRate] = sampleRate
 
         return parameters
     }

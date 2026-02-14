@@ -21,19 +21,19 @@ import BrowserServicesKit
 import Foundation
 import HistoryView
 import NewTabPage
+import Persistence
 import PixelKit
+import SERPSettings
 import SpecialErrorPages
 import Subscription
 import UserScript
 import WebKit
-import SERPSettings
 
 @MainActor
 final class UserScripts: UserScriptsProvider {
 
     let pageObserverScript = PageObserverUserScript()
     let contextMenuScript = ContextMenuUserScript()
-    let printingUserScript = PrintingUserScript()
     let hoverUserScript = HoverUserScript()
     let debugScript = DebugUserScript()
     let subscriptionPagesUserScript = SubscriptionPagesUserScript()
@@ -65,21 +65,23 @@ final class UserScripts: UserScriptsProvider {
     private let contentScopePreferences: ContentScopePreferences
 
     // swiftlint:disable:next cyclomatic_complexity
-    init(with sourceProvider: ScriptSourceProviding, contentScopePreferences: ContentScopePreferences) {
+    init(with sourceProvider: ScriptSourceProviding,
+         contentScopePreferences: ContentScopePreferences,
+         aiChatDebugURLSettings: (any KeyedStoring<AIChatDebugURLSettings>)? = nil) {
+
         self.contentScopePreferences = contentScopePreferences
         clickToLoadScript = ClickToLoadUserScript()
         contentBlockerRulesScript = ContentBlockerRulesUserScript(configuration: sourceProvider.contentBlockerRulesConfig!)
         surrogatesScript = SurrogatesUserScript(configuration: sourceProvider.surrogatesConfig!)
-        let aiChatDebugURLSettings = AIChatDebugURLSettings()
         let aiChatHandler = AIChatUserScriptHandler(
             storage: DefaultAIChatPreferencesStorage(),
             windowControllersManager: sourceProvider.windowControllersManager,
             pixelFiring: PixelKit.shared,
             statisticsLoader: StatisticsLoader.shared,
-            // ToDo: do we have better way of passing this?
-            syncHandler: AIChatSyncHandler(sync: NSApp.delegateTyped.syncService!),
+            syncServiceProvider: sourceProvider.syncServiceProvider,
             featureFlagger: sourceProvider.featureFlagger
         )
+        let aiChatDebugURLSettings: any KeyedStoring<AIChatDebugURLSettings> = if let aiChatDebugURLSettings { aiChatDebugURLSettings } else { UserDefaults.standard.keyedStoring() }
         aiChatUserScript = AIChatUserScript(handler: aiChatHandler, urlSettings: aiChatDebugURLSettings)
         let subscriptionFeatureFlagAdapter = SubscriptionUserScriptFeatureFlagAdapter(featureFlagger: sourceProvider.featureFlagger)
         subscriptionUserScript = SubscriptionUserScript(
@@ -96,13 +98,15 @@ final class UserScripts: UserScriptsProvider {
         let sessionKey = sourceProvider.sessionKey ?? ""
         let messageSecret = sourceProvider.messageSecret ?? ""
         let currentCohorts = sourceProvider.currentCohorts ?? []
+        let themeVariant = Application.appDelegate.appearancePreferences.themeName.rawValue
         let prefs = ContentScopeProperties(gpcEnabled: isGPCEnabled,
                                            sessionKey: sessionKey,
                                            messageSecret: messageSecret,
                                            isInternalUser: sourceProvider.featureFlagger.internalUserDecider.isInternalUser,
                                            debug: contentScopePreferences.isDebugStateEnabled,
                                            featureToggles: ContentScopeFeatureToggles.supportedFeaturesOnMacOS(privacyConfig),
-                                           currentCohorts: currentCohorts)
+                                           currentCohorts: currentCohorts,
+                                           themeVariant: themeVariant)
         do {
             contentScopeUserScript = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager, properties: prefs, scriptContext: .contentScope, allowedNonisolatedFeatures: [PageContextUserScript.featureName, "webCompat"], privacyConfigurationJSONGenerator: ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: sourceProvider.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager))
             contentScopeUserScriptIsolated = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager, properties: prefs, scriptContext: .contentScopeIsolated, privacyConfigurationJSONGenerator: ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: sourceProvider.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager))
@@ -164,7 +168,7 @@ final class UserScripts: UserScriptsProvider {
         }
 
 #if SPARKLE
-        releaseNotesUserScript = ReleaseNotesUserScript()
+        releaseNotesUserScript = ReleaseNotesUserScript(keyValueStore: UserDefaults.standard)
 #endif
 
         userScripts.append(autoconsentUserScript)
@@ -223,13 +227,13 @@ final class UserScripts: UserScriptsProvider {
         let subscriptionAppGroup = Bundle.main.appGroup(bundle: .subs)
         let subscriptionUserDefaults = UserDefaults(suiteName: subscriptionAppGroup)!
         let pendingTransactionHandler = DefaultPendingTransactionHandler(userDefaults: subscriptionUserDefaults,
-                                                                         pixelHandler: SubscriptionPixelHandler(source: .mainApp))
+                                                                         pixelHandler: SubscriptionPixelHandler(source: .mainApp, pixelKit: PixelKit.shared))
         delegate = SubscriptionPagesUseSubscriptionFeature(subscriptionManager: subscriptionManager,
                                                            stripePurchaseFlow: stripePurchaseFlow,
                                                            uiHandler: Application.appDelegate.subscriptionUIHandler,
                                                            aiChatURL: AIChatRemoteSettings().aiChatURL,
-                                                           wideEvent: WideEvent(),
-                                                           pendingTransactionHandler: pendingTransactionHandler)
+                                                           wideEvent: Application.appDelegate.wideEvent,
+                                                           pendingTransactionHandler: pendingTransactionHandler, requestValidator: DefaultScriptRequestValidator(subscriptionManager: subscriptionManager))
 
         subscriptionPagesUserScript.registerSubfeature(delegate: delegate)
         userScripts.append(subscriptionPagesUserScript)
@@ -245,7 +249,6 @@ final class UserScripts: UserScriptsProvider {
         surrogatesScript,
         contentBlockerRulesScript,
         pageObserverScript,
-        printingUserScript,
         hoverUserScript,
         contentScopeUserScript,
         contentScopeUserScriptIsolated,

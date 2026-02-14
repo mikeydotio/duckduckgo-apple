@@ -171,29 +171,9 @@ extension AppDelegate {
 
             let presenter = DefaultHistoryViewDialogPresenter()
             switch await presenter.showDeleteDialog(for: .rangeFilter(.all), visits: visits, in: window, fromMainMenu: true) {
-            case .burn(let includeChats):
+            case .burn, .delete:
                 // FireCoordinator handles burning for Fire Dialog View
-                if featureFlagger.isFeatureOn(.fireDialog) {
-                    reloadHistoryTabs()
-                } else {
-                    let entity = Fire.BurningEntity.allWindows(mainWindowControllers: Application.appDelegate.windowControllersManager.mainWindowControllers,
-                                                               selectedDomains: [],
-                                                               customURLToOpen: nil,
-                                                               close: true)
-                    await fireCoordinator.fireViewModel.fire.burnEntity(entity, includingHistory: true, includeChatHistory: includeChats)
-                }
-            case .delete(let burnChats):
-                // FireCoordinator handles burning for Fire Dialog View
-                if featureFlagger.isFeatureOn(.fireDialog) {
-                    reloadHistoryTabs()
-                } else {
-                    historyCoordinator.burnAll {
-                        self.reloadHistoryTabs()
-                    }
-                    if burnChats {
-                        await fireCoordinator.fireViewModel.fire.burnChatHistory()
-                    }
-                }
+                reloadHistoryTabs()
             case .noAction:
                 break
             }
@@ -449,19 +429,19 @@ extension AppDelegate {
 
     @objc func openImportBookmarksWindow(_ sender: Any?) {
         DispatchQueue.main.async {
-            DataImportFlowLauncher().launchDataImport(isDataTypePickerExpanded: true)
+            DataImportFlowLauncher(pinningManager: self.pinningManager).launchDataImport(isDataTypePickerExpanded: true)
         }
     }
 
     @objc func openImportPasswordsWindow(_ sender: Any?) {
         DispatchQueue.main.async {
-            DataImportFlowLauncher().launchDataImport(isDataTypePickerExpanded: true)
+            DataImportFlowLauncher(pinningManager: self.pinningManager).launchDataImport(isDataTypePickerExpanded: true)
         }
     }
 
     @objc func openImportBrowserDataWindow(_ sender: Any?) {
         DispatchQueue.main.async {
-            DataImportFlowLauncher().launchDataImport(isDataTypePickerExpanded: false)
+            DataImportFlowLauncher(pinningManager: self.pinningManager).launchDataImport(isDataTypePickerExpanded: false)
         }
     }
 
@@ -550,6 +530,16 @@ extension AppDelegate {
         Application.appDelegate.windowControllersManager.replaceTabWith(Tab(content: .newtab))
     }
 
+    @MainActor
+    @objc func exportMemoryAllocationStats(_ sender: Any?) {
+        do {
+            let exporter = MemoryAllocationStatsExporter()
+            try exporter.exportSnapshotToTemporaryURL()
+        } catch {
+            Logger.general.error("Failed to export Memory Allocation Stats: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     @objc func resetRemoteMessages(_ sender: Any?) {
         Task {
             await remoteMessagingClient.store?.resetRemoteMessages()
@@ -561,13 +551,13 @@ extension AppDelegate {
     }
 
     @objc func debugResetContinueSetup(_ sender: Any?) {
-        var persistor = AppearancePreferencesUserDefaultsPersistor(keyValueStore: keyValueStore)
+        let persistor = AppearancePreferencesUserDefaultsPersistor(keyValueStore: keyValueStore)
         persistor.continueSetUpCardsLastDemonstrated = nil
         persistor.continueSetUpCardsNumberOfDaysDemonstrated = 0
-        persistor.didOpenCustomizationSettings = false
         appearancePreferences.isContinueSetUpCardsViewOutdated = false
         appearancePreferences.continueSetUpCardsClosed = false
         appearancePreferences.isContinueSetUpVisible = true
+        appearancePreferences.didChangeAnyNewTabPageCustomizationSetting = false
         duckPlayer.preferences.youtubeOverlayAnyButtonPressed = false
         duckPlayer.preferences.duckPlayerMode = .alwaysAsk
         UserDefaultsWrapper<Bool>(key: .homePageContinueSetUpImport, defaultValue: false).clear()
@@ -629,12 +619,92 @@ extension AppDelegate {
         throwTestCppException()
     }
 
-    @objc func simulateMemoryPressureWarning(_ sender: Any?) {
-        memoryPressureReporter.simulateMemoryPressureEvent(level: .warning)
+    @MainActor @objc func simulateMemoryPressureCritical(_ sender: Any?) {
+        memoryPressureReporter?.simulateMemoryPressureEvent(level: .critical)
     }
 
-    @objc func simulateMemoryPressureCritical(_ sender: Any?) {
-        memoryPressureReporter.simulateMemoryPressureEvent(level: .critical)
+    @objc func simulateMemoryUsageReport(_ sender: Any?) {
+        let alert = NSAlert()
+        alert.messageText = "Simulate Memory Usage Report"
+        alert.informativeText = "Enter memory usage in MB to simulate (e.g., 1024 for 1GB).\n\nThis sends a simulated report through the monitor and also triggers a threshold check."
+        alert.alertStyle = .informational
+
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+        textField.placeholderString = "Memory in MB (e.g., 1024)"
+        textField.stringValue = "1024"
+        alert.accessoryView = textField
+
+        alert.addButton(withTitle: "Fire Report")
+        alert.addButton(withTitle: "Cancel")
+
+        let response = alert.runModal()
+
+        if response == .alertFirstButtonReturn {
+            guard let memoryMB = Double(textField.stringValue), memoryMB >= 0, memoryMB <= 100000 else {
+                let errorAlert = NSAlert()
+                errorAlert.messageText = "Invalid Input"
+                errorAlert.informativeText = "Please enter a valid number between 0 and 100000 MB."
+                errorAlert.alertStyle = .warning
+                errorAlert.runModal()
+                return
+            }
+
+            // Send through monitor publisher (updates debug UI if enabled)
+            memoryUsageMonitor.simulateMemoryReport(physFootprintMB: memoryMB)
+            // Clear deduplication set and trigger threshold check
+            memoryUsageThresholdReporter.resetFiredPixels()
+            memoryUsageThresholdReporter.checkThresholdNow()
+            Logger.memory.info("Simulated memory report: \(memoryMB) MB")
+        }
+    }
+
+    @objc func clearSimulatedMemory(_ sender: Any?) {
+        memoryUsageMonitor.clearSimulatedMemoryReport()
+        Logger.memory.info("Cleared simulated memory report, reverting to real system memory")
+
+        let alert = NSAlert()
+        alert.messageText = "Simulation Cleared"
+        alert.informativeText = "Memory readings are now using real system values."
+        alert.alertStyle = .informational
+        alert.runModal()
+    }
+
+    @objc func startMemoryReporterImmediately(_ sender: Any?) {
+        memoryUsageThresholdReporter.startMonitoringImmediately()
+        Logger.memory.info("Memory usage threshold reporter started immediately (skipped 5-minute delay)")
+
+        let alert = NSAlert()
+        alert.messageText = "Reporter Started"
+        alert.informativeText = "Memory usage threshold reporter is now monitoring (5-minute delay skipped)."
+        alert.alertStyle = .informational
+        alert.runModal()
+    }
+
+    @objc func fireIntervalPixelNow(_ sender: Any?) {
+        let alert = NSAlert()
+        alert.messageText = "Fire Interval Pixel"
+        alert.informativeText = "Select a trigger to fire. The reporter will collect current context and fire the m_mac_memory_usage_interval pixel."
+        alert.alertStyle = .informational
+
+        let popup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 200, height: 24), pullsDown: false)
+        for trigger in MemoryUsageIntervalPixel.Trigger.allCases {
+            popup.addItem(withTitle: trigger.rawValue)
+        }
+        alert.accessoryView = popup
+
+        alert.addButton(withTitle: "Fire")
+        alert.addButton(withTitle: "Cancel")
+
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return }
+
+        let selectedIndex = popup.indexOfSelectedItem
+        let trigger = MemoryUsageIntervalPixel.Trigger.allCases[selectedIndex]
+
+        Task {
+            await memoryUsageIntervalReporter?.fireTriggerNow(trigger)
+            Logger.memory.info("Interval pixel fired for trigger: \(trigger.rawValue, privacy: .public)")
+        }
     }
 
     @objc func resetSecureVaultData(_ sender: Any?) {
@@ -747,11 +817,6 @@ extension AppDelegate {
     @objc func resetQuitSurveyWasShown(_ sender: Any?) {
         let persistor = QuitSurveyUserDefaultsPersistor(keyValueStore: NSApp.delegateTyped.keyValueStore)
         persistor.hasQuitAppBefore = false
-    }
-
-    @objc func resetThemesPopoverWasShown(_ sender: Any?) {
-        let persistor = ThemePopoverUserDefaultsPersistor(keyValueStore: NSApp.delegateTyped.keyValueStore)
-        persistor.themePopoverShown = false
     }
 
     @objc func resetTipKit(_ sender: Any?) {
@@ -888,8 +953,6 @@ extension AppDelegate {
 
 extension MainViewController {
 
-    private static var shouldIgnoreRepeatedCloseTabShortcuts = false
-
     /// Finds currently active Tab even if it's playing a Full Screen video
     private func getActiveTabAndIndex() -> (tab: Tab, index: TabIndex)? {
         var tab: Tab? {
@@ -955,10 +1018,6 @@ extension MainViewController {
         guard let (tab, index) = getActiveTabAndIndex() else { return }
         makeKeyIfNeeded()
         let currentEvent = NSApp.currentEvent
-        guard !Self.shouldIgnoreRepeatedCloseTabShortcuts || currentEvent?.isARepeat != true || currentEvent?.keyEquivalent != [.command, "w"] else {
-            return // auto-repeated ⌘W keyDown event received after the tab was closed with long pressing ⌘W should be ignored
-        }
-        Self.shouldIgnoreRepeatedCloseTabShortcuts = false
 
         // Handle Cmd+W on pinned tabs
         if case .pinned(let pinnedIndex) = index,
@@ -966,11 +1025,16 @@ extension MainViewController {
            let currentEvent, currentEvent.keyEquivalent == [.command, "w"] {
             // Show confirmation warning if enabled
             if featureFlagger.isFeatureOn(.warnBeforeQuit) {
-                let shouldClose = !tabsPreferences.warnBeforeClosingPinnedTabs || showPinnedTabCloseConfirmation(for: tab, atPinnedIndex: pinnedIndex, currentEvent: currentEvent)
-                if shouldClose {
-                    // ignore repeated incoming ⌘W keyDown events after the tab was closed with long pressing ⌘W
-                    Self.shouldIgnoreRepeatedCloseTabShortcuts = tabsPreferences.warnBeforeClosingPinnedTabs
+                // If warning is disabled in preferences, close immediately
+                if !tabsPreferences.warnBeforeClosingPinnedTabs {
                     tabCollectionViewModel.remove(at: index)
+                    return
+                }
+
+                // Show confirmation overlay
+                showPinnedTabCloseConfirmation(for: tab, atPinnedIndex: pinnedIndex, currentEvent: currentEvent) { [weak self] shouldProceed in
+                    guard let self, shouldProceed else { return }
+                    self.tabCollectionViewModel.remove(at: .pinned(pinnedIndex))
                 }
                 return
             }
@@ -988,14 +1052,28 @@ extension MainViewController {
         tabCollectionViewModel.remove(at: index)
     }
 
-    /// Shows the pinned tab close confirmation overlay and returns true if the tab should be closed, false otherwise
+    /// Shows the pinned tab close confirmation overlay
+    /// - Parameters:
+    ///   - tab: The tab to close
+    ///   - pinnedIndex: The index of the pinned tab
+    ///   - currentEvent: The current keyboard event
+    ///   - completion: Callback invoked when a decision is made (async or sync). Called with whether to proceed.
     @MainActor
-    private func showPinnedTabCloseConfirmation(for tab: Tab, atPinnedIndex pinnedIndex: Int, currentEvent: NSEvent) -> Bool {
+    private func showPinnedTabCloseConfirmation(
+        for tab: Tab,
+        atPinnedIndex pinnedIndex: Int,
+        currentEvent: NSEvent,
+        completion: @escaping (Bool) -> Void
+    ) {
         guard let manager = WarnBeforeQuitManager(
             currentEvent: currentEvent,
             action: .close,
-            isWarningEnabled: { [tabsPreferences] in tabsPreferences.warnBeforeClosingPinnedTabs }
-        ) else { return false }
+            isWarningEnabled: { [tabsPreferences] in tabsPreferences.warnBeforeClosingPinnedTabs },
+            isPhysicalKeyPress: WarnBeforeQuitManager.makePhysicalKeyPressCheck(for: currentEvent)
+        ) else {
+            completion(false)
+            return
+        }
 
         let presenter = WarnBeforeQuitOverlayPresenter(
             action: .close,
@@ -1016,15 +1094,21 @@ extension MainViewController {
         let query = manager.shouldTerminate(isAsync: false)
         switch query {
         case .sync(let decision):
-            return decision == .next
+            let shouldProceed = decision == .next
+            // Close the Tab
+            completion(shouldProceed)
+            manager.deciderSequenceCompleted(shouldProceed: shouldProceed)
         case .async(let task):
             // Wait for the shortcut to be repeated, "Don't Show Again" button clicked, or the warning is dismissed.
             Task { @MainActor in
                 let decision = await task.value
-                guard decision == .next else { return }
-                tabCollectionViewModel.remove(at: .pinned(pinnedIndex))
+                let shouldProceed = decision == .next
+                // Close the Tab
+                completion(shouldProceed)
+                // Let the event loop process the UI update
+                await Task.yield()
+                manager.deciderSequenceCompleted(shouldProceed: shouldProceed)
             }
-            return false
         }
     }
 
@@ -1107,23 +1191,23 @@ extension MainViewController {
     }
 
     @objc func toggleAutofillShortcut(_ sender: Any) {
-        LocalPinningManager.shared.togglePinning(for: .autofill)
+        pinningManager.togglePinning(for: .autofill)
     }
 
     @objc func toggleBookmarksShortcut(_ sender: Any) {
-        LocalPinningManager.shared.togglePinning(for: .bookmarks)
+        pinningManager.togglePinning(for: .bookmarks)
     }
 
     @objc func toggleDownloadsShortcut(_ sender: Any) {
-        LocalPinningManager.shared.togglePinning(for: .downloads)
+        pinningManager.togglePinning(for: .downloads)
     }
 
     @objc func toggleShareShortcut(_ sender: Any) {
-        LocalPinningManager.shared.togglePinning(for: .share)
+        pinningManager.togglePinning(for: .share)
     }
 
     @objc func toggleNetworkProtectionShortcut(_ sender: Any) {
-        LocalPinningManager.shared.togglePinning(for: .networkProtection)
+        pinningManager.togglePinning(for: .networkProtection)
     }
 
     // MARK: - History
@@ -1557,6 +1641,10 @@ extension MainViewController: NSMenuItemValidation {
         case #selector(findInPageDone):
             return getActiveTabAndIndex()?.tab.findInPage?.isActive == true
 
+        // Location
+        case #selector(MainViewController.openLocation(_:)):
+            return allowsUserInteraction
+
         // Zoom
         case #selector(MainViewController.zoomIn(_:)):
             return getActiveTabAndIndex()?.tab.webView.canZoomIn == true
@@ -1573,8 +1661,17 @@ extension MainViewController: NSMenuItemValidation {
         case #selector(MainViewController.bookmarkAllOpenTabs(_:)):
             return tabCollectionViewModel.canBookmarkAllOpenTabs()
         case #selector(MainViewController.openBookmark(_:)),
-             #selector(MainViewController.showManageBookmarks(_:)):
-            return true
+             #selector(MainViewController.showManageBookmarks(_:)),
+            #selector(MainViewController.toggleBookmarksBarFromMenu(_:)):
+            return allowsUserInteraction
+
+        // New Tabs
+        case #selector(MainViewController.newTab(_:)):
+            return allowsUserInteraction
+
+        // Duplicate Tab
+        case #selector(MainViewController.duplicateTab(_:)):
+            return getActiveTabAndIndex()?.tab.content.canBeDuplicated == true
 
         // Pin Tab
         case #selector(MainViewController.pinOrUnpinTab(_:)):
@@ -1597,6 +1694,10 @@ extension MainViewController: NSMenuItemValidation {
         // Save Content
         case #selector(MainViewController.saveAs(_:)):
             return activeTabViewModel?.canSaveContent == true
+
+        // Preferences:
+        case #selector(MainViewController.openPreferences(_:)):
+            return allowsUserInteraction
 
         // Printing
         case #selector(MainViewController.printWebView(_:)):
@@ -1631,7 +1732,7 @@ extension MainViewController: NSMenuItemValidation {
             let isDownloadsPopoverShown = self.navigationBarViewController.isDownloadsPopoverShown
             menuItem.title = isDownloadsPopoverShown ? UserText.closeDownloads : UserText.openDownloads
 
-            return true
+            return allowsUserInteraction
 
         case #selector(MainViewController.summarize(_:)):
             return aiChatMenuConfig.shouldDisplaySummarizationMenuItem
@@ -1647,7 +1748,19 @@ extension AppDelegate: NSMenuItemValidation {
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
         case #selector(AppDelegate.closeAllWindows(_:)):
-            return !Application.appDelegate.windowControllersManager.mainWindowControllers.isEmpty
+            return isDisplayingOneOrMoreWindows
+
+        case #selector(AppDelegate.newWindow(_:)):
+            return isUserInteractionAllowed || !isDisplayingOneOrMoreWindows
+
+        case #selector(AppDelegate.newBurnerWindow(_:)),
+            #selector(AppDelegate.newAIChat(_:)),
+            #selector(AppDelegate.openFile(_:)),
+            #selector(AppDelegate.openLocation(_:)),
+            #selector(AppDelegate.openPreferences),
+            #selector(AppDelegate.showManageBookmarks(_:)),
+            #selector(AppDelegate.openImportBrowserDataWindow(_:)):
+            return isUserInteractionAllowed
 
         // Reopen Last Removed Tab
         case #selector(AppDelegate.reopenLastClosedTab(_:)):
@@ -1667,9 +1780,20 @@ extension AppDelegate: NSMenuItemValidation {
 
         case #selector(AppDelegate.openReportBrokenSite(_:)):
             return Application.appDelegate.windowControllersManager.selectedTab?.canReload ?? false
+
         default:
             return true
         }
+    }
+
+    @MainActor
+    private var isDisplayingOneOrMoreWindows: Bool {
+        Application.appDelegate.windowControllersManager.mainWindowControllers.count > 0
+    }
+
+    @MainActor
+    private var isUserInteractionAllowed: Bool {
+        OnboardingActionsManager.isOnboardingFinished
     }
 
     private var areTherePasswords: Bool {
