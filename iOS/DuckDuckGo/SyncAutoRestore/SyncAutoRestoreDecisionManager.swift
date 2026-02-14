@@ -17,8 +17,6 @@
 //  limitations under the License.
 //
 
-//import Core
-import DDGSync
 import os.log
 import PrivacyConfig
 
