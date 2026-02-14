@@ -152,7 +152,8 @@ final class MainCoordinator {
                                 productSurfaceTelemetry: productSurfaceTelemetry,
                                 sharedSecureVault: sharedSecureVault,
                                 privacyStats: privacyStats,
-                                voiceSearchHelper: voiceSearchHelper)
+                                voiceSearchHelper: voiceSearchHelper,
+                                launchSourceManager: launchSourceManager)
         let fireExecutor = FireExecutor(tabManager: tabManager,
                                         websiteDataManager: websiteDataManager,
                                         daxDialogsManager: daxDialogsManager,
@@ -452,7 +453,7 @@ extension MainCoordinator: ShortcutItemHandling {
 
     private func handleQuery(_ query: String) {
         controller.clearNavigationStack()
-        controller.loadQueryInNewTab(query)
+        controller.loadQueryInNewTab(query, fromExternalLink: true)
     }
 
     private func handleSearchPassword() {
