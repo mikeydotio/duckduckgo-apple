@@ -569,8 +569,8 @@ struct ScrollableOnboardingBackground: View {
 
     private enum Metrics {
         static let exitDuration: TimeInterval = 1.0
-        static let enterDelay: TimeInterval = 0.7
-        static let enterDuration: TimeInterval = 1.0
+        static let enterDelay: TimeInterval = 0.3
+        static let enterDuration: TimeInterval = 1.5
         static let backgroundImageWidth: CGFloat = 1366
         static let backgroundImageHeight: CGFloat = 410
     }
@@ -590,7 +590,7 @@ struct ScrollableOnboardingBackground: View {
                     backgroundView(for: previousState, width: proxy.size.width)
                         .modifier(BackgroundExitingTransitionModifier(
                             progress: exitingTransitionProgress,
-                            screenWidth: proxy.size.width,
+                            screenWidth: proxy.size.width
                         ))
                         .zIndex(0)
                 }
@@ -610,9 +610,6 @@ struct ScrollableOnboardingBackground: View {
             guard let previous = previousViewState,
                   previous.backgroundImage != newState.backgroundImage else { return }
 
-            // Calculate total duration: the longer of the two overlapping animations
-            let totalDuration = max(Metrics.exitDuration, Metrics.enterDelay + Metrics.enterDuration)
-
             // Reset progress for new transition
             exitingTransitionProgress = 0.0
             enteringTransitionProgress = 0.0
@@ -631,6 +628,9 @@ struct ScrollableOnboardingBackground: View {
                     previousViewState = newState
                 }
             } else {
+                // Calculate total duration: the longer of the two overlapping animations
+                let totalDuration = max(Metrics.exitDuration, Metrics.enterDelay + Metrics.enterDuration)
+
                 withAnimation(.easeInOut(duration: Metrics.enterDuration).delay(Metrics.enterDelay)) {
                     enteringTransitionProgress = 1.0
                 }
@@ -654,7 +654,7 @@ struct ScrollableOnboardingBackground: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: width, alignment: .center)
-                .frame(maxHeight: 410)
+                .frame(maxHeight: Metrics.backgroundImageHeight)
         }
         .ignoresSafeArea()
         .drawingGroup()  // Rasterizes layer for better animation performance
