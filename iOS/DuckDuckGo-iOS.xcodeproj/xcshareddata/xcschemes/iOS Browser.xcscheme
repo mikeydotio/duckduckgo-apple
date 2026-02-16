@@ -258,6 +258,14 @@
             argument = "-com.apple.CoreData.Logging.stderr 1"
             isEnabled = "NO">
          </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-isOnboardingCompleted false"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-ff.onboardingRebranding true"
+            isEnabled = "YES">
+         </CommandLineArgument>
       </CommandLineArguments>
       <EnvironmentVariables>
          <EnvironmentVariable

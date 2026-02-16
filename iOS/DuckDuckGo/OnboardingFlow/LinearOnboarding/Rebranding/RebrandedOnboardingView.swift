@@ -22,7 +22,7 @@ import Onboarding
 import DuckUI
 
 private enum OnboardingViewMetrics {
-    static let landingScreenDuration = 2.0
+    static let landingScreenDuration = 15.0
 }
 
 private enum OnboardingViewCopy {
