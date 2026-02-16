@@ -20,6 +20,8 @@
 import UIKit
 import WebExtensions
 import WebKit
+import PrivacyConfig
+import Core
 
 // MARK: - Factory
 
@@ -28,12 +30,14 @@ public enum WebExtensionManagerFactory {
 
     @MainActor
     static func makeManager(mainViewController: MainViewController) -> WebExtensionManager {
-        WebExtensionManager(
+        let privacyConfigManager = AppDependencyProvider.shared.privacyConfigurationManager
+
+        return WebExtensionManager(
             configuration: WebExtensionConfigurationProvider(),
             windowTabProvider: WebExtensionWindowTabProvider(mainViewController: mainViewController),
             storageProvider: WebExtensionStorageProvider(),
             pixelFiring: iOSWebExtensionPixelFiring(),
-            handlerProvider: WebExtensionHandlerProvider()
+            handlerProvider: WebExtensionHandlerProvider(privacyConfigurationManager: privacyConfigManager)
         )
     }
 }

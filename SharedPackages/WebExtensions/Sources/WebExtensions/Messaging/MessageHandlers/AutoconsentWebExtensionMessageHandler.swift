@@ -18,6 +18,7 @@
 
 import Foundation
 import os.log
+import PrivacyConfig
 
 @available(macOS 15.4, iOS 18.4, *)
 public final class AutoconsentWebExtensionMessageHandler: WebExtensionMessageHandler {
@@ -36,9 +37,13 @@ public final class AutoconsentWebExtensionMessageHandler: WebExtensionMessageHan
 
     private static let successResponse: [String: String] = ["response": "ok"]
 
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
+
     public var handledFeatureName: String { "autoconsent" }
 
-    public init() {}
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+    }
 
     public func handleMessage(_ message: WebExtensionMessage) async -> WebExtensionMessageResult {
         Logger.webExtensions.debug("📝 AutoconsentWebExtensionMessageHandler received method: \(message.method)")
@@ -161,22 +166,30 @@ public final class AutoconsentWebExtensionMessageHandler: WebExtensionMessageHan
     }
 
     private func handleGetResourceIfNew(_ params: [String: Any]?) -> WebExtensionMessageResult {
-        return .failure(WebExtensionMessageHandlerError.unknownMethod(""))
-
-
         guard
             let name = params?["name"] as? String,
-            let version = params?["version"] as? String
+            let requestedVersion = params?["version"] as? String
         else {
             return .failure(WebExtensionMessageHandlerError.missingParameter("name or version"))
         }
 
-        Logger.webExtensions.debug("📦 Get Resource If New - name: \(name), version: \(version)")
+        Logger.webExtensions.debug("📦 Get Resource If New - name: \(name), version: \(requestedVersion)")
 
-        return .success([
-            "updated": true,
-            "version": version
-        ])
+        guard let privacyConfigData = try? PrivacyConfigurationData(data: privacyConfigurationManager.currentConfig) else {
+            return .failure(WebExtensionMessageHandlerError.missingParameter("add another error for missing config or smth"))
+        }
+
+        if privacyConfigData.version == requestedVersion {
+            return .success([
+                "updated": true
+            ])
+        } else {
+            return .success([
+                "updated": true,
+                "data": privacyConfigData.toJSONDictionary(),
+                "version": privacyConfigData.version
+            ])
+        }
     }
 
     private func handleIsAutoconsentSettingEnabled(_ params: [String: Any]?) -> WebExtensionMessageResult {
@@ -189,7 +202,7 @@ public final class AutoconsentWebExtensionMessageHandler: WebExtensionMessageHan
         guard let message = params?["message"] as? String else {
             return .failure(WebExtensionMessageHandlerError.missingParameter("message"))
         }
-        Logger.webExtensions.debug("[🪵 \(message)")
+        Logger.webExtensions.debug("[🪵] \(message)")
 
         return .success(Self.successResponse)
     }

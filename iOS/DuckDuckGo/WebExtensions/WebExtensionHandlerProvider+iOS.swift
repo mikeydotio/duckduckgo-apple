@@ -20,18 +20,23 @@
 import UIKit
 import WebExtensions
 import WebKit
+import PrivacyConfig
 
 @available(iOS 18.4, *)
 final class WebExtensionHandlerProvider: WebExtensionHandlerProviding {
 
-    init() {}
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
+
+    init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+    }
 
     func makeHandlers(for context: WKWebExtensionContext) -> [WebExtensionMessageHandler] {
         switch context.duckDuckGoExtensionType {
         case .ddgInternalExtension:
-            return [AutoconsentWebExtensionMessageHandler()]
+            return [AutoconsentWebExtensionMessageHandler(privacyConfigurationManager: privacyConfigurationManager)]
         default:
-            return [AutoconsentWebExtensionMessageHandler()]
+            return [AutoconsentWebExtensionMessageHandler(privacyConfigurationManager: privacyConfigurationManager)]
         }
     }
 }

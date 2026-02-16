@@ -19,6 +19,7 @@
 import AppKit
 import WebExtensions
 import WebKit
+import PrivacyConfig
 
 // MARK: - macOS-specific WebExtensionManager Extensions
 
@@ -89,6 +90,7 @@ enum WebExtensionManagerFactory {
     /// Creates a fully configured WebExtensionManager with all macOS-specific providers.
     @MainActor
     static func makeManager() -> WebExtensionManager {
+        let privacyConfigurationManager = DefaultScriptSourceProvider().privacyConfigurationManager
         let internalSiteHandler = WebExtensionInternalSiteHandler()
 
         let manager = WebExtensionManager(
@@ -97,7 +99,7 @@ enum WebExtensionManagerFactory {
             storageProvider: WebExtensionStorageProvider(),
             internalSiteHandler: internalSiteHandler,
             pixelFiring: MacOSWebExtensionPixelFiring(),
-            handlerProvider: WebExtensionHandlerProvider()
+            handlerProvider: WebExtensionHandlerProvider(privacyConfigurationManager: privacyConfigurationManager)
         )
 
         internalSiteHandler.dataSource = manager
