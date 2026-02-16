@@ -103,18 +103,12 @@ extension OnboardingRebranding {
 
         static let daxGeometryEffectID = "DaxIcon"
 
-        @Environment(\.onboardingTheme) private var onboardingTheme
         @Namespace var animationNamespace
+        @Environment(\.onboardingTheme) private var onboardingTheme
         @ObservedObject private var model: OnboardingIntroViewModel
 
         init(model: OnboardingIntroViewModel) {
             self.model = model
-        }
-
-        /// Direction the bubble's tail arrow points toward.
-        private enum BubbleTailDirection {
-            case leading
-            case trailing
         }
 
         /// Layout configuration for a bubble-backed onboarding dialog step.
@@ -129,7 +123,7 @@ extension OnboardingRebranding {
             /// Horizontal offset of the bubble tail arrow from the leading/trailing edge.
             let tailOffset: CGFloat
             /// Which side the tail arrow points toward.
-            let tailDirection: BubbleTailDirection
+            let tailDirection: OnboardingBubbleView<AnyView>.HorizontalTailDirection
             /// Extra top padding added on top of the base minimum top margin.
             let additionalTopMargin: CGFloat
             /// Whether the dialog content is visible (used for entrance sequencing).
@@ -273,12 +267,10 @@ extension OnboardingRebranding {
             stepInfo: ViewState.Intro.StepInfo?,
             @ViewBuilder content: @escaping () -> Content
         ) -> some View {
-            let tailPosition: OnboardingBubbleView<Content>.TailPosition = switch configuration.tailDirection {
-            case .leading:
-                .bottom(offset: configuration.tailOffset, direction: .leading)
-            case .trailing:
-                .bottom(offset: configuration.tailOffset, direction: .trailing)
-            }
+            let tailPosition: OnboardingBubbleView<Content>.TailPosition = .bottom(
+                offset: configuration.tailOffset,
+                direction: configuration.tailDirection
+            )
 
             if let stepInfo {
                 OnboardingBubbleView.withStepProgressIndicator(
