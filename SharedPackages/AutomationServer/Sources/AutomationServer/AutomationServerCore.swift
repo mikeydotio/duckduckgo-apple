@@ -106,7 +106,9 @@ public actor PerConnectionQueue {
         }
 
         // Calculate total request size
-        let headerBytes = bufferString.distance(from: bufferString.startIndex, to: endOfHeaders)
+        // Convert character position to byte count by encoding the header substring as UTF-8
+        let headerSubstring = bufferString[..<endOfHeaders]
+        let headerBytes = headerSubstring.utf8.count
         let totalRequestSize = headerBytes + contentLength
 
         // Check if we have the complete request
