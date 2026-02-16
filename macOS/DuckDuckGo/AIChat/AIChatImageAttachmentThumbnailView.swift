@@ -18,6 +18,7 @@
 
 import AppKit
 import AIChat
+import DesignResourcesKit
 import DesignResourcesKitIcons
 
 /// A square thumbnail view that displays an attached image with a remove button overlay.
@@ -59,7 +60,6 @@ final class AIChatImageAttachmentThumbnailView: NSView {
         view.translatesAutoresizingMaskIntoConstraints = false
         view.wantsLayer = true
         view.shadow = NSShadow()
-        view.layer?.backgroundColor = NSColor.white.cgColor
         view.layer?.cornerRadius = Constants.cornerRadius
         view.layer?.shadowColor = NSColor.black.cgColor
         view.layer?.shadowRadius = Constants.shadowRadius
@@ -117,9 +117,7 @@ final class AIChatImageAttachmentThumbnailView: NSView {
 
         removeButton.wantsLayer = true
         removeButton.layer?.cornerRadius = Constants.removeButtonSize / 2
-        removeButton.layer?.backgroundColor = NSColor.white.cgColor
         removeButton.layer?.borderWidth = 2
-        removeButton.layer?.borderColor = NSColor.white.cgColor
         removeButton.layer?.masksToBounds = true
         removeButton.toolTip = UserText.aiChatRemoveAttachmentButtonTooltip
 
@@ -143,7 +141,7 @@ final class AIChatImageAttachmentThumbnailView: NSView {
             heightAnchor.constraint(equalToConstant: Constants.thumbnailSize + Constants.removeButtonOverflow),
         ])
 
-        updateBorderColor()
+        updateAppearance()
     }
 
     override func layout() {
@@ -215,14 +213,27 @@ final class AIChatImageAttachmentThumbnailView: NSView {
     }
 
     private func configureRemoveButtonImage() {
-        removeButton.image = DesignSystemImages.Glyphs.Size16.clearSolid
-        removeButton.contentTintColor = .black
+        removeButton.image = DesignSystemImages.Glyphs.Size16.clear
         removeButton.imageScaling = .scaleNone
     }
 
     // MARK: - Appearance
 
-    private func updateBorderColor() {
-        imageContainerView.layer?.borderColor = NSColor.white.cgColor
+    private func updateAppearance() {
+        NSAppearance.withAppAppearance {
+            let surfaceColor = NSColor(designSystemColor: .surfacePrimary)
+            let iconColor = NSColor(designSystemColor: .textPrimary)
+
+            imageContainerView.layer?.borderColor = surfaceColor.cgColor
+            shadowBackingView.layer?.backgroundColor = surfaceColor.cgColor
+            removeButton.layer?.backgroundColor = surfaceColor.cgColor
+            removeButton.layer?.borderColor = surfaceColor.cgColor
+            removeButton.contentTintColor = iconColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
     }
 }
