@@ -380,7 +380,6 @@ extension OnboardingRebranding {
 
 private struct RebrandingBadge: View {
     var body: some View {
-        // PENDING-TRANSLATION
         Text("REBRANDED")
             .font(.caption2.weight(.semibold))
             .textCase(.uppercase)
