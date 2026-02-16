@@ -24,6 +24,7 @@ import Onboarding
 extension OnboardingRebranding.OnboardingView {
 
     struct SkipOnboardingContent: View {
+        // PENDING-TRANSLATION
         private static let fireButtonCopy = "Fire Button"
 
         typealias Copy = UserText.Onboarding.Skip

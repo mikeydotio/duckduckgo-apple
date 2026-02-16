@@ -34,6 +34,7 @@ struct RebrandedBrowsersComparisonModel {
             case blockAds
             case eraseData
 
+            // PENDING-TRANSLATION
             var title: String {
                 switch self {
                 case .privateSearch:

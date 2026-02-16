@@ -22,6 +22,7 @@ import DuckUI
 import Onboarding
 
 private enum IntroDialogContentCopy {
+    // PENDING-TRANSLATION
     static let continueCTA = "Let's do it!"
     static let skipCTA = "I've been here before"
 }

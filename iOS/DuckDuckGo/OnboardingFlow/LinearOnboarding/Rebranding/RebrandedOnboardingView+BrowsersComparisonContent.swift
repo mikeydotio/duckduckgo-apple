@@ -22,6 +22,7 @@ import DuckUI
 import Onboarding
 
 private enum BrowsersComparisonContentCopy {
+    // PENDING-TRANSLATION
     static let setAsDefaultBrowserCTA = "Choose Your Browser"
     static let skipCTA = "Skip"
 }

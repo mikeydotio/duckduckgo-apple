@@ -26,6 +26,7 @@ private enum OnboardingViewMetrics {
 }
 
 private enum OnboardingViewCopy {
+    // PENDING-TRANSLATION
     static let introTitle = "Hi There!"
     static let introMessage = "Ready for a faster browser that keeps you protected?"
     static let browsersComparisonTitle = "Protections activated!"
@@ -379,6 +380,7 @@ extension OnboardingRebranding {
 
 private struct RebrandingBadge: View {
     var body: some View {
+        // PENDING-TRANSLATION
         Text("REBRANDED")
             .font(.caption2.weight(.semibold))
             .textCase(.uppercase)
