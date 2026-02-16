@@ -479,7 +479,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     @objc private func searchToggleButtonClicked() {
-        // Implement search toggle action
+        omnibarController.isSearchToggleEnabled = searchToggleButton.isToggled
     }
 
     @objc private func imageUploadButtonClicked() {

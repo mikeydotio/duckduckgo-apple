@@ -35,6 +35,10 @@ protocol AIChatOmnibarControllerDelegate: AnyObject {
 /// to coordinate text input and submission.
 @MainActor
 final class AIChatOmnibarController {
+    private enum Constants {
+        static let webSearchTool = "WebSearch"
+    }
+
     @Published private(set) var currentText: String = ""
     weak var delegate: AIChatOmnibarControllerDelegate?
     private let aiChatTabOpener: AIChatTabOpening
@@ -48,6 +52,9 @@ final class AIChatOmnibarController {
     private var isUpdatingFromSharedState = false
     private var currentFetchTask: Task<Void, Never>?
     private var hasBeenActivated = false
+
+    /// Whether the search toggle is enabled, toggled by the search button in the omnibar tools.
+    var isSearchToggleEnabled = false
 
     /// View model for managing chat suggestions. Always initialized, but only populated when feature flag is enabled.
     let suggestionsViewModel: AIChatSuggestionsViewModel
@@ -254,14 +261,15 @@ final class AIChatOmnibarController {
 
         PixelKit.fire(AIChatPixel.aiChatAddressBarAIChatSubmitPrompt, frequency: .dailyAndCount, includeAppVersionParameter: true)
 
-        let nativePrompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true)
-        promptHandler.setData(nativePrompt)
+        let toolChoice = isSearchToggleEnabled ? [Constants.webSearchTool] : nil
 
         Task { @MainActor in
             aiChatTabOpener.openAIChatTab(
                 with: .query(trimmedText, shouldAutoSubmit: true),
                 behavior: .currentTab
             )
+            // Re-set prompt after tab opener to include toolChoice (tab opener overwrites with a plain query)
+            promptHandler.setData(.queryPrompt(trimmedText, autoSubmit: true, toolChoice: toolChoice))
         }
 
         currentText = ""
