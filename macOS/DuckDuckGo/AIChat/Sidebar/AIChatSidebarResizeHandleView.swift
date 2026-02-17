@@ -53,6 +53,7 @@ final class AIChatSidebarResizeHandleView: NSView {
     /// Expands the clickable area beyond the narrow visual frame so the handle
     /// is easy to grab even when the cursor drifts a few pixels to either side.
     override func hitTest(_ point: NSPoint) -> NSView? {
+        guard !isHidden else { return nil }
         let expanded = frame.insetBy(dx: -Constants.hitTestPadding, dy: 0)
         return expanded.contains(point) ? self : nil
     }

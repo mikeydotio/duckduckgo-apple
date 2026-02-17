@@ -18,9 +18,10 @@
 
 import AIChat
 import AppKit
-import PrivacyConfig
 import Combine
+import FeatureFlags
 import PixelKit
+import PrivacyConfig
 
 /// Represents an event of hiding or showing an AI Chat tab sidebar.
 ///
@@ -72,6 +73,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     private let aiChatTabOpener: AIChatTabOpening
     private let windowControllersManager: WindowControllersManagerProtocol
     private let pixelFiring: PixelFiring?
+    private let featureFlagger: FeatureFlagger
     private let sidebarPresenceWillChangeSubject = PassthroughSubject<AIChatSidebarPresenceChange, Never>()
 
     private var isAnimatingSidebarTransition: Bool = false
@@ -79,13 +81,18 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     private var resizePixelDebounceWorkItem: DispatchWorkItem?
     private var cancellables = Set<AnyCancellable>()
 
+    private var isSidebarResizable: Bool {
+        featureFlagger.isFeatureOn(.aiChatSidebarResizable)
+    }
+
     init(
         sidebarHost: AIChatSidebarHosting,
         sidebarProvider: AIChatSidebarProviding,
         aiChatMenuConfig: AIChatMenuVisibilityConfigurable,
         aiChatTabOpener: AIChatTabOpening,
         windowControllersManager: WindowControllersManagerProtocol,
-        pixelFiring: PixelFiring?
+        pixelFiring: PixelFiring?,
+        featureFlagger: FeatureFlagger
     ) {
         self.sidebarHost = sidebarHost
         self.sidebarProvider = sidebarProvider
@@ -93,6 +100,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         self.aiChatTabOpener = aiChatTabOpener
         self.windowControllersManager = windowControllersManager
         self.pixelFiring = pixelFiring
+        self.featureFlagger = featureFlagger
 
         sidebarPresenceWillChangePublisher = sidebarPresenceWillChangeSubject.eraseToAnyPublisher()
         self.sidebarHost.aiChatSidebarHostingDelegate = self
@@ -189,7 +197,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
                 guard let self else { return }
                 self.isAnimatingSidebarTransition = false
 
-                if isShowingSidebar {
+                if isShowingSidebar && self.isSidebarResizable {
                     // Show the resize handle only after the open animation finishes
                     self.sidebarHost.setResizeHandleVisible(true)
                 }
@@ -200,7 +208,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         } else {
             sidebarHost.sidebarContainerLeadingConstraint?.constant = newConstraintValue
 
-            if isShowingSidebar {
+            if isShowingSidebar && isSidebarResizable {
                 sidebarHost.setResizeHandleVisible(true)
             }
 

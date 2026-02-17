@@ -21,6 +21,7 @@ import BrowserServicesKit
 import Combine
 import PixelKit
 import PixelKitTestingUtilities
+import FeatureFlags
 import PrivacyConfig
 import XCTest
 @testable import DuckDuckGo_Privacy_Browser
@@ -35,6 +36,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
     private var mockAIChatTabOpener: MockAIChatTabOpener!
     private var mockWindowControllersManager: WindowControllersManagerMock!
     private var mockPixelFiring: PixelKitMock!
+    private var mockFeatureFlagger: MockFeatureFlagger!
     private var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
@@ -45,6 +47,8 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         mockAIChatTabOpener = MockAIChatTabOpener()
         mockWindowControllersManager = WindowControllersManagerMock()
         mockPixelFiring = PixelKitMock()
+        mockFeatureFlagger = MockFeatureFlagger()
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable])
         cancellables = Set<AnyCancellable>()
 
         presenter = AIChatSidebarPresenter(
@@ -53,13 +57,15 @@ final class AIChatSidebarPresenterTests: XCTestCase {
             aiChatMenuConfig: mockAIChatMenuConfig,
             aiChatTabOpener: mockAIChatTabOpener,
             windowControllersManager: mockWindowControllersManager,
-            pixelFiring: mockPixelFiring
+            pixelFiring: mockPixelFiring,
+            featureFlagger: mockFeatureFlagger
         )
     }
 
     override func tearDown() {
         cancellables = nil
         presenter = nil
+        mockFeatureFlagger = nil
         mockPixelFiring = nil
         mockWindowControllersManager = nil
         mockAIChatTabOpener = nil
@@ -86,7 +92,8 @@ final class AIChatSidebarPresenterTests: XCTestCase {
             aiChatMenuConfig: mockAIChatMenuConfig,
             aiChatTabOpener: mockAIChatTabOpener,
             windowControllersManager: mockWindowControllersManager,
-            pixelFiring: mockPixelFiring
+            pixelFiring: mockPixelFiring,
+            featureFlagger: mockFeatureFlagger
         )
 
         // Then
