@@ -147,6 +147,72 @@ struct BrokenSiteReportMocks {
 #endif
     }
 
+    /// A report with pre-encoded breakageData from content-scope-scripts
+    static var reportWithBreakageData: BrokenSiteReport {
+        let breakageData = "%7B%22detections%22%3A%7B%22adwalls.generic%22%3A%7B%22detected%22%3Atrue%7D%7D%7D"
+#if os(iOS)
+        BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         configVersion: "123456789",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         siteType: .desktop,
+                         atb: "test",
+                         model: "test",
+                         errors: nil,
+                         httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
+                         variant: "",
+                         cookieConsentInfo: nil,
+                         debugFlags: "",
+                         privacyExperiments: "",
+                         isPirEnabled: nil,
+                         pageLoadTiming: nil,
+                         breakageData: breakageData)
+#else
+        BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         configVersion: "123456789",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         errors: nil,
+                         httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
+                         cookieConsentInfo: nil,
+                         debugFlags: "",
+                         privacyExperiments: "",
+                         isPirEnabled: nil,
+                         pageLoadTiming: nil,
+                         breakageData: breakageData)
+#endif
+    }
+
     static var report3: BrokenSiteReport {
 #if os(iOS)
         BrokenSiteReport(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,

@@ -168,6 +168,131 @@ class WebsiteBreakageReportTests: XCTestCase {
         XCTAssertEqual(queryItems[valueFor: "isPirEnabled"], "true")
     }
 
+    // MARK: - breakageData
+
+    func testWhenBreakageDataPresentThenNotInRequestParameters() {
+        let report = BrokenSiteReport(
+            siteUrl: URL(string: "https://example.test/")!,
+            category: "test",
+            description: nil,
+            osVersion: "12",
+            manufacturer: "Apple",
+            upgradedHttps: false,
+            tdsETag: "abc123",
+            configVersion: "123456789",
+            blockedTrackerDomains: [],
+            installedSurrogates: [],
+            isGPCEnabled: false,
+            ampURL: "",
+            urlParametersRemoved: false,
+            protectionsState: true,
+            reportFlow: .appMenu,
+            errors: nil,
+            httpStatusCodes: nil,
+            openerContext: nil,
+            vpnOn: false,
+            jsPerformance: nil,
+            userRefreshCount: 0,
+            cookieConsentInfo: nil,
+            debugFlags: "",
+            privacyExperiments: "",
+            isPirEnabled: nil,
+            pageLoadTiming: nil,
+            breakageData: "%7B%22detections%22%3A%7B%22adwalls.generic%22%3A%7B%22detected%22%3Atrue%7D%7D%7D"
+        )
+
+        // breakageData must not appear in requestParameters (would be double-encoded)
+        XCTAssertNil(report.requestParameters["breakageData"])
+
+        // breakageData must appear in encodedParameters
+        XCTAssertEqual(report.encodedParameters["breakageData"],
+                       "%7B%22detections%22%3A%7B%22adwalls.generic%22%3A%7B%22detected%22%3Atrue%7D%7D%7D")
+    }
+
+    func testWhenBreakageDataAbsentThenEncodedParametersIsEmpty() {
+        let report = BrokenSiteReport(
+            siteUrl: URL(string: "https://example.test/")!,
+            category: "test",
+            description: nil,
+            osVersion: "12",
+            manufacturer: "Apple",
+            upgradedHttps: false,
+            tdsETag: "abc123",
+            configVersion: "123456789",
+            blockedTrackerDomains: [],
+            installedSurrogates: [],
+            isGPCEnabled: false,
+            ampURL: "",
+            urlParametersRemoved: false,
+            protectionsState: true,
+            reportFlow: .appMenu,
+            errors: nil,
+            httpStatusCodes: nil,
+            openerContext: nil,
+            vpnOn: false,
+            jsPerformance: nil,
+            userRefreshCount: 0,
+            cookieConsentInfo: nil,
+            debugFlags: "",
+            privacyExperiments: "",
+            isPirEnabled: nil,
+            pageLoadTiming: nil
+        )
+
+        XCTAssertNil(report.requestParameters["breakageData"])
+        XCTAssertTrue(report.encodedParameters.isEmpty)
+    }
+
+    func testWhenBreakageDataAppendedToURLThenNotDoubleEncoded() throws {
+        let preEncodedBreakageData = "%7B%22detections%22%3A%7B%22adwalls.generic%22%3A%7B%22detected%22%3Atrue%7D%7D%7D"
+
+        let report = BrokenSiteReport(
+            siteUrl: URL(string: "https://example.test/")!,
+            category: "test",
+            description: nil,
+            osVersion: "12",
+            manufacturer: "Apple",
+            upgradedHttps: false,
+            tdsETag: "abc123",
+            configVersion: "123456789",
+            blockedTrackerDomains: [],
+            installedSurrogates: [],
+            isGPCEnabled: false,
+            ampURL: "",
+            urlParametersRemoved: false,
+            protectionsState: true,
+            reportFlow: .appMenu,
+            errors: nil,
+            httpStatusCodes: nil,
+            openerContext: nil,
+            vpnOn: false,
+            jsPerformance: nil,
+            userRefreshCount: 0,
+            cookieConsentInfo: nil,
+            debugFlags: "",
+            privacyExperiments: "",
+            isPirEnabled: nil,
+            pageLoadTiming: nil,
+            breakageData: preEncodedBreakageData
+        )
+
+        // Build URL with regular params encoded normally
+        var url = URL.pixelUrl(forPixelNamed: NonStandardPixel.brokenSiteReport.name)
+        url = url.appendingParameters(report.requestParameters,
+                                      allowedReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
+
+        // Append pre-encoded breakageData via percentEncodedQueryItem (no re-encoding)
+        for (key, value) in report.encodedParameters {
+            url = url.appending(percentEncodedQueryItem: URLQueryItem(name: key, value: value))
+        }
+
+        let urlString = url.absoluteString
+
+        // The raw pre-encoded value must appear in the URL exactly as-is (not double-encoded)
+        XCTAssertTrue(urlString.contains("breakageData=\(preEncodedBreakageData)"),
+                      "breakageData should appear as-is in the URL, not double-encoded. URL: \(urlString)")
+    }
+
     func makeURLRequest(with parameters: [String: String]) -> URLRequest {
         APIRequest.Headers.setUserAgent("")
         var params = parameters

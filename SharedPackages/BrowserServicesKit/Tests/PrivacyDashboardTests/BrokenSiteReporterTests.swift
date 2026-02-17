@@ -49,6 +49,37 @@ final class BrokenSiteReporterTests: XCTestCase {
         waitForExpectations(timeout: 3)
     }
 
+    func testWhenBreakageDataPresentThenEncodedParametersContainBreakageData() throws {
+        let keyValueStore = MockKeyValueStore()
+        let expectation = expectation(description: "Pixel sent")
+        let preEncodedBreakageData = "%7B%22detections%22%3A%7B%22adwalls.generic%22%3A%7B%22detected%22%3Atrue%7D%7D%7D"
+
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+            // breakageData must NOT appear in regular parameters (it would get double-encoded)
+            XCTAssertNil(parameters["breakageData"])
+            // breakageData must appear in encodedParameters, passed through as-is
+            XCTAssertEqual(encodedParameters["breakageData"], preEncodedBreakageData)
+            expectation.fulfill()
+        }, keyValueStoring: keyValueStore)
+
+        try reporter.report(BrokenSiteReportMocks.reportWithBreakageData, reportMode: .regular)
+        waitForExpectations(timeout: 3)
+    }
+
+    func testWhenBreakageDataAbsentThenEncodedParametersAreEmpty() throws {
+        let keyValueStore = MockKeyValueStore()
+        let expectation = expectation(description: "Pixel sent")
+
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+            XCTAssertNil(parameters["breakageData"])
+            XCTAssertTrue(encodedParameters.isEmpty)
+            expectation.fulfill()
+        }, keyValueStoring: keyValueStore)
+
+        try reporter.report(BrokenSiteReportMocks.report, reportMode: .regular)
+        waitForExpectations(timeout: 3)
+    }
+
     func testReportContainsExperimentData() throws {
         let keyValueStore = MockKeyValueStore()
         let expectation = expectation(description: "Pixel sent")
