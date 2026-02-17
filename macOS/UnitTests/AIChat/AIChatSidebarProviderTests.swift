@@ -43,7 +43,7 @@ final class AIChatSidebarProviderTests: XCTestCase {
 
         // Then
         XCTAssertTrue(provider.sidebarsByTab.isEmpty)
-        XCTAssertEqual(provider.defaultSidebarWidth, AIChatSidebarProvider.Constants.defaultSidebarWidth)
+        XCTAssertEqual(provider.defaultSidebarWidth, AIChatSidebarProvider.Constants.initialDefaultSidebarWidth)
     }
 
     func testInit_withProvidedSidebarsByTab_setsDictionary() {

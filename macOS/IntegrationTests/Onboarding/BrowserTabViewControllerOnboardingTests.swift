@@ -92,6 +92,7 @@ class MockAIChatPreferencesStorage: AIChatPreferencesStorage {
     var shouldAutomaticallySendPageContext: Bool = true
     var showSearchAndDuckAIToggle: Bool = true
     var userDidSeeToggleOnboarding: Bool = false
+    var lastUsedSidebarWidth: Double?
 
     let isAIFeaturesEnabledPublisher: AnyPublisher<Bool, Never> = Empty().eraseToAnyPublisher()
     let showShortcutOnNewTabPagePublisher: AnyPublisher<Bool, Never> = Empty().eraseToAnyPublisher()

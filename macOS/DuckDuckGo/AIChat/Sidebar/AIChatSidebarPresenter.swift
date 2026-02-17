@@ -180,7 +180,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
             NSAnimationContext.runAnimationGroup { [weak self] context in
                 guard let self else { return }
 
-                context.duration = 4
+                context.duration = 0.25
                 context.allowsImplicitAnimation = true
                 context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                 sidebarHost.sidebarContainerLeadingConstraint?.animator().constant = newConstraintValue

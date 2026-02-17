@@ -299,6 +299,7 @@ class MockAIChatPreferencesStorage: AIChatPreferencesStorage {
     }
 
     var userDidSeeToggleOnboarding: Bool = false
+    var lastUsedSidebarWidth: Double?
 
     private var isAIFeaturesEnabledSubject = PassthroughSubject<Bool, Never>()
     private var showShortcutOnNewTabPageSubject = PassthroughSubject<Bool, Never>()
