@@ -602,6 +602,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
 
 class MockAIChatSidebarHosting: AIChatSidebarHosting {
     var aiChatSidebarHostingDelegate: AIChatSidebarHostingDelegate?
+    var aiChatSidebarResizeDelegate: AIChatSidebarResizeDelegate?
     var isInKeyWindow: Bool = true
     var currentTabID: TabIdentifier? = "test-tab-id"
     var sidebarContainerLeadingConstraint: NSLayoutConstraint?
@@ -609,6 +610,7 @@ class MockAIChatSidebarHosting: AIChatSidebarHosting {
     var burnerMode: BurnerMode = .regular
 
     var embeddedViewController: NSViewController?
+    private(set) var isResizeHandleVisible = false
 
     init() {
         sidebarContainerLeadingConstraint = NSLayoutConstraint()
@@ -618,11 +620,30 @@ class MockAIChatSidebarHosting: AIChatSidebarHosting {
     func embedSidebarViewController(_ vc: NSViewController) {
         embeddedViewController = vc
     }
+
+    func applySidebarWidth(_ width: CGFloat) {
+        sidebarContainerWidthConstraint?.constant = width
+        sidebarContainerLeadingConstraint?.constant = -width
+    }
+
+    func setResizeHandleVisible(_ visible: Bool) {
+        isResizeHandleVisible = visible
+    }
+
+    var availableWidth: CGFloat = 1200
 }
 
 class MockAIChatSidebarProvider: AIChatSidebarProviding {
     var sidebarWidth: CGFloat = 400
+    var minSidebarWidth: CGFloat = 300
+    var maxSidebarWidth: CGFloat = 900
+    private(set) var lastSetWidth: CGFloat?
     @Published var sidebarsByTab: AIChatSidebarsByTab = [:]
+
+    func setSidebarWidth(_ width: CGFloat) {
+        sidebarWidth = width
+        lastSetWidth = width
+    }
 
     var sidebarsByTabPublisher: AnyPublisher<DuckDuckGo_Privacy_Browser.AIChatSidebarsByTab, Never> {
         $sidebarsByTab.eraseToAnyPublisher()

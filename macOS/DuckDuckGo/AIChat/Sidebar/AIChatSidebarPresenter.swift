@@ -75,6 +75,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     private let sidebarPresenceWillChangeSubject = PassthroughSubject<AIChatSidebarPresenceChange, Never>()
 
     private var isAnimatingSidebarTransition: Bool = false
+    private var isResizeDragging: Bool = false
     private var cancellables = Set<AnyCancellable>()
 
     init(
@@ -94,6 +95,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
 
         sidebarPresenceWillChangePublisher = sidebarPresenceWillChangeSubject.eraseToAnyPublisher()
         self.sidebarHost.aiChatSidebarHostingDelegate = self
+        self.sidebarHost.aiChatSidebarResizeDelegate = self
 
         NotificationCenter.default.publisher(for: .aiChatNativeHandoffData)
             .receive(on: DispatchQueue.main)
@@ -143,6 +145,9 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         isAnimatingSidebarTransition = true
         sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: isShowingSidebar))
 
+        // Hide resize handle immediately when the sidebar starts any transition
+        sidebarHost.setResizeHandleVisible(false)
+
         if isShowingSidebar {
             // Clear sidebar if session has expired (hidden for more than 60 minutes)
             sidebarProvider.clearSidebarIfSessionExpired(for: tabID)
@@ -165,15 +170,16 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
             sidebarProvider.sidebarsByTab[tabID]?.setHidden()
         }
 
-        let newConstraintValue = isShowingSidebar ? -self.sidebarProvider.sidebarWidth : 0.0
+        let displayWidth = isShowingSidebar ? effectiveSidebarWidth(for: sidebarHost.availableWidth) : sidebarProvider.sidebarWidth
+        let newConstraintValue = isShowingSidebar ? -displayWidth : 0.0
 
-        sidebarHost.sidebarContainerWidthConstraint?.constant = sidebarProvider.sidebarWidth
+        sidebarHost.sidebarContainerWidthConstraint?.constant = displayWidth
 
         if withAnimation {
             NSAnimationContext.runAnimationGroup { [weak self] context in
                 guard let self else { return }
 
-                context.duration = 0.25
+                context.duration = 4
                 context.allowsImplicitAnimation = true
                 context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                 sidebarHost.sidebarContainerLeadingConstraint?.animator().constant = newConstraintValue
@@ -181,11 +187,20 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
                 guard let self else { return }
                 self.isAnimatingSidebarTransition = false
 
+                if isShowingSidebar {
+                    // Show the resize handle only after the open animation finishes
+                    self.sidebarHost.setResizeHandleVisible(true)
+                }
+
                 guard let tabID, !isShowingSidebar else { return }
                 self.sidebarProvider.handleSidebarDidClose(for: tabID)
             }
         } else {
             sidebarHost.sidebarContainerLeadingConstraint?.constant = newConstraintValue
+
+            if isShowingSidebar {
+                sidebarHost.setResizeHandleVisible(true)
+            }
 
             if let tabID = sidebarHost.currentTabID, !isShowingSidebar {
                 sidebarProvider.handleSidebarDidClose(for: tabID)
@@ -277,5 +292,61 @@ extension AIChatSidebarPresenter: AIChatSidebarViewControllerDelegate {
         windowControllersManager.lastKeyMainWindowController?.window?.makeFirstResponder(nil)
         toggleSidebar()
     }
+}
 
+// MARK: - AIChatSidebarResizeDelegate
+
+extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
+
+    func sidebarHostDidResize(to width: CGFloat) {
+        guard !isAnimatingSidebarTransition else { return }
+        isResizeDragging = true
+        let clampedWidth = clampSidebarWidth(width)
+        sidebarHost.applySidebarWidth(clampedWidth)
+    }
+
+    func sidebarHostDidFinishResize(to width: CGFloat) {
+        guard !isAnimatingSidebarTransition else { return }
+        isResizeDragging = false
+        let clampedWidth = clampSidebarWidth(width)
+        sidebarHost.applySidebarWidth(clampedWidth)
+        sidebarProvider.setSidebarWidth(clampedWidth)
+    }
+
+    func sidebarHostDidChangeAvailableWidth(_ availableWidth: CGFloat) {
+        guard !isAnimatingSidebarTransition,
+              !isResizeDragging,
+              isSidebarOpenForCurrentTab() else { return }
+        let effectiveWidth = effectiveSidebarWidth(for: availableWidth)
+        sidebarHost.applySidebarWidth(effectiveWidth)
+    }
+
+    // MARK: - Private Helpers
+
+    /// Clamps a proposed sidebar width to the allowed range.
+    private func clampSidebarWidth(_ width: CGFloat) -> CGFloat {
+        let minWidth = sidebarProvider.minSidebarWidth
+        let maxWidth = sidebarProvider.maxSidebarWidth
+        return min(maxWidth, max(minWidth, width))
+    }
+
+    /// Computes the effective sidebar width for the given available width.
+    ///
+    /// - When the webview area is wider than the user's chosen sidebar width,
+    ///   the sidebar keeps its stored width.
+    /// - When the window shrinks so the webview would be narrower than the sidebar,
+    ///   both shrink proportionally (50/50) until the sidebar reaches its minimum.
+    private func effectiveSidebarWidth(for availableWidth: CGFloat) -> CGFloat {
+        let userWidth = sidebarProvider.sidebarWidth
+        let minWidth = sidebarProvider.minSidebarWidth
+
+        // Enough room: webview is at least as wide as the sidebar
+        if availableWidth >= 2 * userWidth {
+            return userWidth
+        }
+
+        // Not enough room: split 50/50, but respect the minimum
+        let halfWidth = availableWidth / 2
+        return max(minWidth, halfWidth)
+    }
 }

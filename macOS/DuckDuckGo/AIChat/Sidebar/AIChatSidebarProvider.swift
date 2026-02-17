@@ -27,8 +27,17 @@ typealias AIChatSidebarsByTab = [TabIdentifier: AIChatSidebar]
 /// A protocol that defines the interface for managing AI chat sidebars in tabs.
 /// This provider handles the lifecycle and state of chat sidebars across multiple browser tabs.
 protocol AIChatSidebarProviding: AnyObject {
-    /// The width of the chat sidebar in points.
+    /// The current width of the chat sidebar in points.
     var sidebarWidth: CGFloat { get }
+
+    /// The minimum allowed sidebar width in points.
+    var minSidebarWidth: CGFloat { get }
+
+    /// The maximum allowed sidebar width in points.
+    var maxSidebarWidth: CGFloat { get }
+
+    /// Persists a new sidebar width after the user finishes a resize drag.
+    func setSidebarWidth(_ width: CGFloat)
 
     /// Returns the existing cached sidebar view controller for the specified tab, if one exists.
     /// - Parameter tabID: The unique identifier of the tab
@@ -82,12 +91,19 @@ protocol AIChatSidebarProviding: AnyObject {
 final class AIChatSidebarProvider: AIChatSidebarProviding {
 
     enum Constants {
-        static let sidebarWidth: CGFloat = 400
+        static let defaultSidebarWidth: CGFloat = 400
     }
 
     private let featureFlagger: FeatureFlagger
+    private var widthStorage: AIChatSidebarWidthStoring
 
-    var sidebarWidth: CGFloat { Constants.sidebarWidth }
+    var sidebarWidth: CGFloat { widthStorage.sidebarWidth }
+    var minSidebarWidth: CGFloat { widthStorage.minWidth }
+    var maxSidebarWidth: CGFloat { widthStorage.maxWidth }
+
+    func setSidebarWidth(_ width: CGFloat) {
+        widthStorage.sidebarWidth = width
+    }
 
     @Published private(set) var sidebarsByTab: AIChatSidebarsByTab
 
@@ -100,9 +116,11 @@ final class AIChatSidebarProvider: AIChatSidebarProviding {
     }
 
     init(sidebarsByTab: AIChatSidebarsByTab? = nil,
-         featureFlagger: FeatureFlagger) {
+         featureFlagger: FeatureFlagger,
+         widthStorage: AIChatSidebarWidthStoring = DefaultAIChatSidebarWidthStorage()) {
         self.sidebarsByTab = sidebarsByTab ?? [:]
         self.featureFlagger = featureFlagger
+        self.widthStorage = widthStorage
     }
 
     func getSidebarViewController(for tabID: TabIdentifier) -> AIChatSidebarViewController? {
