@@ -154,6 +154,7 @@ public struct DefaultAIChatPreferencesStorage: AIChatPreferencesStorage {
         userDefaults.shouldAutomaticallySendPageContext = UserDefaults.shouldAutomaticallySendPageContextDefaultValue
         userDefaults.showSearchAndDuckAIToggle = UserDefaults.showSearchAndDuckAIToggleDefaultValue
         userDefaults.userDidSeeToggleOnboarding = false
+        userDefaults.lastUsedSidebarWidth = nil
     }
 }
 

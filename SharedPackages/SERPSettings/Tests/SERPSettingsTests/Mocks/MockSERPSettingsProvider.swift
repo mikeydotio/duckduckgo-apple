@@ -176,6 +176,7 @@ final class MockAIChatPreferencesStorage: AIChatPreferencesStorage {
         shouldAutomaticallySendPageContext = false
         showSearchAndDuckAIToggle = true
         userDidSeeToggleOnboarding = false
+        lastUsedSidebarWidth = nil
     }
 }
 #endif

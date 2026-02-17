@@ -353,6 +353,7 @@ class MockAIChatPreferencesStorage: AIChatPreferencesStorage {
         shouldAutomaticallySendPageContext = false
         showSearchAndDuckAIToggle = true
         userDidSeeToggleOnboarding = false
+        lastUsedSidebarWidth = nil
     }
 
     func updateNewTabPageShortcutDisplay(to value: Bool) {
