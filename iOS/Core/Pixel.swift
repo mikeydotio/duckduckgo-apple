@@ -245,6 +245,7 @@ public class Pixel {
     public static func fire(pixel: Pixel.Event,
                             forDeviceType deviceType: UIUserInterfaceIdiom? = UIDevice.current.userInterfaceIdiom,
                             withAdditionalParameters params: [String: String] = [:],
+                            withEncodedParameters encodedParams: [String: String] = [:],
                             allowedQueryReservedCharacters: CharacterSet? = nil,
                             withHeaders headers: APIRequest.Headers = APIRequest.Headers(),
                             includedParameters: [QueryParameters] = [.appVersion],
@@ -257,6 +258,7 @@ public class Pixel {
                 pixelNamed: pixel.name,
                 forDeviceType: deviceType,
                 withAdditionalParameters: params,
+                withEncodedParameters: encodedParams,
                 allowedQueryReservedCharacters: allowedQueryReservedCharacters,
                 withHeaders: headers,
                 includedParameters: includedParameters,
@@ -275,6 +277,7 @@ public class Pixel {
     public static func fire(pixelNamed pixelName: String,
                             forDeviceType deviceType: UIUserInterfaceIdiom? = UIDevice.current.userInterfaceIdiom,
                             withAdditionalParameters params: [String: String] = [:],
+                            withEncodedParameters encodedParams: [String: String] = [:],
                             allowedQueryReservedCharacters: CharacterSet? = nil,
                             withHeaders headers: APIRequest.Headers = APIRequest.Headers(userAgent: defaultPixelUserAgent),
                             includedParameters: [QueryParameters] = [.appVersion],
@@ -307,7 +310,7 @@ public class Pixel {
             newParams[PixelParameters.isInternalUser] = "true"
         }
 
-        let url: URL
+        var url: URL
         if let deviceType = deviceType {
             let formFactor = deviceType == .pad ? Constants.tablet : Constants.phone
             url = URL.makePixelURL(pixelName: pixelName,
@@ -315,6 +318,11 @@ public class Pixel {
                                    includeATB: includedParameters.contains(.atb))
         } else {
             url = URL.makePixelURL(pixelName: pixelName, includeATB: includedParameters.contains(.atb) )
+        }
+
+        // Append pre-encoded parameters directly to URL to avoid double-encoding
+        for (key, value) in encodedParams {
+            url = url.appending(percentEncodedQueryItem: URLQueryItem(name: key, value: value))
         }
 
         let configuration = APIRequest.Configuration(url: url,

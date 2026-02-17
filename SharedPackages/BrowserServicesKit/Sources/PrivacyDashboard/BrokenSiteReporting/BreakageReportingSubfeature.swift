@@ -28,7 +28,7 @@ public class BreakageReportingSubfeature: Subfeature {
 
     private weak var targetWebview: WKWebView?
     private var timer: Timer?
-    private var completionHandler: ((PerformanceMetrics?, DetectorData?, [Double]?) -> Void)?
+    private var completionHandler: ((PerformanceMetrics?, DetectorData?, [Double]?, String?) -> Void)?
     private var currentPerformanceMetrics: PerformanceMetrics?
 
     public init(targetWebview: WKWebView) {
@@ -45,7 +45,7 @@ public class BreakageReportingSubfeature: Subfeature {
         timer?.invalidate()
         guard let payload = params as? [String: Any],
               let expandedMetrics = payload["expandedPerformanceMetrics"] as? [String: Any] else {
-            completionHandler?(nil, nil, nil)
+            completionHandler?(nil, nil, nil, nil)
             return nil
         }
 
@@ -68,12 +68,14 @@ public class BreakageReportingSubfeature: Subfeature {
             jsPerformanceMetrics = nil
         }
 
-        completionHandler?(performanceMetrics, detectorData, jsPerformanceMetrics)
+        let breakageData = payload["breakageData"] as? String
+
+        completionHandler?(performanceMetrics, detectorData, jsPerformanceMetrics, breakageData)
         return nil
     }
 
-    public func notifyHandler(completion: @escaping (PerformanceMetrics?, DetectorData?, [Double]?) -> Void) {
-        guard let broker, let targetWebview else { completion(nil, nil, nil); return }
+    public func notifyHandler(completion: @escaping (PerformanceMetrics?, DetectorData?, [Double]?, String?) -> Void) {
+        guard let broker, let targetWebview else { completion(nil, nil, nil, nil); return }
 
         completionHandler = completion
         broker.push(method: "getBreakageReportValues", params: nil, for: self, into: targetWebview)
@@ -88,7 +90,7 @@ public class BreakageReportingSubfeature: Subfeature {
     private func handleTimeout() {
         if let completionHandler {
             self.completionHandler = nil
-            completionHandler(nil, nil, nil)
+            completionHandler(nil, nil, nil, nil)
         }
     }
 

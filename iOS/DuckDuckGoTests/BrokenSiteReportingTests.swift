@@ -118,7 +118,7 @@ final class BrokenSiteReportingTests: XCTestCase {
                                       isPirEnabled: nil,
                                       isForceDarkModeEnabled: nil)
 
-        let reporter = BrokenSiteReporter(pixelHandler: { params in
+        let reporter = BrokenSiteReporter(pixelHandler: { params, _ in
 
             for expectedParam in test.expectReportURLParams {
 

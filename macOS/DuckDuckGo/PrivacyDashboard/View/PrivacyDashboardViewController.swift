@@ -53,10 +53,10 @@ final class PrivacyDashboardViewController: NSViewController {
     private let brokenSiteReporter: BrokenSiteReporter
 
     private let toggleProtectionsOffReporter: BrokenSiteReporter = {
-        BrokenSiteReporter(pixelHandler: { parameters in
-            PixelKit.fire(GeneralPixel.protectionToggledOffBreakageReport,
-                          withAdditionalParameters: parameters,
-                          allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
+        BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+            Self.fireBreakagePixel(named: GeneralPixel.protectionToggledOffBreakageReport.name,
+                                   parameters: parameters,
+                                   encodedParameters: encodedParameters)
         }, keyValueStoring: UserDefaults.standard)
     }()
 
@@ -107,11 +107,10 @@ final class PrivacyDashboardViewController: NSViewController {
         self.rulesUpdateObserver = ContentBlockingRulesUpdateObserver(userContentUpdating: (contentBlocking as! AppContentBlocking).userContentUpdating)
 
         brokenSiteReporter = {
-            BrokenSiteReporter(pixelHandler: { parameters in
-                PixelKit.fire(NonStandardPixel.brokenSiteReport,
-                              withAdditionalParameters: parameters,
-                              allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters,
-                              doNotEnforcePrefix: true)
+            BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+                Self.fireBreakagePixel(named: NonStandardPixel.brokenSiteReport.name,
+                                       parameters: parameters,
+                                       encodedParameters: encodedParameters)
             }, keyValueStoring: UserDefaults.standard)
         }()
         super.init(nibName: nil, bundle: nil)
@@ -360,11 +359,23 @@ extension PrivacyDashboardViewController {
         case failedToFetchTheCurrentURL
     }
 
+    /// Fires a breakage pixel with support for pre-encoded parameters.
+    static func fireBreakagePixel(named pixelName: String,
+                                  parameters: [String: String],
+                                  encodedParameters: [String: String]) {
+        var url = URL.pixelUrl(forPixelNamed: pixelName)
+        url = url.appendingParameters(parameters, allowedReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
+        for (key, value) in encodedParameters {
+            url = url.appending(percentEncodedQueryItem: URLQueryItem(name: key, value: value))
+        }
+        URLSession.shared.dataTask(with: URLRequest(url: url)) { _, _, _ in }.resume()
+    }
+
     private func collectBreakageReportData(breakageReportingSubfeature: BreakageReportingSubfeature?) async -> BreakageReportData? {
         await withCheckedContinuation({ continuation in
             guard let breakageReportingSubfeature else { continuation.resume(returning: nil); return }
-            breakageReportingSubfeature.notifyHandler { metrics, detectorData, jsPerformanceMetrics in
-                let result = BreakageReportData(performanceMetrics: metrics, detectorData: detectorData, jsPerformance: jsPerformanceMetrics)
+            breakageReportingSubfeature.notifyHandler { metrics, detectorData, jsPerformanceMetrics, breakageData in
+                let result = BreakageReportData(performanceMetrics: metrics, detectorData: detectorData, jsPerformance: jsPerformanceMetrics, breakageData: breakageData)
                 continuation.resume(returning: result)
             }
         })
@@ -403,6 +414,7 @@ extension PrivacyDashboardViewController {
         let privacyAwareWebVitals = breakageReportData?.privacyAwarePerformanceMetrics
         let detectorMetrics = breakageReportData?.detectorData?.flattenedMetrics()
         let jsPerformance = breakageReportData?.jsPerformance
+        let breakageData = breakageReportData?.breakageData
 
         var errors: [Error]?
         var statusCodes: [Int]?
@@ -442,7 +454,8 @@ extension PrivacyDashboardViewController {
                                                privacyExperiments: currentTab.privacyInfo?.privacyExperimentCohorts ?? "",
                                                isPirEnabled: isPirEnabled,
                                                pageLoadTiming: currentTab.brokenSiteInfo?.lastPageLoadTiming,
-                                               detectorMetrics: detectorMetrics)
+                                               detectorMetrics: detectorMetrics,
+                                               breakageData: breakageData)
         return websiteBreakage
     }
 }

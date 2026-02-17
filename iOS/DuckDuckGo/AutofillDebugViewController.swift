@@ -136,7 +136,7 @@ class AutofillDebugViewController: UITableViewController {
             } else if cell.tag == Row.resetDaysSinceInstalledTo7.rawValue {
                 StatisticsUserDefaults().installDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
             } else if cell.tag == Row.resetAutofillBrokenReports.rawValue {
-                let reporter = BrokenSiteReporter(pixelHandler: { _ in }, keyValueStoring: UserDefaults.standard, storageConfiguration: .autofillConfig)
+                let reporter = BrokenSiteReporter(pixelHandler: { _, _ in }, keyValueStoring: UserDefaults.standard, storageConfiguration: .autofillConfig)
                 let expiryDate = Calendar.current.date(byAdding: .day, value: 60, to: Date())!
                 _ = reporter.persistencyManager.removeExpiredItems(currentDate: expiryDate)
                 ActionMessageView.present(message: "Autofill Broken Reports reset")

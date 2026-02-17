@@ -29,7 +29,7 @@ final class BrokenSiteReporterTests: XCTestCase {
         var pixelCount = 0
 
         let keyValueStore = MockKeyValueStore()
-        let reporter = BrokenSiteReporter(pixelHandler: { parameters in
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, _ in
             // Send pixel
             print("PIXEL SENT: \n\(parameters)")
             pixelCount += 1
@@ -52,7 +52,7 @@ final class BrokenSiteReporterTests: XCTestCase {
     func testReportContainsExperimentData() throws {
         let keyValueStore = MockKeyValueStore()
         let expectation = expectation(description: "Pixel sent")
-        let reporter = BrokenSiteReporter(pixelHandler: { parameters in
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, _ in
             XCTAssertTrue(parameters["contentScopeExperiments"]!.contains("experiment1:control"))
             XCTAssertTrue(parameters["contentScopeExperiments"]!.contains("experiment2:treatment"))
             print(parameters)
