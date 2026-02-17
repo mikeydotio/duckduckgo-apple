@@ -40,6 +40,7 @@ final class AIChatSidebarResizeHandleView: NSView {
     /// Returns the current sidebar width at drag start.
     var currentWidthProvider: (() -> CGFloat)?
 
+    private var isDragging: Bool = false
     private var dragStartX: CGFloat = 0
     private var dragStartWidth: CGFloat = 0
     private var trackingArea: NSTrackingArea?
@@ -99,13 +100,14 @@ final class AIChatSidebarResizeHandleView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         guard let window else { return }
+        isDragging = true
         NSCursor.resizeLeftRight.push()
         dragStartX = window.mouseLocationOutsideOfEventStream.x
         dragStartWidth = currentWidthProvider?() ?? 0
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let window else { return }
+        guard isDragging, let window else { return }
         let currentX = window.mouseLocationOutsideOfEventStream.x
         // Dragging left (negative delta) increases width; dragging right decreases it
         let proposedWidth = dragStartWidth + (dragStartX - currentX)
@@ -113,7 +115,8 @@ final class AIChatSidebarResizeHandleView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard let window else { return }
+        guard isDragging, let window else { return }
+        isDragging = false
         NSCursor.pop()
         let currentX = window.mouseLocationOutsideOfEventStream.x
         let finalWidth = dragStartWidth + (dragStartX - currentX)
