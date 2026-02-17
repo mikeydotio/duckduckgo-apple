@@ -349,9 +349,10 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
     }
 
     /// Clamps a proposed sidebar width to the allowed range.
+    /// The sidebar can never exceed half of the available window width.
     private func clampSidebarWidth(_ width: CGFloat) -> CGFloat {
         let minWidth = sidebarProvider.minSidebarWidth
-        let maxWidth = sidebarProvider.maxSidebarWidth
+        let maxWidth = min(sidebarProvider.maxSidebarWidth, sidebarHost.availableWidth / 2)
         return min(maxWidth, max(minWidth, width))
     }
 
