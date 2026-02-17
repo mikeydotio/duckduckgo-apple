@@ -170,7 +170,7 @@ class WebsiteBreakageReportTests: XCTestCase {
 
     // MARK: - breakageData
 
-    func testWhenBreakageDataPresentThenNotInRequestParameters() {
+    func testWhenBreakageDataPresentThenInEncodedParametersNotRequestParameters() {
         let report = BrokenSiteReport(
             siteUrl: URL(string: "https://example.test/")!,
             category: "test",
