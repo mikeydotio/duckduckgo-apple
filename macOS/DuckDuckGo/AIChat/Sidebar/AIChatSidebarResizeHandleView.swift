@@ -17,11 +17,13 @@
 //
 
 import AppKit
+import DesignResourcesKit
 
 /// Thin draggable view on the leading edge of the AI Chat sidebar.
 ///
 /// Reports width changes during drag via `onResize`, and notifies
 /// `onResizeEnd` when the drag completes so the final width can be persisted.
+/// Also draws a 1pt vertical separator line along its leading edge.
 final class AIChatSidebarResizeHandleView: NSView {
 
     private enum Constants {
@@ -29,6 +31,8 @@ final class AIChatSidebarResizeHandleView: NSView {
         static let handleWidth: CGFloat = 6
         /// Extra points added on each side for hit-testing and cursor tracking.
         static let hitTestPadding: CGFloat = 3
+        /// Width of the visual separator line.
+        static let separatorWidth: CGFloat = 1
     }
 
     /// Called continuously during drag with the proposed new sidebar width.
@@ -44,8 +48,37 @@ final class AIChatSidebarResizeHandleView: NSView {
     private var dragStartWidth: CGFloat = 0
     private var trackingArea: NSTrackingArea?
 
+    private let separatorLayer = CALayer()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layerContentsRedrawPolicy = .onSetNeedsDisplay
+        layer?.addSublayer(separatorLayer)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     override var intrinsicContentSize: NSSize {
         NSSize(width: Constants.handleWidth, height: NSView.noIntrinsicMetric)
+    }
+
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        super.updateLayer()
+        separatorLayer.backgroundColor = NSColor(designSystemColor: .surfaceDecorationPrimary).cgColor
+    }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        separatorLayer.frame = CGRect(x: 0, y: 0, width: Constants.separatorWidth, height: bounds.height)
+        CATransaction.commit()
     }
 
     // MARK: - Hit Testing
