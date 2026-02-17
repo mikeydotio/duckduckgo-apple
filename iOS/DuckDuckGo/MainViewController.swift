@@ -71,6 +71,9 @@ class MainViewController: UIViewController {
 
     var chromeManager: BrowserChromeManager!
 
+    // MARK: - Automation Server
+    var automationServer: AutomationServer?
+
     var allowContentUnderflow = false {
         didSet {
             viewCoordinator.constraints.contentContainerTop.constant = allowContentUnderflow ? contentUnderflow : 0

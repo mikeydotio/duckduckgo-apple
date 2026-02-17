@@ -266,7 +266,7 @@ struct Launching: LaunchingHandling {
         // MARK: - Final Configuration
         // Complete the configuration process and set up the main window
 
-        configuration.finalize(
+        mainCoordinator.controller.automationServer = configuration.finalize(
             reportingService: reportingService,
             mainViewController: mainCoordinator.controller,
             launchTaskManager: launchTaskManager

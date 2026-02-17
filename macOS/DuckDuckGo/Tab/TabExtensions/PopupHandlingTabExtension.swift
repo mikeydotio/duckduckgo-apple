@@ -288,6 +288,7 @@ final class PopupHandlingTabExtension {
     }
 
     /// Determines if a popup should be allowed bypassing the permission request:
+    /// - If the app is running in automation mode (WebDriver or UI Tests), allow all popups
     /// - If the navigation action is user-initiated (clicked link, etc.), allow the popup
     /// - If the pop-ups temporarily allowed for the current page with the "Only allow pop-ups for this visit" option selected:
     ///   - Either for empty/about: URLs specifically with `suppressEmptyPopUpsOnApproval` feature flag enabled
@@ -297,6 +298,11 @@ final class PopupHandlingTabExtension {
     /// ---
     /// - Returns: A `PopupPermissionBypassReason` describing the reason for bypassing permission, or `nil` if the popup should not be allowed
     @MainActor internal func shouldAllowPopupBypassingPermissionRequest(for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> PopupPermissionBypassReason? {
+        // Bypass popup blocking entirely when running in automation mode (WebDriver clicks don't establish user activation context)
+        if LaunchOptionsHandler().isAutomationSession {
+            return .automationSession
+        }
+
         // Check if the pop-up is user-initiated (clicked link, etc.)
         if let reason = isNavigationActionUserInitiated(navigationAction) {
             return .userInitiated(reason)
@@ -553,11 +559,14 @@ enum PopupPermissionBypassReason: Equatable {
     case userInitiated(UserInitiatedReason)
     case popupsTemporarilyAllowedForCurrentPage
     case allowlistedDomain(String)
+    /// Popup blocking is bypassed when running in automation mode (WebDriver or UI Tests)
+    /// because synthetic clicks don't establish user activation context
+    case automationSession
 
     var isUserInitiated: Bool {
         switch self {
-        case .userInitiated, .allowlistedDomain:
-            // Don‘t show the pop-up button for user-initiated popups, popups temporarily allowed for the current page, or allowlisted domains
+        case .userInitiated, .allowlistedDomain, .automationSession:
+            // Don't show the pop-up button for user-initiated popups, allowlisted domains, or automation sessions
             return true
         case .popupsTemporarilyAllowedForCurrentPage:
             return false
@@ -573,6 +582,8 @@ extension PopupPermissionBypassReason: CustomStringConvertible {
             return "popupsTemporarilyAllowedForCurrentPage"
         case .allowlistedDomain(let domain):
             return "allowlistedDomain(\(domain))"
+        case .automationSession:
+            return "automationSession"
         }
     }
 }

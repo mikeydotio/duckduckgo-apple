@@ -94,8 +94,12 @@ public final class LaunchOptionsHandler {
         return .notOverridden
     }
 
+    /// Returns the automation port if set, nil otherwise.
+    /// Port must be in the valid UInt16 range (1-65535).
     public var automationPort: Int? {
-        userDefaults.integer(forKey: Self.automationPort)
+        let port = userDefaults.integer(forKey: Self.automationPort)
+        guard UInt16(exactly: port) != nil, port > 0 else { return nil }
+        return port
     }
 
 #if DEBUG || ALPHA

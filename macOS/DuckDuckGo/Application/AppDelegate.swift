@@ -252,6 +252,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private(set) lazy var sessionRestorePromptCoordinator = SessionRestorePromptCoordinator(pixelFiring: PixelKit.shared)
 
+    // MARK: - Automation Server
+    private var automationServer: AutomationServer?
+    private let launchOptionsHandler = LaunchOptionsHandler()
+
     // MARK: - Freemium DBP
     public let freemiumDBPFeature: FreemiumDBPFeature
     public let freemiumDBPPromotionViewCoordinator: FreemiumDBPPromotionViewCoordinator
@@ -482,11 +486,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let privacyConfigurationManager: PrivacyConfigurationManager
 
-#if DEBUG
+#if DEBUG || REVIEW
+        // When TEST_PRIVACY_CONFIG_PATH is set, skip cached config to use the test config from embedded data provider
+        let useTestConfig = ProcessInfo.processInfo.environment[AppPrivacyConfigurationDataProvider.Constants.testPrivacyConfigPathKey] != nil
+        let fetchedEtag: String? = useTestConfig ? nil : configurationStore.loadEtag(for: .privacyConfiguration)
+        let fetchedData: Data? = useTestConfig ? nil : configurationStore.loadData(for: .privacyConfiguration)
+
+        if useTestConfig {
+            NSLog("[DDG-TEST-CONFIG] Skipping cached privacy config to use TEST_PRIVACY_CONFIG_PATH")
+        }
+
         if AppVersion.runType.requiresEnvironment {
             privacyConfigurationManager = PrivacyConfigurationManager(
-                fetchedETag: configurationStore.loadEtag(for: .privacyConfiguration),
-                fetchedData: configurationStore.loadData(for: .privacyConfiguration),
+                fetchedETag: fetchedEtag,
+                fetchedData: fetchedData,
                 embeddedDataProvider: AppPrivacyConfigurationDataProvider(),
                 localProtection: LocalUnprotectedDomains(database: database.db),
                 errorReporting: AppContentBlocking.debugEvents,
@@ -494,8 +507,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         } else {
             privacyConfigurationManager = PrivacyConfigurationManager(
-                fetchedETag: configurationStore.loadEtag(for: .privacyConfiguration),
-                fetchedData: configurationStore.loadData(for: .privacyConfiguration),
+                fetchedETag: fetchedEtag,
+                fetchedData: fetchedData,
                 embeddedDataProvider: AppPrivacyConfigurationDataProvider(),
                 localProtection: LocalUnprotectedDomains(database: nil),
                 errorReporting: AppContentBlocking.debugEvents,
@@ -1238,6 +1251,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        startAutomationServerIfNeeded()
+
         grammarFeaturesManager.manage()
 
         applyPreferredTheme()
@@ -1596,6 +1611,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             condition.resolve()
         }
         RunLoop.current.run(until: condition)
+    }
+
+    // MARK: - Automation Server
+
+    private func startAutomationServerIfNeeded() {
+        guard let port = launchOptionsHandler.automationPort else {
+            return
+        }
+        Task { @MainActor in
+            automationServer = AutomationServer(
+                windowControllersManager: windowControllersManager,
+                contentBlockingManager: privacyFeatures.contentBlocking.contentBlockingManager,
+                port: port
+            )
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
