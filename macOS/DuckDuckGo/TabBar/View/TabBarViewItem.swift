@@ -105,6 +105,7 @@ protocol TabBarViewItemDelegate: AnyObject {
     @MainActor func tabBarViewItemFireproofSite(_: TabBarViewItem)
     @MainActor func tabBarViewItemMuteUnmuteSite(_: TabBarViewItem)
     @MainActor func tabBarViewItemRemoveFireproofing(_: TabBarViewItem)
+    @MainActor func tabBarViewItemOpenInSplitView(_: TabBarViewItem)
     @MainActor func tabBarViewItem(_ tabBarViewItem: TabBarViewItem, replaceContentWithDroppedStringValue: String)
 
     @MainActor func otherTabBarViewItemsState(for tabBarViewItem: TabBarViewItem) -> OtherTabBarViewItemsState
@@ -234,6 +235,15 @@ final class TabBarItemCellView: NSView {
 
     fileprivate let rightSeparatorView = ColorView(frame: .zero)
 
+    /// Accent-colored bottom strip shown on tabs that are part of a split view group.
+    fileprivate let splitViewIndicatorView: NSView = {
+        let view = NSView()
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
+        view.isHidden = true
+        return view
+    }()
+
     fileprivate lazy var rightRampView: RampView = {
         let view = RampView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -340,6 +350,7 @@ final class TabBarItemCellView: NSView {
         addSubview(permissionButton)
         addSubview(closeButton)
         addSubview(rightSeparatorView)
+        addSubview(splitViewIndicatorView)
 
         subscribeToThemeChanges()
         applyThemeStyle()
@@ -397,6 +408,10 @@ final class TabBarItemCellView: NSView {
 
         let separatorHeight = theme.tabStyleProvider.separatorHeight
         rightSeparatorView.frame = NSRect(x: bounds.maxX.rounded() - 1, y: bounds.midY - (separatorHeight / 2), width: 1, height: separatorHeight)
+
+        // Bottom accent strip for split view group
+        let indicatorHeight: CGFloat = 2.5
+        splitViewIndicatorView.frame = NSRect(x: 0, y: bounds.maxY - indicatorHeight, width: bounds.width, height: indicatorHeight)
     }
 
     private func layoutForNormalMode() {
@@ -682,6 +697,15 @@ final class TabBarViewItem: NSCollectionViewItem {
 
     var isLeftToSelected: Bool = false {
         didSet {
+            updateSeparatorView()
+        }
+    }
+
+    /// Whether this tab is part of an active split view group.
+    var isInSplitView: Bool = false {
+        didSet {
+            guard isInSplitView != oldValue else { return }
+            updateSubviews()
             updateSeparatorView()
         }
     }
@@ -980,6 +1004,7 @@ final class TabBarViewItem: NSCollectionViewItem {
         activePermissionTypes = []
         currentActivePermissionIndex = 0
         isLeftToSelected = false
+        isInSplitView = false
         cell.clear()
     }
 
@@ -1010,6 +1035,11 @@ final class TabBarViewItem: NSCollectionViewItem {
                 cell.mouseOverView.mouseOverColor = nil
                 cell.mouseOverView.backgroundColor = theme.colorsProvider.navigationBackgroundColor
                 cell.roundedBackgroundColorView.isHidden = true
+            } else if isInSplitView {
+                // Split view tabs get a tinted background to show they're grouped
+                cell.mouseOverView.mouseOverColor = nil
+                cell.mouseOverView.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.08)
+                cell.roundedBackgroundColorView.isHidden = true
             } else {
                 if theme.tabStyleProvider.isRoundedBackgroundPresentOnHover {
                     cell.mouseOverView.mouseOverColor = nil
@@ -1029,6 +1059,10 @@ final class TabBarViewItem: NSCollectionViewItem {
             } else {
                 cell.borderLayer.isHidden = !isSelected
             }
+
+            // Show bottom accent strip for split view group tabs
+            cell.splitViewIndicatorView.isHidden = !isInSplitView
+            cell.splitViewIndicatorView.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
         }
 
         if isPinned {
@@ -1186,7 +1220,8 @@ final class TabBarViewItem: NSCollectionViewItem {
         let shouldHideForHover = theme.tabStyleProvider.isRoundedBackgroundPresentOnHover && isMouseOver
         let rightItemIsHighlighted = delegate?.tabBarViewItemShouldHideSeparator(self) ?? false
 
-        let newIsHidden = shouldHideForHover || rightItemIsHighlighted || isSelected || isDragged || isLeftToSelected
+        // Hide separator between adjacent split view tabs to make them look connected
+        let newIsHidden = shouldHideForHover || rightItemIsHighlighted || isSelected || isDragged || isLeftToSelected || isInSplitView
         if cell.rightSeparatorView.isHidden != newIsHidden {
             cell.rightSeparatorView.isHidden = newIsHidden
         }
@@ -1300,6 +1335,10 @@ extension TabBarViewItem: NSMenuDelegate {
             addBookmarkAllTabsMenuItem(to: menu)
             menu.addItem(.separator())
         }
+
+        // Split View Section
+        addOpenInSplitViewMenuItem(to: menu)
+        menu.addItem(.separator())
 
         // Close Section
         addCloseMenuItem(to: menu)
@@ -1449,6 +1488,16 @@ extension TabBarViewItem: NSMenuDelegate {
         moveToNewWindowMenuItem.target = self
         moveToNewWindowMenuItem.isEnabled = areThereOtherTabs
         menu.addItem(moveToNewWindowMenuItem)
+    }
+
+    private func addOpenInSplitViewMenuItem(to menu: NSMenu) {
+        let splitViewMenuItem = NSMenuItem(title: "Open in Split View", action: #selector(openInSplitViewAction(_:)), keyEquivalent: "")
+        splitViewMenuItem.target = self
+        menu.addItem(splitViewMenuItem)
+    }
+
+    @objc private func openInSplitViewAction(_ sender: Any?) {
+        delegate?.tabBarViewItemOpenInSplitView(self)
     }
 
 }
@@ -1817,6 +1866,7 @@ extension TabBarViewItem {
             }
         }
         func tabBarViewItemRemoveFireproofing(_: TabBarViewItem) {}
+        func tabBarViewItemOpenInSplitView(_: TabBarViewItem) {}
         func tabBarViewItem(_: TabBarViewItem, replaceContentWithDroppedStringValue: String) {}
         func otherTabBarViewItemsState(for: TabBarViewItem) -> OtherTabBarViewItemsState {
             .init(hasItemsToTheLeft: false, hasItemsToTheRight: false)

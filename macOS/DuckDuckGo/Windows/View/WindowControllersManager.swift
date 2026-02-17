@@ -273,6 +273,18 @@ extension WindowControllersManager {
             }
         case .newWindow(let selected):
             WindowsManager.openNewWindow(with: url, source: source, isBurner: setBurner, showWindow: selected)
+        case .splitPane:
+            guard let windowController else {
+                show(url: url, source: source)
+                return
+            }
+            let tabCollectionViewModel = windowController.mainViewController.tabCollectionViewModel
+            let btvc = windowController.mainViewController.browserTabViewController
+            let newTab = Tab(content: .contentFromURL(url, source: source),
+                             shouldLoadInBackground: true,
+                             burnerMode: tabCollectionViewModel.burnerMode)
+            tabCollectionViewModel.append(tab: newTab, selected: false)
+            btvc.enterSplitView(with: newTab)
         }
     }
 
