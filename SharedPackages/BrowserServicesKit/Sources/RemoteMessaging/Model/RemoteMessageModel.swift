@@ -320,4 +320,5 @@ public enum RemotePlaceholder: String, Codable, CaseIterable {
     case mobileCustomization = "RemoteMobileCustomization"
     case pir = "RemoteMessagePIR"
     case subscription = "RemoteMessageSubscription"
+    case veryCriticalUpdate = "RemoteMessageVeryCriticalUpdate"
 }

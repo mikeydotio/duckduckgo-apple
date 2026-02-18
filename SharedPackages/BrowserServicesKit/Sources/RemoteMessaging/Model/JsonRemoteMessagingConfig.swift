@@ -167,6 +167,7 @@ public enum RemoteMessageResponse {
         case mobileCustomization = "MobileCustomization"
         case pir = "PIR"
         case subscription = "Subscription"
+        case veryCriticalUpdate = "VeryCriticalUpdate"
     }
 
     public enum StatusError: Error {
