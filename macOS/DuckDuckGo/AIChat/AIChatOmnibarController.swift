@@ -271,15 +271,6 @@ final class AIChatOmnibarController {
         let attachments = attachmentsProvider?() ?? []
         let images = Self.nativePromptImages(from: attachments)
 
-        print("[DEBUG] submit: attachmentsProvider is \(attachmentsProvider == nil ? "nil" : "set")")
-        print("[DEBUG] submit: attachments count = \(attachments.count)")
-        print("[DEBUG] submit: images count = \(images?.count ?? 0)")
-        if let images {
-            for (i, img) in images.enumerated() {
-                print("[DEBUG] submit: image[\(i)] format=\(img.format), base64 length=\(img.data.count)")
-            }
-        }
-
         Task { @MainActor in
             aiChatTabOpener.openAIChatTab(
                 with: .query(trimmedText, shouldAutoSubmit: true),
@@ -287,17 +278,11 @@ final class AIChatOmnibarController {
             )
             // Re-set prompt after tab opener to include toolChoice and images (tab opener overwrites with a plain query)
             let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: toolChoice, images: images)
-            if let jsonData = try? JSONEncoder().encode(prompt),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                // Truncate base64 data for readability
-                let truncated = jsonString.count > 500 ? String(jsonString.prefix(500)) + "... [truncated]" : jsonString
-                print("[DEBUG] submit: prompt JSON = \(truncated)")
-            }
             promptHandler.setData(prompt)
         }
 
         currentText = ""
-//        onAttachmentsClearRequested?()
+        onAttachmentsClearRequested?()
         delegate?.aiChatOmnibarControllerDidSubmit(self)
     }
 
