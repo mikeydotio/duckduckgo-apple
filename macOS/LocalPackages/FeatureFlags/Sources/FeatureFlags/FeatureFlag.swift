@@ -292,9 +292,8 @@ public enum FeatureFlag: String, CaseIterable {
     case crashCollectionLimitCallStackTreeDepth
 
     /// Failsafe flag for whether the free trial conversion wide event is enabled
-    case freeTrialConversionWideEvent
+    case freeTrialConversionWideEven
 
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212901927858518?focus=true
     case supportsSyncChatsDeletion
 }
 
