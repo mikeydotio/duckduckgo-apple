@@ -26,9 +26,10 @@ struct IdleReturnNTPDebugView: View {
 
     @StateObject private var storage = ObservableKeyedStorage<IdleReturnDebugOverridesKeys>(storage: UserDefaults.app)
     @State private var overrideSecondsText: String = ""
+    @FocusState private var isTextFieldFocused: Bool
 
     private var currentOverride: Int? {
-        guard let value: Int = storage.value(for: \.thresholdSecondsOverride), value > 0 else { return nil }
+        guard let value: Int = storage.thresholdSecondsOverride, value > 0 else { return nil }
         return value
     }
 
@@ -43,14 +44,14 @@ struct IdleReturnNTPDebugView: View {
             }
 
             Section(header: Text("Override")) {
-                HStack {
-                    TextField("Seconds (e.g. 60)", text: $overrideSecondsText)
-                        .keyboardType(.numberPad)
-                    Button("Set") {
-                        setOverrideFromText()
-                    }
-                    .disabled(overrideSecondsText.isEmpty)
+                TextField("Seconds (e.g. 60)", text: $overrideSecondsText)
+                    .keyboardType(.numberPad)
+                    .focused($isTextFieldFocused)
+                Button("Set") {
+                    setOverrideFromText()
+                    isTextFieldFocused = false
                 }
+                .disabled(overrideSecondsText.isEmpty)
                 if currentOverride != nil {
                     Button("Clear override") {
                         clearOverride()
@@ -72,8 +73,7 @@ struct IdleReturnNTPDebugView: View {
     }
 
     private func clearOverride() {
-        let keyPath: KeyPath<IdleReturnDebugOverridesKeys, StorageKey<Int>> = \.thresholdSecondsOverride
-        storage.removeValue(for: keyPath)
+        storage.thresholdSecondsOverride = nil
         overrideSecondsText = ""
     }
 }

@@ -26,6 +26,16 @@ protocol IdleReturnEvaluating {
     func shouldShowNTPAfterIdle(lastBackgroundDate: Date?) -> Bool
 }
 
+/// Key namespace for idle-return NTP debug overrides (typed storage, no dotted keys).
+enum IdleReturnDebugStorageKeys: String, StorageKeyDescribing {
+    case idleReturnThresholdSecondsDebugOverride = "idle-return-threshold-seconds-debug-override"
+}
+
+/// StoringKeys for idle-return debug overrides.
+struct IdleReturnDebugOverridesKeys: StoringKeys {
+    let thresholdSecondsOverride = StorageKey<Int>(IdleReturnDebugStorageKeys.idleReturnThresholdSecondsDebugOverride)
+}
+
 final class IdleReturnEvaluator: IdleReturnEvaluating {
 
     enum IdleReturnEvaluatorConstants {
@@ -58,7 +68,7 @@ final class IdleReturnEvaluator: IdleReturnEvaluating {
     }
 
     private func idleThresholdSeconds() -> Int {
-        if let overrideSeconds: Int = debugOverridesStorage.value(for: \.thresholdSecondsOverride), overrideSeconds > 0 {
+        if let overrideSeconds: Int = debugOverridesStorage.thresholdSecondsOverride, overrideSeconds > 0 {
             return overrideSeconds
         }
         guard let settings = privacyConfigurationManager.privacyConfig.settings(for: IdleReturnEvaluatorConstants.subfeature),

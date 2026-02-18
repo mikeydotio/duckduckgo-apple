@@ -24,11 +24,6 @@ private extension BoolFileMarker.Name {
     static let hasSuccessfullyLaunchedBefore = BoolFileMarker.Name(rawValue: "app-launched-successfully")
 }
 
-/// Reference type to hold a flag across the launch flow so the overlay is removed only after NTP is in place when using idle-return.
-private final class LaunchOverlayRemovalFlag {
-    var didInvokeIdleReturnDelegate = false
-}
-
 /// Represents the state where the app is in the Foreground and is visible to the user.
 /// - Usage:
 ///   - This state is typically associated with the `applicationDidBecomeActive(_:)` method.
@@ -115,9 +110,6 @@ struct Foreground: ForegroundHandling {
 
         configureAppearance()
 
-        let overlayRemovalFlag = LaunchOverlayRemovalFlag()
-        launchActionHandler.whenIdleReturnDelegateInvoked = { overlayRemovalFlag.didInvokeIdleReturnDelegate = true }
-
         interactionManager.start(
             launchAction: launchAction,
             /// Handle **WebView related logic** here that could be affected by `AutoClear` feature.
@@ -128,9 +120,6 @@ struct Foreground: ForegroundHandling {
             /// Handle **UI related logic** here that could be affected by Authentication screen or `AutoClear` feature
             /// This is called when the **app is ready to handle user interactions** after data clear and authentication are complete.
             onAppReadyForInteractions: {
-                if !overlayRemovalFlag.didInvokeIdleReturnDelegate {
-                    NotificationCenter.default.post(name: LaunchOverlayNotification.shouldRemove, object: nil)
-                }
                 appDependencies.launchTaskManager.start()
 
                 // Mark that the app has successfully launched at least once

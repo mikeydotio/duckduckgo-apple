@@ -28,7 +28,7 @@ final class IdleReturnEvaluatorTests {
 
     func makeEvaluator(
         featureOn: Bool = true,
-        settingsJSON: String? = "{\"idleThresholdSeconds\": \"43200\"}"
+        settingsJSON: String? = "{\"idleThresholdSeconds\": \"60\"}"
     ) -> IdleReturnEvaluator {
         let mockConfig = MockPrivacyConfiguration()
         mockConfig.subfeatureSettings = settingsJSON
@@ -44,7 +44,7 @@ final class IdleReturnEvaluatorTests {
     @Test("When feature is off then shouldShowNTPAfterIdle returns false")
     func whenFeatureOffThenReturnsFalse() {
         let evaluator = makeEvaluator(featureOn: false)
-        let date = Date().addingTimeInterval(-1000)
+        let date = Date().addingTimeInterval(-61)
         #expect(!evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: date))
     }
 
@@ -56,43 +56,49 @@ final class IdleReturnEvaluatorTests {
 
     @Test("When under threshold then shouldShowNTPAfterIdle returns false")
     func whenUnderThresholdThenReturnsFalse() {
-        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"7200\"}")
-        let oneHourAgo = Date().addingTimeInterval(-3600)
+        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"120\"}")
+        let oneHourAgo = Date().addingTimeInterval(-110)
         #expect(!evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: oneHourAgo))
     }
 
     @Test("When over threshold then shouldShowNTPAfterIdle returns true")
     func whenOverThresholdThenReturnsTrue() {
-        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"7200\"}")
-        let twoHoursAgo = Date().addingTimeInterval(-7200)
+        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"120\"}")
+        let twoHoursAgo = Date().addingTimeInterval(-121)
         #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: twoHoursAgo))
     }
 
     @Test("When at exactly threshold then shouldShowNTPAfterIdle returns true")
     func whenAtThresholdThenReturnsTrue() {
-        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"60\"}")
-        let oneMinuteAgo = Date().addingTimeInterval(-60)
+        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"120\"}")
+        let oneMinuteAgo = Date().addingTimeInterval(-120)
         #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: oneMinuteAgo))
     }
 
-    @Test("When settings missing then uses default threshold and returns true for 12h+ idle")
+    @Test("When settings missing then uses default threshold and returns true for 60+s idle")
     func whenSettingsMissingThenUsesDefaultThreshold() {
         let evaluator = makeEvaluator(settingsJSON: nil)
-        let thirteenHoursAgo = Date().addingTimeInterval(-13 * 3600)
-        #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: thirteenHoursAgo))
+        let aMinuteAgo = Date().addingTimeInterval(-60)
+        #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: aMinuteAgo))
+        let lessThanMinuteAgo = Date().addingTimeInterval(-59)
+        #expect(!evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: lessThanMinuteAgo))
     }
 
     @Test("When settings invalid JSON then uses default threshold")
     func whenSettingsInvalidThenUsesDefaultThreshold() {
         let evaluator = makeEvaluator(settingsJSON: "not json")
-        let thirteenHoursAgo = Date().addingTimeInterval(-13 * 3600)
-        #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: thirteenHoursAgo))
+        let aMinuteAgo = Date().addingTimeInterval(-60)
+        #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: aMinuteAgo))
+        let lessThanMinuteAgo = Date().addingTimeInterval(-59)
+        #expect(!evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: lessThanMinuteAgo))
     }
 
     @Test("When idleThresholdSeconds missing in settings then uses default")
     func whenIdleThresholdSecondsMissingThenUsesDefault() {
         let evaluator = makeEvaluator(settingsJSON: "{}")
-        let thirteenHoursAgo = Date().addingTimeInterval(-13 * 3600)
-        #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: thirteenHoursAgo))
+        let aMinuteAgo = Date().addingTimeInterval(-60)
+        #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: aMinuteAgo))
+        let lessThanMinuteAgo = Date().addingTimeInterval(-59)
+        #expect(!evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: lessThanMinuteAgo))
     }
 }

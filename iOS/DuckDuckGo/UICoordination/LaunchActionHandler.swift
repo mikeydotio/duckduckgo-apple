@@ -62,9 +62,6 @@ final class LaunchActionHandler: LaunchActionHandling {
     private let idleReturnEvaluator: IdleReturnEvaluating
     private weak var idleReturnDelegate: IdleReturnLaunchDelegate?
 
-    /// Set by the caller when the overlay should be removed only after the delegate has put the NTP in place (not in onAppReadyForInteractions).
-    var whenIdleReturnDelegateInvoked: (() -> Void)?
-
     init(urlHandler: URLHandling,
          shortcutItemHandler: ShortcutItemHandling,
          keyboardPresenter: KeyboardPresenting,
@@ -91,16 +88,14 @@ final class LaunchActionHandler: LaunchActionHandling {
             shortcutItemHandler.handleShortcutItem(shortcutItem)
         case .standardLaunch(let lastBackgroundDate):
             launchSourceManager.setSource(.standard)
-            if idleReturnEvaluator.shouldShowNTPAfterIdle(lastBackgroundDate: lastBackgroundDate),
-               let idleReturnDelegate {
-                whenIdleReturnDelegateInvoked?()
-                idleReturnDelegate.showNewTabPageAfterIdleReturn()
+            if idleReturnEvaluator.shouldShowNTPAfterIdle(lastBackgroundDate: lastBackgroundDate) {
+                idleReturnDelegate?.showNewTabPageAfterIdleReturn()
             } else {
                 keyboardPresenter.showKeyboardOnLaunch(lastBackgroundDate: lastBackgroundDate)
             }
         }
     }
-
+    
     private func openURL(_ url: URL) {
         Logger.sync.debug("App launched with url \(url.absoluteString)")
         fireAppLaunchedWithExternalLinkPixel(url: url)
