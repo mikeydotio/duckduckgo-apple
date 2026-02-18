@@ -28,19 +28,16 @@ typealias AIChatSidebarsByTab = [TabIdentifier: AIChatSidebar]
 /// A protocol that defines the interface for managing AI chat sidebars in tabs.
 /// This provider handles the lifecycle and state of chat sidebars across multiple browser tabs.
 protocol AIChatSidebarProviding: AnyObject {
-    /// The sidebar width for the given tab, falling back to the default if none was set.
-    func sidebarWidth(for tabID: TabIdentifier) -> CGFloat
-
     /// The minimum allowed sidebar width in points.
     var minSidebarWidth: CGFloat { get }
 
     /// The maximum allowed sidebar width in points.
     var maxSidebarWidth: CGFloat { get }
 
-    /// The default sidebar width used when a tab has no per-tab width set.
+    /// The initial sidebar width used when no user preference exists.
     var defaultSidebarWidth: CGFloat { get }
 
-    /// Persists a new sidebar width for the given tab.
+    /// Persists a new sidebar width for the given tab and updates the global default.
     func setSidebarWidth(_ width: CGFloat, for tabID: TabIdentifier)
 
     /// Returns the existing cached sidebar view controller for the specified tab, if one exists.
@@ -95,7 +92,7 @@ protocol AIChatSidebarProviding: AnyObject {
 final class AIChatSidebarProvider: AIChatSidebarProviding {
 
     enum Constants {
-        static let initialDefaultSidebarWidth: CGFloat = 400
+        static let defaultSidebarWidth: CGFloat = 400
         static let minSidebarWidth: CGFloat = 320
         static let maxSidebarWidth: CGFloat = 900
     }
@@ -103,19 +100,9 @@ final class AIChatSidebarProvider: AIChatSidebarProviding {
     private let featureFlagger: FeatureFlagger
     private var preferencesStorage: AIChatPreferencesStorage
 
+    var defaultSidebarWidth: CGFloat { Constants.defaultSidebarWidth }
     var minSidebarWidth: CGFloat { Constants.minSidebarWidth }
     var maxSidebarWidth: CGFloat { Constants.maxSidebarWidth }
-
-    var defaultSidebarWidth: CGFloat {
-        guard let stored = preferencesStorage.lastUsedSidebarWidth, stored > 0 else {
-            return Constants.initialDefaultSidebarWidth
-        }
-        return min(Constants.maxSidebarWidth, max(Constants.minSidebarWidth, CGFloat(stored)))
-    }
-
-    func sidebarWidth(for tabID: TabIdentifier) -> CGFloat {
-        sidebarsByTab[tabID]?.sidebarWidth ?? defaultSidebarWidth
-    }
 
     func setSidebarWidth(_ width: CGFloat, for tabID: TabIdentifier) {
         sidebarsByTab[tabID]?.sidebarWidth = width

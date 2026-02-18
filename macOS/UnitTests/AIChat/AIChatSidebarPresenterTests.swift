@@ -648,10 +648,6 @@ class MockAIChatSidebarProvider: AIChatSidebarProviding {
     private(set) var lastSetWidthTabID: TabIdentifier?
     @Published var sidebarsByTab: AIChatSidebarsByTab = [:]
 
-    func sidebarWidth(for tabID: TabIdentifier) -> CGFloat {
-        sidebarsByTab[tabID]?.sidebarWidth ?? defaultSidebarWidth
-    }
-
     func setSidebarWidth(_ width: CGFloat, for tabID: TabIdentifier) {
         sidebarsByTab[tabID]?.sidebarWidth = width
         lastSetWidth = width

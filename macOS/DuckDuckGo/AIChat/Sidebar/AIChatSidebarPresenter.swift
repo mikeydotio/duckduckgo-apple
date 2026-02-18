@@ -81,6 +81,10 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     private var resizePixelDebounceWorkItem: DispatchWorkItem?
     private var cancellables = Set<AnyCancellable>()
 
+    /// Per-window default width, snapshotted from the global preference at init.
+    /// Updated only by resizes happening in this window.
+    private var windowDefaultWidth: CGFloat
+
     private var isSidebarResizable: Bool {
         featureFlagger.isFeatureOn(.aiChatSidebarResizable)
     }
@@ -92,7 +96,8 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         aiChatTabOpener: AIChatTabOpening,
         windowControllersManager: WindowControllersManagerProtocol,
         pixelFiring: PixelFiring?,
-        featureFlagger: FeatureFlagger
+        featureFlagger: FeatureFlagger,
+        preferencesStorage: AIChatPreferencesStorage = DefaultAIChatPreferencesStorage()
     ) {
         self.sidebarHost = sidebarHost
         self.sidebarProvider = sidebarProvider
@@ -101,6 +106,14 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         self.windowControllersManager = windowControllersManager
         self.pixelFiring = pixelFiring
         self.featureFlagger = featureFlagger
+
+        if let stored = preferencesStorage.lastUsedSidebarWidth, stored > 0 {
+            let min = sidebarProvider.minSidebarWidth
+            let max = sidebarProvider.maxSidebarWidth
+            self.windowDefaultWidth = Swift.min(max, Swift.max(min, CGFloat(stored)))
+        } else {
+            self.windowDefaultWidth = sidebarProvider.defaultSidebarWidth
+        }
 
         sidebarPresenceWillChangePublisher = sidebarPresenceWillChangeSubject.eraseToAnyPublisher()
         self.sidebarHost.aiChatSidebarHostingDelegate = self
@@ -181,7 +194,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
             sidebarProvider.sidebarsByTab[tabID]?.setHidden()
         }
 
-        let tabWidth = sidebarProvider.sidebarWidth(for: tabID)
+        let tabWidth = sidebarWidth(for: tabID)
         let displayWidth = isShowingSidebar ? effectiveSidebarWidth(tabWidth: tabWidth, availableWidth: sidebarHost.availableWidth) : tabWidth
         let newConstraintValue = isShowingSidebar ? -displayWidth : 0.0
 
@@ -325,6 +338,7 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
         isResizeDragging = false
         let clampedWidth = clampSidebarWidth(width)
         sidebarHost.applySidebarWidth(clampedWidth)
+        windowDefaultWidth = clampedWidth
         sidebarProvider.setSidebarWidth(clampedWidth, for: currentTabID)
         fireResizedPixelDebounced(width: clampedWidth)
     }
@@ -334,7 +348,7 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
               !isResizeDragging,
               let currentTabID = sidebarHost.currentTabID,
               isSidebarOpen(for: currentTabID) else { return }
-        let tabWidth = sidebarProvider.sidebarWidth(for: currentTabID)
+        let tabWidth = sidebarWidth(for: currentTabID)
         let effectiveWidth = effectiveSidebarWidth(tabWidth: tabWidth, availableWidth: availableWidth)
         sidebarHost.applySidebarWidth(effectiveWidth)
     }
@@ -350,6 +364,11 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
         }
         resizePixelDebounceWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
+    }
+
+    /// Returns the sidebar width for a tab, falling back to this window's default.
+    private func sidebarWidth(for tabID: TabIdentifier) -> CGFloat {
+        sidebarProvider.sidebarsByTab[tabID]?.sidebarWidth ?? windowDefaultWidth
     }
 
     /// Clamps a proposed sidebar width to the allowed range.
