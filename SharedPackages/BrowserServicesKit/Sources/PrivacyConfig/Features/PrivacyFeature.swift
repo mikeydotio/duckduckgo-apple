@@ -383,6 +383,7 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     case supportsSyncChatsDeletion
 
     case sidebarResizable
+    case sidebarFloating
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
