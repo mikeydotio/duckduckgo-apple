@@ -46,6 +46,9 @@ final class AIChatSidebar: NSObject {
     /// The user-chosen sidebar width for this tab, or `nil` to use the default.
     var sidebarWidth: CGFloat?
 
+    /// Whether the sidebar is currently shown in a detached floating window.
+    private(set) var isDetached: Bool = false
+
     /// The view controller that displays the sidebar contents.
     /// This property is set by the AIChatSidebarProvider when the view controller is created.
     var sidebarViewController: AIChatSidebarViewController? {
@@ -103,6 +106,16 @@ final class AIChatSidebar: NSObject {
         if hiddenAt == nil {
             hiddenAt = date
         }
+    }
+
+    /// Marks the sidebar as detached into a floating window.
+    public func setDetached() {
+        isDetached = true
+    }
+
+    /// Marks the sidebar as docked back into the browser window.
+    public func setDocked() {
+        isDetached = false
     }
 
     /// Returns true if the sidebar session has expired based on the configured timeout.
@@ -164,6 +177,7 @@ extension AIChatSidebar: NSSecureCoding {
         static let isPresented = "isPresented"
         static let hiddenAt = "hiddenAt"
         static let sidebarWidth = "sidebarWidth"
+        static let isDetached = "isDetached"
     }
 
     convenience init?(coder: NSCoder) {
@@ -172,6 +186,7 @@ extension AIChatSidebar: NSSecureCoding {
         self.isPresented = coder.decodeIfPresent(at: CodingKeys.isPresented) ?? true
         self.hiddenAt = coder.decodeObject(of: NSDate.self, forKey: CodingKeys.hiddenAt) as Date?
         self.sidebarWidth = coder.decodeObject(of: NSNumber.self, forKey: CodingKeys.sidebarWidth).map { CGFloat($0.doubleValue) }
+        self.isDetached = coder.decodeIfPresent(at: CodingKeys.isDetached) ?? false
     }
 
     func encode(with coder: NSCoder) {
@@ -181,6 +196,7 @@ extension AIChatSidebar: NSSecureCoding {
         if let sidebarWidth {
             coder.encode(NSNumber(value: sidebarWidth), forKey: CodingKeys.sidebarWidth)
         }
+        coder.encode(isDetached, forKey: CodingKeys.isDetached)
     }
 
     static var supportsSecureCoding: Bool {
