@@ -310,11 +310,13 @@ extension AIChatSidebarPresenter: AIChatSidebarViewControllerDelegate {
 
 extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
 
-    func sidebarHostDidResize(to width: CGFloat) {
-        guard !isAnimatingSidebarTransition else { return }
+    @discardableResult
+    func sidebarHostDidResize(to width: CGFloat) -> CGFloat {
+        guard !isAnimatingSidebarTransition else { return width }
         isResizeDragging = true
         let clampedWidth = clampSidebarWidth(width)
         sidebarHost.applySidebarWidth(clampedWidth)
+        return clampedWidth
     }
 
     func sidebarHostDidFinishResize(to width: CGFloat) {

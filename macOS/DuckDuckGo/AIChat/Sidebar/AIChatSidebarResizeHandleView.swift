@@ -32,7 +32,8 @@ final class AIChatSidebarResizeHandleView: NSView {
     }
 
     /// Called continuously during drag with the proposed new sidebar width.
-    var onResize: ((_ proposedWidth: CGFloat) -> Void)?
+    /// Returns the actual (clamped) width that was applied.
+    var onResize: ((_ proposedWidth: CGFloat) -> CGFloat)?
 
     /// Called once when the drag ends with the final sidebar width.
     var onResizeEnd: ((_ finalWidth: CGFloat) -> Void)?
@@ -109,9 +110,20 @@ final class AIChatSidebarResizeHandleView: NSView {
     override func mouseDragged(with event: NSEvent) {
         guard isDragging, let window else { return }
         let currentX = window.mouseLocationOutsideOfEventStream.x
-        // Dragging left (negative delta) increases width; dragging right decreases it
         let proposedWidth = dragStartWidth + (dragStartX - currentX)
-        onResize?(proposedWidth)
+        let appliedWidth = onResize?(proposedWidth) ?? proposedWidth
+        cursorForDrag(proposedWidth: proposedWidth, appliedWidth: appliedWidth).set()
+    }
+
+    /// Dragging left widens the sidebar, dragging right narrows it.
+    /// When clamped at max, only narrowing (right) is possible; at min, only widening (left).
+    private func cursorForDrag(proposedWidth: CGFloat, appliedWidth: CGFloat) -> NSCursor {
+        if proposedWidth - appliedWidth > 0.5 {
+            return .resizeRight
+        } else if appliedWidth - proposedWidth > 0.5 {
+            return .resizeLeft
+        }
+        return .resizeLeftRight
     }
 
     override func mouseUp(with event: NSEvent) {

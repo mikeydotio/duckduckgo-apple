@@ -136,7 +136,7 @@ final class BrowserTabViewController: NSViewController {
             self?.sidebarContainerWidthConstraint?.constant ?? 0
         }
         handle.onResize = { [weak self] proposedWidth in
-            self?.aiChatSidebarResizeDelegate?.sidebarHostDidResize(to: proposedWidth)
+            self?.aiChatSidebarResizeDelegate?.sidebarHostDidResize(to: proposedWidth) ?? proposedWidth
         }
         handle.onResizeEnd = { [weak self] finalWidth in
             self?.aiChatSidebarResizeDelegate?.sidebarHostDidFinishResize(to: finalWidth)

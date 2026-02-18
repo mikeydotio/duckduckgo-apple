@@ -38,7 +38,9 @@ protocol AIChatSidebarHostingDelegate: AnyObject {
 @MainActor
 protocol AIChatSidebarResizeDelegate: AnyObject {
     /// Called continuously during a drag with the proposed width.
-    func sidebarHostDidResize(to width: CGFloat)
+    /// Returns the actual (clamped) width that was applied.
+    @discardableResult
+    func sidebarHostDidResize(to width: CGFloat) -> CGFloat
 
     /// Called once when the drag ends with the final width.
     func sidebarHostDidFinishResize(to width: CGFloat)
