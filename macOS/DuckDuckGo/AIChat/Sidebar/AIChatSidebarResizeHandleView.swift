@@ -65,7 +65,6 @@ final class AIChatSidebarResizeHandleView: NSView {
     /// Registers a cursor rect so AppKit keeps the resize cursor visible even
     /// when the mouse is stationary over the handle.
     override func resetCursorRects() {
-        guard !isDragging else { return }
         addCursorRect(bounds, cursor: .resizeLeftRight)
     }
 
@@ -104,16 +103,32 @@ final class AIChatSidebarResizeHandleView: NSView {
         guard let window else { return }
         isDragging = true
         NSCursor.resizeLeftRight.push()
+
         dragStartX = window.mouseLocationOutsideOfEventStream.x
         dragStartWidth = currentWidthProvider?() ?? 0
-    }
 
-    override func mouseDragged(with event: NSEvent) {
-        guard isDragging, let window else { return }
-        let currentX = window.mouseLocationOutsideOfEventStream.x
-        let proposedWidth = dragStartWidth + (dragStartX - currentX)
-        let appliedWidth = onResize?(proposedWidth) ?? proposedWidth
-        cursorForDrag(proposedWidth: proposedWidth, appliedWidth: appliedWidth).set()
+        // Tight tracking loop: process drag/up events without returning to
+        // the run loop, preventing AppKit from resetting the cursor between events.
+        var keepTracking = true
+        while keepTracking {
+            guard let nextEvent = window.nextEvent(matching: [.leftMouseUp, .leftMouseDragged]) else { break }
+            switch nextEvent.type {
+            case .leftMouseDragged:
+                let currentX = nextEvent.locationInWindow.x
+                let proposedWidth = dragStartWidth + (dragStartX - currentX)
+                let appliedWidth = onResize?(proposedWidth) ?? proposedWidth
+                cursorForDrag(proposedWidth: proposedWidth, appliedWidth: appliedWidth).set()
+            case .leftMouseUp:
+                let currentX = nextEvent.locationInWindow.x
+                let finalWidth = dragStartWidth + (dragStartX - currentX)
+                isDragging = false
+                NSCursor.pop()
+                onResizeEnd?(finalWidth)
+                keepTracking = false
+            default:
+                break
+            }
+        }
     }
 
     /// Dragging left widens the sidebar, dragging right narrows it.
@@ -125,15 +140,5 @@ final class AIChatSidebarResizeHandleView: NSView {
             return .resizeLeft
         }
         return .resizeLeftRight
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        guard isDragging, let window else { return }
-        isDragging = false
-        NSCursor.pop()
-        window.invalidateCursorRects(for: self)
-        let currentX = window.mouseLocationOutsideOfEventStream.x
-        let finalWidth = dragStartWidth + (dragStartX - currentX)
-        onResizeEnd?(finalWidth)
     }
 }
