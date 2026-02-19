@@ -65,6 +65,9 @@ protocol AIChatSidebarPresenting {
     /// Emits a `tabID` whenever a sidebar is detached, reattached, or its floating window is closed.
     var sidebarDetachStateDidChangePublisher: AnyPublisher<TabIdentifier, Never> { get }
 
+    /// Brings the detached floating window for `tabID` to the front and makes it key.
+    func focusFloatingWindow(for tabID: TabIdentifier)
+
     /// Consumes `prompt` and presents it in the sidebar. Appends to existing conversation if that was present.
     func presentSidebar(for prompt: AIChatNativePrompt)
 }
@@ -172,6 +175,10 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
 
     func isSidebarDetached(for tabID: TabIdentifier) -> Bool {
         floatingWindowControllers[tabID] != nil
+    }
+
+    func focusFloatingWindow(for tabID: TabIdentifier) {
+        floatingWindowControllers[tabID]?.show()
     }
 
     func sidebarHiddenAt(for tabID: TabIdentifier) -> Date? {

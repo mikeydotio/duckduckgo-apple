@@ -1075,6 +1075,11 @@ final class AddressBarButtonsViewController: NSViewController {
     @IBAction func aiChatButtonAction(_ sender: Any) {
         guard let tab = tabViewModel?.tab else { return }
 
+        if aiChatSidebarPresenter.isSidebarDetached(for: tab.uuid) {
+            aiChatSidebarPresenter.focusFloatingWindow(for: tab.uuid)
+            return
+        }
+
         // Close the sidebar if it's currently open and the user preference is set to open AI chat in new tabs
         // This ensures consistent behavior when the sidebar is unexpectedly open but shouldn't be the default action
         if !aiChatMenuConfig.shouldOpenAIChatInSidebar && aiChatSidebarPresenter.isSidebarOpen(for: tab.uuid) {
