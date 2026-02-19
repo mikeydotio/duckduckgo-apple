@@ -36,6 +36,12 @@ final class AIChatImageAttachmentThumbnailView: NSView {
         static let shadowRadius: CGFloat = 3
         static let shadowOpacity: Float = 0.15
         static let shadowOffset = CGSize(width: 0, height: -1)
+
+        // Remove button colors
+        static let removeButtonBackgroundLight = NSColor(white: 1.0, alpha: 1.0)
+        static let removeButtonBackgroundDark = NSColor(white: 0.15, alpha: 1.0)
+        static let removeButtonIconOpacityLight: CGFloat = 0.84
+        static let removeButtonIconOpacityDark: CGFloat = 0.78
     }
 
     /// Total height of the view including the remove button overflow.
@@ -218,7 +224,7 @@ final class AIChatImageAttachmentThumbnailView: NSView {
     }
 
     private func configureRemoveButtonImage() {
-        removeButton.image = DesignSystemImages.Glyphs.Size16.clear
+        removeButton.image = DesignSystemImages.Glyphs.Size16.clearSolid
         removeButton.imageScaling = .scaleNone
     }
 
@@ -227,13 +233,20 @@ final class AIChatImageAttachmentThumbnailView: NSView {
     private func updateAppearance() {
         NSAppearance.withAppAppearance {
             let surfaceColor = NSColor(designSystemColor: .surfacePrimary)
-            let iconColor = NSColor(designSystemColor: .textPrimary)
+
+            let isDarkMode = NSApp.effectiveAppearance.effectiveThemeAppearance == .dark
+            let removeButtonBackgroundColor = isDarkMode
+                ? Constants.removeButtonBackgroundDark
+                : Constants.removeButtonBackgroundLight
+            let removeButtonIconColor = isDarkMode
+                ? NSColor.white.withAlphaComponent(Constants.removeButtonIconOpacityDark)
+                : NSColor.black.withAlphaComponent(Constants.removeButtonIconOpacityLight)
 
             imageContainerView.layer?.borderColor = surfaceColor.cgColor
             shadowBackingView.layer?.backgroundColor = surfaceColor.cgColor
-            removeButton.layer?.backgroundColor = surfaceColor.cgColor
-            removeButton.layer?.borderColor = surfaceColor.cgColor
-            removeButton.contentTintColor = iconColor
+            removeButton.layer?.backgroundColor = removeButtonBackgroundColor.cgColor
+            removeButton.layer?.borderColor = removeButtonBackgroundColor.cgColor
+            removeButton.contentTintColor = removeButtonIconColor
         }
     }
 
