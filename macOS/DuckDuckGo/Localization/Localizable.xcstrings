@@ -2924,6 +2924,18 @@
         }
       }
     },
+    "aichat.sidebar.title-button.tooltip" : {
+      "comment" : "Tooltip for the title button in the floating duck.ai window that brings the associated tab to front",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show Tab"
+          }
+        }
+      }
+    },
     "aichat.toggle.ask.label" : {
       "comment" : "Label for the ask AI segment in the address bar toggle control",
       "extractionState" : "extracted_with_value",

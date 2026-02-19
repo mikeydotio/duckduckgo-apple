@@ -95,6 +95,9 @@ protocol AIChatSidebarHosting: AnyObject  {
 
     /// The sidebar container's frame in screen coordinates, used for "pop off in place" positioning.
     var sidebarContainerScreenFrame: NSRect? { get }
+
+    /// Switches the active tab to the one identified by `tabID`.
+    func selectTab(with tabID: TabIdentifier)
 }
 
 extension BrowserTabViewController: AIChatSidebarHosting {

@@ -316,9 +316,14 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
 
         collapseSidebar(withAnimation: false)
 
+        let tabViewModel = windowControllersManager.allTabCollectionViewModels
+            .flatMap(\.tabViewModels)
+            .first(where: { $0.key.uuid == tabID })?.value
+
         let controller = AIChatFloatingWindowController(
             tabID: tabID,
             sidebarViewController: sidebarVC,
+            tabViewModel: tabViewModel,
             contentRect: screenFrame)
         controller.delegate = self
         floatingWindowControllers[tabID] = controller
@@ -401,6 +406,11 @@ extension AIChatSidebarPresenter: AIChatSidebarViewControllerDelegate {
 
     func didClickAttachButton(for tabID: TabIdentifier) {
         attachSidebar(for: tabID)
+    }
+
+    func didClickTitleButton(for tabID: TabIdentifier) {
+        windowControllersManager.lastKeyMainWindowController?.window?.makeKeyAndOrderFront(nil)
+        sidebarHost.selectTab(with: tabID)
     }
 }
 

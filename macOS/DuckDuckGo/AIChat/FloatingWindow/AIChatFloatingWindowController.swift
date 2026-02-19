@@ -47,13 +47,17 @@ final class AIChatFloatingWindowController: NSObject {
         floatingWindow.isVisible
     }
 
-    init(tabID: TabIdentifier, sidebarViewController: AIChatSidebarViewController, contentRect: NSRect) {
+    init(tabID: TabIdentifier,
+         sidebarViewController: AIChatSidebarViewController,
+         tabViewModel: TabViewModel?,
+         contentRect: NSRect) {
         self.tabID = tabID
         self.sidebarViewController = sidebarViewController
         self.floatingWindow = AIChatFloatingWindow(contentRect: contentRect)
         super.init()
 
         embedSidebarViewController(sidebarViewController)
+        subscribeToTabInfo(tabViewModel)
 
         NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: floatingWindow)
             .sink { [weak self] _ in
@@ -81,6 +85,18 @@ final class AIChatFloatingWindowController: NSObject {
     }
 
     // MARK: - Private
+
+    private func subscribeToTabInfo(_ tabViewModel: TabViewModel?) {
+        guard let tabViewModel else { return }
+
+        tabViewModel.$title.combineLatest(tabViewModel.$favicon)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] title, favicon in
+                self?.sidebarViewController?.updateFloatingTitle(title, favicon: favicon)
+                self?.floatingWindow.title = title
+            }
+            .store(in: &cancellables)
+    }
 
     private func embedSidebarViewController(_ viewController: AIChatSidebarViewController) {
         guard let contentView = floatingWindow.contentView else { return }

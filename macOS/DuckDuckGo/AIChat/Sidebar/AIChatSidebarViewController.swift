@@ -32,6 +32,8 @@ protocol AIChatSidebarViewControllerDelegate: AnyObject {
     func didClickDetachButton()
     /// Called when the user clicks the "Attach" button to dock the floating sidebar back.
     func didClickAttachButton(for tabID: TabIdentifier)
+    /// Called when the user clicks the title button to bring the associated tab to front.
+    func didClickTitleButton(for tabID: TabIdentifier)
 }
 
 /// A view controller that manages the AI Chat sidebar interface.
@@ -48,6 +50,11 @@ final class AIChatSidebarViewController: NSViewController {
         static let barButtonWidth: CGFloat = 32
         static let barButtonMargin: CGFloat = 12
         static let titleLabelSideMargin: CGFloat = 8
+        static let titleButtonHeight: CGFloat = 28
+        static let titleButtonHorizontalPadding: CGFloat = 8
+        static let titleFaviconSize: CGFloat = 16
+        static let titleArrowSize: CGFloat = 10
+        static let titleButtonGutter: CGFloat = 32
         static let webViewContainerPadding: CGFloat = 4
         static let webViewTopCornerRadius: CGFloat = 16
         static let webViewBottomCornerRadius: CGFloat = 6
@@ -67,6 +74,8 @@ final class AIChatSidebarViewController: NSViewController {
     private var detachButton: MouseOverButton!
     private var attachButton: MouseOverButton!
     private var closeButton: MouseOverButton!
+    private var titleButton: MouseOverButton!
+    private var titleLabel: NSTextField!
     private var webViewContainer: WebViewContainerView!
     private var separator: NSView!
     private var topBar: NSView!
@@ -170,12 +179,16 @@ final class AIChatSidebarViewController: NSViewController {
         attachButton.isHidden = true
         topBar.addSubview(attachButton)
 
-        let titleLabel = NSTextField(labelWithString: UserText.aiChatSidebarTitle)
+        titleLabel = NSTextField(labelWithString: UserText.aiChatSidebarTitle)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.alignment = .center
         titleLabel.font = .systemFont(ofSize: 13, weight: .medium)
         titleLabel.textColor = .labelColor
         topBar.addSubview(titleLabel)
+
+        titleButton = makeTitleButton()
+        titleButton.isHidden = true
+        topBar.addSubview(titleButton)
 
         detachButton = makeBarButton(image: .moveTabToNewWindow, action: #selector(detachButtonClicked),
                                      toolTip: UserText.aiChatSidebarDetachButtonTooltip)
@@ -197,9 +210,15 @@ final class AIChatSidebarViewController: NSViewController {
             attachButton.heightAnchor.constraint(equalToConstant: Constants.barButtonHeight),
             attachButton.widthAnchor.constraint(equalToConstant: Constants.barButtonWidth),
 
-            // Center: title
+            // Center: static title (docked) or clickable title button (floating)
             titleLabel.centerXAnchor.constraint(equalTo: topBar.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
+
+            titleButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
+            titleButton.heightAnchor.constraint(equalToConstant: Constants.titleButtonHeight),
+            titleButton.leadingAnchor.constraint(greaterThanOrEqualTo: attachButton.trailingAnchor, constant: Constants.titleButtonGutter),
+            titleButton.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -Constants.titleButtonGutter),
+            titleButton.centerXAnchor.constraint(equalTo: topBar.centerXAnchor),
 
             // Right side: detach (docked) + close
             closeButton.trailingAnchor.constraint(equalTo: topBar.trailingAnchor, constant: -Constants.barButtonMargin),
@@ -212,6 +231,53 @@ final class AIChatSidebarViewController: NSViewController {
             detachButton.heightAnchor.constraint(equalToConstant: Constants.barButtonHeight),
             detachButton.widthAnchor.constraint(equalToConstant: Constants.barButtonWidth),
         ])
+    }
+
+    private func makeTitleButton() -> MouseOverButton {
+        let button = MouseOverButton(frame: .zero)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.bezelStyle = .shadowlessSquare
+        button.isBordered = false
+        button.cornerRadius = 6
+        button.mouseOverColor = .buttonMouseOver
+        button.mouseDownColor = .buttonMouseDown
+        button.backgroundInset = NSPoint(x: -Constants.titleButtonHorizontalPadding, y: -3)
+        button.clipsToBounds = false
+        button.target = self
+        button.action = #selector(titleButtonClicked)
+        button.refusesFirstResponder = true
+        button.toolTip = UserText.aiChatSidebarTitleButtonTooltip
+        button.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        button.lineBreakMode = .byTruncatingTail
+        button.font = .systemFont(ofSize: 12, weight: .medium)
+
+        let arrowConfig = NSImage.SymbolConfiguration(pointSize: Constants.titleArrowSize, weight: .medium)
+        button.image = NSImage(systemSymbolName: "arrow.up.forward",
+                               accessibilityDescription: nil)?.withSymbolConfiguration(arrowConfig)
+        button.imagePosition = .imageRight
+        button.title = ""
+        return button
+    }
+
+    func updateFloatingTitle(_ title: String, favicon: NSImage?) {
+        let faviconImage = favicon ?? .homeFavicon
+
+        let faviconAttachment = NSTextAttachment()
+        faviconAttachment.image = faviconImage
+        faviconAttachment.bounds = CGRect(x: 0, y: -3, width: Constants.titleFaviconSize, height: Constants.titleFaviconSize)
+
+        let attributed = NSMutableAttributedString()
+        attributed.append(NSAttributedString(attachment: faviconAttachment))
+        attributed.append(NSAttributedString(string: " \(title)"))
+
+        attributed.addAttributes([
+            .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+            .foregroundColor: NSColor.labelColor
+        ], range: NSRange(location: 0, length: attributed.length))
+
+        titleButton.attributedTitle = attributed
+        titleButton.invalidateIntrinsicContentSize()
     }
 
     private func makeBarButton(image: NSImage, action: Selector, toolTip: String) -> MouseOverButton {
@@ -231,6 +297,7 @@ final class AIChatSidebarViewController: NSViewController {
     override func viewDidLayout() {
         super.viewDidLayout()
         updateTopBarForHostingContext()
+        titleButton.invalidateIntrinsicContentSize()
     }
 
     private func updateTopBarForHostingContext() {
@@ -238,6 +305,8 @@ final class AIChatSidebarViewController: NSViewController {
         openInNewTabButton.isHidden = isFloating
         detachButton.isHidden = isFloating
         attachButton.isHidden = !isFloating
+        titleLabel.isHidden = isFloating
+        titleButton.isHidden = !isFloating
     }
 
     private func createAndSetupWebViewContainer(in container: NSView) {
@@ -341,6 +410,11 @@ final class AIChatSidebarViewController: NSViewController {
     @objc private func attachButtonClicked() {
         guard let tabID else { return }
         delegate?.didClickAttachButton(for: tabID)
+    }
+
+    @objc private func titleButtonClicked() {
+        guard let tabID else { return }
+        delegate?.didClickTitleButton(for: tabID)
     }
 
     @objc private func closeButtonClicked() {
