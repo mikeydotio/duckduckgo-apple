@@ -343,6 +343,11 @@ public enum FeatureFlag: String {
 
     /// https://app.asana.com/1/137249556945/task/1213314048601761
     case newFlagWithInvalidComment
+
+    /// Some flag that has a comment
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212980785692854?focus=true
+    /// Some flag that has a comment
+    case flagWithValidLinkAndComment
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -474,7 +479,8 @@ extension FeatureFlag: FeatureFlagDescribing {
              .autofillOnboardingExperiment,
              .supportsSyncChatsDeletion,
              .fireMode,
-             .newFlagWithInvalidComment:
+             .newFlagWithInvalidComment,
+             .flagWithValidLinkAndComment:
             return true
         case .showSettingsCompleteSetupSection:
             if #available(iOS 18.2, *) {
@@ -728,7 +734,7 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(AIChatSubfeature.supportsSyncChatsDeletion))
         case .fireMode:
             return .disabled
-        case .newFlagWithInvalidComment:
+        case .newFlagWithInvalidComment, .flagWithValidLinkAndComment:
             return .disabled
         }
     }
