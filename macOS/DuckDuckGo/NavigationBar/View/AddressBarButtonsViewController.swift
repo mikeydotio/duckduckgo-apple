@@ -714,6 +714,13 @@ final class AddressBarButtonsViewController: NSViewController {
                 updateAskAIChatButtonVisibility(isSidebarOpen: change.isShown)
             }
             .store(in: &cancellables)
+
+        aiChatSidebarPresenter.sidebarDetachStateDidChangePublisher
+            .sink { [weak self] tabID in
+                guard let self, tabID == tabViewModel?.tab.uuid else { return }
+                updateAIChatButtonDetachIndicator(for: tabID)
+            }
+            .store(in: &cancellables)
     }
 
     private func updateLegacyPermissionButtons() {
@@ -1271,6 +1278,11 @@ final class AddressBarButtonsViewController: NSViewController {
         guard let tab = tabViewModel?.tab else { return }
         let isShowingSidebar = aiChatSidebarPresenter.isSidebarOpen(for: tab.uuid)
         updateAIChatButtonStateForSidebar(isShowingSidebar)
+        updateAIChatButtonDetachIndicator(for: tab.uuid)
+    }
+
+    private func updateAIChatButtonDetachIndicator(for tabID: TabIdentifier) {
+        aiChatButton.isNotificationVisible = aiChatSidebarPresenter.isSidebarDetached(for: tabID)
     }
 
     private func updateAIChatButtonStateForSidebar(_ isShowingSidebar: Bool) {
