@@ -292,9 +292,12 @@ public enum FeatureFlag: String, CaseIterable {
     case crashCollectionLimitCallStackTreeDepth
 
     /// Failsafe flag for whether the free trial conversion wide event is enabled
-    case freeTrialConversionWideEven
+    case freeTrialConversionWideEvent
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212901927858518?focus=true
     case supportsSyncChatsDeletion
+
+    case newFlagWithoutAsanaTask
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -329,7 +332,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .crashCollectionDisableKeysSorting,
                 .crashCollectionLimitCallStackTreeDepth,
                 .memoryUsageReporting,
-                .nextStepsListWidget:
+                .nextStepsListWidget,
+                .newFlagWithoutAsanaTask:
             true
         default:
             false
@@ -432,7 +436,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .tabClosingEventRecreation,
                 .terminationDeciderSequence,
                 .crashCollectionDisableKeysSorting,
-                .crashCollectionLimitCallStackTreeDepth:
+                .crashCollectionLimitCallStackTreeDepth,
+                .newFlagWithoutAsanaTask:
             return false
         }
     }
@@ -609,6 +614,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(PrivacyProSubfeature.freeTrialConversionWideEvent))
         case .supportsSyncChatsDeletion:
             return .remoteReleasable(.subfeature(AIChatSubfeature.supportsSyncChatsDeletion))
+        case .newFlagWithoutAsanaTask:
+            return .disabled
         }
     }
 }
