@@ -1,5 +1,5 @@
 //
-//  AIChatSidebarViewController.swift
+//  AIChatViewController.swift
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ import Combine
 
 /// A delegate protocol that handles user interactions with the AI Chat sidebar view controller.
 /// This protocol defines methods for responding to navigation and UI events in the sidebar.
-protocol AIChatSidebarViewControllerDelegate: AnyObject {
+protocol AIChatViewControllerDelegate: AnyObject {
     /// Called when the user clicks the "Expand" button
     func didClickOpenInNewTabButton()
     /// Called when the user clicks the "Close" button
@@ -41,7 +41,7 @@ protocol AIChatSidebarViewControllerDelegate: AnyObject {
 /// - A native top navigation bar with buttons and title label
 /// - A web view container for displaying AI chat
 /// - Additional visual styling including corner radius and separators
-final class AIChatSidebarViewController: NSViewController {
+final class AIChatViewController: NSViewController {
 
     private enum Constants {
         static let separatorWidth: CGFloat = 1
@@ -60,7 +60,7 @@ final class AIChatSidebarViewController: NSViewController {
         static let webViewBottomCornerRadius: CGFloat = 6
     }
 
-    weak var delegate: AIChatSidebarViewControllerDelegate?
+    weak var delegate: AIChatViewControllerDelegate?
     var tabID: TabIdentifier?
     public var aiChatPayload: AIChatPayload?
     private(set) var currentAIChatURL: URL
@@ -435,7 +435,7 @@ final class AIChatSidebarViewController: NSViewController {
 }
 
 // MARK: - ThemeUpdateListening
-extension AIChatSidebarViewController: ThemeUpdateListening {
+extension AIChatViewController: ThemeUpdateListening {
 
     func applyThemeStyle(theme: ThemeStyleProviding) {
         guard let contentView = view as? ColorView else {
@@ -447,7 +447,7 @@ extension AIChatSidebarViewController: ThemeUpdateListening {
     }
 }
 
-extension AIChatSidebarViewController: TabDelegate {
+extension AIChatViewController: TabDelegate {
 
     var isInPopUpWindow: Bool { false }
 

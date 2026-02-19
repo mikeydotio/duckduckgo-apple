@@ -1,5 +1,5 @@
 //
-//  AIChatSidebarPresenterTests.swift
+//  AIChatPresenterTests.swift
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -27,11 +27,11 @@ import XCTest
 @testable import DuckDuckGo_Privacy_Browser
 
 @MainActor
-final class AIChatSidebarPresenterTests: XCTestCase {
+final class AIChatPresenterTests: XCTestCase {
 
-    private var presenter: AIChatSidebarPresenter!
+    private var presenter: AIChatPresenter!
     private var mockSidebarHost: MockAIChatSidebarHosting!
-    private var mockSidebarProvider: MockAIChatSidebarProvider!
+    private var mockSidebarProvider: MockAIChatStateProvider!
     private var mockAIChatMenuConfig: DummyAIChatConfig!
     private var mockAIChatTabOpener: MockAIChatTabOpener!
     private var mockWindowControllersManager: WindowControllersManagerMock!
@@ -42,7 +42,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockSidebarHost = MockAIChatSidebarHosting()
-        mockSidebarProvider = MockAIChatSidebarProvider()
+        mockSidebarProvider = MockAIChatStateProvider()
         mockAIChatMenuConfig = DummyAIChatConfig()
         mockAIChatTabOpener = MockAIChatTabOpener()
         mockWindowControllersManager = WindowControllersManagerMock()
@@ -51,9 +51,9 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable])
         cancellables = Set<AnyCancellable>()
 
-        presenter = AIChatSidebarPresenter(
+        presenter = AIChatPresenter(
             sidebarHost: mockSidebarHost,
-            sidebarProvider: mockSidebarProvider,
+            stateProvider: mockSidebarProvider,
             aiChatMenuConfig: mockAIChatMenuConfig,
             aiChatTabOpener: mockAIChatTabOpener,
             windowControllersManager: mockWindowControllersManager,
@@ -86,9 +86,9 @@ final class AIChatSidebarPresenterTests: XCTestCase {
 
     func testInit_withDefaultProvider_createsProvider() {
         // Given & When
-        let presenter = AIChatSidebarPresenter(
+        let presenter = AIChatPresenter(
             sidebarHost: mockSidebarHost,
-            sidebarProvider: mockSidebarProvider,
+            stateProvider: mockSidebarProvider,
             aiChatMenuConfig: mockAIChatMenuConfig,
             aiChatTabOpener: mockAIChatTabOpener,
             windowControllersManager: mockWindowControllersManager,
@@ -105,13 +105,13 @@ final class AIChatSidebarPresenterTests: XCTestCase {
     func testToggleSidebar_withNoCurrentTab_doesNothing() {
         // Given
         mockSidebarHost.currentTabID = nil
-        let initialCount = mockSidebarProvider.sidebarsByTab.count
+        let initialCount = mockSidebarProvider.statesByTab.count
 
         // When
         presenter.toggleSidebar()
 
         // Then
-        XCTAssertEqual(mockSidebarProvider.sidebarsByTab.count, initialCount)
+        XCTAssertEqual(mockSidebarProvider.statesByTab.count, initialCount)
         XCTAssertNil(mockSidebarHost.embeddedViewController)
     }
 
@@ -121,7 +121,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         mockSidebarHost.currentTabID = tabID
         XCTAssertFalse(mockSidebarProvider.isShowingSidebar(for: tabID))
 
-        var presenceChangeReceived: AIChatSidebarPresenceChange?
+        var presenceChangeReceived: AIChatPresenceChange?
         presenter.sidebarPresenceWillChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
@@ -140,10 +140,10 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
         XCTAssertTrue(mockSidebarProvider.isShowingSidebar(for: tabID))
 
-        var presenceChangeReceived: AIChatSidebarPresenceChange?
+        var presenceChangeReceived: AIChatPresenceChange?
         presenter.sidebarPresenceWillChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
@@ -161,22 +161,22 @@ final class AIChatSidebarPresenterTests: XCTestCase {
     func testCollapseSidebar_withNoCurrentTab_doesNothing() {
         // Given
         mockSidebarHost.currentTabID = nil
-        let initialCount = mockSidebarProvider.sidebarsByTab.count
+        let initialCount = mockSidebarProvider.statesByTab.count
 
         // When
         presenter.collapseSidebar(withAnimation: true)
 
         // Then
-        XCTAssertEqual(mockSidebarProvider.sidebarsByTab.count, initialCount)
+        XCTAssertEqual(mockSidebarProvider.statesByTab.count, initialCount)
     }
 
     func testCollapseSidebar_withAnimation() {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
 
-        var presenceChangeReceived: AIChatSidebarPresenceChange?
+        var presenceChangeReceived: AIChatPresenceChange?
         presenter.sidebarPresenceWillChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
@@ -193,9 +193,9 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
 
-        var presenceChangeReceived: AIChatSidebarPresenceChange?
+        var presenceChangeReceived: AIChatPresenceChange?
         presenter.sidebarPresenceWillChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
@@ -213,7 +213,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
     func testIsSidebarOpen_withExistingSidebar_returnsTrue() {
         // Given
         let tabID = "test-tab"
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
 
         // When
         let isOpen = presenter.isSidebarOpen(for: tabID)
@@ -237,7 +237,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Given
         let tabID = "current-tab"
         mockSidebarHost.currentTabID = tabID
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
 
         // When
         let isOpen = presenter.isSidebarOpenForCurrentTab()
@@ -263,20 +263,20 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Given
         mockSidebarHost.currentTabID = nil
         let prompt = AIChatNativePrompt.queryPrompt("What is the best pizza recipe?", autoSubmit: true)
-        let initialCount = mockSidebarProvider.sidebarsByTab.count
+        let initialCount = mockSidebarProvider.statesByTab.count
 
         // When
         presenter.presentSidebar(for: prompt)
 
         // Then
-        XCTAssertEqual(mockSidebarProvider.sidebarsByTab.count, initialCount)
+        XCTAssertEqual(mockSidebarProvider.statesByTab.count, initialCount)
     }
 
     func testPresentSidebar_withExistingSidebar_setsPrompt() {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
-        let sidebarViewController = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        let chatViewController = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
         let prompt = AIChatNativePrompt.queryPrompt("What is the best pizza recipe?", autoSubmit: true)
 
         // When
@@ -284,7 +284,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
 
         // Then
         // The sidebar should receive the prompt (tested via the sidebar's view controller)
-        XCTAssertNotNil(sidebarViewController)
+        XCTAssertNotNil(chatViewController)
     }
 
     func testPresentSidebar_withoutExistingSidebar_createsSidebar() {
@@ -307,7 +307,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
     func testSidebarHostDidSelectTab_updatesConstraints() {
         // Given
         let tabID = "selected-tab"
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
 
         // When
         presenter.sidebarHostDidSelectTab(with: tabID)
@@ -320,9 +320,9 @@ final class AIChatSidebarPresenterTests: XCTestCase {
 
     func testSidebarHostDidUpdateTabs_cleansUpProvider() {
         // Given
-        _ = mockSidebarProvider.makeSidebarViewController(for: "tab1", burnerMode: .regular)
-        _ = mockSidebarProvider.makeSidebarViewController(for: "tab2", burnerMode: .regular)
-        XCTAssertEqual(mockSidebarProvider.sidebarsByTab.count, 2)
+        _ = mockSidebarProvider.makeChatViewController(for: "tab1", burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: "tab2", burnerMode: .regular)
+        XCTAssertEqual(mockSidebarProvider.statesByTab.count, 2)
 
         // When
         presenter.sidebarHostDidUpdateTabs()
@@ -330,7 +330,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Then
         // The cleanup should have been called on the provider
         // With empty tab collections, all sidebars should be removed
-        XCTAssertEqual(mockSidebarProvider.sidebarsByTab.count, 0)
+        XCTAssertEqual(mockSidebarProvider.statesByTab.count, 0)
     }
 
     func testSidebarHostDidUpdateTabs_DoesNotRemoveVisibleTabs() {
@@ -344,15 +344,15 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Set up the mock to return predefined tabCollectionViewModel
         mockWindowControllersManager.customAllTabCollectionViewModels = [tabCollectionViewModel]
 
-        _ = mockSidebarProvider.makeSidebarViewController(for: "tab1", burnerMode: .regular)
-        _ = mockSidebarProvider.makeSidebarViewController(for: "tab2", burnerMode: .regular)
-        XCTAssertEqual(mockSidebarProvider.sidebarsByTab.count, 2)
+        _ = mockSidebarProvider.makeChatViewController(for: "tab1", burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: "tab2", burnerMode: .regular)
+        XCTAssertEqual(mockSidebarProvider.statesByTab.count, 2)
 
         // When
         presenter.sidebarHostDidUpdateTabs()
 
         // Then
-        XCTAssertEqual(mockSidebarProvider.sidebarsByTab.count, 2)
+        XCTAssertEqual(mockSidebarProvider.statesByTab.count, 2)
     }
 
     // MARK: - Sidebar View Controller Delegate Tests
@@ -364,8 +364,8 @@ final class AIChatSidebarPresenterTests: XCTestCase {
 
         // Set up the sidebar with a test URL that includes a placement parameter
         let testURL = URL(string: "https://example.com")!.forAIChatSidebar()
-        let sidebar = AIChatSidebar(initialAIChatURL: testURL, burnerMode: .regular)
-        mockSidebarProvider.restoreState([tabID: sidebar])
+        let chatState = AIChatState(initialAIChatURL: testURL, burnerMode: .regular)
+        mockSidebarProvider.restoreState([tabID: chatState])
 
         mockAIChatTabOpener.openMethodCalledExpectation = expectation(description: "AIChatTabOpener did open a new tab")
 
@@ -396,9 +396,9 @@ final class AIChatSidebarPresenterTests: XCTestCase {
 
         // Set up the sidebar with restoration data
         let restorationData = AIChatRestorationData()
-        let sidebar = AIChatSidebar(burnerMode: .regular)
-        sidebar.updateRestorationData(restorationData)
-        mockSidebarProvider.restoreState([tabID: sidebar])
+        let chatState = AIChatState(burnerMode: .regular)
+        chatState.updateRestorationData(restorationData)
+        mockSidebarProvider.restoreState([tabID: chatState])
 
         mockAIChatTabOpener.openMethodCalledExpectation = expectation(description: "AIChatTabOpener did open a new tab")
 
@@ -421,11 +421,11 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
         XCTAssertTrue(mockSidebarProvider.isShowingSidebar(for: tabID))
 
         let sidebarPresenceChangeExpectation = expectation(description: "Sidebar presence did change")
-        var presenceChangeReceived: AIChatSidebarPresenceChange?
+        var presenceChangeReceived: AIChatPresenceChange?
         presenter.sidebarPresenceWillChangePublisher
             .sink {
                 presenceChangeReceived = $0
@@ -468,7 +468,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         XCTAssertFalse(mockSidebarProvider.isShowingSidebar(for: tabID))
 
         let sidebarPresenceChangeExpectation = expectation(description: "Sidebar presence did change")
-        var presenceChangeReceived: AIChatSidebarPresenceChange?
+        var presenceChangeReceived: AIChatPresenceChange?
         presenter.sidebarPresenceWillChangePublisher
             .sink {
                 presenceChangeReceived = $0
@@ -493,7 +493,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
-        _ = mockSidebarProvider.makeSidebarViewController(for: tabID, burnerMode: .regular)
+        _ = mockSidebarProvider.makeChatViewController(for: tabID, burnerMode: .regular)
         let payload = AIChatPayload()
         XCTAssertTrue(mockSidebarProvider.isShowingSidebar(for: tabID))
         mockAIChatTabOpener.openMethodCalledExpectation = expectation(description: "AIChatTabOpener did open a new tab")
@@ -524,7 +524,7 @@ final class AIChatSidebarPresenterTests: XCTestCase {
         let tabID = "workflow-tab"
         mockSidebarHost.currentTabID = tabID
 
-        var presenceChanges: [AIChatSidebarPresenceChange] = []
+        var presenceChanges: [AIChatPresenceChange] = []
         presenter.sidebarPresenceWillChangePublisher
             .sink { presenceChanges.append($0) }
             .store(in: &cancellables)
@@ -624,7 +624,7 @@ class MockAIChatSidebarHosting: AIChatSidebarHosting {
         sidebarContainerWidthConstraint = NSLayoutConstraint()
     }
 
-    func embedSidebarViewController(_ vc: NSViewController) {
+    func embedChatViewController(_ vc: NSViewController) {
         embeddedViewController = vc
     }
 
@@ -640,48 +640,48 @@ class MockAIChatSidebarHosting: AIChatSidebarHosting {
     var availableWidth: CGFloat = 1200
 }
 
-class MockAIChatSidebarProvider: AIChatSidebarProviding {
+class MockAIChatStateProvider: AIChatStateProviding {
     var defaultSidebarWidth: CGFloat = 400
     var minSidebarWidth: CGFloat = 310
     var maxSidebarWidth: CGFloat = 900
     private(set) var lastSetWidth: CGFloat?
     private(set) var lastSetWidthTabID: TabIdentifier?
-    @Published var sidebarsByTab: AIChatSidebarsByTab = [:]
+    @Published var statesByTab: AIChatStatesByTab = [:]
 
     func setSidebarWidth(_ width: CGFloat, for tabID: TabIdentifier) {
-        sidebarsByTab[tabID]?.sidebarWidth = width
+        statesByTab[tabID]?.sidebarWidth = width
         lastSetWidth = width
         lastSetWidthTabID = tabID
     }
 
-    var sidebarsByTabPublisher: AnyPublisher<DuckDuckGo_Privacy_Browser.AIChatSidebarsByTab, Never> {
-        $sidebarsByTab.eraseToAnyPublisher()
+    var statesByTabPublisher: AnyPublisher<DuckDuckGo_Privacy_Browser.AIChatStatesByTab, Never> {
+        $statesByTab.eraseToAnyPublisher()
     }
 
     private var _isShowingSidebar: [TabIdentifier: Bool] = [:]
 
-    func getSidebarViewController(for tabID: TabIdentifier) -> AIChatSidebarViewController? {
-        return sidebarsByTab[tabID]?.sidebarViewController
+    func getChatViewController(for tabID: TabIdentifier) -> AIChatViewController? {
+        return statesByTab[tabID]?.chatViewController
     }
 
-    func makeSidebarViewController(for tabID: TabIdentifier, burnerMode: BurnerMode) -> AIChatSidebarViewController {
-        let sidebar = sidebarsByTab[tabID] ?? makeSidebar(for: tabID, burnerMode: burnerMode)
+    func makeChatViewController(for tabID: TabIdentifier, burnerMode: BurnerMode) -> AIChatViewController {
+        let sidebar = statesByTab[tabID] ?? makeSidebar(for: tabID, burnerMode: burnerMode)
 
-        if let existingViewController = sidebar.sidebarViewController {
+        if let existingViewController = sidebar.chatViewController {
             return existingViewController
         }
 
         let aiChatRemoteSettings = AIChatRemoteSettings()
         let initialAIChatURL = aiChatRemoteSettings.aiChatURL.forAIChatSidebar()
-        let sidebarViewController = AIChatSidebarViewController(currentAIChatURL: initialAIChatURL, burnerMode: burnerMode)
-        sidebar.sidebarViewController = sidebarViewController
+        let chatViewController = AIChatViewController(currentAIChatURL: initialAIChatURL, burnerMode: burnerMode)
+        sidebar.chatViewController = chatViewController
 
-        return sidebarViewController
+        return chatViewController
     }
 
-    private func makeSidebar(for tabID: TabIdentifier, burnerMode: BurnerMode) -> AIChatSidebar {
-        let sidebar = AIChatSidebar(burnerMode: burnerMode)
-        sidebarsByTab[tabID] = sidebar
+    private func makeSidebar(for tabID: TabIdentifier, burnerMode: BurnerMode) -> AIChatState {
+        let sidebar = AIChatState(burnerMode: burnerMode)
+        statesByTab[tabID] = sidebar
         _isShowingSidebar[tabID] = true
         return sidebar
     }
@@ -691,39 +691,34 @@ class MockAIChatSidebarProvider: AIChatSidebarProviding {
     }
 
     func handleSidebarDidClose(for tabID: TabIdentifier) {
-        if let sidebar = sidebarsByTab[tabID] {
-            if let sidebarViewController = sidebar.sidebarViewController {
-                sidebarViewController.stopLoading()
-                sidebarViewController.removeCompletely()
-            }
-        }
-        sidebarsByTab.removeValue(forKey: tabID)
+        statesByTab[tabID]?.persistStateAndReset(persistingState: false)
+        statesByTab.removeValue(forKey: tabID)
         _isShowingSidebar[tabID] = false
     }
 
     func cleanUp(for currentTabIDs: [TabIdentifier]) {
-        let tabIDsToRemove = Set(sidebarsByTab.keys).subtracting(currentTabIDs)
+        let tabIDsToRemove = Set(statesByTab.keys).subtracting(currentTabIDs)
         for tabID in tabIDsToRemove {
             handleSidebarDidClose(for: tabID)
         }
     }
 
-    func restoreState(_ sidebarsByTab: AIChatSidebarsByTab) {
+    func restoreState(_ statesByTab: AIChatStatesByTab) {
         cleanUp(for: [])
-        self.sidebarsByTab = sidebarsByTab
+        self.statesByTab = statesByTab
     }
 
     func resetSidebar(for tabID: TabIdentifier) {
-        sidebarsByTab.removeValue(forKey: tabID)
+        statesByTab.removeValue(forKey: tabID)
     }
 
     @discardableResult
     func clearSidebarIfSessionExpired(for tabID: TabIdentifier) -> Bool {
-        guard let existingSidebar = sidebarsByTab[tabID],
+        guard let existingSidebar = statesByTab[tabID],
               existingSidebar.isSessionExpired else {
             return false
         }
-        sidebarsByTab.removeValue(forKey: tabID)
+        statesByTab.removeValue(forKey: tabID)
         _isShowingSidebar[tabID] = false
         return true
     }

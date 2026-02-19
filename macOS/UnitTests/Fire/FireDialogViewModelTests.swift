@@ -1958,7 +1958,7 @@ final class FireDialogViewModelTests: XCTestCase {
         let mainViewController = MainViewController(
             tabCollectionViewModel: tabCollectionViewModel,
             autofillPopoverPresenter: DefaultAutofillPopoverPresenter(pinningManager: MockPinningManager()),
-            aiChatSidebarProvider: AIChatSidebarProvider(featureFlagger: MockFeatureFlagger()),
+            aiChatStateProvider: AIChatStateProvider(featureFlagger: MockFeatureFlagger()),
             fireCoordinator: fireCoordinator
         )
         let window = MockWindow(isVisible: false)

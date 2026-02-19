@@ -62,7 +62,7 @@ final class WindowsManager {
 
     @discardableResult
     class func openNewWindow(with tabCollectionViewModel: TabCollectionViewModel? = nil,
-                             aiChatSidebarProvider: AIChatSidebarProviding = Application.appDelegate.aiChatSidebarProvider,
+                             aiChatStateProvider: AIChatStateProviding = Application.appDelegate.aiChatStateProvider,
                              fireCoordinator: FireCoordinator = Application.appDelegate.fireCoordinator,
                              burnerMode: BurnerMode? = nil,
                              droppingPoint: NSPoint? = nil,
@@ -81,7 +81,7 @@ final class WindowsManager {
                                                  burnerMode: effectiveBurnerMode,
                                                  autofillPopoverPresenter: autofillPopoverPresenter,
                                                  fireCoordinator: fireCoordinator,
-                                                 aiChatSidebarProvider: aiChatSidebarProvider)
+                                                 aiChatStateProvider: aiChatStateProvider)
 
         if let contentSize {
             mainWindowController.window?.setContentSize(contentSize)
@@ -253,12 +253,12 @@ final class WindowsManager {
                                      burnerMode: BurnerMode,
                                      autofillPopoverPresenter: AutofillPopoverPresenter,
                                      fireCoordinator: FireCoordinator,
-                                     aiChatSidebarProvider: AIChatSidebarProviding) -> MainWindowController {
+                                     aiChatStateProvider: AIChatStateProviding) -> MainWindowController {
         assert(tabCollectionViewModel == nil || tabCollectionViewModel!.isPopup == popUp)
         let mainViewController = MainViewController(
             tabCollectionViewModel: tabCollectionViewModel ?? TabCollectionViewModel(isPopup: popUp, burnerMode: burnerMode),
             autofillPopoverPresenter: autofillPopoverPresenter,
-            aiChatSidebarProvider: aiChatSidebarProvider,
+            aiChatStateProvider: aiChatStateProvider,
             fireCoordinator: fireCoordinator
         )
 

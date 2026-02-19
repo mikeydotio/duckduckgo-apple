@@ -214,7 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         aiChatTabManaging: windowControllersManager
     )
     let aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable
-    let aiChatSidebarProvider: AIChatSidebarProviding
+    let aiChatStateProvider: AIChatStateProviding
     let aiChatPreferences: AIChatPreferences
 
     let privacyStats: PrivacyStatsCollecting
@@ -553,7 +553,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         freeTrialConversionService.startObservingSubscriptionChanges()
 
-        aiChatSidebarProvider = AIChatSidebarProvider(featureFlagger: featureFlagger)
+        aiChatStateProvider = AIChatStateProvider(featureFlagger: featureFlagger)
         aiChatMenuConfiguration = AIChatMenuConfiguration(
             storage: DefaultAIChatPreferencesStorage(),
             remoteSettings: AIChatRemoteSettings(

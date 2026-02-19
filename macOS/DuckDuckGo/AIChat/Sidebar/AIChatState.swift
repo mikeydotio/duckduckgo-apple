@@ -1,5 +1,5 @@
 //
-//  AIChatSidebar.swift
+//  AIChatState.swift
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -20,9 +20,19 @@ import Foundation
 import AIChat
 import Combine
 
-/// A wrapper class that represents the AI Chat sidebar contents and its displayed view controller.
+@objc enum AIChatPresentationMode: Int {
+    case hidden = 0
+    case sidebar = 1
+    case floating = 2
+}
 
-final class AIChatSidebar: NSObject {
+/// Represents the per-tab AI Chat state, including persisted session data
+/// and transient UI lifecycle references (view controller, floating window).
+
+@objc(AIChatSidebar)
+final class AIChatState: NSObject {
+
+    // MARK: - Persisted State
 
     /// The initial AI chat URL to be loaded.
     private let initialAIChatURL: URL
@@ -30,15 +40,19 @@ final class AIChatSidebar: NSObject {
     private let burnerMode: BurnerMode
 
     /// The AI chat URL that was active in the sidebar.
-    private(set)  var aiChatURL: URL?
+    private(set) var aiChatURL: URL?
 
     /// The AI chat restoration data that was active in the sidebar.
     private(set) var restorationData: AIChatRestorationData?
 
-    /// Indicates whether the sidebar is currently presented in the UI.
-    /// This is separate from whether a view controller exists, as view controllers can be created
-    /// during state restoration before the sidebar is actually shown.
-    private(set) var isPresented: Bool = false
+    /// The current presentation mode of the AI Chat for this tab.
+    private(set) var presentationMode: AIChatPresentationMode = .hidden
+
+    /// Whether the chat is currently visible (sidebar or floating).
+    var isPresented: Bool { presentationMode != .hidden }
+
+    /// Whether the chat is in a floating window.
+    var isDetached: Bool { presentationMode == .floating }
 
     /// The date when the sidebar was last hidden, if applicable.
     private(set) var hiddenAt: Date?
@@ -46,24 +60,27 @@ final class AIChatSidebar: NSObject {
     /// The user-chosen sidebar width for this tab, or `nil` to use the default.
     var sidebarWidth: CGFloat?
 
-    /// Whether the sidebar is currently shown in a detached floating window.
-    private(set) var isDetached: Bool = false
+    // MARK: - Transient UI Lifecycle
 
-    /// The view controller that displays the sidebar contents.
-    /// This property is set by the AIChatSidebarProvider when the view controller is created.
-    var sidebarViewController: AIChatSidebarViewController? {
+    /// The view controller that displays the AI Chat contents.
+    /// Set by `AIChatStateProvider` when the view controller is created.
+    var chatViewController: AIChatViewController? {
         didSet {
             subscribeToRestorationDataUpdates()
-            sidebarViewControllerSubject.send(sidebarViewController)
+            chatViewControllerSubject.send(chatViewController)
         }
     }
 
-    private let sidebarViewControllerSubject = CurrentValueSubject<AIChatSidebarViewController?, Never>(nil)
+    /// The floating window controller when the chat is detached from the sidebar.
+    /// This is transient (not persisted); use `isDetached` for restoration.
+    var floatingWindowController: AIChatFloatingWindowController?
+
+    private let chatViewControllerSubject = CurrentValueSubject<AIChatViewController?, Never>(nil)
 
     /// Publisher that emits the current view controller's `pageContextRequestedPublisher` and automatically
     /// switches to new view controller's publisher when the view controller changes.
     var pageContextRequestedPublisher: AnyPublisher<Void, Never> {
-        sidebarViewControllerSubject
+        chatViewControllerSubject
             .compactMap { $0?.pageContextRequestedPublisher }
             .switchToLatest()
             .eraseToAnyPublisher()
@@ -75,8 +92,8 @@ final class AIChatSidebar: NSObject {
     /// The current AI chat URL being displayed.
     public var currentAIChatURL: URL {
         get {
-            if let sidebarViewController {
-                return sidebarViewController.currentAIChatURL
+            if let chatViewController {
+                return chatViewController.currentAIChatURL
             } else {
                 return aiChatURL ?? initialAIChatURL
             }
@@ -92,30 +109,29 @@ final class AIChatSidebar: NSObject {
         self.burnerMode = burnerMode
     }
 
-    /// Marks the sidebar as presented in the UI.
-    /// Call this when the sidebar is actually shown to the user.
+    /// Marks the chat as visible in the sidebar.
     public func setRevealed() {
-        isPresented = true
+        presentationMode = .sidebar
         hiddenAt = nil
     }
 
-    /// Marks the sidebar as hidden/not presented in the UI.
-    /// Call this when the sidebar is hidden from the user.
+    /// Marks the chat as hidden.
     public func setHidden(at date: Date = Date()) {
-        isPresented = false
+        presentationMode = .hidden
         if hiddenAt == nil {
             hiddenAt = date
         }
     }
 
-    /// Marks the sidebar as detached into a floating window.
+    /// Marks the chat as presented in a floating window.
     public func setDetached() {
-        isDetached = true
+        presentationMode = .floating
     }
 
-    /// Marks the sidebar as docked back into the browser window.
+    /// Marks the chat as docked back into the sidebar and clears the floating controller.
     public func setDocked() {
-        isDetached = false
+        presentationMode = .sidebar
+        floatingWindowController = nil
     }
 
     /// Returns true if the sidebar session has expired based on the configured timeout.
@@ -126,30 +142,35 @@ final class AIChatSidebar: NSObject {
     }
 
     /// Subscribes to restoration data updates from the sidebar view controller.
-    /// This method is called automatically when the sidebarViewController is set.
+    /// This method is called automatically when the chatViewController is set.
     private func subscribeToRestorationDataUpdates() {
         cancellables.removeAll()
 
-        sidebarViewController?.chatRestorationDataPublisher?
+        chatViewController?.chatRestorationDataPublisher?
             .sink { [weak self] restorationData in
                 self?.restorationData = restorationData
             }
             .store(in: &cancellables)
     }
 
-    /// Unloads the sidebar view controller after reading and updating the current AI chat URL and restoration data.
-    /// This method ensures the current URL state and restoration data are captured before the view controller is unloaded.
-    /// Also marks the sidebar as hidden since the view controller is being unloaded.
-    public func unloadViewController(persistingState: Bool) {
-        if let sidebarViewController {
-            if persistingState {
-                aiChatURL = sidebarViewController.currentAIChatURL
-            }
-            sidebarViewController.stopLoading()
-            sidebarViewController.removeCompletely()
-            self.sidebarViewController = nil
+    /// Tears down UI artifacts (floating window, web view) associated with this state.
+    /// Must be called from `@MainActor` context before `persistStateAndReset`.
+    @MainActor
+    public func tearDownUI() {
+        floatingWindowController?.close()
+        chatViewController?.stopLoading()
+        chatViewController?.removeCompletely()
+    }
+
+    /// Snapshots the current URL (if persisting), nils transient references, and marks the state as hidden.
+    /// Call `tearDownUI()` from the presenter before this when UI artifacts exist.
+    public func persistStateAndReset(persistingState: Bool) {
+        if persistingState, let chatViewController {
+            aiChatURL = chatViewController.currentAIChatURL
         }
 
+        floatingWindowController = nil
+        chatViewController = nil
         cancellables.removeAll()
 
         setHidden()
@@ -170,32 +191,35 @@ final class AIChatSidebar: NSObject {
 
 // MARK: - NSSecureCoding
 
-extension AIChatSidebar: NSSecureCoding {
+extension AIChatState: NSSecureCoding {
 
-    private enum CodingKeys {
+    enum CodingKeys {
         static let initialAIChatURL = "initialAIChatURL"
-        static let isPresented = "isPresented"
+        static let presentationMode = "presentationMode"
         static let hiddenAt = "hiddenAt"
         static let sidebarWidth = "sidebarWidth"
+        // Legacy keys kept for backward-compatible encoding
+        static let isPresented = "isPresented"
         static let isDetached = "isDetached"
     }
 
     convenience init?(coder: NSCoder) {
         let initialAIChatURL = coder.decodeObject(of: NSURL.self, forKey: CodingKeys.initialAIChatURL) as URL?
         self.init(initialAIChatURL: initialAIChatURL, burnerMode: .regular)
-        self.isPresented = coder.decodeIfPresent(at: CodingKeys.isPresented) ?? true
+        self.presentationMode = Self.decodePresentationMode(from: coder)
         self.hiddenAt = coder.decodeObject(of: NSDate.self, forKey: CodingKeys.hiddenAt) as Date?
         self.sidebarWidth = coder.decodeObject(of: NSNumber.self, forKey: CodingKeys.sidebarWidth).map { CGFloat($0.doubleValue) }
-        self.isDetached = coder.decodeIfPresent(at: CodingKeys.isDetached) ?? false
     }
 
     func encode(with coder: NSCoder) {
         coder.encode(currentAIChatURL as NSURL, forKey: CodingKeys.initialAIChatURL)
-        coder.encode(isPresented, forKey: CodingKeys.isPresented)
+        coder.encode(presentationMode.rawValue, forKey: CodingKeys.presentationMode)
         coder.encode(hiddenAt as NSDate?, forKey: CodingKeys.hiddenAt)
         if let sidebarWidth {
             coder.encode(NSNumber(value: sidebarWidth), forKey: CodingKeys.sidebarWidth)
         }
+        // Backward-compat: keep old keys so downgrades don't lose data
+        coder.encode(isPresented, forKey: CodingKeys.isPresented)
         coder.encode(isDetached, forKey: CodingKeys.isDetached)
     }
 

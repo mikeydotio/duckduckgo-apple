@@ -1,5 +1,5 @@
 //
-//  AIChatSidebarPresenter.swift
+//  AIChatPresenter.swift
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -27,7 +27,7 @@ import PrivacyConfig
 ///
 /// - Note: This only refers to the logic of tab having sidebar shown or hidden,
 ///         not to sidebars getting on and off the screen due to switching browser tabs.
-struct AIChatSidebarPresenceChange: Equatable {
+struct AIChatPresenceChange: Equatable {
     let tabID: TabIdentifier
     let isShown: Bool
 }
@@ -36,7 +36,7 @@ struct AIChatSidebarPresenceChange: Equatable {
 ///
 /// Handles visibility, state management, and feature flag coordination for the AI Chat sidebar.
 @MainActor
-protocol AIChatSidebarPresenting {
+protocol AIChatPresenting {
 
     /// Toggles the AI Chat sidebar visibility on a current tab, using appropriate animation.
     func toggleSidebar()
@@ -57,7 +57,7 @@ protocol AIChatSidebarPresenting {
     func sidebarHiddenAtForCurrentTab() -> Date?
 
     /// Emits events whenever sidebar is shown or hidden for a tab.
-    var sidebarPresenceWillChangePublisher: AnyPublisher<AIChatSidebarPresenceChange, Never> { get }
+    var sidebarPresenceWillChangePublisher: AnyPublisher<AIChatPresenceChange, Never> { get }
 
     /// Returns whether the AI Chat sidebar is detached into a floating window for a tab specified by `tabID`.
     func isSidebarDetached(for tabID: TabIdentifier) -> Bool
@@ -72,19 +72,19 @@ protocol AIChatSidebarPresenting {
     func presentSidebar(for prompt: AIChatNativePrompt)
 }
 
-final class AIChatSidebarPresenter: AIChatSidebarPresenting {
+final class AIChatPresenter: AIChatPresenting {
 
-    let sidebarPresenceWillChangePublisher: AnyPublisher<AIChatSidebarPresenceChange, Never>
+    let sidebarPresenceWillChangePublisher: AnyPublisher<AIChatPresenceChange, Never>
     let sidebarDetachStateDidChangePublisher: AnyPublisher<TabIdentifier, Never>
 
     private let sidebarHost: AIChatSidebarHosting
-    private let sidebarProvider: AIChatSidebarProviding
+    private let stateProvider: AIChatStateProviding
     private let aiChatMenuConfig: AIChatMenuVisibilityConfigurable
     private let aiChatTabOpener: AIChatTabOpening
     private let windowControllersManager: WindowControllersManagerProtocol
     private let pixelFiring: PixelFiring?
     private let featureFlagger: FeatureFlagger
-    private let sidebarPresenceWillChangeSubject = PassthroughSubject<AIChatSidebarPresenceChange, Never>()
+    private let sidebarPresenceWillChangeSubject = PassthroughSubject<AIChatPresenceChange, Never>()
     private let sidebarDetachStateDidChangeSubject = PassthroughSubject<TabIdentifier, Never>()
 
     private var isAnimatingSidebarTransition: Bool = false
@@ -96,9 +96,6 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     /// Updated only by resizes happening in this window.
     private var windowDefaultWidth: CGFloat
 
-    /// One floating window controller per detached tab.
-    private var floatingWindowControllers: [TabIdentifier: AIChatFloatingWindowController] = [:]
-
     private var isSidebarResizable: Bool {
         featureFlagger.isFeatureOn(.aiChatSidebarResizable)
     }
@@ -109,7 +106,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
 
     init(
         sidebarHost: AIChatSidebarHosting,
-        sidebarProvider: AIChatSidebarProviding,
+        stateProvider: AIChatStateProviding,
         aiChatMenuConfig: AIChatMenuVisibilityConfigurable,
         aiChatTabOpener: AIChatTabOpening,
         windowControllersManager: WindowControllersManagerProtocol,
@@ -118,7 +115,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         preferencesStorage: AIChatPreferencesStorage = DefaultAIChatPreferencesStorage()
     ) {
         self.sidebarHost = sidebarHost
-        self.sidebarProvider = sidebarProvider
+        self.stateProvider = stateProvider
         self.aiChatMenuConfig = aiChatMenuConfig
         self.aiChatTabOpener = aiChatTabOpener
         self.windowControllersManager = windowControllersManager
@@ -126,11 +123,11 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         self.featureFlagger = featureFlagger
 
         if let stored = preferencesStorage.lastUsedSidebarWidth, stored > 0 {
-            let min = sidebarProvider.minSidebarWidth
-            let max = sidebarProvider.maxSidebarWidth
+            let min = stateProvider.minSidebarWidth
+            let max = stateProvider.maxSidebarWidth
             self.windowDefaultWidth = Swift.min(max, Swift.max(min, CGFloat(stored)))
         } else {
-            self.windowDefaultWidth = sidebarProvider.defaultSidebarWidth
+            self.windowDefaultWidth = stateProvider.defaultSidebarWidth
         }
 
         sidebarPresenceWillChangePublisher = sidebarPresenceWillChangeSubject.eraseToAnyPublisher()
@@ -154,7 +151,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         guard !isAnimatingSidebarTransition,
               let currentTabID = sidebarHost.currentTabID else { return }
 
-        let willShowSidebar = !sidebarProvider.isShowingSidebar(for: currentTabID)
+        let willShowSidebar = !stateProvider.isShowingSidebar(for: currentTabID)
 
         updateSidebarConstraints(for: currentTabID, isShowingSidebar: willShowSidebar, withAnimation: true)
     }
@@ -165,7 +162,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     }
 
     func isSidebarOpen(for tabID: TabIdentifier) -> Bool {
-        return sidebarProvider.isShowingSidebar(for: tabID)
+        return stateProvider.isShowingSidebar(for: tabID)
     }
 
     func isSidebarOpenForCurrentTab() -> Bool {
@@ -174,15 +171,15 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     }
 
     func isSidebarDetached(for tabID: TabIdentifier) -> Bool {
-        floatingWindowControllers[tabID] != nil
+        stateProvider.statesByTab[tabID]?.isDetached ?? false
     }
 
     func focusFloatingWindow(for tabID: TabIdentifier) {
-        floatingWindowControllers[tabID]?.show()
+        stateProvider.statesByTab[tabID]?.floatingWindowController?.show()
     }
 
     func sidebarHiddenAt(for tabID: TabIdentifier) -> Date? {
-        sidebarProvider.sidebarsByTab[tabID]?.hiddenAt
+        stateProvider.statesByTab[tabID]?.hiddenAt
     }
 
     func sidebarHiddenAtForCurrentTab() -> Date? {
@@ -200,25 +197,24 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
         isResizeDragging = false
 
         if isShowingSidebar {
-            // Clear sidebar if session has expired (hidden for more than 60 minutes)
-            sidebarProvider.clearSidebarIfSessionExpired(for: tabID)
+            stateProvider.clearSidebarIfSessionExpired(for: tabID)
 
-            let sidebarViewController: AIChatSidebarViewController = {
-                if let existingViewController = sidebarProvider.getSidebarViewController(for: tabID) {
+            let chatViewController: AIChatViewController = {
+                if let existingViewController = stateProvider.getChatViewController(for: tabID) {
                     return existingViewController
                 } else {
-                    return sidebarProvider.makeSidebarViewController(for: tabID, burnerMode: sidebarHost.burnerMode)
+                    return stateProvider.makeChatViewController(for: tabID, burnerMode: sidebarHost.burnerMode)
                 }
             }()
 
-            sidebarViewController.delegate = self
-            sidebarHost.embedSidebarViewController(sidebarViewController, for: nil)
+            chatViewController.delegate = self
+            sidebarHost.embedChatViewController(chatViewController, for: nil)
 
             // Mark sidebar as revealed when it's being shown
-            sidebarProvider.sidebarsByTab[tabID]?.setRevealed()
+            stateProvider.statesByTab[tabID]?.setRevealed()
         } else {
             // Mark sidebar as hidden when it's being hidden
-            sidebarProvider.sidebarsByTab[tabID]?.setHidden()
+            stateProvider.statesByTab[tabID]?.setHidden()
         }
 
         let tabWidth = sidebarWidth(for: tabID)
@@ -245,7 +241,8 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
                 }
 
                 guard let tabID, !isShowingSidebar else { return }
-                self.sidebarProvider.handleSidebarDidClose(for: tabID)
+                self.stateProvider.statesByTab[tabID]?.tearDownUI()
+                self.stateProvider.handleSidebarDidClose(for: tabID)
             }
         } else {
             sidebarHost.sidebarContainerLeadingConstraint?.constant = newConstraintValue
@@ -255,7 +252,8 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
             }
 
             if let tabID = sidebarHost.currentTabID, !isShowingSidebar {
-                sidebarProvider.handleSidebarDidClose(for: tabID)
+                stateProvider.statesByTab[tabID]?.tearDownUI()
+                stateProvider.handleSidebarDidClose(for: tabID)
             }
             self.isAnimatingSidebarTransition = false
         }
@@ -264,9 +262,9 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     func presentSidebar(for prompt: AIChatNativePrompt) {
         guard let currentTabID = sidebarHost.currentTabID else { return }
 
-        if let sidebarViewController = sidebarProvider.getSidebarViewController(for: currentTabID) {
+        if let chatViewController = stateProvider.getChatViewController(for: currentTabID) {
             // If sidebar is open append conversation with prompt
-            sidebarViewController.setAIChatPrompt(prompt)
+            chatViewController.setAIChatPrompt(prompt)
         } else {
             AIChatPromptHandler.shared.setData(prompt)
             // If not showing the sidebar, open it with the prompt
@@ -277,15 +275,15 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     private func handleAIChatHandoff(with payload: AIChatPayload) {
         guard let currentTabID = sidebarHost.currentTabID else { return }
 
-        let isShowingSidebar = sidebarProvider.isShowingSidebar(for: currentTabID)
+        let isShowingSidebar = stateProvider.isShowingSidebar(for: currentTabID)
 
         if !isShowingSidebar {
             /// https://app.asana.com/1/137249556945/project/276630244458377/task/1211982069731816
-            sidebarProvider.resetSidebar(for: currentTabID)
+            stateProvider.resetSidebar(for: currentTabID)
 
             // If not showing the sidebar open it with the payload received
-            let sidebarViewController = sidebarProvider.makeSidebarViewController(for: currentTabID, burnerMode: sidebarHost.burnerMode)
-            sidebarViewController.aiChatPayload = payload
+            let chatViewController = stateProvider.makeChatViewController(for: currentTabID, burnerMode: sidebarHost.burnerMode)
+            chatViewController.aiChatPayload = payload
             updateSidebarConstraints(for: currentTabID, isShowingSidebar: true, withAnimation: true)
             pixelFiring?.fire(
                 AIChatPixel.aiChatSidebarOpened(
@@ -307,12 +305,13 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     private func detachSidebar() {
         guard isSidebarFloatingEnabled,
               let tabID = sidebarHost.currentTabID,
-              let sidebarVC = sidebarProvider.getSidebarViewController(for: tabID),
-              floatingWindowControllers[tabID] == nil else { return }
+              let chatState = stateProvider.statesByTab[tabID],
+              let chatViewController = chatState.chatViewController,
+              chatState.floatingWindowController == nil else { return }
 
         let screenFrame = sidebarHost.sidebarContainerScreenFrame ?? NSRect(x: 200, y: 200, width: 400, height: 600)
 
-        collapseSidebarPreservingWebView(sidebarVC, for: tabID)
+        collapseSidebarPreservingWebView(chatViewController, for: tabID)
 
         let tabViewModel = windowControllersManager.allTabCollectionViewModels
             .flatMap(\.tabViewModels)
@@ -320,13 +319,13 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
 
         let controller = AIChatFloatingWindowController(
             tabID: tabID,
-            sidebarViewController: sidebarVC,
+            chatViewController: chatViewController,
             tabViewModel: tabViewModel,
             contentRect: screenFrame)
         controller.delegate = self
-        floatingWindowControllers[tabID] = controller
 
-        sidebarProvider.sidebarsByTab[tabID]?.setDetached()
+        chatState.floatingWindowController = controller
+        chatState.setDetached()
 
         controller.show()
         sidebarDetachStateDidChangeSubject.send(tabID)
@@ -334,17 +333,17 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
 
     /// Docks a floating sidebar back into the browser window for the given tab.
     private func attachSidebar(for tabID: TabIdentifier) {
-        guard let controller = floatingWindowControllers[tabID],
-              let sidebarVC = controller.detachSidebarViewController() else { return }
+        guard let chatState = stateProvider.statesByTab[tabID],
+              let controller = chatState.floatingWindowController,
+              let chatViewController = controller.detachChatViewController() else { return }
 
-        floatingWindowControllers.removeValue(forKey: tabID)
-        sidebarProvider.sidebarsByTab[tabID]?.setDocked()
+        chatState.setDocked()
 
         windowControllersManager.lastKeyMainWindowController?.window?.makeKeyAndOrderFront(nil)
 
-        sidebarVC.delegate = self
-        sidebarHost.embedSidebarViewController(sidebarVC, for: tabID)
-        sidebarProvider.sidebarsByTab[tabID]?.setRevealed()
+        chatViewController.delegate = self
+        sidebarHost.embedChatViewController(chatViewController, for: tabID)
+        chatState.setRevealed()
 
         updateSidebarConstraints(for: tabID, isShowingSidebar: true, withAnimation: false)
 
@@ -355,7 +354,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
     }
 }
 
-extension AIChatSidebarPresenter: AIChatSidebarHostingDelegate {
+extension AIChatPresenter: AIChatSidebarHostingDelegate {
 
     func sidebarHostDidSelectTab(with tabID: TabIdentifier) {
         let shouldShowSidebar = isSidebarOpen(for: tabID)
@@ -365,20 +364,27 @@ extension AIChatSidebarPresenter: AIChatSidebarHostingDelegate {
     func sidebarHostDidUpdateTabs() {
         let allPinnedTabIDs = windowControllersManager.pinnedTabsManagerProvider.currentPinnedTabManagers.flatMap { $0.tabViewModels.keys }.map { $0.uuid }
         let allTabIDs = windowControllersManager.allTabCollectionViewModels.flatMap { $0.tabViewModels.keys }.map { $0.uuid }
-        sidebarProvider.cleanUp(for: allPinnedTabIDs + allTabIDs)
+        let currentTabIDs = Set(allPinnedTabIDs + allTabIDs)
+
+        let removedTabIDs = Set(stateProvider.statesByTab.keys).subtracting(currentTabIDs)
+        for tabID in removedTabIDs {
+            stateProvider.statesByTab[tabID]?.tearDownUI()
+        }
+
+        stateProvider.cleanUp(for: Array(currentTabIDs))
     }
 }
 
-extension AIChatSidebarPresenter: AIChatSidebarViewControllerDelegate {
+extension AIChatPresenter: AIChatViewControllerDelegate {
 
     func didClickOpenInNewTabButton() {
         guard let currentTabID = sidebarHost.currentTabID,
-              let sidebar = sidebarProvider.sidebarsByTab[currentTabID] else { return }
+              let chatState = stateProvider.statesByTab[currentTabID] else { return }
 
         pixelFiring?.fire(AIChatPixel.aiChatSidebarExpanded, frequency: .dailyAndStandard)
 
-        let restorationData = sidebar.restorationData
-        let currentAIChatURL = sidebar.currentAIChatURL.removingAIChatPlacementParameter()
+        let restorationData = chatState.restorationData
+        let currentAIChatURL = chatState.currentAIChatURL.removingAIChatPlacementParameter()
 
         toggleSidebar()
 
@@ -414,7 +420,7 @@ extension AIChatSidebarPresenter: AIChatSidebarViewControllerDelegate {
 
 // MARK: - AIChatSidebarResizeDelegate
 
-extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
+extension AIChatPresenter: AIChatSidebarResizeDelegate {
 
     @discardableResult
     func sidebarHostDidResize(to width: CGFloat) -> CGFloat {
@@ -432,7 +438,7 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
         let clampedWidth = clampSidebarWidth(width)
         sidebarHost.applySidebarWidth(clampedWidth)
         windowDefaultWidth = clampedWidth
-        sidebarProvider.setSidebarWidth(clampedWidth, for: currentTabID)
+        stateProvider.setSidebarWidth(clampedWidth, for: currentTabID)
         fireResizedPixelDebounced(width: clampedWidth)
     }
 
@@ -453,8 +459,8 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
     /// Unlike `collapseSidebar`, this does not call `handleSidebarDidClose` which
     /// would unload the web view. Used when detaching, so the sidebar VC can be
     /// moved to a floating window with its content intact.
-    private func collapseSidebarPreservingWebView(_ sidebarVC: NSViewController, for tabID: TabIdentifier) {
-        sidebarVC.removeCompletely()
+    private func collapseSidebarPreservingWebView(_ chatViewController: NSViewController, for tabID: TabIdentifier) {
+        chatViewController.removeCompletely()
         sidebarHost.sidebarContainerLeadingConstraint?.constant = 0
         sidebarHost.setResizeHandleVisible(false)
         sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: false))
@@ -473,15 +479,15 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
 
     /// Returns the sidebar width for a tab, falling back to this window's default.
     private func sidebarWidth(for tabID: TabIdentifier) -> CGFloat {
-        sidebarProvider.sidebarsByTab[tabID]?.sidebarWidth ?? windowDefaultWidth
+        stateProvider.statesByTab[tabID]?.sidebarWidth ?? windowDefaultWidth
     }
 
     /// Clamps a proposed sidebar width to the allowed range.
     /// The sidebar can never exceed half of the available window width,
     /// but the minimum width always takes precedence over the half-window cap.
     private func clampSidebarWidth(_ width: CGFloat) -> CGFloat {
-        let minWidth = sidebarProvider.minSidebarWidth
-        let maxWidth = max(minWidth, min(sidebarProvider.maxSidebarWidth, sidebarHost.availableWidth / 2))
+        let minWidth = stateProvider.minSidebarWidth
+        let maxWidth = max(minWidth, min(stateProvider.maxSidebarWidth, sidebarHost.availableWidth / 2))
         return min(maxWidth, max(minWidth, width))
     }
 
@@ -492,7 +498,7 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
     /// - When the window shrinks so the webview would be narrower than the sidebar,
     ///   both shrink proportionally (50/50) until the sidebar reaches its minimum.
     private func effectiveSidebarWidth(tabWidth: CGFloat, availableWidth: CGFloat) -> CGFloat {
-        let minWidth = sidebarProvider.minSidebarWidth
+        let minWidth = stateProvider.minSidebarWidth
 
         // Enough room: webview is at least as wide as the sidebar
         if availableWidth >= 2 * tabWidth {
@@ -507,13 +513,13 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
 
 // MARK: - AIChatFloatingWindowControllerDelegate
 
-extension AIChatSidebarPresenter: AIChatFloatingWindowControllerDelegate {
+extension AIChatPresenter: AIChatFloatingWindowControllerDelegate {
 
     func floatingWindowDidClose(_ controller: AIChatFloatingWindowController) {
         let tabID = controller.tabID
-        floatingWindowControllers.removeValue(forKey: tabID)
-        sidebarProvider.sidebarsByTab[tabID]?.setDocked()
-        sidebarProvider.sidebarsByTab[tabID]?.setHidden()
+        let chatState = stateProvider.statesByTab[tabID]
+        chatState?.setDocked()
+        chatState?.setHidden()
         sidebarDetachStateDidChangeSubject.send(tabID)
     }
 

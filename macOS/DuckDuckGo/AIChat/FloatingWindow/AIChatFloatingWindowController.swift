@@ -30,7 +30,7 @@ protocol AIChatFloatingWindowControllerDelegate: AnyObject {
 /// Manages a single detached AI Chat floating window for one tab.
 ///
 /// Each instance owns one `AIChatFloatingWindow` and the
-/// `AIChatSidebarViewController` that was moved out of the docked sidebar.
+/// `AIChatViewController` that was moved out of the docked sidebar.
 @MainActor
 final class AIChatFloatingWindowController: NSObject {
 
@@ -40,7 +40,7 @@ final class AIChatFloatingWindowController: NSObject {
     let tabID: TabIdentifier
 
     private let floatingWindow: AIChatFloatingWindow
-    private var sidebarViewController: AIChatSidebarViewController?
+    private var chatViewController: AIChatViewController?
     private var cancellables = Set<AnyCancellable>()
 
     var isShowing: Bool {
@@ -48,15 +48,15 @@ final class AIChatFloatingWindowController: NSObject {
     }
 
     init(tabID: TabIdentifier,
-         sidebarViewController: AIChatSidebarViewController,
+         chatViewController: AIChatViewController,
          tabViewModel: TabViewModel?,
          contentRect: NSRect) {
         self.tabID = tabID
-        self.sidebarViewController = sidebarViewController
+        self.chatViewController = chatViewController
         self.floatingWindow = AIChatFloatingWindow(contentRect: contentRect)
         super.init()
 
-        embedSidebarViewController(sidebarViewController)
+        embedChatViewController(chatViewController)
         subscribeToTabInfo(tabViewModel)
 
         NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: floatingWindow)
@@ -75,12 +75,12 @@ final class AIChatFloatingWindowController: NSObject {
         floatingWindow.close()
     }
 
-    /// Removes the sidebar view controller from the floating window so it can be
+    /// Removes the chat view controller from the floating window so it can be
     /// re-embedded in the docked sidebar. Returns `nil` if already detached.
-    func detachSidebarViewController() -> AIChatSidebarViewController? {
-        guard let vc = sidebarViewController else { return nil }
+    func detachChatViewController() -> AIChatViewController? {
+        guard let vc = chatViewController else { return nil }
         floatingWindow.contentViewController = nil
-        sidebarViewController = nil
+        chatViewController = nil
         return vc
     }
 
@@ -92,13 +92,13 @@ final class AIChatFloatingWindowController: NSObject {
         tabViewModel.$title.combineLatest(tabViewModel.$favicon)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] title, favicon in
-                self?.sidebarViewController?.updateFloatingTitle(title, favicon: favicon)
+                self?.chatViewController?.updateFloatingTitle(title, favicon: favicon)
                 self?.floatingWindow.title = title
             }
             .store(in: &cancellables)
     }
 
-    private func embedSidebarViewController(_ viewController: AIChatSidebarViewController) {
+    private func embedChatViewController(_ viewController: AIChatViewController) {
         floatingWindow.contentViewController = viewController
     }
 }

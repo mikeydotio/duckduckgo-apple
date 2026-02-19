@@ -64,7 +64,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         var contentScopeExperimentsManager: ContentScopeExperimentsManaging
         var aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable
         var newTabPageShownPixelSender: NewTabPageShownPixelSender
-        var aiChatSidebarProvider: AIChatSidebarProviding
+        var aiChatStateProvider: AIChatStateProviding
         var tabCrashAggregator: TabCrashAggregator
         var tabsPreferences: TabsPreferences
         var webTrackingProtectionPreferences: WebTrackingProtectionPreferences
@@ -150,7 +150,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                      onboardingPixelReporter: OnboardingAddressBarReporting = OnboardingPixelReporter(),
                      pageRefreshMonitor: PageRefreshMonitoring = PageRefreshMonitor(onDidDetectRefreshPattern: PageRefreshMonitor.onDidDetectRefreshPattern),
                      aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable? = nil,
-                     aiChatSidebarProvider: AIChatSidebarProviding? = nil,
+                     aiChatStateProvider: AIChatStateProviding? = nil,
                      newTabPageShownPixelSender: NewTabPageShownPixelSender? = nil,
                      tabCrashAggregator: TabCrashAggregator? = nil,
                      autoconsentStats: AutoconsentStatsCollecting? = nil,
@@ -217,7 +217,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                   onboardingPixelReporter: onboardingPixelReporter,
                   pageRefreshMonitor: pageRefreshMonitor,
                   aiChatMenuConfiguration: aiChatMenuConfiguration ?? NSApp.delegateTyped.aiChatMenuConfiguration,
-                  aiChatSidebarProvider: aiChatSidebarProvider ?? NSApp.delegateTyped.aiChatSidebarProvider,
+                  aiChatStateProvider: aiChatStateProvider ?? NSApp.delegateTyped.aiChatStateProvider,
                   newTabPageShownPixelSender: newTabPageShownPixelSender ?? NSApp.delegateTyped.newTabPageCoordinator.newTabPageShownPixelSender,
                   tabCrashAggregator: tabCrashAggregator ?? NSApp.delegateTyped.tabCrashAggregator,
                   autoconsentStats: autoconsentStats ?? NSApp.delegateTyped.autoconsentStats,
@@ -269,7 +269,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
          onboardingPixelReporter: OnboardingAddressBarReporting,
          pageRefreshMonitor: PageRefreshMonitoring,
          aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable,
-         aiChatSidebarProvider: AIChatSidebarProviding,
+         aiChatStateProvider: AIChatStateProviding,
          newTabPageShownPixelSender: NewTabPageShownPixelSender,
          tabCrashAggregator: TabCrashAggregator,
          autoconsentStats: AutoconsentStatsCollecting,
@@ -374,7 +374,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                                                        contentScopeExperimentsManager: contentScopeExperimentsManager,
                                                        aiChatMenuConfiguration: aiChatMenuConfiguration,
                                                        newTabPageShownPixelSender: newTabPageShownPixelSender,
-                                                       aiChatSidebarProvider: aiChatSidebarProvider,
+                                                       aiChatStateProvider: aiChatStateProvider,
                                                        tabCrashAggregator: tabCrashAggregator,
                                                        tabsPreferences: tabsPreferences,
                                                        webTrackingProtectionPreferences: webTrackingProtectionPreferences,
