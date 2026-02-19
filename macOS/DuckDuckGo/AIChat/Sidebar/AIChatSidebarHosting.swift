@@ -74,9 +74,11 @@ protocol AIChatSidebarHosting: AnyObject  {
     /// The layout constraint controlling the width of the sidebar container.
     var sidebarContainerWidthConstraint: NSLayoutConstraint? { get }
 
-    /// Embeds the provided view controller as the sidebar content.
-    /// - Parameter vc: The view controller to embed as the sidebar content.
-    func embedSidebarViewController(_ vc: NSViewController)
+    /// Switches to the given tab and embeds the provided view controller as the sidebar content.
+    /// - Parameters:
+    ///   - vc: The view controller to embed as the sidebar content.
+    ///   - tabID: If provided, the host switches to this tab before embedding.
+    func embedSidebarViewController(_ vc: NSViewController, for tabID: TabIdentifier?)
 
     /// The burner mode status of the current tab (private browsing mode).
     var burnerMode: BurnerMode { get }
@@ -105,7 +107,10 @@ extension BrowserTabViewController: AIChatSidebarHosting {
         tabViewModel?.tab.uuid
     }
 
-    func embedSidebarViewController(_ sidebarViewController: NSViewController) {
+    func embedSidebarViewController(_ sidebarViewController: NSViewController, for tabID: TabIdentifier?) {
+        if let tabID {
+            selectTab(with: tabID)
+        }
         addAndLayoutChild(sidebarViewController, into: sidebarContainer)
     }
 

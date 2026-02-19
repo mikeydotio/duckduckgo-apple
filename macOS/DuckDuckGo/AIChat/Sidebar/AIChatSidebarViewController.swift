@@ -30,6 +30,8 @@ protocol AIChatSidebarViewControllerDelegate: AnyObject {
     func didClickCloseButton()
     /// Called when the user clicks the "Detach" button to pop the sidebar into a floating window.
     func didClickDetachButton()
+    /// Called when the user clicks the "Attach" button to dock the floating sidebar back.
+    func didClickAttachButton(for tabID: TabIdentifier)
 }
 
 /// A view controller that manages the AI Chat sidebar interface.
@@ -52,6 +54,7 @@ final class AIChatSidebarViewController: NSViewController {
     }
 
     weak var delegate: AIChatSidebarViewControllerDelegate?
+    var tabID: TabIdentifier?
     public var aiChatPayload: AIChatPayload?
     private(set) var currentAIChatURL: URL
 
@@ -62,6 +65,7 @@ final class AIChatSidebarViewController: NSViewController {
 
     private var openInNewTabButton: MouseOverButton!
     private var detachButton: MouseOverButton!
+    private var attachButton: MouseOverButton!
     private var closeButton: MouseOverButton!
     private var webViewContainer: WebViewContainerView!
     private var separator: NSView!
@@ -157,27 +161,14 @@ final class AIChatSidebarViewController: NSViewController {
         topBar.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(topBar)
 
-        openInNewTabButton = MouseOverButton(image: .expand, target: self, action: #selector(openInNewTabButtonClicked))
-        openInNewTabButton.toolTip = UserText.aiChatSidebarExpandButtonTooltip
-        openInNewTabButton.translatesAutoresizingMaskIntoConstraints = false
-        openInNewTabButton.bezelStyle = .shadowlessSquare
-        openInNewTabButton.cornerRadius = 9
-        openInNewTabButton.normalTintColor = .button
-        openInNewTabButton.mouseDownColor = .buttonMouseDown
-        openInNewTabButton.mouseOverColor = .buttonMouseOver
-        openInNewTabButton.isBordered = false
+        openInNewTabButton = makeBarButton(image: .expand, action: #selector(openInNewTabButtonClicked),
+                                           toolTip: UserText.aiChatSidebarExpandButtonTooltip)
         topBar.addSubview(openInNewTabButton)
 
-        detachButton = MouseOverButton(image: .moveTabToNewWindow, target: self, action: #selector(detachButtonClicked))
-        detachButton.toolTip = UserText.aiChatSidebarDetachButtonTooltip
-        detachButton.translatesAutoresizingMaskIntoConstraints = false
-        detachButton.bezelStyle = .shadowlessSquare
-        detachButton.cornerRadius = 9
-        detachButton.normalTintColor = .button
-        detachButton.mouseDownColor = .buttonMouseDown
-        detachButton.mouseOverColor = .buttonMouseOver
-        detachButton.isBordered = false
-        topBar.addSubview(detachButton)
+        attachButton = makeBarButton(image: .moveTabToNewWindow, action: #selector(attachButtonClicked),
+                                     toolTip: UserText.aiChatSidebarAttachButtonTooltip)
+        attachButton.isHidden = true
+        topBar.addSubview(attachButton)
 
         let titleLabel = NSTextField(labelWithString: UserText.aiChatSidebarTitle)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -186,38 +177,67 @@ final class AIChatSidebarViewController: NSViewController {
         titleLabel.textColor = .labelColor
         topBar.addSubview(titleLabel)
 
-        closeButton = MouseOverButton(image: .closeLarge, target: self, action: #selector(closeButtonClicked))
-        closeButton.toolTip = UserText.aiChatSidebarCloseButtonTooltip
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.bezelStyle = .shadowlessSquare
-        closeButton.cornerRadius = 9
-        closeButton.normalTintColor = .button
-        closeButton.mouseDownColor = .buttonMouseDown
-        closeButton.mouseOverColor = .buttonMouseOver
-        closeButton.isBordered = false
+        detachButton = makeBarButton(image: .moveTabToNewWindow, action: #selector(detachButtonClicked),
+                                     toolTip: UserText.aiChatSidebarDetachButtonTooltip)
+        topBar.addSubview(detachButton)
+
+        closeButton = makeBarButton(image: .closeLarge, action: #selector(closeButtonClicked),
+                                    toolTip: UserText.aiChatSidebarCloseButtonTooltip)
         topBar.addSubview(closeButton)
 
         NSLayoutConstraint.activate([
+            // Left side: openInNewTab (docked) or attach (floating) -- share the same position
             openInNewTabButton.leadingAnchor.constraint(equalTo: topBar.leadingAnchor, constant: Constants.barButtonMargin),
             openInNewTabButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
             openInNewTabButton.heightAnchor.constraint(equalToConstant: Constants.barButtonHeight),
             openInNewTabButton.widthAnchor.constraint(equalToConstant: Constants.barButtonWidth),
 
-            detachButton.leadingAnchor.constraint(equalTo: openInNewTabButton.trailingAnchor, constant: 4),
-            detachButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
-            detachButton.heightAnchor.constraint(equalToConstant: Constants.barButtonHeight),
-            detachButton.widthAnchor.constraint(equalToConstant: Constants.barButtonWidth),
+            attachButton.leadingAnchor.constraint(equalTo: topBar.leadingAnchor, constant: Constants.barButtonMargin),
+            attachButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
+            attachButton.heightAnchor.constraint(equalToConstant: Constants.barButtonHeight),
+            attachButton.widthAnchor.constraint(equalToConstant: Constants.barButtonWidth),
 
+            // Center: title
             titleLabel.centerXAnchor.constraint(equalTo: topBar.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
-            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: detachButton.trailingAnchor, constant: Constants.titleLabelSideMargin),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -Constants.titleLabelSideMargin),
 
+            // Right side: detach (docked) + close
             closeButton.trailingAnchor.constraint(equalTo: topBar.trailingAnchor, constant: -Constants.barButtonMargin),
             closeButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
             closeButton.heightAnchor.constraint(equalToConstant: Constants.barButtonHeight),
             closeButton.widthAnchor.constraint(equalToConstant: Constants.barButtonWidth),
+
+            detachButton.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -4),
+            detachButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
+            detachButton.heightAnchor.constraint(equalToConstant: Constants.barButtonHeight),
+            detachButton.widthAnchor.constraint(equalToConstant: Constants.barButtonWidth),
         ])
+    }
+
+    private func makeBarButton(image: NSImage, action: Selector, toolTip: String) -> MouseOverButton {
+        let button = MouseOverButton(image: image, target: self, action: action)
+        button.toolTip = toolTip
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.bezelStyle = .shadowlessSquare
+        button.cornerRadius = 9
+        button.normalTintColor = .button
+        button.mouseDownColor = .buttonMouseDown
+        button.mouseOverColor = .buttonMouseOver
+        button.isBordered = false
+        button.refusesFirstResponder = true
+        return button
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        updateTopBarForHostingContext()
+    }
+
+    private func updateTopBarForHostingContext() {
+        let isFloating = view.window is AIChatFloatingWindow
+        openInNewTabButton.isHidden = isFloating
+        detachButton.isHidden = isFloating
+        attachButton.isHidden = !isFloating
     }
 
     private func createAndSetupWebViewContainer(in container: NSView) {
@@ -316,6 +336,11 @@ final class AIChatSidebarViewController: NSViewController {
 
     @objc private func detachButtonClicked() {
         delegate?.didClickDetachButton()
+    }
+
+    @objc private func attachButtonClicked() {
+        guard let tabID else { return }
+        delegate?.didClickAttachButton(for: tabID)
     }
 
     @objc private func closeButtonClicked() {

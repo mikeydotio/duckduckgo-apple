@@ -638,6 +638,7 @@ struct UserText {
     static let aiChatSidebarTitle = NSLocalizedString("aichat.sidebar.title", value: "Duck.ai", comment: "Title for the Duck.ai sidebar")
     static let aiChatSidebarExpandButtonTooltip = NSLocalizedString("aichat.sidebar.expand-button.tooltip", value: "Expand", comment: "Tooltip for button to open duck.ai chat from sidebar in a full tab")
     static let aiChatSidebarDetachButtonTooltip = NSLocalizedString("aichat.sidebar.detach-button.tooltip", value: "Move to Window", comment: "Tooltip for button to detach the duck.ai sidebar into a floating window")
+    static let aiChatSidebarAttachButtonTooltip = NSLocalizedString("aichat.sidebar.attach-button.tooltip", value: "Move to Sidebar", comment: "Tooltip for button to dock the floating duck.ai window back into the sidebar")
     static let aiChatSidebarCloseButtonTooltip = NSLocalizedString("aichat.sidebar.close-button.tooltip", value: "Close", comment: "Tooltip for button to close the sidebar with the duck.ai chat")
     static let aiChatSearchTheWebTooltip = NSLocalizedString("aichat.search-privately.tooltip", value: "Search Privately", comment: "Tooltip for the search the web segment in the toggle control")
     static let aiChatChatWithAITooltip = NSLocalizedString("aichat.ask-privately.tooltip", value: "Ask privately", comment: "Tooltip for the chat with AI segment in the toggle control")

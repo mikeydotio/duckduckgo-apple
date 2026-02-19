@@ -139,6 +139,7 @@ final class AIChatSidebarProvider: AIChatSidebarProviding {
         }
 
         let sidebarViewController = AIChatSidebarViewController(currentAIChatURL: sidebar.currentAIChatURL, burnerMode: burnerMode)
+        sidebarViewController.tabID = tabID
         if let restorationData = sidebar.restorationData {
             sidebarViewController.setAIChatRestorationData(restorationData)
         }

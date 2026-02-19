@@ -192,7 +192,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
             }()
 
             sidebarViewController.delegate = self
-            sidebarHost.embedSidebarViewController(sidebarViewController)
+            sidebarHost.embedSidebarViewController(sidebarViewController, for: nil)
 
             // Mark sidebar as revealed when it's being shown
             sidebarProvider.sidebarsByTab[tabID]?.setRevealed()
@@ -314,15 +314,17 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
               let sidebarVC = controller.detachSidebarViewController() else { return }
 
         floatingWindowControllers.removeValue(forKey: tabID)
-
         sidebarProvider.sidebarsByTab[tabID]?.setDocked()
 
+        windowControllersManager.lastKeyMainWindowController?.window?.makeKeyAndOrderFront(nil)
+
         sidebarVC.delegate = self
-        sidebarHost.embedSidebarViewController(sidebarVC)
+        sidebarHost.embedSidebarViewController(sidebarVC, for: tabID)
         sidebarProvider.sidebarsByTab[tabID]?.setRevealed()
 
         updateSidebarConstraints(for: tabID, isShowingSidebar: true, withAnimation: false)
 
+        controller.delegate = nil
         controller.close()
     }
 }
@@ -372,6 +374,10 @@ extension AIChatSidebarPresenter: AIChatSidebarViewControllerDelegate {
 
     func didClickDetachButton() {
         detachSidebar()
+    }
+
+    func didClickAttachButton(for tabID: TabIdentifier) {
+        attachSidebar(for: tabID)
     }
 }
 
