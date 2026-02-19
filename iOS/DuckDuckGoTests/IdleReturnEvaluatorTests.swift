@@ -28,7 +28,7 @@ final class IdleReturnEvaluatorTests {
 
     func makeEvaluator(
         featureOn: Bool = true,
-        settingsJSON: String? = "{\"idleThresholdSeconds\": \"60\"}"
+        settingsJSON: String? = "{\"idleThresholdSeconds\": 60}"
     ) -> IdleReturnEvaluator {
         let mockConfig = MockPrivacyConfiguration()
         mockConfig.subfeatureSettings = settingsJSON
@@ -56,21 +56,21 @@ final class IdleReturnEvaluatorTests {
 
     @Test("When under threshold then shouldShowNTPAfterIdle returns false")
     func whenUnderThresholdThenReturnsFalse() {
-        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"120\"}")
+        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": 120}")
         let oneHourAgo = Date().addingTimeInterval(-110)
         #expect(!evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: oneHourAgo))
     }
 
     @Test("When over threshold then shouldShowNTPAfterIdle returns true")
     func whenOverThresholdThenReturnsTrue() {
-        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"120\"}")
+        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": 120}")
         let twoHoursAgo = Date().addingTimeInterval(-121)
         #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: twoHoursAgo))
     }
 
     @Test("When at exactly threshold then shouldShowNTPAfterIdle returns true")
     func whenAtThresholdThenReturnsTrue() {
-        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": \"120\"}")
+        let evaluator = makeEvaluator(settingsJSON: "{\"idleThresholdSeconds\": 120}")
         let oneMinuteAgo = Date().addingTimeInterval(-120)
         #expect(evaluator.shouldShowNTPAfterIdle(lastBackgroundDate: oneMinuteAgo))
     }
