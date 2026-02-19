@@ -312,9 +312,7 @@ final class AIChatSidebarPresenter: AIChatSidebarPresenting {
 
         let screenFrame = sidebarHost.sidebarContainerScreenFrame ?? NSRect(x: 200, y: 200, width: 400, height: 600)
 
-        sidebarVC.removeCompletely()
-
-        collapseSidebar(withAnimation: false)
+        collapseSidebarPreservingWebView(sidebarVC, for: tabID)
 
         let tabViewModel = windowControllersManager.allTabCollectionViewModels
             .flatMap(\.tabViewModels)
@@ -449,6 +447,18 @@ extension AIChatSidebarPresenter: AIChatSidebarResizeDelegate {
     }
 
     // MARK: - Private Helpers
+
+    /// Hides the docked sidebar container visually without running the full close flow.
+    ///
+    /// Unlike `collapseSidebar`, this does not call `handleSidebarDidClose` which
+    /// would unload the web view. Used when detaching, so the sidebar VC can be
+    /// moved to a floating window with its content intact.
+    private func collapseSidebarPreservingWebView(_ sidebarVC: NSViewController, for tabID: TabIdentifier) {
+        sidebarVC.removeCompletely()
+        sidebarHost.sidebarContainerLeadingConstraint?.constant = 0
+        sidebarHost.setResizeHandleVisible(false)
+        sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: false))
+    }
 
     /// Debounces the resize pixel so rapid adjustments only fire once (after 500 ms).
     private func fireResizedPixelDebounced(width: CGFloat) {

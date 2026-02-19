@@ -79,7 +79,7 @@ final class AIChatFloatingWindowController: NSObject {
     /// re-embedded in the docked sidebar. Returns `nil` if already detached.
     func detachSidebarViewController() -> AIChatSidebarViewController? {
         guard let vc = sidebarViewController else { return nil }
-        vc.view.removeFromSuperview()
+        floatingWindow.contentViewController = nil
         sidebarViewController = nil
         return vc
     }
@@ -99,16 +99,6 @@ final class AIChatFloatingWindowController: NSObject {
     }
 
     private func embedSidebarViewController(_ viewController: AIChatSidebarViewController) {
-        guard let contentView = floatingWindow.contentView else { return }
-
-        viewController.view.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(viewController.view)
-
-        NSLayoutConstraint.activate([
-            viewController.view.topAnchor.constraint(equalTo: contentView.topAnchor),
-            viewController.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            viewController.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            viewController.view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
-        ])
+        floatingWindow.contentViewController = viewController
     }
 }
