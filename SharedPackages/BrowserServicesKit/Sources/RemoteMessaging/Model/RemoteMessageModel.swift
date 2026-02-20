@@ -287,7 +287,7 @@ public enum NavigationTarget: String, Codable, Equatable {
     case importPasswords = "import.passwords"
     case appearance
     case personalInformationRemoval = "pir.main"
-    case softwareUpdate = "softwareUpdate"
+    case softwareUpdate
 }
 
 public enum RemoteAction: Codable, Equatable {
