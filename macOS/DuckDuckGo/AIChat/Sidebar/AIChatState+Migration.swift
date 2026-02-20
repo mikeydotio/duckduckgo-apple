@@ -24,14 +24,13 @@ import Foundation
 /// instead of a single `AIChatPresentationMode` enum. This helper reads
 /// whichever format is present and returns the correct mode.
 ///
-/// This file can be deleted once all users have upgraded past the release
-/// that introduced `AIChatPresentationMode`.
+/// This file must be kept indefinitely -- users who skip the introducing
+/// release would still have archives containing only the legacy bool keys.
 
 extension AIChatState {
 
     static func decodePresentationMode(from coder: NSCoder) -> AIChatPresentationMode {
-        if coder.containsValue(forKey: CodingKeys.presentationMode) {
-            let raw = coder.decodeInteger(forKey: CodingKeys.presentationMode)
+        if let raw = coder.decodeObject(of: NSString.self, forKey: CodingKeys.presentationMode) as? String {
             return AIChatPresentationMode(rawValue: raw) ?? .hidden
         }
 

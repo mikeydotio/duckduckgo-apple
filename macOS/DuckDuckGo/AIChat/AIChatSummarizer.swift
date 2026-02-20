@@ -51,18 +51,18 @@ protocol AIChatSummarizing {
 final class AIChatSummarizer: AIChatSummarizing {
 
     private let aiChatMenuConfig: AIChatMenuVisibilityConfigurable
-    private let aiChatPresenter: AIChatPresenting
+    private let aiChatCoordinator: AIChatCoordinating
     private let aiChatTabOpener: AIChatTabOpening
     private let pixelFiring: PixelFiring?
 
     init(
         aiChatMenuConfig: AIChatMenuVisibilityConfigurable,
-        aiChatPresenter: AIChatPresenting,
+        aiChatCoordinator: AIChatCoordinating,
         aiChatTabOpener: AIChatTabOpening,
         pixelFiring: PixelFiring?
     ) {
         self.aiChatMenuConfig = aiChatMenuConfig
-        self.aiChatPresenter = aiChatPresenter
+        self.aiChatCoordinator = aiChatCoordinator
         self.aiChatTabOpener = aiChatTabOpener
         self.pixelFiring = pixelFiring
     }
@@ -80,16 +80,16 @@ final class AIChatSummarizer: AIChatSummarizing {
         let prompt = AIChatNativePrompt.summaryPrompt(request.text, url: request.websiteURL, title: request.websiteTitle)
         pixelFiring?.fire(AIChatPixel.aiChatSummarizeText(source: request.source), frequency: .dailyAndStandard)
 
-        if !aiChatPresenter.isSidebarOpenForCurrentTab() {
+        if !aiChatCoordinator.isSidebarOpenForCurrentTab() {
             pixelFiring?.fire(
                 AIChatPixel.aiChatSidebarOpened(
                     source: .summarization,
                     shouldAutomaticallySendPageContext: aiChatMenuConfig.shouldAutomaticallySendPageContextTelemetryValue,
-                    minutesSinceSidebarHidden: aiChatPresenter.sidebarHiddenAtForCurrentTab()?.minutesSinceNow()
+                    minutesSinceSidebarHidden: aiChatCoordinator.sidebarHiddenAtForCurrentTab()?.minutesSinceNow()
                 ),
                 frequency: .dailyAndStandard
             )
         }
-        aiChatPresenter.presentSidebar(for: prompt)
+        aiChatCoordinator.presentSidebar(for: prompt)
     }
 }

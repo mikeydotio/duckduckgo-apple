@@ -27,7 +27,7 @@ final class AIChatStateTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        chatState = AIChatState(burnerMode: .regular)
+        chatState = AIChatState()
     }
 
     override func tearDown() {
@@ -39,181 +39,116 @@ final class AIChatStateTests: XCTestCase {
 
     func testInit_setsDefaultProperties() {
         // Given & When
-        let chatState = AIChatState(burnerMode: .regular)
+        let state = AIChatState()
 
         // Then
-        XCTAssertNil(chatState.restorationData)
-        XCTAssertEqual(chatState.presentationMode, .hidden)
-        XCTAssertFalse(chatState.isPresented)
-        XCTAssertFalse(chatState.isDetached)
-        XCTAssertNil(chatState.hiddenAt)
-        XCTAssertNil(chatState.chatViewController)
-    }
-
-    // MARK: - Persist State and Reset Tests
-
-    func testPersistStateAndReset_withPersistingState_clearsViewController() {
-        // Given
-        let aiChatRemoteSettings = AIChatRemoteSettings()
-        let initialAIChatURL = aiChatRemoteSettings.aiChatURL.forAIChatSidebar()
-        let viewController = AIChatViewController(currentAIChatURL: initialAIChatURL, burnerMode: .regular)
-        chatState.chatViewController = viewController
-        XCTAssertNotNil(chatState.chatViewController)
-
-        // When
-        chatState.persistStateAndReset(persistingState: true)
-
-        // Then
-        XCTAssertNil(chatState.chatViewController)
-        XCTAssertFalse(chatState.isPresented)
-        XCTAssertNotNil(chatState.hiddenAt)
-    }
-
-    func testPersistStateAndReset_withoutPersistingState_clearsViewController() {
-        // Given
-        let aiChatRemoteSettings = AIChatRemoteSettings()
-        let initialAIChatURL = aiChatRemoteSettings.aiChatURL.forAIChatSidebar()
-        let viewController = AIChatViewController(currentAIChatURL: initialAIChatURL, burnerMode: .regular)
-        chatState.chatViewController = viewController
-        XCTAssertNotNil(chatState.chatViewController)
-
-        // When
-        chatState.persistStateAndReset(persistingState: false)
-
-        // Then
-        XCTAssertNil(chatState.chatViewController)
-        XCTAssertFalse(chatState.isPresented)
-        XCTAssertNotNil(chatState.hiddenAt)
-    }
-
-    func testPersistStateAndReset_setsHiddenState() {
-        // Given
-        let aiChatRemoteSettings = AIChatRemoteSettings()
-        let initialAIChatURL = aiChatRemoteSettings.aiChatURL.forAIChatSidebar()
-        let viewController = AIChatViewController(currentAIChatURL: initialAIChatURL, burnerMode: .regular)
-        chatState.chatViewController = viewController
-        chatState.setRevealed()
-        XCTAssertTrue(chatState.isPresented)
-        XCTAssertNil(chatState.hiddenAt)
-
-        // When
-        chatState.persistStateAndReset(persistingState: true)
-
-        // Then
-        XCTAssertFalse(chatState.isPresented)
-        XCTAssertNotNil(chatState.hiddenAt)
+        XCTAssertNil(state.restorationData)
+        XCTAssertEqual(state.presentationMode, .hidden)
+        XCTAssertEqual(state.presentationMode, .hidden)
+        XCTAssertNil(state.hiddenAt)
     }
 
     // MARK: - State Management Tests
 
-    func testSetRevealed_clearsHiddenAt() {
+    func testSetSidebar_clearsHiddenAt() {
         // Given
         chatState.setHidden()
         XCTAssertNotNil(chatState.hiddenAt)
 
         // When
-        chatState.setRevealed()
+        chatState.setSidebar()
 
         // Then
-        XCTAssertTrue(chatState.isPresented)
+        XCTAssertEqual(chatState.presentationMode, .sidebar)
         XCTAssertNil(chatState.hiddenAt)
     }
 
     func testSetHidden_setsHiddenAt() {
         // Given
-        chatState.setRevealed()
-        XCTAssertTrue(chatState.isPresented)
+        chatState.setSidebar()
+        XCTAssertEqual(chatState.presentationMode, .sidebar)
         XCTAssertNil(chatState.hiddenAt)
 
         // When
         chatState.setHidden()
 
         // Then
-        XCTAssertFalse(chatState.isPresented)
+        XCTAssertEqual(chatState.presentationMode, .hidden)
         XCTAssertNotNil(chatState.hiddenAt)
+    }
+
+    func testSetHidden_doesNotOverwriteExistingHiddenAt() {
+        // Given
+        let firstDate = Date().addingTimeInterval(-100)
+        chatState.setHidden(at: firstDate)
+        XCTAssertEqual(chatState.hiddenAt, firstDate)
+
+        // When
+        chatState.setHidden(at: Date())
+
+        // Then - original date preserved
+        XCTAssertEqual(chatState.hiddenAt, firstDate)
     }
 
     // MARK: - Session Expiry Tests
 
     func testIsSessionExpired_withNilHiddenAt_returnsFalse() {
-        // Given - sidebar starts with nil hiddenAt
         XCTAssertNil(chatState.hiddenAt)
-
-        // When & Then
         XCTAssertFalse(chatState.isSessionExpired)
     }
 
     func testIsSessionExpired_withRecentHiddenAt_returnsFalse() {
-        // Given - sidebar hidden 30 minutes ago (within default 60 minute timeout)
         let recentDate = Date().addingTimeInterval(-1800) // 30 minutes ago
         chatState.updateHiddenAt(recentDate)
 
-        // When & Then
         XCTAssertFalse(chatState.isSessionExpired)
     }
 
     func testIsSessionExpired_withOldHiddenAt_returnsTrue() {
-        // Given - sidebar hidden 70 minutes ago (exceeds default 60 minute timeout)
         let oldDate = Date().addingTimeInterval(-4200) // 70 minutes ago
         chatState.updateHiddenAt(oldDate)
 
-        // When & Then
         XCTAssertTrue(chatState.isSessionExpired)
     }
 
-    func testIsSessionExpired_afterSetRevealed_returnsFalse() {
-        // Given - sidebar was hidden long ago
-        let oldDate = Date().addingTimeInterval(-4200) // 70 minutes ago
+    func testIsSessionExpired_afterSetSidebar_returnsFalse() {
+        // Given - hidden long ago
+        let oldDate = Date().addingTimeInterval(-4200)
         chatState.updateHiddenAt(oldDate)
         XCTAssertTrue(chatState.isSessionExpired)
 
-        // When - sidebar is revealed
-        chatState.setRevealed()
+        // When
+        chatState.setSidebar()
 
-        // Then - session is no longer expired (hiddenAt is cleared)
+        // Then - hiddenAt cleared, no longer expired
         XCTAssertFalse(chatState.isSessionExpired)
     }
 
     // MARK: - Presentation Mode Transition Tests
 
-    func testSetRevealed_setsPresentationModeToSidebar() {
-        chatState.setRevealed()
+    func testSetSidebar_setsPresentationModeToSidebar() {
+        chatState.setSidebar()
         XCTAssertEqual(chatState.presentationMode, .sidebar)
-        XCTAssertTrue(chatState.isPresented)
-        XCTAssertFalse(chatState.isDetached)
     }
 
-    func testSetDetached_setsPresentationModeToFloating() {
-        chatState.setDetached()
+    func testSetFloating_setsPresentationModeToFloating() {
+        chatState.setFloating()
         XCTAssertEqual(chatState.presentationMode, .floating)
-        XCTAssertTrue(chatState.isPresented)
-        XCTAssertTrue(chatState.isDetached)
     }
 
-    func testSetDocked_setsPresentationModeToSidebar() {
-        chatState.setDetached()
+    func testSetSidebar_fromFloating_setsPresentationModeToSidebar() {
+        chatState.setFloating()
         XCTAssertEqual(chatState.presentationMode, .floating)
 
-        chatState.setDocked()
+        chatState.setSidebar()
         XCTAssertEqual(chatState.presentationMode, .sidebar)
-        XCTAssertFalse(chatState.isDetached)
     }
 
     func testSetHidden_setsPresentationModeToHidden() {
-        chatState.setRevealed()
+        chatState.setSidebar()
         XCTAssertEqual(chatState.presentationMode, .sidebar)
 
         chatState.setHidden()
-        XCTAssertEqual(chatState.presentationMode, .hidden)
-        XCTAssertFalse(chatState.isPresented)
-        XCTAssertFalse(chatState.isDetached)
-    }
-
-    func testPersistStateAndReset_setsPresentationModeToHidden() {
-        chatState.setDetached()
-        XCTAssertEqual(chatState.presentationMode, .floating)
-
-        chatState.persistStateAndReset(persistingState: false)
         XCTAssertEqual(chatState.presentationMode, .hidden)
     }
 
@@ -221,73 +156,69 @@ final class AIChatStateTests: XCTestCase {
 
     func testNSSecureCoding_roundTrip_preservesPresentationMode() {
         // Given
-        chatState.setDetached()
+        chatState.setFloating()
         chatState.sidebarWidth = 450
 
-        // When -- encode and decode
+        // When
         let data = try! NSKeyedArchiver.archivedData(withRootObject: chatState!, requiringSecureCoding: true)
         let decoded = try! NSKeyedUnarchiver.unarchivedObject(ofClass: AIChatState.self, from: data)!
 
         // Then
         XCTAssertEqual(decoded.presentationMode, .floating)
-        XCTAssertTrue(decoded.isPresented)
-        XCTAssertTrue(decoded.isDetached)
         XCTAssertEqual(decoded.sidebarWidth, 450)
     }
 
-    func testNSSecureCoding_legacyFormat_migratesBoolsToEnum() {
-        // Given -- encode using the old two-bool key names
+    func testNSSecureCoding_legacyFormat_migratesBoolsToEnum() throws {
+        // Given -- encode using the old two-bool key names (no root object)
         let archiver = NSKeyedArchiver(requiringSecureCoding: true)
         let url = AIChatRemoteSettings().aiChatURL.forAIChatSidebar()
         archiver.encode(url as NSURL, forKey: AIChatState.CodingKeys.initialAIChatURL)
         archiver.encode(true, forKey: AIChatState.CodingKeys.isPresented)
         archiver.encode(true, forKey: AIChatState.CodingKeys.isDetached)
         archiver.finishEncoding()
-        let data = archiver.encodedData
 
-        // When
-        let decoded = try! NSKeyedUnarchiver.unarchivedObject(ofClass: AIChatState.self, from: data)!
+        // When -- decode using the coder init directly (no root object in archive)
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        unarchiver.requiresSecureCoding = true
+        let decoded = AIChatState(coder: unarchiver)!
 
         // Then -- legacy bools should map to .floating
         XCTAssertEqual(decoded.presentationMode, .floating)
-        XCTAssertTrue(decoded.isPresented)
-        XCTAssertTrue(decoded.isDetached)
     }
 
-    func testNSSecureCoding_legacyFormat_hiddenState() {
-        // Given -- encode hidden state using old format
+    func testNSSecureCoding_legacyFormat_hiddenState() throws {
+        // Given
         let archiver = NSKeyedArchiver(requiringSecureCoding: true)
         let url = AIChatRemoteSettings().aiChatURL.forAIChatSidebar()
         archiver.encode(url as NSURL, forKey: AIChatState.CodingKeys.initialAIChatURL)
         archiver.encode(false, forKey: AIChatState.CodingKeys.isPresented)
         archiver.encode(false, forKey: AIChatState.CodingKeys.isDetached)
         archiver.finishEncoding()
-        let data = archiver.encodedData
 
         // When
-        let decoded = try! NSKeyedUnarchiver.unarchivedObject(ofClass: AIChatState.self, from: data)!
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        unarchiver.requiresSecureCoding = true
+        let decoded = AIChatState(coder: unarchiver)!
 
         // Then
         XCTAssertEqual(decoded.presentationMode, .hidden)
-        XCTAssertFalse(decoded.isPresented)
     }
 
-    func testNSSecureCoding_legacyFormat_sidebarState() {
-        // Given -- encode sidebar state using old format
+    func testNSSecureCoding_legacyFormat_sidebarState() throws {
+        // Given
         let archiver = NSKeyedArchiver(requiringSecureCoding: true)
         let url = AIChatRemoteSettings().aiChatURL.forAIChatSidebar()
         archiver.encode(url as NSURL, forKey: AIChatState.CodingKeys.initialAIChatURL)
         archiver.encode(true, forKey: AIChatState.CodingKeys.isPresented)
         archiver.encode(false, forKey: AIChatState.CodingKeys.isDetached)
         archiver.finishEncoding()
-        let data = archiver.encodedData
 
         // When
-        let decoded = try! NSKeyedUnarchiver.unarchivedObject(ofClass: AIChatState.self, from: data)!
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        unarchiver.requiresSecureCoding = true
+        let decoded = AIChatState(coder: unarchiver)!
 
         // Then
         XCTAssertEqual(decoded.presentationMode, .sidebar)
-        XCTAssertTrue(decoded.isPresented)
-        XCTAssertFalse(decoded.isDetached)
     }
 }

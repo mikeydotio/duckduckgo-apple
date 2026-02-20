@@ -85,7 +85,7 @@ protocol TabExtensionDependencies {
     var contentScopeExperimentsManager: ContentScopeExperimentsManaging { get }
     var aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable { get }
     var newTabPageShownPixelSender: NewTabPageShownPixelSender { get }
-    var aiChatStateProvider: AIChatStateProviding { get }
+    var aiChatSessionStore: AIChatSessionStoring { get }
     var tabCrashAggregator: TabCrashAggregator { get }
     var tabsPreferences: TabsPreferences { get }
     var webTrackingProtectionPreferences: WebTrackingProtectionPreferences { get }
@@ -308,7 +308,7 @@ extension TabExtensionsBuilder {
                                     contentPublisher: args.contentPublisher,
                                     tabID: args.tabID,
                                     featureFlagger: dependencies.featureFlagger,
-                                    aiChatStateProvider: dependencies.aiChatStateProvider,
+                                    aiChatSessionStore: dependencies.aiChatSessionStore,
                                     aiChatMenuConfiguration: dependencies.aiChatMenuConfiguration,
                                     isLoadedInSidebar: args.isTabLoadedInSidebar,
                                     faviconManagement: dependencies.faviconManagement)

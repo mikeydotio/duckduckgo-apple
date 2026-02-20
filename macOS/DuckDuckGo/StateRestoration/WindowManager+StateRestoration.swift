@@ -35,9 +35,9 @@ extension WindowsManager {
 
         if let aiChatStatesByTab = state.aiChatStatesByTab {
             let statesToRestore = aiChatStatesByTab.filter { (_, value) in
-                value.isPresented || !value.isSessionExpired
+                value.presentationMode != .hidden || !value.isSessionExpired
             }
-            Application.appDelegate.aiChatStateProvider.restoreState(statesToRestore)
+            Application.appDelegate.aiChatSessionStore.restoreState(statesToRestore)
         }
 
         if includeWindows {
@@ -86,7 +86,7 @@ extension WindowControllersManager {
         coder.encode(WindowManagerStateRestoration(mainWindowControllers: mainWindowControllers,
                                                    lastKeyMainWindowController: lastKeyMainWindowController,
                                                    applicationPinnedTabs: Application.appDelegate.pinnedTabsManager.tabCollection,
-                                                   aiChatStatesByTab: Application.appDelegate.aiChatStateProvider.statesByTab),
+                                                   aiChatStatesByTab: Application.appDelegate.aiChatSessionStore.statesForSerialization()),
                      forKey: NSKeyedArchiveRootObjectKey)
     }
 
