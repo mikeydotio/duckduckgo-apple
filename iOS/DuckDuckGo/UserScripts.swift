@@ -59,6 +59,7 @@ final class UserScripts: UserScriptsProvider {
     private(set) var findInPageScript = FindInPageUserScript()
     private(set) var fullScreenVideoScript = FullScreenVideoUserScript()
     private(set) var printingSubfeature = PrintingSubfeature()
+    private(set) var eventHubSubfeature: EventHubSubfeature?
     private(set) var debugScript = DebugUserScript()
 
     private let isAutoconsentExtensionAvailable: Bool
@@ -80,7 +81,7 @@ final class UserScripts: UserScriptsProvider {
             contentScopeUserScript = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
                                                                 properties: sourceProvider.contentScopeProperties,
                                                                 scriptContext: .contentScope,
-                                                                allowedNonisolatedFeatures: [PageContextUserScript.featureName, PrintingSubfeature.featureNameValue],
+                                                                allowedNonisolatedFeatures: [PageContextUserScript.featureName, PrintingSubfeature.featureNameValue, EventHubSubfeature.featureNameValue],
                                                                 privacyConfigurationJSONGenerator: ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: AppDependencyProvider.shared.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager))
             contentScopeUserScriptIsolated = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
                                                                         properties: sourceProvider.contentScopeProperties,
@@ -123,6 +124,16 @@ final class UserScripts: UserScriptsProvider {
         contentScopeUserScriptIsolated.registerSubfeature(delegate: serpSettingsUserScript)
         contentScopeUserScript.registerSubfeature(delegate: printingSubfeature)
         contentScopeUserScript.registerSubfeature(delegate: pageContextUserScript)
+
+        // EventHub: receives webEvent notifications from C-S-S webDetection
+        let eventHub = EventHub(
+            privacyConfigManager: sourceProvider.privacyConfigurationManager,
+            pixelFiring: EventHubPixelAdapter(),
+            store: UserDefaultsEventHubStore()
+        )
+        let eventHubSubfeature = EventHubSubfeature(eventHub: eventHub)
+        contentScopeUserScript.registerSubfeature(delegate: eventHubSubfeature)
+        self.eventHubSubfeature = eventHubSubfeature
 
         // Special pages - Such as Duck Player
         specialPages = SpecialPagesUserScript()
