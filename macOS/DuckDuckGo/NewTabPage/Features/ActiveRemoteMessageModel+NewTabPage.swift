@@ -59,6 +59,8 @@ extension ActiveRemoteMessageModel: NewTabPageActiveRemoteMessageProviding {
                 await navigateToFeedbackHandler()
             case .personalInformationRemoval:
                 await navigateToPIRHandler()
+            case .softwareUpdate:
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Software-Update-Settings.extension")!)
             default: break
             }
         default:
