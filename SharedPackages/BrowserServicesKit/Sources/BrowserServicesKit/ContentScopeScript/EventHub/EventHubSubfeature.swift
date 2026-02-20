@@ -20,16 +20,17 @@ import Foundation
 import UserScript
 import WebKit
 
-/// Subfeature that receives `webEvent` notifications from C-S-S's webDetection feature
+/// Subfeature that receives `webEvent` notifications from C-S-S's webTelemetry feature
 /// and forwards them to the EventHub for telemetry processing.
 ///
-/// The webDetection feature in C-S-S sends `webEvent` notifications when auto-triggered
-/// detectors match (e.g., adwall detection). This subfeature routes those events to the
-/// EventHub, which manages counters, timers, and pixel firing.
+/// The webDetection feature in C-S-S routes detection events through webTelemetry's
+/// `fireEvent` method, which sends `webEvent` notifications to the native client.
+/// This subfeature handles those notifications and delegates to EventHub for
+/// counter management, timer scheduling, and pixel firing.
 ///
 /// ## Registration
 ///
-/// Register on the non-isolated `ContentScopeUserScript` and add `"webDetection"` to
+/// Register on the non-isolated `ContentScopeUserScript` and add `"webTelemetry"` to
 /// `allowedNonisolatedFeatures`:
 ///
 /// ```swift
@@ -40,7 +41,7 @@ import WebKit
 public final class EventHubSubfeature: NSObject, Subfeature {
 
     /// Must match the C-S-S feature name that sends `webEvent` notifications.
-    public static let featureNameValue = "webDetection"
+    public static let featureNameValue = "webTelemetry"
 
     public let featureName: String = EventHubSubfeature.featureNameValue
 
