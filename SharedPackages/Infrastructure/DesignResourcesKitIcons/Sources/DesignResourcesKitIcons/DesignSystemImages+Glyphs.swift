@@ -180,6 +180,7 @@ public extension DesignSystemImages {
             public static var home: DesignSystemImage { .init(resource: .home16) }
             public static var hourglass: DesignSystemImage { .init(resource: .hourglass16) }
             public static var identityTheftRestoration: DesignSystemImage { .init(resource: .identityTheftRestoration16) }
+            public static var image: DesignSystemImage { .init(resource: .image16) }
             public static var imageCopy: DesignSystemImage { .init(resource: .imageCopy16) }
             public static var imageLink: DesignSystemImage { .init(resource: .imageLink16) }
             public static var `import`: DesignSystemImage { .init(resource: .import16) }
@@ -464,6 +465,7 @@ public extension DesignSystemImages {
             public static var shapeCircle: DesignSystemImage { .init(resource: .shapeCircle24) }
             public static var shield: DesignSystemImage { .init(resource: .shield24) }
             public static var shieldBlocked: DesignSystemImage { .init(resource: .shieldBlocked24) }
+            public static var shieldCheckSolid: DesignSystemImage { .init(resource: .shieldCheckSolid24) }
             public static var shareAndroid: DesignSystemImage { .init(resource: .shareAndroid24) }
             public static var shareApple: DesignSystemImage { .init(resource: .shareApple24) }
             public static var shortcut: DesignSystemImage { .init(resource: .shortcut24) }

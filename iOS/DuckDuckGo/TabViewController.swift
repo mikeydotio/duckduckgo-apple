@@ -40,7 +40,6 @@ import SpecialErrorPages
 import VPN
 import Onboarding
 import os.log
-import Navigation
 import Subscription
 import WKAbstractions
 import SERPSettings
@@ -180,6 +179,7 @@ class TabViewController: UIViewController {
     private var trackersInfoWorkItem: DispatchWorkItem?
     private var lastVisitedTrackerAnimationDomain: String?
     private var lastNotifiedTrackerAnimationDomain: String?
+    var shouldSuppressTrackerAnimationOnFirstLoad: Bool = false
     
     private var tabURLInterceptor: TabURLInterceptor
     private var currentlyLoadedURL: URL?
@@ -624,7 +624,7 @@ class TabViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         fireproofingWorker = FireproofingWorking(controller: self, fireproofing: fireproofing)
         initAttributionLogic()
         decorate()
@@ -643,6 +643,12 @@ class TabViewController: UIViewController {
 
         // Link DuckPlayer to current Tab
         duckPlayerNavigationHandler.setHostViewController(self)
+
+        // Read tracker animation suppression flag from Tab model on first load
+        // This ensures background tabs get the flag when they're loaded for the first time
+        if tabModel.shouldSuppressTrackerAnimationOnFirstLoad {
+            shouldSuppressTrackerAnimationOnFirstLoad = true
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -697,16 +703,23 @@ class TabViewController: UIViewController {
     }
 
     func updateWebViewBottomAnchor(for barsVisibilityPercent: CGFloat) {
-        if appSettings.currentAddressBarPosition == .bottom {
-            /// When address bar is at bottom, offset webview to make room for the bars
+        let isLargeWidth = AppWidthObserver.shared.isLargeWidth
+
+        if appSettings.currentAddressBarPosition == .bottom && !isLargeWidth {
+            /// When address bar is at bottom on iPhone, offset webview to make room for the bars
             let targetHeight = chromeDelegate?.barsMaxHeight ?? 0.0
             webViewBottomAnchorConstraint?.constant = -targetHeight * barsVisibilityPercent
         } else {
-            /// When address bar is at top, webview fills the container
-            /// The container already follows the toolbar position
             webViewBottomAnchorConstraint?.constant = 0
         }
-        borderView.bottomAlpha = AppWidthObserver.shared.isLargeWidth ? 0 : barsVisibilityPercent
+        borderView.bottomAlpha = isLargeWidth ? 0 : barsVisibilityPercent
+        updateContentInsetAdjustment()
+    }
+
+    /// https://app.asana.com/1/137249556945/task/1213037676998807
+    private func updateContentInsetAdjustment() {
+        guard let webView = webView else { return }
+        webView.scrollView.contentInsetAdjustmentBehavior = AppWidthObserver.shared.isLargeWidth ? .never : .automatic
     }
 
     private func observeNetPConnectionStatusChanges() {
@@ -824,6 +837,8 @@ class TabViewController: UIViewController {
             webViewBottomAnchorConstraint!,
             webView.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor)
         ])
+
+        updateContentInsetAdjustment()
 
         pullToRefreshViewAdapter = PullToRefreshViewAdapter(with: webView.scrollView,
                                                             pullableView: webViewContainerView,
@@ -1010,10 +1025,13 @@ class TabViewController: UIViewController {
             if webView.isLoading {
                 delegate?.showBars()
             }
+            if #available(iOS 18.4, *) {
+                notifyWebExtensionOfPropertyChange([.loading])
+            }
 
         case #keyPath(WKWebView.estimatedProgress):
             progressWorker.progressDidChange(webView.estimatedProgress)
-            
+
         case #keyPath(WKWebView.url):
             // A short delay is required here, because the URL takes some time
             // to propagate to the webView.url property accessor and might not
@@ -1022,6 +1040,9 @@ class TabViewController: UIViewController {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 guard let self else { return }
                 self.webViewUrlHasChanged(previousURL: previousURL, newURL: self.webView.url)
+                if #available(iOS 18.4, *) {
+                    self.notifyWebExtensionOfPropertyChange([.URL])
+                }
             }
 
         case #keyPath(WKWebView.canGoBack):
@@ -1032,7 +1053,9 @@ class TabViewController: UIViewController {
 
         case #keyPath(WKWebView.title):
             title = webView.title
-
+            if #available(iOS 18.4, *) {
+                notifyWebExtensionOfPropertyChange([.title])
+            }
         default:
             Logger.general.debug("Unhandled keyPath \(keyPath)")
         }
@@ -1050,7 +1073,12 @@ class TabViewController: UIViewController {
             url = newURL
         }
     }
-    
+
+    @available(iOS 18.4, *)
+    private func notifyWebExtensionOfPropertyChange(_ properties: WKWebExtension.TabChangedProperties) {
+        (delegate as? MainViewController)?.webExtensionEventsCoordinator?.didChangeTabProperties(properties, for: self)
+    }
+
     func enableFireproofingForDomain(_ domain: String) {
         FireproofingAlert.showConfirmFireproofWebsite(usingController: self, forDomain: domain) { [weak self] in
             Pixel.fire(pixel: .browsingMenuFireproof)
@@ -1883,8 +1911,9 @@ extension TabViewController: WKNavigationDelegate {
             return
         }
               
-        /// Never show onboarding Dax on Youtube or DuckPlayer, unless DuckPlayer is disabled
+        /// Never show onboarding Dax on Duck.ai, Youtube or DuckPlayer (unless DuckPlayer is disabled)
         guard let url = link?.url,
+              !url.isDuckAIURL,
               !url.isDuckPlayer,
               !(url.isYoutube && duckPlayerNavigationHandler.duckPlayer.settings.mode != .disabled) else {
             scheduleTrackerNetworksAnimation(collapsing: true)
@@ -1966,7 +1995,18 @@ extension TabViewController: WKNavigationDelegate {
 
     private func updateTrackerAnimationDomainState(for url: URL?) {
         let currentDomain = trackerAnimationDomain(for: url)
-        guard currentDomain != lastVisitedTrackerAnimationDomain else { return }
+
+        // Pre-set domain on first load to suppress tracker animation on cold start
+        if shouldSuppressTrackerAnimationOnFirstLoad && url != nil {
+            lastNotifiedTrackerAnimationDomain = currentDomain
+            lastVisitedTrackerAnimationDomain = currentDomain
+            shouldSuppressTrackerAnimationOnFirstLoad = false
+            return
+        }
+
+        guard currentDomain != lastVisitedTrackerAnimationDomain else {
+            return
+        }
         lastVisitedTrackerAnimationDomain = currentDomain
         lastNotifiedTrackerAnimationDomain = nil
     }
@@ -3026,7 +3066,7 @@ extension TabViewController: UserContentControllerDelegate {
         userScripts.autofillUserScript.vaultDelegate = vaultManager
         userScripts.autofillUserScript.passwordImportDelegate = credentialsImportManager
         userScripts.faviconScript.delegate = faviconUpdater
-        userScripts.printingUserScript.delegate = self
+        userScripts.printingSubfeature.delegate = self
         userScripts.loginFormDetectionScript?.delegate = self
         userScripts.autoconsentUserScript.delegate = self
         userScripts.contentScopeUserScript.delegate = self
@@ -3143,12 +3183,22 @@ extension TabViewController: SurrogatesUserScriptDelegate {
 
 }
 
-// MARK: - PrintingUserScriptDelegate
-extension TabViewController: PrintingUserScriptDelegate {
+// MARK: - PrintingSubfeatureDelegate
+extension TabViewController: PrintingSubfeatureDelegate {
 
-    func printingUserScriptDidRequestPrintController(_ script: PrintingUserScript) {
+    func printingSubfeatureDidRequestPrint(for frameHandle: Any?, in webView: WKWebView?) {
+        // Use explicit if-let to avoid type inference issues with IUO (WKWebView!)
+        let targetWebView: WKWebView
+        if let providedWebView = webView {
+            targetWebView = providedWebView
+        } else if let ownWebView = self.webView {
+            targetWebView = ownWebView
+        } else {
+            return
+        }
+
         let controller = UIPrintInteractionController.shared
-        controller.printFormatter = webView.viewPrintFormatter()
+        controller.printFormatter = targetWebView.viewPrintFormatter()
         controller.present(animated: true, completionHandler: nil)
     }
 
@@ -3247,6 +3297,7 @@ extension TabViewController: SecureVaultManagerDelegate {
             
             let saveLoginController = SaveLoginViewController(credentialManager: manager,
                                                               appSettings: self.appSettings,
+                                                              featureFlagger: self.featureFlagger,
                                                               domainLastShownOn: self.domainSaveLoginPromptLastShownOn,
                                                               backfilled: backfilled)
             self.domainSaveLoginPromptLastShownOn = self.url?.host
@@ -3785,6 +3836,7 @@ extension TabViewController: SaveLoginViewControllerDelegate {
             syncService.scheduler.notifyDataChanged()
 
             NotificationCenter.default.post(name: .autofillSaveEvent, object: nil)
+            AutofillOnboardingExperimentPixelReporter().firePasswordsSaved()
         } catch {
             Logger.general.error("failed to store credentials: \(error.localizedDescription, privacy: .public)")
         }
@@ -4082,16 +4134,16 @@ extension TabViewController {
                 
                 switch update {
                 case .showPill(let height):
-                    if self.appSettings.currentAddressBarPosition == .bottom {
+                    if self.appSettings.currentAddressBarPosition == .bottom && !AppWidthObserver.shared.isLargeWidth {
                         let targetHeight = self.chromeDelegate?.barsMaxHeight ?? 0
                         self.webViewBottomAnchorConstraint?.constant = -targetHeight - height
                     } else {
                         self.webViewBottomAnchorConstraint?.constant = -height
                     }
-                    
+
                 case .reset:
                     let targetHeight = self.chromeDelegate?.barsMaxHeight ?? 0
-                    self.webViewBottomAnchorConstraint?.constant = self.appSettings.currentAddressBarPosition == .bottom ? -targetHeight : 0
+                    self.webViewBottomAnchorConstraint?.constant = (self.appSettings.currentAddressBarPosition == .bottom && !AppWidthObserver.shared.isLargeWidth) ? -targetHeight : 0
                 }
                 
                 self.view.layoutIfNeeded()

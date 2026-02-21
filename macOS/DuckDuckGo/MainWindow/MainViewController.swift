@@ -82,6 +82,8 @@ final class MainViewController: NSViewController {
         themeManager.theme
     }
 
+    private(set) var allowsUserInteraction: Bool = true
+
     var shouldShowBookmarksBar: Bool {
         return !isInPopUpWindow
         && bookmarksBarVisibilityManager.isBookmarksBarVisible
@@ -228,7 +230,8 @@ final class MainViewController: NSViewController {
             aiChatMenuConfig: aiChatMenuConfig,
             aiChatTabOpener: aiChatTabOpener,
             windowControllersManager: windowControllersManager,
-            pixelFiring: pixelFiring
+            pixelFiring: pixelFiring,
+            featureFlagger: featureFlagger
         )
         aiChatSummarizer = AIChatSummarizer(
             aiChatMenuConfig: aiChatMenuConfig,
@@ -422,7 +425,11 @@ final class MainViewController: NSViewController {
     func showBookmarkPromptIfNeeded() {
         guard !isInPopUpWindow,
               !bookmarksBarViewController.bookmarksBarPromptShown,
-              OnboardingActionsManager.isOnboardingFinished else { return }
+              OnboardingActionsManager.isOnboardingFinished
+        else {
+            return
+        }
+
         if bookmarksBarIsVisible {
             // Don't show this to users who obviously know about the bookmarks bar already
             bookmarksBarViewController.bookmarksBarPromptShown = true
@@ -493,9 +500,10 @@ final class MainViewController: NSViewController {
             let suggestionsHeight = aiChatOmnibarContainerViewController.suggestionsHeight
             let totalHeight = desiredHeight + suggestionsHeight
             mainView.updateAIChatOmnibarContainerHeight(totalHeight, animated: false)
-            // Allow clicks to pass through text container to reach suggestions
-            mainView.updateAIChatOmnibarTextContainerPassthrough(suggestionsHeight)
-            aiChatOmnibarTextContainerViewController.setPassthroughBottomHeight(suggestionsHeight)
+            // Allow clicks to pass through text container to reach suggestions and tool buttons
+            let passthroughHeight = aiChatOmnibarContainerViewController.totalPassthroughHeight
+            mainView.updateAIChatOmnibarTextContainerPassthrough(passthroughHeight)
+            aiChatOmnibarTextContainerViewController.setPassthroughBottomHeight(passthroughHeight)
         }
 
         mainView.isAIChatOmnibarContainerShown = visible
@@ -559,12 +567,21 @@ final class MainViewController: NSViewController {
 
             self.mainView.updateAIChatOmnibarContainerHeight(totalHeight, animated: false)
 
-            // Allow clicks to pass through text container to reach suggestions
-            self.mainView.updateAIChatOmnibarTextContainerPassthrough(suggestionsHeight)
-            self.aiChatOmnibarTextContainerViewController.setPassthroughBottomHeight(suggestionsHeight)
+            // Allow clicks to pass through text container to reach suggestions and tool buttons
+            let passthroughHeight = self.aiChatOmnibarContainerViewController.totalPassthroughHeight
+            self.mainView.updateAIChatOmnibarTextContainerPassthrough(passthroughHeight)
+            self.aiChatOmnibarTextContainerViewController.setPassthroughBottomHeight(passthroughHeight)
 
             let maxHeight = self.mainView.calculateMaxAIChatOmnibarHeight()
             self.aiChatOmnibarTextContainerViewController.updateScrollingBehavior(maxHeight: maxHeight)
+        }
+
+        // Wire up passthrough height updates when tools visibility changes
+        aiChatOmnibarContainerViewController.onPassthroughHeightNeedsUpdate = { [weak self] in
+            guard let self, self.mainView.isAIChatOmnibarContainerShown else { return }
+            let passthroughHeight = self.aiChatOmnibarContainerViewController.totalPassthroughHeight
+            self.mainView.updateAIChatOmnibarTextContainerPassthrough(passthroughHeight)
+            self.aiChatOmnibarTextContainerViewController.setPassthroughBottomHeight(passthroughHeight)
         }
 
         NotificationCenter.default.addObserver(
@@ -1152,6 +1169,23 @@ extension MainViewController {
         windowController.showWindow(nil)
     }
 
+}
+
+// MARK: - Preventing User Interaction
+
+extension MainViewController {
+
+    func userInteraction(prevented: Bool) {
+        allowsUserInteraction = !prevented
+        tabCollectionViewModel.changesEnabled = !prevented
+        tabCollectionViewModel.selectedTabViewModel?.tab.contentChangeEnabled = !prevented
+
+        tabBarViewController.fireButton.isEnabled = !prevented
+        tabBarViewController.isInteractionPrevented = prevented
+
+        navigationBarViewController.userInteraction(prevented: prevented)
+        bookmarksBarViewController.userInteraction(prevented: prevented)
+    }
 }
 
 // MARK: - Performance Testing
