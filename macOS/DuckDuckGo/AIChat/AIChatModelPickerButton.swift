@@ -35,7 +35,7 @@ final class AIChatModelPickerButton: NSView {
     private let nameLabel: NSTextField = {
         let label = NSTextField(labelWithString: "")
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = .systemFont(ofSize: Constants.fontSize, weight: .medium)
+        label.font = .systemFont(ofSize: Constants.fontSize, weight: .regular)
         label.isEditable = false
         label.isSelectable = false
         label.isBezeled = false

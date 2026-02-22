@@ -559,6 +559,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     private func buildModelPickerMenu() -> NSMenu {
         let menu = NSMenu()
+        menu.autoenablesItems = false
 
         for model in AIChatModelProvider.freeModels {
             let item = NSMenuItem(title: model.displayName, action: #selector(modelSelected(_:)), keyEquivalent: "")
