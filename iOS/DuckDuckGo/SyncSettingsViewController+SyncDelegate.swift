@@ -23,6 +23,7 @@ import SwiftUI
 import SyncUI_iOS
 import DDGSync
 import AVFoundation
+import WebKit
 
 extension SyncSettingsViewController: SyncManagementViewModelDelegate {
     var syncBookmarksPausedTitle: String? {
@@ -177,7 +178,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
                     AutofillOnboardingExperimentPixelReporter().fireSyncEnabled(true)
                     self.rootView.model.syncEnabled(recoveryCode: self.recoveryCode)
                     self.refreshDevices()
-                    self.navigationController?.topViewController?.dismiss(animated: true, completion: self.showRecoveryPDF)
+                    self.dismissVCAndShowRecoveryPDF()
                 } catch {
                     await self.handleError(SyncErrorMessage.unableToSyncToServer, error: error, event: .syncSignupError)
                 }
@@ -344,15 +345,44 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
 
     @MainActor
     func showRecoveryPDF() {
-        let model = SaveRecoveryKeyViewModel(key: recoveryCode) { [weak self] in
-            self?.shareRecoveryPDF()
-        } onDismiss: {
-            self.showDeviceConnected()
-        }
+        let model = SaveRecoveryKeyViewModel(
+            key: recoveryCode,
+            showRecoveryPDFAction: { [weak self] in
+                self?.shareRecoveryPDF()
+            },
+            onDismiss: { [weak self] in
+                self?.showDeviceConnected()
+            },
+            isAutoRestoreFeatureEnabled: syncAutoRestoreHandler?.isAutoRestoreFeatureEnabled == true,
+            existingAutoRestoreDecision: syncAutoRestoreHandler?.existingDecision(),
+            persistAutoRestoreDecision: { [weak self] decision in
+                self?.syncAutoRestoreHandler?.persistDecision(decision) == true
+            },
+            presentLearnMore: { [weak self] in
+                guard let self else { return }
+                let presenter = self.navigationController?.presentedViewController ?? self.presentedViewController ?? self
+                self.presentAutoRestoreLearnMore(from: presenter)
+            }
+        )
         let controller = UIHostingController(rootView: SaveRecoveryKeyView(model: model))
         navigationController?.present(controller, animated: true) { [weak self] in
-            self?.rootView.model.syncEnabled(recoveryCode: self!.recoveryCode)
+            guard let self else { return }
+            self.rootView.model.syncEnabled(recoveryCode: self.recoveryCode)
         }
+    }
+
+    @MainActor
+    private func presentAutoRestoreLearnMore(from presenter: UIViewController?) {
+        guard let presenter,
+              let url = URL(string: "https://duckduckgo.com/duckduckgo-help-pages/sync-and-backup/recovery-codes-and-troubleshooting") else {
+            return
+        }
+
+        let controller = AutoRestoreLearnMoreViewController(url: url)
+        let navigationController = UIDevice.current.userInterfaceIdiom == .phone
+        ? PortraitNavigationController(rootViewController: controller)
+        : UINavigationController(rootViewController: controller)
+        presenter.present(navigationController, animated: true)
     }
 
     private func collectCode(showQRCode: Bool) {
@@ -575,6 +605,45 @@ private class PortraitNavigationController: UINavigationController {
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         [.portrait, .portraitUpsideDown]
+    }
+}
+
+private final class AutoRestoreLearnMoreViewController: UIViewController {
+    private let url: URL
+    private let webView: WKWebView
+
+    init(url: URL) {
+        self.url = url
+        self.webView = WKWebView(frame: .zero, configuration: .nonPersistent())
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func loadView() {
+        view = webView
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        decorateNavigationBar(navigationController?.navigationBar)
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(doneTapped)
+        )
+        webView.load(URLRequest(url: url))
+    }
+
+    @objc private func doneTapped() {
+        dismiss(animated: true)
     }
 }
 

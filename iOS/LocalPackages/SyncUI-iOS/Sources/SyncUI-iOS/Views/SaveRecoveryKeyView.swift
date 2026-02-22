@@ -31,7 +31,7 @@ public struct SaveRecoveryKeyView: View {
         verticalSizeClass == .compact
     }
 
-    let model: SaveRecoveryKeyViewModel
+    @ObservedObject var model: SaveRecoveryKeyViewModel
 
     public init(model: SaveRecoveryKeyViewModel) {
         self.model = model
@@ -39,50 +39,68 @@ public struct SaveRecoveryKeyView: View {
 
     @ViewBuilder
     func recoveryInfo() -> some View {
-        VStack(spacing: 26) {
-            Text(model.key)
-                .fontWeight(.light)
-                .lineSpacing(1.6)
-                .lineLimit(3)
-                .applyKerning(2)
-                .truncationMode(.tail)
-                .monospaceSystemFont(ofSize: 16)
-                .frame(maxWidth: .infinity)
-            codeButtons()
-        }
-        .padding(.top, 20)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-            .background(RoundedRectangle(cornerRadius: 10).foregroundColor(.black.opacity(0.03)))
-    }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 0) {
+                Image("Sync-QR-24")
+                    .accessibilityHidden(true)
+                    .padding(.leading, 16)
+                    .padding(.trailing, 8)
 
-    @ViewBuilder
-    func codeButtons() -> some View {
-        VStack(spacing: isCompact ? 4 : 8) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(UserText.saveRecoveryCodeCardTitle)
+                        .daxBodyRegular()
+                        .foregroundColor(Color(designSystemColor: .textPrimary))
+                        .padding(.bottom, 2)
+
+                    Text(model.key)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                        .monospaceSystemFont(ofSize: 16)
+                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                }
+
+                Button(action: copyRecoveryCode) {
+                    Image("Sync-Copy-24")
+                }
+                .padding(.leading, 12)
+                .padding(.trailing, 16)
+                .buttonStyle(.plain)
+                .accessibilityLabel(UserText.saveRecoveryCodeCopyCodeButton)
+            }
+            .padding(.top, 11)
+
+            Divider()
+                .padding(.leading, 48)
+
             Button(UserText.saveRecoveryCodeSaveAsPdfButton) {
                 model.showRecoveryPDFAction()
             }
-            .buttonStyle(SecondaryButtonStyle(compact: isCompact))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                .inset(by: 0.5)
-                .stroke(.blue, lineWidth: 1)
-                )
-
-            Button(UserText.saveRecoveryCodeCopyCodeButton) {
-                model.copyKey()
-                isCopied = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    isCopied = false
-                }
-            }
-            .buttonStyle(SecondaryButtonStyle(compact: isCompact))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .inset(by: 0.5)
-                    .stroke(.blue, lineWidth: 1)
-            )
+            .padding(.leading, 48)
+            .padding(.bottom, 16)
+            .buttonStyle(.plain)
+            .foregroundColor(Color(designSystemColor: .accent))
+            .daxBodyRegular()
         }
+        .background(RoundedRectangle(cornerRadius: 12).foregroundColor(.black.opacity(0.03)))
+    }
+
+    func copyRecoveryCode() {
+        model.copyKey()
+        isCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            isCopied = false
+        }
+    }
+
+    private var autoRestoreLearnMoreText: AttributedString {
+        var text = (try? AttributedString(markdown: UserText.autoRestoreLearnMoreFull)) ?? AttributedString(UserText.autoRestoreLearnMoreFull)
+        text.foregroundColor = Color(designSystemColor: .textSecondary)
+
+        for run in text.runs where run.link != nil {
+            text[run.range].foregroundColor = Color(designSystemColor: .accent)
+        }
+
+        return text
     }
 
     @ViewBuilder
@@ -93,12 +111,19 @@ public struct SaveRecoveryKeyView: View {
         } label: {
             Text(UserText.nextButton)
         }
-        .buttonStyle(PrimaryButtonStyle(compact: isCompact))
+        .buttonStyle(SecondaryButtonStyle(compact: isCompact))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .inset(by: 0.5)
+                .stroke(Color(designSystemColor: .accent), lineWidth: 1)
+        )
         .overlay(
             isCopied ?
             codeCopiedToast()
             : nil
         )
+        .frame(maxWidth: 360)
+        .contentShape(Rectangle())
         .padding(.horizontal, 20)
         .padding(.bottom, 8)
     }
@@ -106,29 +131,62 @@ public struct SaveRecoveryKeyView: View {
     @ViewBuilder
     func mainContent() -> some View {
         VStack(spacing: 0) {
-            Image("SyncDownloadRecoveryCode")
-                .padding(.bottom, 24)
+            Image("Sync-QR-Download-128")
+                .padding(.bottom, 16)
 
             Text(UserText.saveRecoveryCodeSheetTitle)
                 .daxTitle1()
-                .padding(.bottom, 28)
+                .padding(.bottom, 24)
 
             Text(UserText.saveRecoveryCodeSheetDescription)
                 .lineLimit(nil)
                 .daxBodyRegular()
                 .lineSpacing(1.32)
                 .multilineTextAlignment(.center)
-                .padding(.bottom, 20)
+                .padding(.bottom, 24)
 
             recoveryInfo()
-                .padding(.bottom, 20)
-            Text(UserText.saveRecoveryCodeSheetFooter)
-                .daxCaption()
-                .multilineTextAlignment(.center)
+                .padding(.bottom, 16)
+            if model.isAutoRestoreFeatureEnabled {
+                autoRestoreSection()
+            } else {
+                Text(UserText.saveRecoveryCodeSheetFooter)
+                    .daxCaption()
+                    .multilineTextAlignment(.center)
+            }
         }
         .padding(.top, isCompact ? 0 : 56)
-        .padding(.horizontal, 30)
+        .padding(.horizontal, 20)
         .foregroundStyle(Color(designSystemColor: .textPrimary))
+    }
+
+    @ViewBuilder
+    func autoRestoreSection() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle(isOn: $model.isAutoRestoreEnabled) {
+                Text(UserText.autoRestoreToggleLabel)
+                    .daxBodyRegular()
+            }
+            .toggleStyle(SwitchToggleStyle(tint: Color(designSystemColor: .accent)))
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(RoundedRectangle(cornerRadius: 12).foregroundColor(.black.opacity(0.03)))
+
+            Text(autoRestoreLearnMoreText)
+                .daxCaption()
+                .padding(.horizontal, 16)
+                .fixedSize(horizontal: false, vertical: true)
+                .environment(\.openURL, OpenURLAction { url in
+                    guard url.scheme == "sync-auto-restore" else {
+                        return .systemAction
+                    }
+                    model.presentLearnMore()
+                    return .handled
+                })
+        }
+        .onChange(of: model.isAutoRestoreEnabled) { isEnabled in
+            model.autoRestoreToggled(isEnabled)
+        }
     }
 
     @ViewBuilder

@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
 import UIKit
 
@@ -25,11 +26,35 @@ public class SaveRecoveryKeyViewModel: ObservableObject {
     let key: String
     let showRecoveryPDFAction: () -> Void
     let onDismiss: () -> Void
+    let isAutoRestoreFeatureEnabled: Bool
 
-    public init(key: String, showRecoveryPDFAction: @escaping () -> Void, onDismiss: @escaping () -> Void) {
+    @Published var isAutoRestoreEnabled: Bool
+
+    private let presentLearnMoreAction: () -> Void
+    private var isUpdatingToggleProgrammatically = false
+    private let persistAutoRestoreDecision: (Bool) -> Bool
+
+    public init(
+        key: String,
+        showRecoveryPDFAction: @escaping () -> Void,
+        onDismiss: @escaping () -> Void,
+        isAutoRestoreFeatureEnabled: Bool = false,
+        existingAutoRestoreDecision: Bool? = nil,
+        persistAutoRestoreDecision: @escaping (Bool) -> Bool = { _ in false },
+        presentLearnMore: @escaping () -> Void = {}
+    ) {
         self.key = key
         self.showRecoveryPDFAction = showRecoveryPDFAction
         self.onDismiss = onDismiss
+        self.presentLearnMoreAction = presentLearnMore
+        self.persistAutoRestoreDecision = persistAutoRestoreDecision
+
+        self.isAutoRestoreFeatureEnabled = isAutoRestoreFeatureEnabled
+
+        self.isAutoRestoreEnabled = existingAutoRestoreDecision ?? true
+        if isAutoRestoreFeatureEnabled, existingAutoRestoreDecision == nil {
+            _ = persistAutoRestoreDecision(isAutoRestoreEnabled)
+        }
     }
 
     func copyKey() {
@@ -38,6 +63,27 @@ public class SaveRecoveryKeyViewModel: ObservableObject {
 
     func dismissed() {
         onDismiss()
+    }
+
+    @discardableResult
+    func autoRestoreToggled(_ isEnabled: Bool) -> Bool {
+        guard isAutoRestoreFeatureEnabled, !isUpdatingToggleProgrammatically else { return true }
+        guard persistDecision(isEnabled) else {
+            isUpdatingToggleProgrammatically = true
+            isAutoRestoreEnabled.toggle()
+            isUpdatingToggleProgrammatically = false
+            return false
+        }
+        return true
+    }
+
+    func presentLearnMore() {
+        presentLearnMoreAction()
+    }
+
+    @discardableResult
+    private func persistDecision(_ decision: Bool) -> Bool {
+        persistAutoRestoreDecision(decision)
     }
 
 }
