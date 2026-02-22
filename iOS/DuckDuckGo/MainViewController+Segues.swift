@@ -409,7 +409,8 @@ extension MainViewController {
                                                             subscriptionDataReporter: subscriptionDataReporter,
                                                             remoteMessagingDebugHandler: remoteMessagingDebugHandler,
                                                             productSurfaceTelemetry: productSurfaceTelemetry,
-                                                            webExtensionManager: webExtensionManager)
+                                                            webExtensionManager: webExtensionManager,
+                                                            syncAutoRestoreHandler: syncAutoRestoreHandler)
 
         let aiChatSettings = AIChatSettings(privacyConfigurationManager: privacyConfigurationManager)
         let serpSettingsProvider = SERPSettingsProvider(aiChatProvider: aiChatSettings,

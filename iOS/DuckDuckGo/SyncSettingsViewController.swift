@@ -52,6 +52,7 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
                                               cancelTitle: UserText.autofillLoginListAuthenticationCancelButton)
     let userSession = UserSession()
     let featureFlagger: FeatureFlagger
+    let syncAutoRestoreHandler: SyncAutoRestoreHandling?
     
     var isSyncEnabled: Bool {
         syncService.account != nil
@@ -93,7 +94,8 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
         syncPausedStateManager: any SyncPausedStateManaging,
         source: String? = nil,
         pairingInfo: PairingInfo? = nil,
-        featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger
+        featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger,
+        syncAutoRestoreHandler: SyncAutoRestoreHandling? = nil
     ) {
         self.syncService = syncService
         self.syncBookmarksAdapter = syncBookmarksAdapter
@@ -103,6 +105,7 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
         self.source = source
         self.pairingInfo = pairingInfo
         self.featureFlagger = featureFlagger
+        self.syncAutoRestoreHandler = syncAutoRestoreHandler
 
         let viewModel = SyncSettingsViewModel(
             isOnDevEnvironment: { syncService.serverEnvironment == .development },
