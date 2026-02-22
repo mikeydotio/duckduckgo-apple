@@ -60,7 +60,8 @@ final class SyncService {
             ).wrappedValue
         ) ?? defaultEnvironment
 
-        syncErrorHandler = SyncErrorHandler()
+        let errorHandler = SyncErrorHandler()
+        syncErrorHandler = errorHandler
 
         syncDataProviders = SyncDataProviders(
             privacyConfigurationManager: privacyConfigurationManager,
@@ -86,8 +87,11 @@ final class SyncService {
         )
 
         aiChatSyncCleaner = AIChatSyncCleaner(sync: sync,
-                                               keyValueStore: keyValueStore,
-                                               featureFlagProvider: AIChatFeatureFlagProvider(featureFlagger: featureFlagger))
+                                              keyValueStore: keyValueStore,
+                                              featureFlagProvider: AIChatFeatureFlagProvider(featureFlagger: featureFlagger),
+                                              httpRequestErrorHandler: { error in
+            errorHandler.handleAiChatsError(error)
+        })
         sync.setCustomOperations([AIChatDeleteOperation(cleaner: aiChatSyncCleaner)])
 
         isSyncInProgressCancellable = sync.isSyncInProgressPublisher

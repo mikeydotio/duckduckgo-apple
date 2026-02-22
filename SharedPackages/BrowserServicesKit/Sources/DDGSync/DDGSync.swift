@@ -64,6 +64,11 @@ public class DDGSync: DDGSyncing {
         static let aiChatHistoryEnabledKey = "com.duckduckgo.aichat.sync.chatHistoryEnabled"
     }
 
+    private enum UnauthenticatedHandling {
+        case logoutOn401
+        case doNotLogoutOn401
+    }
+
     @Published public private(set) var authState = SyncAuthState.initializing
     public var authStatePublisher: AnyPublisher<SyncAuthState, Never> {
         $authState.eraseToAnyPublisher()
@@ -178,7 +183,7 @@ public class DDGSync: DDGSyncing {
         do {
             return try await dependencies.createTokenRescope().rescope(scope: scope, token: token)
         } catch {
-            throw handleUnauthenticatedAndMap(error)
+            throw handleUnauthenticatedAndMap(error, policy: .doNotLogoutOn401)
         }
     }
 
@@ -188,7 +193,7 @@ public class DDGSync: DDGSyncing {
         do {
             try await dependencies.createAIChats().delete(until: until, token: token)
         } catch {
-            throw handleUnauthenticatedAndMap(error)
+            throw handleUnauthenticatedAndMap(error, policy: .doNotLogoutOn401)
         }
     }
 
@@ -198,7 +203,7 @@ public class DDGSync: DDGSyncing {
         do {
             try await dependencies.createAIChats().delete(chatIds: chatIds, token: token)
         } catch {
-            throw handleUnauthenticatedAndMap(error)
+            throw handleUnauthenticatedAndMap(error, policy: .doNotLogoutOn401)
         }
     }
 
@@ -539,10 +544,15 @@ public class DDGSync: DDGSyncing {
         dependencies.errorEvents.fire(.accountRemoved(reason))
     }
 
-    private func handleUnauthenticatedAndMap(_ error: Error) -> Error {
+    private func handleUnauthenticatedAndMap(_ error: Error,
+                                             policy: UnauthenticatedHandling = .logoutOn401) -> Error {
         guard let syncError = error as? SyncError,
               case .unexpectedStatusCode(let statusCode) = syncError,
               statusCode == 401 else {
+            return error
+        }
+
+        if policy == .doNotLogoutOn401 {
             return error
         }
 
