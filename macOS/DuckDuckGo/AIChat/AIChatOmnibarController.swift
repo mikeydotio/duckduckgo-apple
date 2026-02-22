@@ -53,8 +53,6 @@ final class AIChatOmnibarController {
     private var currentFetchTask: Task<Void, Never>?
     private var hasBeenActivated = false
 
-    /// Whether the search toggle is enabled, toggled by the search button in the omnibar tools.
-    var isSearchToggleEnabled = false
 
     /// Provides the current image attachments from the container VC.
     var attachmentsProvider: (() -> [AIChatImageAttachment])?
@@ -183,9 +181,6 @@ final class AIChatOmnibarController {
         currentFetchTask?.cancel()
         currentFetchTask = nil
         suggestionsReader?.tearDown()
-
-        // Reset tools state when exiting Duck.ai mode
-        isSearchToggleEnabled = false
     }
 
     // MARK: - Suggestion Navigation
@@ -276,8 +271,6 @@ final class AIChatOmnibarController {
 
         PixelKit.fire(AIChatPixel.aiChatAddressBarAIChatSubmitPrompt, frequency: .dailyAndCount, includeAppVersionParameter: true)
 
-        let toolChoice = isSearchToggleEnabled ? [Constants.webSearchTool] : nil
-
         Task { @MainActor in
             // Wait for any pending image resizes to complete
             await waitForAttachmentsReady?()
@@ -290,8 +283,8 @@ final class AIChatOmnibarController {
                 with: .query(trimmedText, shouldAutoSubmit: true),
                 behavior: .currentTab
             )
-            // Re-set prompt after tab opener to include toolChoice and images (tab opener overwrites with a plain query)
-            let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: toolChoice, images: images)
+            // Re-set prompt after tab opener to include images (tab opener overwrites with a plain query)
+            let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: nil, images: images)
             promptHandler.setData(prompt)
 
             onAttachmentsClearRequested?()

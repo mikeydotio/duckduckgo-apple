@@ -70,7 +70,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     private let innerBorderView = ColorView(frame: .zero)
     private let containerView = HitTestableContainerView()
     private let submitButton = MouseOverButton()
-    private let searchToggleButton = AIChatOmnibarToolButton()
     private let imageUploadButton = AIChatOmnibarToolButton()
     private let modelPickerButton = AIChatModelPickerButton()
     private let attachmentsContainerView = AIChatImageAttachmentsContainerView()
@@ -216,7 +215,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     private func updateToolButtonsVisibility(isEnabled: Bool) {
-        searchToggleButton.isHidden = !isEnabled
         imageUploadButton.isHidden = !isEnabled || attachmentsContainerView.isFull
         // modelPickerButton.isHidden = !isEnabled  // Disabled until model fetching integrated
         attachmentsContainerView.isHidden = !isEnabled
@@ -273,15 +271,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         submitButton.toolTip = UserText.aiChatSendButtonTooltip
         containerView.addSubview(submitButton)
 
-        searchToggleButton.translatesAutoresizingMaskIntoConstraints = false
-        searchToggleButton.target = self
-        searchToggleButton.action = #selector(searchToggleButtonClicked)
-        searchToggleButton.image = DesignSystemImages.Glyphs.Size16.globe
-        searchToggleButton.togglesOnClick = true
-        searchToggleButton.toolTip = UserText.aiChatSearchToggleButtonTooltip
-        searchToggleButton.setAccessibilityLabel(UserText.aiChatSearchToggleButtonTooltip)
-        containerView.addSubview(searchToggleButton)
-
         imageUploadButton.translatesAutoresizingMaskIntoConstraints = false
         imageUploadButton.target = self
         imageUploadButton.action = #selector(imageUploadButtonClicked)
@@ -333,16 +322,12 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
             modelPickerButton.heightAnchor.constraint(equalToConstant: Constants.modelPickerHeight),
 
-            searchToggleButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.toolButtonLeadingInset),
-            searchToggleButton.widthAnchor.constraint(equalToConstant: Constants.toolButtonSize),
-            searchToggleButton.heightAnchor.constraint(equalToConstant: Constants.toolButtonSize),
-
-            imageUploadButton.leadingAnchor.constraint(equalTo: searchToggleButton.trailingAnchor, constant: Constants.toolButtonSpacing),
+            imageUploadButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.toolButtonLeadingInset),
             imageUploadButton.widthAnchor.constraint(equalToConstant: Constants.toolButtonSize),
             imageUploadButton.heightAnchor.constraint(equalToConstant: Constants.toolButtonSize),
 
             attachmentsContainerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.attachmentsLeadingInset),
-            attachmentsContainerView.bottomAnchor.constraint(equalTo: searchToggleButton.topAnchor),
+            attachmentsContainerView.bottomAnchor.constraint(equalTo: imageUploadButton.topAnchor),
         ])
 
         // Attachments container height: 0 when empty, expands when attachments are added
@@ -378,7 +363,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             submitButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.submitButtonBottomInset),
 
             // Tool buttons sit above suggestions
-            searchToggleButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset),
             imageUploadButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset),
             modelPickerButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset)
         ])
@@ -430,8 +414,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         // Clear attachments and cancel pending resize tasks
         clearAttachments()
 
-        // Reset tools state
-        searchToggleButton.isToggled = false
+        // Reset model picker state
         selectedModelId = AIChatModelProvider.defaultModel.id
         modelPickerButton.modelName = AIChatModelProvider.defaultModel.shortDisplayName
 
@@ -472,10 +455,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     @objc private func submitButtonClicked() {
         omnibarController.submit()
-    }
-
-    @objc private func searchToggleButtonClicked() {
-        omnibarController.isSearchToggleEnabled = searchToggleButton.isToggled
     }
 
     @objc private func imageUploadButtonClicked() {
@@ -635,7 +614,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         submitButton.mouseOverTintColor = NSColor(designSystemColor: .buttonsPrimaryText).withAlphaComponent(0.8)
 
         let toolButtonTintColor = NSColor(designSystemColor: .textPrimary)
-        searchToggleButton.tintColor = toolButtonTintColor
         imageUploadButton.tintColor = toolButtonTintColor
         modelPickerButton.tintColor = toolButtonTintColor
 
@@ -648,10 +626,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         shadowView.cornerRadius = barStyleProvider.addressBarActiveBackgroundViewRadius
 
         NSAppearance.withAppAppearance {
-            searchToggleButton.hoverBackgroundColor = .buttonMouseOver
-            searchToggleButton.pressedBackgroundColor = .buttonMouseDown
-            searchToggleButton.toggledBackgroundColor = NSColor(designSystemColor: .accentPrimary)
-            searchToggleButton.toggledTintColor = .selectedSuggestionTint
             imageUploadButton.hoverBackgroundColor = .buttonMouseOver
             imageUploadButton.pressedBackgroundColor = .buttonMouseDown
             modelPickerButton.hoverBackgroundColor = .buttonMouseOver
