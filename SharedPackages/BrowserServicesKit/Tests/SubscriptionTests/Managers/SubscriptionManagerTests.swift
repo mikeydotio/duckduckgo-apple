@@ -383,6 +383,7 @@ class SubscriptionManagerTests: XCTestCase {
     // MARK: - Tests for Free Trial Eligibility
 
     func testWhenPlatformIsStripeUserIsEligibleForFreeTrialThenReturnsEligible() throws {
+        // Given
         mockStorePurchaseManager.isEligibleForFreeTrialResult = false
         let stripeEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .stripe)
         let userDefaults = UserDefaults(suiteName: "com.duckduckgo.subscriptionUnitTests.\(UUID().uuidString)")!
@@ -402,7 +403,7 @@ class SubscriptionManagerTests: XCTestCase {
         XCTAssertTrue(result)
     }
 
-    func testWhenPlatformIsStripeAndDebugDisableFreeTrialIsOnThenReturnsNotEligible() throws {
+    func testWhenPlatformIsAppStoreAndUserIsEligibleForFreeTrialThenReturnsEligible() throws {
         // Given
         mockStorePurchaseManager.isEligibleForFreeTrialResult = true
         let appStoreEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
