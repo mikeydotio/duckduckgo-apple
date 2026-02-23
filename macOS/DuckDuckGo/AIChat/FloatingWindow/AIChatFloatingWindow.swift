@@ -77,4 +77,17 @@ final class AIChatFloatingWindow: NSWindow {
     override func cancelOperation(_ sender: Any?) {
         close()
     }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let isCommandW = event.type == .keyDown &&
+            event.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.command) &&
+            event.charactersIgnoringModifiers?.lowercased() == "w"
+
+        if isCommandW {
+            close()
+            return true
+        }
+
+        return super.performKeyEquivalent(with: event)
+    }
 }

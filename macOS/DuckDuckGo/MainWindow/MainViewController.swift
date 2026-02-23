@@ -233,6 +233,7 @@ final class MainViewController: NSViewController {
             pixelFiring: pixelFiring,
             featureFlagger: featureFlagger
         )
+        tabBarViewController.aiChatCoordinator = aiChatCoordinator
         aiChatSummarizer = AIChatSummarizer(
             aiChatMenuConfig: aiChatMenuConfig,
             aiChatCoordinator: aiChatCoordinator,

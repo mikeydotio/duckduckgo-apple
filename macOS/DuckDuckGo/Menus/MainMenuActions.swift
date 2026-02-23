@@ -1019,6 +1019,11 @@ extension MainViewController {
         makeKeyIfNeeded()
         let currentEvent = NSApp.currentEvent
 
+        // Reuse tab-bar floating chat warning for keyboard/menu close paths.
+        if tabBarViewController.tryPresentAIChatFloatingCloseWarningIfNeeded(for: index) {
+            return
+        }
+
         // Handle Cmd+W on pinned tabs
         if case .pinned(let pinnedIndex) = index,
            sender is NSMenuItem,
@@ -1049,6 +1054,7 @@ extension MainViewController {
             return
         }
 
+        aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
         tabCollectionViewModel.remove(at: index)
     }
 

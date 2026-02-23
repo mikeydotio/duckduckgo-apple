@@ -129,6 +129,8 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
     private var mouseDownCancellable: AnyCancellable?
     private var cancellables = Set<AnyCancellable>()
     private var previousScrollViewWidth: CGFloat = .zero
+    var aiChatCoordinator: AIChatCoordinating?
+    private var aiChatCloseWarningPopover: NSPopover?
 
     // TabBarRemoteMessagePresentable
     var tabBarRemoteMessageViewModel: TabBarRemoteMessageViewModel
@@ -1772,6 +1774,63 @@ extension TabBarViewController: TabBarViewItemDelegate {
         }
 
         let tabIndex: TabIndex = isPinned ? .pinned(indexPath.item) : .unpinned(indexPath.item)
+        if tryPresentAIChatFloatingCloseWarningIfNeeded(for: tabIndex) {
+            return
+        }
+
+        tabCollectionViewModel.remove(at: tabIndex)
+    }
+
+    private func shouldWarnBeforeClosingFloatingAIChat(tabID: String) -> Bool {
+        aiChatCoordinator?.isChatFloating(for: tabID) == true
+    }
+
+    private func presentAIChatFloatingCloseWarningPopover(from tabBarViewItem: TabBarViewItem, tabID: String) {
+        aiChatCloseWarningPopover?.close()
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+        popover.contentSize = NSSize(width: 430, height: 104)
+
+        let contentView = AIChatFloatingCloseWarningPopoverView(
+            onConfirm: { [weak self, weak popover] in
+                popover?.close()
+                self?.closeTab(for: tabID)
+            },
+            onDismiss: { [weak popover] in
+                popover?.close()
+            }
+        )
+        popover.contentViewController = NSHostingController(rootView: contentView)
+        popover.show(positionedBelow: tabBarViewItem.view)
+        aiChatCloseWarningPopover = popover
+    }
+
+    @discardableResult
+    func tryPresentAIChatFloatingCloseWarningIfNeeded(for tabIndex: TabIndex) -> Bool {
+        guard let tabID = tabCollectionViewModel.tabViewModel(at: tabIndex)?.tab.uuid,
+              shouldWarnBeforeClosingFloatingAIChat(tabID: tabID),
+              let tabBarViewItem = tabBarViewItem(for: tabIndex) else {
+            return false
+        }
+
+        presentAIChatFloatingCloseWarningPopover(from: tabBarViewItem, tabID: tabID)
+        return true
+    }
+
+    private func tabBarViewItem(for tabIndex: TabIndex) -> TabBarViewItem? {
+        switch tabIndex {
+        case .pinned(let index):
+            return pinnedTabsCollectionView?.item(at: IndexPath(item: index, section: 0)) as? TabBarViewItem
+        case .unpinned(let index):
+            return collectionView.item(at: IndexPath(item: index, section: 0)) as? TabBarViewItem
+        }
+    }
+
+    private func closeTab(for tabID: String) {
+        aiChatCoordinator?.closeFloatingWindow(for: tabID)
+        guard let tabIndex = tabCollectionViewModel.indexInAllTabs(where: { $0.uuid == tabID }) else { return }
         tabCollectionViewModel.remove(at: tabIndex)
     }
 
@@ -1908,6 +1967,40 @@ extension TabBarViewController: TabBarViewItemDelegate {
                      hasItemsToTheRight: indexPath.item + 1 < (tabCollection?.tabs.count ?? 0))
     }
 
+}
+
+private struct AIChatFloatingCloseWarningPopoverView: View {
+    let onConfirm: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(UserText.aiChatFloatingCloseWarningTitle)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.primary)
+                Text(UserText.aiChatFloatingCloseWarningSubtitle)
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Button(UserText.closeTab) {
+                onConfirm()
+            }
+            .buttonStyle(.bordered)
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
 }
 
 extension TabBarViewController {

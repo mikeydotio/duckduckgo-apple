@@ -2360,6 +2360,30 @@
         }
       }
     },
+    "aichat.floating.close-warning.subtitle" : {
+      "comment" : "Subtitle shown in popover warning when closing a tab that has detached Duck.ai window.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This will also close the detached sidebar."
+          }
+        }
+      }
+    },
+    "aichat.floating.close-warning.title" : {
+      "comment" : "Title shown in popover warning when closing a tab that has detached Duck.ai window.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Close tab and Duck.ai chat"
+          }
+        }
+      }
+    },
     "aichat.image-upload-button.tooltip" : {
       "comment" : "Tooltip for the image upload button in AI chat omnibar",
       "extractionState" : "extracted_with_value",

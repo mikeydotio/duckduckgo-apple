@@ -68,6 +68,9 @@ protocol AIChatCoordinating {
     /// Brings the detached floating window for `tabID` to the front and makes it key.
     func focusFloatingWindow(for tabID: TabIdentifier)
 
+    /// Closes a detached floating window for `tabID` if one exists.
+    func closeFloatingWindow(for tabID: TabIdentifier)
+
     /// Consumes `prompt` and presents it in the sidebar. Appends to existing conversation if that was present.
     func presentSidebar(for prompt: AIChatNativePrompt)
 }
@@ -186,6 +189,10 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     func focusFloatingWindow(for tabID: TabIdentifier) {
         sessionStore.sessions[tabID]?.floatingWindowController?.show()
+    }
+
+    func closeFloatingWindow(for tabID: TabIdentifier) {
+        sessionStore.sessions[tabID]?.floatingWindowController?.close()
     }
 
     func sidebarHiddenAt(for tabID: TabIdentifier) -> Date? {
