@@ -1791,7 +1791,6 @@ extension TabBarViewController: TabBarViewItemDelegate {
         let popover = NSPopover()
         popover.behavior = .transient
         popover.animates = true
-        popover.contentSize = NSSize(width: 430, height: 104)
 
         let contentView = AIChatFloatingCloseWarningPopoverView(
             onConfirm: { [weak self, weak popover] in
@@ -1802,7 +1801,13 @@ extension TabBarViewController: TabBarViewItemDelegate {
                 popover?.close()
             }
         )
-        popover.contentViewController = NSHostingController(rootView: contentView)
+
+        let hostingController = AIChatFloatingCloseWarningPopoverHostingController(rootView: contentView)
+        let fittingSize = hostingController.view.fittingSize
+        hostingController.preferredContentSize = fittingSize
+        popover.contentViewController = hostingController
+        popover.contentSize = fittingSize
+
         popover.show(positionedBelow: tabBarViewItem.view)
         aiChatCloseWarningPopover = popover
     }
@@ -1970,36 +1975,61 @@ extension TabBarViewController: TabBarViewItemDelegate {
 }
 
 private struct AIChatFloatingCloseWarningPopoverView: View {
+    private enum Constants {
+        static let horizontalPadding: CGFloat = 24
+        static let verticalPadding: CGFloat = 16
+        static let titleSubtitleSpacing: CGFloat = 8
+        static let contentSpacing: CGFloat = 32
+        static let buttonsSpacing: CGFloat = 16
+        static let closeIconSize: CGFloat = 16
+    }
+
     let onConfirm: () -> Void
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: Constants.contentSpacing) {
+            VStack(alignment: .leading, spacing: Constants.titleSubtitleSpacing) {
                 Text(UserText.aiChatFloatingCloseWarningTitle)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Color(designSystemColor: .textPrimary))
+                    .lineLimit(1)
                 Text(UserText.aiChatFloatingCloseWarningSubtitle)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11))
+                    .kerning(0.06)
+                    .foregroundColor(Color(designSystemColor: .textSecondary))
+                    .lineLimit(1)
             }
 
-            Spacer(minLength: 0)
+            HStack(spacing: Constants.buttonsSpacing) {
+                Button(UserText.closeTab) {
+                    onConfirm()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .font(.system(size: 13))
+                .multilineTextAlignment(.center)
 
-            Button(UserText.closeTab) {
-                onConfirm()
+                Button(action: onDismiss) {
+                    Image(.closeLarge)
+                        .frame(width: Constants.closeIconSize, height: Constants.closeIconSize)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(Color(designSystemColor: .iconsPrimary))
             }
-            .buttonStyle(.bordered)
-
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(.secondary)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, Constants.horizontalPadding)
+        .padding(.vertical, Constants.verticalPadding)
+        .fixedSize()
+    }
+}
+
+private final class AIChatFloatingCloseWarningPopoverHostingController: NSHostingController<AIChatFloatingCloseWarningPopoverView> {
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        view.window?.initialFirstResponder = nil
+        view.window?.makeFirstResponder(nil)
     }
 }
 
