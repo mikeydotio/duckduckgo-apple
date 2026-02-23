@@ -19,9 +19,7 @@
 import AppKit
 import BrowserServicesKit
 import AIChat
-import Common
 import Combine
-import os.log
 
 /// A delegate protocol that handles user interactions with the AI Chat sidebar view controller.
 /// This protocol defines methods for responding to navigation and UI events in the sidebar.
@@ -318,14 +316,6 @@ final class AIChatViewController: NSViewController {
     override func viewDidLayout() {
         super.viewDidLayout()
         updateTopBarForHostingContext()
-        logFloatingWindowHeight()
-    }
-
-    private func logFloatingWindowHeight() {
-        guard let floatingWindow = view.window as? AIChatFloatingWindow else { return }
-        Logger.general.debug(
-            "[AIChat floating] windowHeight=\(floatingWindow.frame.height, privacy: .public) contentLayoutHeight=\(floatingWindow.contentLayoutRect.height, privacy: .public) chatViewHeight=\(self.view.bounds.height, privacy: .public)"
-        )
     }
 
     private func updateTopBarForHostingContext() {
