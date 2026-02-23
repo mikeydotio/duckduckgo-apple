@@ -587,6 +587,134 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.isSidebarOpen(for: tab2))
     }
 
+    // MARK: - Detach / Attach Tests
+
+    func testDetachSidebar_movesToFloatingWindow() {
+        // Given
+        let tabID = "test-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockSidebarHost.sidebarContainerScreenFrame = NSRect(x: 100, y: 100, width: 400, height: 600)
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+        coordinator.toggleSidebar()
+
+        var floatingChangeReceived: TabIdentifier?
+        coordinator.chatFloatingStateDidChangePublisher
+            .sink { floatingChangeReceived = $0 }
+            .store(in: &cancellables)
+
+        // When
+        coordinator.didClickDetachButton()
+
+        // Then
+        let session = mockSessionStore.sessions[tabID]
+        XCTAssertEqual(session?.state.presentationMode, .floating)
+        XCTAssertNotNil(session?.floatingWindowController)
+        XCTAssertEqual(floatingChangeReceived, tabID)
+    }
+
+    func testDetachSidebar_withoutFloatingFeatureFlag_doesNothing() {
+        // Given
+        let tabID = "test-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockSidebarHost.sidebarContainerScreenFrame = NSRect(x: 100, y: 100, width: 400, height: 600)
+        coordinator.toggleSidebar()
+        XCTAssertEqual(mockSessionStore.sessions[tabID]?.state.presentationMode, .sidebar)
+
+        // When
+        coordinator.didClickDetachButton()
+
+        // Then
+        XCTAssertEqual(mockSessionStore.sessions[tabID]?.state.presentationMode, .sidebar)
+        XCTAssertNil(mockSessionStore.sessions[tabID]?.floatingWindowController)
+    }
+
+    func testAttachSidebar_reDocksToSidebar() {
+        // Given
+        let tabID = "test-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockSidebarHost.sidebarContainerScreenFrame = NSRect(x: 100, y: 100, width: 400, height: 600)
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+        coordinator.toggleSidebar()
+        coordinator.didClickDetachButton()
+        XCTAssertEqual(mockSessionStore.sessions[tabID]?.state.presentationMode, .floating)
+
+        var floatingChangeReceived: TabIdentifier?
+        coordinator.chatFloatingStateDidChangePublisher
+            .sink { floatingChangeReceived = $0 }
+            .store(in: &cancellables)
+
+        // When
+        coordinator.didClickAttachButton(for: tabID)
+
+        // Then
+        let session = mockSessionStore.sessions[tabID]
+        XCTAssertEqual(session?.state.presentationMode, .sidebar)
+        XCTAssertNil(session?.floatingWindowController)
+        XCTAssertNotNil(mockSidebarHost.embeddedViewController)
+        XCTAssertEqual(floatingChangeReceived, tabID)
+    }
+
+    func testFloatingWindowDidClose_setsHidden() {
+        // Given
+        let tabID = "test-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockSidebarHost.sidebarContainerScreenFrame = NSRect(x: 100, y: 100, width: 400, height: 600)
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+        coordinator.toggleSidebar()
+        coordinator.didClickDetachButton()
+        let controller = mockSessionStore.sessions[tabID]!.floatingWindowController!
+
+        // When
+        coordinator.floatingWindowDidClose(controller)
+
+        // Then
+        let session = mockSessionStore.sessions[tabID]
+        XCTAssertEqual(session?.state.presentationMode, .hidden)
+        XCTAssertNil(session?.floatingWindowController)
+    }
+
+    func testIsChatFloating_returnsTrueWhenDetached() {
+        // Given
+        let tabID = "test-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockSidebarHost.sidebarContainerScreenFrame = NSRect(x: 100, y: 100, width: 400, height: 600)
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+        coordinator.toggleSidebar()
+        XCTAssertFalse(coordinator.isChatFloating(for: tabID))
+
+        // When
+        coordinator.didClickDetachButton()
+
+        // Then
+        XCTAssertTrue(coordinator.isChatFloating(for: tabID))
+
+        // When - re-dock
+        coordinator.didClickAttachButton(for: tabID)
+
+        // Then
+        XCTAssertFalse(coordinator.isChatFloating(for: tabID))
+    }
+
+    func testTabSwitch_preservesFloatingWindow() {
+        // Given
+        let tab1 = "tab1"
+        let tab2 = "tab2"
+        mockSidebarHost.currentTabID = tab1
+        mockSidebarHost.sidebarContainerScreenFrame = NSRect(x: 100, y: 100, width: 400, height: 600)
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+        coordinator.toggleSidebar()
+        coordinator.didClickDetachButton()
+        XCTAssertEqual(mockSessionStore.sessions[tab1]?.state.presentationMode, .floating)
+
+        // When
+        mockSidebarHost.currentTabID = tab2
+        coordinator.sidebarHostDidSelectTab(with: tab2)
+
+        // Then
+        XCTAssertEqual(mockSessionStore.sessions[tab1]?.state.presentationMode, .floating)
+        XCTAssertNotNil(mockSessionStore.sessions[tab1]?.floatingWindowController)
+    }
+
     // MARK: - Edge Cases
 
     func testAnimationStateManagement() {

@@ -66,7 +66,7 @@ final class AIChatFloatingWindow: NSWindow {
 
         isMovableByWindowBackground = true
 
-        title = UserText.aiChatSidebarTitle + "🔗"
+        title = UserText.aiChatSidebarTitle
 
         collectionBehavior = [.fullScreenNone]
         minSize = NSSize(width: Constants.minWidth, height: Constants.minHeight)
