@@ -1269,8 +1269,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        startAutomationServerIfNeeded()
-
         grammarFeaturesManager.manage()
 
         applyPreferredTheme()
@@ -1363,6 +1361,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         userChurnScheduler.start()
 
         memoryUsageMonitor.enableIfNeeded(featureFlagger: featureFlagger)
+
+        startAutomationServerIfNeeded()
 
         PixelKit.fire(GeneralPixel.launch, doNotEnforcePrefix: true)
     }
