@@ -173,6 +173,13 @@ final class AIChatOmnibarController {
         preferences.selectedModelId ?? AIChatModelProvider.defaultModel.id
     }
 
+    /// Whether the currently selected model supports image upload.
+    var selectedModelSupportsImageUpload: Bool {
+        let allModels = AIChatModelProvider.freeModels + AIChatModelProvider.premiumModels
+        return allModels.first(where: { $0.id == persistedModelId })?.supportsImageUpload
+            ?? AIChatModelProvider.defaultModel.supportsImageUpload
+    }
+
     /// Updates the selected model ID and persists it for future sessions.
     func updateSelectedModel(_ modelId: String) {
         preferences.selectedModelId = modelId

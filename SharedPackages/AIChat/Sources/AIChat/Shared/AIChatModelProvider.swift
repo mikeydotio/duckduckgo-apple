@@ -30,6 +30,7 @@ public struct AIChatModel {
     public let shortDisplayName: String
     public let provider: ModelProvider
     public let tier: ModelTier
+    public let supportsImageUpload: Bool
 
     public enum ModelProvider {
         case openAI
@@ -43,12 +44,13 @@ public struct AIChatModel {
         case premium
     }
 
-    public init(id: String, displayName: String, shortDisplayName: String, provider: ModelProvider, tier: ModelTier) {
+    public init(id: String, displayName: String, shortDisplayName: String, provider: ModelProvider, tier: ModelTier, supportsImageUpload: Bool) {
         self.id = id
         self.displayName = displayName
         self.shortDisplayName = shortDisplayName
         self.provider = provider
         self.tier = tier
+        self.supportsImageUpload = supportsImageUpload
     }
 
     /// Returns a platform-appropriate icon for use in menu items.
@@ -80,18 +82,18 @@ public enum AIChatModelProvider {
     public static let defaultModel = freeModels[0]
 
     public static let freeModels: [AIChatModel] = [
-        AIChatModel(id: "gpt-4o-mini", displayName: "GPT-4o mini", shortDisplayName: "4o mini", provider: .openAI, tier: .free),
-        AIChatModel(id: "gpt-5-mini", displayName: "GPT-5 mini", shortDisplayName: "5 mini", provider: .openAI, tier: .free),
-        AIChatModel(id: "openai/gpt-oss-120b", displayName: "GPT-OSS 120B", shortDisplayName: "OSS 120B", provider: .openAI, tier: .free),
-        AIChatModel(id: "claude-haiku-4-5", displayName: "Claude 4.5 Haiku", shortDisplayName: "4.5 Haiku", provider: .anthropic, tier: .free),
-        AIChatModel(id: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", displayName: "Llama 4 Maverick", shortDisplayName: "4 Maverick", provider: .meta, tier: .free),
-        AIChatModel(id: "mistralai/Mistral-Small-24B-Instruct-2501", displayName: "Mistral Small", shortDisplayName: "Small", provider: .mistral, tier: .free),
+        AIChatModel(id: "gpt-4o-mini", displayName: "GPT-4o mini", shortDisplayName: "4o mini", provider: .openAI, tier: .free, supportsImageUpload: true),
+        AIChatModel(id: "gpt-5-mini", displayName: "GPT-5 mini", shortDisplayName: "5 mini", provider: .openAI, tier: .free, supportsImageUpload: false),
+        AIChatModel(id: "openai/gpt-oss-120b", displayName: "GPT-OSS 120B", shortDisplayName: "OSS 120B", provider: .openAI, tier: .free, supportsImageUpload: false),
+        AIChatModel(id: "claude-haiku-4-5", displayName: "Claude 4.5 Haiku", shortDisplayName: "4.5 Haiku", provider: .anthropic, tier: .free, supportsImageUpload: false),
+        AIChatModel(id: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", displayName: "Llama 4 Maverick", shortDisplayName: "4 Maverick", provider: .meta, tier: .free, supportsImageUpload: false),
+        AIChatModel(id: "mistralai/Mistral-Small-24B-Instruct-2501", displayName: "Mistral Small", shortDisplayName: "Small", provider: .mistral, tier: .free, supportsImageUpload: false),
     ]
 
     public static let premiumModels: [AIChatModel] = [
-        AIChatModel(id: "gpt-4o", displayName: "GPT-4o", shortDisplayName: "4o", provider: .openAI, tier: .premium),
-        AIChatModel(id: "gpt-5.2", displayName: "GPT-5.2", shortDisplayName: "5.2", provider: .openAI, tier: .premium),
-        AIChatModel(id: "claude-sonnet-4-5", displayName: "Claude 4.5 Sonnet", shortDisplayName: "4.5 Sonnet", provider: .anthropic, tier: .premium),
-        AIChatModel(id: "claude-opus-4-5", displayName: "Claude Opus 4.5", shortDisplayName: "Opus 4.5", provider: .anthropic, tier: .premium),
+        AIChatModel(id: "gpt-4o", displayName: "GPT-4o", shortDisplayName: "4o", provider: .openAI, tier: .premium, supportsImageUpload: true),
+        AIChatModel(id: "gpt-5.2", displayName: "GPT-5.2", shortDisplayName: "5.2", provider: .openAI, tier: .premium, supportsImageUpload: true),
+        AIChatModel(id: "claude-sonnet-4-5", displayName: "Claude 4.5 Sonnet", shortDisplayName: "4.5 Sonnet", provider: .anthropic, tier: .premium, supportsImageUpload: false),
+        AIChatModel(id: "claude-opus-4-5", displayName: "Claude Opus 4.5", shortDisplayName: "Opus 4.5", provider: .anthropic, tier: .premium, supportsImageUpload: false),
     ]
 }

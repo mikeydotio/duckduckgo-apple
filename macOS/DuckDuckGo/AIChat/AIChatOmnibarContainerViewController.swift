@@ -215,7 +215,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     private func updateToolButtonsVisibility(isEnabled: Bool) {
-        imageUploadButton.isHidden = !isEnabled || attachmentsContainerView.isFull
+        if isEnabled {
+            imageUploadButton.isHidden = attachmentsContainerView.isFull || !omnibarController.selectedModelSupportsImageUpload
+        } else {
+            imageUploadButton.isHidden = true
+        }
         modelPickerButton.isHidden = !isEnabled
         attachmentsContainerView.isHidden = !isEnabled
         if !isEnabled {
@@ -539,9 +543,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             ? Constants.attachmentsRowHeight + Constants.attachmentsBottomSpacing
             : 0
 
-        // Hide the upload button when at max attachments
+        // Hide the upload button when at max attachments or model doesn't support images
         if omnibarController.isOmnibarToolsEnabled {
-            imageUploadButton.isHidden = attachmentsContainerView.isFull
+            imageUploadButton.isHidden = attachmentsContainerView.isFull || !omnibarController.selectedModelSupportsImageUpload
         }
 
         onPassthroughHeightNeedsUpdate?()
@@ -601,6 +605,18 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         guard let model = sender.representedObject as? AIChatModel else { return }
         omnibarController.updateSelectedModel(model.id)
         modelPickerButton.modelName = model.shortDisplayName
+        updateImageUploadVisibility(supportsImageUpload: model.supportsImageUpload)
+    }
+
+    private func updateImageUploadVisibility(supportsImageUpload: Bool) {
+        guard omnibarController.isOmnibarToolsEnabled else { return }
+
+        if !supportsImageUpload {
+            clearAttachments()
+            imageUploadButton.isHidden = true
+        } else {
+            imageUploadButton.isHidden = attachmentsContainerView.isFull
+        }
     }
 
     private func applyTheme(theme: ThemeStyleProviding) {
