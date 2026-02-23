@@ -236,7 +236,7 @@ final class AIChatViewController: NSViewController {
     }
 
     private func makeTitleButton() -> MouseOverButton {
-        let button = MouseOverButton(frame: .zero)
+        let button = FloatingWindowTitleDragButton(frame: .zero)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.bezelStyle = .shadowlessSquare
         button.isBordered = false
@@ -498,5 +498,49 @@ extension NSNotification.Name {
 
     enum UserInfoKeys {
         static let userInteractionDialog = "userInteractionDialog"
+    }
+}
+
+/// Allows the floating-window title button to both click (focus tab) and drag window.
+private final class FloatingWindowTitleDragButton: MouseOverButton {
+
+    private enum Constants {
+        static let dragThreshold: CGFloat = 3
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let window, window is AIChatFloatingWindow, !event.isContextClick else {
+            super.mouseDown(with: event)
+            return
+        }
+
+        var shouldStartDrag = false
+
+        while let nextEvent = window.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
+            if nextEvent.type == .leftMouseDragged {
+                let deltaX = nextEvent.locationInWindow.x - event.locationInWindow.x
+                let deltaY = nextEvent.locationInWindow.y - event.locationInWindow.y
+                let distance = hypot(deltaX, deltaY)
+
+                if distance >= Constants.dragThreshold {
+                    shouldStartDrag = true
+                    break
+                }
+            } else if nextEvent.type == .leftMouseUp {
+                break
+            }
+        }
+
+        if shouldStartDrag {
+            window.performDrag(with: event)
+            return
+        }
+
+        // No drag was detected, so this is a regular click.
+        isMouseDown = true
+        if let action {
+            NSApp.sendAction(action, to: target, from: self)
+        }
+        isMouseDown = false
     }
 }
