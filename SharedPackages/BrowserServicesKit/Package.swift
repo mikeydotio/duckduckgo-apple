@@ -4,20 +4,6 @@
 import Foundation
 import PackageDescription
 
-// When running inside the meta mono-repo, bootstrap sets LOCAL_CSS_PATH to the
-// absolute path of the content-scope-scripts checkout.  When the env var is
-// present we use a local-path dependency so builds never need a network fetch
-// and local C-S-S edits are picked up immediately.
-//
-// When the env var is absent (CI, standalone apple-browsers, Xcode without the
-// meta-repo) the committed remote URL + version/branch specifier is used.
-let contentScopeScriptsDep: Package.Dependency = {
-    if let localPath = ProcessInfo.processInfo.environment["LOCAL_CSS_PATH"] {
-        return .package(path: localPath)
-    }
-    return .package(url: "https://github.com/duckduckgo/content-scope-scripts.git", exact: "13.14.0")
-}()
-
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
@@ -77,7 +63,7 @@ let package = Package(
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1"),
         .package(url: "https://github.com/vapor/jwt-kit.git", exact: "4.13.5"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.6"),
-        contentScopeScriptsDep,
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts.git", exact: "13.14.0"),
         .package(path: "../URLPredictor"),
     ],
     targets: [
