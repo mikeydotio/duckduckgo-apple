@@ -34,6 +34,10 @@ protocol AIChatFloatingWindowControllerDelegate: AnyObject {
 @MainActor
 final class AIChatFloatingWindowController: NSObject {
 
+    private enum Constants {
+        static let windowTitleSeparator = "\u{30FB}"
+    }
+
     weak var delegate: AIChatFloatingWindowControllerDelegate?
 
     /// The tab this floating window is associated with.
@@ -93,9 +97,17 @@ final class AIChatFloatingWindowController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] title, favicon in
                 self?.chatViewController?.updateFloatingTitle(title, favicon: favicon)
-                self?.floatingWindow.title = title
+                self?.floatingWindow.title = self?.windowTitle(for: title) ?? UserText.aiChatSidebarTitle
             }
             .store(in: &cancellables)
+    }
+
+    private func windowTitle(for pageTitle: String) -> String {
+        let trimmedPageTitle = pageTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPageTitle.isEmpty else {
+            return UserText.aiChatSidebarTitle
+        }
+        return "\(UserText.aiChatSidebarTitle)\(Constants.windowTitleSeparator)\(trimmedPageTitle)"
     }
 
     private func embedChatViewController(_ viewController: AIChatViewController) {
