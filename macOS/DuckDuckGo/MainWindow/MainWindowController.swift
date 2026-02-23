@@ -110,8 +110,8 @@ final class MainWindowController: NSWindowController {
         func shouldShow() -> Bool {
             switch LaunchOptionsHandler().onboardingStatus {
             case .notOverridden:
-                let onboardingIsComplete = OnboardingActionsManager.isOnboardingFinished || LocalStatisticsStore().waitlistUnlocked
-                return !onboardingIsComplete
+                let isOnboardingCompleted = OnboardingActionsManager.isOnboardingFinished || LocalStatisticsStore().waitlistUnlocked
+                return !isOnboardingCompleted
             case let .overridden(.developer(isOnboardingCompleted)):
                 return !isOnboardingCompleted
             case let .overridden(.uiTests(isOnboardingCompleted)):

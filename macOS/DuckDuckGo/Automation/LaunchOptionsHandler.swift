@@ -48,7 +48,7 @@ public final class LaunchOptionsHandler {
     }
 
     /// Returns true if the app is running in UI testing mode
-    public var isUITesting: Bool {
+    private var isUITesting: Bool {
         environment["UITEST_MODE"] == "1" || userDefaults.bool(forKey: Self.isUITestingKey)
     }
 
