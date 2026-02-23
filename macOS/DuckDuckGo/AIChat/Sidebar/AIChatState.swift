@@ -50,6 +50,9 @@ final class AIChatState: NSObject {
     /// The user-chosen sidebar width for this tab, or `nil` to use the default.
     var sidebarWidth: CGFloat?
 
+    /// Last known floating window frame for this tab, if chat was detached.
+    var floatingWindowFrame: NSRect?
+
     /// The persisted AI chat URL (falls back to the initial URL).
     var currentAIChatURL: URL {
         aiChatURL ?? initialAIChatURL
@@ -102,6 +105,7 @@ extension AIChatState: NSSecureCoding {
         static let presentationMode = "presentationMode"
         static let hiddenAt = "hiddenAt"
         static let sidebarWidth = "sidebarWidth"
+        static let floatingWindowFrame = "floatingWindowFrame"
         // Legacy keys used only by the migration decoder in AIChatState+Migration.swift
         static let isPresented = "isPresented"
         static let isDetached = "isDetached"
@@ -113,6 +117,7 @@ extension AIChatState: NSSecureCoding {
         self.presentationMode = Self.decodePresentationMode(from: coder)
         self.hiddenAt = coder.decodeObject(of: NSDate.self, forKey: CodingKeys.hiddenAt) as Date?
         self.sidebarWidth = coder.decodeObject(of: NSNumber.self, forKey: CodingKeys.sidebarWidth).map { CGFloat($0.doubleValue) }
+        self.floatingWindowFrame = coder.decodeObject(of: NSValue.self, forKey: CodingKeys.floatingWindowFrame)?.rectValue
     }
 
     func encode(with coder: NSCoder) {
@@ -121,6 +126,9 @@ extension AIChatState: NSSecureCoding {
         coder.encode(hiddenAt as NSDate?, forKey: CodingKeys.hiddenAt)
         if let sidebarWidth {
             coder.encode(NSNumber(value: sidebarWidth), forKey: CodingKeys.sidebarWidth)
+        }
+        if let floatingWindowFrame {
+            coder.encode(NSValue(rect: floatingWindowFrame), forKey: CodingKeys.floatingWindowFrame)
         }
     }
 

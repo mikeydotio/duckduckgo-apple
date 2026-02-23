@@ -110,7 +110,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         featureFlagger.isFeatureOn(.aiChatSidebarResizable)
     }
 
-    private var isSidebarFloatingEnabled: Bool {
+    private var isChatFloatingEnabled: Bool {
         featureFlagger.isFeatureOn(.aiChatSidebarFloating)
     }
 
@@ -338,13 +338,16 @@ final class AIChatCoordinator: AIChatCoordinating {
     // MARK: - Detach / Attach
 
     private func detachSidebar() {
-        guard isSidebarFloatingEnabled,
+        guard isChatFloatingEnabled,
               let tabID = sidebarHost.currentTabID,
               let session = sessionStore.sessions[tabID],
               let chatViewController = session.chatViewController,
               session.floatingWindowController == nil else { return }
 
+        // Manual detach should always originate from the current sidebar location/size.
+        // Persisted floating frame is used only during app/window restoration.
         let screenFrame = sidebarHost.sidebarContainerScreenFrame ?? NSRect(x: 200, y: 200, width: 400, height: 600)
+        session.state.floatingWindowFrame = screenFrame
 
         collapseSidebarPreservingWebView(chatViewController, for: tabID)
 
@@ -358,6 +361,9 @@ final class AIChatCoordinator: AIChatCoordinating {
             tabViewModel: tabViewModel,
             contentRect: screenFrame)
         controller.delegate = self
+        controller.onFrameChanged = { [weak session] frame in
+            session?.state.floatingWindowFrame = frame
+        }
 
         session.floatingWindowController = controller
         session.state.setFloating()
@@ -366,11 +372,51 @@ final class AIChatCoordinator: AIChatCoordinating {
         chatFloatingStateDidChangeSubject.send(tabID)
     }
 
+    private func restoreFloatingWindowIfNeeded(for tabID: TabIdentifier) {
+        guard isChatFloatingEnabled,
+              let session = sessionStore.sessions[tabID] else {
+            return
+        }
+
+        if let controller = session.floatingWindowController {
+            controller.show()
+            return
+        }
+
+        let chatViewController = session.chatViewController ?? session.makeChatViewController(tabID: tabID)
+        chatViewController.delegate = self
+        chatViewController.removeCompletely()
+
+        let tabViewModel = windowControllersManager.allTabCollectionViewModels
+            .flatMap(\.tabViewModels)
+            .first(where: { $0.key.uuid == tabID })?.value
+        let frame = session.state.floatingWindowFrame ?? sidebarHost.sidebarContainerScreenFrame ?? NSRect(x: 200, y: 200, width: 400, height: 600)
+
+        let controller = AIChatFloatingWindowController(
+            tabID: tabID,
+            chatViewController: chatViewController,
+            tabViewModel: tabViewModel,
+            contentRect: frame)
+        controller.delegate = self
+        controller.onFrameChanged = { [weak session] frame in
+            session?.state.floatingWindowFrame = frame
+        }
+        session.floatingWindowController = controller
+        session.state.floatingWindowFrame = frame
+        controller.show()
+        chatFloatingStateDidChangeSubject.send(tabID)
+    }
+
     private func attachSidebar(for tabID: TabIdentifier) {
         guard let session = sessionStore.sessions[tabID],
-              let controller = session.floatingWindowController,
-              let chatViewController = controller.detachChatViewController() else { return }
+              let controller = session.floatingWindowController else { return }
 
+        let floatingFrame = controller.frame
+        controller.onFrameChanged = nil
+
+        guard let chatViewController = controller.detachChatViewController() else { return }
+
+        session.state.floatingWindowFrame = floatingFrame
         session.floatingWindowController = nil
 
         windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
@@ -400,6 +446,9 @@ extension AIChatCoordinator: AIChatSidebarHostingDelegate {
             showSidebar(for: tabID, animated: false)
         case .floating, .hidden:
             collapseSidebar()
+            if mode == .floating {
+                restoreFloatingWindowIfNeeded(for: tabID)
+            }
         }
     }
 
@@ -546,6 +595,7 @@ extension AIChatCoordinator: AIChatFloatingWindowControllerDelegate {
     func floatingWindowDidClose(_ controller: AIChatFloatingWindowController) {
         let tabID = controller.tabID
         let session = sessionStore.sessions[tabID]
+        session?.state.floatingWindowFrame = controller.frame
         session?.floatingWindowController = nil
         session?.state.setHidden()
         chatFloatingStateDidChangeSubject.send(tabID)

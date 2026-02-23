@@ -39,6 +39,7 @@ final class AIChatFloatingWindowController: NSObject {
     }
 
     weak var delegate: AIChatFloatingWindowControllerDelegate?
+    var onFrameChanged: ((NSRect) -> Void)?
 
     /// The tab this floating window is associated with.
     let tabID: TabIdentifier
@@ -51,6 +52,10 @@ final class AIChatFloatingWindowController: NSObject {
         floatingWindow.isVisible
     }
 
+    var frame: NSRect {
+        floatingWindow.frame
+    }
+
     init(tabID: TabIdentifier,
          chatViewController: AIChatViewController,
          tabViewModel: TabViewModel?,
@@ -61,12 +66,23 @@ final class AIChatFloatingWindowController: NSObject {
         super.init()
 
         embedChatViewController(chatViewController)
+        // Embedding an already-laid-out sidebar VC can make AppKit snap the window
+        // back to the VC's previous docked size. Re-apply the requested floating frame.
+        floatingWindow.setFrame(contentRect, display: false)
         subscribeToTabInfo(tabViewModel)
 
         NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: floatingWindow)
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.delegate?.floatingWindowDidClose(self)
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: NSWindow.didMoveNotification, object: floatingWindow)
+            .merge(with: NotificationCenter.default.publisher(for: NSWindow.didResizeNotification, object: floatingWindow))
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.onFrameChanged?(self.frame)
             }
             .store(in: &cancellables)
     }
