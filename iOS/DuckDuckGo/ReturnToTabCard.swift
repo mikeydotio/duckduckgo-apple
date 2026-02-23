@@ -22,18 +22,16 @@ import Core
 import DesignResourcesKit
 import DesignResourcesKitIcons
 
-/// NTP "Return to..." card that navigates to the most recently used tab. Shows favicon (from .tabs cache) or Duck.ai logo to match the tab switcher.
 struct ReturnToTabCard: View {
-
     let model: EscapeHatchModel
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: Metrics.labelToContentSpacing) {
-                returnToLabel
-                HStack(spacing: Metrics.contentSpacing) {
-                    iconView
+            HStack(alignment: .center) {
+                iconView
+                VStack(alignment: .leading, spacing: Metrics.labelToContentSpacing) {
+                    returnToLabel
                     VStack(alignment: .leading, spacing: Metrics.titleToSubtitleSpacing) {
                         Text(model.title)
                             .daxHeadline()
@@ -45,9 +43,8 @@ struct ReturnToTabCard: View {
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    Image(uiImage: DesignSystemImages.Glyphs.Size24.arrowLeftSmall)
-                        .foregroundColor(Color(designSystemColor: .textSecondary))
                 }
+                Image(uiImage: DesignSystemImages.Glyphs.Size16.undo)
             }
             .padding(Metrics.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -123,7 +120,7 @@ private enum Metrics {
     static let shadowOffset1: CGFloat = 4
     static let shadowOffset2: CGFloat = 16
     static let cardPadding: CGFloat = 16
-    static let labelToContentSpacing: CGFloat = 8
+    static let labelToContentSpacing: CGFloat = 0
     static let contentSpacing: CGFloat = 12
     static let titleToSubtitleSpacing: CGFloat = 2
     static let iconSize: CGFloat = 24
@@ -131,7 +128,6 @@ private enum Metrics {
 }
 
 // MARK: - Previews
-// In Xcode: build the app target (Cmd+B), then enable Canvas (Option+Cmd+Return). If preview fails with "Resource invalidation", use Product > Clean Build Folder then build again.
 
 #Preview("Return to tab card") {
     ReturnToTabCard(

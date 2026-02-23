@@ -18,7 +18,6 @@
 
 import AppKit
 import SwiftUI
-import BrowserServicesKit
 import Subscription
 import StoreKit
 import PixelKit
@@ -34,7 +33,6 @@ public final class SubscriptionDebugMenu: NSMenuItem {
 
     private var purchasePlatformItem: NSMenuItem?
     private var regionOverrideItem: NSMenuItem?
-    private var stripeDisableFreeTrialItem: NSMenuItem?
 
     var currentViewController: () -> NSViewController?
     let subscriptionManager: any SubscriptionManager
@@ -111,10 +109,6 @@ public final class SubscriptionDebugMenu: NSMenuItem {
         let regionOverrideItem = NSMenuItem(title: "Region override for App Store Sandbox", action: nil, target: nil)
         menu.addItem(regionOverrideItem)
         self.regionOverrideItem = regionOverrideItem
-
-        let stripeDisableFreeTrialItem = NSMenuItem(title: "Stripe: disable free trial", action: nil, target: nil)
-        menu.addItem(stripeDisableFreeTrialItem)
-        self.stripeDisableFreeTrialItem = stripeDisableFreeTrialItem
 
         menu.delegate = self
 
@@ -222,31 +216,6 @@ public final class SubscriptionDebugMenu: NSMenuItem {
 
         let clearItem = NSMenuItem(title: "Clear storefront region override", action: #selector(clearRegionOverride), target: self)
         menu.addItem(clearItem)
-
-        return menu
-    }
-
-    private func makeStripeDisableFreeTrialSubmenu() -> NSMenu {
-        let menu = NSMenu(title: "")
-        let isDisabled = UserDefaults.standard.stripeDisableFreeTrial
-
-        let onItem = NSMenuItem(title: "On (no free trial)", action: #selector(setStripeDisableFreeTrialOn), target: self)
-        if isDisabled {
-            onItem.state = .on
-            onItem.isEnabled = false
-            onItem.action = nil
-            onItem.target = nil
-        }
-        menu.addItem(onItem)
-
-        let offItem = NSMenuItem(title: "Off (free trial offered)", action: #selector(setStripeDisableFreeTrialOff), target: self)
-        if !isDisabled {
-            offItem.state = .on
-            offItem.isEnabled = false
-            offItem.action = nil
-            offItem.target = nil
-        }
-        menu.addItem(offItem)
 
         return menu
     }
@@ -463,14 +432,6 @@ public final class SubscriptionDebugMenu: NSMenuItem {
         }
     }
 
-    @IBAction func setStripeDisableFreeTrialOn(_ sender: Any?) {
-        UserDefaults.standard.stripeDisableFreeTrial = true
-    }
-
-    @IBAction func setStripeDisableFreeTrialOff(_ sender: Any?) {
-        UserDefaults.standard.stripeDisableFreeTrial = false
-    }
-
     // MARK: -
 
     @objc
@@ -550,6 +511,5 @@ extension SubscriptionDebugMenu: NSMenuDelegate {
     public func menuWillOpen(_ menu: NSMenu) {
         purchasePlatformItem?.submenu = makePurchasePlatformSubmenu()
         regionOverrideItem?.submenu = makeRegionOverrideItemSubmenu()
-        stripeDisableFreeTrialItem?.submenu = makeStripeDisableFreeTrialSubmenu()
     }
 }

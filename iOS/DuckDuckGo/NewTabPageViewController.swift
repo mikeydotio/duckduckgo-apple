@@ -26,7 +26,6 @@ import RemoteMessaging
 
 final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTabPage {
 
-    /// When true, the NTP is treated as "logo only" and the whole view can be faded/moved during the focus (editing) transition. When we show the escape hatch, we must not be logo-only so the card stays visible in focus mode.
     var isShowingLogo: Bool {
         favoritesModel.isEmpty && newTabPageViewModel.escapeHatch == nil
     }
@@ -91,13 +90,12 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
         assignFavoriteModelActions()
     }
 
-    /// When the NTP escape hatch card is shown, call with the model and the tab index to switch to on tap. Pass nil to hide the card.
     func setEscapeHatch(_ model: EscapeHatchModel?, targetTabIndex: Int) {
         newTabPageViewModel.escapeHatch = model
-        if let model {
+        if model != nil {
             newTabPageViewModel.onEscapeHatchTap = { [weak self] in
                 guard let self else { return }
-                self.delegate?.newTabPage(self, didRequestSwitchToTabAt: targetTabIndex)
+                self.delegate?.newTabPageDidRequestSwitchToTab(self, index: targetTabIndex)
             }
         } else {
             newTabPageViewModel.onEscapeHatchTap = nil
@@ -285,6 +283,17 @@ extension NewTabPageViewController {
 
         let onManualDismiss: () -> Void = { [weak self] in
             self?.dismissHostingController(didFinishNTPOnboarding: true)
+
+            if spec == .final {
+                let nextSpec = dialogProvider.nextHomeScreenMessageNew()
+                if nextSpec == .subscriptionPromotion {
+                    self?.chromeDelegate?.omniBar.endEditing()
+                    self?.showNextDaxDialog()
+                    return
+                }
+                dialogProvider.dismiss()
+            }
+
             // Show keyboard when manually dismiss the Dax tips.
             self?.chromeDelegate?.omniBar.beginEditing(animated: true)
         }

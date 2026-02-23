@@ -292,7 +292,7 @@ extension SuggestionTrayManager: NewTabPageControllerDelegate {
         // no-op this is handled by the main view controller on a real new tab page
     }
 
-    func newTabPage(_ controller: NewTabPageViewController, didRequestSwitchToTabAt index: Int) {
+    func newTabPageDidRequestSwitchToTab(_ controller: NewTabPageViewController, index: Int) {
         onEscapeHatchTapped?(index)
     }
 }

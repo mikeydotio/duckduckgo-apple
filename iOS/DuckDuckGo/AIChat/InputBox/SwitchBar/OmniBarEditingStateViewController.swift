@@ -661,7 +661,7 @@ extension OmniBarEditingStateViewController: SuggestionTrayManagerDelegate {
     }
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, shouldUpdateTextTo text: String) {
-        switchBarHandler.updateCurrentText(text)
+        switchBarVC.textEntryViewController.setQueryText(text)
     }
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsEditFavorite favorite: BookmarkEntity) {
