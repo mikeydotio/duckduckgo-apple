@@ -94,10 +94,10 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
     /// When the NTP escape hatch card is shown, call with the model and the tab index to switch to on tap. Pass nil to hide the card.
     func setEscapeHatch(_ model: EscapeHatchModel?, targetTabIndex: Int) {
         newTabPageViewModel.escapeHatch = model
-        if let model {
+        if model != nil {
             newTabPageViewModel.onEscapeHatchTap = { [weak self] in
                 guard let self else { return }
-                self.delegate?.newTabPage(self, didRequestSwitchToTabAt: targetTabIndex)
+                self.delegate?.newTabPageDidRequestSwitchToTab(self, index: targetTabIndex)
             }
         } else {
             newTabPageViewModel.onEscapeHatchTap = nil

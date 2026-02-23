@@ -1186,7 +1186,7 @@ class MainViewController: UIViewController {
         viewCoordinator.omniBar.omniDelegate = self
     }
     
-    private static func makeEscapeHatchModel(from tab: Tab) -> EscapeHatchModel {
+    private func makeEscapeHatchModel(from tab: Tab) -> EscapeHatchModel? {
         if tab.isAITab {
             return EscapeHatchModel(
                 title: UserText.omnibarFullAIChatModeDisplayTitle,
@@ -1196,16 +1196,14 @@ class MainViewController: UIViewController {
             )
         }
         if let link = tab.link {
-            let title = link.displayTitle ?? link.url.host?.droppingWwwPrefix() ?? ""
             let subtitle = link.url.host?.droppingWwwPrefix() ?? link.url.absoluteString
-            return EscapeHatchModel(title: title, subtitle: subtitle, isAITab: false, domain: link.url.host)
+            return EscapeHatchModel(title: link.displayTitle,
+                                    subtitle: subtitle,
+                                    isAITab: false,
+                                    domain: link.url.host
+            )
         }
-        return EscapeHatchModel(
-            title: UserText.homeTabTitle,
-            subtitle: "",
-            isAITab: false,
-            domain: nil
-        )
+        return nil
     }
 
     fileprivate func attachHomeScreen(isNewTab: Bool = false, allowingKeyboard: Bool = false, tabSwitchedFromIndex: Int? = nil) {
@@ -1268,7 +1266,7 @@ class MainViewController: UIViewController {
             }
             if let targetIndex {
                 let tab = tabManager.model.get(tabAt: targetIndex)
-                let escapeHatchModel = Self.makeEscapeHatchModel(from: tab)
+                let escapeHatchModel = makeEscapeHatchModel(from: tab)
                 controller.setEscapeHatch(escapeHatchModel, targetTabIndex: targetIndex)
             } else {
                 controller.setEscapeHatch(nil, targetTabIndex: 0)
@@ -1584,7 +1582,6 @@ class MainViewController: UIViewController {
         allowContentUnderflow = false
         
         if tabManager.model.tabs.indices.contains(index) {
-            // Capture the tab we're leaving before select() updates model.currentIndex (so escape hatch is correct when switching to NTP).
             let tabSwitchedFromIndex = tabManager.model.currentIndex
             let tab = tabManager.select(tabAt: index)
             select(tab: tab, tabSwitchedFromIndex: tabSwitchedFromIndex)
@@ -2097,7 +2094,6 @@ class MainViewController: UIViewController {
         hideNotificationBarIfBrokenSitePromptShown()
         currentTab?.dismiss()
 
-        // Capture the tab we're leaving before we switch to the NTP (for escape hatch and idle return).
         let tabSwitchedFromIndex = tabManager.model.currentIndex
 
         if reuseExisting, let existing = tabManager.firstHomeTab() {
@@ -3451,7 +3447,7 @@ extension MainViewController: NewTabPageControllerDelegate {
         faviconsFetcherOnboarding.presentOnboardingIfNeeded(from: self)
     }
 
-    func newTabPage(_ controller: NewTabPageViewController, didRequestSwitchToTabAt index: Int) {
+    func newTabPageDidRequestSwitchToTab(_ controller: NewTabPageViewController, index: Int) {
         select(tabAt: index)
     }
 }

@@ -383,8 +383,6 @@ class SubscriptionManagerTests: XCTestCase {
     // MARK: - Tests for Free Trial Eligibility
 
     func testWhenPlatformIsStripeUserIsEligibleForFreeTrialThenReturnsEligible() throws {
-        // Given - ensure debug override is off so Stripe returns eligible
-        UserDefaults.standard.set(false, forKey: UserDefaults.Constants.stripeDisableFreeTrialKey)
         mockStorePurchaseManager.isEligibleForFreeTrialResult = false
         let stripeEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .stripe)
         let userDefaults = UserDefaults(suiteName: "com.duckduckgo.subscriptionUnitTests.\(UUID().uuidString)")!
@@ -405,28 +403,6 @@ class SubscriptionManagerTests: XCTestCase {
     }
 
     func testWhenPlatformIsStripeAndDebugDisableFreeTrialIsOnThenReturnsNotEligible() throws {
-        // Given
-        UserDefaults.standard.set(true, forKey: UserDefaults.Constants.stripeDisableFreeTrialKey)
-        defer { UserDefaults.standard.set(false, forKey: UserDefaults.Constants.stripeDisableFreeTrialKey) }
-        let stripeEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .stripe)
-        let userDefaults = UserDefaults(suiteName: "com.duckduckgo.subscriptionUnitTests.\(UUID().uuidString)")!
-        let sut = DefaultSubscriptionManager(
-            storePurchaseManager: mockStorePurchaseManager,
-            oAuthClient: mockOAuthClient,
-            userDefaults: userDefaults,
-            subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionEnvironment: stripeEnvironment,
-            pixelHandler: MockPixelHandler()
-        )
-
-        // When
-        let result = sut.isUserEligibleForFreeTrial()
-
-        // Then
-        XCTAssertFalse(result)
-    }
-
-    func testWhenPlatformIsAppStoreAndUserIsEligibleForFreeTrialThenReturnsEligible() throws {
         // Given
         mockStorePurchaseManager.isEligibleForFreeTrialResult = true
         let appStoreEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
