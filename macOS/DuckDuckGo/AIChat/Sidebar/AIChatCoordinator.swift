@@ -461,6 +461,7 @@ extension AIChatCoordinator: AIChatViewControllerDelegate {
     func didClickTitleButton(for tabID: TabIdentifier) {
         windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
         sidebarHost.selectTab(with: tabID)
+        sessionStore.sessions[tabID]?.floatingWindowController?.show()
     }
 }
 
