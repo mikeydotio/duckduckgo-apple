@@ -322,6 +322,12 @@ final class AIChatCoordinator: AIChatCoordinating {
         session.chatViewController?.removeCompletely()
     }
 
+    private func windowController(for tabID: TabIdentifier) -> MainWindowController? {
+        windowControllersManager.mainWindowControllers.first { controller in
+            controller.mainViewController.tabCollectionViewModel.tabViewModels.keys.contains { $0.uuid == tabID }
+        }
+    }
+
     // MARK: - Detach / Attach
 
     private func detachSidebar() {
@@ -360,7 +366,7 @@ final class AIChatCoordinator: AIChatCoordinating {
 
         session.floatingWindowController = nil
 
-        windowControllersManager.lastKeyMainWindowController?.window?.makeKeyAndOrderFront(nil)
+        windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
 
         chatViewController.delegate = self
         sidebarHost.embedChatViewController(chatViewController, for: tabID)
@@ -431,7 +437,9 @@ extension AIChatCoordinator: AIChatViewControllerDelegate {
     func didClickCloseButton() {
         pixelFiring?.fire(AIChatPixel.aiChatSidebarClosed(source: .sidebarCloseButton), frequency: .dailyAndStandard)
 
-        windowControllersManager.lastKeyMainWindowController?.window?.makeFirstResponder(nil)
+        if let tabID = sidebarHost.currentTabID {
+            windowController(for: tabID)?.window?.makeFirstResponder(nil)
+        }
         toggleSidebar()
     }
 
@@ -444,7 +452,7 @@ extension AIChatCoordinator: AIChatViewControllerDelegate {
     }
 
     func didClickTitleButton(for tabID: TabIdentifier) {
-        windowControllersManager.lastKeyMainWindowController?.window?.makeKeyAndOrderFront(nil)
+        windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
         sidebarHost.selectTab(with: tabID)
     }
 }

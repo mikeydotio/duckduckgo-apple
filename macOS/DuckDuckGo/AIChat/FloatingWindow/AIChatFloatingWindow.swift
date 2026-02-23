@@ -30,7 +30,7 @@ final class AIChatFloatingWindow: NSWindow {
         static let defaultWidth: CGFloat = 400
         static let defaultHeight: CGFloat = 600
         static let minWidth: CGFloat = 320
-        static let minHeight: CGFloat = 400
+        static let minHeight: CGFloat = 505
     }
 
     override var canBecomeKey: Bool { true }

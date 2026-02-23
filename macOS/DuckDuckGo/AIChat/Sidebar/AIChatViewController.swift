@@ -19,7 +19,9 @@
 import AppKit
 import BrowserServicesKit
 import AIChat
+import Common
 import Combine
+import os.log
 
 /// A delegate protocol that handles user interactions with the AI Chat sidebar view controller.
 /// This protocol defines methods for responding to navigation and UI events in the sidebar.
@@ -53,7 +55,6 @@ final class AIChatViewController: NSViewController {
         static let titleButtonHeight: CGFloat = 28
         static let titleButtonHorizontalPadding: CGFloat = 8
         static let titleFaviconSize: CGFloat = 16
-        static let titleArrowSize: CGFloat = 10
         static let titleButtonGutter: CGFloat = 32
         static let webViewContainerPadding: CGFloat = 4
         static let webViewTopCornerRadius: CGFloat = 16
@@ -75,6 +76,9 @@ final class AIChatViewController: NSViewController {
     private var attachButton: MouseOverButton!
     private var closeButton: MouseOverButton!
     private var titleButton: MouseOverButton!
+    private var titleFaviconView: NSImageView!
+    private var titleTextLabel: NSTextField!
+    private var titleArrowView: NSImageView!
     private var titleLabel: NSTextField!
     private var webViewContainer: WebViewContainerView!
     private var separator: NSView!
@@ -174,7 +178,7 @@ final class AIChatViewController: NSViewController {
                                            toolTip: UserText.aiChatSidebarExpandButtonTooltip)
         topBar.addSubview(openInNewTabButton)
 
-        attachButton = makeBarButton(image: .moveTabToNewWindow, action: #selector(attachButtonClicked),
+        attachButton = makeBarButton(image: .aiChatAttach, action: #selector(attachButtonClicked),
                                      toolTip: UserText.aiChatSidebarAttachButtonTooltip)
         attachButton.isHidden = true
         topBar.addSubview(attachButton)
@@ -190,7 +194,7 @@ final class AIChatViewController: NSViewController {
         titleButton.isHidden = true
         topBar.addSubview(titleButton)
 
-        detachButton = makeBarButton(image: .moveTabToNewWindow, action: #selector(detachButtonClicked),
+        detachButton = makeBarButton(image: .aiChatDetach, action: #selector(detachButtonClicked),
                                      toolTip: UserText.aiChatSidebarDetachButtonTooltip)
         topBar.addSubview(detachButton)
 
@@ -238,46 +242,63 @@ final class AIChatViewController: NSViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.bezelStyle = .shadowlessSquare
         button.isBordered = false
+        button.title = ""
+        button.imagePosition = .noImage
         button.cornerRadius = 6
         button.mouseOverColor = .buttonMouseOver
         button.mouseDownColor = .buttonMouseDown
-        button.backgroundInset = NSPoint(x: -Constants.titleButtonHorizontalPadding, y: -3)
         button.clipsToBounds = false
         button.target = self
         button.action = #selector(titleButtonClicked)
         button.refusesFirstResponder = true
         button.toolTip = UserText.aiChatSidebarTitleButtonTooltip
-        button.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        button.lineBreakMode = .byTruncatingTail
-        button.font = .systemFont(ofSize: 12, weight: .medium)
+        button.backgroundInset = NSPoint(x: 0, y: -3)
+        titleFaviconView = NSImageView()
+        titleFaviconView.translatesAutoresizingMaskIntoConstraints = false
+        titleFaviconView.imageScaling = .scaleProportionallyUpOrDown
+        titleFaviconView.setContentCompressionResistancePriority(.required, for: .horizontal)
+        titleFaviconView.setContentHuggingPriority(.required, for: .horizontal)
 
-        let arrowConfig = NSImage.SymbolConfiguration(pointSize: Constants.titleArrowSize, weight: .medium)
-        button.image = NSImage(systemSymbolName: "arrow.up.forward",
-                               accessibilityDescription: nil)?.withSymbolConfiguration(arrowConfig)
-        button.imagePosition = .imageRight
-        button.title = ""
+        titleTextLabel = NSTextField(labelWithString: "")
+        titleTextLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleTextLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        titleTextLabel.textColor = .labelColor
+        titleTextLabel.lineBreakMode = .byTruncatingTail
+        titleTextLabel.setContentCompressionResistancePriority(.init(rawValue: 500), for: .horizontal)
+
+        titleArrowView = NSImageView(image: .arrowUpRight12)
+        titleArrowView.translatesAutoresizingMaskIntoConstraints = false
+        titleArrowView.setContentCompressionResistancePriority(.required, for: .horizontal)
+        titleArrowView.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stackView = NSStackView(views: [titleFaviconView, titleTextLabel, titleArrowView])
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.orientation = .horizontal
+        stackView.alignment = .centerY
+        stackView.distribution = .fill
+        stackView.spacing = 0
+        stackView.setCustomSpacing(4, after: titleFaviconView)
+        stackView.setCustomSpacing(6, after: titleTextLabel)
+        stackView.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+
+        button.addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            titleFaviconView.widthAnchor.constraint(equalToConstant: Constants.titleFaviconSize),
+            titleFaviconView.heightAnchor.constraint(equalToConstant: Constants.titleFaviconSize),
+
+            stackView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: Constants.titleButtonHorizontalPadding),
+            stackView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -Constants.titleButtonHorizontalPadding),
+            stackView.centerYAnchor.constraint(equalTo: button.centerYAnchor)
+        ])
+
         return button
     }
 
     func updateFloatingTitle(_ title: String, favicon: NSImage?) {
-        let faviconImage = favicon ?? .homeFavicon
-
-        let faviconAttachment = NSTextAttachment()
-        faviconAttachment.image = faviconImage
-        faviconAttachment.bounds = CGRect(x: 0, y: -3, width: Constants.titleFaviconSize, height: Constants.titleFaviconSize)
-
-        let attributed = NSMutableAttributedString()
-        attributed.append(NSAttributedString(attachment: faviconAttachment))
-        attributed.append(NSAttributedString(string: " \(title)"))
-
-        attributed.addAttributes([
-            .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-            .foregroundColor: NSColor.labelColor
-        ], range: NSRange(location: 0, length: attributed.length))
-
-        titleButton.attributedTitle = attributed
-        titleButton.invalidateIntrinsicContentSize()
+        titleFaviconView.image = favicon ?? .homeFavicon
+        titleTextLabel.stringValue = title
     }
 
     private func makeBarButton(image: NSImage, action: Selector, toolTip: String) -> MouseOverButton {
@@ -297,7 +318,14 @@ final class AIChatViewController: NSViewController {
     override func viewDidLayout() {
         super.viewDidLayout()
         updateTopBarForHostingContext()
-        titleButton.invalidateIntrinsicContentSize()
+        logFloatingWindowHeight()
+    }
+
+    private func logFloatingWindowHeight() {
+        guard let floatingWindow = view.window as? AIChatFloatingWindow else { return }
+        Logger.general.debug(
+            "[AIChat floating] windowHeight=\(floatingWindow.frame.height, privacy: .public) contentLayoutHeight=\(floatingWindow.contentLayoutRect.height, privacy: .public) chatViewHeight=\(self.view.bounds.height, privacy: .public)"
+        )
     }
 
     private func updateTopBarForHostingContext() {
