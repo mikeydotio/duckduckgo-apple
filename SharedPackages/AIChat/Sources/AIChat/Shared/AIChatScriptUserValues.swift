@@ -187,6 +187,7 @@ public struct AIChatNativePrompt: Codable, Equatable {
         public let autoSubmit: Bool
         public let toolChoice: [String]?
         public let images: [NativePromptImage]?
+        public let modelId: String?
     }
 
     public struct TextSummary: Codable, Equatable {
@@ -293,8 +294,8 @@ public struct AIChatNativePrompt: Codable, Equatable {
         try container.encodeIfPresent(pageContext, forKey: .pageContext)
     }
 
-    public static func queryPrompt(_ prompt: String, autoSubmit: Bool, toolChoice: [String]? = nil, images: [NativePromptImage]? = nil, pageContext: AIChatPageContextData? = nil) -> AIChatNativePrompt {
-        AIChatNativePrompt(platform: Platform.name, tool: .query(.init(prompt: prompt, autoSubmit: autoSubmit, toolChoice: toolChoice, images: images)), pageContext: pageContext)
+    public static func queryPrompt(_ prompt: String, autoSubmit: Bool, toolChoice: [String]? = nil, images: [NativePromptImage]? = nil, modelId: String? = nil, pageContext: AIChatPageContextData? = nil) -> AIChatNativePrompt {
+        AIChatNativePrompt(platform: Platform.name, tool: .query(.init(prompt: prompt, autoSubmit: autoSubmit, toolChoice: toolChoice, images: images, modelId: modelId)), pageContext: pageContext)
     }
 
     public static func summaryPrompt(_ text: String, url: URL?, title: String?) -> AIChatNativePrompt {

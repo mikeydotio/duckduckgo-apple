@@ -47,6 +47,7 @@ final class AIChatOmnibarController {
     private let featureFlagger: FeatureFlagger
     private let searchPreferencesPersistor: SearchPreferencesPersistor
     private let suggestionsReader: AIChatSuggestionsReading?
+    private var preferences: AIChatPreferencesPersisting
     private var cancellables = Set<AnyCancellable>()
     private var sharedTextStateCancellable: AnyCancellable?
     private var isUpdatingFromSharedState = false
@@ -104,7 +105,8 @@ final class AIChatOmnibarController {
         promptHandler: AIChatPromptHandler = .shared,
         featureFlagger: FeatureFlagger = NSApp.delegateTyped.featureFlagger,
         searchPreferencesPersistor: SearchPreferencesPersistor = SearchPreferencesUserDefaultsPersistor(),
-        suggestionsReader: AIChatSuggestionsReading? = nil
+        suggestionsReader: AIChatSuggestionsReading? = nil,
+        preferences: AIChatPreferencesPersisting = AIChatPreferencesPersistor()
     ) {
         self.aiChatTabOpener = aiChatTabOpener
         self.tabCollectionViewModel = tabCollectionViewModel
@@ -112,6 +114,7 @@ final class AIChatOmnibarController {
         self.featureFlagger = featureFlagger
         self.searchPreferencesPersistor = searchPreferencesPersistor
         self.suggestionsReader = suggestionsReader
+        self.preferences = preferences
         self.suggestionsViewModel = AIChatSuggestionsViewModel(
             maxSuggestions: suggestionsReader?.maxHistoryCount ?? AIChatSuggestionsViewModel.defaultMaxSuggestions
         )
@@ -164,6 +167,16 @@ final class AIChatOmnibarController {
     }
 
     // MARK: - Public Methods
+
+    /// The persisted model ID, falling back to the default model.
+    var persistedModelId: String {
+        preferences.selectedModelId ?? AIChatModelProvider.defaultModel.id
+    }
+
+    /// Updates the selected model ID and persists it for future sessions.
+    func updateSelectedModel(_ modelId: String) {
+        preferences.selectedModelId = modelId
+    }
 
     /// Updates the current text being typed by the user
     /// - Parameter text: The new text value
@@ -283,8 +296,9 @@ final class AIChatOmnibarController {
                 with: .query(trimmedText, shouldAutoSubmit: true),
                 behavior: .currentTab
             )
-            // Re-set prompt after tab opener to include images (tab opener overwrites with a plain query)
-            let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: nil, images: images)
+            // Re-set prompt after tab opener to include images and model selection (tab opener overwrites with a plain query)
+            let modelId = self.preferences.selectedModelId
+            let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: nil, images: images, modelId: modelId)
             promptHandler.setData(prompt)
 
             onAttachmentsClearRequested?()

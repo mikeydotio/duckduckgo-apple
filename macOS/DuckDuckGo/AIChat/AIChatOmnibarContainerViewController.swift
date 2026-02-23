@@ -282,7 +282,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         modelPickerButton.translatesAutoresizingMaskIntoConstraints = false
         modelPickerButton.target = self
         modelPickerButton.action = #selector(modelPickerButtonClicked)
-        modelPickerButton.modelName = AIChatModelProvider.defaultModel.shortDisplayName
+        modelPickerButton.modelName = persistedModelShortName
         modelPickerButton.toolTip = UserText.aiChatModelPickerButtonTooltip
         modelPickerButton.setAccessibilityLabel(UserText.aiChatModelPickerButtonTooltip)
         containerView.addSubview(modelPickerButton)
@@ -413,9 +413,8 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         // Clear attachments and cancel pending resize tasks
         clearAttachments()
 
-        // Reset model picker state
-        selectedModelId = AIChatModelProvider.defaultModel.id
-        modelPickerButton.modelName = AIChatModelProvider.defaultModel.shortDisplayName
+        // Restore model picker to persisted value
+        modelPickerButton.modelName = persistedModelShortName
 
         omnibarController.cleanup()
     }
@@ -555,7 +554,16 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         menu.popUp(positioning: nil, at: NSPoint(x: x, y: -5), in: modelPickerButton)
     }
 
-    private var selectedModelId: String = AIChatModelProvider.defaultModel.id
+    private var selectedModelId: String {
+        omnibarController.persistedModelId
+    }
+
+    /// Short display name for the currently persisted model.
+    private var persistedModelShortName: String {
+        let allModels = AIChatModelProvider.freeModels + AIChatModelProvider.premiumModels
+        return allModels.first(where: { $0.id == omnibarController.persistedModelId })?.shortDisplayName
+            ?? AIChatModelProvider.defaultModel.shortDisplayName
+    }
 
     private func buildModelPickerMenu() -> NSMenu {
         let menu = NSMenu()
@@ -591,7 +599,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     @objc private func modelSelected(_ sender: NSMenuItem) {
         guard let model = sender.representedObject as? AIChatModel else { return }
-        selectedModelId = model.id
+        omnibarController.updateSelectedModel(model.id)
         modelPickerButton.modelName = model.shortDisplayName
     }
 
