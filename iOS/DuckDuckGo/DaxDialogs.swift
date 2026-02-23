@@ -278,6 +278,13 @@ final class DaxDialogs: NewTabDialogSpecProvider, ContextualOnboardingLogic, Con
         visitedSiteAndFireButtonSeen
     }
 
+    private var canShowFireButtonAnimationIfDialogIsVisible: Bool {
+        // If no dialog is visible return true
+        guard let lastShownDaxDialogType else { return true }
+        // Else if dialog is visible show only if fire dialog is visible
+        return lastShownDaxDialogType == .fire
+    }
+
     var hasSeenOnboarding: Bool {
         !isEnabled
     }
@@ -308,7 +315,7 @@ final class DaxDialogs: NewTabDialogSpecProvider, ContextualOnboardingLogic, Con
     
     var shouldShowFireButtonPulse: Bool {
         // Show fire the user hasn't seen the fire education dialog or the fire button has not animated before.
-        nonDDGBrowsingMessageSeen && (!settings.fireMessageExperimentShown && settings.fireButtonPulseDateShown == nil) && isEnabled
+        nonDDGBrowsingMessageSeen && canShowFireButtonAnimationIfDialogIsVisible && (!settings.fireMessageExperimentShown && settings.fireButtonPulseDateShown == nil) && isEnabled
     }
 
     var shouldShowPrivacyButtonPulse: Bool {

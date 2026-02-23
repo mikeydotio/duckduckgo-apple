@@ -1110,6 +1110,100 @@ final class DaxDialog: XCTestCase {
         XCTAssertTrue(settings.tryVisitASiteShown)
     }
 
+    // MARK: - Fire Button Pulse Animation Tests
+
+    func testWhenTrackerDialogIsVisible_ThenShouldNotShowFireButtonPulse() {
+        // GIVEN
+        let settings = MockDaxDialogsSettings()
+        settings.browsingWithTrackersShown = false
+        settings.fireMessageExperimentShown = false
+        settings.fireButtonPulseDateShown = nil
+        let sut = makeSUT(settings: settings)
+
+        // Set up state to simulate tracker dialog being visible
+        let privacyInfo = makePrivacyInfo(url: URLs.example)
+        let detectedTracker = detectedTrackerFrom(URLs.google, pageUrl: URLs.example.absoluteString)
+        privacyInfo.trackerInfo.addDetectedTracker(detectedTracker, onPageWithURL: URLs.example)
+
+        // Simulate showing the tracker dialog
+        let dialog = sut.nextBrowsingMessageIfShouldShow(for: privacyInfo)
+        XCTAssertEqual(dialog?.type, .withOneTracker)
+        XCTAssertTrue(settings.browsingWithTrackersShown)
+
+        // WHEN - Check if fire button pulse should show while tracker dialog is visible
+        let result = sut.shouldShowFireButtonPulse
+
+        // THEN - Should be false because a non-fire dialog is visible
+        XCTAssertFalse(result)
+    }
+
+    func testWhenFireDialogIsVisible_ThenShouldShowFireButtonPulse() {
+        // GIVEN
+        let settings = MockDaxDialogsSettings()
+        settings.browsingWithTrackersShown = true
+        settings.fireMessageExperimentShown = false
+        settings.fireButtonPulseDateShown = nil
+        let sut = makeSUT(settings: settings)
+
+        // Simulate fire dialog being visible
+        sut.setLastShownDialog(type: .fire)
+
+        // WHEN
+        let result = sut.shouldShowFireButtonPulse
+
+        // THEN
+        XCTAssertTrue(result)
+    }
+
+    func testWhenNoDialogIsVisible_AndConditionsMet_ThenShouldShowFireButtonPulse() {
+        // GIVEN
+        let settings = MockDaxDialogsSettings()
+        settings.browsingWithTrackersShown = true
+        settings.fireMessageExperimentShown = false
+        settings.fireButtonPulseDateShown = nil
+        let sut = makeSUT(settings: settings)
+
+        // Ensure no dialog is visible by clearing onboarding data
+        sut.setDaxDialogDismiss()
+
+        // WHEN
+        let result = sut.shouldShowFireButtonPulse
+
+        // THEN - Should be true because no dialog is blocking it
+        XCTAssertTrue(result)
+    }
+
+    func testWhenNonFireDialogIsVisible_ThenShouldNotShowFireButtonPulse() {
+        let dialogTypes: [DaxDialogs.BrowsingSpec.SpecType] = [
+            .withOneTracker,
+            .withMultipleTrackers,
+            .withoutTrackers,
+            .siteIsMajorTracker,
+            .siteOwnedByMajorTracker,
+            .afterSearch,
+            .visitWebsite,
+            .final
+        ]
+
+        dialogTypes.forEach { dialogType in
+            // GIVEN
+            let settings = MockDaxDialogsSettings()
+            settings.browsingWithTrackersShown = true
+            settings.fireMessageExperimentShown = false
+            settings.fireButtonPulseDateShown = nil
+            let sut = makeSUT(settings: settings)
+
+            // Set dialog as visible
+            sut.setLastShownDialog(type: dialogType)
+
+            // WHEN
+            let result = sut.shouldShowFireButtonPulse
+
+            // THEN
+            XCTAssertFalse(result, "Fire button pulse should not show when \(dialogType) dialog is visible")
+        }
+    }
+
 
     private func detectedTrackerFrom(_ url: URL, pageUrl: String) -> DetectedRequest {
         let entity = entityProvider.entity(forHost: url.host!)
