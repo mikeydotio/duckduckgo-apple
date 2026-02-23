@@ -26,7 +26,6 @@ import RemoteMessaging
 
 final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTabPage {
 
-    /// When true, the NTP is treated as "logo only" and the whole view can be faded/moved during the focus (editing) transition. When we show the escape hatch, we must not be logo-only so the card stays visible in focus mode.
     var isShowingLogo: Bool {
         favoritesModel.isEmpty && newTabPageViewModel.escapeHatch == nil
     }
@@ -91,7 +90,6 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
         assignFavoriteModelActions()
     }
 
-    /// When the NTP escape hatch card is shown, call with the model and the tab index to switch to on tap. Pass nil to hide the card.
     func setEscapeHatch(_ model: EscapeHatchModel?, targetTabIndex: Int) {
         newTabPageViewModel.escapeHatch = model
         if model != nil {
