@@ -273,6 +273,7 @@ final class AIChatViewController: NSViewController {
 
         titleArrowView = NSImageView(image: .arrowUpRight12)
         titleArrowView.translatesAutoresizingMaskIntoConstraints = false
+        titleArrowView.contentTintColor = themeManager.theme.colorsProvider.iconsColor
         titleArrowView.setContentCompressionResistancePriority(.required, for: .horizontal)
         titleArrowView.setContentHuggingPriority(.required, for: .horizontal)
 
@@ -311,7 +312,7 @@ final class AIChatViewController: NSViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.bezelStyle = .shadowlessSquare
         button.cornerRadius = 9
-        button.normalTintColor = .button
+        button.normalTintColor = themeManager.theme.colorsProvider.iconsColor
         button.mouseDownColor = .buttonMouseDown
         button.mouseOverColor = .buttonMouseOver
         button.isBordered = false
@@ -472,6 +473,13 @@ extension AIChatViewController: ThemeUpdateListening {
         }
 
         contentView.backgroundColor = theme.colorsProvider.bookmarksPanelBackgroundColor
+
+        let iconsPrimary = theme.colorsProvider.iconsColor
+        openInNewTabButton?.normalTintColor = iconsPrimary
+        detachButton?.normalTintColor = iconsPrimary
+        attachButton?.normalTintColor = iconsPrimary
+        closeButton?.normalTintColor = iconsPrimary
+        titleArrowView?.contentTintColor = iconsPrimary
     }
 }
 
