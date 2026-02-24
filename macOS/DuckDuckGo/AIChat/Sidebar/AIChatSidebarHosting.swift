@@ -113,6 +113,14 @@ extension BrowserTabViewController: AIChatSidebarHosting {
         if let tabID {
             selectTab(with: tabID)
         }
+
+        if chatViewController.parent === self,
+           chatViewController.view.superview === sidebarContainer {
+            return
+        }
+
+        chatViewController.removeFromParent()
+        chatViewController.view.removeFromSuperview()
         addAndLayoutChild(chatViewController, into: sidebarContainer)
     }
 
