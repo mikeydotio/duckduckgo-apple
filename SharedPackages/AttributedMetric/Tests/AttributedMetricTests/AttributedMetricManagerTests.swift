@@ -1118,7 +1118,7 @@ final class AttributedMetricManagerTests: XCTestCase {
     /// - Set all 4 thresholds, verify they are set
     /// - Call removeAll(), verify all are nil
     func testRemoveAllClearsThresholds() {
-        let fixture = createTestFixture { _, _, _, _, _, _ in }
+        let fixture = createTestFixture { _, _, _, _, _, _, _ in }
         defer { fixture.cleanup() }
 
         // Set thresholds
@@ -1235,7 +1235,7 @@ final class AttributedMetricManagerTests: XCTestCase {
     /// - Verifies: installDate, lastRetentionThreshold, subscriptionDate, subscription flags, syncDevicesCount
     /// - Trigger: Any trigger (using .appDidStart) calls process() which checks isLessThanSixMonths
     func testDataStorageRemovalAfterSixMonths() {
-        let fixture = createTestFixture { _, _, _, _, _, _ in
+        let fixture = createTestFixture { _, _, _, _, _, _, _ in
             // No pixel expectations needed for this test
         }
         defer { fixture.cleanup() }
