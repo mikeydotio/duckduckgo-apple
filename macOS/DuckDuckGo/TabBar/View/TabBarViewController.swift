@@ -1808,7 +1808,7 @@ extension TabBarViewController: TabBarViewItemDelegate {
         popover.contentViewController = hostingController
         popover.contentSize = fittingSize
 
-        popover.show(positionedBelow: tabBarViewItem.view)
+        popover.show(positionedBelow: tabBarViewItem.aiChatCloseWarningAnchorRect(), in: tabBarViewItem.view)
         aiChatCloseWarningPopover = popover
     }
 
