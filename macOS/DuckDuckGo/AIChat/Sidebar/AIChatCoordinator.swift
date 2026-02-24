@@ -337,8 +337,23 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     private func windowController(for tabID: TabIdentifier) -> MainWindowController? {
         windowControllersManager.mainWindowControllers.first { controller in
-            controller.mainViewController.tabCollectionViewModel.tabViewModels.keys.contains { $0.uuid == tabID }
+            let tabCollectionViewModel = controller.mainViewController.tabCollectionViewModel
+            let hasRegularTab = tabCollectionViewModel.tabViewModels.keys.contains { $0.uuid == tabID }
+            let hasPinnedTab = tabCollectionViewModel.pinnedTabsManager?.tabViewModels.keys.contains { $0.uuid == tabID } ?? false
+            return hasRegularTab || hasPinnedTab
         }
+    }
+
+    private func tabViewModel(for tabID: TabIdentifier) -> TabViewModel? {
+        for tabCollectionViewModel in windowControllersManager.allTabCollectionViewModels {
+            if let regularTabViewModel = tabCollectionViewModel.tabViewModels.first(where: { $0.key.uuid == tabID })?.value {
+                return regularTabViewModel
+            }
+            if let pinnedTabViewModel = tabCollectionViewModel.pinnedTabsManager?.tabViewModels.first(where: { $0.key.uuid == tabID })?.value {
+                return pinnedTabViewModel
+            }
+        }
+        return nil
     }
 
     // MARK: - Detach / Attach
@@ -357,9 +372,7 @@ final class AIChatCoordinator: AIChatCoordinating {
 
         collapseSidebarPreservingWebView(chatViewController, for: tabID)
 
-        let tabViewModel = windowControllersManager.allTabCollectionViewModels
-            .flatMap(\.tabViewModels)
-            .first(where: { $0.key.uuid == tabID })?.value
+        let tabViewModel = tabViewModel(for: tabID)
 
         let controller = AIChatFloatingWindowController(
             tabID: tabID,
@@ -398,9 +411,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         chatViewController.delegate = self
         chatViewController.removeCompletely()
 
-        let tabViewModel = windowControllersManager.allTabCollectionViewModels
-            .flatMap(\.tabViewModels)
-            .first(where: { $0.key.uuid == tabID })?.value
+        let tabViewModel = tabViewModel(for: tabID)
         let frame = session.state.floatingWindowFrame ?? sidebarHost.sidebarContainerScreenFrame ?? NSRect(x: 200, y: 200, width: 400, height: 600)
 
         let controller = AIChatFloatingWindowController(

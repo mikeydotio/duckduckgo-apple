@@ -1810,8 +1810,8 @@ extension BrowserTabViewController {
 extension BrowserTabViewController {
 
     func selectTab(with tabID: TabIdentifier) {
-        guard let tab = tabCollectionViewModel.tabCollection.tabs.first(where: { $0.uuid == tabID }) else { return }
-        tabCollectionViewModel.select(tab: tab)
+        guard let tabIndex = tabCollectionViewModel.indexInAllTabs(where: { $0.uuid == tabID }) else { return }
+        tabCollectionViewModel.select(at: tabIndex)
     }
 }
 
