@@ -449,8 +449,18 @@ final class MainViewController: NSViewController {
     }
 
     func windowWillClose() {
+        closeFloatingAIChatsForCurrentWindow()
         viewEventsCancellables.removeAll()
         aiChatOmnibarContainerViewController.cleanup()
+    }
+
+    private func closeFloatingAIChatsForCurrentWindow() {
+        let regularTabIDs = tabCollectionViewModel.tabViewModels.keys.map(\.uuid)
+        let pinnedTabIDs = tabCollectionViewModel.pinnedTabsManager?.tabViewModels.keys.map(\.uuid) ?? []
+
+        for tabID in Set(regularTabIDs + pinnedTabIDs) {
+            aiChatCoordinator.closeFloatingWindow(for: tabID)
+        }
     }
 
     deinit {
