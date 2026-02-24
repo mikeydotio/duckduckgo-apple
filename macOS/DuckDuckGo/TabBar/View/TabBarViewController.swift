@@ -1996,19 +1996,18 @@ private struct AIChatFloatingCloseWarningPopoverView: View {
                     .lineLimit(1)
                 Text(UserText.aiChatFloatingCloseWarningSubtitle)
                     .font(.system(size: 11))
-                    .kerning(0.06)
                     .foregroundColor(Color(designSystemColor: .textSecondary))
                     .lineLimit(1)
             }
 
             HStack(spacing: Constants.buttonsSpacing) {
-                Button(UserText.closeTab) {
-                    onConfirm()
+                Button(action: onConfirm) {
+                    Text(UserText.closeTab)
+                        .font(.system(size: 13))
+                        .multilineTextAlignment(.center)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
-                .font(.system(size: 13))
-                .multilineTextAlignment(.center)
 
                 Button(action: onDismiss) {
                     Image(.closeLarge)
