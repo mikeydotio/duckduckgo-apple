@@ -695,7 +695,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
                        appVersion: AppVersion.shared.versionNumber,
                        source: source,
                        defaultHeaders: defaultHeaders,
-                       defaults: .netP) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, onComplete: @escaping PixelKit.CompletionBlock) in
+                       defaults: .netP) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, _, onComplete: @escaping PixelKit.CompletionBlock) in
 
             let url = URL.pixelUrl(forPixelNamed: pixelName)
             let apiHeaders = APIRequest.Headers(userAgent: userAgent, additionalHeaders: headers)

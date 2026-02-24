@@ -57,7 +57,7 @@ final class SubscriptionAppStoreRestorerTests: XCTestCase {
         pixelKit = PixelKit(dryRun: false,
                             appVersion: "1.0.0",
                             defaultHeaders: [:],
-                            defaults: userDefaults) { pixelName, _, _, _, _, _ in
+                            defaults: userDefaults) { pixelName, _, _, _, _, _, _ in
             self.pixelsFired.insert(pixelName)
         }
         pixelKit.clearFrequencyHistoryForAllPixels()

@@ -43,7 +43,7 @@ final class SubscriptionPixelHandlerTests: XCTestCase {
         defaultsSuiteName = suiteName
         defaults = UserDefaults(suiteName: suiteName)!
 
-        let fireRequest: PixelKit.FireRequest = { pixelName, _, parameters, _, _, onComplete in
+        let fireRequest: PixelKit.FireRequest = { pixelName, _, parameters, _, _, _, onComplete in
             self.firedPixels.append(FiredPixel(name: pixelName, parameters: parameters))
             DispatchQueue.main.async {
                 onComplete(true, nil)

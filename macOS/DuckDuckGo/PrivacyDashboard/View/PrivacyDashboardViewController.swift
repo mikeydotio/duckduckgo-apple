@@ -54,9 +54,11 @@ final class PrivacyDashboardViewController: NSViewController {
 
     private let toggleProtectionsOffReporter: BrokenSiteReporter = {
         BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
-            PrivacyDashboardViewController.fireBreakagePixel(named: GeneralPixel.protectionToggledOffBreakageReport.name,
-                                                             parameters: parameters,
-                                                             encodedParameters: encodedParameters)
+            PixelKit.fire(GeneralPixel.protectionToggledOffBreakageReport,
+                          withAdditionalParameters: parameters,
+                          withEncodedParameters: encodedParameters,
+                          allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters,
+                          doNotEnforcePrefix: true)
         }, keyValueStoring: UserDefaults.standard)
     }()
 
@@ -108,9 +110,11 @@ final class PrivacyDashboardViewController: NSViewController {
 
         brokenSiteReporter = {
             BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
-                PrivacyDashboardViewController.fireBreakagePixel(named: NonStandardPixel.brokenSiteReport.name,
-                                                                 parameters: parameters,
-                                                                 encodedParameters: encodedParameters)
+                PixelKit.fire(NonStandardPixel.brokenSiteReport,
+                              withAdditionalParameters: parameters,
+                              withEncodedParameters: encodedParameters,
+                              allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters,
+                              doNotEnforcePrefix: true)
             }, keyValueStoring: UserDefaults.standard)
         }()
         super.init(nibName: nil, bundle: nil)
@@ -357,18 +361,6 @@ extension PrivacyDashboardViewController {
 
     enum BrokenSiteReportError: Error {
         case failedToFetchTheCurrentURL
-    }
-
-    /// Fires a breakage pixel with support for pre-encoded parameters.
-    static func fireBreakagePixel(named pixelName: String,
-                                  parameters: [String: String],
-                                  encodedParameters: [String: String]) {
-        var url = URL.pixelUrl(forPixelNamed: pixelName)
-        url = url.appendingParameters(parameters, allowedReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
-        for (key, value) in encodedParameters {
-            url = url.appending(percentEncodedQueryItem: URLQueryItem(name: key, value: value))
-        }
-        URLSession.shared.dataTask(with: URLRequest(url: url)) { _, _, _ in }.resume()
     }
 
     private func collectBreakageReportData(breakageReportingSubfeature: BreakageReportingSubfeature?) async -> BreakageReportData? {

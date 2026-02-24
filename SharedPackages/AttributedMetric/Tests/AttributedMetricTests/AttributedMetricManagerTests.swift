@@ -153,7 +153,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var firedPixels: [(name: String, count: Int)] = []
         var pixelFireCount = 0
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             switch pixelName {
             case "attributed_metric_retention_week":
                 guard let countString = parameters["count"],
@@ -295,7 +295,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedDays: Int?
         var capturedDaysSinceInstalled: Int?
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             switch pixelName {
             case "attributed_metric_active_past_week":
                 capturedDays = self.extractIntParameter(parameters, key: "days")
@@ -358,7 +358,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         let pixelExpectation = XCTestExpectation(description: "Active search days pixel fired")
         var capturedDaysSinceInstalled: Int?
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             if pixelName == "attributed_metric_active_past_week" {
                 capturedDaysSinceInstalled = self.extractIntParameter(parameters, key: "daysSinceInstalled")
                 pixelExpectation.fulfill()
@@ -407,7 +407,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedCount: Int?
         var capturedDayAverage: Int?
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             switch pixelName {
             case "attributed_metric_average_searches_past_week_first_month":
                 capturedCount = self.extractIntParameter(parameters, key: "count")
@@ -467,7 +467,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedCount: Int?
         var capturedDayAverage: Int?
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             switch pixelName {
             case "attributed_metric_average_searches_past_week":
                 capturedCount = self.extractIntParameter(parameters, key: "count")
@@ -528,7 +528,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedCount: Int?
         var capturedDayAverage: Int?
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             switch pixelName {
             case "attributed_metric_average_ad_clicks_past_week":
                 capturedCount = self.extractIntParameter(parameters, key: "count")
@@ -589,7 +589,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedCount: Int?
         var capturedDayAverage: Int?
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             switch pixelName {
             case "attributed_metric_average_duck_ai_usage_past_week":
                 capturedCount = self.extractIntParameter(parameters, key: "count")
@@ -651,7 +651,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedLength: Int?
 
         let fixture = createTestFixture(
-            pixelHandler: { pixelName, _, parameters, _, _, _ in
+            pixelHandler: { pixelName, _, parameters, _, _, _, _ in
                 switch pixelName {
                 case "attributed_metric_subscribed":
                     capturedLength = self.extractIntParameter(parameters, key: "month")
@@ -703,7 +703,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedMonth: Int?
 
         let fixture = createTestFixture(
-            pixelHandler: { pixelName, _, parameters, _, _, _ in
+            pixelHandler: { pixelName, _, parameters, _, _, _, _ in
                 switch pixelName {
                 case "attributed_metric_subscribed":
                     capturedMonth = self.extractIntParameter(parameters, key: "month")
@@ -755,7 +755,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedMonth: Int?
 
         let fixture = createTestFixture(
-            pixelHandler: { pixelName, _, parameters, _, _, _ in
+            pixelHandler: { pixelName, _, parameters, _, _, _, _ in
                 switch pixelName {
                 case "attributed_metric_subscribed":
                     capturedMonth = self.extractIntParameter(parameters, key: "month")
@@ -812,7 +812,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var capturedMonth: Int?
 
         let fixture = createTestFixture(
-            pixelHandler: { pixelName, _, parameters, _, _, _ in
+            pixelHandler: { pixelName, _, parameters, _, _, _, _ in
                 switch pixelName {
                 case "attributed_metric_subscribed":
                     capturedMonth = self.extractIntParameter(parameters, key: "month")
@@ -874,7 +874,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         let pixelExpectation = XCTestExpectation(description: "Sync pixel fired")
         var capturedDevices: Int?
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             switch pixelName {
             case "attributed_metric_synced_device":
                 capturedDevices = self.extractIntParameter(parameters, key: "number_of_devices")
@@ -917,7 +917,7 @@ final class AttributedMetricManagerTests: XCTestCase {
     func testProcessSyncCheckDoesNotFireForThreeOrMoreDevices() {
         var pixelFired = false
 
-        let fixture = createTestFixture { pixelName, _, _, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, _, _, _, _, _ in
             if pixelName == "attributed_metric_synced_device" {
                 pixelFired = true
             }

@@ -116,7 +116,7 @@ final class PixelKitTests: XCTestCase {
                                 appVersion: appVersion,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults()) { _, _, _, _, _, _ in
+                                defaults: userDefaults()) { _, _, _, _, _, _, _, _ in
             XCTFail("This callback should not be executed when doing a dry run")
         }
 
@@ -138,7 +138,7 @@ final class PixelKitTests: XCTestCase {
                                 appVersion: appVersion,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _, _ in
 
             fireCallbackCalled.fulfill()
             XCTAssertEqual(expectedPixelName, firedPixelName)
@@ -164,7 +164,7 @@ final class PixelKitTests: XCTestCase {
                                 appVersion: appVersion,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _, _ in
 
             fireCallbackCalled.fulfill()
             XCTAssertEqual(expectedPixelName, firedPixelName)
@@ -190,7 +190,7 @@ final class PixelKitTests: XCTestCase {
                                 appVersion: appVersion,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _, _ in
 
             fireCallbackCalled.fulfill()
             XCTAssertEqual(expectedPixelName, firedPixelName)
@@ -220,7 +220,7 @@ final class PixelKitTests: XCTestCase {
                                 source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _, _ in
 
             fireCallbackCalled.fulfill()
 
@@ -266,7 +266,7 @@ final class PixelKitTests: XCTestCase {
                                 source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _, _ in
 
             fireCallbackCalled.fulfill()
 
@@ -313,7 +313,7 @@ final class PixelKitTests: XCTestCase {
                                 source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _, _ in
 
             fireCallbackCalled.fulfill()
 
@@ -360,7 +360,7 @@ final class PixelKitTests: XCTestCase {
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 dateGenerator: timeMachine.now,
-                                defaults: userDefaults) { _, _, _, _, _, _ in
+                                defaults: userDefaults) { _, _, _, _, _, _, _ in
             fireCallbackCalled.fulfill()
         }
 
@@ -403,7 +403,7 @@ final class PixelKitTests: XCTestCase {
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 dateGenerator: timeMachine.now,
-                                defaults: userDefaults) { _, _, _, _, _, _ in
+                                defaults: userDefaults) { _, _, _, _, _, _, _ in
             fireCallbackCalled.fulfill()
         }
 
@@ -445,7 +445,7 @@ final class PixelKitTests: XCTestCase {
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 dateGenerator: timeMachine.now,
-                                defaults: userDefaults) { _, _, _, _, _, _ in
+                                defaults: userDefaults) { _, _, _, _, _, _, _ in
             fireCallbackCalled.fulfill()
         }
 
@@ -495,7 +495,7 @@ final class PixelKitTests: XCTestCase {
                        defaultHeaders: [:],
                        dailyPixelCalendar: calendar,
                        dateGenerator: timeMachine.now,
-                       defaults: userDefaults()) { _, _, _, _, _, _ in }
+                       defaults: userDefaults()) { _, _, _, _, _, _, _ in }
 
         // 1st week
         XCTAssertEqual(PixelKit.cohort(from: cohort, dateGenerator: timeMachine.now), reportedCohort)

@@ -46,7 +46,7 @@ final class SubscriptionWideEventTests: XCTestCase {
     }
 
     private func setupMockPixelKit() {
-        let mockFireRequest: PixelKit.FireRequest = { pixelName, headers, parameters, allowedQueryReservedCharacters, callBackOnMainThread, onComplete in
+        let mockFireRequest: PixelKit.FireRequest = { pixelName, headers, parameters, _, allowedQueryReservedCharacters, callBackOnMainThread, onComplete in
             self.firedPixels.append((name: pixelName, parameters: parameters))
             DispatchQueue.main.async {
                 onComplete(true, nil)

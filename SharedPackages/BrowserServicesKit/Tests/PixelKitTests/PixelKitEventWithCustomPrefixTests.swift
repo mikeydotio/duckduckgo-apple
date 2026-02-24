@@ -80,7 +80,7 @@ final class PixelKitEventWithCustomPrefixTests: XCTestCase {
                                     source: test.key.rawValue,
                                     defaultHeaders: [:],
                                     dailyPixelCalendar: nil,
-                                    defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+                                    defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _, _ in
 
                 XCTAssertEqual(firedPixelName, test.value.expectedName)
                 fireCallbackCalled.fulfill()

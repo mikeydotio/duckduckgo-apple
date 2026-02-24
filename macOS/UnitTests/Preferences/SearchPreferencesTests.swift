@@ -30,7 +30,7 @@ class SearchPreferencesTests: XCTestCase {
         PixelKit.setUp(dryRun: true,
                        appVersion: "",
                        defaultHeaders: [:],
-                       defaults: UserDefaults()) { _, _, _, _, _, _ in }
+                       defaults: UserDefaults()) { _, _, _, _, _, _, _ in }
     }
 
     override func tearDownWithError() throws {

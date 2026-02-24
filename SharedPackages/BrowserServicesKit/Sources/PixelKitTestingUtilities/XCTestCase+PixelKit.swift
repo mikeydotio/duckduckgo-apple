@@ -125,7 +125,7 @@ public extension XCTestCase {
                                 appVersion: "1.0.5",
                                 source: "test-app",
                                 defaultHeaders: [:],
-                                defaults: userDefaults) { firedPixelName, _, firedParameters, _, _, completion in
+                                defaults: userDefaults) { firedPixelName, _, firedParameters, _, _, _, completion in
             callbackExecutedExpectation.fulfill()
 
             let firedParameters = Self.filterStandardPixelParameters(from: firedParameters)

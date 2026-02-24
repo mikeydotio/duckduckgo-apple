@@ -32,7 +32,7 @@ class CBRCompileTimeReporterTests: XCTestCase {
                             appVersion: "1.0.0",
                             defaultHeaders: [:],
                             defaults: UserDefaults(),
-                            fireRequest: { _, _, _, _, _, _ in })
+                            fireRequest: { _, _, _, _, _, _, _ in })
 
     override func setUp() {
         PixelKit.setSharedForTesting(pixelKit: pixelKit)

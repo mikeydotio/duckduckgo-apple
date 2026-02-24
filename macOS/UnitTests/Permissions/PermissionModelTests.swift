@@ -44,7 +44,7 @@ final class PermissionModelTests: XCTestCase {
                                        appVersion: "1.0.0",
                                        defaultHeaders: [:],
                                        defaults: UserDefaults(),
-                                       fireRequest: { _, _, _, _, _, _ in })
+                                       fireRequest: { _, _, _, _, _, _, _ in })
 
     var securityOrigin: WKSecurityOrigin {
         WKSecurityOriginMock.new(url: .duckDuckGo)

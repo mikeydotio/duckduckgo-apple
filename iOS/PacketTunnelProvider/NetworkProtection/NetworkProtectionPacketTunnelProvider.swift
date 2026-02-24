@@ -671,7 +671,7 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
             source: (UIDevice.current.userInterfaceIdiom == .phone ? PixelKit.Source.iOS : PixelKit.Source.iPadOS).rawValue,
             defaultHeaders: [:],
             defaults: .networkProtectionGroupDefaults
-        ) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, onComplete: @escaping PixelKit.CompletionBlock) in
+        ) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, _, onComplete: @escaping PixelKit.CompletionBlock) in
             let url = URL.pixelUrl(forPixelNamed: pixelName)
             let apiHeaders = APIRequestV2.HeadersV2(userAgent: Pixel.defaultPixelUserAgent, additionalHeaders: headers)
             guard let request = APIRequestV2(url: url, method: .get, queryItems: parameters.toQueryItems(), headers: apiHeaders) else {

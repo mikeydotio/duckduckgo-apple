@@ -683,7 +683,7 @@ final class BookmarkManagementDetailViewModelTests: XCTestCase {
         return PixelKit(dryRun: false,
                         appVersion: "1.0.0",
                         defaultHeaders: [:],
-                        defaults: testUserDefault) { pixelName, _, _, _, _, _ in
+                        defaults: testUserDefault) { pixelName, _, _, _, _, _, _ in
             if pixelName.hasPrefix(pixelNamePrefix) {
                 pixelExpectation.fulfill()
             }

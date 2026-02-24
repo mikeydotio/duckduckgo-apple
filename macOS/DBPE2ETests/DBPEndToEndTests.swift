@@ -486,7 +486,7 @@ private extension DBPEndToEndTests {
         return PixelKit(dryRun: false,
                         appVersion: "1.0.0",
                         defaultHeaders: [:],
-                        defaults: testUserDefault) { pixelName, _, _, _, _, _ in
+                        defaults: testUserDefault) { pixelName, _, _, _, _, _, _ in
             for pixelExpectation in pixelExpectations where pixelName.hasPrefix(pixelExpectation.pixel.name) {
                 pixelExpectation.expectation.fulfill()
             }

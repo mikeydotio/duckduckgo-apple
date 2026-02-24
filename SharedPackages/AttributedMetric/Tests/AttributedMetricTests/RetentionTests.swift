@@ -102,7 +102,7 @@ final class RetentionTests: XCTestCase {
         // When install date is missing, retention should not fire pixels.
         var didFire = false
 
-        let fixture = createTestFixture { pixelName, _, _, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, _, _, _, _, _ in
             if pixelName == "attributed_metric_retention_week" || pixelName == "attributed_metric_retention_month" {
                 didFire = true
             }
@@ -120,7 +120,7 @@ final class RetentionTests: XCTestCase {
     func testProcessRetentionDoesNotFireWhenThresholdUnchanged() {
         // When threshold is already stored, retention should avoid duplicate pixels.
         var didFire = false
-        let fixture = createTestFixture { pixelName, _, _, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, _, _, _, _, _ in
             if pixelName == "attributed_metric_retention_week" || pixelName == "attributed_metric_retention_month" {
                 didFire = true
             }
@@ -145,7 +145,7 @@ final class RetentionTests: XCTestCase {
         var capturedInstallDate: String?
 
         let fixture = createTestFixture(
-            pixelHandler: { pixelName, _, parameters, _, _, _ in
+            pixelHandler: { pixelName, _, parameters, _, _, _, _ in
                 guard pixelName == "attributed_metric_retention_week" else { return }
                 capturedCount = Int(parameters["count"] ?? "")
                 capturedDefaultBrowser = parameters["default_browser"]
@@ -176,7 +176,7 @@ final class RetentionTests: XCTestCase {
         var capturedInstallDate: String?
 
         let fixture = createTestFixture(
-            pixelHandler: { pixelName, _, parameters, _, _, _ in
+            pixelHandler: { pixelName, _, parameters, _, _, _, _ in
                 guard pixelName == "attributed_metric_retention_month" else { return }
                 capturedCount = Int(parameters["count"] ?? "")
                 capturedOrigin = parameters["origin"]
@@ -204,7 +204,7 @@ final class RetentionTests: XCTestCase {
         var weekPixelCount = 0
         var counts: [Int] = []
 
-        let fixture = createTestFixture { pixelName, _, parameters, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, parameters, _, _, _, _ in
             guard pixelName == "attributed_metric_retention_week" else { return }
             if let count = Int(parameters["count"] ?? "") {
                 counts.append(count)
@@ -227,7 +227,7 @@ final class RetentionTests: XCTestCase {
     func testProcessRetentionDoesNotFireWhenInstallDateIsNow() {
         // When threshold is already stored, retention should avoid duplicate pixels.
         var didFire = false
-        let fixture = createTestFixture { pixelName, _, _, _, _, _ in
+        let fixture = createTestFixture { pixelName, _, _, _, _, _, _ in
             if pixelName == "attributed_metric_retention_week" || pixelName == "attributed_metric_retention_month" {
                 didFire = true
             }
