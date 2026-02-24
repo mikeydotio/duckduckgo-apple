@@ -116,7 +116,7 @@ final class PixelKitTests: XCTestCase {
                                 appVersion: appVersion,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
-                                defaults: userDefaults()) { _, _, _, _, _, _, _, _ in
+                                defaults: userDefaults()) { _, _, _, _, _, _, _ in
             XCTFail("This callback should not be executed when doing a dry run")
         }
 
