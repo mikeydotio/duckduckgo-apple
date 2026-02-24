@@ -1,7 +1,7 @@
 //
 //  AIChatState.swift
 //
-//  Copyright © 2025 DuckDuckGo. All rights reserved.
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -106,9 +106,8 @@ extension AIChatState: NSSecureCoding {
         static let hiddenAt = "hiddenAt"
         static let sidebarWidth = "sidebarWidth"
         static let floatingWindowFrame = "floatingWindowFrame"
-        // Legacy keys used only by the migration decoder in AIChatState+Migration.swift
+        // Legacy key used only by the migration decoder in AIChatState+Migration.swift
         static let isPresented = "isPresented"
-        static let isDetached = "isDetached"
     }
 
     convenience init?(coder: NSCoder) {

@@ -1,7 +1,7 @@
 //
 //  AIChatStateTests.swift
 //
-//  Copyright © 2025 DuckDuckGo. All rights reserved.
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -168,13 +168,12 @@ final class AIChatStateTests: XCTestCase {
         XCTAssertEqual(decoded.sidebarWidth, 450)
     }
 
-    func testNSSecureCoding_legacyFormat_migratesBoolsToEnum() throws {
-        // Given -- encode using the old two-bool key names (no root object)
+    func testNSSecureCoding_legacyFormat_presentedStateMapsToSidebar() throws {
+        // Given -- encode using the old key name (no root object)
         let archiver = NSKeyedArchiver(requiringSecureCoding: true)
         let url = AIChatRemoteSettings().aiChatURL.forAIChatSidebar()
         archiver.encode(url as NSURL, forKey: AIChatState.CodingKeys.initialAIChatURL)
         archiver.encode(true, forKey: AIChatState.CodingKeys.isPresented)
-        archiver.encode(true, forKey: AIChatState.CodingKeys.isDetached)
         archiver.finishEncoding()
 
         // When -- decode using the coder init directly (no root object in archive)
@@ -182,8 +181,8 @@ final class AIChatStateTests: XCTestCase {
         unarchiver.requiresSecureCoding = true
         let decoded = AIChatState(coder: unarchiver)!
 
-        // Then -- legacy bools should map to .floating
-        XCTAssertEqual(decoded.presentationMode, .floating)
+        // Then
+        XCTAssertEqual(decoded.presentationMode, .sidebar)
     }
 
     func testNSSecureCoding_legacyFormat_hiddenState() throws {
@@ -192,7 +191,6 @@ final class AIChatStateTests: XCTestCase {
         let url = AIChatRemoteSettings().aiChatURL.forAIChatSidebar()
         archiver.encode(url as NSURL, forKey: AIChatState.CodingKeys.initialAIChatURL)
         archiver.encode(false, forKey: AIChatState.CodingKeys.isPresented)
-        archiver.encode(false, forKey: AIChatState.CodingKeys.isDetached)
         archiver.finishEncoding()
 
         // When
@@ -210,7 +208,6 @@ final class AIChatStateTests: XCTestCase {
         let url = AIChatRemoteSettings().aiChatURL.forAIChatSidebar()
         archiver.encode(url as NSURL, forKey: AIChatState.CodingKeys.initialAIChatURL)
         archiver.encode(true, forKey: AIChatState.CodingKeys.isPresented)
-        archiver.encode(false, forKey: AIChatState.CodingKeys.isDetached)
         archiver.finishEncoding()
 
         // When

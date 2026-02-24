@@ -20,9 +20,9 @@ import Foundation
 
 /// Legacy migration for `AIChatState` NSSecureCoding archives.
 ///
-/// Earlier versions persisted two separate bools (`isPresented`, `isDetached`)
-/// instead of a single `AIChatPresentationMode` enum. This helper reads
-/// whichever format is present and returns the correct mode.
+/// Earlier versions persisted only `isPresented` instead of
+/// `AIChatPresentationMode`. This helper reads whichever format is present
+/// and returns the correct mode.
 ///
 /// This file must be kept indefinitely -- users who skip the introducing
 /// release would still have archives containing only the legacy bool keys.
@@ -35,11 +35,7 @@ extension AIChatState {
         }
 
         let wasPresented: Bool = coder.decodeIfPresent(at: CodingKeys.isPresented) ?? true
-        let wasDetached: Bool = coder.decodeIfPresent(at: CodingKeys.isDetached) ?? false
 
-        if wasPresented {
-            return wasDetached ? .floating : .sidebar
-        }
-        return .hidden
+        return wasPresented ? .sidebar : .hidden
     }
 }
