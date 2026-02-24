@@ -108,7 +108,7 @@ private func iso8601Now() -> String {
 
 private func urlEncodedParameters(from items: [(metricType: String, metricName: String, value: String)]) -> String {
     let queryItems = items.map { item in
-        URLQueryItem(name: "\(item.metricType)_\(item.metricName)", value: item.value)
+        URLQueryItem(name: item.metricName, value: item.value)
     }
     var components = URLComponents()
     components.queryItems = queryItems

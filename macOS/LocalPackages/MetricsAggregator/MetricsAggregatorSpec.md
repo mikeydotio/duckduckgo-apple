@@ -228,10 +228,10 @@ Use the result to group by pixel, compute `interval_start` (min `created_at`), `
 
 From the collected rows for one pixel, build a list of key-value pairs:
 
-- **Key:** `{metric_type}_{metric_name}` (e.g. `counter_foo`, `gauge_bar`).
+- **Key:** `metric_name` (the metric name only).
 - **Value:** the resolved value (bucket name or stringified number).
 
-Encode as application/x-www-form-urlencoded: key and value percent-encoded, pairs joined by `&`. Order does not need to be specified. Example: `counter_clicks=3&gauge_latency_ms=high`.
+Encode as application/x-www-form-urlencoded: key and value percent-encoded, pairs joined by `&`. Order does not need to be specified. Example: `clicks=3&latency_ms=high`.
 
 ---
 
@@ -312,6 +312,6 @@ Encode as application/x-www-form-urlencoded: key and value percent-encoded, pair
 ## 6. Timestamp and encoding notes
 
 - **Storage:** All datetime columns are stored as TEXT in ISO 8601 format: `YYYY-MM-DDTHH:MM:SS.ffffffZ` (UTC, optional fractional seconds).  
-- **Parameters:** Keys and values in `parameters` must be percent-encoded for use in query strings; key format is `{metric_type}_{metric_name}`.
+- **Parameters:** Keys and values in `parameters` must be percent-encoded for use in query strings; each key is the metric name (no metric_type prefix).
 
 This spec, together with the schema and collection query above, is sufficient to reimplement the MetricsAggregator on other platforms with equivalent semantics.
