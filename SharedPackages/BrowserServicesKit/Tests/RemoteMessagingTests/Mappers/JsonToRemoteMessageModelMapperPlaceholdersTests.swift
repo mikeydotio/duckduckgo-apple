@@ -39,6 +39,8 @@ struct JsonToRemoteMessageModelMapperPlaceholdersTests {
         (.radarCheckPurple, .radarCheckPurple),
         (.keyImport, .keyImport),
         (.mobileCustomization, .mobileCustomization),
+        (.newTabOptions, .newTabOptions),
+        (.splitBarMobile, .splitBarMobile),
         (.pir, .pir),
         (.subscription, .subscription),
         (.veryCriticalUpdate, .veryCriticalUpdate),
@@ -98,7 +100,9 @@ struct JsonToRemoteMessageModelMapperPlaceholdersIntegrationTests {
             ("16", .radarCheckPurple),
             ("17", .pir),
             ("18", .subscription),
-            ("20", .veryCriticalUpdate),
+            ("20", .newTabOptions),
+            ("21", .splitBarMobile),
+            ("22", .veryCriticalUpdate),
         ] as [(String, RemotePlaceholder)]
     )
     func placeholderIsMappedCorrectlyForMessages(id: String, expectedDomainValue: RemotePlaceholder) throws {
@@ -137,7 +141,9 @@ struct JsonToRemoteMessageModelMapperPlaceholdersIntegrationTests {
             ("16", .radarCheckPurple),
             ("17", .pir),
             ("18", .subscription),
-            ("19", .veryCriticalUpdate),
+            ("19", .newTabOptions),
+            ("20", .splitBarMobile),
+            ("21", .veryCriticalUpdate),
         ] as [(String, RemotePlaceholder)]
     )
     func placeholderIsMappedCorrectlyForItemsInList(itemId: String, expectedDomainValue: RemotePlaceholder) throws {
