@@ -617,10 +617,12 @@ extension AIChatCoordinator: AIChatFloatingWindowControllerDelegate {
 
     func floatingWindowDidClose(_ controller: AIChatFloatingWindowController, initiatedByUser: Bool) {
         let tabID = controller.tabID
-        let session = sessionStore.sessions[tabID]
-        session?.state.floatingWindowFrame = controller.frame
-        session?.floatingWindowController = nil
-        session?.state.setHidden()
+        if let session = sessionStore.sessions[tabID] {
+            session.state.floatingWindowFrame = controller.frame
+            session.floatingWindowController = nil
+        }
+        tearDownUI(for: tabID)
+        sessionStore.endSession(for: tabID)
 
         if initiatedByUser {
             fireAIChatSidebarPixel(.aiChatSidebarFloatingClosed)
