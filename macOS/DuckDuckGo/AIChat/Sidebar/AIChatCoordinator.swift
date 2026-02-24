@@ -192,7 +192,7 @@ final class AIChatCoordinator: AIChatCoordinating {
     }
 
     func closeFloatingWindow(for tabID: TabIdentifier) {
-        sessionStore.sessions[tabID]?.floatingWindowController?.close()
+        sessionStore.sessions[tabID]?.floatingWindowController?.close(initiatedByUser: false)
     }
 
     func sidebarHiddenAt(for tabID: TabIdentifier) -> Date? {
@@ -324,7 +324,7 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     private func tearDownUI(for tabID: TabIdentifier) {
         guard let session = sessionStore.sessions[tabID] else { return }
-        session.floatingWindowController?.close()
+        session.floatingWindowController?.close(initiatedByUser: false)
         session.chatViewController?.stopLoading()
         session.chatViewController?.removeCompletely()
     }
@@ -369,6 +369,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         session.state.setFloating()
 
         controller.show()
+        fireAIChatSidebarPixel(.aiChatSidebarDetached)
         chatFloatingStateDidChangeSubject.send(tabID)
     }
 
@@ -429,7 +430,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: true))
 
         controller.delegate = nil
-        controller.close()
+        controller.close(initiatedByUser: false)
 
         chatFloatingStateDidChangeSubject.send(tabID)
     }
@@ -508,6 +509,7 @@ extension AIChatCoordinator: AIChatViewControllerDelegate {
     }
 
     func didClickTitleButton(for tabID: TabIdentifier) {
+        fireAIChatSidebarPixel(.aiChatSidebarFloatingTabActivated)
         windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
         sidebarHost.selectTab(with: tabID)
         sessionStore.sessions[tabID]?.floatingWindowController?.show()
@@ -592,16 +594,29 @@ extension AIChatCoordinator: AIChatSidebarResizeDelegate {
 
 extension AIChatCoordinator: AIChatFloatingWindowControllerDelegate {
 
-    func floatingWindowDidClose(_ controller: AIChatFloatingWindowController) {
+    func floatingWindowDidClose(_ controller: AIChatFloatingWindowController, initiatedByUser: Bool) {
         let tabID = controller.tabID
         let session = sessionStore.sessions[tabID]
         session?.state.floatingWindowFrame = controller.frame
         session?.floatingWindowController = nil
         session?.state.setHidden()
+
+        if initiatedByUser {
+            fireAIChatSidebarPixel(.aiChatSidebarFloatingClosed)
+        }
+
         chatFloatingStateDidChangeSubject.send(tabID)
     }
 
     func floatingWindowDidRequestDock(_ controller: AIChatFloatingWindowController) {
         attachSidebar(for: controller.tabID)
+        fireAIChatSidebarPixel(.aiChatSidebarAttached)
+    }
+}
+
+private extension AIChatCoordinator {
+
+    func fireAIChatSidebarPixel(_ pixel: AIChatPixel) {
+        pixelFiring?.fire(pixel, frequency: .dailyAndStandard)
     }
 }

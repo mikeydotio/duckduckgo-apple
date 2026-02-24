@@ -22,7 +22,7 @@ import Combine
 @MainActor
 protocol AIChatFloatingWindowControllerDelegate: AnyObject {
     /// The user closed the floating window (via close button or Escape).
-    func floatingWindowDidClose(_ controller: AIChatFloatingWindowController)
+    func floatingWindowDidClose(_ controller: AIChatFloatingWindowController, initiatedByUser: Bool)
     /// The user clicked the attach/dock button to reattach the sidebar.
     func floatingWindowDidRequestDock(_ controller: AIChatFloatingWindowController)
 }
@@ -33,7 +33,6 @@ protocol AIChatFloatingWindowControllerDelegate: AnyObject {
 /// `AIChatViewController` that was moved out of the docked sidebar.
 @MainActor
 final class AIChatFloatingWindowController: NSObject {
-
     private enum Constants {
         static let windowTitleSeparator = "\u{30FB}"
     }
@@ -46,6 +45,7 @@ final class AIChatFloatingWindowController: NSObject {
 
     private let floatingWindow: AIChatFloatingWindow
     private var chatViewController: AIChatViewController?
+    private var closeInitiatedByUser = true
     private var cancellables = Set<AnyCancellable>()
 
     var isShowing: Bool {
@@ -74,7 +74,9 @@ final class AIChatFloatingWindowController: NSObject {
         NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: floatingWindow)
             .sink { [weak self] _ in
                 guard let self else { return }
-                self.delegate?.floatingWindowDidClose(self)
+                let initiatedByUser = self.closeInitiatedByUser
+                self.closeInitiatedByUser = true
+                self.delegate?.floatingWindowDidClose(self, initiatedByUser: initiatedByUser)
             }
             .store(in: &cancellables)
 
@@ -91,7 +93,8 @@ final class AIChatFloatingWindowController: NSObject {
         floatingWindow.makeKeyAndOrderFront(nil)
     }
 
-    func close() {
+    func close(initiatedByUser: Bool = true) {
+        closeInitiatedByUser = initiatedByUser
         floatingWindow.close()
     }
 
