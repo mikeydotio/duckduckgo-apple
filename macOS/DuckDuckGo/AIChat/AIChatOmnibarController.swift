@@ -20,6 +20,7 @@ import Cocoa
 import Combine
 import AIChat
 import FeatureFlags
+import os.log
 import PixelKit
 import PrivacyConfig
 import URLPredictor
@@ -47,12 +48,17 @@ final class AIChatOmnibarController {
     private let featureFlagger: FeatureFlagger
     private let searchPreferencesPersistor: SearchPreferencesPersistor
     private let suggestionsReader: AIChatSuggestionsReading?
+    private let modelsService: AIChatModelsProviding
     private var preferences: AIChatPreferencesPersisting
     private var cancellables = Set<AnyCancellable>()
     private var sharedTextStateCancellable: AnyCancellable?
     private var isUpdatingFromSharedState = false
     private var currentFetchTask: Task<Void, Never>?
+    private var modelsFetchTask: Task<Void, Never>?
     private var hasBeenActivated = false
+
+    /// Available AI models. Empty until successfully fetched from the API.
+    @Published private(set) var models: [AIChatModel] = []
 
 
     /// Provides the current image attachments from the container VC.
@@ -106,7 +112,8 @@ final class AIChatOmnibarController {
         featureFlagger: FeatureFlagger = NSApp.delegateTyped.featureFlagger,
         searchPreferencesPersistor: SearchPreferencesPersistor = SearchPreferencesUserDefaultsPersistor(),
         suggestionsReader: AIChatSuggestionsReading? = nil,
-        preferences: AIChatPreferencesPersisting = AIChatPreferencesPersistor()
+        preferences: AIChatPreferencesPersisting = AIChatPreferencesPersistor(),
+        modelsService: AIChatModelsProviding = AIChatModelsService()
     ) {
         self.aiChatTabOpener = aiChatTabOpener
         self.tabCollectionViewModel = tabCollectionViewModel
@@ -115,6 +122,7 @@ final class AIChatOmnibarController {
         self.searchPreferencesPersistor = searchPreferencesPersistor
         self.suggestionsReader = suggestionsReader
         self.preferences = preferences
+        self.modelsService = modelsService
         self.suggestionsViewModel = AIChatSuggestionsViewModel(
             maxSuggestions: suggestionsReader?.maxHistoryCount ?? AIChatSuggestionsViewModel.defaultMaxSuggestions
         )
@@ -135,9 +143,12 @@ final class AIChatOmnibarController {
 
     // MARK: - Suggestions Fetching
 
-    /// Called when the duck.ai omnibar becomes visible. Triggers initial suggestions fetch.
+    /// Called when the duck.ai omnibar becomes visible.
+    /// Triggers a models fetch (on every activation) and suggestions fetch.
     func onOmnibarActivated() {
         hasBeenActivated = true
+
+        fetchModels()
 
         // If feature is disabled, clear any existing suggestions and don't fetch
         if !isSuggestionsEnabled {
@@ -146,6 +157,21 @@ final class AIChatOmnibarController {
         }
 
         fetchSuggestionsIfNeeded(query: currentText)
+    }
+
+    private func fetchModels() {
+        modelsFetchTask?.cancel()
+        modelsFetchTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let remoteModels = try await modelsService.fetchModels()
+                guard !Task.isCancelled else { return }
+                self.models = remoteModels.map { AIChatModel(remoteModel: $0) }
+            } catch {
+                Logger.aiChat.error("Failed to fetch models: \(error.localizedDescription)")
+                // Keep existing models on failure — mock or previous successful fetch
+            }
+        }
     }
 
     private func fetchSuggestionsIfNeeded(query: String) {
@@ -168,16 +194,23 @@ final class AIChatOmnibarController {
 
     // MARK: - Public Methods
 
-    /// The persisted model ID, falling back to the default model.
+    /// The persisted model ID. Only valid when models have been loaded.
     var persistedModelId: String {
-        preferences.selectedModelId ?? AIChatModelProvider.defaultModel.id
+        preferences.selectedModelId ?? models.first(where: { $0.entityHasAccess })?.id ?? ""
+    }
+
+    /// The model ID to include in the prompt. Returns nil when models are unavailable,
+    /// so the backend uses its default model.
+    var currentModelId: String? {
+        guard !models.isEmpty else { return nil }
+        return preferences.selectedModelId
     }
 
     /// Whether the currently selected model supports image upload.
+    /// Returns true when models are unavailable (conservative default — image button remains visible).
     var selectedModelSupportsImageUpload: Bool {
-        let allModels = AIChatModelProvider.freeModels + AIChatModelProvider.premiumModels
-        return allModels.first(where: { $0.id == persistedModelId })?.supportsImageUpload
-            ?? AIChatModelProvider.defaultModel.supportsImageUpload
+        guard !models.isEmpty else { return true }
+        return models.first(where: { $0.id == persistedModelId })?.supportsImageUpload ?? true
     }
 
     /// Updates the selected model ID and persists it for future sessions.
@@ -200,6 +233,9 @@ final class AIChatOmnibarController {
         suggestionsViewModel.clearAllChats()
         currentFetchTask?.cancel()
         currentFetchTask = nil
+        modelsFetchTask?.cancel()
+        modelsFetchTask = nil
+        models = []
         suggestionsReader?.tearDown()
     }
 
@@ -304,7 +340,7 @@ final class AIChatOmnibarController {
                 behavior: .currentTab
             )
             // Re-set prompt after tab opener to include images and model selection (tab opener overwrites with a plain query)
-            let modelId = self.preferences.selectedModelId
+            let modelId = self.currentModelId
             let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: nil, images: images, modelId: modelId)
             promptHandler.setData(prompt)
 

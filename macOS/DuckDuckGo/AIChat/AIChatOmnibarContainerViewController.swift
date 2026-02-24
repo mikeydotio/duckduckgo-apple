@@ -96,6 +96,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     private var appearanceCancellable: AnyCancellable?
     private var textChangeCancellable: AnyCancellable?
     private var toolsVisibilityCancellable: AnyCancellable?
+    private var modelsCancellable: AnyCancellable?
     private var windowFrameObserver: AnyCancellable?
     private var viewBoundsObserver: AnyCancellable?
 
@@ -160,6 +161,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         subscribeToTextChanges()
         subscribeToToolsVisibilityChanges()
         setupAttachmentsProvider()
+        subscribeToModelUpdates()
         applyThemeStyle()
     }
 
@@ -217,10 +219,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     private func updateToolButtonsVisibility(isEnabled: Bool) {
         if isEnabled {
             imageUploadButton.isHidden = attachmentsContainerView.isFull || !omnibarController.selectedModelSupportsImageUpload
+            modelPickerButton.isHidden = omnibarController.models.isEmpty
         } else {
             imageUploadButton.isHidden = true
+            modelPickerButton.isHidden = true
         }
-        modelPickerButton.isHidden = !isEnabled
         attachmentsContainerView.isHidden = !isEnabled
         if !isEnabled {
             attachmentsHeightConstraint?.constant = 0
@@ -564,41 +567,56 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     /// Short display name for the currently persisted model.
     private var persistedModelShortName: String {
-        let allModels = AIChatModelProvider.freeModels + AIChatModelProvider.premiumModels
-        return allModels.first(where: { $0.id == omnibarController.persistedModelId })?.shortDisplayName
-            ?? AIChatModelProvider.defaultModel.shortDisplayName
+        omnibarController.models.first(where: { $0.id == omnibarController.persistedModelId })?.shortDisplayName ?? ""
+    }
+
+    private func subscribeToModelUpdates() {
+        modelsCancellable = omnibarController.$models
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] models in
+                guard let self else { return }
+                // Show or hide the picker depending on whether models are available
+                if omnibarController.isOmnibarToolsEnabled {
+                    modelPickerButton.isHidden = models.isEmpty
+                }
+                // Refresh button label once models arrive
+                modelPickerButton.modelName = persistedModelShortName
+                // Refresh image upload visibility with updated supportsImageUpload
+                updateImageUploadVisibility(supportsImageUpload: omnibarController.selectedModelSupportsImageUpload)
+            }
     }
 
     private func buildModelPickerMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
-        for model in AIChatModelProvider.freeModels {
-            let item = NSMenuItem(title: model.displayName, action: #selector(modelSelected(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = model
-            item.image = model.menuIcon
-            if model.id == selectedModelId {
-                item.state = .on
-            }
-            menu.addItem(item)
+        let accessible = omnibarController.models.filter { $0.entityHasAccess }
+        let premium = omnibarController.models.filter { !$0.entityHasAccess }
+
+        for model in accessible {
+            menu.addItem(menuItem(for: model))
         }
 
-        menu.addItem(.separator())
-
-        for model in AIChatModelProvider.premiumModels {
-            let item = NSMenuItem(title: model.displayName, action: #selector(modelSelected(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = model
-            item.image = model.menuIcon
-            item.isEnabled = false
-            if model.id == selectedModelId {
-                item.state = .on
+        if !premium.isEmpty {
+            menu.addItem(.separator())
+            for model in premium {
+                menu.addItem(menuItem(for: model))
             }
-            menu.addItem(item)
         }
 
         return menu
+    }
+
+    private func menuItem(for model: AIChatModel) -> NSMenuItem {
+        let item = NSMenuItem(title: model.displayName, action: #selector(modelSelected(_:)), keyEquivalent: "")
+        item.target = self
+        item.representedObject = model
+        item.image = model.menuIcon
+        item.isEnabled = model.entityHasAccess
+        if model.id == selectedModelId {
+            item.state = .on
+        }
+        return item
     }
 
     @objc private func modelSelected(_ sender: NSMenuItem) {
