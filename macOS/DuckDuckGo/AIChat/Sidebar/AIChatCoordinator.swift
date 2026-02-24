@@ -252,7 +252,7 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     // MARK: - Sidebar Transition (pure visual)
 
-    /// Animates (or immediately sets) the sidebar constraints. No session logic.
+    /// Animates (or immediately sets) the sidebar constraints.
     private func transitionSidebar(
         for tabID: TabIdentifier,
         isShowing: Bool,
