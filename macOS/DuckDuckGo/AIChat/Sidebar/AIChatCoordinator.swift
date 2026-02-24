@@ -452,6 +452,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         controller.close(initiatedByUser: false)
         session.floatingWindowController = nil
 
+        fireAIChatSidebarPixel(.aiChatSidebarAttached)
         chatFloatingStateDidChangeSubject.send(tabID)
     }
 }
@@ -628,10 +629,6 @@ extension AIChatCoordinator: AIChatFloatingWindowControllerDelegate {
         chatFloatingStateDidChangeSubject.send(tabID)
     }
 
-    func floatingWindowDidRequestDock(_ controller: AIChatFloatingWindowController) {
-        attachSidebar(for: controller.tabID)
-        fireAIChatSidebarPixel(.aiChatSidebarAttached)
-    }
 }
 
 private extension AIChatCoordinator {

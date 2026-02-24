@@ -23,8 +23,6 @@ import Combine
 protocol AIChatFloatingWindowControllerDelegate: AnyObject {
     /// The user closed the floating window (via close button or Escape).
     func floatingWindowDidClose(_ controller: AIChatFloatingWindowController, initiatedByUser: Bool)
-    /// The user clicked the attach/dock button to reattach the sidebar.
-    func floatingWindowDidRequestDock(_ controller: AIChatFloatingWindowController)
 }
 
 /// Manages a single detached AI Chat floating window for one tab.
