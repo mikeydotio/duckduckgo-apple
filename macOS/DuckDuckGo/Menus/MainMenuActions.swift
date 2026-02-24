@@ -1033,6 +1033,7 @@ extension MainViewController {
             if featureFlagger.isFeatureOn(.warnBeforeQuit) {
                 // If warning is disabled in preferences, close immediately
                 if !tabsPreferences.warnBeforeClosingPinnedTabs {
+                    aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
                     tabCollectionViewModel.remove(at: index)
                     return
                 }
@@ -1040,6 +1041,7 @@ extension MainViewController {
                 // Show confirmation overlay
                 showPinnedTabCloseConfirmation(for: tab, atPinnedIndex: pinnedIndex, currentEvent: currentEvent) { [weak self] shouldProceed in
                     guard let self, shouldProceed else { return }
+                    self.aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
                     self.tabCollectionViewModel.remove(at: .pinned(pinnedIndex))
                 }
                 return

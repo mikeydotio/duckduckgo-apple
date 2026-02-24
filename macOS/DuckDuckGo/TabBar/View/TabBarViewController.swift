@@ -1814,6 +1814,10 @@ extension TabBarViewController: TabBarViewItemDelegate {
 
     @discardableResult
     func tryPresentAIChatFloatingCloseWarningIfNeeded(for tabIndex: TabIndex) -> Bool {
+        guard tabIndex.isUnpinnedTab else {
+            return false
+        }
+
         guard let tabID = tabCollectionViewModel.tabViewModel(at: tabIndex)?.tab.uuid,
               shouldWarnBeforeClosingFloatingAIChat(tabID: tabID),
               let tabBarViewItem = tabBarViewItem(for: tabIndex) else {
