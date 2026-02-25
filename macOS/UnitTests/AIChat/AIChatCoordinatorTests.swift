@@ -670,6 +670,39 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertEqual(floatingChangeReceived, tabID)
     }
 
+    func testAttachSidebar_presenceWillChangeIsSentBeforeSidebarTransition() {
+        // Given
+        let tabID = "test-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockSidebarHost.sidebarContainerScreenFrame = NSRect(x: 100, y: 100, width: 400, height: 600)
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+        coordinator.toggleSidebar()
+        coordinator.didClickDetachButton()
+        XCTAssertEqual(mockSessionStore.sessions[tabID]?.state.presentationMode, .floating)
+
+        let eventExpectation = expectation(description: "Attach presence will change emitted")
+        var leadingConstraintAtEvent: CGFloat?
+        coordinator.sidebarPresenceWillChangePublisher
+            .sink { [weak self] change in
+                guard let self,
+                      change.tabID == tabID,
+                      change.isShown else {
+                    return
+                }
+                leadingConstraintAtEvent = self.mockSidebarHost.sidebarContainerLeadingConstraint?.constant
+                eventExpectation.fulfill()
+            }
+            .store(in: &cancellables)
+
+        // When
+        coordinator.didClickAttachButton(for: tabID)
+
+        // Then
+        waitForExpectations(timeout: 3)
+        XCTAssertEqual(leadingConstraintAtEvent, 0, "Will-change notification should be emitted before the sidebar transition updates constraints")
+        XCTAssertLessThan(mockSidebarHost.sidebarContainerLeadingConstraint?.constant ?? 0, 0)
+    }
+
     func testFloatingWindowDidClose_setsHidden() {
         // Given
         let tabID = "test-tab"

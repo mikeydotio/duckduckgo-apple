@@ -470,8 +470,8 @@ final class AIChatCoordinator: AIChatCoordinating {
         chatViewController.delegate = self
         sidebarHost.embedChatViewController(chatViewController, for: tabID)
 
-        transitionSidebar(for: tabID, isShowing: true, animated: false)
         sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: true))
+        transitionSidebar(for: tabID, isShowing: true, animated: false)
 
         controller.delegate = nil
         controller.close(initiatedByUser: false)
