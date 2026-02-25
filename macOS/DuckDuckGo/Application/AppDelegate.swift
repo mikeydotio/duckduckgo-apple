@@ -1173,8 +1173,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let collected = try aggregator.collectMetrics()
             let pending = try aggregator.pendingPixels(limit: 100)
             Logger.general.debug(
-                "MetricsAggregator: collected \(collected) pixel(s), pending \(pending.count): \(pending.map { "\($0.start) - \($0.pixel)(\($0.parameters))" })"
+                "MetricsAggregator: collected \(collected) pixel(s), pending \(pending.count):"
             )
+            pending.forEach({
+                Logger.general.debug("MetricsAggregator: \($0.start) - \($0.pixel)(\($0.parameters))")
+            })
         } catch {
             Logger.general.error("MetricsAggregator collection failed: \(error.localizedDescription)")
         }

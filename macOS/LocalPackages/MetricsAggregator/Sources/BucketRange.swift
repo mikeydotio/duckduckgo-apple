@@ -13,7 +13,7 @@
 import Foundation
 
 /// Defines a single bucket range for bucketed metric output.
-public struct BucketRange {
+public struct BucketRange: Encodable {
     public let minInclusive: Double
     public let maxExclusive: Double?
     public let name: String

@@ -29,12 +29,16 @@ let package = Package(
             name: "MetricsAggregatorMac",
             dependencies: [
                 .product(name: "Common", package: "BrowserServicesKit"),
-                .product(name: "GRDB", package: "BrowserServicesKit")
+                "MetricsAggregatorRust"
             ],
             path: "Sources",
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
+        ),
+        .binaryTarget(
+            name: "MetricsAggregatorRust",
+            path: "../../metrics_aggregator_rust/dist/MetricsAggregatorRust.xcframework"
         )
     ]
 )

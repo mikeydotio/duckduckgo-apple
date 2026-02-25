@@ -1,0 +1,4 @@
+module MetricsAggregatorRust {
+    header "MetricsAggregatorRust.h"
+    export *
+}
