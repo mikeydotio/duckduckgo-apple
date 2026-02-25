@@ -31,6 +31,12 @@ protocol AIChatFloatingWindowControllerDelegate: AnyObject {
 /// `AIChatViewController` that was moved out of the docked sidebar.
 @MainActor
 final class AIChatFloatingWindowController: NSObject {
+    typealias WindowFactory = (NSRect) -> NSWindow
+
+    static var windowFactory: WindowFactory = { contentRect in
+        AIChatFloatingWindow(contentRect: contentRect)
+    }
+
     private enum Constants {
         static let windowTitleSeparator = "\u{30FB}"
     }
@@ -41,7 +47,7 @@ final class AIChatFloatingWindowController: NSObject {
     /// The tab this floating window is associated with.
     let tabID: TabIdentifier
 
-    private let floatingWindow: AIChatFloatingWindow
+    private let floatingWindow: NSWindow
     private var chatViewController: AIChatViewController?
     private var closeInitiatedByUser = true
     private var cancellables = Set<AnyCancellable>()
@@ -60,7 +66,7 @@ final class AIChatFloatingWindowController: NSObject {
          contentRect: NSRect) {
         self.tabID = tabID
         self.chatViewController = chatViewController
-        self.floatingWindow = AIChatFloatingWindow(contentRect: contentRect)
+        self.floatingWindow = Self.windowFactory(contentRect)
         super.init()
 
         embedChatViewController(chatViewController)

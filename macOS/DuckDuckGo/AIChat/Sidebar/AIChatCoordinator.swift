@@ -185,7 +185,8 @@ final class AIChatCoordinator: AIChatCoordinating {
     }
 
     func collapseSidebar(withAnimation: Bool) {
-        guard let currentTabID = sidebarHost.currentTabID else { return }
+        guard let currentTabID = sidebarHost.currentTabID,
+              !isChatFloating(for: currentTabID) else { return }
         hideSidebar(for: currentTabID, animated: withAnimation)
     }
 

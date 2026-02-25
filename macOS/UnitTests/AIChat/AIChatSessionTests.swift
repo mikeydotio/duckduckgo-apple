@@ -19,6 +19,7 @@
 import XCTest
 import Combine
 import AIChat
+import SharedTestUtilities
 @testable import DuckDuckGo_Privacy_Browser
 
 @MainActor
@@ -28,10 +29,16 @@ final class AIChatSessionTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        session = AIChatSession(state: AIChatState(), burnerMode: .regular)
+        AIChatFloatingWindowController.windowFactory = { contentRect in
+            MockWindow(contentRect: contentRect, isVisible: false)
+        }
+        session = AIChatSession(state: AIChatState(initialAIChatURL: URL.blankPage.forAIChatSidebar()), burnerMode: .regular)
     }
 
     override func tearDown() {
+        AIChatFloatingWindowController.windowFactory = { contentRect in
+            AIChatFloatingWindow(contentRect: contentRect)
+        }
         session = nil
         super.tearDown()
     }
