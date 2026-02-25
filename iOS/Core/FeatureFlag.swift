@@ -309,7 +309,7 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212632627091091?focus=true
     case burnSingleTab
 
-   /// https://app.asana.com/1/137249556945/task/1213076120133808
+   /// https://app.asana.com/1/137249556945/project/72649045549333/task/1213076120133808?focus=true
     case showNTPAfterIdleReturn
 
     /// Test-only feature flag for verifying UI test override mechanism.
@@ -335,6 +335,12 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213001736131250?focus=true
     case webExtensions
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213380159275565?focus=true
+    case embeddedExtension
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213278892205657?focus=true
+    case forceDarkModeOnWebsites
+
     /// https://app.asana.com/1/137249556945/project/72649045549333/task/1208707884599795?focus=true
     case autofillOnboardingExperiment
 
@@ -343,6 +349,9 @@ public enum FeatureFlag: String {
 
     /// https://app.asana.com/1/137249556945/task/1213314048601761
     case fireMode
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213343468100319
+    case suppressTrackerAnimationOnColdStart
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -371,7 +380,8 @@ extension FeatureFlag: FeatureFlagDescribing {
              .freeTrialConversionWideEvent,
              .crashCollectionLimitCallStackTreeDepth,
              .tabSwitcherTrackerCount,
-             .iPadDuckaiOnTab:
+             .iPadDuckaiOnTab,
+             .suppressTrackerAnimationOnColdStart:
             true
         default:
             false
@@ -472,9 +482,12 @@ extension FeatureFlag: FeatureFlagDescribing {
              .uiTestExperiment,
              .onboardingRebranding,
              .webExtensions,
+             .embeddedExtension,
+             .forceDarkModeOnWebsites,
              .autofillOnboardingExperiment,
              .supportsSyncChatsDeletion,
-             .fireMode:
+             .fireMode,
+             .suppressTrackerAnimationOnColdStart:
             return true
         case .showSettingsCompleteSetupSection:
             if #available(iOS 18.2, *) {
@@ -724,12 +737,18 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .disabled
         case .webExtensions:
             return .internalOnly()
+        case .embeddedExtension:
+            return .remoteReleasable(.subfeature(WebExtensionsSubfeature.embeddedExtension))
+        case .forceDarkModeOnWebsites:
+            return .remoteReleasable(.feature(.forceDarkModeOnWebsites))
         case .autofillOnboardingExperiment:
             return .remoteReleasable(.subfeature(AutofillSubfeature.onboardingExperiment))
         case .supportsSyncChatsDeletion:
             return .remoteReleasable(.subfeature(AIChatSubfeature.supportsSyncChatsDeletion))
         case .fireMode:
             return .disabled
+        case .suppressTrackerAnimationOnColdStart:
+            return .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.suppressTrackerAnimationOnColdStart))
         }
     }
 }

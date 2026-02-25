@@ -88,6 +88,8 @@ public enum PrivacyFeature: String {
     case popupBlocking
     case combinedPermissionView
     case pageContext
+    case webExtensions
+    case forceDarkModeOnWebsites
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -240,6 +242,9 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213336304802675
     case showNTPAfterIdleReturn
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213343468100319
+    case suppressTrackerAnimationOnColdStart
 }
 
 public enum TabManagerSubfeature: String, PrivacySubfeature {
@@ -400,9 +405,6 @@ public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Global switch to control managing state of NTP in frontend using tab IDs
     case newTabPageTabIDs
-
-    /// Global switch to display autoconsent stats on New Tab Page
-    case autoconsentStats
 
     /// Controls whether the Next Steps List widget is enabled on New Tab Page
     case nextStepsListWidget
@@ -644,4 +646,10 @@ public enum UpdatesSubfeature: String, PrivacySubfeature {
 
     /// Simplified update flow without expiration logic
     case simplifiedFlow
+}
+
+public enum WebExtensionsSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .webExtensions }
+
+    case embeddedExtension
 }
