@@ -1778,6 +1778,9 @@ extension TabBarViewController: TabBarViewItemDelegate {
             return
         }
 
+        if let tabID = tabCollectionViewModel.tabViewModel(at: tabIndex)?.tab.uuid {
+            aiChatCoordinator?.closeFloatingWindow(for: tabID)
+        }
         tabCollectionViewModel.remove(at: tabIndex)
     }
 
