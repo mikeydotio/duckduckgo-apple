@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-import AppKit
 import Combine
 import Foundation
 import NewTabPage
@@ -61,7 +60,7 @@ extension ActiveRemoteMessageModel: NewTabPageActiveRemoteMessageProviding {
             case .personalInformationRemoval:
                 await navigateToPIRHandler()
             case .softwareUpdate:
-                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Software-Update-Settings.extension")!)
+                await navigateToSoftwareUpdate()
             default: break
             }
         default:
