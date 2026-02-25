@@ -106,7 +106,7 @@ extension AIChatState: NSSecureCoding {
         static let hiddenAt = "hiddenAt"
         static let sidebarWidth = "sidebarWidth"
         static let floatingWindowFrame = "floatingWindowFrame"
-        // Legacy key used only by the migration decoder in AIChatState+Migration.swift
+        // Legacy key used by old archives before presentationMode enum was introduced.
         static let isPresented = "isPresented"
     }
 
@@ -133,6 +133,15 @@ extension AIChatState: NSSecureCoding {
 
     static var supportsSecureCoding: Bool {
         return true
+    }
+
+    static func decodePresentationMode(from coder: NSCoder) -> AIChatPresentationMode {
+        if let raw = coder.decodeObject(of: NSString.self, forKey: CodingKeys.presentationMode) as? String {
+            return AIChatPresentationMode(rawValue: raw) ?? .hidden
+        }
+
+        let wasPresented: Bool = coder.decodeIfPresent(at: CodingKeys.isPresented) ?? true
+        return wasPresented ? .sidebar : .hidden
     }
 }
 

@@ -243,8 +243,6 @@
 		1E15F69B2DF0D1590061395E /* AIChatState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E15F6992DF0D1590061395E /* AIChatState.swift */; };
 		A1B2C3D42F16000000000001 /* AIChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D32F16000000000001 /* AIChatSession.swift */; };
 		A1B2C3D52F16000000000001 /* AIChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D32F16000000000001 /* AIChatSession.swift */; };
-		B630750F024681D5146C54FF /* AIChatState+Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F35BE47F26FB9E6CC7EFD1 /* AIChatState+Migration.swift */; };
-		5C275F688F23827DA7F64DC2 /* AIChatState+Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F35BE47F26FB9E6CC7EFD1 /* AIChatState+Migration.swift */; };
 		1EA1C0042F12000000000002 /* AIChatSidebarResizeHandleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EA1C0032F12000000000002 /* AIChatSidebarResizeHandleView.swift */; };
 		1EA1C0052F12000000000002 /* AIChatSidebarResizeHandleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EA1C0032F12000000000002 /* AIChatSidebarResizeHandleView.swift */; };
 		418399D4200F4DC8B3B0ABDB /* AIChatFloatingWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12E99106CCA4281998533BC /* AIChatFloatingWindow.swift */; };
@@ -4575,7 +4573,6 @@
 		1E15F6962DF08EDD0061395E /* AIChatSidebarHosting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatSidebarHosting.swift; sourceTree = "<group>"; };
 		1E15F6992DF0D1590061395E /* AIChatState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatState.swift; sourceTree = "<group>"; };
 		A1B2C3D32F16000000000001 /* AIChatSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatSession.swift; sourceTree = "<group>"; };
-		C8F35BE47F26FB9E6CC7EFD1 /* AIChatState+Migration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AIChatState+Migration.swift"; sourceTree = "<group>"; };
 		1EA1C0032F12000000000002 /* AIChatSidebarResizeHandleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatSidebarResizeHandleView.swift; sourceTree = "<group>"; };
 		A12E99106CCA4281998533BC /* AIChatFloatingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatFloatingWindow.swift; sourceTree = "<group>"; };
 		1812146DE841448CA4CE3FD1 /* AIChatFloatingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatFloatingWindowController.swift; sourceTree = "<group>"; };
@@ -7214,7 +7211,6 @@
 				1E4EDA272DE9ED2D0019B6E8 /* AIChatSessionStore.swift */,
 				1E15F6992DF0D1590061395E /* AIChatState.swift */,
 				A1B2C3D32F16000000000001 /* AIChatSession.swift */,
-				C8F35BE47F26FB9E6CC7EFD1 /* AIChatState+Migration.swift */,
 				1E4EDA2D2DE9ED710019B6E8 /* AIChatViewController.swift */,
 				1E15F6932DF08E920061395E /* AIChatCoordinator.swift */,
 				1E15F6962DF08EDD0061395E /* AIChatSidebarHosting.swift */,
@@ -14435,7 +14431,6 @@
 				CC87770A2E1FF39B00113863 /* FirefoxHistoryReader.swift in Sources */,
 				1E15F69A2DF0D1590061395E /* AIChatState.swift in Sources */,
 				A1B2C3D42F16000000000001 /* AIChatSession.swift in Sources */,
-				B630750F024681D5146C54FF /* AIChatState+Migration.swift in Sources */,
 				3706FB35293F65D500E42796 /* FlatButton.swift in Sources */,
 				56BA1E762BAAF70F001CF69F /* SpecialErrorPageTabExtension.swift in Sources */,
 				371BBC5C2D00C919008FA0C7 /* NewTabPageActionsManagerExtension.swift in Sources */,
@@ -16667,7 +16662,6 @@
 				EE72DCAB2EAA7E9C0052661B /* ImportSourcePickerViewModel.swift in Sources */,
 				1E15F69B2DF0D1590061395E /* AIChatState.swift in Sources */,
 				A1B2C3D52F16000000000001 /* AIChatSession.swift in Sources */,
-				5C275F688F23827DA7F64DC2 /* AIChatState+Migration.swift in Sources */,
 				B655369B268442EE00085A79 /* GeolocationProvider.swift in Sources */,
 				BBFE24472EF0622600D47B95 /* QuitSurveyPixels.swift in Sources */,
 				562802C82DAAB43B009F2F04 /* ContextualDialogsManager.swift in Sources */,
