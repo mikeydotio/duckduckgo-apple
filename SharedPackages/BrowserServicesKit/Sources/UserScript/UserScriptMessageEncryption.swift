@@ -65,7 +65,7 @@ extension UserScriptMessageEncryption {
 
             let script = """
             (() => {
-                window.\(methodName) && window.\(methodName)({
+                navigator?.duckduckgo?.messageHandlers?.\(methodName)?.({
                     ciphertext: [\(ciphertext)],
                     tag: [\(tag)]
                 });

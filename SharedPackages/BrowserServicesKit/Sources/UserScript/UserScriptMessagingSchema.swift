@@ -140,7 +140,7 @@ public struct SubscriptionEvent {
         return GenericJSONOutput.toJSON(dict: dictionary)
     }
 
-    public static func toJS(context: String, featureName: String, subscriptionName: String, params: Encodable, debug: Bool = false) -> String? {
+    public static func toJS(context: String, featureName: String, subscriptionName: String, params: Encodable, debug: Bool = false, useNavigatorMessageHandlers: Bool = true) -> String? {
 
         let res = SubscriptionEvent(context: context, featureName: featureName, subscriptionName: subscriptionName, params: params)
         guard let json = res.toJSON() else {
@@ -150,15 +150,27 @@ public struct SubscriptionEvent {
 
         let warnStatement = debug ? "console.warn(\"missing '\(res.subscriptionName)'\", \(json))" : ""
 
-        return """
-           (() => {
-              if (!('\(res.subscriptionName)' in (navigator?.duckduckgo?.messageHandlers ?? {}))) {
-                 \(warnStatement)
-              } else {
-                  navigator?.duckduckgo?.messageHandlers?.\(res.subscriptionName)?.(\(json));
-              }
-           })();
-           """
+        if useNavigatorMessageHandlers {
+            return """
+               (() => {
+                  if (!('\(res.subscriptionName)' in (navigator?.duckduckgo?.messageHandlers ?? {}))) {
+                     \(warnStatement)
+                  } else {
+                      navigator?.duckduckgo?.messageHandlers?.\(res.subscriptionName)?.(\(json));
+                  }
+               })();
+               """
+        } else {
+            return """
+               (() => {
+                  if (!('\(res.subscriptionName)' in window)) {
+                     \(warnStatement)
+                  } else {
+                      window['\(res.subscriptionName)']?.(\(json));
+                  }
+               })();
+               """
+        }
     }
 }
 

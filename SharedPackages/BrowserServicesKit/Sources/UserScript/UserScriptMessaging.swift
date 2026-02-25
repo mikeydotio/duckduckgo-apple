@@ -130,7 +130,8 @@ public final class UserScriptMessageBroker: NSObject {
                 featureName: delegate.featureName,
                 subscriptionName: method,
                 params: params ?? [:] as [String: String],
-                debug: debug
+                debug: debug,
+                useNavigatorMessageHandlers: !requiresRunInPageContentWorld
         )
         else {
             return
