@@ -535,14 +535,16 @@ final class MainViewController: NSViewController {
     }
 
     private func wireToggleReferenceToAIChatTextContainer() {
-        /// This enables TAB key navigation from AI Chat mode to the toggle
         if let searchModeToggleControl = navigationBarViewController.addressBarViewController?.addressBarButtonsViewController?.searchModeToggleControl {
             aiChatOmnibarTextContainerViewController.customToggleControl = searchModeToggleControl
         }
 
-        /// This enables TAB key navigation from toggle back to AI Chat text view
+        aiChatOmnibarTextContainerViewController.containerViewController = aiChatOmnibarContainerViewController
+
+        /// Bridge the nav bar toggle's Tab press into the AI chat tab cycle.
+        /// MainVC is the only entity that knows about both the nav bar and the AI chat area.
         navigationBarViewController.addressBarViewController?.addressBarButtonsViewController?.onToggleTabPressedInAIChatMode = { [weak self] in
-            self?.aiChatOmnibarTextContainerViewController.focusTextViewWithCursorAtEnd()
+            self?.aiChatOmnibarTextContainerViewController.handleToggleTabPressed()
         }
     }
 

@@ -105,6 +105,30 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// Callback when the passthrough height needs to be recalculated (e.g., when tools visibility changes)
     var onPassthroughHeightNeedsUpdate: (() -> Void)?
 
+    // MARK: - Tab Navigation Callbacks
+
+    /// Called when the image upload button receives a Tab key press. Wire this to advance focus.
+    var onImageUploadButtonTabPressed: (() -> Void)?
+
+    /// Called when the model picker button receives a Tab key press. Wire this to advance focus.
+    var onModelPickerButtonTabPressed: (() -> Void)?
+
+    var isImageUploadButtonAvailableForFocus: Bool {
+        !imageUploadButton.isHidden && imageUploadButton.isEnabled
+    }
+
+    var isModelPickerButtonAvailableForFocus: Bool {
+        !modelPickerButton.isHidden
+    }
+
+    func makeImageUploadButtonFirstResponder() {
+        view.window?.makeFirstResponder(imageUploadButton)
+    }
+
+    func makeModelPickerButtonFirstResponder() {
+        view.window?.makeFirstResponder(modelPickerButton)
+    }
+
     /// Extra height needed beyond text and suggestions for dynamic content like attachments.
     /// This must be added to the container height calculation by the parent.
     var additionalContentHeight: CGFloat {
@@ -285,6 +309,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         imageUploadButton.image = DesignSystemImages.Glyphs.Size16.image
         imageUploadButton.toolTip = UserText.aiChatImageUploadButtonTooltip
         imageUploadButton.setAccessibilityLabel(UserText.aiChatImageUploadButtonTooltip)
+        imageUploadButton.onTabPressed = { [weak self] in self?.onImageUploadButtonTabPressed?() }
         containerView.addSubview(imageUploadButton)
 
         modelPickerButton.translatesAutoresizingMaskIntoConstraints = false
@@ -293,6 +318,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         modelPickerButton.modelName = persistedModelShortName
         modelPickerButton.toolTip = UserText.aiChatModelPickerButtonTooltip
         modelPickerButton.setAccessibilityLabel(UserText.aiChatModelPickerButtonTooltip)
+        modelPickerButton.onTabPressed = { [weak self] in self?.onModelPickerButtonTabPressed?() }
         containerView.addSubview(modelPickerButton)
 
         attachmentsContainerView.translatesAutoresizingMaskIntoConstraints = false
