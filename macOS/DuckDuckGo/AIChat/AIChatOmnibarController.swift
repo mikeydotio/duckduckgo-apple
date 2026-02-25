@@ -56,7 +56,6 @@ final class AIChatOmnibarController {
     /// Available AI models. Empty until successfully fetched from the API.
     @Published private(set) var models: [AIChatModel] = []
 
-
     /// Provides the current image attachments from the container VC.
     var attachmentsProvider: (() -> [AIChatImageAttachment])?
 
