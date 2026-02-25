@@ -36,10 +36,6 @@ protocol AIChatOmnibarControllerDelegate: AnyObject {
 /// to coordinate text input and submission.
 @MainActor
 final class AIChatOmnibarController {
-    private enum Constants {
-        static let webSearchTool = "WebSearch"
-    }
-
     @Published private(set) var currentText: String = ""
     weak var delegate: AIChatOmnibarControllerDelegate?
     private let aiChatTabOpener: AIChatTabOpening
@@ -66,9 +62,6 @@ final class AIChatOmnibarController {
 
     /// Called after a successful submit so the container VC can clear its attachment UI.
     var onAttachmentsClearRequested: (() -> Void)?
-
-    /// Checks if all attachments are ready (resizing complete).
-    var areAttachmentsReadyProvider: (() -> Bool)?
 
     /// Waits for all attachment resizing to complete before proceeding.
     var waitForAttachmentsReady: (() async -> Void)?
@@ -339,7 +332,7 @@ final class AIChatOmnibarController {
             )
             // Re-set prompt after tab opener to include images and model selection (tab opener overwrites with a plain query)
             let modelId = self.currentModelId
-            let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: nil, images: images, modelId: modelId)
+            let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, images: images, modelId: modelId)
             promptHandler.setData(prompt)
 
             onAttachmentsClearRequested?()
@@ -359,8 +352,7 @@ final class AIChatOmnibarController {
                 return nil
             }
             let base64 = pngData.base64EncodedString()
-            let format = (attachment.fileName as NSString).pathExtension.lowercased()
-            return AIChatNativePrompt.NativePromptImage(data: base64, format: format.isEmpty ? "png" : format)
+            return AIChatNativePrompt.NativePromptImage(data: base64, format: "png")
         }
     }
 

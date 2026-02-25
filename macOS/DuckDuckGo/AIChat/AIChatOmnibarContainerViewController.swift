@@ -514,7 +514,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 self.attachmentsContainerView.addAttachment(placeholderAttachment)
 
                 // Resize in background and track task
-                let resizeTask = Task.detached(priority: .userInitiated) {
+                let resizeTask = Task.detached(priority: .userInitiated) { [weak self] in
                     let resizedAttachment = AIChatImageAttachment(
                         id: placeholderId,
                         image: originalImage,
@@ -524,9 +524,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                     )
 
                     // Update UI on main thread
-                    await MainActor.run {
-                        self.attachmentsContainerView.replaceAttachment(id: placeholderId, with: resizedAttachment)
-                        self.resizeTasks.removeValue(forKey: placeholderId)
+                    await MainActor.run { [weak self] in
+                        self?.attachmentsContainerView.replaceAttachment(id: placeholderId, with: resizedAttachment)
+                        self?.resizeTasks.removeValue(forKey: placeholderId)
                     }
                 }
 
@@ -541,9 +541,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         }
         omnibarController.onAttachmentsClearRequested = { [weak self] in
             self?.clearAttachments()
-        }
-        omnibarController.areAttachmentsReadyProvider = { [weak self] in
-            self?.resizeTasks.isEmpty ?? true
         }
         omnibarController.waitForAttachmentsReady = { [weak self] in
             guard let self else { return }
