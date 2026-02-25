@@ -87,14 +87,18 @@ final class AutoconsentUserScript: NSObject, WKScriptMessageHandlerWithReply, Us
         self.featureFlagger = featureFlagger
         self.webExtensionAvailability = webExtensionAvailability
         self.metrics = Application.appDelegate.metricsAggregator
-        do {
-            try self.metrics?.registerAggregation(
+        if let metrics = self.metrics {
+            metrics.registerAggregation(
                 name: "autoconsent",
                 aggregationInterval: 120,
                 metricsSpecs: [
+                    MetricSpec(
+                        name: "init",
+                        type: .counter,
+                    )
                 ]
             )
-            try self.metrics?.registerAggregation(
+            metrics.registerAggregation(
                 name: "navigation",
                 aggregationInterval: 600,
                 metricsSpecs: [
@@ -111,7 +115,7 @@ final class AutoconsentUserScript: NSObject, WKScriptMessageHandlerWithReply, Us
                     )
                 ]
             )
-        } catch {}
+        }
     }
 
     func userContentController(_ userContentController: WKUserContentController,
@@ -370,7 +374,7 @@ extension AutoconsentUserScript {
                 consentHeuristicEnabled: consentHeuristicEnabled
             )
             firePixel(pixel: .acInit)
-            try? self.metrics?.increment(aggregationName: "navigation", metricName: "init")
+            _ = self.metrics?.increment(aggregationName: "navigation", metricName: "init")
         }
         let remoteConfig = self.config.settings(for: .autoconsent)
         let disabledCMPs = remoteConfig["disabledCMPs"] as? [String] ?? []
@@ -703,7 +707,7 @@ extension AutoconsentUserScript {
         }
         // increment counter
         management.pixelCounter[pixel.key, default: 0] += 1
-        try? self.metrics?.increment(aggregationName: "autoconsent", metricName: pixel.key)
+        _ = self.metrics?.increment(aggregationName: "autoconsent", metricName: pixel.key)
 
         // fire daily pixel if needed
         PixelKit.fire(pixel, frequency: .daily, withAdditionalParameters: additionalParams)

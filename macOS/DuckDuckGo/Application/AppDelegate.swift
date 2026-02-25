@@ -1007,12 +1007,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 #endif
         autoconsentStats = AutoconsentStats(keyValueStore: keyValueStore, isFeatureEnabled: { featureFlagger.isFeatureOn(.newTabPageAutoconsentStats) })
         if AppVersion.runType.requiresEnvironment {
-            do {
-                metricsAggregator = try MetricsAggregator(databaseURL: nil)
-            } catch {
-                PixelKit.fire(DebugEvent(GeneralPixel.keyValueFileStoreInitError, error: error))
+            var error: MetricsAggregatorErrorCode = .success
+            metricsAggregator = MetricsAggregator(databaseURL: nil, error: &error)
+            if metricsAggregator == nil {
+                let message: String = {
+                    if case .openFailed(let msg) = error { return msg ?? "open failed" }
+                    if case .operationFailed(let msg) = error { return msg ?? "operation failed" }
+                    return String(describing: error)
+                }()
+                PixelKit.fire(DebugEvent(GeneralPixel.keyValueFileStoreInitError, error: NSError(domain: "MetricsAggregator", code: -1, userInfo: [NSLocalizedDescriptionKey: message])))
                 Thread.sleep(forTimeInterval: 1)
-                fatalError("Could not initialize MetricsAggregator: \(error.localizedDescription)")
+                fatalError("Could not initialize MetricsAggregator: \(message)")
             }
         } else {
             metricsAggregator = nil
@@ -1169,17 +1174,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func runMetricsAggregatorCollectionAndLogPending(aggregator: MetricsAggregator) {
-        do {
-            let collected = try aggregator.collectMetrics()
-            let pending = try aggregator.pendingPixels(limit: 100)
-            Logger.general.debug(
-                "MetricsAggregator: collected \(collected) pixel(s), pending \(pending.count):"
-            )
-            pending.forEach({
-                Logger.general.debug("MetricsAggregator: \($0.start) - \($0.pixel)(\($0.parameters))")
-            })
-        } catch {
-            Logger.general.error("MetricsAggregator collection failed: \(error.localizedDescription)")
+        let (collected, collectError) = aggregator.collectMetrics()
+        guard collectError.isSuccess else {
+            let message: String = { if case .operationFailed(let msg) = collectError { return msg ?? "operation failed" }; return String(describing: collectError) }()
+            Logger.general.error("MetricsAggregator collection failed: \(message)")
+            return
+        }
+        let (pending, pendingError) = aggregator.pendingPixels(limit: 100)
+        guard pendingError.isSuccess else {
+            let message: String = { if case .operationFailed(let msg) = pendingError { return msg ?? "operation failed" }; return String(describing: pendingError) }()
+            Logger.general.error("MetricsAggregator pending pixels failed: \(message)")
+            return
+        }
+        Logger.general.debug(
+            "MetricsAggregator: collected \(collected) pixel(s), pending \(pending.count):"
+        )
+        pending.forEach {
+            Logger.general.debug("MetricsAggregator: \($0.start) - \($0.pixel)(\($0.parameters))")
         }
     }
 
