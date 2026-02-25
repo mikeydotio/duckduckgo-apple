@@ -95,10 +95,6 @@ public final class UserScriptMessageBroker: NSObject {
     public let context: String
     public let requiresRunInPageContentWorld: Bool
     public let debug: Bool
-    /// When true, pushed subscription events target `navigator.duckduckgo.messageHandlers`
-    /// (set up by C-S-S injection). When false, they target `window` (for standalone page scripts
-    /// whose web-side JS still registers callbacks on `window`).
-    public let isMessageHandlerTargetNavigator: Bool
 
     /// We determine which feature should receive a given message
     /// based on this
@@ -107,14 +103,12 @@ public final class UserScriptMessageBroker: NSObject {
     public init(context: String,
                 hostProvider: UserScriptHostProvider = SecurityOriginHostProvider(),
                 requiresRunInPageContentWorld: Bool = false,
-                debug: Bool = false,
-                isMessageHandlerTargetNavigator: Bool = false
+                debug: Bool = false
     ) {
         self.context = context
         self.hostProvider = hostProvider
         self.requiresRunInPageContentWorld = requiresRunInPageContentWorld
         self.debug = debug
-        self.isMessageHandlerTargetNavigator = isMessageHandlerTargetNavigator
     }
 
     public func registerSubfeature(delegate: Subfeature) {
@@ -136,8 +130,7 @@ public final class UserScriptMessageBroker: NSObject {
                 featureName: delegate.featureName,
                 subscriptionName: method,
                 params: params ?? [:] as [String: String],
-                debug: debug,
-                useNavigatorMessageHandlers: isMessageHandlerTargetNavigator
+                debug: debug
         )
         else {
             return
