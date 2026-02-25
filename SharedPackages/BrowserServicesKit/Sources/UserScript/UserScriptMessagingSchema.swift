@@ -149,14 +149,16 @@ public struct SubscriptionEvent {
         }
 
         let warnStatement = debug ? "console.warn(\"missing '\(res.subscriptionName)'\", \(json))" : ""
+        let elseWarn = warnStatement.isEmpty ? "" : " else {\n                 \(warnStatement)\n              }"
 
         return """
            (() => {
-              if (!('\(res.subscriptionName)' in (navigator?.duckduckgo ?? {}))) {
-                 \(warnStatement)
-              } else {
-                  navigator?.duckduckgo?.\(res.subscriptionName)?.(\(json));
-              }
+              const nd = navigator?.duckduckgo;
+              if (nd && '\(res.subscriptionName)' in nd) {
+                  nd.\(res.subscriptionName)?.(\(json));
+              } else if ('\(res.subscriptionName)' in window) {
+                  window.\(res.subscriptionName)?.(\(json));
+              }\(elseWarn)
            })();
            """
     }
