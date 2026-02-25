@@ -156,6 +156,22 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertEqual(presenceChangeReceived?.isShown, false)
     }
 
+    func testToggleSidebar_whenChatIsFloating_doesNothing() {
+        // Given
+        let tabID = "floating-tab"
+        mockSidebarHost.currentTabID = tabID
+        let session = mockSessionStore.getOrCreateSession(for: tabID, burnerMode: .regular)
+        _ = session.makeChatViewController(tabID: tabID)
+        session.state.setFloating()
+
+        // When
+        coordinator.toggleSidebar()
+
+        // Then
+        XCTAssertEqual(session.state.presentationMode, .floating)
+        XCTAssertNil(mockSidebarHost.embeddedViewController)
+    }
+
     // MARK: - Collapse Sidebar Tests
 
     func testCollapseSidebar_withNoCurrentTab_doesNothing() {
@@ -713,6 +729,46 @@ final class AIChatCoordinatorTests: XCTestCase {
         // Then
         XCTAssertEqual(mockSessionStore.sessions[tab1]?.state.presentationMode, .floating)
         XCTAssertNotNil(mockSessionStore.sessions[tab1]?.floatingWindowController)
+    }
+
+    func testSidebarHostDidSelectTab_restoresFloatingWindowWhenSessionIsFloating() {
+        // Given
+        let tabID = "floating-restore-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+
+        let session = mockSessionStore.getOrCreateSession(for: tabID, burnerMode: .regular)
+        _ = session.makeChatViewController(tabID: tabID)
+        session.state.setFloating()
+        session.floatingWindowController = nil
+
+        // When
+        coordinator.sidebarHostDidSelectTab(with: tabID)
+
+        // Then
+        XCTAssertEqual(session.state.presentationMode, .floating)
+        XCTAssertNotNil(session.floatingWindowController)
+    }
+
+    func testFeatureFlagUpdate_updatesFloatingAvailabilityOnExistingChatViewController() {
+        // Given
+        let tabID = "feature-flag-tab"
+        mockSidebarHost.currentTabID = tabID
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable, .aiChatSidebarFloating])
+        coordinator.toggleSidebar()
+
+        guard let chatViewController = mockSessionStore.sessions[tabID]?.chatViewController else {
+            XCTFail("Expected chat view controller")
+            return
+        }
+        XCTAssertTrue(chatViewController.isChatFloatingEnabled)
+
+        // When
+        mockFeatureFlagger.enableFeatures([.aiChatSidebarResizable])
+        mockFeatureFlagger.triggerUpdate()
+
+        // Then
+        XCTAssertFalse(chatViewController.isChatFloatingEnabled)
     }
 
     // MARK: - Edge Cases
