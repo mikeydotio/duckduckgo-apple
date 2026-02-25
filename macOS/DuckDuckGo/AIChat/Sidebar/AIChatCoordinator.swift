@@ -154,6 +154,13 @@ final class AIChatCoordinator: AIChatCoordinating {
                 self?.handleAIChatHandoff(with: payload)
             }
             .store(in: &cancellables)
+
+        featureFlagger.updatesPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.refreshFloatingFeatureAvailability()
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Public API
@@ -324,6 +331,12 @@ final class AIChatCoordinator: AIChatCoordinating {
     private func isChatPresented(for tabID: TabIdentifier) -> Bool {
         guard let mode = sessionStore.sessions[tabID]?.state.presentationMode else { return false }
         return mode != .hidden
+    }
+
+    private func refreshFloatingFeatureAvailability() {
+        for session in sessionStore.sessions.values {
+            session.chatViewController?.isChatFloatingEnabled = isChatFloatingEnabled
+        }
     }
 
     // MARK: - UI Teardown
