@@ -273,22 +273,22 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertFalse(isOpen)
     }
 
-    // MARK: - Present Sidebar Tests
+    // MARK: - Reveal Chat Tests
 
-    func testPresentSidebar_withNoCurrentTab_doesNothing() {
+    func testRevealChat_withNoCurrentTab_doesNothing() {
         // Given
         mockSidebarHost.currentTabID = nil
         let prompt = AIChatNativePrompt.queryPrompt("What is the best pizza recipe?", autoSubmit: true)
         let initialCount = mockSessionStore.statesByTab.count
 
         // When
-        coordinator.presentSidebar(for: prompt)
+        coordinator.revealChat(for: prompt)
 
         // Then
         XCTAssertEqual(mockSessionStore.statesByTab.count, initialCount)
     }
 
-    func testPresentSidebar_withExistingSidebar_setsPrompt() {
+    func testRevealChat_withExistingSidebar_setsPrompt() {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
@@ -296,14 +296,14 @@ final class AIChatCoordinatorTests: XCTestCase {
         let prompt = AIChatNativePrompt.queryPrompt("What is the best pizza recipe?", autoSubmit: true)
 
         // When
-        coordinator.presentSidebar(for: prompt)
+        coordinator.revealChat(for: prompt)
 
         // Then
         // The sidebar should receive the prompt (tested via the sidebar's view controller)
         XCTAssertNotNil(chatViewController)
     }
 
-    func testPresentSidebar_withoutExistingSidebar_createsSidebar() {
+    func testRevealChat_withoutExistingSidebar_createsSidebar() {
         // Given
         let tabID = "test-tab"
         mockSidebarHost.currentTabID = tabID
@@ -311,7 +311,7 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertFalse(((mockSessionStore.sessions[tabID]?.state.presentationMode ?? .hidden) != .hidden))
 
         // When
-        coordinator.presentSidebar(for: prompt)
+        coordinator.revealChat(for: prompt)
 
         // Then
         XCTAssertTrue(((mockSessionStore.sessions[tabID]?.state.presentationMode ?? .hidden) != .hidden))
@@ -561,9 +561,9 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertEqual(presenceChanges.count, 2)
         XCTAssertEqual(presenceChanges.last?.isShown, false)
 
-        // When - Present sidebar with prompt
+        // When - Reveal chat with prompt
         let prompt = AIChatNativePrompt.queryPrompt("What is the best pizza recipe?", autoSubmit: true)
-        coordinator.presentSidebar(for: prompt)
+        coordinator.revealChat(for: prompt)
 
         // Then - Sidebar should be showing again
         XCTAssertEqual(presenceChanges.count, 3)

@@ -85,7 +85,7 @@ final class AIChatTranslator: AIChatTranslating {
                                                           targetLanguage: targetTranslationLanguage())
         pixelFiring?.fire(AIChatPixel.aiChatTranslateText, frequency: .dailyAndStandard)
 
-        if !aiChatCoordinator.isSidebarOpenForCurrentTab() {
+        if !aiChatCoordinator.isChatPresentedForCurrentTab() {
             pixelFiring?.fire(
                 AIChatPixel.aiChatSidebarOpened(
                     source: .translation,
@@ -95,7 +95,7 @@ final class AIChatTranslator: AIChatTranslating {
                 frequency: .dailyAndStandard
             )
         }
-        aiChatCoordinator.presentSidebar(for: prompt)
+        aiChatCoordinator.revealChat(for: prompt)
     }
 
     /// Return target translation language as BCP 47 code

@@ -50,6 +50,9 @@ protocol AIChatCoordinating {
     /// Returns whether the AI Chat sidebar is currently open for the active tab.
     func isSidebarOpenForCurrentTab() -> Bool
 
+    /// Returns whether AI Chat is currently visible (sidebar or floating) for the active tab.
+    func isChatPresentedForCurrentTab() -> Bool
+
     /// Returns the date when the AI Chat sidebar was last hidden for a tab specified by `tabID`.
     func sidebarHiddenAt(for tabID: TabIdentifier) -> Date?
 
@@ -71,8 +74,12 @@ protocol AIChatCoordinating {
     /// Closes a detached floating window for `tabID` if one exists.
     func closeFloatingWindow(for tabID: TabIdentifier)
 
-    /// Consumes `prompt` and presents it in the sidebar. Appends to existing conversation if that was present.
-    func presentSidebar(for prompt: AIChatNativePrompt)
+    /// Reveals AI Chat for the active tab with `prompt`.
+    ///
+    /// - Hidden: opens sidebar
+    /// - Sidebar: keeps sidebar visible
+    /// - Floating: keeps floating presentation and focuses its window
+    func revealChat(for prompt: AIChatNativePrompt)
 }
 
 final class AIChatCoordinator: AIChatCoordinating {
@@ -191,6 +198,11 @@ final class AIChatCoordinator: AIChatCoordinating {
         return isSidebarOpen(for: currentTabID)
     }
 
+    func isChatPresentedForCurrentTab() -> Bool {
+        guard let currentTabID = sidebarHost.currentTabID else { return false }
+        return isChatPresented(for: currentTabID)
+    }
+
     func isChatFloating(for tabID: TabIdentifier) -> Bool {
         sessionStore.sessions[tabID]?.state.presentationMode == .floating
     }
@@ -212,7 +224,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         return sidebarHiddenAt(for: currentTabID)
     }
 
-    func presentSidebar(for prompt: AIChatNativePrompt) {
+    private func presentSidebar(for prompt: AIChatNativePrompt) {
         guard let currentTabID = sidebarHost.currentTabID else { return }
 
         if let chatViewController = sessionStore.sessions[currentTabID]?.chatViewController {
@@ -220,6 +232,17 @@ final class AIChatCoordinator: AIChatCoordinating {
         } else {
             AIChatPromptHandler.shared.setData(prompt)
             showSidebar(for: currentTabID, animated: true)
+        }
+    }
+
+    func revealChat(for prompt: AIChatNativePrompt) {
+        guard let currentTabID = sidebarHost.currentTabID else { return }
+        let shouldFocusFloatingWindow = isChatFloating(for: currentTabID)
+
+        presentSidebar(for: prompt)
+
+        if shouldFocusFloatingWindow {
+            focusFloatingWindow(for: currentTabID)
         }
     }
 
