@@ -272,7 +272,7 @@ extension OnboardingRebranding {
                     SkipOnboardingContent(
                         startBrowsingAction: model.confirmSkipOnboardingAction,
                         resumeOnboardingAction: {
-                            withAnimation {
+                            hideContentAndPerformAction {
                                 model.startOnboardingAction(isResumingOnboarding: true)
                             }
                         }
