@@ -506,10 +506,15 @@ final class AIChatCoordinator: AIChatCoordinating {
         windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
 
         chatViewController.delegate = self
+        let isSelectingDifferentTab = sidebarHost.currentTabID != tabID
         sidebarHost.embedChatViewController(chatViewController, for: tabID)
 
-        sidebarPresenceDidChangeSubject.send(.init(tabID: tabID, isShown: true))
-        transitionSidebar(for: tabID, isShowing: true, animated: false)
+        // If embedding selects a different tab, sidebarHostDidSelectTab will drive
+        // the sidebar show flow. Only run it here when tab selection does not change.
+        if !isSelectingDifferentTab {
+            sidebarPresenceDidChangeSubject.send(.init(tabID: tabID, isShown: true))
+            transitionSidebar(for: tabID, isShowing: true, animated: false)
+        }
 
         controller.delegate = nil
         controller.close(initiatedByUser: false)
