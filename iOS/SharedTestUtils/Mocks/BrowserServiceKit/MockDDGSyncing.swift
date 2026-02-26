@@ -103,6 +103,9 @@ final class MockDDGSyncing: DDGSyncing {
     func initializeIfNeeded() {
     }
 
+    func enableSyncFromPreservedAccount() async throws {
+    }
+
     func createAccount(deviceName: String, deviceType: String) async throws {
     }
 

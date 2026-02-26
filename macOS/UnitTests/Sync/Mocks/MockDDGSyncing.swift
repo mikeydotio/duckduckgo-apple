@@ -98,6 +98,9 @@ class MockDDGSyncing: DDGSyncing {
     func initializeIfNeeded() {
     }
 
+    func enableSyncFromPreservedAccount() async throws {
+    }
+
     var createAccountCallback: ((String, String) -> Void)?
     var createAccountError: Error?
     func createAccount(deviceName: String, deviceType: String) async throws {

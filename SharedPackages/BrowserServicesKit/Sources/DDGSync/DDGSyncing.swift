@@ -105,6 +105,11 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     func initializeIfNeeded()
 
     /**
+     Enables Sync using a preserved account when Sync is currently inactive.
+     */
+    func enableSyncFromPreservedAccount() async throws
+
+    /**
      Creates an account.
 
      Account creation has the following flow:
