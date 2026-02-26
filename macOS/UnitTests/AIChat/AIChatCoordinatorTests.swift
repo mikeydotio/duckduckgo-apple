@@ -252,6 +252,53 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertNotNil(mockSessionStore.sessions[tabID])
     }
 
+    // MARK: - Close Chat Tests
+
+    func testCloseChat_whenSidebarVisible_endsSession() {
+        // Given
+        let tabID = "sidebar-tab"
+        mockSidebarHost.currentTabID = tabID
+        _ = makeSession(for: tabID)
+        XCTAssertTrue(coordinator.isSidebarOpen(for: tabID))
+
+        // When
+        coordinator.closeChat(for: tabID, withAnimation: false)
+
+        // Then
+        XCTAssertNil(mockSessionStore.sessions[tabID])
+    }
+
+    func testCloseChat_whenFloatingWithoutWindowController_doesNotCollapseSidebarOrEndSession() {
+        // Given
+        let tabID = "floating-tab"
+        mockSidebarHost.currentTabID = tabID
+        let session = makeSession(for: tabID)
+        session.state.setFloating()
+        session.floatingWindowController = nil
+
+        // When
+        coordinator.closeChat(for: tabID, withAnimation: true)
+
+        // Then
+        XCTAssertEqual(session.state.presentationMode, .floating)
+        XCTAssertNotNil(mockSessionStore.sessions[tabID])
+    }
+
+    func testCloseChat_whenAlreadyHidden_doesNothing() {
+        // Given
+        let tabID = "hidden-tab"
+        mockSidebarHost.currentTabID = tabID
+        let session = makeSession(for: tabID)
+        session.state.setHidden()
+
+        // When
+        coordinator.closeChat(for: tabID, withAnimation: true)
+
+        // Then
+        XCTAssertEqual(mockSessionStore.sessions[tabID]?.state.presentationMode, .hidden)
+        XCTAssertNotNil(mockSessionStore.sessions[tabID])
+    }
+
     // MARK: - Is Sidebar Open Tests
 
     func testIsSidebarOpen_withExistingSidebar_returnsTrue() {

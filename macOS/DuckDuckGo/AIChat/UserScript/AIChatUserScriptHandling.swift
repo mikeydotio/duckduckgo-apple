@@ -150,7 +150,13 @@ final class AIChatUserScriptHandler: AIChatUserScriptHandling {
         let isSidebar = await message.messageWebView?.url?.hasAIChatSidebarPlacementParameter == true
 
         if isSidebar {
-            await windowControllersManager.mainWindowController?.mainViewController.aiChatCoordinator.collapseSidebar(withAnimation: true)
+            guard let mainViewController = await windowControllersManager.mainWindowController?.mainViewController else {
+                return nil
+            }
+
+            if let currentTabID = await mainViewController.tabCollectionViewModel.selectedTabViewModel?.tab.uuid {
+                await mainViewController.aiChatCoordinator.closeChat(for: currentTabID, withAnimation: true)
+            }
         } else {
             await windowControllersManager.mainWindowController?.mainViewController.closeTab(nil)
         }

@@ -74,6 +74,12 @@ protocol AIChatCoordinating {
     /// Closes a detached floating window for `tabID` if one exists.
     func closeFloatingWindow(for tabID: TabIdentifier)
 
+    /// Closes AI Chat for `tabID` regardless of presentation mode.
+    /// - Floating: closes the floating window.
+    /// - Sidebar: collapses the sidebar.
+    /// - Hidden: no-op.
+    func closeChat(for tabID: TabIdentifier, withAnimation: Bool)
+
     /// Reveals AI Chat for the active tab with `prompt`.
     ///
     /// - Hidden: opens sidebar
@@ -214,6 +220,14 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     func closeFloatingWindow(for tabID: TabIdentifier) {
         sessionStore.sessions[tabID]?.floatingWindowController?.close(initiatedByUser: false)
+    }
+
+    func closeChat(for tabID: TabIdentifier, withAnimation: Bool) {
+        if isChatFloating(for: tabID) {
+            closeFloatingWindow(for: tabID)
+        } else if isSidebarOpen(for: tabID) {
+            hideSidebar(for: tabID, animated: withAnimation)
+        }
     }
 
     func sidebarHiddenAt(for tabID: TabIdentifier) -> Date? {
