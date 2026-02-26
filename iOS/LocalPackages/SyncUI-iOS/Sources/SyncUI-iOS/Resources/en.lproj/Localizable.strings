@@ -7,6 +7,18 @@
 /* Auto-Restore - Description + Learn More, with markdown link */
 "auto.restore.learn.more.full" = "Automatically restore your data on this device if you reinstall the app. [Learn More](sync-auto-restore://learn-more)";
 
+/* Auto-Restore Ready Sheet - Description */
+"auto.restore.ready.description" = "Use Face ID to Auto-Restore, or scan the Recovery Code you saved when you set up Sync & Backup.";
+
+/* Auto-Restore Ready Sheet - Restore Button */
+"auto.restore.ready.restore.button" = "Restore My Data";
+
+/* Auto-Restore Ready Sheet - Scan Code Link */
+"auto.restore.ready.scan.code.link" = "Scan Recovery Code";
+
+/* Auto-Restore Ready Sheet - Title */
+"auto.restore.ready.title" = "Your synced data is ready to restore";
+
 /* Auto-Restore Screen - Description */
 "auto.restore.screen.description" = "Automatically restore your data on this device if you reinstall the app.";
 
@@ -170,13 +182,22 @@
 "recover.synced.data.link" = "Recover Synced Data";
 
 /* Recover Synced Data Sheet - Button */
-"recover.synced.data.sheet.button" = "Get Started";
+"recover.synced.data.sheet.button" = "Recover Synced Data";
 
 /* Recover Synced Data Sheet - Description */
-"recover.synced.data.sheet.description" = "To restore your synced data, you'll need the Recovery Code you saved when you first set up Sync. This code may have been saved as a PDF on the device you originally used to set up Sync.";
+"recover.synced.data.sheet.description" = "You’ll need the Recovery Code you got when you set up Sync & Backup. You may have saved it as a PDF on the device you used.";
 
 /* Recover Synced Data Sheet - Title */
-"recover.synced.data.sheet.title" = "Recover Synced Data";
+"recover.synced.data.sheet.title" = "Recover your synced data";
+
+/* Recovering Data Sheet - Description */
+"recovering.data.description" = "Reconnecting to sync your bookmarks, saved logins, and other device.";
+
+/* Recovering Data Sheet - Status */
+"recovering.data.status" = "Connecting...";
+
+/* Recovering Data Sheet - Title */
+"recovering.data.title" = "Recovering Data";
 
 /* Remove Device View - Button */
 "remove.device.button" = "Remove Device";
