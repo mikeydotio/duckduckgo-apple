@@ -395,8 +395,14 @@ final class AIChatCoordinator: AIChatCoordinating {
     }
 
     private func refreshFloatingFeatureAvailability() {
-        for session in sessionStore.sessions.values {
+        for (tabID, session) in sessionStore.sessions {
             session.chatViewController?.isChatFloatingEnabled = isChatFloatingEnabled
+            if !isChatFloatingEnabled, session.state.presentationMode == .floating {
+                session.state.setHidden()
+                tearDownUI(for: tabID)
+                sessionStore.endSession(for: tabID)
+                chatFloatingStateDidChangeSubject.send(tabID)
+            }
         }
     }
 
