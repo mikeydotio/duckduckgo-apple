@@ -133,20 +133,40 @@ public class SyncSettingsViewModel: ObservableObject {
 
     @Published var shouldShowPasscodeRequiredAlert: Bool = false
 
+    public var isAutoRestoreFeatureAvailable: Bool {
+        autoRestoreProvider?.isAutoRestoreFeatureEnabled == true
+    }
+    @Published public var isAutoRestoreEnabled: Bool = false
+    @Published var isAutoRestoreUpdating: Bool = false
+
+    public var autoRestoreStatusText: String {
+        isAutoRestoreEnabled ? UserText.autoRestoreStatusOn : UserText.autoRestoreStatusOff
+    }
+
     public weak var delegate: SyncManagementViewModelDelegate?
     private(set) var isOnDevEnvironment: Bool
     private(set) var switchToProdEnvironment: () -> Void = {}
     private var cancellables = Set<AnyCancellable>()
 
+    private let autoRestoreProvider: SyncAutoRestoreProviding?
+
     public init(
         isOnDevEnvironment: @escaping () -> Bool,
-        switchToProdEnvironment: @escaping () -> Void) {
-            self.isOnDevEnvironment = isOnDevEnvironment()
-            self.switchToProdEnvironment = { [weak self] in
-                switchToProdEnvironment()
-                self?.isOnDevEnvironment = isOnDevEnvironment()
-            }
+        switchToProdEnvironment: @escaping () -> Void,
+        autoRestoreProvider: SyncAutoRestoreProviding? = nil
+    ) {
+        self.isOnDevEnvironment = isOnDevEnvironment()
+        self.autoRestoreProvider = autoRestoreProvider
+        if autoRestoreProvider?.isAutoRestoreFeatureEnabled == true {
+            self.isAutoRestoreEnabled = autoRestoreProvider?.existingDecision() ?? false
+        } else {
+            self.isAutoRestoreEnabled = false
         }
+        self.switchToProdEnvironment = { [weak self] in
+            switchToProdEnvironment()
+            self?.isOnDevEnvironment = isOnDevEnvironment()
+        }
+    }
 
     @MainActor
     func commonAuthenticate() async -> Bool {
@@ -163,6 +183,23 @@ public class SyncSettingsViewModel: ObservableObject {
                 }
             }
             return false
+        }
+    }
+
+    @MainActor
+    func requestAutoRestoreUpdate(enabled: Bool) {
+        guard enabled != isAutoRestoreEnabled else { return }
+        guard !isAutoRestoreUpdating else { return }
+
+        isAutoRestoreUpdating = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.isAutoRestoreUpdating = false }
+
+            guard await self.commonAuthenticate() else { return }
+            guard self.autoRestoreProvider?.persistDecision(enabled) == true else { return }
+
+            self.isAutoRestoreEnabled = enabled
         }
     }
 

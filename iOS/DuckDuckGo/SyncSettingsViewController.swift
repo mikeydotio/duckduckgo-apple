@@ -112,7 +112,8 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
             switchToProdEnvironment: {
                 syncService.updateServerEnvironment(.production)
                 UserDefaults.standard.set(ServerEnvironment.production.description, forKey: UserDefaultsWrapper<String>.Key.syncEnvironment.rawValue)
-            }
+            },
+            autoRestoreProvider: syncAutoRestoreHandler
         )
         self.viewModel = viewModel
 

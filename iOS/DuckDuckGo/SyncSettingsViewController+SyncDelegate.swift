@@ -353,11 +353,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
             onDismiss: { [weak self] in
                 self?.showDeviceConnected()
             },
-            isAutoRestoreFeatureEnabled: syncAutoRestoreHandler?.isAutoRestoreFeatureEnabled == true,
-            existingAutoRestoreDecision: syncAutoRestoreHandler?.existingDecision(),
-            persistAutoRestoreDecision: { [weak self] decision in
-                self?.syncAutoRestoreHandler?.persistDecision(decision) == true
-            },
+            autoRestoreProvider: syncAutoRestoreHandler,
             presentLearnMore: { [weak self] in
                 guard let self else { return }
                 let presenter = self.navigationController?.presentedViewController ?? self.presentedViewController ?? self

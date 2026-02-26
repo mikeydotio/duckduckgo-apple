@@ -18,6 +18,7 @@
 //
 
 import DDGSync
+import SyncUI_iOS
 
 protocol SyncAutoRestoreSyncing {
     var account: SyncAccount? { get }
@@ -27,7 +28,7 @@ protocol SyncAutoRestoreSyncing {
 
 extension DDGSync: SyncAutoRestoreSyncing {}
 
-protocol SyncAutoRestoreHandling {
+protocol SyncAutoRestoreHandling: SyncAutoRestoreProviding {
     var isAutoRestoreFeatureEnabled: Bool { get }
     func existingDecision() -> Bool?
     @discardableResult
