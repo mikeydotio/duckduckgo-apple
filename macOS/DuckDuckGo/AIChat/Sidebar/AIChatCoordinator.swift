@@ -59,8 +59,8 @@ protocol AIChatCoordinating {
     /// Returns the date when the AI Chat sidebar was last hidden for the active tab.
     func sidebarHiddenAtForCurrentTab() -> Date?
 
-    /// Emits events whenever sidebar is shown or hidden for a tab.
-    var sidebarPresenceWillChangePublisher: AnyPublisher<AIChatPresenceChange, Never> { get }
+    /// Emits events whenever sidebar visibility changed for a tab.
+    var sidebarPresenceDidChangePublisher: AnyPublisher<AIChatPresenceChange, Never> { get }
 
     /// Returns whether the AI Chat sidebar is detached into a floating window for a tab specified by `tabID`.
     func isChatFloating(for tabID: TabIdentifier) -> Bool
@@ -90,7 +90,7 @@ protocol AIChatCoordinating {
 
 final class AIChatCoordinator: AIChatCoordinating {
 
-    let sidebarPresenceWillChangePublisher: AnyPublisher<AIChatPresenceChange, Never>
+    let sidebarPresenceDidChangePublisher: AnyPublisher<AIChatPresenceChange, Never>
     let chatFloatingStateDidChangePublisher: AnyPublisher<TabIdentifier, Never>
 
     private let sidebarHost: AIChatSidebarHosting
@@ -101,7 +101,7 @@ final class AIChatCoordinator: AIChatCoordinating {
     private let pixelFiring: PixelFiring?
     private let featureFlagger: FeatureFlagger
     private var preferencesStorage: AIChatPreferencesStorage
-    private let sidebarPresenceWillChangeSubject = PassthroughSubject<AIChatPresenceChange, Never>()
+    private let sidebarPresenceDidChangeSubject = PassthroughSubject<AIChatPresenceChange, Never>()
     private let chatFloatingStateDidChangeSubject = PassthroughSubject<TabIdentifier, Never>()
 
     private var isAnimatingSidebarTransition: Bool = false
@@ -152,7 +152,7 @@ final class AIChatCoordinator: AIChatCoordinating {
             self.windowDefaultWidth = Constants.defaultSidebarWidth
         }
 
-        sidebarPresenceWillChangePublisher = sidebarPresenceWillChangeSubject.eraseToAnyPublisher()
+        sidebarPresenceDidChangePublisher = sidebarPresenceDidChangeSubject.eraseToAnyPublisher()
         chatFloatingStateDidChangePublisher = chatFloatingStateDidChangeSubject.eraseToAnyPublisher()
         self.sidebarHost.aiChatSidebarHostingDelegate = self
         self.sidebarHost.aiChatSidebarResizeDelegate = self
@@ -275,14 +275,14 @@ final class AIChatCoordinator: AIChatCoordinating {
         sidebarHost.embedChatViewController(chatViewController, for: nil)
         session.state.setSidebar()
 
-        sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: true))
+        sidebarPresenceDidChangeSubject.send(.init(tabID: tabID, isShown: true))
         transitionSidebar(for: tabID, isShowing: true, animated: animated)
     }
 
     /// Updates state, animates the sidebar closed, then tears down UI and ends the session.
     private func hideSidebar(for tabID: TabIdentifier, animated: Bool) {
         sessionStore.sessions[tabID]?.state.setHidden()
-        sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: false))
+        sidebarPresenceDidChangeSubject.send(.init(tabID: tabID, isShown: false))
 
         transitionSidebar(for: tabID, isShowing: false, animated: animated) { [weak self] in
             guard let self else { return }
@@ -508,7 +508,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         chatViewController.delegate = self
         sidebarHost.embedChatViewController(chatViewController, for: tabID)
 
-        sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: true))
+        sidebarPresenceDidChangeSubject.send(.init(tabID: tabID, isShown: true))
         transitionSidebar(for: tabID, isShowing: true, animated: false)
 
         controller.delegate = nil
@@ -642,7 +642,7 @@ extension AIChatCoordinator: AIChatSidebarResizeDelegate {
         chatViewController.removeCompletely()
         sidebarHost.sidebarContainerLeadingConstraint?.constant = 0
         sidebarHost.setResizeHandleVisible(false)
-        sidebarPresenceWillChangeSubject.send(.init(tabID: tabID, isShown: false))
+        sidebarPresenceDidChangeSubject.send(.init(tabID: tabID, isShown: false))
     }
 
     private func fireResizedPixelDebounced(width: CGFloat) {

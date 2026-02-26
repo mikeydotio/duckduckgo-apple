@@ -2120,6 +2120,18 @@
         }
       }
     },
+    "aichat.address-bar.show-button" : {
+      "comment" : "Button to bring detached Duck.ai window to front",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show Duck.ai"
+          }
+        }
+      }
+    },
     "aichat.address-bar.toggle-sidebar-button" : {
       "comment" : "Button to toggle Duck.ai sidebar",
       "extractionState" : "extracted_with_value",

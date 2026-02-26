@@ -91,7 +91,7 @@ final class AIChatCoordinatorTests: XCTestCase {
 
     func testInit_setsUpProperties() {
         // Given & When & Then
-        XCTAssertNotNil(coordinator.sidebarPresenceWillChangePublisher)
+        XCTAssertNotNil(coordinator.sidebarPresenceDidChangePublisher)
         XCTAssertNotNil(mockSidebarHost.aiChatSidebarHostingDelegate)
         XCTAssertTrue(mockSidebarHost.aiChatSidebarHostingDelegate === coordinator)
     }
@@ -134,7 +134,7 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertFalse(isChatPresented(for: tabID))
 
         var presenceChangeReceived: AIChatPresenceChange?
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
 
@@ -156,7 +156,7 @@ final class AIChatCoordinatorTests: XCTestCase {
         XCTAssertTrue(isChatPresented(for: tabID))
 
         var presenceChangeReceived: AIChatPresenceChange?
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
 
@@ -205,7 +205,7 @@ final class AIChatCoordinatorTests: XCTestCase {
         _ = mockSessionStore.getOrCreateSession(for: tabID, burnerMode: .regular).makeChatViewController(tabID: tabID)
 
         var presenceChangeReceived: AIChatPresenceChange?
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
 
@@ -224,7 +224,7 @@ final class AIChatCoordinatorTests: XCTestCase {
         _ = mockSessionStore.getOrCreateSession(for: tabID, burnerMode: .regular).makeChatViewController(tabID: tabID)
 
         var presenceChangeReceived: AIChatPresenceChange?
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink { presenceChangeReceived = $0 }
             .store(in: &cancellables)
 
@@ -588,7 +588,7 @@ final class AIChatCoordinatorTests: XCTestCase {
 
         let sidebarPresenceChangeExpectation = expectation(description: "Sidebar presence did change")
         var presenceChangeReceived: AIChatPresenceChange?
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink {
                 presenceChangeReceived = $0
                 sidebarPresenceChangeExpectation.fulfill()
@@ -631,7 +631,7 @@ final class AIChatCoordinatorTests: XCTestCase {
 
         let sidebarPresenceChangeExpectation = expectation(description: "Sidebar presence did change")
         var presenceChangeReceived: AIChatPresenceChange?
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink {
                 presenceChangeReceived = $0
                 sidebarPresenceChangeExpectation.fulfill()
@@ -687,7 +687,7 @@ final class AIChatCoordinatorTests: XCTestCase {
         mockSidebarHost.currentTabID = tabID
 
         var presenceChanges: [AIChatPresenceChange] = []
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink { presenceChanges.append($0) }
             .store(in: &cancellables)
 
@@ -825,7 +825,7 @@ final class AIChatCoordinatorTests: XCTestCase {
 
         let eventExpectation = expectation(description: "Attach presence will change emitted")
         var leadingConstraintAtEvent: CGFloat?
-        coordinator.sidebarPresenceWillChangePublisher
+        coordinator.sidebarPresenceDidChangePublisher
             .sink { [weak self] change in
                 guard let self,
                       change.tabID == tabID,

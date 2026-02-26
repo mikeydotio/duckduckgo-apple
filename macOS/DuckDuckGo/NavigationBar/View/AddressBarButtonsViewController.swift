@@ -705,7 +705,7 @@ final class AddressBarButtonsViewController: NSViewController {
     }
 
     private func subscribeToAIChatCoordinator() {
-        aiChatCoordinator.sidebarPresenceWillChangePublisher
+        aiChatCoordinator.sidebarPresenceDidChangePublisher
             .sink { [weak self] change in
                 guard let self, change.tabID == tabViewModel?.tab.uuid else {
                     return
@@ -1288,6 +1288,7 @@ final class AddressBarButtonsViewController: NSViewController {
 
     private func updateAIChatButtonDetachIndicator(for tabID: TabIdentifier) {
         aiChatButton.isNotificationVisible = aiChatCoordinator.isChatFloating(for: tabID)
+        configureAIChatButtonTooltip()
     }
 
     private func updateAIChatButtonStateForSidebar(_ isShowingSidebar: Bool) {
@@ -1530,12 +1531,16 @@ final class AddressBarButtonsViewController: NSViewController {
 
     private func configureAIChatButtonTooltip(isSidebarOpen: Bool? = nil) {
         if let tab = tabViewModel?.tab {
+            let isChatFloating = aiChatCoordinator.isChatFloating(for: tab.uuid)
             let isSidebarOpen: Bool = isSidebarOpen ?? {
                 guard let tabID = tabViewModel?.tab.uuid else { return false }
                 return aiChatCoordinator.isSidebarOpen(for: tabID)
             }()
 
-            if isSidebarOpen {
+            if isChatFloating {
+                aiChatButton.toolTip = UserText.aiChatShowButton
+                aiChatButton.setAccessibilityTitle(UserText.aiChatShowButton)
+            } else if isSidebarOpen {
                 aiChatButton.toolTip = UserText.aiChatCloseSidebarButton
                 aiChatButton.setAccessibilityTitle(UserText.aiChatCloseSidebarButton)
             } else if aiChatMenuConfig.shouldOpenAIChatInSidebar, case .url = tab.content {
