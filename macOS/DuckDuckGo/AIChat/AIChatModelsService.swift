@@ -127,8 +127,7 @@ extension AIChatModel {
     init(remoteModel: AIChatRemoteModel) {
         self.init(
             id: remoteModel.id,
-            displayName: remoteModel.name,
-            shortDisplayName: remoteModel.name,
+            name: remoteModel.name,
             provider: .from(id: remoteModel.id, providerString: remoteModel.provider),
             supportsImageUpload: remoteModel.supportsImageUpload,
             entityHasAccess: remoteModel.entityHasAccess

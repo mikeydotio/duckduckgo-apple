@@ -515,6 +515,8 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
                 // Resize in background and track task
                 let resizeTask = Task.detached(priority: .userInitiated) { [weak self] in
+                    guard !Task.isCancelled else { return }
+
                     let resizedAttachment = AIChatImageAttachment(
                         id: placeholderId,
                         image: originalImage,
@@ -522,6 +524,8 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                         fileURL: url,
                         skipResize: false  // This will resize
                     )
+
+                    guard !Task.isCancelled else { return }
 
                     // Update UI on main thread
                     await MainActor.run { [weak self] in
@@ -589,7 +593,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     /// Short display name for the currently persisted model.
     private var persistedModelShortName: String {
-        omnibarController.models.first(where: { $0.id == omnibarController.persistedModelId })?.shortDisplayName ?? ""
+        omnibarController.models.first(where: { $0.id == omnibarController.persistedModelId })?.name ?? ""
     }
 
     private func subscribeToModelUpdates() {
@@ -630,7 +634,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     private func menuItem(for model: AIChatModel) -> NSMenuItem {
-        let item = NSMenuItem(title: model.displayName, action: #selector(modelSelected(_:)), keyEquivalent: "")
+        let item = NSMenuItem(title: model.name, action: #selector(modelSelected(_:)), keyEquivalent: "")
         item.target = self
         item.representedObject = model
         item.image = model.menuIcon
@@ -644,7 +648,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     @objc private func modelSelected(_ sender: NSMenuItem) {
         guard let model = sender.representedObject as? AIChatModel else { return }
         omnibarController.updateSelectedModel(model.id)
-        modelPickerButton.modelName = model.shortDisplayName
+        modelPickerButton.modelName = model.name
         updateImageUploadVisibility(supportsImageUpload: model.supportsImageUpload)
     }
 

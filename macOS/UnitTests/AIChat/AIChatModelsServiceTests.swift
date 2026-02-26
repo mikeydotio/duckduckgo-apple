@@ -115,8 +115,7 @@ final class AIChatModelsServiceTests: XCTestCase {
 
         // Then
         XCTAssertEqual(model.id, "gpt-4o-mini")
-        XCTAssertEqual(model.displayName, "GPT-4o mini")
-        XCTAssertEqual(model.shortDisplayName, "GPT-4o mini")
+        XCTAssertEqual(model.name, "GPT-4o mini")
         XCTAssertTrue(model.entityHasAccess)
         XCTAssertFalse(model.supportsImageUpload)
     }

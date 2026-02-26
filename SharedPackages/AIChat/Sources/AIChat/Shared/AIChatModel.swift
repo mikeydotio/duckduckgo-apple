@@ -26,8 +26,7 @@ import DesignResourcesKitIcons
 /// Represents an AI model available in the model picker.
 public struct AIChatModel {
     public let id: String
-    public let displayName: String
-    public let shortDisplayName: String
+    public let name: String
     public let provider: ModelProvider
     public let supportsImageUpload: Bool
     /// Whether the current user has access to this model based on their subscription tier.
@@ -41,10 +40,9 @@ public struct AIChatModel {
         case unknown
     }
 
-    public init(id: String, displayName: String, shortDisplayName: String, provider: ModelProvider, supportsImageUpload: Bool, entityHasAccess: Bool) {
+    public init(id: String, name: String, provider: ModelProvider, supportsImageUpload: Bool, entityHasAccess: Bool) {
         self.id = id
-        self.displayName = displayName
-        self.shortDisplayName = shortDisplayName
+        self.name = name
         self.provider = provider
         self.supportsImageUpload = supportsImageUpload
         self.entityHasAccess = entityHasAccess
