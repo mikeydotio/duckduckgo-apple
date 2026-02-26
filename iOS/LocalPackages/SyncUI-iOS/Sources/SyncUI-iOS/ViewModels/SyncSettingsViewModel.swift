@@ -197,7 +197,11 @@ public class SyncSettingsViewModel: ObservableObject {
             defer { self.isAutoRestoreUpdating = false }
 
             guard await self.commonAuthenticate() else { return }
-            guard self.autoRestoreProvider?.persistDecision(enabled) == true else { return }
+            do {
+                try self.autoRestoreProvider.persistDecision(enabled)
+            } catch {
+                return
+            }
 
             self.isAutoRestoreEnabled = enabled
         }

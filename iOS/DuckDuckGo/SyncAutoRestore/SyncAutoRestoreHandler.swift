@@ -57,9 +57,8 @@ final class SyncAutoRestoreHandler: SyncAutoRestoreHandling {
         decisionManager.existingDecision()
     }
 
-    @discardableResult
-    func persistDecision(_ decision: Bool) -> Bool {
-        decisionManager.persistDecision(decision)
+    func persistDecision(_ decision: Bool) throws {
+        try decisionManager.persistDecision(decision)
     }
 
     func clearDecision() {

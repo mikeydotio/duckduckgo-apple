@@ -302,8 +302,9 @@ class SyncDebugViewController: UITableViewController {
     }
 
     @objc private func autoRestoreToggleChanged(_ sender: UISwitch) {
-        let didPersist = autoRestoreDecisionManager.persistDecision(sender.isOn)
-        if !didPersist {
+        do {
+            try autoRestoreDecisionManager.persistDecision(sender.isOn)
+        } catch {
             sender.setOn(!sender.isOn, animated: true)
             presentAutoRestoreErrorAlert(message: "Failed to update Auto-Restore decision.")
         }

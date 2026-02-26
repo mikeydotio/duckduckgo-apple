@@ -20,6 +20,5 @@
 public protocol SyncAutoRestoreProviding {
     var isAutoRestoreFeatureEnabled: Bool { get }
     func existingDecision() -> Bool?
-    @discardableResult
-    func persistDecision(_ decision: Bool) -> Bool
+    func persistDecision(_ decision: Bool) throws
 }
