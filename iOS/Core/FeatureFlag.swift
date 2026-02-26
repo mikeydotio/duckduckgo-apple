@@ -483,7 +483,8 @@ extension FeatureFlag: FeatureFlagDescribing {
              .autofillOnboardingExperiment,
              .supportsSyncChatsDeletion,
              .fireMode,
-             .suppressTrackerAnimationOnColdStart:
+             .suppressTrackerAnimationOnColdStart,
+             .experimentalAddressBar:
             return true
         case .showSettingsCompleteSetupSection:
             if #available(iOS 18.2, *) {
@@ -515,7 +516,6 @@ extension FeatureFlag: FeatureFlagDescribing {
                .adAttributionReporting,
                .crashReportOptInStatusResetting,
                .syncSeamlessAccountSwitching,
-               .experimentalAddressBar,
                .aiChatKeepSession,
                .widgetReporting,
                .canPromoteImportPasswordsInBrowser,
