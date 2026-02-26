@@ -133,9 +133,7 @@ public class SyncSettingsViewModel: ObservableObject {
 
     @Published var shouldShowPasscodeRequiredAlert: Bool = false
 
-    public var isAutoRestoreFeatureAvailable: Bool {
-        autoRestoreProvider?.isAutoRestoreFeatureEnabled == true
-    }
+    public let isAutoRestoreFeatureAvailable: Bool
     @Published public var isAutoRestoreEnabled: Bool = false
     @Published var isAutoRestoreUpdating: Bool = false
 
@@ -148,19 +146,18 @@ public class SyncSettingsViewModel: ObservableObject {
     private(set) var switchToProdEnvironment: () -> Void = {}
     private var cancellables = Set<AnyCancellable>()
 
-    private let autoRestoreProvider: SyncAutoRestoreProviding?
+    private let autoRestoreProvider: SyncAutoRestoreProviding
 
     public init(
         isOnDevEnvironment: @escaping () -> Bool,
         switchToProdEnvironment: @escaping () -> Void,
-        autoRestoreProvider: SyncAutoRestoreProviding? = nil
+        autoRestoreProvider: SyncAutoRestoreProviding
     ) {
         self.isOnDevEnvironment = isOnDevEnvironment()
         self.autoRestoreProvider = autoRestoreProvider
-        if autoRestoreProvider?.isAutoRestoreFeatureEnabled == true {
-            self.isAutoRestoreEnabled = autoRestoreProvider?.existingDecision() ?? false
-        } else {
-            self.isAutoRestoreEnabled = false
+        self.isAutoRestoreFeatureAvailable = autoRestoreProvider.isAutoRestoreFeatureEnabled
+        if isAutoRestoreFeatureAvailable {
+            self.isAutoRestoreEnabled = autoRestoreProvider.existingDecision() ?? false
         }
         self.switchToProdEnvironment = { [weak self] in
             switchToProdEnvironment()

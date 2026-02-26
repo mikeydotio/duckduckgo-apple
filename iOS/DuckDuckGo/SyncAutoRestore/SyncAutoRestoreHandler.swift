@@ -29,10 +29,6 @@ protocol SyncAutoRestoreSyncing {
 extension DDGSync: SyncAutoRestoreSyncing {}
 
 protocol SyncAutoRestoreHandling: SyncAutoRestoreProviding {
-    var isAutoRestoreFeatureEnabled: Bool { get }
-    func existingDecision() -> Bool?
-    @discardableResult
-    func persistDecision(_ decision: Bool) -> Bool
     func clearDecision()
     func isEligibleForAutoRestore() -> Bool
     func restoreFromPreservedAccount() async
