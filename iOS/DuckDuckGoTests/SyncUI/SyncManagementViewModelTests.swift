@@ -38,7 +38,11 @@ class SyncManagementViewModelTests: XCTestCase, SyncManagementViewModelDelegate 
     var syncCreditCardsPausedButtonTitle: String? = "syncCreditCardsPausedButtonTitle"
 
     lazy var model: SyncSettingsViewModel = {
-        let model = SyncSettingsViewModel(isOnDevEnvironment: { false }, switchToProdEnvironment: {})
+        let model = SyncSettingsViewModel(
+            isOnDevEnvironment: { false },
+            switchToProdEnvironment: {},
+            autoRestoreProvider: SyncAutoRestorePreviewProvider.disabled
+        )
         model.delegate = self
         return model
     }()

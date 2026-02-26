@@ -70,7 +70,8 @@ final class SyncSettingsViewControllerErrorTests: XCTestCase {
             syncCredentialsAdapter: credentialsAdapter,
             syncCreditCardsAdapter: creditCardsAdapter,
             syncPausedStateManager: errorHandler,
-            featureFlagger: featureFlagger
+            featureFlagger: featureFlagger,
+            syncAutoRestoreHandler: MockSyncAutoRestoreHandler()
         )
     }
 
@@ -275,4 +276,23 @@ final class SyncSettingsViewControllerErrorTests: XCTestCase {
         ddgSyncing.registeredDevices = [RegisteredDevice(id: id, name: "iPhone", type: "iPhone")]
         vc.viewModel?.devices = [SyncSettingsViewModel.Device(id: id, name: "iPhone", type: "iPhone", isThisDevice: true)]
     }
+}
+
+private struct MockSyncAutoRestoreHandler: SyncAutoRestoreHandling {
+    let isAutoRestoreFeatureEnabled: Bool = false
+
+    func existingDecision() -> Bool? {
+        nil
+    }
+
+    func persistDecision(_ decision: Bool) throws {
+    }
+
+    func clearDecision() {}
+
+    func isEligibleForAutoRestore() -> Bool {
+        false
+    }
+
+    func restoreFromPreservedAccount() async {}
 }
