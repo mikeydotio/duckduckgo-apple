@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "branch" : "pr-releases/diego/add-very-critical-update-icon",
-        "revision" : "cd5ba6ea8a2d40dd2a331abd78de5f5967ebfc24"
+        "revision" : "5257ff69d5ea90a1b8df16be85c3a2bd6aa4047b",
+        "version" : "13.18.0"
       }
     },
     {
