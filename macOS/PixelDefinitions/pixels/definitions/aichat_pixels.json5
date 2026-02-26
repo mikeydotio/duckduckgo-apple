@@ -102,5 +102,12 @@
                 "type": "integer"
             }
         ]
+    },
+    "m_mac_aichat_models_fetch_failed": {
+        "description": "Fired when the models API fetch fails (endpoint unreachable or returns error)",
+        "owners": ["tomasstrba"],
+        "triggers": ["other"],
+        "suffixes": ["daily_count"],
+        "parameters": ["appVersion", "pixelSource"]
     }
 }

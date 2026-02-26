@@ -161,7 +161,7 @@ final class AIChatOmnibarController {
                 self.models = remoteModels.map { AIChatModel(remoteModel: $0) }
             } catch {
                 Logger.aiChat.error("Failed to fetch models: \(error.localizedDescription)")
-                // Keep existing models on failure — mock or previous successful fetch
+                PixelKit.fire(AIChatPixel.aiChatModelsFetchFailed, frequency: .dailyAndCount, includeAppVersionParameter: true)
             }
         }
     }
@@ -324,6 +324,10 @@ final class AIChatOmnibarController {
             // Get attachments after resizes are complete
             let attachments = attachmentsProvider?() ?? []
             let images = Self.nativePromptImages(from: attachments)
+
+            if !attachments.isEmpty {
+                PixelKit.fire(AIChatPixel.aiChatAddressBarSubmitWithImage(imageCount: attachments.count), frequency: .dailyAndCount, includeAppVersionParameter: true)
+            }
 
             aiChatTabOpener.openAIChatTab(
                 with: .query(trimmedText, shouldAutoSubmit: true),

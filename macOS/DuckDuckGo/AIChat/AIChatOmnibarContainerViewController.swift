@@ -326,6 +326,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             self?.updateAttachmentsLayout()
         }
         attachmentsContainerView.onAttachmentWillRemove = { [weak self] id in
+            PixelKit.fire(AIChatPixel.aiChatAddressBarImageRemoved, frequency: .dailyAndCount, includeAppVersionParameter: true)
             // Cancel and remove resize task if still pending
             self?.resizeTasks[id]?.cancel()
             self?.resizeTasks.removeValue(forKey: id)
@@ -512,6 +513,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                     skipResize: true
                 )
                 self.attachmentsContainerView.addAttachment(placeholderAttachment)
+                PixelKit.fire(AIChatPixel.aiChatAddressBarImageAttached, frequency: .dailyAndCount, includeAppVersionParameter: true)
 
                 // Resize in background and track task.
                 // Load a separate NSImage from disk — NSImage is not thread-safe,
@@ -654,6 +656,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         omnibarController.updateSelectedModel(model.id)
         modelPickerButton.modelName = model.name
         updateImageUploadVisibility(supportsImageUpload: model.supportsImageUpload)
+        PixelKit.fire(AIChatPixel.aiChatAddressBarModelSelected, frequency: .dailyAndCount, includeAppVersionParameter: true)
     }
 
     private func updateImageUploadVisibility(supportsImageUpload: Bool) {
