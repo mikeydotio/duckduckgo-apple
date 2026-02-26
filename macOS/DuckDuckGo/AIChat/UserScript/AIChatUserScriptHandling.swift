@@ -147,6 +147,13 @@ final class AIChatUserScriptHandler: AIChatUserScriptHandling {
     }
 
     func closeAIChat(params: Any, message: UserScriptMessage) async -> Encodable? {
+        if let floatingWindow = await message.messageWebView?.window as? AIChatFloatingWindow {
+            await MainActor.run {
+                floatingWindow.close()
+            }
+            return nil
+        }
+
         let isSidebar = await message.messageWebView?.url?.hasAIChatSidebarPlacementParameter == true
 
         if isSidebar {
