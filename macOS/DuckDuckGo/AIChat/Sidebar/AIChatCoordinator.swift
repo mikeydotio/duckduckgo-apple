@@ -113,6 +113,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         static let defaultSidebarWidth: CGFloat = 400
         static let minSidebarWidth: CGFloat = 320
         static let maxSidebarWidth: CGFloat = 900
+        static let fallbackFloatingFrame = NSRect(x: 200, y: 200, width: 400, height: 600)
     }
 
     /// Per-window default width, snapshotted from the global preference at init.
@@ -458,7 +459,7 @@ final class AIChatCoordinator: AIChatCoordinating {
 
         // Manual detach should always originate from the current sidebar location/size.
         // Persisted floating frame is used only during app/window restoration.
-        let screenFrame = sidebarHost.sidebarContainerScreenFrame ?? NSRect(x: 200, y: 200, width: 400, height: 600)
+        let screenFrame = sidebarHost.sidebarContainerScreenFrame ?? Constants.fallbackFloatingFrame
         session.state.floatingWindowFrame = screenFrame
 
         collapseSidebarPreservingWebView(chatViewController, for: tabID)
@@ -504,7 +505,7 @@ final class AIChatCoordinator: AIChatCoordinating {
         chatViewController.removeCompletely()
 
         let tabViewModel = tabViewModel(for: tabID)
-        let frame = session.state.floatingWindowFrame ?? sidebarHost.sidebarContainerScreenFrame ?? NSRect(x: 200, y: 200, width: 400, height: 600)
+        let frame = normalizedFloatingFrame(session.state.floatingWindowFrame ?? sidebarHost.sidebarContainerScreenFrame ?? Constants.fallbackFloatingFrame)
 
         let controller = AIChatFloatingWindowController(
             tabID: tabID,
@@ -716,6 +717,28 @@ extension AIChatCoordinator: AIChatSidebarResizeDelegate {
 
         let halfWidth = availableWidth / 2
         return max(Constants.minSidebarWidth, halfWidth)
+    }
+
+    private func normalizedFloatingFrame(_ frame: NSRect) -> NSRect {
+        guard let screen = targetScreen() else {
+            return frame
+        }
+
+        let visibleFrame = screen.visibleFrame
+        let width = max(1, min(frame.width, visibleFrame.width))
+        let height = max(1, min(frame.height, visibleFrame.height))
+        let clampedX = max(visibleFrame.minX, min(frame.origin.x, visibleFrame.maxX - width))
+        let clampedY = max(visibleFrame.minY, min(frame.origin.y, visibleFrame.maxY - height))
+
+        return NSRect(x: clampedX, y: clampedY, width: width, height: height)
+    }
+
+    private func targetScreen() -> NSScreen? {
+        let anchorFrame = sidebarHost.sidebarContainerScreenFrame ?? Constants.fallbackFloatingFrame
+        if let screenContainingAnchor = NSScreen.screens.first(where: { $0.visibleFrame.intersects(anchorFrame) }) {
+            return screenContainingAnchor
+        }
+        return NSScreen.main ?? NSScreen.screens.first
     }
 }
 
