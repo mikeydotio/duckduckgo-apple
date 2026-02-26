@@ -320,8 +320,8 @@ final class AIChatViewController: NSViewController {
         return button
     }
 
-    override func viewDidLayout() {
-        super.viewDidLayout()
+    override func viewWillAppear() {
+        super.viewWillAppear()
         updateTopBarForHostingContext()
     }
 
