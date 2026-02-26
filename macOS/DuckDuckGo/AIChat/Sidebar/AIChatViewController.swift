@@ -62,7 +62,7 @@ final class AIChatViewController: NSViewController {
     weak var delegate: AIChatViewControllerDelegate?
     var tabID: TabIdentifier?
     public var aiChatPayload: AIChatPayload?
-    var isChatFloatingEnabled = true {
+    var isChatFloatingEnabled = false {
         didSet {
             guard isViewLoaded else { return }
             updateTopBarForHostingContext()
