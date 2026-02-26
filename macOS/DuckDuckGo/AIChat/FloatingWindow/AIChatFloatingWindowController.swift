@@ -35,10 +35,12 @@ final class AIChatFloatingWindowController: NSObject {
     ///
     /// - user: Closed by explicit user action in the floating window.
     /// - attach: Closed because chat is being re-docked to the sidebar. Delegate callback is suppressed.
+    /// - teardown: Closed while coordinator is already tearing down this tab session. Delegate callback is suppressed.
     /// - system: Closed programmatically by coordinator/session cleanup.
     enum CloseReason {
         case user
         case attach
+        case teardown
         case system
     }
 
@@ -61,6 +63,7 @@ final class AIChatFloatingWindowController: NSObject {
     private let floatingWindow: NSWindow
     private var chatViewController: AIChatViewController?
     private var closeReason: CloseReason = .user
+    private var tabInfoCancellable: AnyCancellable?
     private var cancellables = Set<AnyCancellable>()
 
     var isShowing: Bool {
@@ -95,6 +98,8 @@ final class AIChatFloatingWindowController: NSObject {
                 switch closeReason {
                 case .attach:
                     return
+                case .teardown:
+                    return
                 case .user:
                     self.delegate?.floatingWindowDidClose(self, initiatedByUser: true)
                 case .system:
@@ -121,6 +126,10 @@ final class AIChatFloatingWindowController: NSObject {
         floatingWindow.close()
     }
 
+    func updateTabViewModel(_ tabViewModel: TabViewModel?) {
+        subscribeToTabInfo(tabViewModel)
+    }
+
     /// Removes the chat view controller from the floating window so it can be
     /// re-embedded in the docked sidebar. Returns `nil` if already detached.
     func detachChatViewController() -> AIChatViewController? {
@@ -134,14 +143,15 @@ final class AIChatFloatingWindowController: NSObject {
 
     private func subscribeToTabInfo(_ tabViewModel: TabViewModel?) {
         guard let tabViewModel else { return }
+        chatViewController?.updateFloatingTitle(tabViewModel.title, favicon: tabViewModel.favicon)
+        floatingWindow.title = windowTitle(for: tabViewModel.title)
 
-        tabViewModel.$title.combineLatest(tabViewModel.$favicon)
+        tabInfoCancellable = tabViewModel.$title.combineLatest(tabViewModel.$favicon)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] title, favicon in
                 self?.chatViewController?.updateFloatingTitle(title, favicon: favicon)
                 self?.floatingWindow.title = self?.windowTitle(for: title) ?? UserText.aiChatSidebarTitle
             }
-            .store(in: &cancellables)
     }
 
     private func windowTitle(for pageTitle: String) -> String {

@@ -199,7 +199,9 @@ final class AIChatCoordinator: AIChatCoordinating {
     func toggleSidebar() {
         guard !isAnimatingSidebarTransition,
               let currentTabID = sidebarHost.currentTabID,
-              !isChatFloating(for: currentTabID) else { return }
+              !isChatFloating(for: currentTabID) else {
+            return
+        }
 
         if isSidebarOpen(for: currentTabID) {
             hideSidebar(for: currentTabID, animated: true)
@@ -210,7 +212,9 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     func collapseSidebar(withAnimation: Bool) {
         guard let currentTabID = sidebarHost.currentTabID,
-              !isChatFloating(for: currentTabID) else { return }
+              !isChatFloating(for: currentTabID) else {
+            return
+        }
         hideSidebar(for: currentTabID, animated: withAnimation)
     }
 
@@ -398,8 +402,12 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     private func refreshFloatingTitleInteractivity(for tabID: TabIdentifier) {
         guard let session = sessionStore.sessions[tabID],
-              session.state.presentationMode == .floating else { return }
-        session.chatViewController?.setFloatingTitleActionEnabled(!isBrowserTabVisible(for: tabID))
+              session.state.presentationMode == .floating else {
+            return
+        }
+        session.floatingWindowController?.updateTabViewModel(tabViewModel(for: tabID))
+        let shouldEnableAction = !isBrowserTabVisible(for: tabID)
+        session.chatViewController?.setFloatingTitleActionEnabled(shouldEnableAction)
     }
 
     private func refreshFloatingTitleInteractivityForAllSessions() {
@@ -422,7 +430,7 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     private func tearDownUI(for tabID: TabIdentifier) {
         guard let session = sessionStore.sessions[tabID] else { return }
-        session.floatingWindowController?.close(reason: .system)
+        session.floatingWindowController?.close(reason: .teardown)
         session.chatViewController?.stopLoading()
         session.chatViewController?.removeCompletely()
     }
@@ -455,7 +463,9 @@ final class AIChatCoordinator: AIChatCoordinating {
               let tabID = sidebarHost.currentTabID,
               let session = sessionStore.sessions[tabID],
               let chatViewController = session.chatViewController,
-              session.floatingWindowController == nil else { return }
+              session.floatingWindowController == nil else {
+            return
+        }
 
         // Manual detach should always originate from the current sidebar location/size.
         // Persisted floating frame is used only during app/window restoration.
@@ -526,7 +536,9 @@ final class AIChatCoordinator: AIChatCoordinating {
 
     private func attachSidebar(for tabID: TabIdentifier) {
         guard let session = sessionStore.sessions[tabID],
-              let controller = session.floatingWindowController else { return }
+              let controller = session.floatingWindowController else {
+            return
+        }
 
         let floatingFrame = controller.frame
         controller.onFrameChanged = nil
@@ -584,16 +596,7 @@ extension AIChatCoordinator: AIChatSidebarHostingDelegate {
     }
 
     func sidebarHostDidUpdateTabs() {
-        let allPinnedTabIDs = windowControllersManager.pinnedTabsManagerProvider.currentPinnedTabManagers.flatMap { $0.tabViewModels.keys }.map { $0.uuid }
-        let allTabIDs = windowControllersManager.allTabCollectionViewModels.flatMap { $0.tabViewModels.keys }.map { $0.uuid }
-        let currentTabIDs = Set(allPinnedTabIDs + allTabIDs)
-
-        let removedTabIDs = Set(sessionStore.sessions.keys).subtracting(currentTabIDs)
-        for tabID in removedTabIDs {
-            tearDownUI(for: tabID)
-        }
-
-        sessionStore.removeOrphanedSessions(currentTabIDs: Array(currentTabIDs))
+        performOrphanCleanup()
     }
 }
 
@@ -728,7 +731,8 @@ extension AIChatCoordinator: AIChatSidebarResizeDelegate {
         let clampedX = max(visibleFrame.minX, min(frame.origin.x, visibleFrame.maxX - width))
         let clampedY = max(visibleFrame.minY, min(frame.origin.y, visibleFrame.maxY - height))
 
-        return NSRect(x: clampedX, y: clampedY, width: width, height: height)
+        let normalized = NSRect(x: clampedX, y: clampedY, width: width, height: height)
+        return normalized
     }
 
     private func targetScreen() -> NSScreen? {
@@ -737,6 +741,30 @@ extension AIChatCoordinator: AIChatSidebarResizeDelegate {
             return screenContainingAnchor
         }
         return NSScreen.main ?? NSScreen.screens.first
+    }
+
+    private func performOrphanCleanup() {
+        let currentTabIDsFromCollections = Set(
+            windowControllersManager.allTabCollectionViewModels.flatMap { tabCollectionViewModel in
+                let unpinnedTabIDs = tabCollectionViewModel.tabCollection.tabs.map(\.uuid)
+                let pinnedTabIDs = tabCollectionViewModel.pinnedTabsCollection?.tabs.map(\.uuid) ?? []
+                return unpinnedTabIDs + pinnedTabIDs
+            }
+        )
+        let currentTabIDs = currentTabIDsFromCollections
+
+        let initiallyRemovedTabIDs = Set(sessionStore.sessions.keys).subtracting(currentTabIDs)
+        let protectedFloatingTabIDs = Set(initiallyRemovedTabIDs.filter { tabID in
+            guard let session = sessionStore.sessions[tabID] else { return false }
+            return session.state.presentationMode == .floating && session.floatingWindowController?.isShowing == true
+        })
+        let effectiveCurrentTabIDs = currentTabIDs.union(protectedFloatingTabIDs)
+        let removedTabIDs = Set(sessionStore.sessions.keys).subtracting(effectiveCurrentTabIDs)
+        for tabID in removedTabIDs {
+            tearDownUI(for: tabID)
+        }
+
+        sessionStore.removeOrphanedSessions(currentTabIDs: Array(effectiveCurrentTabIDs))
     }
 }
 
