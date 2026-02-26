@@ -636,15 +636,12 @@ extension AIChatCoordinator: AIChatViewControllerDelegate {
     }
 
     func didClickAttachButton(for tabID: TabIdentifier) {
-        attachSidebar(for: tabID)
+        (owningCoordinator(for: tabID) ?? self).attachSidebar(for: tabID)
     }
 
     func didClickTitleButton(for tabID: TabIdentifier) {
         fireAIChatSidebarPixel(.aiChatSidebarFloatingTabActivated)
-        windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
-        sidebarHost.selectTab(with: tabID)
-        sessionStore.sessions[tabID]?.floatingWindowController?.show()
-        refreshFloatingTitleInteractivity(for: tabID)
+        (owningCoordinator(for: tabID) ?? self).activateTabFromFloatingTitle(for: tabID)
     }
 }
 
@@ -745,6 +742,17 @@ extension AIChatCoordinator: AIChatFloatingWindowControllerDelegate {
 }
 
 private extension AIChatCoordinator {
+
+    func activateTabFromFloatingTitle(for tabID: TabIdentifier) {
+        windowController(for: tabID)?.window?.makeKeyAndOrderFront(nil)
+        sidebarHost.selectTab(with: tabID)
+        sessionStore.sessions[tabID]?.floatingWindowController?.show()
+        refreshFloatingTitleInteractivity(for: tabID)
+    }
+
+    func owningCoordinator(for tabID: TabIdentifier) -> AIChatCoordinator? {
+        windowController(for: tabID)?.mainViewController.aiChatCoordinator as? AIChatCoordinator
+    }
 
     func fireAIChatSidebarPixel(_ pixel: AIChatPixel) {
         pixelFiring?.fire(pixel, frequency: .dailyAndStandard)
