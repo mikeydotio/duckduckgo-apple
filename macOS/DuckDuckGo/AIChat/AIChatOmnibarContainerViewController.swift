@@ -513,15 +513,19 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 )
                 self.attachmentsContainerView.addAttachment(placeholderAttachment)
 
-                // Resize in background and track task
+                // Resize in background and track task.
+                // Load a separate NSImage from disk — NSImage is not thread-safe,
+                // so sharing the same instance across threads would cause a data race.
+                let fileURL = url
                 let resizeTask = Task.detached(priority: .userInitiated) { [weak self] in
                     guard !Task.isCancelled else { return }
 
+                    guard let backgroundImage = NSImage(contentsOf: fileURL) else { return }
                     let resizedAttachment = AIChatImageAttachment(
                         id: placeholderId,
-                        image: originalImage,
-                        fileName: url.lastPathComponent,
-                        fileURL: url,
+                        image: backgroundImage,
+                        fileName: fileURL.lastPathComponent,
+                        fileURL: fileURL,
                         skipResize: false  // This will resize
                     )
 
