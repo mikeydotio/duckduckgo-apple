@@ -741,6 +741,9 @@ final class NewPermissionViewPopupTests: UITestCase {
             featureFlags: [
                 "newPermissionView": true,
                 "popupBlocking": true,
+                "extendedUserInitiatedPopupTimeout": true,
+                "suppressEmptyPopUpsOnApproval": true,
+                "allowPopupsForCurrentPage": true
             ]
         )
 

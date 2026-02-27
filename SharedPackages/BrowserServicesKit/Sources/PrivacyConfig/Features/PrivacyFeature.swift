@@ -606,6 +606,16 @@ public enum PopupBlockingSubfeature: String, PrivacySubfeature {
     }
 
     case createWebViewGatingFailsafe
+
+    /// Use extended user-initiated popup timeout (extends from 1s to 6s)
+    case extendedUserInitiatedPopupTimeout
+
+    /// Suppress empty or about: URL popups after permission approval
+    case suppressEmptyPopUpsOnApproval
+
+    /// Allow popups for current page after permission approval (until next navigation)
+    case allowPopupsForCurrentPage
+
 }
 
 public enum WebExtensionsSubfeature: String, PrivacySubfeature {

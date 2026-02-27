@@ -106,7 +106,8 @@ final class PopupHandlingTabExtension {
             .filter { event in
                 switch event {
                 case .mouseDown, .keyDown, .middleMouseDown:
-                    guard featureFlagger.isFeatureOn(.popupBlocking) else {
+                    guard featureFlagger.isFeatureOn(.popupBlocking),
+                          featureFlagger.isFeatureOn(.extendedUserInitiatedPopupTimeout) else {
                         return false
                     }
                     Logger.navigation.debug("PopupHandlingTabExtension.interactionEventsPublisher.filter: event: \(String(describing: event))")
@@ -233,7 +234,7 @@ final class PopupHandlingTabExtension {
         // Disable opening empty or `about:` URLs as the opened pop-ups would be non-functional
         // when opened asynchronously after the user has granted the permission.
         if !isCalledSynchronously,
-           featureFlagger.isFeatureOn(.popupBlocking),
+           featureFlagger.isFeatureOn(.popupBlocking), featureFlagger.isFeatureOn(.suppressEmptyPopUpsOnApproval),
            url?.isEmpty ?? true || url?.navigationalScheme == .about {
             Logger.navigation.info("handleCreateWebViewRequest: suppressing pop-up for `\(url?.absoluteString ??? "<nil>")`")
             self.popupsTemporarilyAllowedForCurrentPage = true
@@ -288,7 +289,9 @@ final class PopupHandlingTabExtension {
 
     /// Determines if a popup should be allowed bypassing the permission request:
     /// - If the navigation action is user-initiated (clicked link, etc.), allow the popup
-    /// - If the pop-ups are temporarily allowed for the current page with the "Only allow pop-ups for this visit" option selected
+    /// - If the pop-ups temporarily allowed for the current page with the "Only allow pop-ups for this visit" option selected:
+    ///   - Either for empty/about: URLs specifically with `suppressEmptyPopUpsOnApproval` feature flag enabled
+    ///   - OR for all URLs when `allowPopupsForCurrentPage` feature flag is enabled
     /// - If the initiating domain is allowlisted in the popupBlockingConfig
     /// - Otherwise, do not allow the popup
     /// ---
@@ -309,9 +312,16 @@ final class PopupHandlingTabExtension {
             }
         }
 
-        // Check if pop-ups temporarily allowed for the current page with the "Only allow pop-ups for this visit" option selected.
+        let url = navigationAction.request.url ?? .empty
+        // Check if pop-ups temporarily allowed for the current page with the "Only allow pop-ups for this visit" option selected:
+        // Either for empty/about: URLs specifically with `suppressEmptyPopUpsOnApproval` feature flag enabled,
+        // OR for all URLs when `allowPopupsForCurrentPage` feature flag is enabled
         if featureFlagger.isFeatureOn(.popupBlocking),
-           popupsTemporarilyAllowedForCurrentPage {
+           popupsTemporarilyAllowedForCurrentPage
+            && (
+                (featureFlagger.isFeatureOn(.suppressEmptyPopUpsOnApproval) && (url.isEmpty || url.navigationalScheme == .about))
+                || featureFlagger.isFeatureOn(.allowPopupsForCurrentPage)
+            ) {
             return .popupsTemporarilyAllowedForCurrentPage
         }
 
@@ -336,6 +346,7 @@ final class PopupHandlingTabExtension {
 
         // Check if enhanced popup blocking is enabled and configured properly
         guard featureFlagger.isFeatureOn(.popupBlocking),
+              featureFlagger.isFeatureOn(.extendedUserInitiatedPopupTimeout),
               threshold > 0 else {
             assert(threshold > 0, "userInitiatedPopupThreshold in macos-config must be positive")
             // Fall back to WebKit's basic user-initiated check (1s. user interaction timeout) if feature is disabled or misconfigured
@@ -435,7 +446,7 @@ extension PopupHandlingTabExtension: NavigationResponder {
         }()
 
         // Last interaction event that triggered the link activation (regular click, ⌘-click, middle-click, key press, etc.)
-        let userInteractionEvent = if featureFlagger.isFeatureOn(.popupBlocking) {
+        let userInteractionEvent = if featureFlagger.isFeatureOn(.popupBlocking), featureFlagger.isFeatureOn(.extendedUserInitiatedPopupTimeout) {
             lastUserInteractionEvent
         } else {
             NSApp.currentEvent

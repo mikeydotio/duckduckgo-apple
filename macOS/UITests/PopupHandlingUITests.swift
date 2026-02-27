@@ -52,6 +52,9 @@ final class PopupHandlingUITests: UITestCase {
             featureFlags: [
                 "newPermissionView": false, // Disabled until UI tests can handle the new permission view
                 "popupBlocking": true,
+                "extendedUserInitiatedPopupTimeout": true,
+                "suppressEmptyPopUpsOnApproval": true,
+                "allowPopupsForCurrentPage": true
             ]
         )
 

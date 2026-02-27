@@ -99,7 +99,8 @@ final class WindowOpenSecurityTests: XCTestCase {
 
         let featureFlagger = MockFeatureFlagger()
         featureFlagger.featuresStub = [
-            FeatureFlag.popupBlocking.rawValue: true
+            FeatureFlag.popupBlocking.rawValue: true,
+            FeatureFlag.extendedUserInitiatedPopupTimeout.rawValue: true
         ]
 
         tab = Tab(content: .none,
