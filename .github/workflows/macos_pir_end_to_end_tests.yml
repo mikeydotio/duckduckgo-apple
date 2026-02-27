@@ -116,10 +116,6 @@ jobs:
         echo "First attempt to sync code signing assets failed. Retrying..."
         bundle exec fastlane sync_signing_ci
 
-    - name: Test local host
-      run: |
-        curl -v http://localhost:3001/api/profiles
-
     - name: Download and unzip artifact
       uses: actions/download-artifact@v4
 
