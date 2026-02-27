@@ -18,6 +18,7 @@
 //
 
 import Core
+import EventHub
 import UIKit
 import PixelKit
 import BrowserServicesKit
@@ -151,6 +152,10 @@ struct Launching: LaunchingHandling {
             subscriptionManager: AppDependencyProvider.shared.subscriptionManager
         )
 
+        let eventHubService = EventHubService(
+            configManager: contentBlockingService.common.privacyConfigurationManager
+        )
+
         // Service to display the Default Browser prompt.
         let defaultBrowserPromptService = DefaultBrowserPromptService(
             featureFlagger: featureFlagger,
@@ -268,7 +273,8 @@ struct Launching: LaunchingHandling {
                                systemSettingsPiPTutorialService: systemSettingsPiPTutorialService,
                                inactivityNotificationSchedulerService: inactivityNotificationSchedulerService,
                                wideEventService: wideEventService,
-                               aiChatService: AIChatService(aiChatSettings: aiChatSettings)
+                               aiChatService: AIChatService(aiChatSettings: aiChatSettings),
+                               eventHubService: eventHubService
         )
 
         // Clean up wide event data at launch

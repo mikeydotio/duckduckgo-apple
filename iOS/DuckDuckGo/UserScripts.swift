@@ -20,6 +20,7 @@
 import AIChat
 import BrowserServicesKit
 import Core
+import EventHub
 import Foundation
 import Persistence
 import PrivacyConfig
@@ -132,6 +133,10 @@ final class UserScripts: UserScriptsProvider {
         specialErrorPageUserScript = SpecialErrorPageUserScript(localeStrings: SpecialErrorPageUserScript.localeStrings(),
                                                                 languageCode: Locale.current.languageCode ?? "en")
         specialErrorPageUserScript.map { specialPages?.registerSubfeature(delegate: $0) }
+    }
+
+    func registerEventHubSubfeature(_ subfeature: EventHubSubfeature) {
+        contentScopeUserScriptIsolated.registerSubfeature(delegate: subfeature)
     }
 
     lazy var userScripts: [UserScript] = {

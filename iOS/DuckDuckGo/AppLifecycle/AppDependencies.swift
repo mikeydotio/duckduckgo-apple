@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import EventHub
 import PrivacyConfig
 
 struct AppDependencies {
@@ -54,6 +55,7 @@ struct AppServices {
     let inactivityNotificationSchedulerService: InactivityNotificationSchedulerService
     let wideEventService: WideEventService
     let aiChatService: AIChatService
+    let eventHubService: EventHubService
 
 }
 
