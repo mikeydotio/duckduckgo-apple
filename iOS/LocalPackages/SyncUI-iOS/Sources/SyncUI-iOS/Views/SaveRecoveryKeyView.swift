@@ -119,11 +119,11 @@ public struct SaveRecoveryKeyView: View {
         } label: {
             Text(UserText.nextButton)
         }
-        .buttonStyle(SecondaryButtonStyle(compact: isCompact))
+        .buttonStyle(GhostButtonStyle())
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .inset(by: 0.5)
                 .stroke(Color(designSystemColor: .accent), lineWidth: 1)
+                .padding(1)
         )
         .overlay(
             isCopied ?
@@ -131,7 +131,6 @@ public struct SaveRecoveryKeyView: View {
             : nil
         )
         .frame(maxWidth: 360)
-        .contentShape(Rectangle())
         .padding(.horizontal, 20)
         .padding(.bottom, 8)
     }
