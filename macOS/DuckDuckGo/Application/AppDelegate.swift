@@ -30,6 +30,7 @@ import Configuration
 import ContentScopeScripts
 import CoreData
 import Crashes
+import CrashReportingShared
 import DataBrokerProtection_macOS
 import DataBrokerProtectionCore
 import DDGSync
@@ -84,12 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let fileStore: FileStore
 
-#if APPSTORE
-    private let crashCollection = CrashCollection(crashReportSender: CrashReportSender(platform: .macOSAppStore,
-                                                                                       pixelEvents: CrashReportSender.pixelEvents))
-#else
-    private let crashReporter: CrashReporter
-#endif
+    private let crashReporting: any CrashReporting
 
     let watchdog: Watchdog
     private let watchdogSleepMonitor: WatchdogSleepMonitor
@@ -1017,9 +1013,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         PixelKit.configureExperimentKit(featureFlagger: featureFlagger, eventTracker: ExperimentEventTracker(store: UserDefaults.appConfiguration))
 
-#if !APPSTORE
-        crashReporter = CrashReporter(internalUserDecider: internalUserDecider)
-#endif
+        crashReporting = Self.makeCrashReporting(internalUserDecider: internalUserDecider,
+                                                 featureFlagger: featureFlagger,
+                                                 keyValueStore: UserDefaults.standard)
 
         let watchdogDiagnosticProvider = MacWatchdogDiagnosticProvider(windowControllersManager: windowControllersManager)
         let eventMapper = WatchdogEventMapper(diagnosticProvider: watchdogDiagnosticProvider)
@@ -1281,43 +1277,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         applyPreferredTheme()
 
-#if APPSTORE
-        let sortKeys = !featureFlagger.isFeatureOn(.crashCollectionDisableKeysSorting)
-        let isCallStackLimitingEnabled = featureFlagger.isFeatureOn(.crashCollectionLimitCallStackTreeDepth)
-        let callStackDepthLimit: Int? = isCallStackLimitingEnabled ? 250 : nil
-
-        crashCollection.startAttachingCrashLogMessages(callStackDepthLimit: callStackDepthLimit, sortKeys: sortKeys) { [weak self] pixelParameters, payloads, completion in
-
-            pixelParameters.forEach { parameters in
-                var params = parameters
-                params[PixelKit.Parameters.appVersion] = CrashCollection.removeBuildNumber(from: params[PixelKit.Parameters.appVersion])
-                let appIdentifier = CrashPixelAppIdentifier(params.removeValue(forKey: "bundle"))
-                PixelKit.fire(
-                    GeneralPixel.crash(appIdentifier: appIdentifier),
-                    frequency: .dailyAndStandard,
-                    withAdditionalParameters: params,
-                    includeAppVersionParameter: false
-                )
-            }
-
-            guard let lastPayload = payloads.last else {
-                return
-            }
-            if self?.internalUserDecider.isInternalUser == true {
-                completion()
-            } else {
-                Task { @MainActor in
-                    if await CrashReportPromptPresenter().showPrompt(for: CrashDataPayload(data: lastPayload)) == .allow {
-                        completion()
-                    }
-                }
+        if case .normal = AppVersion.runType {
+            Task {
+                await crashReporting.start()
             }
         }
-#else
-        Task {
-            await crashReporter.checkForNewReports()
-        }
-#endif
 
         subscribeToEmailProtectionStatusNotifications()
         subscribeToDataImportCompleteNotification()
@@ -1464,6 +1428,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         syncService.initializeIfNeeded()
         syncService.scheduler.notifyAppLifecycleEvent()
         SyncDiagnosisHelper(syncService: syncService).diagnoseAccountStatus()
+    }
+
+    private static func makeCrashReporting(internalUserDecider: InternalUserDecider, featureFlagger: FeatureFlagger, keyValueStore: any ThrowingKeyValueStoring) -> any CrashReporting {
+        let buildType = StandardApplicationBuildType()
+        if buildType.isAppStoreBuild {
+            guard #available(macOS 12.0, *) else {
+                fatalError("App Store crash reporting requires macOS 12.0 or newer")
+            }
+
+            guard let appStoreFactory = CrashReportingFactory.self as? any AppStoreCrashReportingFactory.Type else {
+                fatalError("Failed to instantiate app store crash reporting")
+            }
+
+            return appStoreFactory.instantiate(
+                internalUserDecider: internalUserDecider,
+                featureFlagger: featureFlagger,
+                fireCrashPixel: { bundleID, appVersion in
+                    var params = [String: String]()
+                    if let appVersion {
+                        params[PixelKit.Parameters.appVersion] = appVersion
+                    }
+                    let appIdentifier = CrashPixelAppIdentifier(bundleID)
+                    PixelKit.fire(GeneralPixel.crash(appIdentifier: appIdentifier),
+                                  frequency: .dailyAndStandard,
+                                  withAdditionalParameters: params,
+                                  includeAppVersionParameter: false)
+                },
+                promptForConsent: { payload in
+                    await CrashReportPromptPresenter().showPrompt(for: CrashDataPayload(data: payload)) == .allow
+                }
+            )
+        }
+
+        assert(buildType.isSparkleBuild)
+        guard let crashReportingFactory = CrashReportingFactory.self as? any SparkleCrashReportingFactory.Type else {
+            fatalError("Failed to instantiate sparkle crash reporting")
+        }
+
+        return crashReportingFactory.instantiate(
+            internalUserDecider: internalUserDecider,
+            keyValueStore: keyValueStore,
+            crashSenderPixelEvents: CrashReportSender.pixelEvents,
+            fireCrashPixel: { bundleID, appVersion, failedToReadCrashVersion in
+                let appIdentifier = CrashPixelAppIdentifier(bundleID)
+                if let appVersion {
+                    PixelKit.fire(GeneralPixel.crash(appIdentifier: appIdentifier),
+                                  frequency: .dailyAndStandard,
+                                  withAdditionalParameters: [PixelKit.Parameters.appVersion: appVersion],
+                                  includeAppVersionParameter: false)
+                } else {
+                    let additionalParameters = failedToReadCrashVersion ? ["failedToReadCrashVersion": "true"] : [:]
+                    PixelKit.fire(GeneralPixel.crash(appIdentifier: appIdentifier),
+                                  frequency: .dailyAndStandard,
+                                  withAdditionalParameters: additionalParameters)
+                }
+            },
+            fireFailedToReadContentsPixel: {
+                PixelKit.fire(GeneralPixel.crashReportingFailedToReadContents, frequency: .dailyAndStandard)
+            },
+            promptForConsent: { payload in
+                await CrashReportPromptPresenter().showPrompt(for: CrashDataPayload(data: payload)) == .allow
+            }
+        )
     }
 
     @MainActor
