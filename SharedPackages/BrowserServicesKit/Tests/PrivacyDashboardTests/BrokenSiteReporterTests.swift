@@ -29,7 +29,7 @@ final class BrokenSiteReporterTests: XCTestCase {
         var pixelCount = 0
 
         let keyValueStore = MockKeyValueStore()
-        let reporter = BrokenSiteReporter(pixelHandler: { parameters in
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, _ in
             // Send pixel
             print("PIXEL SENT: \n\(parameters)")
             pixelCount += 1
@@ -49,10 +49,39 @@ final class BrokenSiteReporterTests: XCTestCase {
         waitForExpectations(timeout: 3)
     }
 
+    func testWhenBreakageDataPresentThenEncodedParametersContainBreakageData() throws {
+        let keyValueStore = MockKeyValueStore()
+        let expectation = expectation(description: "Pixel sent")
+        let preEncodedBreakageData = "%7B%22detections%22%3A%7B%22adwalls.generic%22%3A%7B%22detected%22%3Atrue%7D%7D%7D"
+
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+            XCTAssertNil(parameters["breakageData"])
+            XCTAssertEqual(encodedParameters["breakageData"], preEncodedBreakageData)
+            expectation.fulfill()
+        }, keyValueStoring: keyValueStore)
+
+        try reporter.report(BrokenSiteReportMocks.reportWithBreakageData, reportMode: .regular)
+        waitForExpectations(timeout: 3)
+    }
+
+    func testWhenBreakageDataAbsentThenEncodedParametersAreEmpty() throws {
+        let keyValueStore = MockKeyValueStore()
+        let expectation = expectation(description: "Pixel sent")
+
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+            XCTAssertNil(parameters["breakageData"])
+            XCTAssertTrue(encodedParameters.isEmpty)
+            expectation.fulfill()
+        }, keyValueStoring: keyValueStore)
+
+        try reporter.report(BrokenSiteReportMocks.report, reportMode: .regular)
+        waitForExpectations(timeout: 3)
+    }
+
     func testReportContainsExperimentData() throws {
         let keyValueStore = MockKeyValueStore()
         let expectation = expectation(description: "Pixel sent")
-        let reporter = BrokenSiteReporter(pixelHandler: { parameters in
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters, _ in
             XCTAssertTrue(parameters["contentScopeExperiments"]!.contains("experiment1:control"))
             XCTAssertTrue(parameters["contentScopeExperiments"]!.contains("experiment2:treatment"))
             print(parameters)

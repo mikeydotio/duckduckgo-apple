@@ -39,8 +39,8 @@ public enum BrokenSiteReporterError: Error {
 /// The actual report is sent via Pixel from the main app, this class only persists the reports' history and prepares the models.
 public class BrokenSiteReporter {
 
-    /// A closure that receives the Pixel's parameters
-    public typealias PixelHandler = (_ parameters: [String: String]) -> Void
+    /// A closure that receives the Pixel's parameters and any pre-encoded parameters
+    public typealias PixelHandler = (_ parameters: [String: String], _ encodedParameters: [String: String]) -> Void
     /// Pixels are sent by the main apps not by BSK, this is the closure called by the class when a pixel need to be sent
     let pixelHandler: PixelHandler
     public let persistencyManager: ExpiryStorage
@@ -78,9 +78,10 @@ public class BrokenSiteReporter {
         }
 
         let pixelParams = report.getRequestParameters(forReportMode: reportMode)
+        let encodedParams = report.encodedParameters
 
         // report the breakage
-        pixelHandler(pixelParams)
+        pixelHandler(pixelParams, encodedParams)
 
         // persist history entry
         try persistencyManager.persist(entry: entry) // this overrides the previously stored entry if existed

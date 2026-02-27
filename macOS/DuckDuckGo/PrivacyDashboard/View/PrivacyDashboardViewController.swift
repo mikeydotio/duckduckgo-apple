@@ -53,10 +53,11 @@ final class PrivacyDashboardViewController: NSViewController {
     private let brokenSiteReporter: BrokenSiteReporter
 
     private let toggleProtectionsOffReporter: BrokenSiteReporter = {
-        BrokenSiteReporter(pixelHandler: { parameters in
-            PixelKit.fire(GeneralPixel.protectionToggledOffBreakageReport,
-                          withAdditionalParameters: parameters,
-                          allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
+        BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+            PixelKit.shared?.fire(GeneralPixel.protectionToggledOffBreakageReport,
+                                  withAdditionalParameters: parameters,
+                                  withEncodedParameters: encodedParameters,
+                                  allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
         }, keyValueStoring: UserDefaults.standard)
     }()
 
@@ -107,11 +108,12 @@ final class PrivacyDashboardViewController: NSViewController {
         self.rulesUpdateObserver = ContentBlockingRulesUpdateObserver(userContentUpdating: (contentBlocking as! AppContentBlocking).userContentUpdating)
 
         brokenSiteReporter = {
-            BrokenSiteReporter(pixelHandler: { parameters in
-                PixelKit.fire(NonStandardPixel.brokenSiteReport,
-                              withAdditionalParameters: parameters,
-                              allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters,
-                              doNotEnforcePrefix: true)
+            BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
+                PixelKit.shared?.fire(NonStandardPixel.brokenSiteReport,
+                                      withAdditionalParameters: parameters,
+                                      withEncodedParameters: encodedParameters,
+                                      allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters,
+                                      doNotEnforcePrefix: true)
             }, keyValueStoring: UserDefaults.standard)
         }()
         super.init(nibName: nil, bundle: nil)
@@ -363,8 +365,8 @@ extension PrivacyDashboardViewController {
     private func collectBreakageReportData(breakageReportingSubfeature: BreakageReportingSubfeature?) async -> BreakageReportData? {
         await withCheckedContinuation({ continuation in
             guard let breakageReportingSubfeature else { continuation.resume(returning: nil); return }
-            breakageReportingSubfeature.notifyHandler { metrics, detectorData, jsPerformanceMetrics in
-                let result = BreakageReportData(performanceMetrics: metrics, detectorData: detectorData, jsPerformance: jsPerformanceMetrics)
+            breakageReportingSubfeature.notifyHandler { metrics, detectorData, jsPerformanceMetrics, breakageData in
+                let result = BreakageReportData(performanceMetrics: metrics, detectorData: detectorData, jsPerformance: jsPerformanceMetrics, breakageData: breakageData)
                 continuation.resume(returning: result)
             }
         })
@@ -403,6 +405,7 @@ extension PrivacyDashboardViewController {
         let privacyAwareWebVitals = breakageReportData?.privacyAwarePerformanceMetrics
         let detectorMetrics = breakageReportData?.detectorData?.flattenedMetrics()
         let jsPerformance = breakageReportData?.jsPerformance
+        let breakageData = breakageReportData?.breakageData
 
         var errors: [Error]?
         var statusCodes: [Int]?
@@ -442,7 +445,8 @@ extension PrivacyDashboardViewController {
                                                privacyExperiments: currentTab.privacyInfo?.privacyExperimentCohorts ?? "",
                                                isPirEnabled: isPirEnabled,
                                                pageLoadTiming: currentTab.brokenSiteInfo?.lastPageLoadTiming,
-                                               detectorMetrics: detectorMetrics)
+                                               detectorMetrics: detectorMetrics,
+                                               breakageData: breakageData)
         return websiteBreakage
     }
 }

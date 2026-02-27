@@ -117,7 +117,7 @@ final class BrokenSiteReportingTests: XCTestCase {
                                       privacyExperiments: "",
                                       isPirEnabled: nil)
 
-        let reporter = BrokenSiteReporter(pixelHandler: { params in
+        let reporter = BrokenSiteReporter(pixelHandler: { params, _ in
 
             for expectedParam in test.expectReportURLParams {
 

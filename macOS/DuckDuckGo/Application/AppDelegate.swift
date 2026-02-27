@@ -1666,7 +1666,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                        defaultHeaders: [:],
                        defaults: .netP) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, onComplete: @escaping PixelKit.CompletionBlock) in
 
-            let url = URL.pixelUrl(forPixelNamed: pixelName)
+            var url = URL.pixelUrl(forPixelNamed: pixelName)
+            for (key, value) in PixelKit.shared?.currentEncodedParameters ?? [:] {
+                url = url.appending(percentEncodedQueryItem: URLQueryItem(name: key, value: value))
+            }
             let apiHeaders = APIRequest.Headers(userAgent: userAgent, additionalHeaders: headers)
             let configuration = APIRequest.Configuration(url: url, method: .get, queryParameters: parameters, headers: apiHeaders)
             let request = APIRequest(configuration: configuration)

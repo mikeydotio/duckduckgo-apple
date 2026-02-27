@@ -878,7 +878,7 @@ class MockAutofillLoginListViewModel: AutofillLoginListViewModel {
 
     override func createBreakageReporter() -> BrokenSiteReporter {
         return BrokenSiteReporter(
-            pixelHandler: { _ in },
+            pixelHandler: { _, _ in },
             keyValueStoring: MockKeyValueStore(),
             storageConfiguration: .autofillConfig
         )

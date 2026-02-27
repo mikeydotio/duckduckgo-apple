@@ -41,17 +41,19 @@ final class PrivacyDashboardViewController: UIViewController {
     private let entryPoint: PrivacyDashboardEntryPoint
 
     private let brokenSiteReporter: BrokenSiteReporter = {
-        BrokenSiteReporter(pixelHandler: { parameters in
+        BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
             Pixel.fire(pixel: .brokenSiteReport,
                        withAdditionalParameters: parameters,
+                       withEncodedParameters: encodedParameters,
                        allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
         }, keyValueStoring: UserDefaults.standard)
     }()
 
     private let toggleProtectionsOffReporter: BrokenSiteReporter = {
-        BrokenSiteReporter(pixelHandler: { parameters in
+        BrokenSiteReporter(pixelHandler: { parameters, encodedParameters in
             Pixel.fire(pixel: .protectionToggledOffBreakageReport,
                        withAdditionalParameters: parameters,
+                       withEncodedParameters: encodedParameters,
                        allowedQueryReservedCharacters: BrokenSiteReport.allowedQueryReservedCharacters)
         }, keyValueStoring: UserDefaults.standard)
     }()
@@ -295,8 +297,8 @@ extension PrivacyDashboardViewController {
     private func collectBreakageReportData(breakageAdditionalInfo: BreakageAdditionalInfo) async -> BreakageReportData? {
         await withCheckedContinuation({ continuation in
             guard let breakageReportingSubfeature = breakageAdditionalInfo.breakageReportingSubfeature else { continuation.resume(returning: nil); return }
-            breakageReportingSubfeature.notifyHandler { metrics, detectorData, jsPerformanceMetrics in
-                let result = BreakageReportData(performanceMetrics: metrics, detectorData: detectorData, jsPerformance: jsPerformanceMetrics)
+            breakageReportingSubfeature.notifyHandler { metrics, detectorData, jsPerformanceMetrics, breakageData in
+                let result = BreakageReportData(performanceMetrics: metrics, detectorData: detectorData, jsPerformance: jsPerformanceMetrics, breakageData: breakageData)
                 continuation.resume(returning: result)
             }
         })
@@ -316,6 +318,7 @@ extension PrivacyDashboardViewController {
         let privacyAwareWebVitals = breakageReportData?.privacyAwarePerformanceMetrics
         let detectorMetrics = breakageReportData?.detectorData?.flattenedMetrics()
         let jsPerformance = breakageReportData?.jsPerformance
+        let breakageData = breakageReportData?.breakageData
 
         let blockedTrackerDomains = privacyInfo.trackerInfo.trackersBlocked.compactMap { $0.domain }
         let protectionsState = privacyConfigurationManager.privacyConfig.isFeature(.contentBlocking,
@@ -360,7 +363,8 @@ extension PrivacyDashboardViewController {
                                 debugFlags: privacyInfo.debugFlags,
                                 privacyExperiments: privacyInfo.privacyExperimentCohorts,
                                 isPirEnabled: nil,
-                                detectorMetrics: detectorMetrics)
+                                detectorMetrics: detectorMetrics,
+                                breakageData: breakageData)
     }
 
 }

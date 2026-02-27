@@ -285,7 +285,7 @@ class AutofillLoginListViewModel: ObservableObject {
     }
 
     func createBreakageReporter() -> BrokenSiteReporter {
-        BrokenSiteReporter(pixelHandler: { [weak self] _ in
+        BrokenSiteReporter(pixelHandler: { [weak self] _, _ in
             if let currentTabUid = self?.currentTabUid {
                 NotificationCenter.default.post(name: .autofillFailureReport, object: self, userInfo: [UserInfoKeys.tabUid: currentTabUid])
             }

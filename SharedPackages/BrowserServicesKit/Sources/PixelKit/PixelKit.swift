@@ -140,6 +140,10 @@ public final class PixelKit {
     private let source: String?
     private let pixelCalendar: Calendar
 
+    /// Pre-encoded parameters for the current fire call, readable by FireRequest implementations.
+    /// Set before the synchronous fire chain runs and cleared after it completes.
+    public private(set) var currentEncodedParameters: [String: String] = [:]
+
     /// Sets up PixelKit for the entire app.
     ///
     /// - Parameters:
@@ -197,11 +201,15 @@ public final class PixelKit {
                      frequency: Frequency = .standard,
                      withHeaders headers: [String: String]? = nil,
                      withAdditionalParameters params: [String: String]? = nil,
+                     withEncodedParameters encodedParams: [String: String] = [:],
                      withNamePrefix namePrefix: String? = nil,
                      allowedQueryReservedCharacters: CharacterSet? = nil,
                      includeAppVersionParameter: Bool = true,
                      doNotEnforcePrefix: Bool = false,
                      onComplete: @escaping CompletionBlock = { _, _ in }) {
+
+        self.currentEncodedParameters = encodedParams
+        defer { self.currentEncodedParameters = [:] }
 
         let pixelName = prefixedAndSuffixedName(for: event, namePrefix: namePrefix, doNotEnforcePrefix: doNotEnforcePrefix)
 
