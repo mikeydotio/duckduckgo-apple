@@ -8,7 +8,16 @@
 "auto.restore.learn.more.full" = "Automatically restore your data on this device if you reinstall the app. [Learn More](sync-auto-restore://learn-more)";
 
 /* Auto-Restore Ready Sheet - Description */
-"auto.restore.ready.description" = "Use Face ID to Auto-Restore, or scan the Recovery Code you saved when you set up Sync & Backup.";
+"auto.restore.ready.description" = "Use %@ to Auto-Restore, or scan the Recovery Code you saved when you set up Sync & Backup.";
+
+/* Auto-Restore Ready Sheet - Face ID authentication label */
+"auto.restore.ready.description.parameter.face-id" = "Face ID or passcode";
+
+/* Auto-Restore Ready Sheet - Touch ID authentication label */
+"auto.restore.ready.description.parameter.touch-id" = "Touch ID or passcode";
+
+/* Auto-Restore Ready Sheet - passcode authentication label */
+"auto.restore.ready.description.parameter.passcode" = "passcode";
 
 /* Auto-Restore Ready Sheet - Restore Button */
 "auto.restore.ready.restore.button" = "Restore My Data";

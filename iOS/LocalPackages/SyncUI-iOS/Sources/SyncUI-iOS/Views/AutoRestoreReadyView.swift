@@ -20,6 +20,7 @@
 import SwiftUI
 import DuckUI
 import DesignResourcesKit
+import LocalAuthentication
 
 public struct AutoRestoreReadyView: View {
 
@@ -32,6 +33,21 @@ public struct AutoRestoreReadyView: View {
     ) {
         self.model = model
         self.onCancel = onCancel
+    }
+
+    private var autoRestoreReadyDescriptionText: String {
+        UserText.autoRestoreReadyDescription(authenticationMethod: autoRestoreAuthenticationMethod)
+    }
+
+    private var autoRestoreAuthenticationMethod: String {
+        switch LAContext().biometryType {
+        case .faceID:
+            UserText.autoRestoreReadyDescriptionParameterFaceID
+        case .touchID:
+            UserText.autoRestoreReadyDescriptionParameterTouchID
+        default:
+            UserText.autoRestoreReadyDescriptionParameterPasscode
+        }
     }
 
     public var body: some View {
@@ -53,7 +69,7 @@ public struct AutoRestoreReadyView: View {
                     .multilineTextAlignment(.center)
                     .padding(.bottom, 12)
 
-                Text(UserText.autoRestoreReadyDescription)
+                Text(autoRestoreReadyDescriptionText)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(Color(designSystemColor: .textPrimary))
             }

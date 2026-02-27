@@ -130,7 +130,18 @@ public struct UserText {
     static let recoverSyncedDataDescription = NSLocalizedString("recover.synced.data.sheet.description", bundle: Bundle.module, value: "You’ll need the Recovery Code you got when you set up Sync & Backup. You may have saved it as a PDF on the device you used.", comment: "Recover Synced Data Sheet - Description")
     static let recoverSyncedDataButton = NSLocalizedString("recover.synced.data.sheet.button", bundle: Bundle.module, value: "Recover Synced Data", comment: "Recover Synced Data Sheet - Button")
     static let autoRestoreReadyTitle = NSLocalizedString("auto.restore.ready.title", bundle: Bundle.module, value: "Your synced data is ready to restore", comment: "Auto-Restore Ready Sheet - Title")
-    static let autoRestoreReadyDescription = NSLocalizedString("auto.restore.ready.description", bundle: Bundle.module, value: "Use Face ID to Auto-Restore, or scan the Recovery Code you saved when you set up Sync & Backup.", comment: "Auto-Restore Ready Sheet - Description")
+    static func autoRestoreReadyDescription(authenticationMethod: String) -> String {
+        let localized = NSLocalizedString(
+            "auto.restore.ready.description",
+            bundle: Bundle.module,
+            value: "Use %@ to Auto-Restore, or scan the Recovery Code you saved when you set up Sync & Backup.",
+            comment: "Auto-Restore Ready Sheet - Description with authentication method placeholder"
+        )
+        return String(format: localized, authenticationMethod)
+    }
+    static let autoRestoreReadyDescriptionParameterFaceID = NSLocalizedString("auto.restore.ready.description.parameter.face-id", bundle: Bundle.module, value: "Face ID or passcode", comment: "Auto-Restore Ready Sheet - Face ID authentication label")
+    static let autoRestoreReadyDescriptionParameterTouchID = NSLocalizedString("auto.restore.ready.description.parameter.touch-id", bundle: Bundle.module, value: "Touch ID or passcode", comment: "Auto-Restore Ready Sheet - Touch ID authentication label")
+    static let autoRestoreReadyDescriptionParameterPasscode = NSLocalizedString("auto.restore.ready.description.parameter.passcode", bundle: Bundle.module, value: "passcode", comment: "Auto-Restore Ready Sheet - passcode authentication label")
     static let autoRestoreReadyRestoreButton = NSLocalizedString("auto.restore.ready.restore.button", bundle: Bundle.module, value: "Restore My Data", comment: "Auto-Restore Ready Sheet - Restore Button")
     static let autoRestoreReadyScanCodeLink = NSLocalizedString("auto.restore.ready.scan.code.link", bundle: Bundle.module, value: "Scan Recovery Code", comment: "Auto-Restore Ready Sheet - Scan Code Link")
     static let recoveringDataTitle = NSLocalizedString("recovering.data.title", bundle: Bundle.module, value: "Recovering Data", comment: "Recovering Data Sheet - Title")
