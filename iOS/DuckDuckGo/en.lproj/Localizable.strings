@@ -2500,6 +2500,18 @@ https://duckduckgo.com/mac";
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Oh, before I forget...";
 
+/* Body copy for the returning-user restore prompt */
+"onboarding.restore.prompt.body" = "You previously saved bookmarks or autofill data and enabled Auto-Restore.";
+
+/* Primary CTA to start restoring data on returning-user restore prompt */
+"onboarding.restore.prompt.restore.cta" = "Restore My Data";
+
+/* Secondary CTA to skip restore on returning-user restore prompt */
+"onboarding.restore.prompt.skip.cta" = "Skip Restore";
+
+/* Title for the returning-user restore prompt */
+"onboarding.restore.prompt.title" = "Hi there.\n\nWant me to restore your data from last time?";
+
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Start Browsing";
 
