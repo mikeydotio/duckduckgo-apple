@@ -65,6 +65,11 @@ final class MainCoordinator {
     private(set) var webExtensionManager: WebExtensionManaging?
     private(set) var webExtensionEventsCoordinator: WebExtensionEventsCoordinator?
     private var webExtensionFeatureFlagHandler: AnyObject?
+    private let darkReaderFeatureSettings: DarkReaderFeatureSettings
+    private var isSyncingEmbeddedExtensions = false
+    private var darkReaderCancellables = Set<AnyCancellable>()
+    private var webExtensionLoadTask: Task<Void, Never>?
+    private var privacyConfigurationManager: PrivacyConfigurationManaging?
 
     init(privacyConfigurationManager: PrivacyConfigurationManaging,
          syncService: SyncService,
@@ -99,6 +104,8 @@ final class MainCoordinator {
     ) throws {
         self.subscriptionManager = subscriptionManager
         self.featureFlagger = featureFlagger
+        self.darkReaderFeatureSettings = AppDarkReaderFeatureSettings(featureFlagger: featureFlagger,
+                                                                      privacyConfigurationManager: privacyConfigurationManager)
         self.modalPromptCoordinationService = modalPromptCoordinationService
         let homePageConfiguration = HomePageConfiguration(variantManager: AppDependencyProvider.shared.variantManager,
                                                           remoteMessagingStore: remoteMessagingService.remoteMessagingClient.store,
@@ -216,7 +223,9 @@ final class MainCoordinator {
                                         fireExecutor: fireExecutor,
                                         remoteMessagingDebugHandler: remoteMessagingService,
                                         privacyStats: privacyStats,
-                                        whatsNewRepository: whatsNewRepository)
+                                        whatsNewRepository: whatsNewRepository,
+                                        darkReaderFeatureSettings: darkReaderFeatureSettings)
+
         setupWebExtensions(privacyConfigurationManager: privacyConfigurationManager)
 
         // Apply tracker animation suppression early for cold starts
@@ -224,52 +233,151 @@ final class MainCoordinator {
         if launchSourceManager.source == .standard {
             tabManager.applyTrackerAnimationSuppressionBasedOnLaunchSource()
         }
+
     }
 
     func start() {
         controller.loadViewIfNeeded()
     }
 
-    private func setupWebExtensions(privacyConfigurationManager: PrivacyConfigurationManaging) {
-        if #available(iOS 18.4, *), featureFlagger.isFeatureOn(.webExtensions) {
-            let webExtensionManager = WebExtensionManagerFactory.makeManager(
-                mainViewController: controller,
-                privacyConfigurationManager: privacyConfigurationManager,
-                autoconsentPreferences: AppUserDefaults()
-            )
-            self.webExtensionManager = webExtensionManager
-
-            self.webExtensionEventsCoordinator = WebExtensionEventsCoordinator(webExtensionManager: webExtensionManager,
-                                                                               mainViewController: controller)
-
-            tabManager.setWebExtensionManager(webExtensionManager)
-            controller.setWebExtensionEventsCoordinator(webExtensionEventsCoordinator)
-            controller.setWebExtensionManager(webExtensionManager)
-
-            let publisher = (featureFlagger.localOverrides?.actionHandler as? FeatureFlagOverridesPublishingHandler<FeatureFlag>)?
-                .flagDidChangePublisher
-                .filter { $0.0 == .webExtensions }
-                .map { $0.1 }
-                .eraseToAnyPublisher()
-
-            webExtensionFeatureFlagHandler = WebExtensionFeatureFlagHandler(
-                webExtensionManager: webExtensionManager,
-                featureFlagPublisher: publisher) { [weak self] in
-                    self?.clearWebExtensionReferences()
+    private func subscribeToDarkReaderChanges() {
+        darkReaderFeatureSettings.forceDarkModeChangedPublisher
+            .sink { [weak self] _ in
+                guard #available(iOS 18.4, *) else { return }
+                Task { @MainActor in
+                    await self?.syncEmbeddedExtensions()
                 }
-
-            Task { @MainActor in
-                await webExtensionManager.loadInstalledExtensions()
-                self.webExtensionEventsCoordinator?.registerExistingTabsAndWindow()
             }
+            .store(in: &darkReaderCancellables)
+
+        darkReaderFeatureSettings.excludedDomainsChangedPublisher
+            .sink { [weak self] in
+                guard #available(iOS 18.4, *) else { return }
+                Task { @MainActor in
+                    self?.syncDarkReaderExcludedDomains()
+                }
+            }
+            .store(in: &darkReaderCancellables)
+    }
+
+    private func setupWebExtensions(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+
+        guard #available(iOS 18.4, *) else { return }
+
+        let flagPublisher = (featureFlagger.localOverrides?.actionHandler as? FeatureFlagOverridesPublishingHandler<FeatureFlag>)?
+            .flagDidChangePublisher
+
+        let webExtensionsPublisher = flagPublisher?
+            .filter { $0.0 == .webExtensions }
+            .map { $0.1 }
+            .eraseToAnyPublisher()
+
+        let embeddedExtensionPublisher = flagPublisher?
+            .filter { $0.0 == .embeddedExtension }
+            .map { $0.1 }
+            .eraseToAnyPublisher()
+
+        webExtensionFeatureFlagHandler = WebExtensionFeatureFlagHandler(
+            webExtensionManagerProvider: { [weak self] in self?.webExtensionManager },
+            featureFlagPublisher: webExtensionsPublisher,
+            embeddedExtensionFlagPublisher: embeddedExtensionPublisher,
+            onFeatureFlagEnabled: { [weak self] in
+                self?.initializeWebExtensions()
+            },
+            onFeatureFlagDisabled: { [weak self] in
+                self?.clearWebExtensionReferences()
+            },
+            onEmbeddedExtensionFlagEnabled: { [weak self] in
+                await self?.syncEmbeddedExtensions()
+            }
+        )
+
+        if featureFlagger.isFeatureOn(.webExtensions) {
+            initializeWebExtensions()
         } else {
             clearWebExtensionReferences()
         }
     }
 
+    @available(iOS 18.4, *)
+    private func initializeWebExtensions() {
+        guard webExtensionManager == nil else {
+            // Already initialized, just reload extensions and re-register tabs
+            webExtensionLoadTask?.cancel()
+            webExtensionLoadTask = Task { @MainActor [weak self] in
+                await self?.webExtensionManager?.loadInstalledExtensions()
+                guard !Task.isCancelled else { return }
+                await self?.syncEmbeddedExtensions()
+                guard !Task.isCancelled else { return }
+                self?.webExtensionEventsCoordinator?.registerExistingTabsAndWindow()
+            }
+            return
+        }
+
+        guard let privacyConfigurationManager else { return }
+
+        let webExtensionManager = WebExtensionManagerFactory.makeManager(
+            mainViewController: controller,
+            privacyConfigurationManager: privacyConfigurationManager,
+            autoconsentPreferences: AppUserDefaults()
+        )
+        self.webExtensionManager = webExtensionManager
+
+        self.webExtensionEventsCoordinator = WebExtensionEventsCoordinator(
+            webExtensionManager: webExtensionManager,
+            mainViewController: controller
+        )
+
+        tabManager.setWebExtensionManager(webExtensionManager)
+        controller.setWebExtensionEventsCoordinator(webExtensionEventsCoordinator)
+        controller.setWebExtensionManager(webExtensionManager)
+        subscribeToDarkReaderChanges()
+
+        // Load extensions asynchronously - the controller is already attached to tabs
+        webExtensionLoadTask = Task { @MainActor [weak self] in
+            await webExtensionManager.loadInstalledExtensions()
+            guard !Task.isCancelled else { return }
+            await self?.syncEmbeddedExtensions()
+            guard !Task.isCancelled else { return }
+            self?.webExtensionEventsCoordinator?.registerExistingTabsAndWindow()
+        }
+    }
+
+    @available(iOS 18.4, *)
+    private func syncEmbeddedExtensions() async {
+        guard !isSyncingEmbeddedExtensions else { return }
+        guard let webExtensionManager = webExtensionManager as? WebExtensionManager else { return }
+
+        isSyncingEmbeddedExtensions = true
+        defer { isSyncingEmbeddedExtensions = false }
+
+        var enabledTypes: Set<DuckDuckGoWebExtensionType> = []
+        if featureFlagger.isFeatureOn(.embeddedExtension) {
+            enabledTypes.insert(.embedded)
+        }
+        if darkReaderFeatureSettings.isForceDarkModeEnabled == true {
+            enabledTypes.insert(.darkReader)
+        }
+        await webExtensionManager.syncEmbeddedExtensions(enabledTypes: enabledTypes)
+        syncDarkReaderExcludedDomains()
+    }
+
+    @available(iOS 18.4, *)
+    private func syncDarkReaderExcludedDomains() {
+        guard darkReaderFeatureSettings.isForceDarkModeEnabled else { return }
+        webExtensionManager?.updateExcludedDomains(
+            darkReaderFeatureSettings.excludedDomains,
+            forExtensionType: .darkReader
+        )
+    }
+
     private func clearWebExtensionReferences() {
+        webExtensionLoadTask?.cancel()
+        webExtensionLoadTask = nil
         webExtensionManager = nil
         webExtensionEventsCoordinator = nil
+        darkReaderCancellables.removeAll()
         tabManager.setWebExtensionManager(nil)
         controller.setWebExtensionEventsCoordinator(nil)
         controller.setWebExtensionManager(nil)
