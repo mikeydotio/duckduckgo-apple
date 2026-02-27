@@ -75,10 +75,13 @@ extension SyncSettingsView {
     @ViewBuilder
     func otherOptions() -> some View {
         Section {
-            Button(UserText.syncAndBackUpThisDeviceLink) {
+            Button {
                 Task { @MainActor in
                     await model.presentSyncWithSetUpSheetIfNeeded()
                 }
+            } label: {
+                Text(UserText.syncAndBackUpThisDeviceLink)
+                    .foregroundColor(Color(designSystemColor: .accent))
             }
             .sheet(isPresented: $model.isSyncWithSetUpSheetVisible, content: {
                 SyncWithServerView(model: model, onCancel: {
@@ -87,7 +90,7 @@ extension SyncSettingsView {
             })
             .disabled(!model.isAccountCreationAvailable)
 
-            Button(UserText.recoverSyncedDataLink) {
+            Button {
                 Task { @MainActor in
                     if model.delegate?.isEligibleForAutoRestore() == true {
                         model.delegate?.showAutoRestoreReady()
@@ -95,6 +98,9 @@ extension SyncSettingsView {
                         isRecoverSyncedDataSheetVisible = true
                     }
                 }
+            } label: {
+                Text(UserText.recoverSyncedDataLink)
+                    .foregroundColor(Color(designSystemColor: .accent))
             }
             .sheet(isPresented: $isRecoverSyncedDataSheetVisible, content: {
                 RecoverSyncedDataView(model: model, onCancel: {
