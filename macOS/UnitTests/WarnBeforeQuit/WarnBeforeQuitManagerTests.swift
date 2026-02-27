@@ -153,10 +153,61 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         let event = createKeyEvent(type: .keyDown, character: "w", modifierFlags: .command)
 
         // When
-        let manager = WarnBeforeQuitManager(currentEvent: event, action: .close, isWarningEnabled: { self.isWarningEnabled }, delegate: mockDelegate)
+        let manager = WarnBeforeQuitManager(currentEvent: event, action: .closePinnedTab, isWarningEnabled: { self.isWarningEnabled }, delegate: mockDelegate)
 
         // Then
         XCTAssertNotNil(manager)
+    }
+
+    func testManualInitForCloseFloatingAIChatSucceeds() {
+        // When
+        let manager = WarnBeforeQuitManager(
+            action: .closeFloatingAIChat,
+            isWarningEnabled: { self.isWarningEnabled },
+            delegate: mockDelegate
+        )
+
+        // Then
+        XCTAssertNotNil(manager)
+    }
+
+    func testManualPresentationTimesOutToCancel() async throws {
+        // Given
+        var timerCallback: (() -> Void)?
+        var capturedDuration: TimeInterval?
+        var didProceed = false
+        let timerFactory: (TimeInterval, @escaping () -> Void) -> Timer = { duration, callback in
+            capturedDuration = duration
+            timerCallback = callback
+            return Timer()
+        }
+        let manager = WarnBeforeQuitManager(
+            action: .closeFloatingAIChat,
+            isWarningEnabled: { self.isWarningEnabled },
+            now: { self.now },
+            timerFactory: timerFactory,
+            animationDelay: 0,
+            delegate: mockDelegate
+        )
+
+        // When
+        let expectations = setupExpectationsForStateChanges(3, manager: manager)
+        manager.performOnProceedForManualPresentation {
+            didProceed = true
+        }
+        await fulfillment(of: Array(expectations.prefix(2)), timeout: Constants.expectationTimeout)
+        let completionExpectation = setupExpectationsForStateChanges(1, manager: manager)
+        timerCallback?()
+        await fulfillment(of: completionExpectation, timeout: Constants.expectationTimeout)
+
+        // Then
+        XCTAssertEqual(capturedDuration, WarnBeforeQuitManager.Constants.hideawayDuration)
+        XCTAssertFalse(didProceed)
+        XCTAssertEqual(collectedStates, [
+            .keyDown,
+            .waitingForSecondPress,
+            .completed(shouldProceed: false)
+        ])
     }
 
     func testInitFiltersDeviceDependentFlags() {
@@ -265,7 +316,7 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         let event = createKeyEvent(type: .keyDown, character: "w", modifierFlags: .command)
         let manager = WarnBeforeQuitManager(
             currentEvent: event,
-            action: .close,
+            action: .closePinnedTab,
             isWarningEnabled: { self.isWarningEnabled },
             isPhysicalKeyPress: { false },
             delegate: mockDelegate
@@ -1918,7 +1969,7 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         mockDelegate.eventReceiver = eventReceiver
         let manager = try XCTUnwrap(WarnBeforeQuitManager(
             currentEvent: event,
-            action: .close,
+            action: .closePinnedTab,
             isWarningEnabled: { self.isWarningEnabled },
             pixelFiring: pixelFiring,
             now: { self.now },
@@ -1964,7 +2015,7 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         mockDelegate.eventReceiver = eventReceiver
         let manager = try XCTUnwrap(WarnBeforeQuitManager(
             currentEvent: event,
-            action: .close,
+            action: .closePinnedTab,
             isWarningEnabled: { self.isWarningEnabled },
             pixelFiring: pixelFiring,
             now: { self.now },
@@ -2018,7 +2069,7 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         mockDelegate.eventReceiver = eventReceiver
         let manager = try XCTUnwrap(WarnBeforeQuitManager(
             currentEvent: event,
-            action: .close,
+            action: .closePinnedTab,
             isWarningEnabled: { self.isWarningEnabled },
             pixelFiring: pixelFiring,
             now: { self.now },
@@ -2120,7 +2171,7 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         mockDelegate.eventReceiver = eventReceiver
         let manager = try XCTUnwrap(WarnBeforeQuitManager(
             currentEvent: event,
-            action: .close,
+            action: .closePinnedTab,
             isWarningEnabled: { self.isWarningEnabled },
             now: { self.now },
             animationDelay: 0,
@@ -2235,7 +2286,7 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         mockDelegate.eventReceiver = eventReceiver
         let manager = try XCTUnwrap(WarnBeforeQuitManager(
             currentEvent: event,
-            action: .close,
+            action: .closePinnedTab,
             isWarningEnabled: { self.isWarningEnabled },
             now: { self.now },
             timerFactory: timerFactory,
@@ -2766,7 +2817,7 @@ final class WarnBeforeQuitManagerTests: XCTestCase, Sendable {
         mockDelegate.eventReceiver = eventReceiver
         let manager = try XCTUnwrap(WarnBeforeQuitManager(
             currentEvent: event,
-            action: .close,
+            action: .closePinnedTab,
             isWarningEnabled: { self.isWarningEnabled },
             now: { self.now },
             animationDelay: 0,
