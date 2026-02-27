@@ -118,7 +118,7 @@ jobs:
 
     - name: Test local host
       run: |
-        curl -v http://localhost.com:3001/api/profiles
+        curl -v http://localhost:3001/api/profiles
 
     - name: Download and unzip artifact
       uses: actions/download-artifact@v4
