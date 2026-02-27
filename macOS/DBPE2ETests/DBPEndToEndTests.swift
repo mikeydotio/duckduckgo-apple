@@ -414,7 +414,7 @@ extension DBPEndToEndTests {
     }
 
     var fakeBrokerAPIAddress: String {
-        "http://localhost:3001/api/"
+        "localhost:3001/api/"
     }
 
     func deleteAllProfilesOnFakeBroker() async {
