@@ -32,6 +32,7 @@ final class AutofillLoginSessionTests: XCTestCase {
 
     func testWhenSessionStartedThenAutofillSessionIsValid() {
         autofillSession.startSession()
+        assertSessionBecomesValid()
         XCTAssertTrue(autofillSession.isSessionValid)
     }
 
@@ -43,9 +44,8 @@ final class AutofillLoginSessionTests: XCTestCase {
 
     func testWhenSessionExpiredThenAutofillSessionIsInvalid() {
         autofillSession.startSession()
-
-        let sessionExpired = expectation(description: "testWhenSessionExpiredThenAutofillSessionIsInvalid")
-        _ = XCTWaiter.wait(for: [sessionExpired], timeout: 2.2)
+        assertSessionBecomesValid()
+        assertSessionBecomesInvalid()
         XCTAssertFalse(autofillSession.isSessionValid)
     }
 
@@ -62,5 +62,27 @@ final class AutofillLoginSessionTests: XCTestCase {
         autofillSession.lastAccessedAccount = account
         autofillSession.endSession()
         XCTAssertNil(autofillSession.lastAccessedAccount)
+    }
+
+    private func assertSessionBecomesValid(file: StaticString = #filePath, line: UInt = #line) {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate { [unowned self] _, _ in
+                autofillSession.isSessionValid
+            },
+            object: nil
+        )
+        let result = XCTWaiter.wait(for: [expectation], timeout: 1)
+        XCTAssertEqual(result, .completed, file: file, line: line)
+    }
+
+    private func assertSessionBecomesInvalid(file: StaticString = #filePath, line: UInt = #line) {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate { [unowned self] _, _ in
+                !autofillSession.isSessionValid
+            },
+            object: nil
+        )
+        let result = XCTWaiter.wait(for: [expectation], timeout: 3)
+        XCTAssertEqual(result, .completed, file: file, line: line)
     }
 }
