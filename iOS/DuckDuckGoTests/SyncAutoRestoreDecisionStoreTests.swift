@@ -57,6 +57,13 @@ final class SyncAutoRestoreDecisionStoreTests: XCTestCase {
         XCTAssertEqual(try sut.getDecision(), false)
     }
 
+    func testSetDecisionTwiceThenGetDecisionReturnsMostRecentValue() throws {
+        try sut.setDecision(true)
+        try sut.setDecision(false)
+
+        XCTAssertEqual(try sut.getDecision(), false)
+    }
+
     func testClearDecisionThenGetDecisionReturnsNil() throws {
         try sut.setDecision(true)
 
