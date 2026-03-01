@@ -60,18 +60,15 @@ final class SyncAutoRestoreDecisionStore: SyncAutoRestoreDecisionStoring {
         let data = Data([decision ? UInt8(1) : UInt8(0)])
 
         var query = baseQuery
-        query[kSecAttrSynchronizable as String] = false
         query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         query[kSecValueData as String] = data
 
         var status = SecItemAdd(query as CFDictionary, nil)
         if status == errSecDuplicateItem {
-            var updateQuery = query
-            updateQuery.removeValue(forKey: kSecValueData as String)
             let attributes: [String: Any] = [
                 kSecValueData as String: data
             ]
-            status = SecItemUpdate(updateQuery as CFDictionary, attributes as CFDictionary)
+            status = SecItemUpdate(baseQuery as CFDictionary, attributes as CFDictionary)
         }
 
         guard status == errSecSuccess else {
@@ -105,7 +102,8 @@ final class SyncAutoRestoreDecisionStore: SyncAutoRestoreDecisionStoring {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: Constants.keychainAccount
+            kSecAttrAccount as String: Constants.keychainAccount,
+            kSecAttrSynchronizable as String: false
         ]
     }
 
