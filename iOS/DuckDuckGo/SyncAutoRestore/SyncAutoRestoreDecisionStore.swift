@@ -66,10 +66,12 @@ final class SyncAutoRestoreDecisionStore: SyncAutoRestoreDecisionStoring {
 
         var status = SecItemAdd(query as CFDictionary, nil)
         if status == errSecDuplicateItem {
+            var updateQuery = query
+            updateQuery.removeValue(forKey: kSecValueData as String)
             let attributes: [String: Any] = [
                 kSecValueData as String: data
             ]
-            status = SecItemUpdate(baseQuery as CFDictionary, attributes as CFDictionary)
+            status = SecItemUpdate(updateQuery as CFDictionary, attributes as CFDictionary)
         }
 
         guard status == errSecSuccess else {
