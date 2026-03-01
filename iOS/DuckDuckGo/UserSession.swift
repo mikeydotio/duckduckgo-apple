@@ -35,7 +35,7 @@ class UserSession {
     public var isSessionValid: Bool {
         guard let sessionCreationDate = sessionCreationDate else { return false }
         let timeInterval = Date().timeIntervalSince(sessionCreationDate)
-        // Check that timeInterval is > 0 to prevent a user circumventing by changing their device clock time
+        // Check that timeInterval is >= 0 to prevent a user circumventing by changing their device clock time
         return timeInterval >= 0 && timeInterval < sessionTimeout
     }
 
