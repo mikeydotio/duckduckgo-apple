@@ -353,9 +353,11 @@ public struct BrokenSiteReport {
     }
 
     private func encodeErrors(_ errors: [Error]) -> String {
+        // WARNING: Only include error code and domain. Avoid adding error.localizedDescription
+        // to prevent leaking personal information (URLs, file paths, domain names, etc.)
         let errorDescriptions: [String] = errors.map {
             let error = $0 as NSError
-            return "\(error.code) - \(error.domain):\(error.localizedDescription)"
+            return "\(error.code) - \(error.domain)"
         }
         let jsonString = try? String(data: JSONSerialization.data(withJSONObject: errorDescriptions), encoding: .utf8)!
         return jsonString ?? ""
