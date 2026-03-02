@@ -281,14 +281,6 @@ extension HomePage.Models {
 
     // MARK: Feature Type
     enum FeatureType: CaseIterable, Equatable, Hashable {
-
-        // CaseIterable doesn't work with enums that have associated values, so we have to implement it manually.
-        // We ignore the `networkProtectionRemoteMessage` case here to avoid it getting accidentally included - it has special handling and will get
-        // included elsewhere.
-        static var allCases: [HomePage.Models.FeatureType] {
-            [.duckplayer, .emailProtection, .defaultBrowser, .dock, .importBookmarksAndPasswords, .subscription]
-        }
-
         case duckplayer
         case emailProtection
         case defaultBrowser
