@@ -71,6 +71,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     private let containerView = HitTestableContainerView()
     private let submitButton = MouseOverButton()
     private let imageUploadButton = AIChatOmnibarToolButton()
+    private let imageGenerationButton = AIChatImageGenerationButton()
     private let modelPickerButton = AIChatModelPickerButton()
     private let attachmentsContainerView = AIChatImageAttachmentsContainerView()
 
@@ -105,10 +106,16 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// Callback when the passthrough height needs to be recalculated (e.g., when tools visibility changes)
     var onPassthroughHeightNeedsUpdate: (() -> Void)?
 
+    /// Callback when image generation mode is toggled. Used to update placeholder text and suggestions.
+    var onImageGenerationModeChanged: ((Bool) -> Void)?
+
     // MARK: - Tab Navigation Callbacks
 
     /// Called when the image upload button receives a Tab key press. Wire this to advance focus.
     var onImageUploadButtonTabPressed: (() -> Void)?
+
+    /// Called when the image generation button receives a Tab key press. Wire this to advance focus.
+    var onImageGenerationButtonTabPressed: (() -> Void)?
 
     /// Called when the model picker button receives a Tab key press. Wire this to advance focus.
     var onModelPickerButtonTabPressed: (() -> Void)?
@@ -117,12 +124,20 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         !imageUploadButton.isHidden && imageUploadButton.isEnabled
     }
 
+    var isImageGenerationButtonAvailableForFocus: Bool {
+        !imageGenerationButton.isHidden
+    }
+
     var isModelPickerButtonAvailableForFocus: Bool {
         !modelPickerButton.isHidden
     }
 
     func makeImageUploadButtonFirstResponder() {
         view.window?.makeFirstResponder(imageUploadButton)
+    }
+
+    func makeImageGenerationButtonFirstResponder() {
+        view.window?.makeFirstResponder(imageGenerationButton)
     }
 
     func makeModelPickerButtonFirstResponder() {
@@ -244,6 +259,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     private func updateToolButtonsVisibility(isEnabled: Bool) {
         imageUploadButton.isHidden = !isEnabled
+        imageGenerationButton.isHidden = !isEnabled
         if isEnabled {
             imageUploadButton.isEnabled = !attachmentsContainerView.isFull && omnibarController.selectedModelSupportsImageUpload
             modelPickerButton.isHidden = omnibarController.models.isEmpty
@@ -253,6 +269,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         attachmentsContainerView.isHidden = !isEnabled
         if !isEnabled {
             attachmentsHeightConstraint?.constant = 0
+            imageGenerationButton.isToggled = false
         }
         // Notify that passthrough height needs recalculation since tools area changed
         onPassthroughHeightNeedsUpdate?()
@@ -312,6 +329,14 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         imageUploadButton.onTabPressed = { [weak self] in self?.onImageUploadButtonTabPressed?() }
         containerView.addSubview(imageUploadButton)
 
+        imageGenerationButton.translatesAutoresizingMaskIntoConstraints = false
+        imageGenerationButton.title = UserText.aiChatImageGenerationButtonTitle
+        imageGenerationButton.toolTip = UserText.aiChatImageGenerationButtonTooltip
+        imageGenerationButton.setAccessibilityLabel(UserText.aiChatImageGenerationButtonTooltip)
+        imageGenerationButton.onTabPressed = { [weak self] in self?.onImageGenerationButtonTabPressed?() }
+        imageGenerationButton.onToggled = { [weak self] isOn in self?.imageGenerationToggled(isOn) }
+        containerView.addSubview(imageGenerationButton)
+
         modelPickerButton.translatesAutoresizingMaskIntoConstraints = false
         modelPickerButton.target = self
         modelPickerButton.action = #selector(modelPickerButtonClicked)
@@ -356,6 +381,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
             modelPickerButton.heightAnchor.constraint(equalToConstant: Constants.modelPickerHeight),
 
+            imageGenerationButton.heightAnchor.constraint(equalToConstant: Constants.modelPickerHeight),
+            imageGenerationButton.trailingAnchor.constraint(equalTo: modelPickerButton.leadingAnchor, constant: -Constants.toolButtonSpacing),
+
             imageUploadButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.toolButtonLeadingInset),
             imageUploadButton.widthAnchor.constraint(equalToConstant: Constants.toolButtonSize),
             imageUploadButton.heightAnchor.constraint(equalToConstant: Constants.toolButtonSize),
@@ -396,6 +424,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
             // Tool buttons sit above suggestions
             imageUploadButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset),
+            imageGenerationButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset),
             modelPickerButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset)
         ])
 
@@ -445,6 +474,10 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
         // Clear attachments and cancel pending resize tasks
         clearAttachments()
+
+        // Reset image generation mode
+        imageGenerationButton.isToggled = false
+        omnibarController.isImageGenerationMode = false
 
         // Restore model picker to persisted value
         modelPickerButton.modelName = persistedModelShortName
@@ -666,6 +699,20 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         PixelKit.fire(AIChatPixel.aiChatAddressBarModelSelected, frequency: .dailyAndCount, includeAppVersionParameter: true)
     }
 
+    private func imageGenerationToggled(_ isOn: Bool) {
+        omnibarController.isImageGenerationMode = isOn
+
+        if isOn {
+            modelPickerButton.isEnabled = false
+            omnibarController.suggestionsViewModel.clearAllChats()
+        } else {
+            modelPickerButton.isEnabled = true
+            omnibarController.refetchSuggestions()
+        }
+
+        onImageGenerationModeChanged?(isOn)
+    }
+
     private func updateImageUploadVisibility(supportsImageUpload: Bool) {
         guard omnibarController.isOmnibarToolsEnabled else { return }
 
@@ -693,6 +740,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
         let toolButtonTintColor = NSColor(designSystemColor: .textPrimary)
         imageUploadButton.tintColor = toolButtonTintColor
+        imageGenerationButton.tintColor = toolButtonTintColor
         modelPickerButton.tintColor = toolButtonTintColor
 
         innerBorderView.cornerRadius = barStyleProvider.addressBarActiveBackgroundViewRadius
@@ -706,6 +754,10 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         NSAppearance.withAppAppearance {
             imageUploadButton.hoverBackgroundColor = .buttonMouseOver
             imageUploadButton.pressedBackgroundColor = .buttonMouseDown
+            imageGenerationButton.hoverBackgroundColor = .buttonMouseOver
+            imageGenerationButton.pressedBackgroundColor = .buttonMouseDown
+            imageGenerationButton.toggledBackgroundColor = NSColor(designSystemColor: .accentPrimary)
+            imageGenerationButton.toggledTintColor = .white
             modelPickerButton.hoverBackgroundColor = .buttonMouseOver
             modelPickerButton.pressedBackgroundColor = .buttonMouseDown
         }

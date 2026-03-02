@@ -1,5 +1,5 @@
 //
-//  AIChatModelPickerButton.swift
+//  AIChatImageGenerationButton.swift
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -19,18 +19,26 @@
 import AppKit
 import DesignResourcesKitIcons
 
-/// A pill-shaped button that displays the current AI model name with a dropdown chevron.
-/// Used in the AI Chat omnibar to allow model selection via a context menu.
-final class AIChatModelPickerButton: NSView {
+/// A pill-shaped toggle button for activating image generation mode in the AI Chat omnibar.
+/// Displays an icon and "Create Image" label. When toggled on, shows an accent background.
+final class AIChatImageGenerationButton: NSView {
 
     private enum Constants {
         static let height: CGFloat = 28
         static let horizontalPadding: CGFloat = 10
-        static let iconTextSpacing: CGFloat = 3
-        static let chevronSize: CGFloat = 16
+        static let iconTextSpacing: CGFloat = 4
+        static let iconSize: CGFloat = 16
         static let fontSize: CGFloat = 12
         static let cornerRadius: CGFloat = 14
     }
+
+    private let iconImageView: NSImageView = {
+        let imageView = NSImageView()
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.imageScaling = .scaleProportionallyDown
+        imageView.image = DesignSystemImages.Glyphs.Size16.wand
+        return imageView
+    }()
 
     private let nameLabel: NSTextField = {
         let label = NSTextField(labelWithString: "")
@@ -40,27 +48,19 @@ final class AIChatModelPickerButton: NSView {
         label.isSelectable = false
         label.isBezeled = false
         label.drawsBackground = false
-        label.lineBreakMode = .byTruncatingTail
+        label.lineBreakMode = .byClipping
         label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
     }()
 
-    private let chevronImageView: NSImageView = {
-        let imageView = NSImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.imageScaling = .scaleProportionallyDown
-        imageView.image = DesignSystemImages.Glyphs.Size16.chevronDownMedium
-        return imageView
-    }()
-
     private let backgroundLayer = CALayer()
 
-    weak var target: AnyObject?
-    var action: Selector?
+    var onToggled: ((Bool) -> Void)?
+    var onTabPressed: (() -> Void)?
 
-    var modelName: String = "" {
+    var title: String = "" {
         didSet {
-            nameLabel.stringValue = modelName
+            nameLabel.stringValue = title
             invalidateIntrinsicContentSize()
         }
     }
@@ -71,14 +71,16 @@ final class AIChatModelPickerButton: NSView {
         }
     }
 
-    var isEnabled: Bool = true {
+    var hoverBackgroundColor: NSColor = .clear
+    var pressedBackgroundColor: NSColor = .clear
+    var toggledBackgroundColor: NSColor = .clear
+    var toggledTintColor: NSColor = .white
+
+    var isToggled: Bool = false {
         didSet {
             updateAppearance()
         }
     }
-
-    var hoverBackgroundColor: NSColor = .clear
-    var pressedBackgroundColor: NSColor = .clear
 
     private var isHovered = false {
         didSet {
@@ -94,7 +96,7 @@ final class AIChatModelPickerButton: NSView {
 
     override var intrinsicContentSize: NSSize {
         let labelWidth = nameLabel.intrinsicContentSize.width
-        let totalWidth = Constants.horizontalPadding + labelWidth + Constants.iconTextSpacing + Constants.chevronSize + Constants.horizontalPadding
+        let totalWidth = Constants.horizontalPadding + Constants.iconSize + Constants.iconTextSpacing + labelWidth + Constants.horizontalPadding
         return NSSize(width: totalWidth, height: Constants.height)
     }
 
@@ -107,8 +109,6 @@ final class AIChatModelPickerButton: NSView {
         super.init(coder: coder)
         setupView()
     }
-
-    var onTabPressed: (() -> Void)?
 
     override var acceptsFirstResponder: Bool { true }
     override var canBecomeKeyView: Bool { true }
@@ -125,25 +125,23 @@ final class AIChatModelPickerButton: NSView {
 
     private func setupView() {
         wantsLayer = true
-        setAccessibilityRole(.popUpButton)
+        setAccessibilityRole(.button)
 
-        // Setup background layer (pill shape)
         backgroundLayer.cornerRadius = Constants.cornerRadius
         backgroundLayer.opacity = 0
         layer?.insertSublayer(backgroundLayer, at: 0)
 
-        // Add subviews
+        addSubview(iconImageView)
         addSubview(nameLabel)
-        addSubview(chevronImageView)
 
         NSLayoutConstraint.activate([
-            nameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.horizontalPadding),
-            nameLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.horizontalPadding),
+            iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconImageView.widthAnchor.constraint(equalToConstant: Constants.iconSize),
+            iconImageView.heightAnchor.constraint(equalToConstant: Constants.iconSize),
 
-            chevronImageView.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: Constants.iconTextSpacing),
-            chevronImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            chevronImageView.widthAnchor.constraint(equalToConstant: Constants.chevronSize),
-            chevronImageView.heightAnchor.constraint(equalToConstant: Constants.chevronSize),
+            nameLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: Constants.iconTextSpacing),
+            nameLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
         updateAppearance()
@@ -160,26 +158,26 @@ final class AIChatModelPickerButton: NSView {
         CATransaction.setDisableActions(true)
 
         NSAppearance.withAppAppearance {
-            guard isEnabled else {
-                backgroundLayer.opacity = 0
-                nameLabel.textColor = NSColor.secondaryLabelColor
-                chevronImageView.contentTintColor = NSColor.secondaryLabelColor
-                CATransaction.commit()
-                return
-            }
-
-            if isMouseDown {
+            if isToggled {
+                backgroundLayer.backgroundColor = toggledBackgroundColor.cgColor
+                backgroundLayer.opacity = 1
+                nameLabel.textColor = toggledTintColor
+                iconImageView.contentTintColor = toggledTintColor
+            } else if isMouseDown {
                 backgroundLayer.backgroundColor = pressedBackgroundColor.cgColor
                 backgroundLayer.opacity = 1
+                nameLabel.textColor = tintColor
+                iconImageView.contentTintColor = tintColor
             } else if isHovered {
                 backgroundLayer.backgroundColor = hoverBackgroundColor.cgColor
                 backgroundLayer.opacity = 1
+                nameLabel.textColor = tintColor
+                iconImageView.contentTintColor = tintColor
             } else {
                 backgroundLayer.opacity = 0
+                nameLabel.textColor = tintColor
+                iconImageView.contentTintColor = tintColor
             }
-
-            nameLabel.textColor = tintColor
-            chevronImageView.contentTintColor = tintColor
         }
 
         CATransaction.commit()
@@ -234,10 +232,9 @@ final class AIChatModelPickerButton: NSView {
 
     override func mouseUp(with event: NSEvent) {
         let locationInView = convert(event.locationInWindow, from: nil)
-        if bounds.contains(locationInView) && isMouseDown && isEnabled {
-            if let action, let target {
-                NSApp.sendAction(action, to: target, from: self)
-            }
+        if bounds.contains(locationInView) && isMouseDown {
+            isToggled.toggle()
+            onToggled?(isToggled)
         }
         isMouseDown = false
     }
@@ -269,10 +266,9 @@ final class AIChatModelPickerButton: NSView {
             } else {
                 super.keyDown(with: event)
             }
-        case 49, 36: // Space, Return - trigger action
-            if let action, let target {
-                NSApp.sendAction(action, to: target, from: self)
-            }
+        case 49, 36: // Space, Return - toggle
+            isToggled.toggle()
+            onToggled?(isToggled)
         default:
             super.keyDown(with: event)
         }

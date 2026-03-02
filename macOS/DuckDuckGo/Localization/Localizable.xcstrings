@@ -2360,6 +2360,42 @@
         }
       }
     },
+    "aichat.image-generation-button.title" : {
+      "comment" : "Title for the image generation toggle button in AI chat omnibar",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Create Image"
+          }
+        }
+      }
+    },
+    "aichat.image-generation-button.tooltip" : {
+      "comment" : "Tooltip for the image generation toggle button in AI chat omnibar",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Create Image"
+          }
+        }
+      }
+    },
+    "aichat.image-generation.placeholder" : {
+      "comment" : "Placeholder text shown in the Duck.ai input field when image generation mode is active",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Describe the image you want to create"
+          }
+        }
+      }
+    },
     "aichat.image-upload-button.tooltip" : {
       "comment" : "Tooltip for the image upload button in AI chat omnibar",
       "extractionState" : "extracted_with_value",

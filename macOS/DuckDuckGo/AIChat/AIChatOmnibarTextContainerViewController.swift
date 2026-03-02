@@ -322,6 +322,12 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
         textView.selectedRange = NSRange(location: textLength, length: 0)
     }
 
+    func updatePlaceholder(isImageGenerationMode: Bool) {
+        placeholderLabel.stringValue = isImageGenerationMode
+            ? UserText.aiChatImageGenerationPlaceholder
+            : UserText.aiChatOmnibarPlaceholder
+    }
+
     // MARK: - Tab Navigation
 
     /// Called by the owner when the toggle receives a Tab press in AI Chat mode.
@@ -332,6 +338,8 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
         }
         if containerVC.isImageUploadButtonAvailableForFocus {
             containerVC.makeImageUploadButtonFirstResponder()
+        } else if containerVC.isImageGenerationButtonAvailableForFocus {
+            containerVC.makeImageGenerationButtonFirstResponder()
         } else if containerVC.isModelPickerButtonAvailableForFocus {
             containerVC.makeModelPickerButtonFirstResponder()
         } else {
@@ -343,6 +351,17 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
         guard let containerVC = containerViewController else { return }
 
         containerVC.onImageUploadButtonTabPressed = { [weak self, weak containerVC] in
+            guard let self, let containerVC else { return }
+            if containerVC.isImageGenerationButtonAvailableForFocus {
+                containerVC.makeImageGenerationButtonFirstResponder()
+            } else if containerVC.isModelPickerButtonAvailableForFocus {
+                containerVC.makeModelPickerButtonFirstResponder()
+            } else {
+                self.focusTextViewWithCursorAtEnd()
+            }
+        }
+
+        containerVC.onImageGenerationButtonTabPressed = { [weak self, weak containerVC] in
             guard let self, let containerVC else { return }
             if containerVC.isModelPickerButtonAvailableForFocus {
                 containerVC.makeModelPickerButtonFirstResponder()

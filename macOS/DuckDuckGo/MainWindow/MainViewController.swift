@@ -609,6 +609,10 @@ final class MainViewController: NSViewController {
         wireToggleReferenceToAIChatTextContainer()
         wireAIChatOmnibarHeightUpdates()
         wireAIChatOmnibarHitTesting()
+
+        aiChatOmnibarContainerViewController.onImageGenerationModeChanged = { [weak self] isOn in
+            self?.aiChatOmnibarTextContainerViewController.updatePlaceholder(isImageGenerationMode: isOn)
+        }
     }
 
     @objc private func windowDidResize() {

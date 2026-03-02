@@ -65,6 +65,9 @@ final class AIChatOmnibarController {
     /// Waits for all attachment resizing to complete before proceeding.
     var waitForAttachmentsReady: (() async -> Void)?
 
+    /// When true, the prompt uses the image-generation model instead of the user-selected model.
+    var isImageGenerationMode: Bool = false
+
     /// View model for managing chat suggestions. Always initialized, but only populated when feature flag is enabled.
     let suggestionsViewModel: AIChatSuggestionsViewModel
 
@@ -166,8 +169,13 @@ final class AIChatOmnibarController {
         }
     }
 
+    /// Re-triggers a suggestions fetch using the current query text.
+    func refetchSuggestions() {
+        fetchSuggestionsIfNeeded(query: currentText)
+    }
+
     private func fetchSuggestionsIfNeeded(query: String) {
-        guard hasBeenActivated, isSuggestionsEnabled, let reader = suggestionsReader else { return }
+        guard hasBeenActivated, isSuggestionsEnabled, !isImageGenerationMode, let reader = suggestionsReader else { return }
 
         // Cancel any in-flight fetch
         currentFetchTask?.cancel()
@@ -191,10 +199,12 @@ final class AIChatOmnibarController {
         preferences.selectedModelId ?? models.first(where: { $0.entityHasAccess })?.id ?? ""
     }
 
-    /// The model ID to include in the prompt. Returns nil if the user has never
-    /// explicitly selected a model, so the backend uses its default.
+    /// The model ID to include in the prompt.
+    /// Returns `"image-generation"` when image generation mode is active.
+    /// Returns nil if the user has never explicitly selected a model, so the backend uses its default.
     var currentModelId: String? {
-        preferences.selectedModelId
+        if isImageGenerationMode { return "image-generation" }
+        return preferences.selectedModelId
     }
 
     /// Whether the currently selected model supports image upload.
