@@ -213,6 +213,18 @@ final class SyncSettingsViewControllerErrorTests: XCTestCase {
         XCTAssertTrue(syncAutoRestoreHandler.persistedDecisions.isEmpty)
     }
 
+    @MainActor
+    func testWhenViewWillAppearThenAutoRestoreDecisionIsRefreshedFromHandler() {
+        syncAutoRestoreHandler.isAutoRestoreFeatureEnabled = true
+        syncAutoRestoreHandler.existingAutoRestoreDecision = false
+        vc.loadViewIfNeeded()
+
+        syncAutoRestoreHandler.existingAutoRestoreDecision = true
+        vc.viewWillAppear(false)
+
+        XCTAssertEqual(vc.viewModel?.isAutoRestoreEnabled, true)
+    }
+
     func x_test_syncCodeEntered_accountAlreadyExists_oneDevice_disconnectsThenLogsInAgain() async {
         await setUpWithSingleDevice(id: "1")
 
