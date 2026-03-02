@@ -160,8 +160,11 @@ final class QuitSurveyViewModel: ObservableObject {
         let reasons = getReasonsForPixel()
         fireThumbsDownPixelSubmission(reasons: reasons)
 
-        // Store reasons for the return user pixel (fired on next app launch)
-        persistor?.pendingReturnUserReasons = reasons
+        // Mark that the user submitted feedback so we can fire a simple return user pixel
+        // on next launch. Do NOT persist the detailed reasons — the unique combination of
+        // survey responses acts as a fingerprint that could link the quit event to the
+        // next launch, enabling cross-session tracking.
+        persistor?.pendingReturnUserReasons = "submitted"
 
         feedbackSender.sendFeedback(feedback) { [weak self] in
             DispatchQueue.main.async {

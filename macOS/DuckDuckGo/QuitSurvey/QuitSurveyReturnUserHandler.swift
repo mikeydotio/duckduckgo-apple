@@ -78,11 +78,12 @@ final class QuitSurveyReturnUserHandler {
             return
         }
 
-        // Within day 8-14 window: Fire pixel and clear reasons
-        guard let reasons = persistor.pendingReturnUserReasons else { return }
-
+        // Within day 8-14 window: Fire pixel and clear stored value.
+        // The detailed survey reasons are intentionally NOT persisted or re-fired here
+        // to prevent the unique reason combination from being used as a cross-session
+        // fingerprint linking the quit event to this return event.
         Logger.general.debug("Quit survey return user: Day \(daysSinceInstall, privacy: .public), firing pixel")
-        PixelKit.fire(QuitSurveyPixels.quitSurveyReturnUser(reasons: reasons))
+        PixelKit.fire(QuitSurveyPixels.quitSurveyReturnUser)
         persistor.pendingReturnUserReasons = nil
     }
 
