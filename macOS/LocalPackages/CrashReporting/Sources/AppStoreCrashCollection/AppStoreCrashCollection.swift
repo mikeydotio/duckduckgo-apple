@@ -1,5 +1,5 @@
 //
-//  AppStoreCrashCollectionController.swift
+//  AppStoreCrashCollection.swift
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -30,15 +30,15 @@ extension CrashReportingFactory: AppStoreCrashReportingFactory {
                                    featureFlagger: FeatureFlagger,
                                    fireCrashPixel: @escaping (_ bundleID: String?, _ appVersion: String?) -> Void,
                                    promptForConsent: @escaping (_ crashPayload: Data) async -> Bool) -> any CrashReporting {
-        return AppStoreCrashCollectionController(internalUserDecider: internalUserDecider,
-                                                 featureFlagger: featureFlagger,
-                                                 fireCrashPixel: fireCrashPixel,
-                                                 promptForConsent: promptForConsent)
+        return AppStoreCrashCollection(internalUserDecider: internalUserDecider,
+                                       featureFlagger: featureFlagger,
+                                       fireCrashPixel: fireCrashPixel,
+                                       promptForConsent: promptForConsent)
     }
 }
 
 @available(macOS 12.0, *)
-public final class AppStoreCrashCollectionController: CrashReporting {
+public final class AppStoreCrashCollection: CrashReporting {
 
     private lazy var crashCollection = CrashCollection(
         crashReportSender: CrashReportSender(platform: .macOSAppStore, pixelEvents: nil)

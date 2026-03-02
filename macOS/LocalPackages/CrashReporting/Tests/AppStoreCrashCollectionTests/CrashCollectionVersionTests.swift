@@ -18,15 +18,16 @@
 
 import AppStoreCrashCollection
 import Crashes
-import XCTest
+import Testing
 
-final class CrashCollectionVersionTests: XCTestCase {
+struct CrashCollectionVersionTests {
 
+    @Test("Build number is removed from App Version")
     @available(macOS 12.0, *)
-    func testBuildNumberIsRemovedFromAppVersion() {
-        XCTAssertNil(CrashCollection.removeBuildNumber(from: nil))
-        XCTAssertEqual(CrashCollection.removeBuildNumber(from: "1.2"), "1.2")
-        XCTAssertEqual(CrashCollection.removeBuildNumber(from: "1.2.3"), "1.2.3")
-        XCTAssertEqual(CrashCollection.removeBuildNumber(from: "1.2.3.4"), "1.2.3")
+    func buildNumberIsRemovedFromAppVersion() {
+        #expect(CrashCollection.removeBuildNumber(from: nil) == nil)
+        #expect(CrashCollection.removeBuildNumber(from: "1.2") == "1.2")
+        #expect(CrashCollection.removeBuildNumber(from: "1.2.3") == "1.2.3")
+        #expect(CrashCollection.removeBuildNumber(from: "1.2.3.4") == "1.2.3")
     }
 }
