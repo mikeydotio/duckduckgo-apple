@@ -1594,7 +1594,8 @@ extension Tab {
     func resume() {
         guard isSuspended else { return }
         isSuspended = false
-        reloadIfNeeded(source: .contentUpdated)
+        // Use `webViewDisplayed` since `contentUpdated` creates a new local history entry.
+        reloadIfNeeded(source: .webViewDisplayed)
     }
 
 }
