@@ -23,13 +23,13 @@ import Foundation
 enum ConfirmationAction {
     case quit
     case closePinnedTab
-    case closeFloatingAIChat
+    case closeTabWithFloatingAIChat
 
     var shortcutText: String {
         switch self {
         case .quit: return "⌘Q"
         case .closePinnedTab: return "⌘W"
-        case .closeFloatingAIChat: return "⌘W"
+        case .closeTabWithFloatingAIChat: return "⌘W"
         }
     }
 }
@@ -68,7 +68,7 @@ final class WarnBeforeQuitViewModel: ObservableObject {
     var onHoverChange: ((Bool) -> Void)?
 
     private var usesFloatingCloseLayout: Bool {
-        action == .closeFloatingAIChat && (buttonHandlers[.closeTab] != nil || buttonHandlers[.dismiss] != nil)
+        action == .closeTabWithFloatingAIChat && (buttonHandlers[.closeTab] != nil || buttonHandlers[.dismiss] != nil)
     }
 
     var shouldShowShortcutIndicator: Bool {
@@ -81,7 +81,7 @@ final class WarnBeforeQuitViewModel: ObservableObject {
             return UserText.confirmQuitAction
         case .closePinnedTab:
             return UserText.confirmCloseAction
-        case .closeFloatingAIChat:
+        case .closeTabWithFloatingAIChat:
             return usesFloatingCloseLayout ? UserText.aiChatFloatingCloseWarningTitle : UserText.aiChatFloatingCloseConfirmationAction
         }
     }
@@ -96,7 +96,7 @@ final class WarnBeforeQuitViewModel: ObservableObject {
             return startupPreferences?.restorePreviousSession == true ? UserText.confirmQuitSubtitle : nil
         case .closePinnedTab:
             return nil
-        case .closeFloatingAIChat:
+        case .closeTabWithFloatingAIChat:
             return UserText.aiChatFloatingCloseWarningSubtitle
         }
     }

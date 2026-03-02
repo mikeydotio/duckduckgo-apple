@@ -1808,7 +1808,7 @@ extension TabBarViewController: TabBarViewItemDelegate {
         dismissAIChatCloseWarningPresenter()
 
         let presenter = WarnBeforeQuitOverlayPresenter(
-            action: .closeFloatingAIChat,
+            action: .closeTabWithFloatingAIChat,
             buttonHandlers: [.closeTab: { [weak self] in
                 self?.dismissAIChatCloseWarningPresenter()
                 self?.closeTab(for: tabID)
@@ -1822,7 +1822,7 @@ extension TabBarViewController: TabBarViewItemDelegate {
         )
 
         let manager = WarnBeforeQuitManager(
-            action: .closeFloatingAIChat,
+            action: .closeTabWithFloatingAIChat,
             isWarningEnabled: { true }
         )
 

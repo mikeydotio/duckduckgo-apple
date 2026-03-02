@@ -291,7 +291,7 @@ final class WarnBeforeQuitManager: ApplicationTerminationDecider {
         // injections via CGEventPost won't appear in the HID state.
         // Exclude floating AI Chat close from this guard: on first Cmd+W after detach,
         // hidSystemState can briefly report a false negative and incorrectly bypass warning UI.
-        if action != .closeFloatingAIChat,
+        if action != .closeTabWithFloatingAIChat,
            let isPhysicalKeyPress,
            !isPhysicalKeyPress() {
             Logger.general.debug("WarnBeforeQuitManager: Skipping warning — key event is not from physical keyboard")

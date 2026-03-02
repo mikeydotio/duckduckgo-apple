@@ -1025,8 +1025,8 @@ extension MainViewController {
            currentEvent.keyEquivalent == [.command, "w"] {
             if featureFlagger.isFeatureOn(.warnBeforeQuit),
                aiChatCoordinator.isChatFloating(for: tab.uuid) {
-                showFloatingAIChatShortcutCloseConfirmation(at: index, currentEvent: currentEvent) { [weak self] shouldProceed in
-                    guard let self, shouldProceed else { return }
+                showFloatingAIChatShortcutCloseConfirmation(at: index, currentEvent: currentEvent) { [weak self] in
+                    guard let self else { return }
                     self.aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
                     self.tabCollectionViewModel.remove(at: index)
                 }
@@ -1036,8 +1036,8 @@ extension MainViewController {
             if case .pinned(let pinnedIndex) = index {
                 if featureFlagger.isFeatureOn(.warnBeforeQuit) {
                     if tabsPreferences.warnBeforeClosingPinnedTabs {
-                        showPinnedTabCloseConfirmation(atPinnedIndex: pinnedIndex, currentEvent: currentEvent) { [weak self] shouldProceed in
-                            guard let self, shouldProceed else { return }
+                        showPinnedTabCloseConfirmation(atPinnedIndex: pinnedIndex, currentEvent: currentEvent) { [weak self] in
+                            guard let self else { return }
                             self.aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
                             self.tabCollectionViewModel.remove(at: .pinned(pinnedIndex))
                         }
@@ -1072,24 +1072,27 @@ extension MainViewController {
     private func showFloatingAIChatShortcutCloseConfirmation(
         at index: TabIndex,
         currentEvent: NSEvent,
-        completion: @escaping (Bool) -> Void
+        onProceed: @escaping () -> Void
     ) {
-        guard let manager = WarnBeforeQuitManager(
-            currentEvent: currentEvent,
-            action: .closeFloatingAIChat,
-            isWarningEnabled: { true },
-            isPhysicalKeyPress: WarnBeforeQuitManager.makePhysicalKeyPressCheck(for: currentEvent)
-        ) else {
-            completion(false)
-            return
-        }
-
         let shouldShowDontShowAgainForPinnedTab: Bool
         switch index {
         case .pinned:
             shouldShowDontShowAgainForPinnedTab = tabsPreferences.warnBeforeClosingPinnedTabs
         case .unpinned:
             shouldShowDontShowAgainForPinnedTab = false
+        }
+
+        let isWarningEnabled: () -> Bool = shouldShowDontShowAgainForPinnedTab
+            ? { [tabsPreferences] in tabsPreferences.warnBeforeClosingPinnedTabs }
+            : { true }
+
+        guard let manager = WarnBeforeQuitManager(
+            currentEvent: currentEvent,
+            action: .closeTabWithFloatingAIChat,
+            isWarningEnabled: isWarningEnabled,
+            isPhysicalKeyPress: WarnBeforeQuitManager.makePhysicalKeyPressCheck(for: currentEvent)
+        ) else {
+            return
         }
 
         let buttonHandlers: [WarnBeforeButtonRole: () -> Void]
@@ -1102,7 +1105,7 @@ extension MainViewController {
         }
 
         let presenter = WarnBeforeQuitOverlayPresenter(
-            action: .closeFloatingAIChat,
+            action: .closeTabWithFloatingAIChat,
             buttonHandlers: buttonHandlers,
             onHoverChange: { [weak manager] isHovering in
                 manager?.setMouseHovering(isHovering)
@@ -1118,7 +1121,7 @@ extension MainViewController {
             }
         )
         presenter.bind(to: manager) {
-            completion(true)
+            onProceed()
         }
     }
 
@@ -1126,12 +1129,12 @@ extension MainViewController {
     /// - Parameters:
     ///   - pinnedIndex: The index of the pinned tab
     ///   - currentEvent: The current keyboard event
-    ///   - completion: Callback invoked when a decision is made (async or sync). Called with whether to proceed.
+    ///   - onProceed: Callback invoked only when user confirmation resolves to proceed.
     @MainActor
     private func showPinnedTabCloseConfirmation(
         atPinnedIndex pinnedIndex: Int,
         currentEvent: NSEvent,
-        completion: @escaping (Bool) -> Void
+        onProceed: @escaping () -> Void
     ) {
         guard let manager = WarnBeforeQuitManager(
             currentEvent: currentEvent,
@@ -1139,7 +1142,6 @@ extension MainViewController {
             isWarningEnabled: { [tabsPreferences] in tabsPreferences.warnBeforeClosingPinnedTabs },
             isPhysicalKeyPress: WarnBeforeQuitManager.makePhysicalKeyPressCheck(for: currentEvent)
         ) else {
-            completion(false)
             return
         }
 
@@ -1156,7 +1158,7 @@ extension MainViewController {
             }
         )
         presenter.bind(to: manager) {
-            completion(true)
+            onProceed()
         }
     }
 
