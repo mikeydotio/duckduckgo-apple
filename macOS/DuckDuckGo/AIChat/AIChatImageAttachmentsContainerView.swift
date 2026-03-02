@@ -41,9 +41,6 @@ final class AIChatImageAttachmentsContainerView: NSView {
     /// Called when attachments are added or removed.
     var onAttachmentsChanged: (() -> Void)?
 
-    /// Called when a thumbnail is clicked.
-    var onThumbnailClicked: ((UUID) -> Void)?
-
     /// Called when an attachment is about to be removed. Allows parent to cleanup (e.g., cancel resize tasks).
     var onAttachmentWillRemove: ((UUID) -> Void)?
 
@@ -82,9 +79,6 @@ final class AIChatImageAttachmentsContainerView: NSView {
         let thumbnailView = AIChatImageAttachmentThumbnailView(attachment: attachment)
         thumbnailView.onRemove = { [weak self] id in
             self?.removeAttachment(id: id)
-        }
-        thumbnailView.onThumbnailClicked = { [weak self] id in
-            self?.onThumbnailClicked?(id)
         }
         stackView.addArrangedSubview(thumbnailView)
 

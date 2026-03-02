@@ -22,7 +22,6 @@ import DesignResourcesKit
 import DesignResourcesKitIcons
 
 /// A square thumbnail view that displays an attached image with a remove button overlay.
-/// Clicking the thumbnail opens the file in Finder; clicking the X removes the attachment.
 final class AIChatImageAttachmentThumbnailView: NSView {
 
     private enum Constants {
@@ -47,8 +46,6 @@ final class AIChatImageAttachmentThumbnailView: NSView {
 
     let attachmentId: UUID
     var onRemove: ((UUID) -> Void)?
-    var onThumbnailClicked: ((UUID) -> Void)?
-
     private let imageContainerView: NSView = {
         let view = NSView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -169,8 +166,6 @@ final class AIChatImageAttachmentThumbnailView: NSView {
 
         if removeButton.frame.contains(locationInView) {
             onRemove?(attachmentId)
-        } else {
-            onThumbnailClicked?(attachmentId)
         }
     }
 
