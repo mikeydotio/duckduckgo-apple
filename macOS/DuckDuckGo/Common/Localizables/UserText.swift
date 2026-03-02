@@ -651,6 +651,7 @@ struct UserText {
     static let aiChatSearchToggleButtonTooltip = NSLocalizedString("aichat.search-toggle-button.tooltip", value: "Search the web", comment: "Tooltip for the search toggle button in AI chat omnibar")
     static let aiChatImageUploadButtonTooltip = NSLocalizedString("aichat.image-upload-button.tooltip", value: "Attach image", comment: "Tooltip for the image upload button in AI chat omnibar")
     static let aiChatModelPickerButtonTooltip = NSLocalizedString("aichat.model-picker-button.tooltip", value: "Choose model", comment: "Tooltip for the model picker button in AI chat omnibar")
+    static let aiChatModelPickerAdvancedSectionHeader = NSLocalizedString("aichat.model-picker.advanced-section-header", value: "Advanced Models - DuckDuckGo subscription", comment: "Section header in the model picker menu for premium models that require a subscription")
     static let aiChatRemoveAttachmentButtonAccessibility = NSLocalizedString("aichat.remove-attachment-button.accessibility", value: "Remove attachment", comment: "Accessibility label for the remove attachment button on image thumbnails in AI chat")
     static let aiChatRemoveAttachmentButtonTooltip = NSLocalizedString("aichat.remove-attachment-button.tooltip", value: "Remove attachment", comment: "Tooltip for the remove attachment button on image thumbnails in AI chat")
     static let aiChatOmnibarPlaceholder = NSLocalizedString("aichat.omnibar.placeholder", value: "Ask privately", comment: "Placeholder text shown in the Duck.ai chat input field")

@@ -2480,6 +2480,18 @@
         }
       }
     },
+    "aichat.model-picker.advanced-section-header" : {
+      "comment" : "Section header in the model picker menu for premium models that require a subscription",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Advanced Models - DuckDuckGo subscription"
+          }
+        }
+      }
+    },
     "aichat.omnibar.placeholder" : {
       "comment" : "Placeholder text shown in the Duck.ai chat input field",
       "extractionState" : "extracted_with_value",
