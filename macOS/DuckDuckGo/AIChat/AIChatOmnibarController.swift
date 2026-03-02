@@ -348,7 +348,7 @@ final class AIChatOmnibarController {
     /// Converts image attachments to base64-encoded `NativePromptImage` values for the JS bridge.
     private static func nativePromptImages(from attachments: [AIChatImageAttachment]) -> [AIChatNativePrompt.NativePromptImage]? {
         guard !attachments.isEmpty else { return nil }
-        return attachments.compactMap { attachment in
+        let images = attachments.compactMap { attachment -> AIChatNativePrompt.NativePromptImage? in
             guard let tiffData = attachment.image.tiffRepresentation,
                   let bitmap = NSBitmapImageRep(data: tiffData),
                   let pngData = bitmap.representation(using: .png, properties: [:]) else {
@@ -357,6 +357,7 @@ final class AIChatOmnibarController {
             let base64 = pngData.base64EncodedString()
             return AIChatNativePrompt.NativePromptImage(data: base64, format: "png")
         }
+        return images.isEmpty ? nil : images
     }
 
     /// Checks if the input text is a navigable URL (not a search query).
