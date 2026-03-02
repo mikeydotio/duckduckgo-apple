@@ -67,8 +67,13 @@ public class SaveRecoveryKeyViewModel: ObservableObject {
     @discardableResult
     func autoRestoreToggled(_ isEnabled: Bool) -> Bool {
         guard isAutoRestoreFeatureEnabled else { return true }
-        guard persistDecision(isEnabled) else { return false }
+        let previousValue = isAutoRestoreEnabled
         isAutoRestoreEnabled = isEnabled
+
+        guard persistDecision(isEnabled) else {
+            isAutoRestoreEnabled = previousValue
+            return false
+        }
         return true
     }
 

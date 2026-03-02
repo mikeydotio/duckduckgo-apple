@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Combine
 import XCTest
 @testable import SyncUI_iOS
 
@@ -108,6 +109,31 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
         XCTAssertFalse(didPersist)
         XCTAssertTrue(sut.isAutoRestoreEnabled)
         XCTAssertEqual(persistSpy.persistedDecisions, [false])
+    }
+
+    func testWhenAutoRestoreToggledAndPersistFailsThenPublishesOptimisticValueAndRevertValue() {
+        let persistSpy = AutoRestoreDecisionPersistSpy()
+        persistSpy.result = false
+        let sut = SaveRecoveryKeyViewModel(
+            key: "test-key",
+            showRecoveryPDFAction: {},
+            onDismiss: {},
+            isAutoRestoreFeatureEnabled: true,
+            existingAutoRestoreDecision: true,
+            persistAutoRestoreDecision: persistSpy.persist(_:),
+            presentLearnMore: {}
+        )
+        var publishedValues: [Bool] = []
+        let cancellable = sut.$isAutoRestoreEnabled
+            .dropFirst()
+            .sink { value in
+                publishedValues.append(value)
+            }
+
+        _ = sut.autoRestoreToggled(false)
+
+        _ = cancellable
+        XCTAssertEqual(publishedValues, [false, true])
     }
 
     func testWhenAutoRestoreToggledAndFeatureDisabledThenReturnsTrueWithoutPersisting() {
