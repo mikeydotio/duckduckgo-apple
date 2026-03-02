@@ -386,6 +386,10 @@ extension DefaultOmniBarViewController {
 
         return selectedText == text
     }
+
+    private func isValidDuckAIURLSubmission(_ query: String) -> Bool {
+        !query.contains(where: { $0.isWhitespace }) && URL.webUrl(from: query) != nil
+    }
 }
 
 // MARK: - OmniBarEditingStateViewControllerDelegate
@@ -463,7 +467,11 @@ extension DefaultOmniBarViewController: UITextViewDelegate {
 
             if selectedTextEntryMode == .aiChat {
                 dismissIPadDuckAIMode()
-                omniDelegate?.onPromptSubmitted(query, tools: nil)
+                if isValidDuckAIURLSubmission(query) {
+                    omniDelegate?.onOmniQuerySubmitted(query)
+                } else {
+                    omniDelegate?.onPromptSubmitted(query, tools: nil)
+                }
             } else {
                 omniDelegate?.onOmniQuerySubmitted(query)
             }
