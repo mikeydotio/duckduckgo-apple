@@ -226,16 +226,24 @@ extension HomePage.Models {
 
         var randomisedFeatures: [FeatureType] {
             var features: [FeatureType]  = [.defaultBrowser]
-            var shuffledFeatures = FeatureType.allCases.filter { $0 != .defaultBrowser }
+            var shuffledFeatures = availableFeatures.filter { $0 != .defaultBrowser }
             shuffledFeatures.shuffle()
             features.append(contentsOf: shuffledFeatures)
             return features
         }
 
         var firstRunFeatures: [FeatureType] {
-            var features = FeatureType.allCases.filter { $0 != .duckplayer }
+            var features = availableFeatures.filter { $0 != .duckplayer }
             features.insert(.duckplayer, at: 0)
             return features
+        }
+
+        private var availableFeatures: [FeatureType] {
+            if isAppStoreBuild {
+                return [.duckplayer, .emailProtection, .defaultBrowser, .importBookmarksAndPasswords, .subscription]
+            } else {
+                return [.duckplayer, .emailProtection, .defaultBrowser, .dock, .importBookmarksAndPasswords, .subscription]
+            }
         }
 
         private func updateVisibleMatrix() {
@@ -278,11 +286,7 @@ extension HomePage.Models {
         // We ignore the `networkProtectionRemoteMessage` case here to avoid it getting accidentally included - it has special handling and will get
         // included elsewhere.
         static var allCases: [HomePage.Models.FeatureType] {
-            if StandardApplicationBuildType().isAppStoreBuild {
-                [.duckplayer, .emailProtection, .defaultBrowser, .importBookmarksAndPasswords, .subscription]
-            } else {
-                [.duckplayer, .emailProtection, .defaultBrowser, .dock, .importBookmarksAndPasswords, .subscription]
-            }
+            [.duckplayer, .emailProtection, .defaultBrowser, .dock, .importBookmarksAndPasswords, .subscription]
         }
 
         case duckplayer

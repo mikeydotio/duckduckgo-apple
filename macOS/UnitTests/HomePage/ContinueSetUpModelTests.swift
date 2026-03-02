@@ -42,6 +42,7 @@ final class ContinueSetUpModelTests: XCTestCase {
     var homePageContinueSetUpModelPersisting: MockHomePageContinueSetUpModelPersisting!
     var pixelHandler: MockNewTabPageNextStepsCardsPixelHandler!
     var cardActionsHandler: MockNewTabPageNextStepsCardsActionHandler!
+    private let nonAppStoreFeatureTypes: [HomePage.Models.FeatureType] = [.duckplayer, .emailProtection, .defaultBrowser, .dock, .importBookmarksAndPasswords, .subscription]
 
     @MainActor override func setUp() {
         UserDefaultsWrapper<Any>.clearAll()
@@ -117,7 +118,8 @@ final class ContinueSetUpModelTests: XCTestCase {
             subscriptionCardVisibilityManager: subscriptionCardVisibilityManager,
             persistor: homePageContinueSetUpModelPersisting,
             pixelHandler: pixelHandler,
-            cardActionsHandler: cardActionsHandler
+            cardActionsHandler: cardActionsHandler,
+            applicationBuildType: makeBuildType(isAppStoreBuild: false)
         )
 
         XCTAssertFalse(vm.isMoreOrLessButtonNeeded)
@@ -135,7 +137,8 @@ final class ContinueSetUpModelTests: XCTestCase {
             subscriptionCardVisibilityManager: subscriptionCardVisibilityManager,
             persistor: homePageContinueSetUpModelPersisting,
             pixelHandler: pixelHandler,
-            cardActionsHandler: cardActionsHandler
+            cardActionsHandler: cardActionsHandler,
+            applicationBuildType: makeBuildType(isAppStoreBuild: false)
         )
 
         XCTAssertEqual(vm.visibleFeaturesMatrix, expectedMatrix)
@@ -153,7 +156,7 @@ final class ContinueSetUpModelTests: XCTestCase {
         vm.shouldShowAllFeatures = true
 
         XCTAssertEqual(vm.visibleFeaturesMatrix[0][0], HomePage.Models.FeatureType.defaultBrowser)
-        XCTAssertEqual(vm.visibleFeaturesMatrix.reduce([], +).count, HomePage.Models.FeatureType.allCases.count)
+        XCTAssertEqual(vm.visibleFeaturesMatrix.reduce([], +).count, nonAppStoreFeatureTypes.count)
     }
 
     func testWhenTogglingShowAllFeatureThenCorrectElementsAreVisible() {
@@ -302,7 +305,8 @@ final class ContinueSetUpModelTests: XCTestCase {
             subscriptionCardVisibilityManager: subscriptionCardVisibilityManager,
             persistor: homePageContinueSetUpModelPersisting,
             pixelHandler: pixelHandler,
-            cardActionsHandler: cardActionsHandler
+            cardActionsHandler: cardActionsHandler,
+            applicationBuildType: makeBuildType(isAppStoreBuild: false)
         )
 
         XCTAssertEqual(vm.visibleFeaturesMatrix, [[]])
@@ -366,7 +370,7 @@ final class ContinueSetUpModelTests: XCTestCase {
     }
 
     private func expectedFeatureMatrixWithout(types: [HomePage.Models.FeatureType]) -> [[HomePage.Models.FeatureType]] {
-        var features = HomePage.Models.FeatureType.allCases
+        var features = nonAppStoreFeatureTypes
         var indexesToRemove: [Int] = []
         for type in types {
             indexesToRemove.append(features.firstIndex(of: type)!)
@@ -430,7 +434,7 @@ final class ContinueSetUpModelTests: XCTestCase {
     }
 
     @MainActor func testWhenAskedToPerformActionForImportPromptThrowsThenItHandlesCardActionAndRefreshesMatrix() {
-        let numberOfFeatures = HomePage.Models.FeatureType.allCases.count
+        let numberOfFeatures = nonAppStoreFeatureTypes.count
 
         vm.shouldShowAllFeatures = true
         XCTAssertEqual(vm.visibleFeaturesMatrix.flatMap { $0 }.count, numberOfFeatures)
