@@ -346,16 +346,26 @@ final class AIChatOmnibarController {
     }
 
     /// Converts image attachments to base64-encoded `NativePromptImage` values for the JS bridge.
+    /// Preserves JPEG encoding for `.jpg`/`.jpeg` sources to avoid payload bloat;
+    /// uses PNG for all other formats (including resized WebP).
     private static func nativePromptImages(from attachments: [AIChatImageAttachment]) -> [AIChatNativePrompt.NativePromptImage]? {
         guard !attachments.isEmpty else { return nil }
         let images = attachments.compactMap { attachment -> AIChatNativePrompt.NativePromptImage? in
             guard let tiffData = attachment.image.tiffRepresentation,
-                  let bitmap = NSBitmapImageRep(data: tiffData),
-                  let pngData = bitmap.representation(using: .png, properties: [:]) else {
+                  let bitmap = NSBitmapImageRep(data: tiffData) else {
                 return nil
             }
-            let base64 = pngData.base64EncodedString()
-            return AIChatNativePrompt.NativePromptImage(data: base64, format: "png")
+
+            let ext = (attachment.fileName as NSString).pathExtension.lowercased()
+            let isJPEG = ext == "jpg" || ext == "jpeg"
+            let fileType: NSBitmapImageRep.FileType = isJPEG ? .jpeg : .png
+            let format = isJPEG ? "jpeg" : "png"
+
+            guard let data = bitmap.representation(using: fileType, properties: [:]) else {
+                return nil
+            }
+
+            return AIChatNativePrompt.NativePromptImage(data: data.base64EncodedString(), format: format)
         }
         return images.isEmpty ? nil : images
     }
