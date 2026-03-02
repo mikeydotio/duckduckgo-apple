@@ -53,6 +53,7 @@ extension HomePage.Models {
         private let subscriptionCardVisibilityManager: HomePageSubscriptionCardVisibilityManaging
         private let pixelHandler: NewTabPageNextStepsCardsPixelHandling
         private let cardActionsHandler: NewTabPageNextStepsCardsActionHandling
+        private let isAppStoreBuild: Bool
 
         @UserDefaultsWrapper(key: .homePageShowAllFeatures, defaultValue: false)
         var shouldShowAllFeatures: Bool {
@@ -93,7 +94,8 @@ extension HomePage.Models {
              subscriptionCardVisibilityManager: HomePageSubscriptionCardVisibilityManaging,
              persistor: HomePageContinueSetUpModelPersisting,
              pixelHandler: NewTabPageNextStepsCardsPixelHandling,
-             cardActionsHandler: NewTabPageNextStepsCardsActionHandling) {
+             cardActionsHandler: NewTabPageNextStepsCardsActionHandling,
+             applicationBuildType: ApplicationBuildType = StandardApplicationBuildType()) {
 
             self.defaultBrowserProvider = defaultBrowserProvider
             self.dockCustomizer = dockCustomizer
@@ -104,6 +106,7 @@ extension HomePage.Models {
             self.pixelHandler = pixelHandler
             self.cardActionsHandler = cardActionsHandler
             self.persistor = persistor
+            self.isAppStoreBuild = applicationBuildType.isAppStoreBuild
 
             shouldShowAllFeaturesPublisher = shouldShowAllFeaturesSubject.removeDuplicates().eraseToAnyPublisher()
 
@@ -248,11 +251,7 @@ extension HomePage.Models {
         }
 
         private var shouldDockCardBeVisible: Bool {
-#if !APPSTORE
-            persistor.shouldShowAddToDockSetting && !dockCustomizer.isAddedToDock
-#else
-            return false
-#endif
+            !isAppStoreBuild && persistor.shouldShowAddToDockSetting && !dockCustomizer.isAddedToDock
         }
 
         private var shouldImportCardBeVisible: Bool {
@@ -279,11 +278,11 @@ extension HomePage.Models {
         // We ignore the `networkProtectionRemoteMessage` case here to avoid it getting accidentally included - it has special handling and will get
         // included elsewhere.
         static var allCases: [HomePage.Models.FeatureType] {
-#if APPSTORE
-            [.duckplayer, .emailProtection, .defaultBrowser, .importBookmarksAndPasswords, .subscription]
-#else
-            [.duckplayer, .emailProtection, .defaultBrowser, .dock, .importBookmarksAndPasswords, .subscription]
-#endif
+            if StandardApplicationBuildType().isAppStoreBuild {
+                [.duckplayer, .emailProtection, .defaultBrowser, .importBookmarksAndPasswords, .subscription]
+            } else {
+                [.duckplayer, .emailProtection, .defaultBrowser, .dock, .importBookmarksAndPasswords, .subscription]
+            }
         }
 
         case duckplayer
