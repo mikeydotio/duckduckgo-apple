@@ -300,16 +300,11 @@ final class SubscriptionFlowViewModel: ObservableObject {
         !isCurrentURL(matching: .plans) &&
         !isCurrentURL(matching: .welcome) &&
         !isCurrentURL(matching: .activationFlowSuccess) &&
-        !isCurrentURL(matching: subscriptionManager.url(for: .baseURL).appendingPathComponent("add-email/success"))
+        !isCurrentURL(matching: .addEmailSuccess)
     }
 
     private func isCurrentURLMatchingPostPurchaseAddEmailFlow() -> Bool {
-        // Not defined in SubscriptionURL as this flow is only triggered by FE as a part of post purchase flow. Only need for comparison.
-        let baseURL = subscriptionManager.url(for: .baseURL)
-        let addEmailURL = baseURL.appendingPathComponent("add-email")
-        let addEmailSuccessURL = baseURL.appendingPathComponent("add-email/success")
-
-        return isCurrentURL(matching: addEmailURL) || isCurrentURL(matching: addEmailSuccessURL)
+        return isCurrentURL(matching: .addEmail) || isCurrentURL(matching: .addEmailSuccess)
     }
 
     private func isCurrentURL(matching subscriptionURL: SubscriptionURL) -> Bool {

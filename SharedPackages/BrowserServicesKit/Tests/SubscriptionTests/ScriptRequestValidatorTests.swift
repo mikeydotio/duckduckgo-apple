@@ -263,6 +263,42 @@ final class ScriptRequestValidatorTests: XCTestCase {
         XCTAssertTrue(result, "Plans path with tier query parameter should be allowed (query params are ignored in path validation)")
     }
 
+    func testCanPageRequestToken_AddEmailPath_ReturnsTrue() async throws {
+        // Given
+        let url = URL(string: "https://duckduckgo.com/subscriptions/add-email")!
+        let message = createMockMessage(url: url, isMainFrame: true, securityOriginHost: validHost)
+
+        // When
+        let result = await validator.canPageRequestToken(message)
+
+        // Then
+        XCTAssertTrue(result, "Add email path should be allowed")
+    }
+
+    func testCanPageRequestToken_AddEmailOTPPath_ReturnsTrue() async throws {
+        // Given
+        let url = URL(string: "https://duckduckgo.com/subscriptions/add-email/otp")!
+        let message = createMockMessage(url: url, isMainFrame: true, securityOriginHost: validHost)
+
+        // When
+        let result = await validator.canPageRequestToken(message)
+
+        // Then
+        XCTAssertTrue(result, "Add email OTP path should be allowed")
+    }
+
+    func testCanPageRequestToken_AddEmailSuccessPath_ReturnsTrue() async throws {
+        // Given
+        let url = URL(string: "https://duckduckgo.com/subscriptions/add-email/success")!
+        let message = createMockMessage(url: url, isMainFrame: true, securityOriginHost: validHost)
+
+        // When
+        let result = await validator.canPageRequestToken(message)
+
+        // Then
+        XCTAssertTrue(result, "Add email success path should be allowed")
+    }
+
     func testCanPageRequestToken_IdentityTheftRestorationPath_ReturnsTrue() async throws {
         // Given
         let url = URL(string: "https://duckduckgo.com/identity-theft-restoration")!

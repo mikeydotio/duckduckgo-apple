@@ -35,6 +35,9 @@ public enum SubscriptionURL: Equatable {
     case activationFlowAddEmailStep
     case activationFlowLinkViaEmailStep
     case activationFlowSuccess
+    case addEmail
+    case addEmailOTP
+    case addEmailSuccess
     case manageEmail
     case manageSubscriptionsInAppStore
     case identityTheftRestoration
@@ -78,6 +81,12 @@ public enum SubscriptionURL: Equatable {
                 baseURL.appendingPathComponent("activation-flow/another-device/email")
             case .activationFlowSuccess:
                 baseURL.appendingPathComponent("activation-flow/this-device/activate-by-email/success")
+            case .addEmail:
+                baseURL.appendingPathComponent("add-email")
+            case .addEmailOTP:
+                baseURL.appendingPathComponent("add-email/otp")
+            case .addEmailSuccess:
+                baseURL.appendingPathComponent("add-email/success")
             case .manageEmail:
                 baseURL.appendingPathComponent("manage")
             case .manageSubscriptionsInAppStore:
@@ -125,6 +134,9 @@ public enum SubscriptionURL: Equatable {
             .activationFlowAddEmailStep,
             .activationFlowLinkViaEmailStep,
             .activationFlowSuccess,
+            .addEmail,
+            .addEmailOTP,
+            .addEmailSuccess,
             .manageEmail,
             .identityTheftRestoration,
             .plans
