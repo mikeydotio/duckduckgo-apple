@@ -457,8 +457,8 @@ final class BWManager: BWManagement, ObservableObject {
         }
 
         guard let messageData = BWRequest.makeHandshakeRequest(with: publicKey,
-                                                                     messageId: messageIdGenerator.generateMessageId(),
-                                                                     applicationName: Self.applicationName).data else {
+                                                               messageId: messageIdGenerator.generateMessageId(),
+                                                               applicationName: Self.applicationName).data else {
             Logger.bitWarden.fault("BWManager: Making the handshake message failed")
             assertionFailure("BWManager: Making the handshake message failed")
             return
