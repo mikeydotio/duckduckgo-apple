@@ -121,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var syncFeatureFlagsCancellable: AnyCancellable?
     private var screenLockedCancellable: AnyCancellable?
     private var emailCancellables = Set<AnyCancellable>()
+    private(set) var promoService: PromoService?
     var privacyDashboardWindow: NSWindow?
 
     let tabCrashAggregator = TabCrashAggregator()
@@ -1263,6 +1264,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let urlEventHandlerResult = urlEventHandler.applicationDidFinishLaunching()
 
+        promoService = PromoServiceFactory.makePromoService(keyValueStore: keyValueStore, isExternallyActivated: urlEventHandlerResult.willOpenWindows)
+        NotificationCenter.default.post(name: .promoServiceAppLaunched, object: nil)
+
         setUpAutoClearHandler()
         BWManager.shared.initCommunication()
 
@@ -1358,6 +1362,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         guard didFinishLaunching else { return }
+
+        promoService?.applicationDidBecomeActive()
 
         // Fire quit survey return user pixel if the user completed the survey and returned within 8-14 day window
         let quitSurveyPersistor = QuitSurveyUserDefaultsPersistor(keyValueStore: keyValueStore)
