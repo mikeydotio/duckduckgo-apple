@@ -2504,13 +2504,13 @@ https://duckduckgo.com/mac";
 "onboarding.restore.prompt.body" = "You previously saved bookmarks or autofill data and enabled Auto-Restore.";
 
 /* Primary CTA to start restoring data on returning-user restore prompt */
-"onboarding.restore.prompt.restore.cta" = "Restore My Data";
+"onboarding.restore.prompt.restore.cta" = "Get My Stuff Back";
 
 /* Secondary CTA to skip restore on returning-user restore prompt */
-"onboarding.restore.prompt.skip.cta" = "Skip Restore";
+"onboarding.restore.prompt.skip.cta" = "Skip";
 
 /* Title for the returning-user restore prompt */
-"onboarding.restore.prompt.title" = "Hi there.\n\nWant me to restore your data from last time?";
+"onboarding.restore.prompt.title" = "Hey! Want to get your bookmarks, passwords, and more back?";
 
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Start Browsing";

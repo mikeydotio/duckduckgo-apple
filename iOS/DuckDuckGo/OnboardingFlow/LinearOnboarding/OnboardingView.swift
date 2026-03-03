@@ -132,7 +132,6 @@ struct OnboardingView: View {
         } else if model.shouldShowRestorePrompt {
             RestorePromptDialogContent(
                 animateText: $model.restorePromptState.animateTitle,
-                animateBody: $model.restorePromptState.animateBody,
                 showCTA: $model.restorePromptState.showContent,
                 isSkipped: $model.isSkipped,
                 restoreAction: {
