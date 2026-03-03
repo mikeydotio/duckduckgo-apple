@@ -411,7 +411,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     // swiftlint:disable cyclomatic_complexity
-    override init() {
+    init(dockCustomization: DockCustomization?) {
         let startupProfiler = StartupProfiler()
         let profilerToken = startupProfiler.startMeasuring(.appDelegateInit)
         defer {
@@ -419,6 +419,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         self.startupProfiler = startupProfiler
+        self.dockCustomization = dockCustomization
 
         // will not add crash handlers and will fire pixel on applicationDidFinishLaunching if didCrashDuringCrashHandlersSetUp == true
         let didCrashDuringCrashHandlersSetUp = UserDefaultsWrapper(key: .didCrashDuringCrashHandlersSetUp, defaultValue: false)
@@ -1249,10 +1250,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AtbAndVariantCleanup.cleanup()
         DefaultVariantManager().assignVariantIfNeeded { _ in
             // MARK: perform first time launch logic here
-        }
-
-        if StandardApplicationBuildType().isSparkleBuild {
-            dockCustomization = DockCustomizer()
         }
 
         let statisticsLoader = AppVersion.runType.requiresEnvironment ? StatisticsLoader.shared : nil
