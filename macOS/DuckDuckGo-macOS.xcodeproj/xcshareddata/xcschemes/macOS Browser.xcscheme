@@ -528,6 +528,26 @@
                ReferencedContainer = "container:../SharedPackages/WebExtensions">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BWIntegrationTests"
+               BuildableName = "BWIntegrationTests"
+               BlueprintName = "BWIntegrationTests"
+               ReferencedContainer = "container:LocalPackages/BWIntegration">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BWManagementSharedTests"
+               BuildableName = "BWManagementSharedTests"
+               BlueprintName = "BWManagementSharedTests"
+               ReferencedContainer = "container:LocalPackages/BWIntegration">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
