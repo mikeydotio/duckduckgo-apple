@@ -17,6 +17,7 @@
 //
 
 import AIChat
+import AppKitExtensions
 import AppUpdaterShared
 import AttributedMetric
 import AutoconsentStats
