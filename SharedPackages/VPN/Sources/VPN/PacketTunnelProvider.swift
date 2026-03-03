@@ -1460,8 +1460,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         Logger.networkProtection.log("⚪️ Tunnel interface is \(self.adapter.interfaceName ?? "unknown", privacy: .public)")
 
-        // Start packet relay (bridges packetFlow ↔ WireGuard socketpair)
-        packetRelay.start(packetFlow: packetFlow)
+        // Start packet relay (bridges packetFlow ↔ WireGuard via direct CGo calls)
+        guard let tunnelHandle = adapter.tunnelHandle else {
+            Logger.networkProtection.error("🦆 [Relay] No tunnel handle available after adapter start")
+            return
+        }
+        let wgInterface = wireGuardInterface
+        packetRelay.start(
+            packetFlow: packetFlow,
+            tunnelHandle: tunnelHandle,
+            receivePacket: { wgInterface.receivePacket(handle: $0, buf: $1, len: $2) },
+            setPacketCallback: { wgInterface.setPacketCallback(handle: $0, context: $1, callback: $2) }
+        )
 
         // These cases only make sense in the context of a connection that had trouble
         // and is being fixed, so we want to test the connection immediately.

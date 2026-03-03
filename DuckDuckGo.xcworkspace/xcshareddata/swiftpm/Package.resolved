@@ -285,7 +285,7 @@
       "location" : "https://github.com/duckduckgo/wireguard-apple",
       "state" : {
         "branch" : "diego/packet-relay-poc",
-        "revision" : "2fab3e460d305a64d3a6255c9533fffa42d79a5f"
+        "revision" : "549b1ea"
       }
     },
     {
