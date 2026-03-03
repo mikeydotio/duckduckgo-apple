@@ -163,6 +163,7 @@ class TabViewController: UIViewController {
     let adClickAttributionLogic = ContentBlocking.shared.makeAdClickAttributionLogic(tld: tld)
 
     private var httpsForced: Bool = false
+    private var browseXSafariHTTPSEnabled: Bool = false
     private var lastUpgradedURL: URL?
     private var lastError: Error?
     private var lastHttpStatusCode: Int?
@@ -1460,6 +1461,7 @@ class TabViewController: UIViewController {
 
         alert.addAction(UIAlertAction(title: UserText.customUrlSchemeBrowseHere, style: .default, handler: { _ in
             Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSBrowse)
+            self.browseXSafariHTTPSEnabled = true
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             components?.scheme = "https"
             if let httpsURL = components?.url {
@@ -1804,6 +1806,7 @@ extension TabViewController: WKNavigationDelegate {
         
         // definitely finished with any potential login cycle by this point, so don't try and handle it any more
         detectedLoginURL = nil
+        browseXSafariHTTPSEnabled = false
         updatePreview()
         linkProtection.setMainFrameUrl(nil)
         referrerTrimming.onFinishNavigation()
@@ -2384,11 +2387,22 @@ extension TabViewController: WKNavigationDelegate {
 
         let schemeType = SchemeHandler.schemeType(for: url)
         self.blobDownloadTargetFrame = nil
+
+        if browseXSafariHTTPSEnabled, url.scheme == "x-safari-https" {
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.scheme = "https"
+            if let httpsURL = components?.url {
+                load(url: httpsURL)
+            }
+            completion(.cancel)
+            return
+        }
+
         switch schemeType {
         case .allow:
             completion(.allow)
             return
-            
+
         case .navigational:
             performNavigationFor(url: url,
                                  navigationAction: navigationAction,
