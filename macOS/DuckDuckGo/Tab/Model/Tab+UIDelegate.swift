@@ -260,12 +260,19 @@ extension Tab: WKUIDelegate {
                  initiatedByFrame frame: WKFrameInfo,
                  completionHandler: @escaping (Bool) -> Void) {
         createAlertDialog(initiatedByFrame: frame, prompt: "") { parameters in
-            .beforeUnload(.init(parameters, callback: { result in
+            .beforeUnload(.init(parameters, callback: { [weak webView] result in
+                let shouldLeave: Bool
                 switch result {
                 case .failure:
-                    completionHandler(false)
-                case .success(let shouldLeave):
-                    completionHandler(shouldLeave)
+                    shouldLeave = false
+                case .success(let value):
+                    shouldLeave = value
+                }
+                completionHandler(shouldLeave)
+                if !shouldLeave {
+                    // WebKit doesn't reset isLoading when beforeunload cancels navigation,
+                    // causing a stale loading state in the UI (stop button, favicon spinner).
+                    webView?.stopLoading()
                 }
             }))
         }
