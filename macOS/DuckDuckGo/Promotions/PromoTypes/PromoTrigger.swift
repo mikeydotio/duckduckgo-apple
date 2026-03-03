@@ -24,4 +24,7 @@ enum PromoTrigger {
     case appLaunched
     case windowBecameKey
     case newTabPageAppeared
+#if DEBUG || REVIEW
+    case testTriggered
+#endif
 }

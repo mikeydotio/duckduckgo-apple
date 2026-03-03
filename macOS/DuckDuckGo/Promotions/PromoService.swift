@@ -124,6 +124,55 @@ final class PromoService: @unchecked Sendable, PromoHistoryProviding {
     var testQueue: DispatchQueue { stateQueue }
 #endif
 
+    /// Debug: Set a simulated "now" for cooldown and eligibility checks. In-memory only; does not persist across app launches.
+    func setDebugSimulatedDate(_ date: Date?) {
+        stateQueue.async { [weak self] in
+            self?.debugSimulatedDate = date
+        }
+    }
+
+    /// Clears debug date override and all promo history. For debug reset.
+    func resetDebugState() {
+        stateQueue.async { [weak self] in
+            guard let self else { return }
+            debugSimulatedDate = nil
+            for (_, session) in activeSessions {
+                session.showTask?.cancel()
+                session.timeout?.cancel()
+                session.eligibilityCancellable?.cancel()
+                let delegate = session.delegate
+                // Fire-and-forget: delegate.hide() must run on main; no need to await completion.
+                Task { @MainActor in
+                    delegate.hide()
+                }
+            }
+            activeSessions.removeAll()
+            historyStore.resetAll()
+            recordsSubject.send([:])
+        }
+    }
+
+    /// Debug: Force-show a promo by ID, bypassing all evaluation rules. Does not affect history or cooldowns.
+    func forceShow(promoId: String) {
+        stateQueue.async { [weak self] in
+            guard let self else { return }
+            guard let promo = promos.first(where: { $0.id == promoId }) else {
+                Logger.general.warning("PromoService: forceShow unknown promo ID \(promoId)")
+                return
+            }
+            guard let delegate = promo.delegate else {
+                Logger.general.warning("PromoService: forceShow - no delegate for promo \(promoId)")
+                return
+            }
+            let record = historyStore.record(for: promoId)
+            Task { @MainActor in
+                _ = await delegate.show(history: record)
+                delegate.hide()
+            }
+        }
+    }
+
+
     // MARK: - Internal State
 
     // MARK: Delegate registration

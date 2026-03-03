@@ -22,11 +22,18 @@ import Persistence
 
 struct PromoServiceFactory {
     /// Promotions to be coordinated by `PromoService`.
-    static let promos: [Promo] = []
+    static let promos: [Promo] = {
+        let promos: [Promo] = []
+#if DEBUG || REVIEW
+        return promos + TestPromoFactory.testPromos
+#else
+        return promos
+#endif
+    }()
 
     /// Triggers for promotions, mapped to `PromoTrigger` values.
     static let triggerPublisher: AnyPublisher<PromoTrigger, Never> = {
-        Publishers.Merge3(
+        let triggers = Publishers.Merge3(
             NotificationCenter.default.publisher(for: .promoServiceAppLaunched)
                 .map { _ in PromoTrigger.appLaunched },
             NotificationCenter.default.publisher(for: .newTabPageWebViewDidAppear)
@@ -34,6 +41,14 @@ struct PromoServiceFactory {
             NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
                 .map { _ in PromoTrigger.windowBecameKey }
         ).eraseToAnyPublisher()
+#if DEBUG || REVIEW
+        return Publishers.Merge(triggers,
+            NotificationCenter.default.publisher(for: .promoDebugTestTrigger)
+                .map { _ in PromoTrigger.testTriggered }
+        ).eraseToAnyPublisher()
+#else
+        return triggers
+#endif
     }()
 
     @MainActor
@@ -53,4 +68,7 @@ struct PromoServiceFactory {
 
 extension Notification.Name {
     static let promoServiceAppLaunched = Notification.Name("com.duckduckgo.app.promoService.appLaunched")
+#if DEBUG || REVIEW
+    static let promoDebugTestTrigger = Notification.Name("com.duckduckgo.app.promoService.debugTestTrigger")
+#endif
 }
