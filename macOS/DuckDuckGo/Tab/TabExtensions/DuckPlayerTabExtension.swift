@@ -203,6 +203,8 @@ extension DuckPlayerTabExtension: YoutubeOverlayUserScriptDelegate {
             nextNewWindowPolicy = .window(active: selected, burner: isBurner)
         case .splitPane:
             nextNewWindowPolicy = .splitPane(burner: isBurner)
+        case .peek:
+            nextNewWindowPolicy = .peek(burner: isBurner)
         }
 
         webView.loadInNewWindow(url)
