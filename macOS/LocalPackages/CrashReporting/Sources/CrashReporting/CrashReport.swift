@@ -21,15 +21,11 @@ import Crashes
 import Foundation
 import MetricKit
 
-protocol CrashReportPresenting {
-    var content: String? { get }
-}
-
-protocol CrashReport: CrashReportPresenting {
-
+protocol CrashReport {
     static var fileExtension: String { get }
 
     var url: URL { get }
+    var content: String? { get }
     var contentData: Data? { get }
     var appVersion: String? { get }
     var bundleID: String? { get }
@@ -72,7 +68,6 @@ final class LegacyCrashReport: CrashReport {
             })
             .joined(separator: "\n") else { return nil }
 
-        // prepend crash log message if loaded
         let pid = fileContents.firstMatch(of: Self.pidRegex)?.range(at: 1, in: fileContents).flatMap { pid_t(fileContents[$0]) }
         let timestamp = fileContents.firstMatch(of: Self.timestampRegex)?.range(at: 1, in: fileContents).flatMap {
             Self.dateFormatter.date(from: String(fileContents[$0]))
@@ -102,7 +97,6 @@ final class JSONCrashReport: CrashReport {
         "deviceIdentifierForVendor",
         "rolloutId"
     ]
-
     private static let pidRegex = regex(#""pid"\s*:\s*(\d+)(?:,|$)"#)
     private static let timestampRegex = regex(#""timestamp"\s*:\s*"([^"]+)""#)
     private static let dateFormatter: DateFormatter = {
@@ -131,7 +125,6 @@ final class JSONCrashReport: CrashReport {
             fileContents = fileContents.replacingOccurrences(of: patternToReplace, with: redactedKeyValuePair, options: .regularExpression)
         }
 
-        // append crash log message and stack trace if loaded
         let pid = fileContents.firstMatch(of: Self.pidRegex)?.range(at: 1, in: fileContents).flatMap { pid_t(fileContents[$0]) }
         let timestamp = fileContents.firstMatch(of: Self.timestampRegex)?.range(at: 1, in: fileContents).flatMap {
             Self.dateFormatter.date(from: String(fileContents[$0]))
@@ -139,8 +132,7 @@ final class JSONCrashReport: CrashReport {
         if let diagnostic = try? CrashLogMessageExtractor().crashDiagnostic(for: timestamp, pid: pid)?.diagnosticData(), !diagnostic.isEmpty,
            let json = try? JSONEncoder().encode(diagnostic).utf8String()?.trimmingCharacters(in: CharacterSet(charactersIn: "{}")),
            let openBraceIdx = fileContents.firstIndex(of: "{") {
-                // insert `"message": "…", "stackTrace": […],` json part after the first `{` in the report
-               fileContents.insert(contentsOf: json + ",", at: fileContents.index(after: openBraceIdx))
+            fileContents.insert(contentsOf: json + ",", at: fileContents.index(after: openBraceIdx))
         }
 
         return fileContents
@@ -154,8 +146,7 @@ final class JSONCrashReport: CrashReport {
         guard let content,
               let header = content.split(separator: "\n").first,
               let headerData = header.data(using: .utf8),
-              let headerJSON = try? JSONSerialization.jsonObject(with: headerData, options: []) as? [String: Any]
-        else {
+              let headerJSON = try? JSONSerialization.jsonObject(with: headerData, options: []) as? [String: Any] else {
             return nil
         }
         return headerJSON
@@ -170,13 +161,5 @@ final class JSONCrashReport: CrashReport {
             return nil
         }
         return version
-    }
-}
-
-struct CrashDataPayload: CrashReportPresenting {
-    let data: Data
-
-    var content: String? {
-        data.utf8String()
     }
 }
