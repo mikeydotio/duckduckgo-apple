@@ -1,0 +1,7 @@
+{"actor":"Anh Do","comment":null,"created_at":"2026-02-23T23:06:34Z","event_type":"created","id":1,"issue_id":"apple-browsers-pwz","new_value":"","old_value":""}
+{"actor":"Anh Do","comment":"Added label: dbp","created_at":"2026-02-23T23:06:34Z","event_type":"label_added","id":2,"issue_id":"apple-browsers-pwz","new_value":null,"old_value":null}
+{"actor":"Anh Do","comment":"Added label: identity","created_at":"2026-02-23T23:06:34Z","event_type":"label_added","id":3,"issue_id":"apple-browsers-pwz","new_value":null,"old_value":null}
+{"actor":"Anh Do","comment":"Added label: tech-debt","created_at":"2026-02-23T23:06:34Z","event_type":"label_added","id":4,"issue_id":"apple-browsers-pwz","new_value":null,"old_value":null}
+{"actor":"Anh Do","comment":null,"created_at":"2026-02-23T23:45:32Z","event_type":"created","id":5,"issue_id":"apple-browsers-4we","new_value":"","old_value":""}
+{"actor":"Anh Do","comment":null,"created_at":"2026-02-23T23:45:32Z","event_type":"created","id":6,"issue_id":"apple-browsers-cbo","new_value":"","old_value":""}
+{"actor":"Anh Do","comment":null,"created_at":"2026-03-03T14:21:12Z","event_type":"created","id":7,"issue_id":"apple-browsers-qnk","new_value":"","old_value":""}
