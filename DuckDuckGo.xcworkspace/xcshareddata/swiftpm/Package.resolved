@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "revision" : "7b33d8fc6cc05ac083988bcab4a7da618e40e423",
-        "version" : "13.19.0"
+        "revision" : "d41a30161ea0c5107dff4574c461fd021bc531a5",
+        "version" : "13.21.0"
       }
     },
     {
@@ -284,8 +284,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/wireguard-apple",
       "state" : {
-        "revision" : "13fd026384b1af11048451061cc1b21434990668",
-        "version" : "1.1.3"
+        "branch" : "diego/packet-relay-poc",
+        "revision" : "2fab3e460d305a64d3a6255c9533fffa42d79a5f"
       }
     },
     {
