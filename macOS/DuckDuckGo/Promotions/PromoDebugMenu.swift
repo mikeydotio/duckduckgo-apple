@@ -61,6 +61,7 @@ final class PromoDebugMenu: NSMenu {
 
     override func update() {
         removeAllItems()
+        cancellables.removeAll()
         buildMenuItems()
     }
 
@@ -151,7 +152,7 @@ final class PromoDebugMenu: NSMenu {
         guard let record = cachedHistory[promoId], record.lastDismissed != nil else { return "eligible" }
         if record.isPermanentlyDismissed { return "dismissed" }
         guard let next = record.nextEligibleDate else { return "eligible" }
-        if next > Date() {
+        if next > (simulatedDate ?? Date()) {
             return "on cooldown until \(Self.dateFormatter.string(from: next))"
         }
         return "eligible (cooldown expired)"

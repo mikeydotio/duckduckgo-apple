@@ -149,10 +149,12 @@ final class PromoService: @unchecked Sendable, PromoHistoryProviding {
             activeSessions.removeAll()
             historyStore.resetAll()
             recordsSubject.send([:])
+#if DEBUG || REVIEW
             for promo in promos {
                 guard let delegate = promo.delegate as? TestPromoDelegate else { continue }
                 delegate.resetEligibility()
             }
+#endif
         }
     }
 

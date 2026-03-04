@@ -90,7 +90,6 @@ final class TestPromoDelegate: PromoDelegate {
             Next eligible: \(nextEligibleText)
             """
 
-
         let alert = NSAlert()
         alert.messageText = "Promo: \(promo.id)"
         alert.informativeText = metadataBlock
