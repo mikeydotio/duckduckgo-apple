@@ -161,6 +161,120 @@ final class SyncSettingsViewModelTests: XCTestCase {
         XCTAssertEqual(sut.autoRestoreStatusText, UserText.autoRestoreStatusOn)
     }
 
+    func testWhenStartAutoRestoreAndAuthenticationSucceedsThenRecoveringDataAutoRestoreIsShown() async {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        let delegate = MockSyncSettingsViewModelDelegate()
+        let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
+
+        let expectation = expectation(description: "Recovering data auto-restore flow shown")
+        delegate.onShowRecoveringDataAutoRestore = {
+            expectation.fulfill()
+        }
+
+        sut.startAutoRestore()
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+        XCTAssertEqual(delegate.showRecoveringDataAutoRestoreCallCount, 1)
+    }
+
+    func testWhenStartAutoRestoreAndAuthenticationFailsThenRecoveringDataAutoRestoreIsNotShown() async {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        let delegate = MockSyncSettingsViewModelDelegate()
+        delegate.authenticationError = SyncSettingsViewModel.UserAuthenticationError.authFailed
+        let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
+
+        let finishedExpectation = expectation(description: "Authentication flow finished")
+        delegate.onAuthenticateUserFinished = {
+            finishedExpectation.fulfill()
+        }
+
+        sut.startAutoRestore()
+
+        await fulfillment(of: [finishedExpectation], timeout: 1.0)
+        XCTAssertEqual(delegate.showRecoveringDataAutoRestoreCallCount, 0)
+        XCTAssertFalse(sut.shouldShowPasscodeRequiredAlert)
+    }
+
+    func testWhenStartAutoRestoreAndAuthenticationUnavailableThenPasscodeAlertIsShown() async {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        let delegate = MockSyncSettingsViewModelDelegate()
+        delegate.authenticationError = SyncSettingsViewModel.UserAuthenticationError.authUnavailable
+        let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
+
+        let passcodeExpectation = expectation(description: "Passcode alert shown")
+        let cancellable = sut.$shouldShowPasscodeRequiredAlert
+            .dropFirst()
+            .sink { isShown in
+                if isShown {
+                    passcodeExpectation.fulfill()
+                }
+            }
+
+        sut.startAutoRestore()
+
+        await fulfillment(of: [passcodeExpectation], timeout: 1.0)
+        _ = cancellable
+        XCTAssertEqual(delegate.showRecoveringDataAutoRestoreCallCount, 0)
+        XCTAssertTrue(sut.shouldShowPasscodeRequiredAlert)
+    }
+
+    func testWhenStartRecoveryCodeEntryAndAuthenticationSucceedsThenRecoveryCodeEntryIsShown() async {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        let delegate = MockSyncSettingsViewModelDelegate()
+        let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
+
+        let expectation = expectation(description: "Recovery code entry flow shown")
+        delegate.onShowRecoveryCodeEntry = {
+            expectation.fulfill()
+        }
+
+        sut.startRecoveryCodeEntry()
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+        XCTAssertEqual(delegate.showRecoveryCodeEntryCallCount, 1)
+    }
+
+    func testWhenStartRecoveryCodeEntryAndAuthenticationFailsThenRecoveryCodeEntryIsNotShown() async {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        let delegate = MockSyncSettingsViewModelDelegate()
+        delegate.authenticationError = SyncSettingsViewModel.UserAuthenticationError.authFailed
+        let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
+
+        let finishedExpectation = expectation(description: "Authentication flow finished")
+        delegate.onAuthenticateUserFinished = {
+            finishedExpectation.fulfill()
+        }
+
+        sut.startRecoveryCodeEntry()
+
+        await fulfillment(of: [finishedExpectation], timeout: 1.0)
+        XCTAssertEqual(delegate.showRecoveryCodeEntryCallCount, 0)
+        XCTAssertFalse(sut.shouldShowPasscodeRequiredAlert)
+    }
+
+    func testWhenStartRecoveryCodeEntryAndAuthenticationUnavailableThenPasscodeAlertIsShown() async {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        let delegate = MockSyncSettingsViewModelDelegate()
+        delegate.authenticationError = SyncSettingsViewModel.UserAuthenticationError.authUnavailable
+        let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
+
+        let passcodeExpectation = expectation(description: "Passcode alert shown")
+        let cancellable = sut.$shouldShowPasscodeRequiredAlert
+            .dropFirst()
+            .sink { isShown in
+                if isShown {
+                    passcodeExpectation.fulfill()
+                }
+            }
+
+        sut.startRecoveryCodeEntry()
+
+        await fulfillment(of: [passcodeExpectation], timeout: 1.0)
+        _ = cancellable
+        XCTAssertEqual(delegate.showRecoveryCodeEntryCallCount, 0)
+        XCTAssertTrue(sut.shouldShowPasscodeRequiredAlert)
+    }
+
     private func makeSut(autoRestoreProvider: MockSyncAutoRestoreHandler,
                          delegate: MockSyncSettingsViewModelDelegate? = nil) -> SyncSettingsViewModel {
         let model = SyncSettingsViewModel(
@@ -176,6 +290,11 @@ final class SyncSettingsViewModelTests: XCTestCase {
 private final class MockSyncSettingsViewModelDelegate: SyncManagementViewModelDelegate {
 
     var authenticationError: Error?
+    var showRecoveringDataAutoRestoreCallCount = 0
+    var showRecoveryCodeEntryCallCount = 0
+    var onShowRecoveringDataAutoRestore: (() -> Void)?
+    var onShowRecoveryCodeEntry: (() -> Void)?
+    var onAuthenticateUserFinished: (() -> Void)?
 
     var syncBookmarksPausedTitle: String?
     var syncCredentialsPausedTitle: String?
@@ -190,12 +309,22 @@ private final class MockSyncSettingsViewModelDelegate: SyncManagementViewModelDe
     var syncCreditCardsPausedButtonTitle: String?
 
     func authenticateUser() async throws {
+        defer { onAuthenticateUserFinished?() }
         if let authenticationError {
             throw authenticationError
         }
     }
 
-    func showRecoverData() {}
+    func isEligibleForAutoRestore() -> Bool { false }
+    func showAutoRestoreReady() {}
+    func showRecoveringDataAutoRestore() {
+        showRecoveringDataAutoRestoreCallCount += 1
+        onShowRecoveringDataAutoRestore?()
+    }
+    func showRecoveryCodeEntry() {
+        showRecoveryCodeEntryCallCount += 1
+        onShowRecoveryCodeEntry?()
+    }
     func showSyncWithAnotherDevice() {}
     func showRecoveryPDF() {}
     func shareRecoveryPDF() {}
