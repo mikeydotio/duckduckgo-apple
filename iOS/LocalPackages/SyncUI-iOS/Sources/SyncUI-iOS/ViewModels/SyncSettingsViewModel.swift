@@ -261,12 +261,13 @@ public class SyncSettingsViewModel: ObservableObject {
         }
     }
 
-    func recoverSyncedData() {
-        Task { @MainActor in
-            if await commonAuthenticate() {
-                delegate?.showSyncWithAnotherDevice()
-            }
-        }
+    func isEligibleForAutoRestore() -> Bool {
+        delegate?.isEligibleForAutoRestore() == true
+    }
+
+    @MainActor
+    func showAutoRestoreReady() {
+        delegate?.showAutoRestoreReady()
     }
 
     @MainActor
