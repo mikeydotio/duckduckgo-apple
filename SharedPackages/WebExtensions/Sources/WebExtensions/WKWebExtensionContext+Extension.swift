@@ -29,6 +29,7 @@ public enum DuckDuckGoWebExtensionType: String, Codable {
     /// Embedded web extension (e.g. autoconsent/CPM).
     case embedded = "com.duckduckgo.web-extension.embedded"
     case darkReader = "org.duckduckgo.web-extension.darkreader"
+    case substitution = "com.duckduckgo.web-extension.substitution"
 }
 
 /// Metadata extracted from a web extension without loading it into a controller.
