@@ -1295,7 +1295,7 @@ final class AttributedMetricManagerTests: XCTestCase {
         var pixelFired = false
 
         let fixture = createTestFixture(
-            pixelHandler: { pixelName, _, _, _, _, _ in
+            pixelHandler: { pixelName, _, _, _, _, _, _ in
                 if pixelName != "attributed_metric_data_store_error" {
                     pixelFired = true
                 }
