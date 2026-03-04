@@ -44,5 +44,7 @@ final class TimedFlag {
 
     func cancel() {
         workItem?.cancel()
+        workItem = nil
+        isSet = false
     }
 }

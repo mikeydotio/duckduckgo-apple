@@ -385,7 +385,9 @@ final class PromoService: @unchecked Sendable, PromoHistoryProviding {
         dispatchPrecondition(condition: .onQueue(stateQueue))
         let promoId = promo.id
         var recordToUse = record
-        recordToUse.lastShown = currentDate
+        if !isRestore {
+            recordToUse.lastShown = currentDate
+        }
         historyStore.save(recordToUse)
         notifyRecordChanged(for: promoId, record: recordToUse)
 
