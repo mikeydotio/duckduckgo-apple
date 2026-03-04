@@ -270,14 +270,6 @@ public class SyncSettingsViewModel: ObservableObject {
         delegate?.showAutoRestoreReady()
     }
 
-    func recoverSyncedData() {
-        Task { @MainActor in
-            if await commonAuthenticate() {
-                delegate?.showSyncWithAnotherDevice()
-            }
-        }
-    }
-
     @MainActor
     public func presentSyncWithSetUpSheetIfNeeded() async {
         guard isAccountCreationAvailable else {

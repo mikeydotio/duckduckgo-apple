@@ -288,11 +288,13 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
 
     @MainActor
     func showAutoRestoreReady() {
-        dismissPresentedViewController()
-        let readyView = AutoRestoreReadyView(model: rootView.model, onCancel: { [weak self] in
-            self?.dismissPresentedViewController()
-        })
-        navigationController?.present(UIHostingController(rootView: readyView), animated: true)
+        dismissPresentedViewController { [weak self] in
+            guard let self else { return }
+            let readyView = AutoRestoreReadyView(model: self.rootView.model, onCancel: { [weak self] in
+                self?.dismissPresentedViewController()
+            })
+            self.navigationController?.present(UIHostingController(rootView: readyView), animated: true)
+        }
     }
 
     func showRecoveringDataAutoRestore() {
