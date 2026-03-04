@@ -41,7 +41,7 @@ final class SyncSettingsViewModelTests: XCTestCase {
         let autoRestoreProvider = MockSyncAutoRestoreHandler()
         autoRestoreProvider.isAutoRestoreFeatureEnabled = true
         autoRestoreProvider.existingAutoRestoreDecision = false
-        let delegate = SyncSettingsViewModelDelegateSpy()
+        let delegate = MockSyncSettingsViewModelDelegate()
         let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
 
         sut.requestAutoRestoreUpdate(enabled: false)
@@ -54,7 +54,7 @@ final class SyncSettingsViewModelTests: XCTestCase {
         let autoRestoreProvider = MockSyncAutoRestoreHandler()
         autoRestoreProvider.isAutoRestoreFeatureEnabled = true
         autoRestoreProvider.existingAutoRestoreDecision = false
-        let delegate = SyncSettingsViewModelDelegateSpy()
+        let delegate = MockSyncSettingsViewModelDelegate()
         let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
 
         let completionExpectation = expectation(description: "Auto-restore update completes")
@@ -82,7 +82,7 @@ final class SyncSettingsViewModelTests: XCTestCase {
         let autoRestoreProvider = MockSyncAutoRestoreHandler()
         autoRestoreProvider.isAutoRestoreFeatureEnabled = true
         autoRestoreProvider.existingAutoRestoreDecision = false
-        let delegate = SyncSettingsViewModelDelegateSpy()
+        let delegate = MockSyncSettingsViewModelDelegate()
         delegate.authenticationError = SyncSettingsViewModel.UserAuthenticationError.authFailed
         let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
 
@@ -112,7 +112,7 @@ final class SyncSettingsViewModelTests: XCTestCase {
         autoRestoreProvider.isAutoRestoreFeatureEnabled = true
         autoRestoreProvider.existingAutoRestoreDecision = false
         autoRestoreProvider.persistError = SyncSettingsViewModelTestsError.expected
-        let delegate = SyncSettingsViewModelDelegateSpy()
+        let delegate = MockSyncSettingsViewModelDelegate()
         let sut = makeSut(autoRestoreProvider: autoRestoreProvider, delegate: delegate)
 
         let completionExpectation = expectation(description: "Auto-restore update ends after persist failure")
@@ -162,7 +162,7 @@ final class SyncSettingsViewModelTests: XCTestCase {
     }
 
     private func makeSut(autoRestoreProvider: MockSyncAutoRestoreHandler,
-                         delegate: SyncSettingsViewModelDelegateSpy? = nil) -> SyncSettingsViewModel {
+                         delegate: MockSyncSettingsViewModelDelegate? = nil) -> SyncSettingsViewModel {
         let model = SyncSettingsViewModel(
             isOnDevEnvironment: { false },
             switchToProdEnvironment: {},
@@ -173,7 +173,7 @@ final class SyncSettingsViewModelTests: XCTestCase {
     }
 }
 
-private final class SyncSettingsViewModelDelegateSpy: SyncManagementViewModelDelegate {
+private final class MockSyncSettingsViewModelDelegate: SyncManagementViewModelDelegate {
 
     var authenticationError: Error?
 
