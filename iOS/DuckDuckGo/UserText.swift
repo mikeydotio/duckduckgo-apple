@@ -423,6 +423,13 @@ public struct UserText {
     public static let fireButtonAnimationAirstreamName = NSLocalizedString("fireButtonAnimation.airstream.name", value: "Airstream", comment: "")
     public static let fireButtonAnimationNoneName = NSLocalizedString("fireButtonAnimation.none.name", value: "None", comment: "")
 
+    public static let autoplayModeAllowAll = NSLocalizedString("autoplay.mode.allowAll", value: "Allow Audio and Video", comment: "Settings option for allowing all media to autoplay")
+    public static let autoplayModeBlockAudio = NSLocalizedString("autoplay.mode.blockAudio", value: "Block Audio", comment: "Settings option for blocking audio autoplay while allowing muted video")
+    public static let autoplayModeBlockAll = NSLocalizedString("autoplay.mode.blockAll", value: "Block Audio and Video", comment: "Settings option for blocking all media autoplay")
+    public static let settingsAutoplayLabel = NSLocalizedString("settings.autoplay", value: "Autoplay", comment: "Settings label for the autoplay settings screen")
+    public static let settingsAutoplayFooter = NSLocalizedString("settings.autoplay.footer", value: "Autoplay settings will only apply to newly opened tabs. Changes cannot be applied to existing tabs unless the application is restarted.", comment: "Footer text in the autoplay settings screen explaining that changes only take effect in new tabs")
+    public static let settingsMediaSection = NSLocalizedString("settings.media.section", value: "Media", comment: "Header for the media section in general settings")
+
     public static let webJSAlertOKButton = NSLocalizedString("webJSAlert.OK.button", value: "OK", comment: "OK button for JavaScript alerts")
     public static let webJSAlertCancelButton = NSLocalizedString("webJSAlert.cancel.button", value: "Cancel", comment: "Cancel button for JavaScript alerts")
     public static let webJSAlertWebsiteMessageFormat = NSLocalizedString("webJSAlert.website-message.format", value: "A message from %@:", comment: "Alert title explaining the message is shown by a website")

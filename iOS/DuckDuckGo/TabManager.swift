@@ -199,6 +199,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
                                  inheritedAttribution: AdClickAttributionLogic.State?,
                                  interactionState: Data?) -> TabViewController {
         let configuration = WKWebViewConfiguration.persistent(fireMode: tab.fireTab)
+        configuration.mediaTypesRequiringUserActionForPlayback = appSettings.currentAutoplayBlockingMode.mediaTypesRequiringUserAction
 
         if #available(iOS 18.4, *), let webExtensionManager = webExtensionManager {
             configuration.webExtensionController = webExtensionManager.controller
@@ -714,6 +715,23 @@ extension TabManager {
             // For external launches, only the newly created tab (marked via markTabAsExternalLaunch)
             // should have tracker animations, all other tabs must have animations suppressed (which is handled elsewhere)
             break
+        }
+    }
+
+}
+
+// MARK: - AutoplayBlockingMode + WebKit
+
+private extension AutoplayBlockingMode {
+
+    var mediaTypesRequiringUserAction: WKAudiovisualMediaTypes {
+        switch self {
+        case .allowAll:
+            return []
+        case .blockAudio:
+            return .audio
+        case .blockAll:
+            return .all
         }
     }
 

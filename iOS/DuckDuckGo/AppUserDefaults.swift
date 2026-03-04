@@ -101,6 +101,7 @@ public class AppUserDefaults: AppSettings {
         static let duckPlayerNativeUIWasUsed = "com.duckduckgo.ios.duckPlayerNativeUIWasUsed"
         static let duckPlayerNativeUISettingsMapped = "com.duckduckgo.ios.duckPlayerNativeUISettingsMapped"
         static let autoClearAIChatHistory = "com.duckduckgo.ios.autoClearAIChatHistory"
+        static let autoplayBlockingMode = "com.duckduckgo.ios.autoplayBlockingMode"
     }
 
     private struct DebugKeys {
@@ -631,6 +632,19 @@ public class AppUserDefaults: AppSettings {
 
     @UserDefaultsWrapper(key: .autoClearAIChatHistory, defaultValue: false)
     var autoClearAIChatHistory: Bool
+
+    var currentAutoplayBlockingMode: AutoplayBlockingMode {
+        get {
+            if let string = userDefaults?.string(forKey: Keys.autoplayBlockingMode),
+               let mode = AutoplayBlockingMode(rawValue: string) {
+                return mode
+            }
+            return .blockAudio
+        }
+        set {
+            userDefaults?.setValue(newValue.rawValue, forKey: Keys.autoplayBlockingMode)
+        }
+    }
 }
 
 extension AppUserDefaults: AppConfigurationFetchStatistics {

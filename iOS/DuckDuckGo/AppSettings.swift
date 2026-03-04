@@ -20,6 +20,23 @@
 import Bookmarks
 import Foundation
 
+enum AutoplayBlockingMode: String, CaseIterable, CustomStringConvertible {
+    case allowAll
+    case blockAudio
+    case blockAll
+
+    var description: String {
+        switch self {
+        case .allowAll:
+            return UserText.autoplayModeAllowAll
+        case .blockAudio:
+            return UserText.autoplayModeBlockAudio
+        case .blockAll:
+            return UserText.autoplayModeBlockAll
+        }
+    }
+}
+
 enum AddressBarPosition: String, CaseIterable, CustomStringConvertible {
     case top
     case bottom
@@ -128,6 +145,8 @@ protocol AppSettings: AnyObject, OnboardingDebugAppSettings {
     var duckPlayerNativeUISettingsMapped: Bool { get set }
 
     var autoClearAIChatHistory: Bool { get set }
+
+    var currentAutoplayBlockingMode: AutoplayBlockingMode { get set }
 }
 
 // MARK: - AppSettings + OnboardingDebugSettings

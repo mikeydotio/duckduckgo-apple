@@ -305,6 +305,20 @@ final class SettingsViewModel: ObservableObject {
         )
     }
 
+    var autoplayBlockingModeBinding: Binding<AutoplayBlockingMode> {
+        Binding<AutoplayBlockingMode>(
+            get: {
+                self.state.autoplayBlockingMode
+            },
+            set: {
+                self.appSettings.currentAutoplayBlockingMode = $0
+                self.state.autoplayBlockingMode = $0
+                Pixel.fire(pixel: .settingsAutoplayChanged,
+                          withAdditionalParameters: [PixelParameters.autoplayBlockingMode: $0.rawValue])
+            }
+        )
+    }
+
     var showMenuInSheetBinding: Binding<Bool> {
         Binding<Bool>(
             get: {
@@ -824,7 +838,8 @@ extension SettingsViewModel {
             duckPlayerOpenInNewTabEnabled: featureFlagger.isFeatureOn(.duckPlayerOpenInNewTab),
             duckPlayerAutoplay: duckPlayerSettings.autoplay,
             duckPlayerNativeUISERPEnabled: duckPlayerSettings.nativeUISERPEnabled,
-            duckPlayerNativeYoutubeMode: duckPlayerSettings.nativeUIYoutubeMode
+            duckPlayerNativeYoutubeMode: duckPlayerSettings.nativeUIYoutubeMode,
+            autoplayBlockingMode: appSettings.currentAutoplayBlockingMode
         )
 
         // Subscribe to DuckPlayerSettings updates

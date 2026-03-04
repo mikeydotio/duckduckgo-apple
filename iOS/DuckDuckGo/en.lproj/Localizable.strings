@@ -898,6 +898,15 @@
 /* Title displayed on modal asking for the user to update the username */
 "autofill.update-usernamr.title" = "Update username?";
 
+/* Settings option for allowing all media to autoplay */
+"autoplay.mode.allowAll" = "Allow Audio and Video";
+
+/* Settings option for blocking all media autoplay */
+"autoplay.mode.blockAll" = "Block Audio and Video";
+
+/* Settings option for blocking audio autoplay while allowing muted video */
+"autoplay.mode.blockAudio" = "Block Audio";
+
 /* View plans button text during Black Friday campaign */
 "black-friday.campaign.view.plans.cta" = "Save %d%% on First Year";
 
@@ -2986,6 +2995,12 @@ Take back control of your personal information with the browser designed for dat
 /* Settings screen cell text for automatic data deletion option */
 "settings.automatically.delete.data" = "Automatically Delete Data";
 
+/* Settings label for the autoplay settings screen */
+"settings.autoplay" = "Autoplay";
+
+/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs */
+"settings.autoplay.footer" = "Autoplay settings will only apply to newly opened tabs. Changes cannot be applied to existing tabs unless the application is restarted.";
+
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Browser Feedback";
 
@@ -3123,6 +3138,9 @@ Take back control of your personal information with the browser designed for dat
 
 /* Label of a button managing email protection account */
 "settings.manage.account" = "Manage Account";
+
+/* Header for the media section in general settings */
+"settings.media.section" = "Media";
 
 /* Settings title for the 'More' section */
 "settings.more" = "More from DuckDuckGo";

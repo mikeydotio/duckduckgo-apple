@@ -74,13 +74,10 @@ struct ListBasedPickerWithHeaderImage<T: Hashable>: View {
                             .layoutPriority(1)
                             .foregroundColor(Color(designSystemColor: .textPrimary))
 
-                        if selectedOption == option {
-                            Spacer()
-                            Image(uiImage: DesignSystemImages.Glyphs.Size24.checkSmall)
-                                .foregroundStyle(Color(designSystemColor: .accent))
-                        } else {
-                            Spacer(minLength: 24)
-                        }
+                        Spacer()
+                        Image(uiImage: DesignSystemImages.Glyphs.Size24.checkSmall)
+                            .foregroundStyle(Color(designSystemColor: .accent))
+                            .opacity(selectedOption == option ? 1 : 0)
                     }
                     .listRowBackground(Color(designSystemColor: .surface))
                 }
