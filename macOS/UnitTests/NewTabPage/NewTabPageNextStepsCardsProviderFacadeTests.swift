@@ -18,11 +18,13 @@
 
 import BrowserServicesKit
 import Combine
+import Common
 import NewTabPage
 import PrivacyConfig
 import PrivacyConfigTestsUtils
 import SubscriptionTestingUtilities
 import XCTest
+
 @testable import DuckDuckGo_Privacy_Browser
 
 final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
@@ -257,7 +259,7 @@ private extension NewTabPageNextStepsCardsProviderFacadeTests {
             ? NewTabPageNextStepsSingleCardProvider.defaultAdvancedCards
             : NewTabPageNextStepsSingleCardProvider.defaultStandardCards
 
-        if AppVersion.isSandboxed {
+        if NSApp.isSandboxed {
             return cards.filter { $0 != .addAppToDockMac }
         } else {
             return cards

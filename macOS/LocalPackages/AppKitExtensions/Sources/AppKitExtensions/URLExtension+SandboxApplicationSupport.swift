@@ -1,5 +1,5 @@
 //
-//  CrashReportPromptData.swift
+//  URLExtension+SandboxApplicationSupport.swift
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -16,14 +16,17 @@
 //  limitations under the License.
 //
 
-import Common
-import CrashReportingShared
 import Foundation
 
-struct CrashDataPayload: CrashReportPresenting {
-    let data: Data
+public extension URL {
 
-    var content: String? {
-        data.utf8String()
+    static var sandboxApplicationSupportURL: URL {
+        if NSApp.isSandboxed {
+            return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        }
+        let sandboxPathComponent = "Containers/\(Bundle.main.bundleIdentifier!)/Data/Library/Application Support/"
+        let libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
+        return libraryURL.appendingPathComponent(sandboxPathComponent)
     }
+
 }

@@ -18,10 +18,11 @@
 
 import Common
 import Crashes
+import CrashReportingShared
 import Foundation
 import MetricKit
 
-protocol CrashReport {
+protocol CrashReport: CrashReportPresenting {
     static var fileExtension: String { get }
 
     var url: URL { get }
@@ -132,6 +133,7 @@ final class JSONCrashReport: CrashReport {
         if let diagnostic = try? CrashLogMessageExtractor().crashDiagnostic(for: timestamp, pid: pid)?.diagnosticData(), !diagnostic.isEmpty,
            let json = try? JSONEncoder().encode(diagnostic).utf8String()?.trimmingCharacters(in: CharacterSet(charactersIn: "{}")),
            let openBraceIdx = fileContents.firstIndex(of: "{") {
+            // insert `"message": "…", "stackTrace": […],` json part after the first `{` in the report
             fileContents.insert(contentsOf: json + ",", at: fileContents.index(after: openBraceIdx))
         }
 

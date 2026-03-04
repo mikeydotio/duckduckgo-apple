@@ -299,6 +299,16 @@
                ReferencedContainer = "container:LocalPackages/BWIntegration">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AppStoreCrashCollectionTests"
+               BuildableName = "AppStoreCrashCollectionTests"
+               BlueprintName = "AppStoreCrashCollectionTests"
+               ReferencedContainer = "container:LocalPackages/CrashReporting">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

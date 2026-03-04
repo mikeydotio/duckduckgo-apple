@@ -17,6 +17,7 @@
 //
 
 import AIChat
+import AppKitExtensions
 import AppUpdaterShared
 import AttributedMetric
 import AutoconsentStats
@@ -1020,9 +1021,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         PixelKit.configureExperimentKit(featureFlagger: featureFlagger, eventTracker: ExperimentEventTracker(store: UserDefaults.appConfiguration))
 
-        crashReporting = Self.makeCrashReporting(internalUserDecider: internalUserDecider,
-                                                 featureFlagger: featureFlagger,
-                                                 keyValueStore: UserDefaults.standard)
+        crashReporting = CrashReportingFactory.makeCrashReporting(internalUserDecider: internalUserDecider,
+                                                                  featureFlagger: featureFlagger,
+                                                                  keyValueStore: UserDefaults.standard)
 
         let watchdogDiagnosticProvider = MacWatchdogDiagnosticProvider(windowControllersManager: windowControllersManager)
         let eventMapper = WatchdogEventMapper(diagnosticProvider: watchdogDiagnosticProvider)

@@ -558,6 +558,16 @@
                ReferencedContainer = "container:LocalPackages/BWIntegration">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "CrashReportingTests"
+               BuildableName = "CrashReportingTests"
+               BlueprintName = "CrashReportingTests"
+               ReferencedContainer = "container:LocalPackages/CrashReporting">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
