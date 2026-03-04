@@ -28,6 +28,7 @@ extension OnboardingView {
         typealias Copy = UserText.Onboarding.RestorePrompt
 
         private var animateText: Binding<Bool>
+        private var animateBody: Binding<Bool>
         private var showCTA: Binding<Bool>
         private var isSkipped: Binding<Bool>
         private let restoreAction: () -> Void
@@ -35,12 +36,14 @@ extension OnboardingView {
 
         init(
             animateText: Binding<Bool> = .constant(true),
+            animateBody: Binding<Bool> = .constant(false),
             showCTA: Binding<Bool> = .constant(false),
             isSkipped: Binding<Bool>,
             restoreAction: @escaping () -> Void,
             skipAction: @escaping () -> Void
         ) {
             self.animateText = animateText
+            self.animateBody = animateBody
             self.showCTA = showCTA
             self.isSkipped = isSkipped
             self.restoreAction = restoreAction
@@ -55,11 +58,21 @@ extension OnboardingView {
             VStack(spacing: 24.0) {
                 AnimatableTypingText(Copy.title, startAnimating: animateText, skipAnimation: isSkipped) {
                     withAnimation {
-                        showCTA.wrappedValue = true
+                        animateBody.wrappedValue = true
                     }
                 }
                 .foregroundColor(.primary)
                 .font(Font.system(size: 20, weight: .bold))
+
+                AnimatableTypingText(Copy.body, startAnimating: animateBody, skipAnimation: isSkipped) {
+                    withAnimation {
+                        showCTA.wrappedValue = true
+                    }
+                }
+                .foregroundColor(.primary)
+                .font(Font.system(size: 16))
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 OnboardingActions(
                     viewModel: .init(

@@ -44,6 +44,7 @@ final class OnboardingIntroViewModel: ObservableObject {
 
     struct RestorePromptState {
         var animateTitle = false
+        var animateBody = false
         var showContent = false
     }
 
