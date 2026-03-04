@@ -99,7 +99,7 @@ final class PromoDebugMenu: NSMenu {
 #endif
 
         for promo in promos {
-            let status = statusString(for: promo.id)
+            let status = statusString(for: promo)
             let parentItem = NSMenuItem(title: "\(promo.id)  \(status)", action: nil)
 
             let submenu = NSMenu()
@@ -148,14 +148,53 @@ final class PromoDebugMenu: NSMenu {
         addItem(resetItem)
     }
 
-    private func statusString(for promoId: String) -> String {
-        guard let record = cachedHistory[promoId], record.lastDismissed != nil else { return "eligible" }
-        if record.isPermanentlyDismissed { return "dismissed" }
-        guard let next = record.nextEligibleDate else { return "eligible" }
-        if next > (simulatedDate ?? Date()) {
-            return "on cooldown until \(Self.dateFormatter.string(from: next))"
+    private func statusString(for promo: Promo) -> String {
+        let now = simulatedDate ?? Date()
+        let record = cachedHistory[promo.id]
+
+        if let rec = record, rec.isPermanentlyDismissed { return "dismissed" }
+
+        var cooldownEnd: Date?
+        var isGlobalOnly = false
+
+        // Per-promo cooldown (from this promo's own dismissal)
+        if let rec = record, let next = rec.nextEligibleDate, next > now {
+            cooldownEnd = next
         }
-        return "eligible (cooldown expired)"
+
+        // Global cooldown (from another promo with same PromoInitiated)
+        if let (_, globalEnd) = globalCooldownStatus(for: promo, now: now) {
+            if let existing = cooldownEnd {
+                cooldownEnd = max(existing, globalEnd)
+            } else {
+                cooldownEnd = globalEnd
+                isGlobalOnly = true
+            }
+        }
+
+        if let end = cooldownEnd {
+            let suffix = isGlobalOnly ? " (global)" : ""
+            return "on cooldown until \(Self.dateFormatter.string(from: end))\(suffix)"
+        }
+
+        return record != nil && record?.lastDismissed != nil ? "eligible (cooldown expired)" : "eligible"
+    }
+
+    /// Returns (isOnCooldown, cooldownEndDate) if promo is blocked by PromoInitiated global cooldown.
+    private func globalCooldownStatus(for promo: Promo, now: Date) -> (Bool, Date)? {
+        guard promo.respectsGlobalCooldown, promo.promoType.severity >= .medium else { return nil }
+
+        let cooldownTypePromos = PromoServiceFactory.promos.filter { other in
+            other.initiated == promo.initiated && other.setsGlobalCooldown && other.promoType.severity >= .medium
+        }
+        let lastDismissedForType = cooldownTypePromos
+            .compactMap { cachedHistory[$0.id]?.lastDismissed }
+            .max()
+        guard let last = lastDismissedForType else { return nil }
+
+        let cooldownEnd = last.addingTimeInterval(promo.initiated.cooldown)
+        guard now < cooldownEnd else { return nil }
+        return (true, cooldownEnd)
     }
 
     @objc private func fireTestTrigger() {
