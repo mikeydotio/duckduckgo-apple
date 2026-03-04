@@ -7,17 +7,17 @@
 /* Auto-Restore - Description + Learn More, with markdown link */
 "auto.restore.learn.more.full" = "Automatically restore your data on this device if you reinstall the app. [Learn More](sync-auto-restore://learn-more)";
 
-/* Auto-Restore Ready Sheet - Description */
+/* Auto-Restore Ready Sheet - Description with authentication method placeholder */
 "auto.restore.ready.description" = "Use %@ to Auto-Restore, or scan the Recovery Code you saved when you set up Sync & Backup.";
 
 /* Auto-Restore Ready Sheet - Face ID authentication label */
-"auto.restore.ready.description.parameter.face-id" = "Face ID or passcode";
-
-/* Auto-Restore Ready Sheet - Touch ID authentication label */
-"auto.restore.ready.description.parameter.touch-id" = "Touch ID or passcode";
+"auto.restore.ready.description.parameter.face-id" = "Face ID";
 
 /* Auto-Restore Ready Sheet - passcode authentication label */
 "auto.restore.ready.description.parameter.passcode" = "passcode";
+
+/* Auto-Restore Ready Sheet - Touch ID authentication label */
+"auto.restore.ready.description.parameter.touch-id" = "Touch ID";
 
 /* Auto-Restore Ready Sheet - Restore Button */
 "auto.restore.ready.restore.button" = "Restore My Data";
@@ -200,7 +200,7 @@
 "recover.synced.data.sheet.title" = "Recover your synced data";
 
 /* Recovering Data Sheet - Description */
-"recovering.data.description" = "Reconnecting to sync your bookmarks, saved logins, and other device.";
+"recovering.data.description" = "Reconnecting to sync your bookmarks, saved logins, and other devices.";
 
 /* Recovering Data Sheet - Status */
 "recovering.data.status" = "Connecting...";

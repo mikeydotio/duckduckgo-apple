@@ -139,13 +139,13 @@ public struct UserText {
         )
         return String(format: localized, authenticationMethod)
     }
-    static let autoRestoreReadyDescriptionParameterFaceID = NSLocalizedString("auto.restore.ready.description.parameter.face-id", bundle: Bundle.module, value: "Face ID or passcode", comment: "Auto-Restore Ready Sheet - Face ID authentication label")
-    static let autoRestoreReadyDescriptionParameterTouchID = NSLocalizedString("auto.restore.ready.description.parameter.touch-id", bundle: Bundle.module, value: "Touch ID or passcode", comment: "Auto-Restore Ready Sheet - Touch ID authentication label")
+    static let autoRestoreReadyDescriptionParameterFaceID = NSLocalizedString("auto.restore.ready.description.parameter.face-id", bundle: Bundle.module, value: "Face ID", comment: "Auto-Restore Ready Sheet - Face ID authentication label")
+    static let autoRestoreReadyDescriptionParameterTouchID = NSLocalizedString("auto.restore.ready.description.parameter.touch-id", bundle: Bundle.module, value: "Touch ID", comment: "Auto-Restore Ready Sheet - Touch ID authentication label")
     static let autoRestoreReadyDescriptionParameterPasscode = NSLocalizedString("auto.restore.ready.description.parameter.passcode", bundle: Bundle.module, value: "passcode", comment: "Auto-Restore Ready Sheet - passcode authentication label")
     static let autoRestoreReadyRestoreButton = NSLocalizedString("auto.restore.ready.restore.button", bundle: Bundle.module, value: "Restore My Data", comment: "Auto-Restore Ready Sheet - Restore Button")
     static let autoRestoreReadyScanCodeLink = NSLocalizedString("auto.restore.ready.scan.code.link", bundle: Bundle.module, value: "Scan Recovery Code", comment: "Auto-Restore Ready Sheet - Scan Code Link")
     static let recoveringDataTitle = NSLocalizedString("recovering.data.title", bundle: Bundle.module, value: "Recovering Data", comment: "Recovering Data Sheet - Title")
-    static let recoveringDataDescription = NSLocalizedString("recovering.data.description", bundle: Bundle.module, value: "Reconnecting to sync your bookmarks, saved logins, and other device.", comment: "Recovering Data Sheet - Description")
+    static let recoveringDataDescription = NSLocalizedString("recovering.data.description", bundle: Bundle.module, value: "Reconnecting to sync your bookmarks, saved logins, and other devices.", comment: "Recovering Data Sheet - Description")
     static let recoveringDataStatus = NSLocalizedString("recovering.data.status", bundle: Bundle.module, value: "Connecting...", comment: "Recovering Data Sheet - Status")
 
     // Scan Or Enter Code To Recover Synced Data View
