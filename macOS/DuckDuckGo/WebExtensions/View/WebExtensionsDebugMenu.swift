@@ -57,16 +57,46 @@ final class WebExtensionsDebugMenu: NSMenu {
                 let name = webExtensionManager.extensionName(for: identifier)
                 let version = webExtensionManager.extensionVersion(for: identifier)
                 let extensionType = webExtensionManager.context(for: identifier)?.duckDuckGoWebExtensionType
-                let menuItem = WebExtensionMenuItem(
-                    identifier: identifier,
-                    webExtensionName: name,
-                    version: version,
-                    extensionType: extensionType,
-                    substitutionSubmenuProvider: makeSubstitutionSubmenu
-                )
+
+                let menuItem: NSMenuItem
+                if extensionType == .substitution {
+                    menuItem = WebExtensionMenuItem(
+                        identifier: identifier,
+                        webExtensionName: name,
+                        version: version,
+                        submenu: makeSubstitutionExtensionSubmenu(identifier: identifier)
+                    )
+                } else {
+                    menuItem = WebExtensionMenuItem(
+                        identifier: identifier,
+                        webExtensionName: name,
+                        version: version
+                    )
+                }
                 self.addItem(menuItem)
             }
         }
+    }
+
+    private func makeSubstitutionExtensionSubmenu(identifier: String) -> NSMenu {
+        let submenu = NSMenu()
+
+        let catItem = NSMenuItem(title: "Change to cat", action: #selector(changeSubstitutionToCat))
+        catItem.target = self
+        submenu.addItem(catItem)
+
+        let dogItem = NSMenuItem(title: "Change to dog", action: #selector(changeSubstitutionToDog))
+        dogItem.target = self
+        submenu.addItem(dogItem)
+
+        submenu.addItem(.separator())
+
+        let uninstallItem = NSMenuItem(title: "Remove the extension", action: #selector(uninstallExtension(_:)))
+        uninstallItem.target = self
+        uninstallItem.representedObject = identifier
+        submenu.addItem(uninstallItem)
+
+        return submenu
     }
 
     private func makeInstallSubmenu() -> NSMenu {
@@ -77,20 +107,6 @@ final class WebExtensionsDebugMenu: NSMenu {
         submenu.addItem(browseItem)
 
         submenu.addItem(.separator())
-
-        return submenu
-    }
-
-    private func makeSubstitutionSubmenu() -> NSMenu {
-        let submenu = NSMenu()
-
-        let catItem = NSMenuItem(title: "Change to cat", action: #selector(changeSubstitutionToCat))
-        catItem.target = self
-        submenu.addItem(catItem)
-
-        let dogItem = NSMenuItem(title: "Change to dog", action: #selector(changeSubstitutionToDog))
-        dogItem.target = self
-        submenu.addItem(dogItem)
 
         return submenu
     }
@@ -127,6 +143,11 @@ final class WebExtensionsDebugMenu: NSMenu {
     @objc func openExtensionsFolderInFinder() {
         let path = webExtensionManager.extensionsDirectory.path
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+
+    @objc func uninstallExtension(_ sender: NSMenuItem) {
+        guard let identifier = sender.representedObject as? String else { return }
+        try? webExtensionManager.uninstallExtension(identifier: identifier)
     }
 
     @objc func changeSubstitutionToCat() {
@@ -176,23 +197,12 @@ final class WebExtensionMenuItem: NSMenuItem {
         fatalError("init(coder:) has not been implemented")
     }
 
-    init(identifier: String,
-         webExtensionName: String?,
-         version: String?,
-         extensionType: DuckDuckGoWebExtensionType?,
-         substitutionSubmenuProvider: (() -> NSMenu)?) {
+    init(identifier: String, webExtensionName: String?, version: String?, submenu: NSMenu? = nil) {
         let displayName = webExtensionName ?? identifier
         let title = version.map { "\(displayName) v\($0)" } ?? displayName
-        super.init(title: title,
-                   action: nil,
-                   keyEquivalent: "")
-        submenu = WebExtensionSubMenu(
-            extensionIdentifier: identifier,
-            extensionType: extensionType,
-            substitutionSubmenuProvider: substitutionSubmenuProvider
-        )
+        super.init(title: title, action: nil, keyEquivalent: "")
+        self.submenu = submenu ?? WebExtensionSubMenu(extensionIdentifier: identifier)
     }
-
 }
 
 @available(macOS 15.4, *)
@@ -204,23 +214,13 @@ final class WebExtensionSubMenu: NSMenu {
         fatalError("init(coder:) has not been implemented")
     }
 
-    init(extensionIdentifier: String,
-         extensionType: DuckDuckGoWebExtensionType?,
-         substitutionSubmenuProvider: (() -> NSMenu)?) {
+    init(extensionIdentifier: String) {
         self.extensionIdentifier = extensionIdentifier
         super.init(title: "")
 
-        if extensionType == .substitution, let substitutionSubmenu = substitutionSubmenuProvider?() {
-            for item in substitutionSubmenu.items {
-                let itemCopy = item.copy() as! NSMenuItem
-                addItem(itemCopy)
-            }
-            addItem(.separator())
+        buildItems {
+            NSMenuItem(title: "Remove the extension", action: #selector(uninstallExtension), target: self)
         }
-
-        let uninstallItem = NSMenuItem(title: "Remove the extension", action: #selector(uninstallExtension), keyEquivalent: "")
-        uninstallItem.target = self
-        addItem(uninstallItem)
     }
 
     @objc func uninstallExtension() {
