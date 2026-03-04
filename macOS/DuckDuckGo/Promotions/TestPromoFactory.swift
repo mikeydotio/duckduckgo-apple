@@ -53,6 +53,10 @@ final class TestPromoDelegate: PromoDelegate {
         self.promo = promo
     }
 
+    func resetEligibility() {
+        isEligibleSubject.value = true
+    }
+
     @MainActor
     func show(history: PromoHistoryRecord) async -> PromoResult {
         let formatter = DateFormatter()
