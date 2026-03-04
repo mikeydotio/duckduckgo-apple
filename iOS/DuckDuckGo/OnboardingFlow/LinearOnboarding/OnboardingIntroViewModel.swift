@@ -98,7 +98,7 @@ final class OnboardingIntroViewModel: ObservableObject {
         onboardingManager.onboardingSteps
     }
     private var currentIntroStep: OnboardingIntroStep
-    private(set) var shouldShowRestorePrompt = false
+    @Published private(set) var shouldShowRestorePrompt = false
 
     private let defaultBrowserManager: DefaultBrowserManaging
     private let contextualDaxDialogs: ContextualDaxDialogDisabling
