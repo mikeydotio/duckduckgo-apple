@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Redirect Loop</title>
+</head>
+<body>
+    <p>Redirecting to x-safari-https...</p>
+    <script>
+        // Redirect to x-safari-https version of this same page.
+        // DuckDuckGo converts it back to https and loads it,
+        // this script runs again — creating a loop.
+        //
+        // Requires serving over HTTPS. See test-x-safari-redirect.html
+        // for setup instructions.
+        var loc = window.location;
+        var target = "x-safari-https://" + loc.host + loc.pathname;
+        window.location.href = target;
+    </script>
+</body>
+</html>

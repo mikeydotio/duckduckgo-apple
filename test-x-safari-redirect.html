@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>x-safari-https Redirect Test</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        a { display: block; margin: 16px 0; padding: 12px; background: #3969EF; color: white; text-decoration: none; border-radius: 8px; text-align: center; }
+        a:active { opacity: 0.8; }
+        h2 { margin-top: 32px; }
+        code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+        .note { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>x-safari-https Redirect Tests</h1>
+
+    <h2>1. Single redirect (Alert 1 test)</h2>
+    <p class="note">Clicking this should show "This site wants to open Safari" alert.</p>
+    <a href="x-safari-https://example.com/page">Single x-safari-https redirect</a>
+
+    <h2>2. Redirect loop page</h2>
+    <p class="note">This page will keep redirecting to <code>x-safari-https</code> on every load.
+       After tapping "Stay in DuckDuckGo", it should silently convert the first 2 redirects,
+       then show the loop alert on the 3rd.</p>
+    <a href="loop.html">Go to redirect loop page</a>
+
+    <h2>3. Open from outside (copy URL)</h2>
+    <p class="note">Copy this URL and open it in Safari or Notes. It will open DuckDuckGo via the <code>ddgQuickLink</code> scheme,
+       which loads a page that immediately redirects to <code>x-safari-https</code>:</p>
+    <code id="external-url">ddgQuickLink://localhost:8443/redirect-to-x-safari.html</code>
+    <br><br>
+    <p class="note">Or use this plain HTTPS link (open in DuckDuckGo manually):</p>
+    <a href="redirect-to-x-safari.html">Open redirect-to-x-safari.html</a>
+
+    <h2>Server Setup</h2>
+    <p class="note">The redirect loop test requires HTTPS (since <code>x-safari-https</code> converts back to <code>https</code>).
+       Generate a self-signed cert and serve with:</p>
+    <pre style="background:#f0f0f0; padding:12px; border-radius:8px; font-size:13px; overflow-x:auto;">
+# Generate cert (once):
+openssl req -x509 -newkey rsa:2048 -keyout key.pem \
+  -out cert.pem -days 30 -nodes \
+  -subj "/CN=localhost"
+
+# Serve:
+python3 serve_https.py</pre>
+    <p class="note">Then open <code>https://&lt;your-mac-ip&gt;:8443/test-x-safari-redirect.html</code> in DuckDuckGo iOS.
+       You'll need to accept the self-signed certificate warning.</p>
+</body>
+</html>
