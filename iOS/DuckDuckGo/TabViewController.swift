@@ -164,7 +164,7 @@ class TabViewController: UIViewController {
 
     private var httpsForced: Bool = false
     private(set) lazy var safariRedirectHandler: SafariRedirectHandler = {
-        let handler = SafariRedirectHandler(tld: AppDependencyProvider.shared.storageCache.tld)
+        let handler = SafariRedirectHandler(tld: AppDependencyProvider.shared.storageCache.tld, featureFlagger: featureFlagger)
         handler.delegate = self
         return handler
     }()

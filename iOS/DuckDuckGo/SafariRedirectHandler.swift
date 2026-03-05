@@ -20,6 +20,7 @@
 import UIKit
 import Core
 import Common
+import BrowserServicesKit
 
 protocol SafariRedirectHandling: AnyObject {
     /// Whether the given URL was loaded after a suppressed x-safari-https redirect (for breakage reports).
@@ -54,12 +55,14 @@ final class SafariRedirectHandler: SafariRedirectHandling {
     }
 
     private let tld: TLD
+    private let featureFlagger: FeatureFlagger
     private var hostStates: [String: HostState] = [:]
 
     weak var delegate: SafariRedirectHandlerDelegate?
 
-    init(tld: TLD) {
+    init(tld: TLD, featureFlagger: FeatureFlagger) {
         self.tld = tld
+        self.featureFlagger = featureFlagger
     }
 
     func isAfterSuppressedXSafariRedirect(for url: URL) -> Bool {
@@ -68,6 +71,7 @@ final class SafariRedirectHandler: SafariRedirectHandling {
     }
 
     func handleRedirect(to url: URL) -> Bool {
+        guard featureFlagger.isFeatureOn(.customXSafariRedirectHandling) else { return false }
         guard url.scheme == Constants.safariRedirectScheme else { return false }
 
         guard let host = domain(for: url) else { return false }
