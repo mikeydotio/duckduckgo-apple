@@ -173,6 +173,9 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
 
     /// Ctrl+click compatibility fix to preserve right click behavior
     case controlClickFix
+
+    /// Enable Look Up (three-finger click) while keeping link preview disabled
+    case webViewLookUpAction
 }
 
 public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
@@ -379,6 +382,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     case supportsSyncChatsDeletion
 
     case sidebarResizable
+
+    /// Enables support for adding multiple page contexts to a single chat session
+    case multiplePageContexts
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
