@@ -19,6 +19,7 @@
 
 import XCTest
 import UIKit
+import Common
 @testable import DuckDuckGo
 
 final class SafariRedirectHandlerTests: XCTestCase {
@@ -32,7 +33,7 @@ final class SafariRedirectHandlerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        handler = SafariRedirectHandler()
+        handler = SafariRedirectHandler(tld: TLD())
         delegate = MockSafariRedirectHandlerDelegate()
         handler.delegate = delegate
     }
@@ -55,7 +56,7 @@ final class SafariRedirectHandlerTests: XCTestCase {
         XCTAssertTrue(handler.handleRedirect(to: xSafariURL))
         XCTAssertEqual(delegate.presentedAlerts.count, 1)
         XCTAssertEqual(delegate.presentedAlerts.first?.title, UserText.xSafariHTTPSTryOpenTitle)
-        XCTAssertTrue(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
+        XCTAssertFalse(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
     }
 
     func testFirstRedirectDoesNotLoadOrOpenExternally() {
@@ -119,6 +120,13 @@ final class SafariRedirectHandlerTests: XCTestCase {
         _ = handler.handleRedirect(to: xSafariURL)
         XCTAssertEqual(delegate.presentedAlerts.count, 2)
         XCTAssertEqual(delegate.presentedAlerts.last?.title, UserText.xSafariHTTPSTryOpenTitle)
+    }
+
+    func testOpenInSafariDoesNotMarkAsSuppressed() {
+        _ = handler.handleRedirect(to: xSafariURL)
+        delegate.tapAlertAction(at: 1, ofAlert: 0) // "Open in Safari"
+
+        XCTAssertFalse(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
     }
 
     // MARK: - Loop alert actions
@@ -186,18 +194,31 @@ final class SafariRedirectHandlerTests: XCTestCase {
 
     func testSuppressedRedirectTrackedPerHost() {
         _ = handler.handleRedirect(to: xSafariURL)
+        delegate.tapAlertAction(at: 0, ofAlert: 0) // Stay on example.com
+
         let otherHostURL = URL(string: "x-safari-https://other.com/page")!
         _ = handler.handleRedirect(to: otherHostURL)
+        delegate.tapAlertAction(at: 0, ofAlert: 1) // Stay on other.com
 
         XCTAssertTrue(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
         XCTAssertTrue(handler.isAfterSuppressedXSafariRedirect(for: URL(string: "https://other.com/page")!))
         XCTAssertFalse(handler.isAfterSuppressedXSafariRedirect(for: URL(string: "https://unrelated.com")!))
     }
 
+    func testSubdomainRedirectMatchesParentDomain() {
+        let subdomainURL = URL(string: "x-safari-https://redirect.example.com/page")!
+        _ = handler.handleRedirect(to: subdomainURL)
+        delegate.tapAlertAction(at: 0, ofAlert: 0) // Stay
+
+        // Breakage report for example.com should detect the suppressed redirect
+        XCTAssertTrue(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
+    }
+
     // MARK: - Reset
 
     func testResetClearsAllState() {
         _ = handler.handleRedirect(to: xSafariURL)
+        delegate.tapAlertAction(at: 0, ofAlert: 0) // Stay
         XCTAssertTrue(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
 
         handler.reset()
@@ -227,9 +248,9 @@ final class SafariRedirectHandlerTests: XCTestCase {
 
     func testIsAfterSuppressedXSafariRedirectPersistsAcrossMultipleRedirects() {
         _ = handler.handleRedirect(to: xSafariURL)
+        delegate.tapAlertAction(at: 0, ofAlert: 0) // Stay
         XCTAssertTrue(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
 
-        delegate.tapAlertAction(at: 0, ofAlert: 0) // Stay
         _ = handler.handleRedirect(to: xSafariURL)
         XCTAssertTrue(handler.isAfterSuppressedXSafariRedirect(for: httpsURL))
     }

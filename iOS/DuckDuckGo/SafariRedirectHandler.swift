@@ -19,6 +19,7 @@
 
 import UIKit
 import Core
+import Common
 
 protocol SafariRedirectHandling: AnyObject {
     /// Whether the given URL was loaded after a suppressed x-safari-https redirect (for breakage reports).
@@ -46,63 +47,60 @@ final class SafariRedirectHandler: SafariRedirectHandling {
         static let safariRedirectScheme = "x-safari-https"
     }
 
-    /// Hosts that had an x-safari-https redirect suppressed (for breakage reports).
-    private var suppressedRedirectHosts: Set<String> = []
+    private struct HostState {
+        var redirectCount: Int = 0
+        var stayEnabled: Bool = false
+        var alertShown: Bool = false
+    }
 
-    /// The host currently being tracked for alert/loop state.
-    private var activeHost: String?
-    private var redirectCount: Int = 0
-    private var stayEnabled: Bool = false
-    private var alertShown: Bool = false
+    private let tld: TLD
+    private var hostStates: [String: HostState] = [:]
 
     weak var delegate: SafariRedirectHandlerDelegate?
 
+    init(tld: TLD) {
+        self.tld = tld
+    }
+
     func isAfterSuppressedXSafariRedirect(for url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return suppressedRedirectHosts.contains(host)
+        guard let domain = domain(for: url) else { return false }
+        return hostStates[domain]?.stayEnabled == true
     }
 
     func handleRedirect(to url: URL) -> Bool {
         guard url.scheme == Constants.safariRedirectScheme else { return false }
 
-        let host = url.host
-        if host != activeHost {
-            activeHost = host
-            redirectCount = 0
-            stayEnabled = false
-            alertShown = false
-        }
+        guard let host = domain(for: url) else { return false }
+        var state = hostStates[host, default: HostState()]
 
-        if let host {
-            suppressedRedirectHosts.insert(host)
-        }
-
-        if !stayEnabled && !alertShown {
-            alertShown = true
-            showTryOpenAlert(url: url)
+        if !state.stayEnabled && !state.alertShown {
+            state.alertShown = true
+            hostStates[host] = state
+            showTryOpenAlert(url: url, host: host)
             return true
-        } else if !stayEnabled && alertShown {
-            return handleSubsequentRedirect(url: url)
         } else {
-            return handleSubsequentRedirect(url: url)
+            return handleSubsequentRedirect(url: url, host: host)
         }
     }
 
     func reset() {
-        activeHost = nil
-        redirectCount = 0
-        stayEnabled = false
-        alertShown = false
-        suppressedRedirectHosts.removeAll()
+        hostStates.removeAll()
     }
 
     // MARK: - Private
 
-    private func handleSubsequentRedirect(url: URL) -> Bool {
-        redirectCount += 1
-        if redirectCount > 2 {
+    private func domain(for url: URL) -> String? {
+        guard let host = url.host else { return nil }
+        return tld.eTLDplus1(host) ?? host
+    }
+
+    private func handleSubsequentRedirect(url: URL, host: String) -> Bool {
+        var state = hostStates[host, default: HostState()]
+        state.redirectCount += 1
+        hostStates[host] = state
+        if state.redirectCount > 2 {
             Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSLoopDetected)
-            showLoopAlert(url: url)
+            showLoopAlert(url: url, host: host)
         } else {
             convertAndLoad(url: url)
         }
@@ -117,7 +115,7 @@ final class SafariRedirectHandler: SafariRedirectHandling {
         }
     }
 
-    private func showTryOpenAlert(url: URL) {
+    private func showTryOpenAlert(url: URL, host: String) {
         let alert = UIAlertController(
             title: UserText.xSafariHTTPSTryOpenTitle,
             message: UserText.xSafariHTTPSTryOpenMessage,
@@ -127,22 +125,21 @@ final class SafariRedirectHandler: SafariRedirectHandling {
         alert.addAction(UIAlertAction(title: UserText.xSafariHTTPSStayInDDG, style: .cancel, handler: { [weak self] _ in
             guard let self else { return }
             Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSStay)
-            self.stayEnabled = true
-            self.redirectCount = 0
+            self.hostStates[host] = HostState(stayEnabled: true, alertShown: true)
             self.convertAndLoad(url: url)
         }))
 
         alert.addAction(UIAlertAction(title: UserText.xSafariHTTPSOpenInSafari, style: .default, handler: { [weak self] _ in
             guard let self else { return }
             Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSOpenInSafari)
-            self.alertShown = false
+            self.hostStates[host]?.alertShown = false
             self.delegate?.safariRedirectHandler(self, didRequestOpenExternallyURL: url)
         }))
 
         delegate?.safariRedirectHandler(self, didRequestPresentAlert: alert)
     }
 
-    private func showLoopAlert(url: URL) {
+    private func showLoopAlert(url: URL, host: String) {
         let alert = UIAlertController(
             title: UserText.xSafariHTTPSLoopTitle,
             message: UserText.xSafariHTTPSLoopMessage,
@@ -151,16 +148,14 @@ final class SafariRedirectHandler: SafariRedirectHandling {
 
         alert.addAction(UIAlertAction(title: UserText.xSafariHTTPSGoBack, style: .cancel, handler: { [weak self] _ in
             guard let self else { return }
-            self.stayEnabled = false
-            self.alertShown = false
-            self.redirectCount = 0
+            self.hostStates[host] = HostState()
             self.delegate?.safariRedirectHandlerDidRequestGoBack(self)
         }))
 
         alert.addAction(UIAlertAction(title: UserText.xSafariHTTPSOpenInSafari, style: .default, handler: { [weak self] _ in
             guard let self else { return }
             Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSLoopOpenInSafari)
-            self.alertShown = false
+            self.hostStates[host]?.alertShown = false
             self.delegate?.safariRedirectHandler(self, didRequestOpenExternallyURL: url)
         }))
 
