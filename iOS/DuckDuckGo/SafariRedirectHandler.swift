@@ -20,7 +20,7 @@
 import UIKit
 import Core
 import Common
-import BrowserServicesKit
+import PrivacyConfig
 
 protocol SafariRedirectHandling: AnyObject {
     /// Whether the given URL was loaded after a suppressed x-safari-https redirect (for breakage reports).
