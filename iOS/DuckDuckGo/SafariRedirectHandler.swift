@@ -103,7 +103,7 @@ final class SafariRedirectHandler: SafariRedirectHandling {
         state.redirectCount += 1
         hostStates[host] = state
         if state.redirectCount > 2 {
-            Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSLoopDetected)
+            DailyPixel.fireDailyAndCount(pixel: .webViewExternalSchemeNavigationXSafariHTTPSLoopDetected, error: nil, withAdditionalParameters: [:])
             showLoopAlert(url: url, host: host)
         } else {
             convertAndLoad(url: url)
@@ -128,14 +128,14 @@ final class SafariRedirectHandler: SafariRedirectHandling {
 
         alert.addAction(UIAlertAction(title: UserText.xSafariHTTPSStayInDDG, style: .cancel, handler: { [weak self] _ in
             guard let self else { return }
-            Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSStay)
+            DailyPixel.fireDaily(.webViewExternalSchemeNavigationXSafariHTTPSStay)
             self.hostStates[host] = HostState(stayEnabled: true, alertShown: true)
             self.convertAndLoad(url: url)
         }))
 
         alert.addAction(UIAlertAction(title: UserText.xSafariHTTPSOpenInSafari, style: .default, handler: { [weak self] _ in
             guard let self else { return }
-            Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSOpenInSafari)
+            DailyPixel.fireDaily(.webViewExternalSchemeNavigationXSafariHTTPSOpenInSafari)
             self.hostStates[host]?.alertShown = false
             self.delegate?.safariRedirectHandler(self, didRequestOpenExternallyURL: url)
         }))
@@ -158,8 +158,8 @@ final class SafariRedirectHandler: SafariRedirectHandling {
 
         alert.addAction(UIAlertAction(title: UserText.xSafariHTTPSOpenInSafari, style: .default, handler: { [weak self] _ in
             guard let self else { return }
-            Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSLoopOpenInSafari)
             self.hostStates[host]?.alertShown = false
+            DailyPixel.fireDaily(.webViewExternalSchemeNavigationXSafariHTTPSLoopOpenInSafari)
             self.delegate?.safariRedirectHandler(self, didRequestOpenExternallyURL: url)
         }))
 
