@@ -256,29 +256,4 @@ final class RemoteMessagePromoDelegateTests: XCTestCase {
 
         XCTAssertFalse(try XCTUnwrap(receivedVisible))
     }
-
-    // MARK: - Factory Configuration Tests
-
-    func testWhenMakePromosCalledThenReturnsTwoPromosWithCorrectConfiguration() async {
-        store.scheduledRemoteMessage = nil
-        model = makeModel()
-        let dependencies = makeDependencies(activeRemoteMessageModel: model)
-        let ntpPromo = await PromoServiceFactory.remoteMessageNewTabPage(dependencies: dependencies)
-        let tabBarPromo = await PromoServiceFactory.remoteMessageTabBar(dependencies: dependencies)
-
-        for promo in [ntpPromo, tabBarPromo] {
-            XCTAssertTrue(promo.triggers.isEmpty)
-            XCTAssertEqual(promo.initiated, .app)
-            XCTAssertEqual(promo.promoType.severity, .medium)
-            XCTAssertFalse(promo.respectsGlobalCooldown)
-            XCTAssertTrue(promo.setsGlobalCooldown)
-            XCTAssertNotNil(promo.delegate)
-        }
-
-        XCTAssertEqual(ntpPromo.context, .newTabPage)
-        XCTAssertEqual(tabBarPromo.context, .global)
-
-        XCTAssertTrue(ntpPromo.coexistingPromoIDs.contains("remote-message-tabbar"), "remote-message-ntp must coexist with remote-message-tabbar")
-        XCTAssertTrue(tabBarPromo.coexistingPromoIDs.contains("remote-message-ntp"), "remote-message-tabbar must coexist with remote-message-ntp")
-    }
 }

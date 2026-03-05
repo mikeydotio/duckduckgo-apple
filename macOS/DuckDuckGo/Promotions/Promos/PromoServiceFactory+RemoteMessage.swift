@@ -31,7 +31,7 @@ extension PromoServiceFactory {
             initiated: .app,
             promoType: PromoType(.remoteMessage),
             context: .newTabPage,
-            coexistingPromoIDs: ["remote-message-tabbar"],
+            coexistingPromoIDs: ["remote-message-tabbar", "next-steps-cards"],
             respectsGlobalCooldown: false,
             setsGlobalCooldown: true,
             delegate: delegate
@@ -48,7 +48,7 @@ extension PromoServiceFactory {
             initiated: .app,
             promoType: PromoType(.remoteMessage),
             context: .global,
-            coexistingPromoIDs: ["remote-message-ntp"],
+            coexistingPromoIDs: ["remote-message-ntp", "next-steps-cards"],
             respectsGlobalCooldown: false,
             setsGlobalCooldown: true,
             delegate: delegate
