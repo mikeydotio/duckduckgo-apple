@@ -1,12 +1,15 @@
 {
     // Pixels for x-safari-https external scheme navigation alert interactions
-    "m_webview_external-scheme-navigation_x-safari-https_cancel": {
-        "description": "Fired when the user taps Cancel on the x-safari-https external scheme alert"
+    "m_webview_external-scheme-navigation_x-safari-https_stay": {
+        "description": "Fired when the user taps Stay in DuckDuckGo on the x-safari-https alert"
     },
-    "m_webview_external-scheme-navigation_x-safari-https_browse": {
-        "description": "Fired when the user taps Browse here on the x-safari-https external scheme alert"
+    "m_webview_external-scheme-navigation_x-safari-https_open-in-safari": {
+        "description": "Fired when the user taps Open in Safari on the x-safari-https alert"
     },
-    "m_webview_external-scheme-navigation_x-safari-https_continue": {
-        "description": "Fired when the user taps Open on the x-safari-https external scheme alert"
+    "m_webview_external-scheme-navigation_x-safari-https_loop-detected": {
+        "description": "Fired when a redirect loop is detected after user chose to stay in DuckDuckGo"
+    },
+    "m_webview_external-scheme-navigation_x-safari-https_loop-open-in-safari": {
+        "description": "Fired when the user taps Open in Safari on the redirect loop alert"
     }
 }

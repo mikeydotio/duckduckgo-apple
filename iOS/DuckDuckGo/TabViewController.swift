@@ -163,7 +163,11 @@ class TabViewController: UIViewController {
     let adClickAttributionLogic = ContentBlocking.shared.makeAdClickAttributionLogic(tld: tld)
 
     private var httpsForced: Bool = false
-    private var browseXSafariHTTPSEnabled: Bool = false
+    private(set) lazy var safariRedirectHandler: SafariRedirectHandler = {
+        let handler = SafariRedirectHandler()
+        handler.delegate = self
+        return handler
+    }()
     private var lastUpgradedURL: URL?
     private var lastError: Error?
     private var lastHttpStatusCode: Int?
@@ -961,6 +965,7 @@ class TabViewController: UIViewController {
         wasLoadingStoppedExternally = false
         webView.stopLoading()
         dismissJSAlertIfNeeded()
+        safariRedirectHandler.reset()
 
         load(url: url, didUpgradeURL: false)
     }
@@ -1420,10 +1425,7 @@ class TabViewController: UIViewController {
     }
     
     func presentOpenInExternalAppAlert(url: URL) {
-        if url.scheme == "x-safari-https" {
-            presentXSafariHTTPSAlert(url: url)
-            return
-        }
+        if safariRedirectHandler.handleRedirect(to: url) { return }
 
         let title = UserText.customUrlSchemeTitle
         let message = UserText.customUrlSchemeMessage
@@ -1441,39 +1443,6 @@ class TabViewController: UIViewController {
         alert.addAction(UIAlertAction(title: open, style: .destructive, handler: { _ in
             self.openExternally(url: url)
         }))
-        delegate?.tab(self, didRequestPresentingAlert: alert)
-    }
-
-    private func presentXSafariHTTPSAlert(url: URL) {
-        let title = UserText.customUrlSchemeTitle
-        let message = UserText.customUrlSchemeMessage
-
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-
-        alert.addAction(UIAlertAction(title: UserText.customUrlSchemeDontOpen, style: .cancel, handler: { _ in
-            Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSCancel)
-            if self.webView.url == nil {
-                self.delegate?.tabDidRequestClose(self)
-            } else {
-                self.url = self.webView.url
-            }
-        }))
-
-        alert.addAction(UIAlertAction(title: UserText.customUrlSchemeBrowseHere, style: .default, handler: { _ in
-            Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSBrowse)
-            self.browseXSafariHTTPSEnabled = true
-            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            components?.scheme = "https"
-            if let httpsURL = components?.url {
-                self.load(url: httpsURL)
-            }
-        }))
-
-        alert.addAction(UIAlertAction(title: UserText.customUrlSchemeOpen, style: .destructive, handler: { _ in
-            Pixel.fire(pixel: .webViewExternalSchemeNavigationXSafariHTTPSContinue)
-            self.openExternally(url: url)
-        }))
-
         delegate?.tab(self, didRequestPresentingAlert: alert)
     }
 
@@ -1513,7 +1482,8 @@ class TabViewController: UIViewController {
                                                                      vpnOn: netPConnected,
                                                                      userRefreshCount: refreshCountSinceLoad,
                                                                      breakageReportingSubfeature: breakageReportingSubfeature,
-                                                                     isForceDarkModeEnabled: darkReaderFeatureSettings.isForceDarkModeEnabled)
+                                                                     isForceDarkModeEnabled: darkReaderFeatureSettings.isForceDarkModeEnabled,
+                                                                     isAfterSuppressedXSafariRedirect: safariRedirectHandler.isAfterSuppressedXSafariRedirect(for: currentURL))
     }
 
     public func print() {
@@ -1806,7 +1776,6 @@ extension TabViewController: WKNavigationDelegate {
         
         // definitely finished with any potential login cycle by this point, so don't try and handle it any more
         detectedLoginURL = nil
-        browseXSafariHTTPSEnabled = false
         updatePreview()
         linkProtection.setMainFrameUrl(nil)
         referrerTrimming.onFinishNavigation()
@@ -2388,12 +2357,7 @@ extension TabViewController: WKNavigationDelegate {
         let schemeType = SchemeHandler.schemeType(for: url)
         self.blobDownloadTargetFrame = nil
 
-        if browseXSafariHTTPSEnabled, url.scheme == "x-safari-https" {
-            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            components?.scheme = "https"
-            if let httpsURL = components?.url {
-                load(url: httpsURL)
-            }
+        if safariRedirectHandler.handleRedirect(to: url) {
             completion(.cancel)
             return
         }
@@ -4229,5 +4193,26 @@ extension TabViewController: SERPSettingsUserScriptDelegate {
         PixelKit.fire(SERPSettingsPixel.openDuckAIButtonClick, frequency: .dailyAndStandard)
         guard let mainVC = parent as? MainViewController else { return }
         mainVC.segueToSettingsAIChat(openedFromSERPSettingsButton: true)
+    }
+}
+
+// MARK: - SafariRedirectHandlerDelegate
+
+extension TabViewController: SafariRedirectHandlerDelegate {
+
+    func safariRedirectHandler(_ handler: SafariRedirectHandling, didRequestLoadURL url: URL) {
+        load(url: url, didUpgradeURL: false)
+    }
+
+    func safariRedirectHandler(_ handler: SafariRedirectHandling, didRequestOpenExternallyURL url: URL) {
+        openExternally(url: url)
+    }
+
+    func safariRedirectHandlerDidRequestGoBack(_ handler: SafariRedirectHandling) {
+        goBack()
+    }
+
+    func safariRedirectHandler(_ handler: SafariRedirectHandling, didRequestPresentAlert alert: UIAlertController) {
+        delegate?.tab(self, didRequestPresentingAlert: alert)
     }
 }
