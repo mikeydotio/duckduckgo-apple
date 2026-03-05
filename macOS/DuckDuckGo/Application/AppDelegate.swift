@@ -1265,7 +1265,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let urlEventHandlerResult = urlEventHandler.applicationDidFinishLaunching()
 
         if featureFlagger.isFeatureOn(.promoQueue) {
-            promoService = PromoServiceFactory.makePromoService(keyValueStore: keyValueStore, isExternallyActivated: urlEventHandlerResult.willOpenWindows)
+            let dependencies = PromoDependencies(
+                keyValueStore: keyValueStore,
+                isExternallyActivated: urlEventHandlerResult.willOpenWindows,
+                activeRemoteMessageModel: activeRemoteMessageModel)
+            promoService = PromoServiceFactory.makePromoService(dependencies: dependencies)
             NotificationCenter.default.post(name: .promoServiceAppLaunched, object: nil)
         }
 

@@ -21,54 +21,32 @@ import Combine
 import Persistence
 
 struct PromoServiceFactory {
-    /// Promotions to be coordinated by `PromoService`.
-    static let promos: [Promo] = {
-        let promos: [Promo] = []
-#if DEBUG || REVIEW
-        return promos + TestPromoFactory.testPromos
-#else
-        return promos
-#endif
-    }()
-
-    /// Triggers for promotions, mapped to `PromoTrigger` values.
-    static let triggerPublisher: AnyPublisher<PromoTrigger, Never> = {
-        let triggers = Publishers.Merge3(
-            NotificationCenter.default.publisher(for: .promoServiceAppLaunched)
-                .map { _ in PromoTrigger.appLaunched },
-            NotificationCenter.default.publisher(for: .newTabPageWebViewDidAppear)
-                .map { _ in PromoTrigger.newTabPageAppeared },
-            NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
-                .map { _ in PromoTrigger.windowBecameKey }
-        ).eraseToAnyPublisher()
-#if DEBUG || REVIEW
-        return Publishers.Merge(triggers,
-            NotificationCenter.default.publisher(for: .promoDebugTestTrigger)
-                .map { _ in PromoTrigger.testTriggered }
-        ).eraseToAnyPublisher()
-#else
-        return triggers
-#endif
-    }()
 
     @MainActor
-    static func makePromoService(keyValueStore: ThrowingKeyValueStoring,
-                                 isExternallyActivated: Bool) -> PromoService {
+    static func makePromoService(dependencies: PromoDependencies) -> PromoService {
+        let promos = makeAllPromos(dependencies: dependencies)
         let stateQueue = DispatchQueue(label: "com.duckduckgo.promoService.state")
-        let historyStore = PromoHistoryStore(store: keyValueStore, queue: stateQueue)
+        let historyStore = PromoHistoryStore(store: dependencies.keyValueStore, queue: stateQueue)
         return PromoService(
             promos: promos,
             historyStore: historyStore,
-            triggerPublisher: triggerPublisher,
-            initialExternalActivation: isExternallyActivated,
+            triggerPublisher: PromoTrigger.triggerPublisher,
+            initialExternalActivation: dependencies.isExternallyActivated,
             stateQueue: stateQueue
         )
     }
-}
 
-extension Notification.Name {
-    static let promoServiceAppLaunched = Notification.Name("com.duckduckgo.app.promoService.appLaunched")
+    @MainActor
+    private static func makeAllPromos(dependencies: PromoDependencies) -> [Promo] {
+        var promos: [Promo] = [
+            remoteMessageNewTabPage(dependencies: dependencies),
+            remoteMessageTabBar(dependencies: dependencies)
+        ]
+
 #if DEBUG || REVIEW
-    static let promoDebugTestTrigger = Notification.Name("com.duckduckgo.app.promoService.debugTestTrigger")
+        promos.append(contentsOf: testPromos)
 #endif
+
+        return promos
+    }
 }

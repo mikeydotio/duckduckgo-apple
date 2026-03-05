@@ -73,7 +73,7 @@ final class PromoDebugMenu: NSMenu {
             return
         }
 
-        let promos = PromoServiceFactory.promos
+        let promos = promoService.promos
 
         if promos.isEmpty {
             let item = NSMenuItem(title: "No promos registered", action: nil)
@@ -99,7 +99,7 @@ final class PromoDebugMenu: NSMenu {
 #endif
 
         for promo in promos {
-            let status = statusString(for: promo)
+            let status = statusString(for: promo, promoService: promoService)
             let parentItem = NSMenuItem(title: "\(promo.id)  \(status)", action: nil)
 
             let submenu = NSMenu()
@@ -148,7 +148,7 @@ final class PromoDebugMenu: NSMenu {
         addItem(resetItem)
     }
 
-    private func statusString(for promo: Promo) -> String {
+    private func statusString(for promo: Promo, promoService: PromoService) -> String {
         let now = simulatedDate ?? Date()
         let record = cachedHistory[promo.id]
 
@@ -163,7 +163,7 @@ final class PromoDebugMenu: NSMenu {
         }
 
         // Global cooldown (from another promo with same PromoInitiated)
-        if let (_, globalEnd) = globalCooldownStatus(for: promo, now: now) {
+        if let (_, globalEnd) = globalCooldownStatus(for: promo, now: now, promoService: promoService) {
             if let existing = cooldownEnd {
                 cooldownEnd = max(existing, globalEnd)
             } else {
@@ -181,10 +181,10 @@ final class PromoDebugMenu: NSMenu {
     }
 
     /// Returns (isOnCooldown, cooldownEndDate) if promo is blocked by PromoInitiated global cooldown.
-    private func globalCooldownStatus(for promo: Promo, now: Date) -> (Bool, Date)? {
+    private func globalCooldownStatus(for promo: Promo, now: Date, promoService: PromoService) -> (Bool, Date)? {
         guard promo.respectsGlobalCooldown, promo.promoType.severity >= .medium else { return nil }
 
-        let cooldownTypePromos = PromoServiceFactory.promos.filter { other in
+        let cooldownTypePromos = promoService.promos.filter { other in
             other.initiated == promo.initiated && other.setsGlobalCooldown && other.promoType.severity >= .medium
         }
         let lastDismissedForType = cooldownTypePromos

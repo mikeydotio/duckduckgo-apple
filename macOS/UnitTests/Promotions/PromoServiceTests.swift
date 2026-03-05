@@ -455,6 +455,37 @@ final class PromoServiceTests: XCTestCase {
         XCTAssertFalse(record.actioned)
     }
 
+    func testWhenIgnoredWithZeroCooldown_ThenImmediatelyReEligible() async {
+        // Given: promo with respectsGlobalCooldown: false (e.g. RMF) so it can re-show despite global cooldown
+        let delegate = MockPromoDelegate(isEligible: true)
+        delegate.setShowResult(.ignored(cooldown: 0))
+        let promo = PromoTestHelpers.makePromo(id: "zero-cooldown-promo", respectsGlobalCooldown: false, delegate: delegate)
+        let promoService = makeService(promos: [promo])
+        let hideExpectation = XCTestExpectation(description: "promo hidden after first show")
+        let showAgainExpectation = XCTestExpectation(description: "promo shown again")
+        promoService.visiblePromosPublisher
+            .dropFirst()
+            .sink { promos in
+                if promos.isEmpty {
+                    hideExpectation.fulfill()
+                } else if promos.contains(where: { $0.id == "zero-cooldown-promo" }) && delegate.showCallCount == 2 {
+                    showAgainExpectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+
+        // When: show, dismiss with .ignored(cooldown: 0), re-trigger
+        promoService.applicationDidBecomeActive()
+        triggerSubject.send(.appLaunched)
+        await fulfillment(of: [hideExpectation], timeout: timeout)
+        delegate.setShowResult(.ignored(cooldown: 0))
+        triggerSubject.send(.appLaunched)
+        await fulfillment(of: [showAgainExpectation], timeout: timeout)
+
+        // Then: promo was shown twice
+        XCTAssertEqual(delegate.showCallCount, 2)
+    }
+
     func testWhenIgnoredWithNilCooldown_ThenPermanentlyDismissed() async {
         // Given
         let delegate = MockPromoDelegate(isEligible: true)

@@ -69,6 +69,12 @@ final class ActiveRemoteMessageModel: ObservableObject {
      */
     let navigateToSoftwareUpdateHandler: () async -> Void
 
+    /**
+     * Called before clearing remoteMessage on user-initiated dismiss.
+     * Used by PromoService integration to notify delegates so show() returns the correct result.
+     */
+    var onRemoteMessageDismissedByUser: (() -> Void)?
+
     convenience init(remoteMessagingClient: RemoteMessagingClient,
                      openURLHandler: @escaping (URL) async -> Void,
                      navigateToFeedbackHandler: @escaping () async -> Void,
@@ -168,6 +174,8 @@ final class ActiveRemoteMessageModel: ObservableObject {
             return
         }
 
+        onRemoteMessageDismissedByUser?()
+
         await store()?.dismissRemoteMessage(withID: remoteMessage.id)
         self.remoteMessage = nil
 
@@ -217,7 +225,14 @@ final class ActiveRemoteMessageModel: ObservableObject {
 
     private func updateRemoteMessage() {
         // Only new tab page and tab bar are supported on macOS.
-        remoteMessage = store()?.fetchScheduledRemoteMessage(surfaces: [.newTabPage, .tabBar])
+        let previousId = remoteMessage?.id
+        let newMessage = store()?.fetchScheduledRemoteMessage(surfaces: [.newTabPage, .tabBar])
+        remoteMessage = newMessage
+
+        let newId = newMessage?.id
+        if previousId != newId {
+            NotificationCenter.default.post(name: .remoteMessageDidChange, object: nil)
+        }
     }
 
     private var cancellables = Set<AnyCancellable>()
@@ -241,4 +256,8 @@ private extension RemoteMessageModel {
         return id == TabBarRemoteMessage.tabBarPermanentSurveyRemoteMessageId
     }
 
+}
+
+extension Notification.Name {
+    static let remoteMessageDidChange = Notification.Name("com.duckduckgo.app.remoteMessage.didChange")
 }

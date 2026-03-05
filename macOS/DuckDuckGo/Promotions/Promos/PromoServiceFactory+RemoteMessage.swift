@@ -1,0 +1,57 @@
+//
+//  PromoServiceFactory+RemoteMessage.swift
+//
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+import RemoteMessaging
+
+extension PromoServiceFactory {
+
+    @MainActor
+    static func remoteMessageNewTabPage(dependencies: PromoDependencies) -> Promo {
+        let model = dependencies.activeRemoteMessageModel
+        let delegate = RemoteMessagePromoDelegate(activeRemoteMessageModel: model, surface: .newTabPage)
+        return Promo(
+            id: "remote-message-ntp",
+            triggers: [.remoteMessageChanged, .appLaunched],
+            initiated: .app,
+            promoType: PromoType(.remoteMessage),
+            context: .newTabPage,
+            coexistingPromoIDs: ["remote-message-tabbar", "next-steps-cards"],
+            respectsGlobalCooldown: false,
+            setsGlobalCooldown: true,
+            delegate: delegate
+        )
+    }
+
+    @MainActor
+    static func remoteMessageTabBar(dependencies: PromoDependencies) -> Promo {
+        let model = dependencies.activeRemoteMessageModel
+        let delegate = RemoteMessagePromoDelegate(activeRemoteMessageModel: model, surface: .tabBar)
+        return Promo(
+            id: "remote-message-tabbar",
+            triggers: [.remoteMessageChanged, .appLaunched],
+            initiated: .app,
+            promoType: PromoType(.remoteMessage),
+            context: .global,
+            coexistingPromoIDs: ["remote-message-ntp", "next-steps-cards"],
+            respectsGlobalCooldown: false,
+            setsGlobalCooldown: true,
+            delegate: delegate
+        )
+    }
+}

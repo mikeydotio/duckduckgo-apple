@@ -205,7 +205,7 @@ final class PromoService: @unchecked Sendable, PromoHistoryProviding {
     // MARK: Promos
 
     /// Fixed list of promos (array order = priority order). Delegates attached via setDelegate(for:delegate:).
-    private var promos: [Promo]
+    private(set) var promos: [Promo]
 
     /// Whether `PromoService` has started evaluating promo triggers and showing eligible promos.
     private var isStarted = false

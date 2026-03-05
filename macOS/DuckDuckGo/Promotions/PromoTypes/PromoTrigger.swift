@@ -16,6 +16,10 @@
 //  limitations under the License.
 //
 
+import AppKit
+import Combine
+import Foundation
+
 /// Events that can trigger a promo.
 ///
 /// Triggers should map to e.g. an `NSNotification` or `@Published` property
@@ -24,7 +28,37 @@ enum PromoTrigger {
     case appLaunched
     case windowBecameKey
     case newTabPageAppeared
+    case remoteMessageChanged
 #if DEBUG || REVIEW
     case testTriggered
+#endif
+
+    /// Triggers for promotions, mapped to `PromoTrigger` values.
+    static var triggerPublisher: AnyPublisher<PromoTrigger, Never> = {
+        let triggers = Publishers.Merge4(
+            NotificationCenter.default.publisher(for: .promoServiceAppLaunched)
+                .map { _ in PromoTrigger.appLaunched },
+            NotificationCenter.default.publisher(for: .newTabPageWebViewDidAppear)
+                .map { _ in PromoTrigger.newTabPageAppeared },
+            NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
+                .map { _ in PromoTrigger.windowBecameKey },
+            NotificationCenter.default.publisher(for: .remoteMessageDidChange)
+                .map { _ in PromoTrigger.remoteMessageChanged }
+        ).eraseToAnyPublisher()
+#if DEBUG || REVIEW
+        return Publishers.Merge(triggers,
+            NotificationCenter.default.publisher(for: .promoDebugTestTrigger)
+                .map { _ in PromoTrigger.testTriggered }
+        ).eraseToAnyPublisher()
+#else
+        return triggers
+#endif
+    }()
+}
+
+extension Notification.Name {
+    static let promoServiceAppLaunched = Notification.Name("com.duckduckgo.app.promoService.appLaunched")
+#if DEBUG || REVIEW
+    static let promoDebugTestTrigger = Notification.Name("com.duckduckgo.app.promoService.debugTestTrigger")
 #endif
 }
