@@ -75,6 +75,15 @@ final class SafariRedirectHandlerTests: XCTestCase {
         XCTAssertTrue(delegate.openedExternallyURLs.isEmpty)
     }
 
+    func testRedirectsWhileAlertShowingAreConsumedSilently() {
+        _ = handler.handleRedirect(to: xSafariURL) // Shows alert
+        XCTAssertTrue(handler.handleRedirect(to: xSafariURL)) // Consumed
+        XCTAssertTrue(handler.handleRedirect(to: xSafariURL)) // Consumed
+
+        XCTAssertEqual(delegate.presentedAlerts.count, 1) // No extra alerts
+        XCTAssertTrue(delegate.loadedURLs.isEmpty) // No silent loads
+    }
+
     // MARK: - "Stay in DuckDuckGo" flow
 
     func testStayActionConvertsToHTTPSAndLoads() {

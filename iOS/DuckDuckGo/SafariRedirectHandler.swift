@@ -82,8 +82,11 @@ final class SafariRedirectHandler: SafariRedirectHandling {
             hostStates[host] = state
             showTryOpenAlert(url: url, host: host)
             return true
-        } else {
+        } else if state.stayEnabled {
             return handleSubsequentRedirect(url: url, host: host)
+        } else {
+            // Alert is shown but user hasn't responded yet — consume the redirect silently
+            return true
         }
     }
 
