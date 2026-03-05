@@ -41,7 +41,7 @@ struct PromoServiceFactory {
         var promos: [Promo] = [
             remoteMessageNewTabPage(dependencies: dependencies),
             remoteMessageTabBar(dependencies: dependencies)
-        ]
+        ] + makeNextStepsPromos()
 
 #if DEBUG || REVIEW
         promos.append(contentsOf: testPromos)
