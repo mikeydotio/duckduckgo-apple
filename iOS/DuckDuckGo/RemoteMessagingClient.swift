@@ -36,7 +36,7 @@ final class RemoteMessagingClient: RemoteMessagingProcessing {
         static let backgroundRefreshTaskIdentifier = "com.duckduckgo.app.remoteMessageRefresh"
         static let minimumConfigurationRefreshInterval: TimeInterval = 60 * 60 * 4
         static let endpoint: URL = {
-            URL(string: "https://gist.githubusercontent.com/amddg44/e47faefd6d0b5cba7cc4c77de0ee8fa2/raw/b75fdf8617709ae3f89a52da37c84726845221cb/whatsnew.json")!
+            URL(string: "https://gist.githubusercontent.com/amddg44/e47faefd6d0b5cba7cc4c77de0ee8fa2/raw/c40412ea63e48a2dec3464ef84772db79cef1077/whatsnew.json")!
         }()
     }
 
