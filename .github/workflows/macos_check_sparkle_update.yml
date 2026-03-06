@@ -30,7 +30,7 @@ jobs:
         run: |
           xcodebuild -resolvePackageDependencies \
             -workspace DuckDuckGo.xcworkspace \
-            -scheme DuckDuckGo Privacy Browser
+            -scheme "DuckDuckGo Privacy Browser"
 
       - name: Create Pull Request
         if: steps.check.outputs.update_available == 'true'
