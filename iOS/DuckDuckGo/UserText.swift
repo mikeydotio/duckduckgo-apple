@@ -2154,12 +2154,12 @@ public struct UserText {
             )
             public static let suggestionOption1 = NotLocalizedString(
                 "onboarding.highlights.duckAIQueryExperiment.suggestion.option1",
-                value: "how to say \"duck\" in spanish",
+                value: "how to say \"duck\" in 10 languages",
                 comment: "First suggestion chip label in onboarding Duck.ai query experiment screen."
             )
             public static let suggestionOption2 = NotLocalizedString(
                 "onboarding.highlights.duckAIQueryExperiment.suggestion.option2",
-                value: "mighty ducks cast",
+                value: "all mighty ducks movies",
                 comment: "Second suggestion chip label in onboarding Duck.ai query experiment screen."
             )
             public static let suggestionSurpriseMe = NotLocalizedString(

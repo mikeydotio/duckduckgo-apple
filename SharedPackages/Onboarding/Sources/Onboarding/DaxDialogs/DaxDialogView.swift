@@ -157,14 +157,15 @@ public struct DaxDialogView<Content: View>: View {
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .shadow(color: shadowColors.0, radius: 16, x: 0, y: 8)
             .shadow(color: shadowColors.1, radius: 6, x: 0, y: 2)
-            .overlay(alignment: .topLeading) {
-                if showBubbleArrow {
+            .if(showBubbleArrow) {
+                $0.overlay(
                     Triangle()
                         .frame(width: arrowSize.width, height: arrowSize.height)
                         .foregroundColor(backgroundColor)
                         .rotationEffect(Angle(degrees: logoPosition == .top ? 0 : -90), anchor: .bottom)
-                        .offset(arrowOffset)
-                }
+                        .offset(arrowOffset),
+                    alignment: .topLeading
+                )
             }
 
         if #available(macOS 12.0, iOS 15.0, *) {
@@ -305,6 +306,24 @@ struct OnboardingDismissButton: View {
 // Move this extension to `SwiftUIExtensions` package when creating it.
 private extension View {
 
+    /// Applies the given transform if the given condition evaluates to `true`.
+    /// - Parameters:
+    ///   - condition: The condition to evaluate.
+    ///   - transform: The transform to apply to the source `View`.
+    /// - Returns: Either the original `View` or the modified `View` if the condition is `true`.
+    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+
+    /// Applies the given transform if the given optional value is not `nil`.
+    /// - Parameters:
+    ///   - value: The optional value to evaluate.
+    ///   - transform: The transform to apply to the source `View`.
+    /// - Returns: Either the original `View` or the modified `View` if the optional value is not `nil`.
     @ViewBuilder func `ifLet`<Content: View, Value>(_ value: Value?, transform: (Self, Value) -> Content) -> some View {
         if let value = value {
             transform(self, value)

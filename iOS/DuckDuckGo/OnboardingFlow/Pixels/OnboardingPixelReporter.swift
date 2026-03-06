@@ -214,7 +214,7 @@ extension OnboardingPixelReporter: OnboardingIntroPixelReporting {
         static let searchMetricName = "search_type"
         static let aiChatMetricName = "aichat_type"
         static let conversionWindow: ConversionWindow = 0...0
-        static let subfeatureID = AIChatSubfeature.duckAIQueryExperiment.rawValue
+        static let subfeatureID = AIChatSubfeature.onboardingDuckAIQueryExperiment.rawValue
     }
 
     func measureSkipOnboardingCTAAction() {

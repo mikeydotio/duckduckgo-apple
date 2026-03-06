@@ -225,8 +225,8 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211654189969294/task/1211652685709099?focus=true
     case onboardingSearchExperience
 
-    /// https://app.asana.com/1/137249556945/project/1211654189969294/task/1211652685709099?focus=true
-    case duckAIQueryExperiment
+    /// https://app.asana.com/1/137249556945/project/1142021229838617/task/1213320237636425?focus=true
+    case onboardingDuckAIQueryExperiment
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866472842661
     case storeSerpSettings
@@ -384,7 +384,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .tabSwitcherTrackerCount,
              .iPadDuckaiOnTab,
              .suppressTrackerAnimationOnColdStart,
-             .duckAIQueryExperiment:
+             .onboardingDuckAIQueryExperiment:
             true
         default:
             false
@@ -397,7 +397,7 @@ extension FeatureFlag: FeatureFlagDescribing {
             UITestExperimentCohort.self
         case .autofillOnboardingExperiment:
             AutofillOnboardingExperimentCohort.self
-        case .duckAIQueryExperiment:
+        case .onboardingDuckAIQueryExperiment:
             DuckAIQueryExperimentCohort.self
         default:
             nil
@@ -418,8 +418,11 @@ extension FeatureFlag: FeatureFlagDescribing {
     }
 
     public enum DuckAIQueryExperimentCohort: String, FeatureFlagCohortDescribing {
+        /// Control cohort skips the experiment and keeps the existing onboarding flow.
         case control
+        /// Treatment A shows experiment screen with "Search" selected by default.
         case treatmentA
+        /// Treatment B shows experiment screen with "Search & Duck.ai" selected by default.
         case treatmentB
     }
 
@@ -457,7 +460,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .vpnMenuItem,
              .forgetAllInSettings,
              .onboardingSearchExperience,
-             .duckAIQueryExperiment,
+             .onboardingDuckAIQueryExperiment,
              .fullDuckAIMode,
              .iPadDuckaiOnTab,
              .iPadAIToggle,
@@ -681,8 +684,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.feature(.attributedMetrics))
         case .onboardingSearchExperience:
             return .remoteReleasable(.subfeature(AIChatSubfeature.onboardingSearchExperience))
-        case .duckAIQueryExperiment:
-            return .remoteReleasable(.subfeature(AIChatSubfeature.duckAIQueryExperiment))
+        case .onboardingDuckAIQueryExperiment:
+            return .remoteReleasable(.subfeature(AIChatSubfeature.onboardingDuckAIQueryExperiment))
         case .storeSerpSettings:
             return .remoteReleasable(.subfeature(SERPSubfeature.storeSerpSettings))
         case .showHideAIGeneratedImagesSection:

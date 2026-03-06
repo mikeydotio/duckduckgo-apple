@@ -37,16 +37,16 @@ final class OnboardingIntroViewController<Content: View>: UIHostingController<Co
             self.delegate?.onboardingCompleted(controller: self)
         }
         viewModel.onOpenAIChatFromOnboarding = { [weak self] query, autoSend in
-            guard let self, let mainViewController = self.delegate as? MainViewController else { return }
-            mainViewController.openAIChat(
+            guard let self, let delegate else { return }
+            delegate.openAIChatFromOnboarding(
                 query,
                 autoSend: autoSend,
                 onboardingConsentType: .deferUntilFirstQuery
             )
         }
         viewModel.onSearchFromOnboarding = { [weak self] query in
-            guard let self, let mainViewController = self.delegate as? MainViewController else { return }
-            mainViewController.searchFromOnboarding(for: query)
+            guard let self, let delegate else { return }
+            delegate.searchFromOnboarding(for: query)
         }
     }
 

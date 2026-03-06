@@ -4440,6 +4440,10 @@ extension MainViewController: OnboardingDelegate {
         controller.dismiss(animated: true)
         newTabPageViewController?.onboardingCompleted()
     }
+
+    func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType) {
+        openAIChat(query, autoSend: autoSend, onboardingConsentType: onboardingConsentType)
+    }
     
     func markOnboardingSeen() {
         tutorialSettings.hasSeenOnboarding = true

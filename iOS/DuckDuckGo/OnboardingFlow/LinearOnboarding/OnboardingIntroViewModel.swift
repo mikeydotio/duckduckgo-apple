@@ -264,13 +264,13 @@ private extension OnboardingIntroViewModel {
         UserDefaults.app.set("false", forKey: LaunchOptionsHandler.isOnboardingCompleted)
 #endif
         // TODO: Temporary override for build validation; remove before shipping.
-        // if !introSteps.contains(where: {
-        //     if case .duckAIQueryExperimentSelection = $0 { return true }
-        //     return false
-        // }) {
-        //     introSteps.insert(.duckAIQueryExperimentSelection(defaultSelection: true), at: 0)
-        // }
-        // currentIntroStep = .duckAIQueryExperimentSelection(defaultSelection: true)
+//        if !introSteps.contains(where: {
+//            if case .duckAIQueryExperimentSelection = $0 { return true }
+//            return false
+//        }) {
+//            introSteps.insert(.duckAIQueryExperimentSelection(defaultSelection: true), at: 0)
+//        }
+//        currentIntroStep = .duckAIQueryExperimentSelection(defaultSelection: true)
         setViewState(introStep: currentIntroStep)
     }
 
@@ -354,19 +354,22 @@ private extension OnboardingIntroViewModel {
 
         switch cohort {
         case .control:
+            // Control keeps the baseline flow and does not add the experiment dialog.
             return
         case .treatmentA:
+            // Treatment A defaults picker to Search.
             introSteps.insert(.duckAIQueryExperimentSelection(defaultSelection: true), at: currentStepIndex + 1)
         case .treatmentB:
+            // Treatment B defaults picker to Search & Duck.ai.
             introSteps.insert(.duckAIQueryExperimentSelection(defaultSelection: false), at: currentStepIndex + 1)
         }
     }
 
     func resolveDuckAIQueryExperimentCohortID() -> FeatureFlag.DuckAIQueryExperimentCohort? {
-        guard featureFlagger.isFeatureOn(.duckAIQueryExperiment) else { return nil }
+        guard featureFlagger.isFeatureOn(.onboardingDuckAIQueryExperiment) else { return nil }
         // TODO: Temporary override for dev validation; remove once remote cohort mapping is finalized.
-        // return featureFlagger.resolveCohort(for: FeatureFlag.duckAIQueryExperiment) as? FeatureFlag.DuckAIQueryExperimentCohort
-        return .control
+        // return featureFlagger.resolveCohort(for: FeatureFlag.onboardingDuckAIQueryExperiment) as? FeatureFlag.DuckAIQueryExperimentCohort
+        return .treatmentA
     }
 
 }
