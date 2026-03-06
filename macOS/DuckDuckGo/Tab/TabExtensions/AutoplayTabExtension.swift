@@ -65,6 +65,7 @@ final class AutoplayTabExtension {
         let effective = autoplayPreferences.effectiveMode(for: url)
         guard effective != configuredMode else { return }
         configuredMode = effective
+        webView.configuration.mediaTypesRequiringUserActionForPlayback = effective.mediaTypesRequiringUserAction
         webView.reload()
     }
 }
