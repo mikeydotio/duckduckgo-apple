@@ -68,6 +68,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         var tabCrashAggregator: TabCrashAggregator
         var tabsPreferences: TabsPreferences
         var webTrackingProtectionPreferences: WebTrackingProtectionPreferences
+        var autoplayPreferences: AutoplayPreferences
     }
 
     fileprivate weak var delegate: TabDelegate?
@@ -358,7 +359,8 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                                                           aiChatSessionStore: aiChatSessionStore,
                                                           tabCrashAggregator: tabCrashAggregator,
                                                           tabsPreferences: tabsPreferences,
-                                                          webTrackingProtectionPreferences: webTrackingProtectionPreferences)
+                                                          webTrackingProtectionPreferences: webTrackingProtectionPreferences,
+                                                          autoplayPreferences: autoplayPreferences)
         let tabExtensionsBuilderArguments: TabExtensionsBuilderArguments = (tabIdentifier: instrumentation.currentTabIdentifier,
                                                                             tabID: self.uuid,
                                                                             isTabPinned: { tabGetter().map { tab in pinnedTabsManagerProvider.pinnedTabsManager(for: tab)?.isTabPinned(tab) ?? false } ?? false },

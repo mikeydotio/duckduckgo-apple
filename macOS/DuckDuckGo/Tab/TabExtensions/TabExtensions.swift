@@ -90,6 +90,7 @@ protocol TabExtensionDependencies {
     var tabCrashAggregator: TabCrashAggregator { get }
     var tabsPreferences: TabsPreferences { get }
     var webTrackingProtectionPreferences: WebTrackingProtectionPreferences { get }
+    var autoplayPreferences: AutoplayPreferences { get }
 }
 
 // swiftlint:disable:next large_tuple
@@ -343,6 +344,11 @@ extension TabExtensionsBuilder {
                 webViewPublisher: args.webViewFuture,
                 internalUserDecider: dependencies.featureFlagger.internalUserDecider
             )
+        }
+
+        add {
+            AutoplayTabExtension(autoplayPreferences: dependencies.autoplayPreferences,
+                                 webViewPublisher: args.webViewFuture)
         }
     }
 
