@@ -45,8 +45,11 @@ struct PromoServiceFactory {
         var promos: [Promo] = [
             remoteMessageNewTabPage(model: dependencies.activeRemoteMessageModel),
             remoteMessageTabBar(model: dependencies.activeRemoteMessageModel),
-            nextSteps
-    ]
+            nextSteps,
+            defaultBrowserAndDockPopover(service: dependencies.defaultBrowserAndDockPromptService),
+            defaultBrowserAndDockBanner(service: dependencies.defaultBrowserAndDockPromptService),
+            defaultBrowserAndDockInactiveModal(service: dependencies.defaultBrowserAndDockPromptService)
+        ]
 
         if includeTestPromos {
             promos.append(contentsOf: testPromos)
