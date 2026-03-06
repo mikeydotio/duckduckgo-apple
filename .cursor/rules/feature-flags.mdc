@@ -371,4 +371,4 @@ struct FeatureFlagRow<Flag: FeatureFlag>: View where Flag: CaseIterable {
 #endif
 ```
 
-See `analytics-patterns.md` for pixel firing patterns and `configuration-management.md` for advanced configuration management.
+See `analytics-patterns.md` for pixel firing patterns and `feature-flags-addition.mdc` for adding feature flags.

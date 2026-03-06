@@ -24,7 +24,7 @@ SharedPackages/
 
 ### Package.swift Configuration
 ```swift
-// swift-tools-version: 5.7
+// swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(
@@ -40,8 +40,8 @@ let package = Package(
         )
     ],
     dependencies: [
-        // Only include truly necessary dependencies
-        .package(url: "https://github.com/DuckDuckGo/BrowserServicesKit", from: "1.0.0")
+        // BSK is a local sibling package
+        .package(path: "../BrowserServicesKit")
     ],
     targets: [
         .target(

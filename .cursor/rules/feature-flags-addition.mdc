@@ -199,7 +199,7 @@ Once created, paste the Asana task URL here:
 
 - **iOS:** `iOS/Core/FeatureFlag.swift`
 - **macOS:** `macOS/LocalPackages/FeatureFlags/Sources/FeatureFlags/FeatureFlag.swift`
-- **Shared (remote flags):** `SharedPackages/BrowserServicesKit/Sources/BrowserServicesKit/PrivacyConfig/Features/PrivacyFeature.swift`
+- **Shared (remote flags):** `SharedPackages/BrowserServicesKit/Sources/PrivacyConfig/Features/PrivacyFeature.swift`
 
 ### 3.1: Add Feature Flag Enum Case
 
@@ -317,7 +317,7 @@ public var supportsLocalOverriding: Bool {
 
 ### 3.5: Add Subfeature to PrivacyFeature.swift (Remote Flags Only)
 
-**File:** `SharedPackages/BrowserServicesKit/Sources/BrowserServicesKit/PrivacyConfig/Features/PrivacyFeature.swift`
+**File:** `SharedPackages/BrowserServicesKit/Sources/PrivacyConfig/Features/PrivacyFeature.swift`
 
 **Important Documentation Note:**
 - **MacOSBrowserConfigSubfeature** and **iOSBrowserConfigSubfeature**: Include documentation comments with Asana task URLs
@@ -505,7 +505,7 @@ final class MyViewController {
 ### iOS-specific (via AppDependencies)
 
 ```swift
-if AppDependencies.shared.featureFlagger.isFeatureOn(.yourFeatureName) {
+if AppDependencyProvider.shared.featureFlagger.isFeatureOn(.yourFeatureName) {
     // iOS-specific feature code
 }
 ```
@@ -578,7 +578,7 @@ extension FeatureFlag: FeatureFlagDescribing {
 }
 ```
 
-**File 2:** `SharedPackages/BrowserServicesKit/Sources/BrowserServicesKit/PrivacyConfig/Features/PrivacyFeature.swift`
+**File 2:** `SharedPackages/BrowserServicesKit/Sources/PrivacyConfig/Features/PrivacyFeature.swift`
 
 ```swift
 public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
@@ -757,4 +757,4 @@ When adding a feature flag, ensure you:
 For more information, see:
 - `feature-flags.md` - Type-safe feature flag patterns
 - `abn-experiment-framework.md` - A/B testing with feature flags
-- `SharedPackages/BrowserServicesKit/Sources/BrowserServicesKit/FeatureFlagger/FeatureFlagger.swift` - Core implementation
+- `SharedPackages/BrowserServicesKit/Sources/PrivacyConfig/FeatureFlagger/FeatureFlagger.swift` - Core implementation

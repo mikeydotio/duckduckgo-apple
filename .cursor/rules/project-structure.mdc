@@ -22,7 +22,7 @@ iOS/
 ├── DuckDuckGo/                  # Main iOS app
 │   ├── AppDelegate.swift        # App lifecycle
 │   ├── MainViewController.swift # Primary browser interface
-│   ├── BrowserTab.swift        # Tab state and WebKit integration
+│   ├── Tab.swift               # Tab state and WebKit integration
 │   ├── AIChat/                 # AI chat integration
 │   ├── AppLifecycle/           # App lifecycle management
 │   ├── Autofill/               # Form autofill features
@@ -49,7 +49,7 @@ iOS/
 macOS/
 ├── DuckDuckGo/                 # Main macOS app
 │   ├── AppDelegate.swift       # App lifecycle
-│   ├── MainWindow.swift        # Primary window controller
+│   ├── MainWindow/MainWindow.swift # Primary window controller
 │   ├── BrowserTabViewController.swift # Web view management
 │   ├── AIChat/                 # AI chat integration
 │   ├── Autofill/               # Form autofill features
@@ -91,12 +91,17 @@ import BrowserServicesKit
 ```
 SharedPackages/
 ├── AIChat/                     # AI chat functionality
+├── AttributedMetric/           # Attributed metric reporting
+├── AutomationServer/           # Automation server for testing
 ├── BrowserServicesKit/         # Core browser services
 ├── DataBrokerProtectionCore/   # Data broker protection
-├── DesignResourcesKitIcons/    # Shared icon resources
+├── Infrastructure/             # Shared infrastructure (DesignResourcesKit, DesignResourcesKitIcons)
 ├── Onboarding/                 # User onboarding experience
+├── SERPSettings/               # Search engine results page settings
 ├── UIComponents/               # Reusable UI components
-└── VPN/                        # VPN functionality
+├── URLPredictor/               # URL prediction
+├── VPN/                        # VPN functionality
+└── WebExtensions/              # Web extensions support
 ```
 
 ### Package Dependencies
@@ -231,7 +236,7 @@ macOS/
 // Core Application Files
 AppDelegate.swift                    # App lifecycle and initialization
 MainViewController.swift             # Primary browser interface
-BrowserTab.swift                     # Tab state management
+Tab.swift                            # Tab state management
 TabsBarViewController.swift          # Tab bar UI (iPad)
 BookmarksViewController.swift        # Bookmarks management
 PrivacyDashboardViewController.swift # Privacy protection UI
@@ -241,7 +246,7 @@ PrivacyDashboardViewController.swift # Privacy protection UI
 ```swift
 // Core Application Files
 AppDelegate.swift                    # App lifecycle management
-MainWindow.swift                     # Primary window controller
+MainWindow/MainWindow.swift          # Primary window controller
 BrowserTabViewController.swift       # Web view management
 NavigationBarViewController.swift    # URL bar and controls
 PreferencesViewController.swift      # Settings interface

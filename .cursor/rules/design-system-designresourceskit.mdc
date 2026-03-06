@@ -23,8 +23,8 @@ The DuckDuckGo iOS design system is implemented through **DesignResourcesKit (DR
 - **Reusable components** (when patterns emerge)
 - **Advanced interaction patterns**
 
-❌ **Not Included**:
-- **Icons** (remain in iOS app directly for now)
+✅ **Icons**:
+- **DesignResourcesKitIcons** package at `SharedPackages/Infrastructure/DesignResourcesKitIcons/`
 
 ## ⚠️ Critical Rule: Don't Break the Design System
 
