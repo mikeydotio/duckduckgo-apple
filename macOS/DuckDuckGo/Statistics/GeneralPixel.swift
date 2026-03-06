@@ -169,6 +169,9 @@ enum GeneralPixel: PixelKitEvent {
     case duckPlayerWatchOnYoutube
     case duckPlayerAutoplaySettingsOn
     case duckPlayerAutoplaySettingsOff
+    case autoplaySettingAllowAll
+    case autoplaySettingBlockAudio
+    case autoplaySettingBlockAll
     case duckPlayerNewTabSettingsOn
     case duckPlayerNewTabSettingsOff
     case duckPlayerContingencySettingsDisplayed
@@ -832,6 +835,12 @@ enum GeneralPixel: PixelKitEvent {
             return "m_mac_duck-player_watch_on_youtube"
         case .duckPlayerAutoplaySettingsOn:
             return "duckplayer_mac_autoplay_setting-on"
+        case .autoplaySettingAllowAll:
+            return "m_mac_autoplay_setting_allow-all"
+        case .autoplaySettingBlockAudio:
+            return "m_mac_autoplay_setting_block-audio"
+        case .autoplaySettingBlockAll:
+            return "m_mac_autoplay_setting_block-all"
         case .duckPlayerAutoplaySettingsOff:
             return "duckplayer_mac_autoplay_setting-off"
         case .duckPlayerNewTabSettingsOn:
@@ -1431,6 +1440,9 @@ enum GeneralPixel: PixelKitEvent {
                 .duckPlayerWatchOnYoutube,
                 .duckPlayerAutoplaySettingsOn,
                 .duckPlayerAutoplaySettingsOff,
+                .autoplaySettingAllowAll,
+                .autoplaySettingBlockAudio,
+                .autoplaySettingBlockAll,
                 .duckPlayerNewTabSettingsOn,
                 .duckPlayerNewTabSettingsOff,
                 .duckPlayerContingencySettingsDisplayed,
@@ -1584,6 +1596,9 @@ enum GeneralPixel: PixelKitEvent {
                 .duckPlayerWatchOnYoutube,
                 .duckPlayerAutoplaySettingsOn,
                 .duckPlayerAutoplaySettingsOff,
+                .autoplaySettingAllowAll,
+                .autoplaySettingBlockAudio,
+                .autoplaySettingBlockAll,
                 .duckPlayerNewTabSettingsOn,
                 .duckPlayerNewTabSettingsOff,
                 .duckPlayerContingencySettingsDisplayed,
