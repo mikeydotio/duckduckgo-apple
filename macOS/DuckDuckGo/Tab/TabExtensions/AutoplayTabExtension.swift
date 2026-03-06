@@ -54,21 +54,25 @@ final class AutoplayTabExtension {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _, _ in
                 guard let self, let url = self.currentURL else { return }
-                self.applyModeForURL(url)
+                // A page is already displayed — update config and reload so media respects the new policy.
+                self.updateConfig(for: url, reload: true)
             }
             .store(in: &preferenceCancellables)
     }
 
-    /// Applies the effective autoplay mode for the given URL to the WebView.
-    /// Updates `configuredMode` and reloads the page if the mode changed.
+    /// Updates `webView.configuration.mediaTypesRequiringUserActionForPlayback` for the given URL.
+    /// Pass `reload: true` only when a page is already displayed and needs to re-evaluate media policy.
+    /// Pass `reload: false` (from `didStart`) to configure before page load — no reload needed.
     /// Exposed as `internal` for unit testing.
-    func applyModeForURL(_ url: URL) {
+    func updateConfig(for url: URL, reload: Bool) {
         guard let webView else { return }
         let effective = autoplayPreferences.effectiveMode(for: url)
         guard effective != configuredMode else { return }
         configuredMode = effective
         webView.configuration.mediaTypesRequiringUserActionForPlayback = effective.mediaTypesRequiringUserAction
-        webView.reload()
+        if reload {
+            webView.reload()
+        }
     }
 }
 
@@ -80,7 +84,9 @@ extension AutoplayTabExtension: NavigationResponder {
         guard navigation.navigationAction.isForMainFrame else { return }
         let url = navigation.url
         currentURL = url
-        applyModeForURL(url)
+        // Navigation is in progress — update config now so media policy is correct when the page loads.
+        // Do NOT reload: calling reload() during an active navigation cancels it and reloads the previous page.
+        updateConfig(for: url, reload: false)
     }
 }
 

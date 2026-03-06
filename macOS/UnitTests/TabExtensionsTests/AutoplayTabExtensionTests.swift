@@ -58,28 +58,27 @@ final class AutoplayTabExtensionTests: XCTestCase {
                              webViewPublisher: PassthroughSubject<WKWebView, Never>().eraseToAnyPublisher())
     }
 
-    // MARK: - applyModeForURL (internal entry point)
+    // MARK: - updateConfig(for:reload:false) — simulates didStart (navigation in progress, no reload)
     // Note: `didStart(_ navigation:)` is not directly unit-tested because constructing
     // `Navigation` objects with `isForMainFrame` set is not supported in the test target.
-    // The `applyModeForURL` method (called by `didStart`) is tested exhaustively here.
+    // The `updateConfig(for:reload:)` method is tested exhaustively here.
     // The `isForMainFrame` guard is verified via the UI/integration test suite.
 
     // MARK: - No change when modes match
 
-    func testNoReloadWhenEffectiveModeMatchesConfigured() {
+    func testNoConfigChangeWhenEffectiveMatchesConfigured() {
         let prefs = makePreferences(globalMode: .blockAudio)
         let ext = makeExtension(preferences: prefs)
         let spy = SpyWKWebView()
         ext.webViewDidAppear(spy)
 
-        // Navigate to a domain with no exception — effective = blockAudio = configured
-        ext.applyModeForURL(URL(string: "https://example.com")!)
+        ext.updateConfig(for: URL(string: "https://example.com")!, reload: false)
 
         XCTAssertEqual(ext.configuredMode, .blockAudio)
         XCTAssertEqual(spy.reloadCount, 0)
     }
 
-    // MARK: - Applies exception on navigation
+    // MARK: - Applies exception on navigation (no reload — navigation handles page load)
 
     func testAppliesExceptionModeWhenNavigatingToExceptionDomain() {
         let prefs = makePreferences(globalMode: .blockAudio, exceptions: ["youtube.com": .allowAll])
@@ -87,10 +86,10 @@ final class AutoplayTabExtensionTests: XCTestCase {
         let spy = SpyWKWebView()
         ext.webViewDidAppear(spy)
 
-        ext.applyModeForURL(URL(string: "https://youtube.com/watch?v=test")!)
+        ext.updateConfig(for: URL(string: "https://youtube.com/watch?v=test")!, reload: false)
 
         XCTAssertEqual(ext.configuredMode, .allowAll)
-        XCTAssertEqual(spy.reloadCount, 1)
+        XCTAssertEqual(spy.reloadCount, 0) // no reload during navigation
     }
 
     func testAppliesExceptionForWWWSubdomain() {
@@ -99,10 +98,10 @@ final class AutoplayTabExtensionTests: XCTestCase {
         let spy = SpyWKWebView()
         ext.webViewDidAppear(spy)
 
-        ext.applyModeForURL(URL(string: "https://www.youtube.com")!)
+        ext.updateConfig(for: URL(string: "https://www.youtube.com")!, reload: false)
 
         XCTAssertEqual(ext.configuredMode, .allowAll)
-        XCTAssertEqual(spy.reloadCount, 1)
+        XCTAssertEqual(spy.reloadCount, 0)
     }
 
     func testFallsBackToGlobalForNonExceptionDomain() {
@@ -111,38 +110,34 @@ final class AutoplayTabExtensionTests: XCTestCase {
         let spy = SpyWKWebView()
         ext.webViewDidAppear(spy)
 
-        // First nav: exception domain → configuredMode becomes .allowAll
-        ext.applyModeForURL(URL(string: "https://other.com")!)
+        ext.updateConfig(for: URL(string: "https://other.com")!, reload: false)
         XCTAssertEqual(ext.configuredMode, .allowAll)
 
-        // Second nav: non-exception domain → falls back to global (.blockAll)
-        ext.applyModeForURL(URL(string: "https://youtube.com")!)
+        ext.updateConfig(for: URL(string: "https://youtube.com")!, reload: false)
 
         XCTAssertEqual(ext.configuredMode, .blockAll)
-        XCTAssertEqual(spy.reloadCount, 2) // one reload per mode change
+        XCTAssertEqual(spy.reloadCount, 0) // never reloads during navigation
     }
 
-    // MARK: - No reload loop
+    // MARK: - No redundant config update on second navigation to same mode
 
-    func testNoReloadOnSecondNavigationToSameURL() {
+    func testNoConfigChangeOnSecondNavigationToSameURL() {
         let prefs = makePreferences(globalMode: .blockAudio, exceptions: ["youtube.com": .allowAll])
         let ext = makeExtension(preferences: prefs)
         let spy = SpyWKWebView()
         ext.webViewDidAppear(spy)
 
-        // First nav: mode changes → reload
-        ext.applyModeForURL(URL(string: "https://youtube.com")!)
-        XCTAssertEqual(spy.reloadCount, 1)
+        ext.updateConfig(for: URL(string: "https://youtube.com")!, reload: false)
+        XCTAssertEqual(spy.reloadCount, 0)
         XCTAssertEqual(ext.configuredMode, .allowAll)
 
-        // Second nav (same URL / reload callback): no change → no extra reload
-        ext.applyModeForURL(URL(string: "https://youtube.com")!)
+        ext.updateConfig(for: URL(string: "https://youtube.com")!, reload: false)
 
-        XCTAssertEqual(spy.reloadCount, 1)
+        XCTAssertEqual(spy.reloadCount, 0)
         XCTAssertEqual(ext.configuredMode, .allowAll)
     }
 
-    // MARK: - Settings change while on domain
+    // MARK: - Settings change while page is displayed (Combine path — does reload)
 
     func testExceptionAddedWhileOnDomainTriggersReload() {
         let prefs = makePreferences(globalMode: .blockAudio) // no exception yet
@@ -150,13 +145,13 @@ final class AutoplayTabExtensionTests: XCTestCase {
         let spy = SpyWKWebView()
         ext.webViewDidAppear(spy)
 
-        // Navigate: no exception, modes match → no reload
-        ext.applyModeForURL(URL(string: "https://youtube.com")!)
+        // Simulate having navigated to youtube.com (sets configuredMode = .blockAudio)
+        ext.updateConfig(for: URL(string: "https://youtube.com")!, reload: false)
         ext.currentURL = URL(string: "https://youtube.com")!
         XCTAssertEqual(spy.reloadCount, 0)
         XCTAssertEqual(ext.configuredMode, .blockAudio)
 
-        // Add exception while on the page; the extension's Combine sink should react
+        // Add exception while page is displayed — Combine sink fires with reload: true
         let exp = expectation(description: "configuredMode updated to allowAll")
         var observer: AnyCancellable? = ext.$configuredMode
             .dropFirst()
@@ -178,7 +173,7 @@ final class AutoplayTabExtensionTests: XCTestCase {
         let spy = SpyWKWebView()
         ext.webViewDidAppear(spy)
 
-        ext.applyModeForURL(URL(string: "https://example.com")!)
+        ext.updateConfig(for: URL(string: "https://example.com")!, reload: false)
         ext.currentURL = URL(string: "https://example.com")!
         XCTAssertEqual(spy.reloadCount, 0)
 
