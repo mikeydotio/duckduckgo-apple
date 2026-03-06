@@ -106,12 +106,12 @@ public struct BrokenSiteReport {
     let isPirEnabled: Bool?
     let pageLoadTiming: WKPageLoadTiming?
     let detectorMetrics: [String: String]?
+    let isForceDarkModeEnabled: Bool?
 #if os(iOS)
     let siteType: SiteType
     let atb: String
     let model: String
     let variant: String
-    let isForceDarkModeEnabled: Bool?
     let isAfterSuppressedXSafariRedirect: Bool
 #endif
 
@@ -144,6 +144,7 @@ public struct BrokenSiteReport {
         debugFlags: String,
         privacyExperiments: String,
         isPirEnabled: Bool?,
+        isForceDarkModeEnabled: Bool?,
         pageLoadTiming: WKPageLoadTiming?,
         detectorMetrics: [String: String]? = nil
     ) {
@@ -174,6 +175,7 @@ public struct BrokenSiteReport {
         self.debugFlags = debugFlags
         self.privacyExperiments = privacyExperiments
         self.isPirEnabled = isPirEnabled
+        self.isForceDarkModeEnabled = isForceDarkModeEnabled
         self.pageLoadTiming = pageLoadTiming
         self.detectorMetrics = detectorMetrics
     }
@@ -332,14 +334,14 @@ public struct BrokenSiteReport {
             }
         }
 
+        if let isForceDarkModeEnabled {
+            result["isForceDarkModeEnabled"] = isForceDarkModeEnabled.description
+        }
 #if os(iOS)
         result["siteType"] = siteType.rawValue
         result["atb"] = atb
         result["model"] = model
         result["variant"] = variant
-        if let isForceDarkModeEnabled {
-            result["isForceDarkModeEnabled"] = isForceDarkModeEnabled.description
-        }
         if isAfterSuppressedXSafariRedirect {
             result["isAfterSuppressedXSafariRedirect"] = "true"
         }
