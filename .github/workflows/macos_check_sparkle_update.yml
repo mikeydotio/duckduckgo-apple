@@ -1,0 +1,50 @@
+name: Check Sparkle Update
+
+on:
+  # schedule:
+  #   - cron: '0 9 * * 1'  # Every Monday at 9:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-update:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Sparkle update
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/sparkle/check_sparkle_update.sh
+
+      - name: Resolve SPM packages
+        if: steps.check.outputs.update_available == 'true'
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -workspace DuckDuckGo.xcworkspace \
+            -scheme DuckDuckGo Privacy Browser
+
+      - name: Create Pull Request
+        if: steps.check.outputs.update_available == 'true'
+        uses: peter-evans/create-pull-request@88bf0de51c7487d91e1abbb4899332e602c58bbf
+        with:
+          commit-message: "Update Sparkle to ${{ steps.check.outputs.latest_version }}"
+          committer: Dax the Duck <dax@duckduckgo.com>
+          author: Dax the Duck <dax@duckduckgo.com>
+          branch: automation/sparkle-update-${{ steps.check.outputs.latest_version }}
+          title: "Update Sparkle to ${{ steps.check.outputs.latest_version }}"
+          body: |
+            Updates Sparkle from `${{ steps.check.outputs.current_version }}` to `${{ steps.check.outputs.latest_version }}` (${{ steps.check.outputs.bump_type }} update).
+
+            [Compare changes on GitHub](https://github.com/sparkle-project/Sparkle/compare/${{ steps.check.outputs.current_version }}...${{ steps.check.outputs.latest_version }})
+
+            ---
+
+            ${{ steps.check.outputs.release_notes }}
+          labels: dependencies,macOS${{ steps.check.outputs.bump_type == 'major' && ',breaking' || '' }}
+          draft: false
