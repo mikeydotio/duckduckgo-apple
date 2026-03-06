@@ -62,7 +62,8 @@ jobs:
 
           for handle in $owners; do
             echo "Resolving Asana user for ${handle}..."
-            asana_user_id=$(yq ".${handle}" <(curl -fLSs "https://raw.githubusercontent.com/duckduckgo/apple-toolbox/main/actions/asana-get-user-id-for-github-handle/github-asana-user-id-mapping.yml")) || true
+            mapping=$(curl -fLSs "https://raw.githubusercontent.com/duckduckgo/apple-toolbox/main/actions/asana-get-user-id-for-github-handle/github-asana-user-id-mapping.yml")
+            asana_user_id=$(echo "$mapping" | grep "^${handle}:" | awk '{print $2}' | tr -d '"') || true
 
             assignee_field=""
             if [[ -n "$asana_user_id" && "$asana_user_id" != "null" ]]; then
