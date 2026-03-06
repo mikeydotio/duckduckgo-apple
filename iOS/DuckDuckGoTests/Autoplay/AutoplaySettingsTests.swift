@@ -37,7 +37,7 @@ struct AutoplaySettingsTests {
 
     // MARK: - Tests
 
-    @Test
+    @Test("When no value is stored then default is block audio", .timeLimit(.minutes(1)))
     func whenNoValueStoredThenDefaultIsBlockAudio() {
         // GIVEN
         let (_, settings) = makeSettings()
@@ -46,7 +46,7 @@ struct AutoplaySettingsTests {
         #expect(settings.currentAutoplayBlockingMode == .blockAudio)
     }
 
-    @Test
+    @Test("When mode is set then it is persisted", .timeLimit(.minutes(1)))
     func whenModeIsSetThenItIsPersisted() {
         // GIVEN
         let (_, settings) = makeSettings()
@@ -58,7 +58,7 @@ struct AutoplaySettingsTests {
         #expect(settings.currentAutoplayBlockingMode == .blockAll)
     }
 
-    @Test
+    @Test("When stored value is invalid then block audio is returned", .timeLimit(.minutes(1)))
     func whenStoredValueIsInvalidThenBlockAudioIsReturned() {
         // GIVEN
         let (store, settings) = makeSettings()
