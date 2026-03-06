@@ -36,11 +36,15 @@ enum AutoplayBlockingMode: String, CaseIterable, CustomStringConvertible {
 
 protocol AutoplayPreferencesPersistor {
     var autoplayBlockingModeRawValue: String { get set }
+    var autoplayExceptionsRawValue: [String: String] { get set }
 }
 
 struct AutoplayPreferencesUserDefaultsPersistor: AutoplayPreferencesPersistor {
     @UserDefaultsWrapper(key: .autoplayBlockingMode, defaultValue: AutoplayBlockingMode.blockAudio.rawValue)
     var autoplayBlockingModeRawValue: String
+
+    @UserDefaultsWrapper(key: .autoplayExceptions, defaultValue: [:])
+    var autoplayExceptionsRawValue: [String: String]
 }
 
 final class AutoplayPreferences: ObservableObject {
@@ -59,9 +63,26 @@ final class AutoplayPreferences: ObservableObject {
         }
     }
 
+    @Published var exceptions: [String: AutoplayBlockingMode] {
+        didSet {
+            persistor.autoplayExceptionsRawValue = exceptions.reduce(into: [:]) { $0[$1.key] = $1.value.rawValue }
+        }
+    }
+
     init(persistor: AutoplayPreferencesPersistor = AutoplayPreferencesUserDefaultsPersistor()) {
         self.persistor = persistor
         self.autoplayBlockingMode = AutoplayBlockingMode(rawValue: persistor.autoplayBlockingModeRawValue) ?? .blockAudio
+        self.exceptions = persistor.autoplayExceptionsRawValue.reduce(into: [:]) {
+            if let mode = AutoplayBlockingMode(rawValue: $1.value) {
+                $0[$1.key] = mode
+            }
+        }
+    }
+
+    func effectiveMode(for url: URL) -> AutoplayBlockingMode {
+        guard let host = url.host else { return autoplayBlockingMode }
+        let domain = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        return exceptions[domain] ?? autoplayBlockingMode
     }
 
     private var persistor: AutoplayPreferencesPersistor

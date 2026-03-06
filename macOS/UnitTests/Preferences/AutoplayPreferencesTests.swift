@@ -22,8 +22,11 @@ import WebKit
 
 final class AutoplayPreferencesPersistorMock: AutoplayPreferencesPersistor {
     var autoplayBlockingModeRawValue: String
-    init(autoplayBlockingModeRawValue: String) {
+    var autoplayExceptionsRawValue: [String: String]
+    init(autoplayBlockingModeRawValue: String = AutoplayBlockingMode.blockAudio.rawValue,
+         autoplayExceptionsRawValue: [String: String] = [:]) {
         self.autoplayBlockingModeRawValue = autoplayBlockingModeRawValue
+        self.autoplayExceptionsRawValue = autoplayExceptionsRawValue
     }
 }
 
@@ -86,6 +89,100 @@ final class AutoplayPreferencesTests: XCTestCase {
         let cancellable = prefs.objectWillChange.sink { expectation.fulfill() }
 
         prefs.autoplayBlockingMode = .blockAll
+        waitForExpectations(timeout: 0)
+        withExtendedLifetime(cancellable) {}
+    }
+}
+
+final class AutoplayExceptionsTests: XCTestCase {
+
+    // MARK: - effectiveMode(for:) resolution
+
+    func testEffectiveModeReturnsExceptionWhenDomainMatches() {
+        let persistor = AutoplayPreferencesPersistorMock(
+            autoplayBlockingModeRawValue: AutoplayBlockingMode.blockAudio.rawValue,
+            autoplayExceptionsRawValue: ["youtube.com": "allowAll"]
+        )
+        let prefs = AutoplayPreferences(persistor: persistor)
+        let url = URL(string: "https://youtube.com/watch?v=abc")!
+        XCTAssertEqual(prefs.effectiveMode(for: url), .allowAll)
+    }
+
+    func testEffectiveModeFallsBackToGlobalWhenNoDomainMatch() {
+        let persistor = AutoplayPreferencesPersistorMock(
+            autoplayBlockingModeRawValue: AutoplayBlockingMode.blockAll.rawValue,
+            autoplayExceptionsRawValue: ["otherdomain.com": "allowAll"]
+        )
+        let prefs = AutoplayPreferences(persistor: persistor)
+        let url = URL(string: "https://youtube.com/watch?v=abc")!
+        XCTAssertEqual(prefs.effectiveMode(for: url), .blockAll)
+    }
+
+    func testEffectiveModeStripsWWWPrefix() {
+        let persistor = AutoplayPreferencesPersistorMock(
+            autoplayBlockingModeRawValue: AutoplayBlockingMode.blockAudio.rawValue,
+            autoplayExceptionsRawValue: ["youtube.com": "blockAll"]
+        )
+        let prefs = AutoplayPreferences(persistor: persistor)
+        let url = URL(string: "https://www.youtube.com/watch?v=abc")!
+        XCTAssertEqual(prefs.effectiveMode(for: url), .blockAll)
+    }
+
+    func testEffectiveModeForNilHostFallsBackToGlobal() {
+        let persistor = AutoplayPreferencesPersistorMock(
+            autoplayBlockingModeRawValue: AutoplayBlockingMode.allowAll.rawValue
+        )
+        let prefs = AutoplayPreferences(persistor: persistor)
+        let url = URL(string: "about:blank")!
+        XCTAssertEqual(prefs.effectiveMode(for: url), .allowAll)
+    }
+
+    // MARK: - exceptions persistence
+
+    func testAddExceptionPersistsToStorage() {
+        let persistor = AutoplayPreferencesPersistorMock()
+        let prefs = AutoplayPreferences(persistor: persistor)
+
+        prefs.exceptions["youtube.com"] = .allowAll
+
+        XCTAssertEqual(persistor.autoplayExceptionsRawValue, ["youtube.com": "allowAll"])
+    }
+
+    func testRemoveExceptionPersistsToStorage() {
+        let persistor = AutoplayPreferencesPersistorMock(
+            autoplayExceptionsRawValue: ["youtube.com": "allowAll"]
+        )
+        let prefs = AutoplayPreferences(persistor: persistor)
+
+        prefs.exceptions.removeValue(forKey: "youtube.com")
+
+        XCTAssertTrue(persistor.autoplayExceptionsRawValue.isEmpty)
+    }
+
+    func testExceptionsLoadedFromStorageOnInit() {
+        let persistor = AutoplayPreferencesPersistorMock(
+            autoplayExceptionsRawValue: ["youtube.com": "blockAll"]
+        )
+        let prefs = AutoplayPreferences(persistor: persistor)
+        XCTAssertEqual(prefs.exceptions["youtube.com"], .blockAll)
+    }
+
+    func testInvalidExceptionRawValueIsIgnoredOnLoad() {
+        let persistor = AutoplayPreferencesPersistorMock(
+            autoplayExceptionsRawValue: ["youtube.com": "bogusValue"]
+        )
+        let prefs = AutoplayPreferences(persistor: persistor)
+        XCTAssertNil(prefs.exceptions["youtube.com"])
+    }
+
+    func testExceptionsObjectWillChangeFires() {
+        let persistor = AutoplayPreferencesPersistorMock()
+        let prefs = AutoplayPreferences(persistor: persistor)
+
+        let exp = expectation(description: "objectWillChange")
+        let cancellable = prefs.objectWillChange.sink { exp.fulfill() }
+
+        prefs.exceptions["youtube.com"] = .allowAll
         waitForExpectations(timeout: 0)
         withExtendedLifetime(cancellable) {}
     }
