@@ -19,6 +19,7 @@
 
 import Core
 import SwiftUI
+import UIComponents
 
 struct SettingsAutoplayView: View {
 

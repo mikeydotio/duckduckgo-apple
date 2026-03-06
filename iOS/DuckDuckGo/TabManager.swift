@@ -92,6 +92,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
     private let fireproofing: Fireproofing
     private let websiteDataManager: WebsiteDataManaging
     private let appSettings: AppSettings
+    private let autoplaySettings: AutoplaySettings
     private let maliciousSiteProtectionManager: MaliciousSiteProtectionManaging
     private let maliciousSiteProtectionPreferencesManager: MaliciousSiteProtectionPreferencesManaging
     private let featureDiscovery: FeatureDiscovery
@@ -130,6 +131,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
          featureFlagger: FeatureFlagger,
          contentScopeExperimentManager: ContentScopeExperimentsManaging,
          appSettings: AppSettings,
+         autoplaySettings: AutoplaySettings = DefaultAutoplaySettings(),
          textZoomCoordinatorProvider: TextZoomCoordinatorProviding,
          autoconsentManagementProvider: AutoconsentManagementProviding,
          websiteDataManager: WebsiteDataManaging,
@@ -164,6 +166,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
         self.featureFlagger = featureFlagger
         self.contentScopeExperimentManager = contentScopeExperimentManager
         self.appSettings = appSettings
+        self.autoplaySettings = autoplaySettings
         self.textZoomCoordinatorProvider = textZoomCoordinatorProvider
         self.autoconsentManagementProvider = autoconsentManagementProvider
         self.websiteDataManager = websiteDataManager
@@ -199,7 +202,9 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
                                  inheritedAttribution: AdClickAttributionLogic.State?,
                                  interactionState: Data?) -> TabViewController {
         let configuration = WKWebViewConfiguration.persistent(fireMode: tab.fireTab)
-        configuration.mediaTypesRequiringUserActionForPlayback = appSettings.currentAutoplayBlockingMode.mediaTypesRequiringUserAction
+        if featureFlagger.isFeatureOn(.autoplayBlocking) {
+            configuration.mediaTypesRequiringUserActionForPlayback = autoplaySettings.currentAutoplayBlockingMode.mediaTypesRequiringUserAction
+        }
 
         if #available(iOS 18.4, *), let webExtensionManager = webExtensionManager {
             configuration.webExtensionController = webExtensionManager.controller

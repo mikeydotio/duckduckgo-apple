@@ -145,8 +145,6 @@ protocol AppSettings: AnyObject, OnboardingDebugAppSettings {
     var duckPlayerNativeUISettingsMapped: Bool { get set }
 
     var autoClearAIChatHistory: Bool { get set }
-
-    var currentAutoplayBlockingMode: AutoplayBlockingMode { get set }
 }
 
 // MARK: - AppSettings + OnboardingDebugSettings

@@ -22,6 +22,7 @@ import Core
 import SwiftUI
 import DesignResourcesKit
 import DesignResourcesKitIcons
+import UIComponents
 
 /// A generalised view for picking items from a list with a static header image.
 struct ListBasedPickerWithHeaderImage<T: Hashable>: View {

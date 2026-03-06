@@ -245,15 +245,6 @@ class AppUserDefaultsTests: XCTestCase {
         XCTAssertTrue(appUserDefaults.showTrackersBlockedAnimation)
     }
 
-    // MARK: - Autoplay Blocking Mode
-
-    func testWhenAutoplayBlockingModeHasInvalidValueThenBlockAudioIsReturned() {
-        let appUserDefaults = AppUserDefaults(groupName: testGroupName)
-
-        customSuite.set("invalidValue", forKey: "com.duckduckgo.ios.autoplayBlockingMode")
-        XCTAssertEqual(appUserDefaults.currentAutoplayBlockingMode, .blockAudio)
-    }
-
     // MARK: - Mock Creation
 
     private func mockConfiguration(subfeatureEnabled: Bool) -> PrivacyConfiguration {

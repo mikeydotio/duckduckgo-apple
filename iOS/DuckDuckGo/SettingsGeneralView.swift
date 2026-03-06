@@ -113,10 +113,12 @@ struct SettingsGeneralView: View {
             }
 
             // Media
-            Section(header: Text(UserText.settingsMediaSection)) {
-                NavigationLink(destination: SettingsAutoplayView().environmentObject(viewModel)) {
-                    SettingsCellView(label: UserText.settingsAutoplayLabel,
-                                     accessory: .rightDetail(viewModel.state.autoplayBlockingMode.description))
+            if viewModel.featureFlagger.isFeatureOn(.autoplayBlocking) {
+                Section(header: Text(UserText.settingsMediaSection)) {
+                    NavigationLink(destination: SettingsAutoplayView().environmentObject(viewModel)) {
+                        SettingsCellView(label: UserText.settingsAutoplayLabel,
+                                         accessory: .rightDetail(viewModel.state.autoplayBlockingMode.description))
+                    }
                 }
             }
 
