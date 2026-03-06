@@ -98,13 +98,16 @@ final class OnboardingDebugViewModel: ObservableObject {
 
     private let manager: OnboardingNewUserProviderDebugging
     private var settings: DaxDialogsSettings
+    private let tutorialSettings: TutorialSettings
 
     init(
         manager: OnboardingNewUserProviderDebugging = OnboardingManager(),
-        settings: DaxDialogsSettings = DefaultDaxDialogsSettings()
+        settings: DaxDialogsSettings = DefaultDaxDialogsSettings(),
+        tutorialSettings: TutorialSettings = DefaultTutorialSettings()
     ) {
         self.manager = manager
         self.settings = settings
+        self.tutorialSettings = tutorialSettings
         onboardingUserType = manager.onboardingUserTypeDebugValue
     }
 
@@ -125,6 +128,7 @@ final class OnboardingDebugViewModel: ObservableObject {
         settings.privacyButtonPulseShown = false
         settings.browsingFinalDialogShown = false
         settings.subscriptionPromotionDialogShown = false
+        tutorialSettings.hasSkippedOnboarding = false
     }
 }
 
