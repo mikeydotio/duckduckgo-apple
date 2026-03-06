@@ -264,18 +264,6 @@ final class OnboardingIntroViewModel: ObservableObject {
 private extension OnboardingIntroViewModel {
 
     func makeInitialViewState() {
-#if DEBUG || ALPHA
-        // TODO: Temporary override for local validation builds; remove before shipping.
-        UserDefaults.app.set("false", forKey: LaunchOptionsHandler.isOnboardingCompleted)
-#endif
-        // TODO: Temporary override for build validation; remove before shipping.
-//        if !introSteps.contains(where: {
-//            if case .duckAIQueryExperimentSelection = $0 { return true }
-//            return false
-//        }) {
-//            introSteps.insert(.duckAIQueryExperimentSelection(defaultSelection: true), at: 0)
-//        }
-//        currentIntroStep = .duckAIQueryExperimentSelection(defaultSelection: true)
         setViewState(introStep: currentIntroStep)
     }
 

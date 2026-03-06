@@ -40,9 +40,7 @@ struct OnboardingView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ObservedObject private var model: OnboardingIntroViewModel
     @State private var showExperimentExitOverlay = false
-    @State private var experimentExitToDuckAI = false
     @State private var experimentExitOverlayOpacity: CGFloat = 0
-    @State private var experimentChromeVisible = false
     @State private var isExperimentDialogFadingOut = false
 
     init(model: OnboardingIntroViewModel) {
@@ -257,57 +255,31 @@ struct OnboardingView: View {
             openAIChatAction: model.openAIChatFromOnboarding,
             openSearchAction: model.searchFromOnboarding,
             measureQuerySubmissionAction: model.measureDuckAIQueryExperimentQuerySubmission,
-            startExitTransitionAction: { isDuckAISelected in
-                beginExperimentExitTransition(isDuckAISelected: isDuckAISelected)
+            startExitTransitionAction: {
+                beginExperimentExitTransition()
             }
         )
         .onboardingDaxDialogStyle()
     }
 
     private var experimentExitOverlay: some View {
-        GeometryReader { geometry in
-            ZStack {
-                let backgroundColor = experimentExitToDuckAI
-                ? Color(designSystemColor: .surface)
-                : Color(uiColor: .systemBackground)
-
-                backgroundColor
-                    .opacity(experimentExitOverlayOpacity)
-                    .ignoresSafeArea()
-
-                VStack(spacing: 0) {
-                    Color(uiColor: .secondarySystemBackground)
-                        .frame(height: Metrics.chromeTopHeight)
-                        .offset(y: experimentChromeVisible ? 0 : -Metrics.chromeTopHeight)
-                    Spacer()
-                    Color(uiColor: .secondarySystemBackground)
-                        .frame(height: Metrics.chromeBottomHeight)
-                        .offset(y: experimentChromeVisible ? 0 : Metrics.chromeBottomHeight)
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .ignoresSafeArea()
-            }
-        }
+        OnboardingBackground()
+            .opacity(experimentExitOverlayOpacity)
+            .ignoresSafeArea()
         .allowsHitTesting(false)
     }
 
-    private func beginExperimentExitTransition(isDuckAISelected: Bool) {
-        experimentExitToDuckAI = isDuckAISelected
+    private func beginExperimentExitTransition() {
         showExperimentExitOverlay = true
         withAnimation(.easeInOut(duration: 0.18)) {
             isExperimentDialogFadingOut = true
             experimentExitOverlayOpacity = 1
         }
-        withAnimation(.interpolatingSpring(mass: 0.7, stiffness: 180, damping: 18, initialVelocity: 0.15).delay(0.05)) {
-            experimentChromeVisible = true
-        }
     }
 
     private func resetExperimentExitTransition() {
         showExperimentExitOverlay = false
-        experimentExitToDuckAI = false
         experimentExitOverlayOpacity = 0
-        experimentChromeVisible = false
         isExperimentDialogFadingOut = false
     }
 
@@ -407,8 +379,6 @@ private enum Metrics {
     static let comparisonChartAnimationDuration = 0.25
     static let dialogVerticalOffsetPercentage = MetricBuilder<CGFloat>(default: 0.1).iPhoneSmallScreen(0.01)
     static let experimentDialogTopOffset: CGFloat = 6
-    static let chromeTopHeight: CGFloat = 58
-    static let chromeBottomHeight: CGFloat = 92
     static let progressBarTrailingPadding: CGFloat = 16.0
     static let progressBarTopPadding: CGFloat = 12.0
 }

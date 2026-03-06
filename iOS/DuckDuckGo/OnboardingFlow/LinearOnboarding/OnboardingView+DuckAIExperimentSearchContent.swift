@@ -42,7 +42,7 @@ extension OnboardingView {
         private let openAIChatAction: (String?, Bool) -> Void
         private let openSearchAction: (String) -> Void
         private let measureQuerySubmissionAction: (Bool, DuckAIQueryExperimentPromptSource) -> Void
-        private let startExitTransitionAction: (Bool) -> Void
+        private let startExitTransitionAction: () -> Void
         @StateObject private var pickerViewModel: ImageSegmentedPickerViewModel
 
         @State private var query = ""
@@ -74,7 +74,7 @@ extension OnboardingView {
             openAIChatAction: @escaping (String?, Bool) -> Void,
             openSearchAction: @escaping (String) -> Void,
             measureQuerySubmissionAction: @escaping (Bool, DuckAIQueryExperimentPromptSource) -> Void,
-            startExitTransitionAction: @escaping (Bool) -> Void
+            startExitTransitionAction: @escaping () -> Void
         ) {
             self.action = action
             self.openAIChatAction = openAIChatAction
@@ -315,9 +315,19 @@ extension OnboardingView {
                 measureQuerySubmissionAction(isDuckAISelected, promptSource)
             }
 
+            let preloadedSearchQuery: String? = {
+                guard !isDuckAISelected, let searchQuery = prompt, !searchQuery.isEmpty else { return nil }
+                return searchQuery
+            }()
+
+            // Start browser loading immediately so results can be ready behind the exit hold.
+            if let searchQuery = preloadedSearchQuery {
+                openSearchAction(searchQuery)
+            }
+
             isInputFocused = false
             dismissKeyboard()
-            startExitTransitionAction(isDuckAISelected)
+            startExitTransitionAction()
 
             withAnimation(.easeOut(duration: Metrics.contentFadeAnimationDuration)) {
                 isTransitioningOut = true
@@ -325,8 +335,7 @@ extension OnboardingView {
                 if isDuckAISelected {
                     openAIChatAction(prompt, autoSend)
                     action(.searchAndDuckAI)
-                } else if let searchQuery = prompt, !searchQuery.isEmpty {
-                    openSearchAction(searchQuery)
+                } else if preloadedSearchQuery != nil {
                     action(.searchOnly)
                 } else {
                     isTransitioningOut = false

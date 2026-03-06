@@ -4436,9 +4436,43 @@ extension MainViewController: OnboardingDelegate {
         
     func onboardingCompleted(controller: UIViewController) {
         markOnboardingSeen()
-        controller.modalTransitionStyle = .crossDissolve
-        controller.dismiss(animated: true)
-        newTabPageViewController?.onboardingCompleted()
+        // Preserve the exact onboarding appearance while dismissing onboarding.
+        let onboardingTransitionSnapshotView = showOnboardingTransitionSnapshot(from: controller)
+        // controller.modalTransitionStyle = .crossDissolve
+        controller.dismiss(animated: false) { [weak self] in
+            guard let self else { return }
+            let chromeRevealDelay: TimeInterval = 0.05
+            let chromeRevealDuration: CGFloat = 0.25
+            let contentRevealDelayAfterChrome: TimeInterval = 1.0
+            let onboardingTransitionBottomFillView = self.showOnboardingTransitionBottomFill()
+
+            // Start from fully hidden so real browser chrome/content can animate in.
+            self.setBarsVisibility(0, animated: false, animationDuration: nil)
+            self.setOnboardingChromeOffscreenStartPosition()
+            onboardingTransitionBottomFillView?.alpha = 0
+            // Tiny delay to separate modal dismissal from chrome reveal animation.
+            DispatchQueue.main.asyncAfter(deadline: .now() + chromeRevealDelay) {
+                CATransaction.begin()
+                CATransaction.setCompletionBlock {
+                    // Reveal web content only after chrome animation finishes, then hold for extra dwell time.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + contentRevealDelayAfterChrome) {
+                        UIView.animate(withDuration: 0.25) {
+                            onboardingTransitionSnapshotView?.alpha = 0
+                        } completion: { _ in
+                            // Transition handoff is complete; remove temporary snapshot.
+                            self.hideOnboardingTransitionSnapshot(onboardingTransitionSnapshotView)
+                            self.hideOnboardingTransitionBottomFill(onboardingTransitionBottomFillView)
+                        }
+                    }
+                }
+                self.setBarsVisibility(1, animated: true, animationDuration: chromeRevealDuration)
+                UIView.animate(withDuration: chromeRevealDuration) {
+                    onboardingTransitionBottomFillView?.alpha = 1
+                }
+                CATransaction.commit()
+            }
+            self.newTabPageViewController?.onboardingCompleted()
+        }
     }
 
     func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType) {
@@ -4451,6 +4485,56 @@ extension MainViewController: OnboardingDelegate {
 
     func needsToShowOnboardingIntro() -> Bool {
         !tutorialSettings.hasSeenOnboarding
+    }
+
+    private func showOnboardingTransitionSnapshot(from controller: UIViewController) -> UIView? {
+        guard let snapshot = controller.view.snapshotView(afterScreenUpdates: false) else { return nil }
+
+        snapshot.alpha = 1
+        snapshot.frame = view.bounds
+        snapshot.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        snapshot.isUserInteractionEnabled = false
+        // Keep snapshot above page content but below browser chrome.
+        view.insertSubview(snapshot, aboveSubview: viewCoordinator.contentContainer)
+        return snapshot
+    }
+
+    private func hideOnboardingTransitionSnapshot(_ snapshot: UIView?) {
+        guard let snapshot else { return }
+        snapshot.removeFromSuperview()
+    }
+
+    private func showOnboardingTransitionBottomFill() -> UIView? {
+        let fill = UIView()
+        fill.translatesAutoresizingMaskIntoConstraints = false
+        fill.isUserInteractionEnabled = false
+        fill.backgroundColor = ThemeManager.shared.currentTheme.barBackgroundColor
+        view.insertSubview(fill, belowSubview: viewCoordinator.toolbar)
+        NSLayoutConstraint.activate([
+            fill.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            fill.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            fill.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            // Extend through the toolbar area to avoid transparent toolbar bleed-through during handoff.
+            fill.topAnchor.constraint(equalTo: viewCoordinator.toolbar.topAnchor)
+        ])
+        return fill
+    }
+
+    private func hideOnboardingTransitionBottomFill(_ fill: UIView?) {
+        guard let fill else { return }
+        fill.removeFromSuperview()
+    }
+
+    private func setOnboardingChromeOffscreenStartPosition() {
+        let browserTabsOffset = viewCoordinator.tabBarContainer.isHidden ? 0 : viewCoordinator.tabBarContainer.frame.size.height
+        let navBarHeight = viewCoordinator.navigationBarContainer.frame.size.height
+        let safeAreaTop = view.safeAreaInsets.top
+
+        // Move tab strip fully above the visible region (including safe-area inset).
+        viewCoordinator.constraints.tabBarContainerTop.constant = -(browserTabsOffset + safeAreaTop)
+        // Move navigation bar container fully above the visible region as well.
+        viewCoordinator.constraints.navigationBarContainerTop.constant = -(navBarHeight + browserTabsOffset + safeAreaTop)
+        view.layoutIfNeeded()
     }
 
 }
