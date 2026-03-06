@@ -146,6 +146,7 @@ final class OnboardingDebugViewModel: ObservableObject {
         settings.privacyButtonPulseShown = false
         settings.browsingFinalDialogShown = false
         settings.subscriptionPromotionDialogShown = false
+        tutorialSettings.hasSkippedOnboarding = false
     }
 }
 
