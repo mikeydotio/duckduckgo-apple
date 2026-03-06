@@ -20,8 +20,11 @@ import XCTest
 import WebKit
 @testable import DuckDuckGo_Privacy_Browser
 
-struct AutoplayPreferencesPersistorMock: AutoplayPreferencesPersistor {
+final class AutoplayPreferencesPersistorMock: AutoplayPreferencesPersistor {
     var autoplayBlockingModeRawValue: String
+    init(autoplayBlockingModeRawValue: String) {
+        self.autoplayBlockingModeRawValue = autoplayBlockingModeRawValue
+    }
 }
 
 final class AutoplayPreferencesTests: XCTestCase {
@@ -43,18 +46,19 @@ final class AutoplayPreferencesTests: XCTestCase {
     // MARK: - Persistence round-trip
 
     func testWhenModeIsSetThenPersistorIsUpdated() {
-        var persistor = AutoplayPreferencesPersistorMock(autoplayBlockingModeRawValue: AutoplayBlockingMode.blockAudio.rawValue)
+        let persistor = AutoplayPreferencesPersistorMock(autoplayBlockingModeRawValue: AutoplayBlockingMode.blockAudio.rawValue)
         let prefs = AutoplayPreferences(persistor: persistor)
 
         prefs.autoplayBlockingMode = .allowAll
-        XCTAssertEqual(prefs.autoplayBlockingMode, .allowAll)
+
+        XCTAssertEqual(persistor.autoplayBlockingModeRawValue, AutoplayBlockingMode.allowAll.rawValue)
     }
 
     func testAllModesRoundTrip() {
         for mode in AutoplayBlockingMode.allCases {
             let persistor = AutoplayPreferencesPersistorMock(autoplayBlockingModeRawValue: mode.rawValue)
             let prefs = AutoplayPreferences(persistor: persistor)
-            XCTAssertEqual(prefs.autoplayBlockingMode, mode, "Round-trip failed for mode: \(mode)")
+            XCTAssertEqual(prefs.autoplayBlockingMode, mode, "Read round-trip failed for mode: \(mode)")
         }
     }
 
