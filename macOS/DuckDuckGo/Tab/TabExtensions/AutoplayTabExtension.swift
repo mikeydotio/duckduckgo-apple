@@ -27,9 +27,10 @@ final class AutoplayTabExtension {
     private weak var webView: WKWebView?
     /// Tracks the mode that has been applied to the WebView, to avoid unnecessary reloads.
     /// Exposed as `internal` (and `@Published`) for unit testing.
-    @Published var configuredMode: AutoplayBlockingMode
+    @Published private(set) var configuredMode: AutoplayBlockingMode
     var currentURL: URL?
     private var cancellables = Set<AnyCancellable>()
+    private var preferenceCancellables = Set<AnyCancellable>()
 
     init(autoplayPreferences: AutoplayPreferences,
          webViewPublisher: some Publisher<WKWebView, Never>) {
@@ -42,6 +43,7 @@ final class AutoplayTabExtension {
 
     func webViewDidAppear(_ webView: WKWebView) {
         self.webView = webView
+        preferenceCancellables.removeAll()
         subscribeToPreferenceChanges()
     }
 
@@ -54,7 +56,7 @@ final class AutoplayTabExtension {
                 guard let self, let url = self.currentURL else { return }
                 self.applyModeForURL(url)
             }
-            .store(in: &cancellables)
+            .store(in: &preferenceCancellables)
     }
 
     /// Applies the effective autoplay mode for the given URL to the WebView.
@@ -74,7 +76,6 @@ final class AutoplayTabExtension {
 
 extension AutoplayTabExtension: NavigationResponder {
 
-    @MainActor
     func didStart(_ navigation: Navigation) {
         guard navigation.navigationAction.isForMainFrame else { return }
         let url = navigation.url
@@ -85,6 +86,8 @@ extension AutoplayTabExtension: NavigationResponder {
 
 // MARK: - TabExtension
 
+// Empty protocol — serves as a type-erasing boundary for `TabExtensions.autoplay`.
+// Extend this if external callers ever need to interact with the extension.
 protocol AutoplayExtensionProtocol: AnyObject {}
 
 extension AutoplayTabExtension: TabExtension, AutoplayExtensionProtocol {
