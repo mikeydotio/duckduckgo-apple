@@ -81,6 +81,7 @@ final class AutoplayPreferences: ObservableObject {
 
     func effectiveMode(for url: URL) -> AutoplayBlockingMode {
         guard let host = url.host else { return autoplayBlockingMode }
+        // Strips only the single "www." prefix; other subdomains are not normalised.
         let domain = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
         return exceptions[domain] ?? autoplayBlockingMode
     }

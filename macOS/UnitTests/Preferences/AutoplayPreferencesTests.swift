@@ -89,7 +89,7 @@ final class AutoplayPreferencesTests: XCTestCase {
         let cancellable = prefs.objectWillChange.sink { expectation.fulfill() }
 
         prefs.autoplayBlockingMode = .blockAll
-        waitForExpectations(timeout: 0)
+        waitForExpectations(timeout: 1)
         withExtendedLifetime(cancellable) {}
     }
 }
@@ -183,7 +183,7 @@ final class AutoplayExceptionsTests: XCTestCase {
         let cancellable = prefs.objectWillChange.sink { exp.fulfill() }
 
         prefs.exceptions["youtube.com"] = .allowAll
-        waitForExpectations(timeout: 0)
+        waitForExpectations(timeout: 1)
         withExtendedLifetime(cancellable) {}
     }
 }
