@@ -58,6 +58,12 @@ final class AutoplayTabExtensionTests: XCTestCase {
                              webViewPublisher: PassthroughSubject<WKWebView, Never>().eraseToAnyPublisher())
     }
 
+    // MARK: - applyModeForURL (internal entry point)
+    // Note: `didStart(_ navigation:)` is not directly unit-tested because constructing
+    // `Navigation` objects with `isForMainFrame` set is not supported in the test target.
+    // The `applyModeForURL` method (called by `didStart`) is tested exhaustively here.
+    // The `isForMainFrame` guard is verified via the UI/integration test suite.
+
     // MARK: - No change when modes match
 
     func testNoReloadWhenEffectiveModeMatchesConfigured() {
