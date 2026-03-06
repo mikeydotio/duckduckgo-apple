@@ -19,6 +19,7 @@
 
 import SwiftUI
 import UIKit
+import QuartzCore
 import DesignResourcesKit
 import DesignResourcesKitIcons
 import DuckUI
@@ -26,16 +27,18 @@ import UIComponents
 
 extension OnboardingView {
     private enum Metrics {
-        static let submitTransitionDelay: TimeInterval = 0.42
-        static let suggestionRevealDelay: TimeInterval = 4
-        static let suggestionStaggerDelay: TimeInterval = 0.5
+        static let entryFadeAnimationDuration: TimeInterval = 0.35
+        static let suggestionInitialRevealDelay: TimeInterval = 4
+        static let suggestionRevealFallbackDelayAfterFocus: TimeInterval = 0.4
+        static let pickerSelectionAnimationDuration: TimeInterval = 0.22
+        static let contentFadeAnimationDuration: TimeInterval = 0.2
         static let pickerContainerHeight: CGFloat = 124.0 / 3.0
         static let singleLineFieldHeight: CGFloat = 26
         static let multilineFieldHeight: CGFloat = 56
     }
 
     struct DuckAIExperimentSearchContent: View {
-        private let action: () -> Void
+        private let action: (OnboardingIntroViewModel.DuckAIExperimentSelection) -> Void
         private let openAIChatAction: (String?, Bool) -> Void
         private let openSearchAction: (String) -> Void
         private let measureQuerySubmissionAction: (Bool, DuckAIQueryExperimentPromptSource) -> Void
@@ -49,6 +52,9 @@ extension OnboardingView {
         @State private var suggestionTimerID = UUID()
         @State private var didRunInitialToggleAnimation = false
         @State private var isTransitioningOut = false
+        @State private var isRunningInitialSelectionAnimation = false
+        @State private var suggestionSequenceStarted = false
+        @State private var hasCompletedEntryFadeAnimation = false
         private let defaultDuckAISelection: Bool
 
         private static let pickerItems: [ImageSegmentedPickerItem] = [
@@ -66,7 +72,7 @@ extension OnboardingView {
 
         init(
             defaultSelection: Bool,
-            action: @escaping () -> Void,
+            action: @escaping (OnboardingIntroViewModel.DuckAIExperimentSelection) -> Void,
             openAIChatAction: @escaping (String?, Bool) -> Void,
             openSearchAction: @escaping (String) -> Void,
             measureQuerySubmissionAction: @escaping (Bool, DuckAIQueryExperimentPromptSource) -> Void,
@@ -106,7 +112,7 @@ extension OnboardingView {
                     .frame(width: 216, height: Metrics.pickerContainerHeight)
                     // Drive content mode (Search vs Duck.ai) from user picker selection.
                     .onChange(of: pickerViewModel.selectedItem) { selectedItem in
-                        withAnimation(.easeInOut(duration: 0.22)) {
+                        SwiftUI.withAnimation(.easeInOut(duration: Metrics.pickerSelectionAnimationDuration)) {
                             isDuckAISelected = selectedItem == Self.pickerItems[1]
                         }
                     }
@@ -117,7 +123,10 @@ extension OnboardingView {
                             pickerViewModel.selectItem(selection)
                         }
                         pickerViewModel.updateScrollProgress(isSelected ? 1 : 0)
-                        isInputFocused = true
+                        // During initial intro animation, delay focus until animation completion.
+                        if !isRunningInitialSelectionAnimation {
+                            isInputFocused = true
+                        }
                     }
                     .padding(.top, 7.33)
                     .padding(.bottom, 3.67)
@@ -132,26 +141,44 @@ extension OnboardingView {
                     suggestionChips
                 }
             }
-            .opacity(isTransitioningOut ? 0 : 1)
+            .opacity(isTransitioningOut ? 0 : (hasCompletedEntryFadeAnimation ? 1 : 0))
             .onAppear {
                 isInputFocused = false
-                registerEngagement()
+                suggestionSequenceStarted = false
+                hasCompletedEntryFadeAnimation = false
 
-                if !didRunInitialToggleAnimation {
-                    didRunInitialToggleAnimation = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        // Short intro animation: move from initial picker state to experiment default and focus input.
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            isDuckAISelected = defaultDuckAISelection
-                            isInputFocused = true
-                        }
+                withAnimation(.easeInOut(duration: Metrics.entryFadeAnimationDuration)) {
+                    hasCompletedEntryFadeAnimation = true
+                } completion: {
+                    startInitialSelectionAnimationIfNeeded()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                startSuggestionSequenceIfNeeded()
+            }
+            // Fade out this content while transitioning to the selected destination.
+            .animation(.easeInOut(duration: Metrics.contentFadeAnimationDuration), value: isTransitioningOut)
+        }
+
+        private func startInitialSelectionAnimationIfNeeded() {
+            guard hasCompletedEntryFadeAnimation else { return }
+
+            if !didRunInitialToggleAnimation {
+                didRunInitialToggleAnimation = true
+                // Short intro animation: move from initial picker state to experiment default.
+                // Focus is chained from animation completion so timing follows animation speed.
+                isRunningInitialSelectionAnimation = true
+                withAnimation(.easeInOut(duration: Metrics.pickerSelectionAnimationDuration)) {
+                    isDuckAISelected = defaultDuckAISelection
+                } completion: {
+                    isRunningInitialSelectionAnimation = false
+                    isInputFocused = true
+                    // Fallback for hardware keyboard / no keyboard animation callback.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionRevealFallbackDelayAfterFocus) {
+                        startSuggestionSequenceIfNeeded()
                     }
                 }
             }
-            // Animate staggered suggestion chip appearance as `visibleSuggestionCount` increments.
-            .animation(suggestionAppearanceAnimation, value: visibleSuggestionCount)
-            // Fade out this content while transitioning to the selected destination.
-            .animation(.easeInOut(duration: 0.2), value: isTransitioningOut)
         }
 
         private var queryField: some View {
@@ -182,7 +209,7 @@ extension OnboardingView {
                     .renderingMode(.template)
                     .font(Font(UIFont.daxBodyBold()))
                     .foregroundColor(Color(designSystemColor: .icons))
-                    .opacity(isPrimaryActionEnabled ? 1 : 0.22)
+                    .opacity(isPrimaryActionEnabled ? 1 : 0.3)
                     .frame(width: 28, height: 28)
                     .offset(x: 2.33, y: 1)
                 }
@@ -203,7 +230,7 @@ extension OnboardingView {
             )
             .cornerRadius(14)
             .frame(maxWidth: .infinity)
-            .animation(.easeInOut(duration: 0.2), value: isDuckAISelected)
+            .animation(.easeInOut(duration: Metrics.contentFadeAnimationDuration), value: isDuckAISelected)
         }
 
         private var suggestionChips: some View {
@@ -276,11 +303,6 @@ extension OnboardingView {
             .buttonStyle(OutlinedSuggestionChipButtonStyle())
         }
 
-        private func storeSelection() {
-            let onboardingProvider = OnboardingSearchExperience()
-            onboardingProvider.storeAIChatSearchInputDuringOnboardingChoice(enable: isDuckAISelected)
-        }
-
         private func handlePrimaryAction() {
             guard isPrimaryActionEnabled else { return }
             let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -296,8 +318,6 @@ extension OnboardingView {
         }
 
         private func openSelectedExperience(prompt: String?, autoSend: Bool, promptSource: DuckAIQueryExperimentPromptSource) {
-            storeSelection()
-
             if autoSend {
                 measureQuerySubmissionAction(isDuckAISelected, promptSource)
             }
@@ -306,43 +326,67 @@ extension OnboardingView {
             dismissKeyboard()
             startExitTransitionAction(isDuckAISelected)
 
-            withAnimation(.easeOut(duration: 0.2)) {
+            withAnimation(.easeOut(duration: Metrics.contentFadeAnimationDuration)) {
                 isTransitioningOut = true
-            }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.submitTransitionDelay) {
+            } completion: {
                 if isDuckAISelected {
                     openAIChatAction(prompt, autoSend)
-                    action()
+                    action(.searchAndDuckAI)
                 } else if let searchQuery = prompt, !searchQuery.isEmpty {
                     openSearchAction(searchQuery)
-                    action()
+                    action(.searchOnly)
                 } else {
                     isTransitioningOut = false
                 }
             }
         }
 
-        private func registerEngagement() {
+        private func startSuggestionSequenceIfNeeded() {
+            guard !suggestionSequenceStarted else { return }
+            suggestionSequenceStarted = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionInitialRevealDelay) {
+                guard suggestionSequenceStarted else { return }
+                startSuggestionRevealSequence()
+            }
+        }
+
+        private func startSuggestionRevealSequence() {
             guard !isTransitioningOut else { return }
             let token = UUID()
             suggestionTimerID = token
             visibleSuggestionCount = 0
-            DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionRevealDelay) {
+            revealSuggestionsSequentially(token: token, nextIndex: 1)
+        }
+
+        private func revealSuggestionsSequentially(token: UUID, nextIndex: Int) {
+            guard suggestionTimerID == token else { return }
+            guard nextIndex <= 3 else { return }
+
+            withAnimation(suggestionAppearanceAnimation) {
+                visibleSuggestionCount = nextIndex
+            } completion: {
                 guard suggestionTimerID == token else { return }
-                revealSuggestionsSequentially(token: token)
+                revealSuggestionsSequentially(token: token, nextIndex: nextIndex + 1)
             }
         }
 
-        private func revealSuggestionsSequentially(token: UUID) {
-            for index in 1...3 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionStaggerDelay * Double(index - 1)) {
-                    guard suggestionTimerID == token else { return }
-                    withAnimation(suggestionAppearanceAnimation) {
-                        visibleSuggestionCount = index
-                    }
+        @MainActor
+        private func withAnimation(_ animation: Animation, _ updates: @escaping () -> Void, completion: @escaping () -> Void) {
+#if os(iOS)
+            if #available(iOS 17, *) {
+                SwiftUI.withAnimation(animation, completionCriteria: .logicallyComplete, updates) {
+                    completion()
                 }
+            } else {
+                CATransaction.begin()
+                CATransaction.setCompletionBlock(completion)
+                SwiftUI.withAnimation(animation, updates)
+                CATransaction.commit()
             }
+#else
+            SwiftUI.withAnimation(animation, updates)
+            completion()
+#endif
         }
 
         private func dismissKeyboard() {

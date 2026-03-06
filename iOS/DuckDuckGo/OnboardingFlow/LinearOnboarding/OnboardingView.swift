@@ -253,7 +253,7 @@ struct OnboardingView: View {
     private func experimentSearchExperienceSelectionView(defaultSelection: Bool) -> some View {
         DuckAIExperimentSearchContent(
             defaultSelection: defaultSelection,
-            action: model.selectDuckAIQueryExperimentAction,
+            action: model.selectDuckAIQueryExperimentAction(selection:),
             openAIChatAction: model.openAIChatFromOnboarding,
             openSearchAction: model.searchFromOnboarding,
             measureQuerySubmissionAction: model.measureDuckAIQueryExperimentQuerySubmission,

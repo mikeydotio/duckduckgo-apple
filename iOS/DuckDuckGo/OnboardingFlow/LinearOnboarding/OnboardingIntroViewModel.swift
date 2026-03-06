@@ -28,6 +28,10 @@ import PrivacyConfig
 
 @MainActor
 final class OnboardingIntroViewModel: ObservableObject {
+    enum DuckAIExperimentSelection {
+        case searchOnly
+        case searchAndDuckAI
+    }
 
     struct IntroState {
         var showDaxDialogBox = false
@@ -218,10 +222,11 @@ final class OnboardingIntroViewModel: ObservableObject {
         makeNextViewState()
     }
 
-    func selectDuckAIQueryExperimentAction() {
-        if onboardingSearchExperienceProvider.didEnableAIChatSearchInputDuringOnboarding {
+    func selectDuckAIQueryExperimentAction(selection: DuckAIExperimentSelection) {
+        switch selection {
+        case .searchAndDuckAI:
             pixelReporter.measureDuckAIQueryExperimentChooseAIChat()
-        } else {
+        case .searchOnly:
             pixelReporter.measureDuckAIQueryExperimentChooseSearchOnly()
         }
         makeNextViewState()
