@@ -26,6 +26,7 @@ import Kingfisher
 struct BrowsingMenuModel {
     var headerItems: [BrowsingMenuModel.Entry]
     var sections: [BrowsingMenuModel.Section]
+    var preferredDetentItemCount: Int? = nil
 }
 
 struct BrowsingMenuSheetView: View {
