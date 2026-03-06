@@ -124,6 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var privacyDashboardWindow: NSWindow?
 
     let tabCrashAggregator = TabCrashAggregator()
+#if DEBUG
+    private var browserMCPServer: BrowserMCPServer?
+#endif
     let windowControllersManager: WindowControllersManager
     let subscriptionNavigationCoordinator: SubscriptionNavigationCoordinator
 
@@ -1338,9 +1341,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         memoryUsageMonitor.enableIfNeeded(featureFlagger: featureFlagger)
 
+#if DEBUG
+        startMCPServerIfNeeded()
+#endif
+
         PixelKit.fire(GeneralPixel.launch, doNotEnforcePrefix: true)
         profilerToken.stop()
     }
+
+#if DEBUG
+    private func startMCPServerIfNeeded() {
+        guard featureFlagger.isFeatureOn(.mcpServer) else { return }
+        let server = BrowserMCPServer()
+        do {
+            try server.start()
+            browserMCPServer = server
+        } catch {
+            Logger.general.error("Failed to start BrowserMCPServer: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+#endif
 
     private func fireFailedCompilationsPixelIfNeeded() {
         let store = FailedCompilationsStore()
