@@ -53,13 +53,20 @@ jobs:
           labels: dependencies,macOS${{ steps.check.outputs.bump_type == 'major' && ',breaking' || '' }}
           draft: false
 
+      - name: Get CODEOWNERS for AppUpdater
+        id: codeowner
+        if: steps.create-pr.outputs.pull-request-url
+        run: |
+          owner=$(grep 'macOS/LocalPackages/AppUpdater/' .github/CODEOWNERS | awk '{print $2}' | sed 's/@//')
+          echo "github-handle=${owner}" >> "$GITHUB_OUTPUT"
+
       - name: Get Asana user ID for CODEOWNERS
         id: asana-user
-        if: steps.create-pr.outputs.pull-request-url
+        if: steps.codeowner.outputs.github-handle
         uses: duckduckgo/apple-toolbox/actions/asana-get-user-id-for-github-handle@main
         with:
           access-token: ${{ secrets.ASANA_ACCESS_TOKEN }}
-          github-handle: diegoreymendez
+          github-handle: ${{ steps.codeowner.outputs.github-handle }}
 
       - name: Create Asana subtask
         if: steps.create-pr.outputs.pull-request-url
