@@ -1002,6 +1002,18 @@
           }
         }
       }
+    },
+    "onboarding.highlights.browsers.progress.of" : {
+      "comment" : "Delimiter for step/total dots in the rebranded onboarding",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "of"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
