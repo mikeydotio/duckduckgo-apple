@@ -1277,13 +1277,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         startupSync()
 
-        profilerToken.advance(to: .appStateRestoration)
+        restoreStateIfNeeded(profilerToken)
+    }
+
+    @MainActor
+    private func restoreStateIfNeeded(_ profilerToken: StartupProfilerSequence? = nil) {
+        profilerToken?.advance(to: .appStateRestoration)
 
         if AppVersion.runType.stateRestorationAllowed {
             stateRestorationManager.applicationDidFinishLaunching()
         }
 
-        profilerToken.advance(to: .appDidFinishLaunchingAfterRestoration)
+        finalizeAppStartup(profilerToken)
+    }
+
+    @MainActor
+    private func finalizeAppStartup(_ profilerToken: StartupProfilerSequence? = nil) {
+
+        profilerToken?.advance(to: .appDidFinishLaunchingAfterRestoration)
 
         let urlEventHandlerResult = urlEventHandler.applicationDidFinishLaunching()
 
@@ -1365,7 +1376,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startAutomationServerIfNeeded()
 
         PixelKit.fire(GeneralPixel.launch, doNotEnforcePrefix: true)
-        profilerToken.stop()
+        profilerToken?.stop()
     }
 
     private func fireFailedCompilationsPixelIfNeeded() {
