@@ -1206,7 +1206,7 @@ final class MockOnboardingSubscriptionPromotionHelper: OnboardingSubscriptionPro
 
     var shouldDisplayValue: Bool = false
 
-    var shouldDisplay: Bool {
+    var shouldDisplayForSkippedOnboarding: Bool {
         shouldDisplayValue
     }
 

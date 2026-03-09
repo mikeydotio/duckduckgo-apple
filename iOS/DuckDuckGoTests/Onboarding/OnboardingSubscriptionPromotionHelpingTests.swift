@@ -123,7 +123,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         XCTAssertFalse(result)
     }
 
-    // MARK: - shouldDisplay Tests
+    // MARK: - shouldDisplayForSkippedOnboarding Tests
 
     func testShouldNotDisplayAfterSkipWhenInstallDateIsNil() {
         // Given
@@ -133,7 +133,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         mockStatisticsStore.installDate = nil
 
         // When
-        let result = sut.shouldDisplay
+        let result = sut.shouldDisplayForSkippedOnboarding
 
         // Then
         XCTAssertFalse(result)
@@ -147,7 +147,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         mockStatisticsStore.installDate = Calendar.current.date(byAdding: .day, value: -6, to: currentDate)
 
         // When
-        let result = sut.shouldDisplay
+        let result = sut.shouldDisplayForSkippedOnboarding
 
         // Then
         XCTAssertFalse(result)
@@ -161,7 +161,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         mockStatisticsStore.installDate = Calendar.current.date(byAdding: .day, value: -7, to: currentDate)
 
         // When
-        let result = sut.shouldDisplay
+        let result = sut.shouldDisplayForSkippedOnboarding
 
         // Then
         XCTAssertTrue(result)
@@ -175,7 +175,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         mockStatisticsStore.installDate = Calendar.current.date(byAdding: .day, value: -14, to: currentDate)
 
         // When
-        let result = sut.shouldDisplay
+        let result = sut.shouldDisplayForSkippedOnboarding
 
         // Then
         XCTAssertTrue(result)
@@ -188,7 +188,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         mockTutorialSettings.hasSkippedOnboarding = false
 
         // When
-        let result = sut.shouldDisplay
+        let result = sut.shouldDisplayForSkippedOnboarding
 
         // Then
         XCTAssertFalse(result)
@@ -202,7 +202,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         mockStatisticsStore.installDate = Calendar.current.date(byAdding: .day, value: -30, to: currentDate)
 
         // When
-        let result = sut.shouldDisplay
+        let result = sut.shouldDisplayForSkippedOnboarding
 
         // Then
         XCTAssertFalse(result)
@@ -216,7 +216,7 @@ final class OnboardingSubscriptionPromotionHelpingTests: XCTestCase {
         mockStatisticsStore.installDate = Calendar.current.date(byAdding: .day, value: -30, to: currentDate)
 
         // When
-        let result = sut.shouldDisplay
+        let result = sut.shouldDisplayForSkippedOnboarding
 
         // Then
         XCTAssertFalse(result)

@@ -39,7 +39,7 @@ protocol OnboardingSubscriptionPromotionHelping {
     /// Whether the subscription promotion should be shown to a user who skipped onboarding.
     /// Requires base eligibility (`isFeatureEnabled`), the skip flag, and a 7-day cooldown since install.
     /// Returns `false` for users who completed onboarding normally — those go through the standard Dax dialog flow.
-    var shouldDisplay: Bool { get }
+    var shouldDisplayForSkippedOnboarding: Bool { get }
 
     /// Provides the URL components for redirecting as part of the onboarding promotion experiment.
     ///
@@ -133,7 +133,7 @@ struct OnboardingSubscriptionPromotionHelper: OnboardingSubscriptionPromotionHel
         featureFlagger.isFeatureOn(for: FeatureFlag.subscriptionPromoForReinstallers, allowOverride: true)
     }
 
-    var shouldDisplay: Bool {
+    var shouldDisplayForSkippedOnboarding: Bool {
         guard isFeatureEnabled, isReinstallerPromoEnabled, tutorialSettings.hasSkippedOnboarding else { return false }
         guard let installDate = statisticsStore.installDate else { return false }
         let daysSinceInstall = Calendar.current.dateComponents([.day], from: installDate, to: currentDateProvider()).day ?? 0
