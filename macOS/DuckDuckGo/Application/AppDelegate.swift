@@ -1263,8 +1263,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppDelegate.firstLaunchDate = Date()
         }
 
-        setupWebExtensions()
-
         vpnUpsellVisibilityManager.setup(isFirstLaunch: isFirstLaunch, isOnboardingFinished: OnboardingActionsManager.isOnboardingFinished)
 
         AtbAndVariantCleanup.cleanup()
@@ -1275,9 +1273,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statisticsLoader = AppVersion.runType.requiresEnvironment ? StatisticsLoader.shared : nil
         statisticsLoader?.load()
 
-        startupSync()
-
-        restoreStateIfNeeded(profilerToken)
+        Task {
+            await setupWebExtensions()
+            restoreStateIfNeeded(profilerToken)
+        }
     }
 
     @MainActor
@@ -1288,13 +1287,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stateRestorationManager.applicationDidFinishLaunching()
         }
 
-        finalizeAppStartup(profilerToken)
+        performPostLaunchTasks(profilerToken)
     }
 
     @MainActor
-    private func finalizeAppStartup(_ profilerToken: StartupProfilerSequence? = nil) {
+    private func performPostLaunchTasks(_ profilerToken: StartupProfilerSequence? = nil) {
 
         profilerToken?.advance(to: .appDidFinishLaunchingAfterRestoration)
+
+        startupSync()
 
         let urlEventHandlerResult = urlEventHandler.applicationDidFinishLaunching()
 
@@ -1679,7 +1680,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Web Extensions
 
     @MainActor
-    private func setupWebExtensions() {
+    private func setupWebExtensions() async {
         guard #available(macOS 15.4, *) else { return }
 
         let darkReaderSettings = AppDarkReaderFeatureSettings(
@@ -1746,11 +1747,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             self.webExtensionManager = webExtensionManager
 
-            // Load extensions asynchronously - the controller is already attached to tabs
-            Task {
-                await webExtensionManager.loadInstalledExtensions()
-                await syncEmbeddedExtensions()
-            }
+            await webExtensionManager.loadInstalledExtensions()
+            await syncEmbeddedExtensions()
         } else {
             webExtensionManager = nil
         }
