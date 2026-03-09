@@ -208,6 +208,11 @@ final class StartupPreferences: ObservableObject {
             return .url(.blankPage, source: source)
         case .specificPage:
             if let customURL = URL(string: formattedCustomHomePageURL) {
+                // Prevent infinite recursion: if custom URL is about:home, return newtab instead
+                // of calling contentFromURL which would call homePageTabContent again
+                if customURL == URL.Invalid.aboutHome {
+                    return .newtab
+                }
                 return Tab.TabContent.contentFromURL(customURL, source: source)
             }
             return .newtab
