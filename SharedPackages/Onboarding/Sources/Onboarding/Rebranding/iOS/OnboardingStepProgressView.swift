@@ -39,6 +39,7 @@ public struct OnboardingStepProgressView: View {
     public var body: some View {
         let clampedTotal = max(1, totalSteps)
         let clampedStep = max(1, min(currentStep, clampedTotal))
+        let ofText = NSLocalizedString("onboarding.highlights.browsers.progress.of", bundle: Bundle.module, value: "of", comment: "Delimiter for step/total dots in the rebranded onboarding")
 
         HStack(spacing: stepProgressTheme.metrics.contentSpacing) {
             DottedStepIndicatorView(
@@ -52,7 +53,7 @@ public struct OnboardingStepProgressView: View {
                     unselectedDotFillColor: stepProgressTheme.colors.unselectedDot
                 )
             )
-            Text(verbatim: "\(clampedStep) of \(clampedTotal)")
+            Text(verbatim: "\(clampedStep) \(ofText) \(clampedTotal)")
                 .font(onboardingTheme.typography.progressIndicator)
                 .multilineTextAlignment(stepProgressTheme.textAlignment)
                 .foregroundStyle(stepProgressTheme.colors.text)
