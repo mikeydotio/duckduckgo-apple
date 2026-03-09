@@ -207,7 +207,8 @@ final class StartupPreferences: ObservableObject {
         case .blankPage:
             return .url(.blankPage, source: source)
         case .specificPage:
-            if let customURL = URL(string: formattedCustomHomePageURL) {
+            if let customURL = URL(string: formattedCustomHomePageURL),
+               customURL != URL.Invalid.aboutHome {
                 return Tab.TabContent.contentFromURL(customURL, source: source)
             }
             return .newtab
