@@ -131,7 +131,7 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866712841283
     case privacyProOnboardingPromotion
 
-    /// https://app.asana.com/1/137249556945/project/72649045549333/task/1213507126191824
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213569392605475
     case subscriptionPromoForReinstallers
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866464085187
