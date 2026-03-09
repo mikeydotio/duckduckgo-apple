@@ -1216,8 +1216,9 @@ struct UserText {
     static let pinnedTabsDiscoveryPopoverSeparate = NSLocalizedString("pinned-tabs.discovery.popover.separate", value: "Use Separate Pinned Tabs", comment: "Button opening Settings")
 
     static let homePage = NSLocalizedString("preferences-homepage.title", value: "Homepage", comment: "Title for Homepage section in settings")
-    static let homePageDescription = NSLocalizedString("preferences-homepage.description", value: "When navigating home or opening new windows.", comment: "Homepage behavior description")
+    static let homePageDescription = NSLocalizedString("preferences-homepage.description", value: "When navigating home or opening new tabs and windows.", comment: "Homepage behavior description")
     static let newTab = NSLocalizedString("preferences-homepage-newTab", value: "New Tab page", comment: "Option to open a new tab")
+    static let blankPage = NSLocalizedString("preferences-homepage-blankPage", value: "Blank page", comment: "Option to open a blank page as homepage")
     static let specificPage = NSLocalizedString("preferences-homepage-customPage", value: "Specific page", comment: "Option to control Specific Home Page")
     static let setPage = NSLocalizedString("preferences-homepage-set-page", value: "Set Page…", comment: "Option to control the Specific Page")
 

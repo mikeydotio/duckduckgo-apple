@@ -209,23 +209,26 @@ extension Preferences {
 
                         TextMenuItemCaption(UserText.homePageDescription)
 
-                        Picker(selection: $startupModel.launchToCustomHomePage, label: EmptyView()) {
+                        Picker(selection: $startupModel.homePageMode, label: EmptyView()) {
                             Text(UserText.newTab)
-                                .tag(false)
+                                .tag(HomePageMode.newTabPage)
                                 .accessibilityIdentifier("PreferencesGeneralView.homePage.newTab")
+                            Text(UserText.blankPage)
+                                .tag(HomePageMode.blankPage)
+                                .accessibilityIdentifier("PreferencesGeneralView.homePage.blankPage")
                             VStack(alignment: .leading, spacing: 0) {
                                 HStack(spacing: 15) {
                                     Text(UserText.specificPage)
                                         .accessibilityIdentifier("PreferencesGeneralView.homePage.specificPage")
                                     Button(UserText.setPage) {
                                         showingCustomHomePageSheet.toggle()
-                                    }.disabled(!startupModel.launchToCustomHomePage)
+                                    }.disabled(startupModel.homePageMode != .specificPage)
                                 }
                                 TextMenuItemCaption(startupModel.friendlyURL)
                                     .padding(.top, 0)
-                                    .visibility(!startupModel.launchToCustomHomePage ? .gone : .visible)
+                                    .visibility(startupModel.homePageMode != .specificPage ? .gone : .visible)
 
-                            }.tag(true)
+                            }.tag(HomePageMode.specificPage)
                         }
                         .pickerStyle(.radioGroup)
                         .offset(x: PreferencesUI_macOS.Const.pickerHorizontalOffset)

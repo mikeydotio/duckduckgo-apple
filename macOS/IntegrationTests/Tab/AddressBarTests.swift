@@ -86,7 +86,7 @@ class AddressBarTests: XCTestCase {
         NSError.disableSwizzledDescription = true
 
         NSApp.delegateTyped.startupPreferences.customHomePageURL = URL.duckDuckGo.absoluteString
-        NSApp.delegateTyped.startupPreferences.launchToCustomHomePage = false
+        NSApp.delegateTyped.startupPreferences.homePageMode = .newTabPage
 
         NSApp.delegateTyped.tabsPreferences.pinnedTabsMode = .shared
 
@@ -108,7 +108,7 @@ class AddressBarTests: XCTestCase {
             contentBlockingMock = nil
             privacyFeaturesMock = nil
             NSError.disableSwizzledDescription = false
-            NSApp.delegateTyped.startupPreferences.launchToCustomHomePage = false
+            NSApp.delegateTyped.startupPreferences.homePageMode = .newTabPage
 
             NSApp.delegateTyped.tabsPreferences.pinnedTabsMode = .separate
 
@@ -703,7 +703,7 @@ class AddressBarTests: XCTestCase {
 
     @MainActor
     func testWhenHomePageIsOpened_addressBarIsDeactivated() async throws {
-        NSApp.delegateTyped.startupPreferences.launchToCustomHomePage = true
+        NSApp.delegateTyped.startupPreferences.homePageMode = .specificPage
 
         let tab = Tab(content: .url(.duckDuckGo, credential: nil, source: .webViewUpdated), webViewConfiguration: schemeHandler.webViewConfiguration(), privacyFeatures: privacyFeaturesMock, maliciousSiteDetector: MockMaliciousSiteProtectionManager())
         let viewModel = TabCollectionViewModel(tabCollection: TabCollection(tabs: [tab]))

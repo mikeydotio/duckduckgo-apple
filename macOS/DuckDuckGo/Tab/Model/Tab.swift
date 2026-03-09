@@ -944,13 +944,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
 
     func openHomePage() {
         userInteractionDialog = nil
-
-        if startupPreferences.launchToCustomHomePage,
-           let customURL = URL(string: startupPreferences.formattedCustomHomePageURL) {
-            setContent(.contentFromURL(customURL, source: .ui))
-        } else {
-            setContent(.newtab)
-        }
+        setContent(startupPreferences.homePageTabContent())
     }
 
     @MainActor

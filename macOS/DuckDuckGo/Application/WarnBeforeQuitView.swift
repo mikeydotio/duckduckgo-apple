@@ -460,7 +460,7 @@ private struct Triangle: Shape {
 final class PreviewStartupPreferencesPersistor: StartupPreferencesPersistor {
     var customHomePageURL: String = ""
     var restorePreviousSession: Bool = false
-    var launchToCustomHomePage: Bool = false
+    var homePageMode: HomePageMode = .newTabPage
     var startupWindowType: StartupWindowType = .window
     init(restorePreviousSession: Bool = true) {
         self.restorePreviousSession = restorePreviousSession

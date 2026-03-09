@@ -1388,14 +1388,7 @@ final class NavigationBarViewController: NSViewController {
             canOpenLinkInCurrentTab: true
         )
 
-        let startupPreferences = NSApp.delegateTyped.startupPreferences
-        let tabContent: TabContent
-        if startupPreferences.launchToCustomHomePage,
-           let customURL = URL(string: startupPreferences.formattedCustomHomePageURL) {
-            tabContent = .contentFromURL(customURL, source: .ui)
-        } else {
-            tabContent = .newtab
-        }
+        let tabContent = tabCollectionViewModel.homePage
 
         lazy var tab = Tab(content: tabContent, parentTab: nil, shouldLoadInBackground: true, burnerMode: tabCollectionViewModel.burnerMode)
         switch behavior {

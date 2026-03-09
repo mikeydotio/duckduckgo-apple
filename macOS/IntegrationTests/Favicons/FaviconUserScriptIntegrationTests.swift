@@ -130,7 +130,7 @@ class FaviconUserScriptIntegrationTests: XCTestCase {
         }
 
         NSApp.delegateTyped.startupPreferences.customHomePageURL = URL.duckDuckGo.absoluteString
-        NSApp.delegateTyped.startupPreferences.launchToCustomHomePage = false
+        NSApp.delegateTyped.startupPreferences.homePageMode = .newTabPage
     }
 
     @MainActor

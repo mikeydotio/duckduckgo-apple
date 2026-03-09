@@ -23,14 +23,14 @@ import PrivacyConfigTestsUtils
 @testable import DuckDuckGo_Privacy_Browser
 
 final class StartupPreferencesPersistorMock: StartupPreferencesPersistor {
-    var launchToCustomHomePage: Bool
+    var homePageMode: HomePageMode
     var customHomePageURL: String
     var restorePreviousSession: Bool
     var startupWindowType: StartupWindowType
 
-    init(launchToCustomHomePage: Bool = false, customHomePageURL: String = "", restorePreviousSession: Bool = false, startupWindowType: StartupWindowType = .window) {
+    init(homePageMode: HomePageMode = .newTabPage, customHomePageURL: String = "", restorePreviousSession: Bool = false, startupWindowType: StartupWindowType = .window) {
         self.customHomePageURL = customHomePageURL
-        self.launchToCustomHomePage = launchToCustomHomePage
+        self.homePageMode = homePageMode
         self.restorePreviousSession = restorePreviousSession
         self.startupWindowType = startupWindowType
     }
@@ -40,32 +40,32 @@ class StartupPreferencesTests: XCTestCase {
 
     @MainActor
     func testWhenInitializedThenItLoadsPersistedValues() throws {
-        var model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: false, customHomePageURL: "duckduckgo.com", restorePreviousSession: false), appearancePreferences: .mock)
-        XCTAssertEqual(model.launchToCustomHomePage, false)
+        var model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .newTabPage, customHomePageURL: "duckduckgo.com", restorePreviousSession: false), appearancePreferences: .mock)
+        XCTAssertEqual(model.homePageMode, .newTabPage)
         XCTAssertEqual(model.customHomePageURL, "duckduckgo.com")
         XCTAssertEqual(model.restorePreviousSession, false)
         XCTAssertEqual(model.startupWindowType, .window) // Default value
 
-        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: true, customHomePageURL: "http://duckduckgo.com", restorePreviousSession: true), appearancePreferences: .mock)
-        XCTAssertEqual(model.launchToCustomHomePage, true)
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .specificPage, customHomePageURL: "http://duckduckgo.com", restorePreviousSession: true), appearancePreferences: .mock)
+        XCTAssertEqual(model.homePageMode, .specificPage)
         XCTAssertEqual(model.customHomePageURL, "http://duckduckgo.com")
         XCTAssertEqual(model.restorePreviousSession, true)
         XCTAssertEqual(model.startupWindowType, .window) // Default value
 
-        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: true, customHomePageURL: "https://duckduckgo.com", restorePreviousSession: true), appearancePreferences: .mock)
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .specificPage, customHomePageURL: "https://duckduckgo.com", restorePreviousSession: true), appearancePreferences: .mock)
         XCTAssertEqual(model.customHomePageURL, "https://duckduckgo.com")
         XCTAssertEqual(model.startupWindowType, .window) // Default value
 
-        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: true, customHomePageURL: "https://mail.google.com/mail/u/1/#spam/FMfcgzGtxKRZFPXfxKMWSKVgwJlswxnH", restorePreviousSession: true), appearancePreferences: .mock)
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .specificPage, customHomePageURL: "https://mail.google.com/mail/u/1/#spam/FMfcgzGtxKRZFPXfxKMWSKVgwJlswxnH", restorePreviousSession: true), appearancePreferences: .mock)
         XCTAssertEqual(model.friendlyURL, "https://mail.google.com/mai...")
 
-        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: true, customHomePageURL: "https://www.rnids.rs/национални-домени/регистрација-националних-домена", restorePreviousSession: true), appearancePreferences: .mock)
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .specificPage, customHomePageURL: "https://www.rnids.rs/национални-домени/регистрација-националних-домена", restorePreviousSession: true), appearancePreferences: .mock)
         XCTAssertEqual(model.friendlyURL, "https://www.rnids.rs/национ...")
 
-        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: true, customHomePageURL: "www.rnids.rs/национални-домени/регистрација-националних-домена", restorePreviousSession: true), appearancePreferences: .mock)
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .specificPage, customHomePageURL: "www.rnids.rs/национални-домени/регистрација-националних-домена", restorePreviousSession: true), appearancePreferences: .mock)
         XCTAssertEqual(model.friendlyURL, "www.rnids.rs/национални-дом...")
 
-        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(launchToCustomHomePage: true, customHomePageURL: "https://💩.la", restorePreviousSession: true), appearancePreferences: .mock)
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .specificPage, customHomePageURL: "https://💩.la", restorePreviousSession: true), appearancePreferences: .mock)
         XCTAssertEqual(model.friendlyURL, "https://💩.la")
 
     }
@@ -79,6 +79,73 @@ class StartupPreferencesTests: XCTestCase {
         XCTAssertTrue(prefs.isValidURL("test.com"))
         XCTAssertTrue(prefs.isValidURL("http://test.com"))
         XCTAssertTrue(prefs.isValidURL("https://test.com"))
+    }
+
+    // MARK: - HomePageMode Tests
+
+    func testHomePageModeEnum() {
+        XCTAssertEqual(HomePageMode.newTabPage.rawValue, "newTabPage")
+        XCTAssertEqual(HomePageMode.blankPage.rawValue, "blankPage")
+        XCTAssertEqual(HomePageMode.specificPage.rawValue, "specificPage")
+
+        let allCases = HomePageMode.allCases
+        XCTAssertEqual(allCases.count, 3)
+        XCTAssertTrue(allCases.contains(.newTabPage))
+        XCTAssertTrue(allCases.contains(.blankPage))
+        XCTAssertTrue(allCases.contains(.specificPage))
+    }
+
+    func testHomePageModeInitialization() {
+        XCTAssertEqual(HomePageMode(rawValue: "newTabPage"), .newTabPage)
+        XCTAssertEqual(HomePageMode(rawValue: "blankPage"), .blankPage)
+        XCTAssertEqual(HomePageMode(rawValue: "specificPage"), .specificPage)
+        XCTAssertNil(HomePageMode(rawValue: "invalid"))
+    }
+
+    @MainActor
+    func testWhenHomePageModeIsUpdatedThenPersistedValueIsUpdated() {
+        let persistor = StartupPreferencesPersistorMock()
+        let model = StartupPreferences(pinningManager: MockPinningManager(), persistor: persistor, appearancePreferences: .mock)
+
+        model.homePageMode = .blankPage
+        XCTAssertEqual(persistor.homePageMode, .blankPage)
+
+        model.homePageMode = .specificPage
+        XCTAssertEqual(persistor.homePageMode, .specificPage)
+
+        model.homePageMode = .newTabPage
+        XCTAssertEqual(persistor.homePageMode, .newTabPage)
+    }
+
+    @MainActor
+    func testHomePageTabContentReturnsCorrectContentForEachMode() {
+        // New Tab Page mode
+        var model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .newTabPage), appearancePreferences: .mock)
+        XCTAssertEqual(model.homePageTabContent(), .newtab)
+
+        // Blank Page mode
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .blankPage), appearancePreferences: .mock)
+        XCTAssertEqual(model.homePageTabContent(), .url(.blankPage, source: .ui))
+
+        // Specific Page mode
+        model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .specificPage, customHomePageURL: "https://example.com"), appearancePreferences: .mock)
+        let content = model.homePageTabContent()
+        if case .url(let url, _, _) = content {
+            XCTAssertEqual(url.absoluteString, "https://example.com")
+        } else {
+            XCTFail("Expected .url content for specificPage mode")
+        }
+    }
+
+    @MainActor
+    func testHomePageTabContentRespectsSourceParameter() {
+        let model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(homePageMode: .blankPage), appearancePreferences: .mock)
+
+        let uiContent = model.homePageTabContent(source: .ui)
+        XCTAssertEqual(uiContent, .url(.blankPage, source: .ui))
+
+        let historyContent = model.homePageTabContent(source: .historyEntry)
+        XCTAssertEqual(historyContent, .url(.blankPage, source: .historyEntry))
     }
 
     // MARK: - StartupWindowType Tests
@@ -112,14 +179,12 @@ class StartupPreferencesTests: XCTestCase {
     func testWhenInitializedThenItLoadsStartupWindowType() {
         // Test default value
         var model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(
-            launchToCustomHomePage: false,
             customHomePageURL: "duckduckgo.com"
         ), appearancePreferences: .mock)
         XCTAssertEqual(model.startupWindowType, .window)
 
         // Test fire window value
         model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(
-            launchToCustomHomePage: false,
             customHomePageURL: "duckduckgo.com",
             startupWindowType: .fireWindow
         ), appearancePreferences: .mock)
@@ -127,7 +192,6 @@ class StartupPreferencesTests: XCTestCase {
 
         // Test window value explicitly
         model = StartupPreferences(pinningManager: MockPinningManager(), persistor: StartupPreferencesPersistorMock(
-            launchToCustomHomePage: false,
             customHomePageURL: "duckduckgo.com",
             startupWindowType: .window
         ), appearancePreferences: .mock)
@@ -137,7 +201,7 @@ class StartupPreferencesTests: XCTestCase {
     @MainActor
     func testWhenStartupWindowTypeIsUpdatedThenPersistedValueIsUpdated() {
         class TestPersistor: StartupPreferencesPersistor {
-            var launchToCustomHomePage: Bool
+            var homePageMode: HomePageMode
             var customHomePageURL: String
             var restorePreviousSession: Bool
             var startupWindowType: StartupWindowType {
@@ -147,8 +211,8 @@ class StartupPreferencesTests: XCTestCase {
             }
             var startupWindowTypeSetCalls: [StartupWindowType] = []
 
-            init(launchToCustomHomePage: Bool, customHomePageURL: String, restorePreviousSession: Bool = false, startupWindowType: StartupWindowType = .window) {
-                self.launchToCustomHomePage = launchToCustomHomePage
+            init(homePageMode: HomePageMode = .newTabPage, customHomePageURL: String, restorePreviousSession: Bool = false, startupWindowType: StartupWindowType = .window) {
+                self.homePageMode = homePageMode
                 self.customHomePageURL = customHomePageURL
                 self.restorePreviousSession = restorePreviousSession
                 self.startupWindowType = startupWindowType
@@ -156,7 +220,6 @@ class StartupPreferencesTests: XCTestCase {
         }
 
         let persistor = TestPersistor(
-            launchToCustomHomePage: false,
             customHomePageURL: "duckduckgo.com"
         )
         let model = StartupPreferences(pinningManager: MockPinningManager(), persistor: persistor, appearancePreferences: .mock)
@@ -185,7 +248,7 @@ class StartupPreferencesTests: XCTestCase {
     @MainActor
     func testWhenInitializedWithAllPropertiesThenItLoadsAllPersistedValues() {
         let persistor = StartupPreferencesPersistorMock(
-            launchToCustomHomePage: true,
+            homePageMode: .specificPage,
             customHomePageURL: "https://example.com",
             restorePreviousSession: true,
             startupWindowType: .fireWindow
@@ -193,7 +256,7 @@ class StartupPreferencesTests: XCTestCase {
 
         let model = StartupPreferences(pinningManager: MockPinningManager(), persistor: persistor, appearancePreferences: .mock)
 
-        XCTAssertEqual(model.launchToCustomHomePage, true)
+        XCTAssertEqual(model.homePageMode, .specificPage)
         XCTAssertEqual(model.customHomePageURL, "https://example.com")
         XCTAssertEqual(model.restorePreviousSession, true)
         XCTAssertEqual(model.startupWindowType, .fireWindow)
@@ -202,16 +265,16 @@ class StartupPreferencesTests: XCTestCase {
     @MainActor
     func testWhenInitializedWithMixedPropertiesThenItLoadsCorrectValues() {
         // Test various combinations to ensure property independence
-        let combinations: [(Bool, String, Bool, StartupWindowType)] = [
-            (false, "duckduckgo.com", false, .window),
-            (true, "https://example.com", false, .fireWindow),
-            (false, "https://test.com", true, .fireWindow),
-            (true, "duckduckgo.com", true, .window)
+        let combinations: [(HomePageMode, String, Bool, StartupWindowType)] = [
+            (.newTabPage, "duckduckgo.com", false, .window),
+            (.specificPage, "https://example.com", false, .fireWindow),
+            (.blankPage, "https://test.com", true, .fireWindow),
+            (.specificPage, "duckduckgo.com", true, .window)
         ]
 
-        for (launchCustom, url, restoreSession, windowType) in combinations {
+        for (homePageMode, url, restoreSession, windowType) in combinations {
             let persistor = StartupPreferencesPersistorMock(
-                launchToCustomHomePage: launchCustom,
+                homePageMode: homePageMode,
                 customHomePageURL: url,
                 restorePreviousSession: restoreSession,
                 startupWindowType: windowType
@@ -219,7 +282,7 @@ class StartupPreferencesTests: XCTestCase {
 
             let model = StartupPreferences(pinningManager: MockPinningManager(), persistor: persistor, appearancePreferences: .mock)
 
-            XCTAssertEqual(model.launchToCustomHomePage, launchCustom)
+            XCTAssertEqual(model.homePageMode, homePageMode)
             XCTAssertEqual(model.customHomePageURL, url)
             XCTAssertEqual(model.restorePreviousSession, restoreSession)
             XCTAssertEqual(model.startupWindowType, windowType)
@@ -232,7 +295,6 @@ class StartupPreferencesTests: XCTestCase {
     func testStartupBurnerMode() {
         // Test with regular window type - should return regular mode
         var persistor = StartupPreferencesPersistorMock(
-            launchToCustomHomePage: false,
             customHomePageURL: "duckduckgo.com",
             startupWindowType: .window
         )
@@ -242,7 +304,6 @@ class StartupPreferencesTests: XCTestCase {
 
         // Test with fire window type - should return burner mode when feature flag is on
         persistor = StartupPreferencesPersistorMock(
-            launchToCustomHomePage: false,
             customHomePageURL: "duckduckgo.com",
             startupWindowType: .fireWindow
         )
@@ -256,7 +317,6 @@ class StartupPreferencesTests: XCTestCase {
         let featureFlagger = MockFeatureFlagger()
 
         let persistor = StartupPreferencesPersistorMock(
-            launchToCustomHomePage: false,
             customHomePageURL: "duckduckgo.com",
             startupWindowType: .fireWindow
         )

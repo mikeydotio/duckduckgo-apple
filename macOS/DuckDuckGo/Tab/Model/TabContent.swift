@@ -146,10 +146,7 @@ extension TabContent {
         case URL.releaseNotes:
             return .releaseNotes
         case URL.Invalid.aboutHome:
-            guard let customURL = URL(string: NSApp.delegateTyped.startupPreferences.formattedCustomHomePageURL) else {
-                return .newtab
-            }
-            return .url(customURL, source: source)
+            return NSApp.delegateTyped.startupPreferences.homePageTabContent(source: source)
         case URL.history, URL.Invalid.aboutHistory:
             return .anyHistoryPane
         default: break

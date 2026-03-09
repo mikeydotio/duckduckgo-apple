@@ -129,13 +129,8 @@ final class TabCollectionViewModel: NSObject {
     private var tabsPreferences: TabsPreferences
     private var startupPreferences: StartupPreferences
     private var accessibilityPreferences: AccessibilityPreferences
-    private var homePage: Tab.TabContent {
-        var homePage: Tab.TabContent = .newtab
-        if startupPreferences.launchToCustomHomePage,
-           let customURL = URL(string: startupPreferences.formattedCustomHomePageURL) {
-            homePage = Tab.TabContent.contentFromURL(customURL, source: .bookmark(isFavorite: false))
-        }
-        return homePage
+    var homePage: Tab.TabContent {
+        startupPreferences.homePageTabContent()
     }
 
     /// This property logic will be true when the user appends a new tab
@@ -483,7 +478,8 @@ final class TabCollectionViewModel: NSObject {
         }
     }
 
-    func insertOrAppendNewTab(_ content: Tab.TabContent = .newtab, selected: Bool = true) {
+    func insertOrAppendNewTab(_ content: Tab.TabContent? = nil, selected: Bool = true) {
+        let content = content ?? homePage
         if selectDisplayableTabIfPresent(content) {
             return
         }

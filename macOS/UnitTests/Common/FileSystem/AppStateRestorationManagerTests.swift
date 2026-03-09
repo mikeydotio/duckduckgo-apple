@@ -263,7 +263,7 @@ private enum MockError: Error {
 
 private class MockStartupPreferencesPersistor: StartupPreferencesPersistor {
     var restorePreviousSession: Bool = false
-    var launchToCustomHomePage: Bool = false
+    var homePageMode: HomePageMode = .newTabPage
     var customHomePageURL: String = ""
     var startupWindowType: StartupWindowType = .window
 }

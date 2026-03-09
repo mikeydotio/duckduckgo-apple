@@ -243,7 +243,7 @@ extension SuggestionContainer: SuggestionLoadingDataSource {
             return .init(title: UserText.settings + " → " + pane.displayName, url: .settingsPane(pane))
         }
         result += {
-            guard startupPreferences.launchToCustomHomePage,
+            guard startupPreferences.homePageMode == .specificPage,
                   let homePage = URL(string: startupPreferences.formattedCustomHomePageURL) else { return [] }
             // home page suggestion
             return [.init(title: UserText.homePage, url: homePage)]

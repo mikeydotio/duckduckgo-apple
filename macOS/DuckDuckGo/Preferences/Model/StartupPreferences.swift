@@ -23,6 +23,12 @@ import Foundation
 import FeatureFlags
 import Persistence
 
+enum HomePageMode: String, CaseIterable {
+    case newTabPage
+    case blankPage
+    case specificPage
+}
+
 enum StartupWindowType: String, CaseIterable {
     case window = "window"
     case fireWindow = "fire-window"
@@ -50,7 +56,7 @@ enum StartupWindowType: String, CaseIterable {
 
 protocol StartupPreferencesPersistor {
     var restorePreviousSession: Bool { get set }
-    var launchToCustomHomePage: Bool { get set }
+    var homePageMode: HomePageMode { get set }
     var customHomePageURL: String { get set }
     var startupWindowType: StartupWindowType { get set }
 }
@@ -58,16 +64,31 @@ protocol StartupPreferencesPersistor {
 struct StartupPreferencesUserDefaultsPersistor: StartupPreferencesPersistor {
     enum Key: String {
         case startupWindowType = "startup-window-type"
+        case homePageMode = "home-page-mode"
     }
 
     @UserDefaultsWrapper(key: .restorePreviousSession, defaultValue: false)
     var restorePreviousSession: Bool
 
     @UserDefaultsWrapper(key: .launchToCustomHomePage, defaultValue: false)
-    var launchToCustomHomePage: Bool
+    private var legacyLaunchToCustomHomePage: Bool
 
     @UserDefaultsWrapper(key: .customHomePageURL, defaultValue: URL.duckDuckGo.absoluteString)
     var customHomePageURL: String
+
+    var homePageMode: HomePageMode {
+        get {
+            do {
+                if let value = try keyValueStore.object(forKey: Key.homePageMode.rawValue) as? String,
+                   let mode = HomePageMode(rawValue: value) {
+                    return mode
+                }
+            } catch {}
+            // Migrate from legacy boolean
+            return legacyLaunchToCustomHomePage ? .specificPage : .newTabPage
+        }
+        set { try? keyValueStore.set(newValue.rawValue, forKey: Key.homePageMode.rawValue) }
+    }
 
     var startupWindowType: StartupWindowType {
         get {
@@ -117,7 +138,7 @@ final class StartupPreferences: ObservableObject {
         self.appearancePreferences = appearancePreferences
         self.persistor = persistor
         restorePreviousSession = persistor.restorePreviousSession
-        launchToCustomHomePage = persistor.launchToCustomHomePage
+        homePageMode = persistor.homePageMode
         customHomePageURL = persistor.customHomePageURL
         startupWindowType = persistor.startupWindowType
         updateHomeButtonState()
@@ -130,9 +151,9 @@ final class StartupPreferences: ObservableObject {
         }
     }
 
-    @Published var launchToCustomHomePage: Bool {
+    @Published var homePageMode: HomePageMode {
         didSet {
-            persistor.launchToCustomHomePage = launchToCustomHomePage
+            persistor.homePageMode = homePageMode
         }
     }
 
@@ -177,6 +198,20 @@ final class StartupPreferences: ObservableObject {
     /// - Returns: The appropriate BurnerMode for the startup window
     func startupBurnerMode() -> BurnerMode {
         return startupWindowType.toBurnerMode()
+    }
+
+    func homePageTabContent(source: Tab.TabContent.URLSource = .ui) -> Tab.TabContent {
+        switch homePageMode {
+        case .newTabPage:
+            return .newtab
+        case .blankPage:
+            return .url(.blankPage, source: source)
+        case .specificPage:
+            if let customURL = URL(string: formattedCustomHomePageURL) {
+                return Tab.TabContent.contentFromURL(customURL, source: source)
+            }
+            return .newtab
+        }
     }
 
     func isValidURL(_ text: String) -> Bool {
