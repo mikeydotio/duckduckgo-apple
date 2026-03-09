@@ -55,11 +55,13 @@ struct HeadlessWebView: UIViewRepresentable {
         navigationCoordinator.webView = webView
         
         
-#if DEBUG
         if #available(iOS 16.4, *) {
+#if DEBUG
             webView.isInspectable = true
-        }
+#else
+            webView.isInspectable = AppDependencyProvider.shared.subscriptionManager.currentEnvironment.serviceEnvironment == .staging
 #endif
+        }
         
         context.coordinator.setupWebViewObservation(webView)
         return webView
