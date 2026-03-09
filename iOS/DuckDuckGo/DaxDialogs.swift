@@ -527,7 +527,7 @@ final class DaxDialogs: NewTabDialogSpecProvider, ContextualOnboardingLogic, Con
 
         // Users who skipped onboarding bypass the normal Dax dialog flow.
         // Show the subscription promotion after the 7-day cooldown.
-        if onboardingSubscriptionPromotionHelper.shouldDisplay && !subscriptionPromotionDialogSeen {
+        if onboardingSubscriptionPromotionHelper.shouldDisplayForSkippedOnboarding && !subscriptionPromotionDialogSeen {
             return .subscriptionPromotion
         }
 

@@ -24,6 +24,7 @@ import BrowserServicesKit
 import Combine
 import Core
 import RemoteMessaging
+import Subscription
 
 final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTabPage {
 
@@ -51,6 +52,7 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
     private let appSettings: AppSettings
     private let appWidthObserver: AppWidthObserver
 
+    private let subscriptionManager: any SubscriptionManager
     private let internalUserCommands: URLBasedDebugCommands
     private var cancellables = Set<AnyCancellable>()
 
@@ -69,6 +71,7 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
          remoteMessagingImageLoader: RemoteMessagingImageLoading,
          remoteMessagingPixelReporter: RemoteMessagingPixelReporting? = nil,
          appSettings: AppSettings,
+         subscriptionManager: any SubscriptionManager,
          internalUserCommands: URLBasedDebugCommands,
          narrowLayoutInLandscape: Bool = false,
          appWidthObserver: AppWidthObserver = .shared) {
@@ -78,6 +81,7 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
         self.daxDialogsManager = daxDialogsManager
         self.appSettings = appSettings
         self.appWidthObserver = appWidthObserver
+        self.subscriptionManager = subscriptionManager
         self.internalUserCommands = internalUserCommands
 
         newTabPageViewModel = NewTabPageViewModel()
@@ -256,7 +260,7 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
     }
 
     private func subscribeToProductAvailability() {
-        AppDependencyProvider.shared.subscriptionManager.hasAppStoreProductsAvailablePublisher
+        subscriptionManager.hasAppStoreProductsAvailablePublisher
             .removeDuplicates()
             .filter { $0 }
             .receive(on: DispatchQueue.main)

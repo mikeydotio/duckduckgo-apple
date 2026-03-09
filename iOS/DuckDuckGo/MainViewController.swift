@@ -491,6 +491,7 @@ class MainViewController: UIViewController {
             remoteMessagingActionHandler: remoteMessagingActionHandler,
             remoteMessagingImageLoader: remoteMessagingImageLoader,
             remoteMessagingPixelReporter: remoteMessagingPixelReporter,
+            subscriptionManager: subscriptionManager,
             appSettings: appSettings,
             internalUserCommands: internalUserCommands)
     }()
@@ -1401,6 +1402,7 @@ class MainViewController: UIViewController {
                                                   remoteMessagingImageLoader: remoteMessagingImageLoader,
                                                   remoteMessagingPixelReporter: remoteMessagingPixelReporter,
                                                   appSettings: appSettings,
+                                                  subscriptionManager: subscriptionManager,
                                                   internalUserCommands: internalUserCommands,
                                                   narrowLayoutInLandscape: narrowLayoutInLandscape
         )
