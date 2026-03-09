@@ -379,15 +379,17 @@ public class DDGSync: DDGSyncing {
         // Proceed to initialization - if needed
         guard syncEnabled else {
             let storedAccount: SyncAccount?
+            var failedToLoadStoredAccount = false
             do {
                 storedAccount = try dependencies.secureStore.account()
             } catch {
                 dependencies.errorEvents.fire(.failedToLoadAccount, error: error)
                 storedAccount = nil
+                failedToLoadStoredAccount = true
             }
 
             // Feature-flagged in the app layer (FeatureFlag.syncAutoRestore) and only true when the user opted in.
-            if dependencies.shouldPreserveAccountWhenSyncDisabled(), storedAccount != nil {
+            if dependencies.shouldPreserveAccountWhenSyncDisabled(), storedAccount != nil || failedToLoadStoredAccount {
                 authState = .inactive
                 return
             }
