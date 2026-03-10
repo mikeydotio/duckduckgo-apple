@@ -1231,9 +1231,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard AppVersion.runType.requiresEnvironment else { return }
-        defer {
-            didFinishLaunching = true
-        }
 
         let profilerToken = startupProfiler.measureSequence(initialStep: .appDidFinishLaunchingBeforeRestoration)
 
@@ -1278,6 +1275,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await setupWebExtensions()
             restoreStateIfNeeded(profilerToken)
+            didFinishLaunching = true
         }
     }
 
