@@ -21,6 +21,7 @@ import Combine
 import Common
 import PixelKit
 import PreferencesUI_macOS
+import BWManagementShared
 import SwiftUI
 import SwiftUIExtensions
 
@@ -118,14 +119,8 @@ extension Preferences {
                             .padding(.leading, 15)
                             .padding(.bottom, 4)
                         }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            passwordManagerPicker(passwordManagerBinding) {
-                                Text(UserText.autofillPasswordManagerBitwarden).tag(PasswordManager.bitwarden)
-                            }
-                            if model.passwordManager == .bitwarden && !model.isBitwardenSetupFlowPresented {
-                                bitwardenStatusView(for: bitwardenStatus)
-                            }
+                        if model.passwordManager == .bitwarden && !model.isBitwardenSetupFlowPresented {
+                            bitwardenStatusView(for: bitwardenStatus)
                         }
                     }
                 }
