@@ -32,16 +32,12 @@ final class FeedbackSender: FeedbackSenderImplementing {
     static let feedbackURL = URL.feedbackForm
 
     func sendFeedback(_ feedback: Feedback, completionHandler: (() -> Void)? = nil) {
-#if DEBUG || REVIEW
-        Logger.general.debug("FeedbackSender: Skipping feedback submission in DEBUG / REVIEW build")
+#if DEBUG
+        Logger.general.debug("FeedbackSender: Skipping feedback submission in DEBUG build")
         completionHandler?()
 #else
 
-#if APPSTORE
-        let appVersion = "\(feedback.appVersion) AppStore"
-#else
-        let appVersion = feedback.appVersion
-#endif
+        let appVersion = "\(feedback.appVersion)\(NSApp.isSandboxed ? " AppStore" : "")"
         var parameters = [
             "type": "app-feedback",
             "comment": feedback.comment,

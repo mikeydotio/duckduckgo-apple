@@ -79,12 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let urlEventHandler = URLEventHandler()
 
-#if CI
-    private let keyStore = (NSClassFromString("MockEncryptionKeyStore") as? EncryptionKeyStoring.Type)!.init()
-#else
-    private let keyStore = EncryptionKeyStore()
-#endif
-
+    private let keyStore: EncryptionKeyStoring
     let fileStore: FileStore
 
     private let crashReporting: any CrashReporting
@@ -321,19 +316,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Win-back Campaign
     lazy var winBackOfferVisibilityManager: WinBackOfferVisibilityManaging = {
         let winBackOfferVisibilityManager: WinBackOfferVisibilityManaging
-#if DEBUG || REVIEW
-        let winBackOfferDebugStore = WinBackOfferDebugStore(keyValueStore: keyValueStore)
-        let dateProvider: () -> Date = { winBackOfferDebugStore.simulatedTodayDate }
-        winBackOfferVisibilityManager = WinBackOfferVisibilityManager(subscriptionManager: subscriptionManager,
-                                                                      winbackOfferStore: winbackOfferStore,
-                                                                      winbackOfferFeatureFlagProvider: winbackOfferFeatureFlagProvider,
-                                                                      dateProvider: dateProvider,
-                                                                      timeBeforeOfferAvailability: .seconds(5))
-#else
-        winBackOfferVisibilityManager = WinBackOfferVisibilityManager(subscriptionManager: subscriptionManager,
-                                                                      winbackOfferStore: winbackOfferStore,
-                                                                      winbackOfferFeatureFlagProvider: winbackOfferFeatureFlagProvider)
-#endif
+        let buildType = StandardApplicationBuildType()
+        if buildType.isDebugBuild || buildType.isReviewBuild {
+            let winBackOfferDebugStore = WinBackOfferDebugStore(keyValueStore: keyValueStore)
+            let dateProvider: () -> Date = { winBackOfferDebugStore.simulatedTodayDate }
+            winBackOfferVisibilityManager = WinBackOfferVisibilityManager(subscriptionManager: subscriptionManager,
+                                                                        winbackOfferStore: winbackOfferStore,
+                                                                        winbackOfferFeatureFlagProvider: winbackOfferFeatureFlagProvider,
+                                                                        dateProvider: dateProvider,
+                                                                        timeBeforeOfferAvailability: .seconds(5))
+        } else {
+            winBackOfferVisibilityManager = WinBackOfferVisibilityManager(subscriptionManager: subscriptionManager,
+                                                                          winbackOfferStore: winbackOfferStore,
+                                                                          winbackOfferFeatureFlagProvider: winbackOfferFeatureFlagProvider)
+        }
         return winBackOfferVisibilityManager
     }()
 
@@ -428,6 +424,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         self.startupProfiler = startupProfiler
         self.dockCustomization = dockCustomization
+
+        if [.unitTests, .integrationTests, .xcPreviews].contains(AppVersion.runType) {
+            keyStore = (NSClassFromString("MockEncryptionKeyStore") as? EncryptionKeyStoring.Type)!.init()
+        } else {
+            keyStore = EncryptionKeyStore()
+        }
 
         // will not add crash handlers and will fire pixel on applicationDidFinishLaunching if didCrashDuringCrashHandlersSetUp == true
         let didCrashDuringCrashHandlersSetUp = UserDefaultsWrapper(key: .didCrashDuringCrashHandlersSetUp, defaultValue: false)
@@ -1460,67 +1462,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SyncDiagnosisHelper(syncService: syncService).diagnoseAccountStatus()
     }
 
-    private static func makeCrashReporting(internalUserDecider: InternalUserDecider, featureFlagger: FeatureFlagger, keyValueStore: any ThrowingKeyValueStoring) -> any CrashReporting {
-        let buildType = StandardApplicationBuildType()
-        if buildType.isAppStoreBuild {
-            guard #available(macOS 12.0, *) else {
-                fatalError("App Store crash reporting requires macOS 12.0 or newer")
-            }
-
-            guard let appStoreFactory = CrashReportingFactory.self as? any AppStoreCrashReportingFactory.Type else {
-                fatalError("Failed to instantiate app store crash reporting")
-            }
-
-            return appStoreFactory.instantiate(
-                internalUserDecider: internalUserDecider,
-                featureFlagger: featureFlagger,
-                crashSenderPixelEvents: CrashReportSender.pixelEvents,
-                fireCrashPixel: { parameters in
-                    var params = parameters
-                    let appIdentifier = CrashPixelAppIdentifier(params.removeValue(forKey: "bundle"))
-                    PixelKit.fire(GeneralPixel.crash(appIdentifier: appIdentifier),
-                                  frequency: .dailyAndStandard,
-                                  withAdditionalParameters: params,
-                                  includeAppVersionParameter: false)
-                },
-                promptForConsent: { payload in
-                    await CrashReportPromptPresenter().showPrompt(for: CrashDataPayload(data: payload)) == .allow
-                }
-            )
-        }
-
-        assert(buildType.isSparkleBuild)
-        guard let crashReportingFactory = CrashReportingFactory.self as? any SparkleCrashReportingFactory.Type else {
-            fatalError("Failed to instantiate sparkle crash reporting")
-        }
-
-        return crashReportingFactory.instantiate(
-            internalUserDecider: internalUserDecider,
-            keyValueStore: keyValueStore,
-            crashSenderPixelEvents: CrashReportSender.pixelEvents,
-            fireCrashPixel: { bundleID, appVersion, failedToReadCrashVersion in
-                let appIdentifier = CrashPixelAppIdentifier(bundleID)
-                if let appVersion {
-                    PixelKit.fire(GeneralPixel.crash(appIdentifier: appIdentifier),
-                                  frequency: .dailyAndStandard,
-                                  withAdditionalParameters: [PixelKit.Parameters.appVersion: appVersion],
-                                  includeAppVersionParameter: false)
-                } else {
-                    let additionalParameters = failedToReadCrashVersion ? ["failedToReadCrashVersion": "true"] : [:]
-                    PixelKit.fire(GeneralPixel.crash(appIdentifier: appIdentifier),
-                                  frequency: .dailyAndStandard,
-                                  withAdditionalParameters: additionalParameters)
-                }
-            },
-            fireFailedToReadContentsPixel: {
-                PixelKit.fire(GeneralPixel.crashReportingFailedToReadContents, frequency: .dailyAndStandard)
-            },
-            promptForConsent: { payload in
-                await CrashReportPromptPresenter().showPrompt(for: CrashDataPayload(data: payload)) == .allow
-            }
-        )
-    }
-
     @MainActor
     private func initializeUpdateController() {
         guard AppVersion.runType.allowsUpdates else { return }
@@ -1852,12 +1793,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func setUpPixelKit(dryRun: Bool) {
-#if APPSTORE
-        let source = "browser-appstore"
-#else
-        let source = "browser-dmg"
-#endif
-
+        let source = NSApp.isSandboxed ? "browser-appstore" : "browser-dmg"
         let userAgent = UserAgent.duckDuckGoUserAgent()
 
         PixelKit.setUp(dryRun: dryRun,
@@ -1892,13 +1828,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let defaultEnvironment = ServerEnvironment.production
 #endif
 
-#if DEBUG || REVIEW
-        let environment = ServerEnvironment(
-            UserDefaultsWrapper(key: .syncEnvironment, defaultValue: defaultEnvironment.description).wrappedValue
-        ) ?? defaultEnvironment
-#else
-        let environment = defaultEnvironment
-#endif
+        let environment: ServerEnvironment
+        let buildType = StandardApplicationBuildType()
+        if buildType.isDebugBuild || buildType.isReviewBuild {
+            environment = ServerEnvironment(
+                UserDefaultsWrapper(key: .syncEnvironment, defaultValue: defaultEnvironment.description).wrappedValue
+            ) ?? defaultEnvironment
+        } else {
+            environment = defaultEnvironment
+        }
         let syncDataProviders = SyncDataProvidersSource(
             bookmarksDatabase: bookmarkDatabase.db,
             bookmarkManager: bookmarkManager,

@@ -99,7 +99,6 @@ final class MoreOptionsMenuTests: XCTestCase {
 
     @MainActor
     private func setupMoreOptionsMenu(isFireWindowDefault: Bool = false,
-                                      dockCustomizer: DockCustomization? = nil,
                                       freeTrialBadgePersistor: FreeTrialBadgePersisting = FreeTrialBadgePersistor(keyValueStore: UserDefaults.standard)) {
         setupMoreOptionsMenu(isFireWindowDefault: isFireWindowDefault, dockCustomizer: self.dockCustomizer, freeTrialBadgePersistor: freeTrialBadgePersistor)
     }
@@ -235,12 +234,12 @@ final class MoreOptionsMenuTests: XCTestCase {
         XCTAssertTrue(moreOptionsMenu.items[24].isSeparatorItem)
         XCTAssertEqual(moreOptionsMenu.items[25].title, UserText.mainMenuHelp)
 
-#if APPSTORE
-        XCTAssertEqual(moreOptionsMenu.items[26].title, UserText.mainMenuAppCheckforUpdates.replacingOccurrences(of: "…", with: ""))
-        XCTAssertEqual(moreOptionsMenu.items[27].title, UserText.settings)
-#else
-        XCTAssertEqual(moreOptionsMenu.items[26].title, UserText.settings)
-#endif
+        if NSApp.isSandboxed {
+            XCTAssertEqual(moreOptionsMenu.items[26].title, UserText.mainMenuAppCheckforUpdates.replacingOccurrences(of: "…", with: ""))
+            XCTAssertEqual(moreOptionsMenu.items[27].title, UserText.settings)
+        } else {
+            XCTAssertEqual(moreOptionsMenu.items[26].title, UserText.settings)
+        }
     }
 
     @MainActor
@@ -283,12 +282,12 @@ final class MoreOptionsMenuTests: XCTestCase {
         XCTAssertTrue(moreOptionsMenu.items[25].isSeparatorItem)
         XCTAssertEqual(moreOptionsMenu.items[26].title, UserText.mainMenuHelp)
 
-#if APPSTORE
-        XCTAssertEqual(moreOptionsMenu.items[27].title, UserText.mainMenuAppCheckforUpdates.replacingOccurrences(of: "…", with: ""))
-        XCTAssertEqual(moreOptionsMenu.items[28].title, UserText.settings)
-#else
-        XCTAssertEqual(moreOptionsMenu.items[27].title, UserText.settings)
-#endif
+        if NSApp.isSandboxed {
+            XCTAssertEqual(moreOptionsMenu.items[27].title, UserText.mainMenuAppCheckforUpdates.replacingOccurrences(of: "…", with: ""))
+            XCTAssertEqual(moreOptionsMenu.items[28].title, UserText.settings)
+        } else {
+            XCTAssertEqual(moreOptionsMenu.items[27].title, UserText.settings)
+        }
     }
 
     @MainActor
