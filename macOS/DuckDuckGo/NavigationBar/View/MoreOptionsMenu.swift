@@ -1209,7 +1209,7 @@ final class HelpSubMenu: NSMenu {
 
         let about = (NSApp.mainMenuTyped.aboutMenuItem.copy() as? NSMenuItem)!
         addItem(about)
-        
+
         if StandardApplicationBuildType().isSparkleBuild,
            let releaseNotes = NSApp.mainMenuTyped.releaseNotesMenuItem.copy() as? NSMenuItem,
            let whatIsNew = (NSApp.mainMenuTyped.whatIsNewMenuItem.copy() as? NSMenuItem) {
