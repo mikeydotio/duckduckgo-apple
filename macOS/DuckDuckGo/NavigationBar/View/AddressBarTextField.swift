@@ -508,7 +508,7 @@ final class AddressBarTextField: NSTextField {
         }
 
         if providedUrl.isFileURL,
-           !(NSApp.isSandboxed && providedUrl.isWritableLocation()), // is sandbox extension available for the file?
+           NSApp.isSandboxed && !providedUrl.isWritableLocation(), // is sandbox extension available for the file?
            let window = self.window {
 
             NSAlert.cannotOpenFileAlert().beginSheetModal(for: window) { response in
