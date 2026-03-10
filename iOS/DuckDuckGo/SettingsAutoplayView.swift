@@ -59,7 +59,7 @@ struct SettingsAutoplayView: View {
                     }
             }
         }
-        .applySettingsListModifiers(title: "", displayMode: .inline, viewModel: viewModel)
+        .applySettingsListModifiers(title: UserText.settingsAutoplayLabel, displayMode: .inline, viewModel: viewModel)
         .onFirstAppear {
             Pixel.fire(pixel: .settingsAutoplayOpen)
         }
