@@ -41,6 +41,13 @@
         "suffixes": ["first_daily_count", "platform", "form_factor"],
         "parameters": ["appVersion"]
     },
+    "m_aichat_chats_disappeared_after_week": {
+        "description": "Fired when Duck.ai chat count decreased compared to a snapshot taken 7+ days ago on app background. Used to diagnose reports of chats disappearing unexpectedly over time.",
+        "owners": ["Bunn"],
+        "triggers": ["other"],
+        "suffixes": ["platform", "form_factor"],
+        "parameters": ["appVersion"]
+    },
     "m_aichat_cleared_with_setting_off": {
         "description": "Fired when Duck.ai chats disappear after fire button but the autoClearAIChatHistory setting is OFF. Used to diagnose reports of chats disappearing unexpectedly.",
         "owners": ["Bunn"],

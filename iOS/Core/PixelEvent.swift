@@ -1502,6 +1502,7 @@ extension Pixel {
         case aiChatSingleDeleteSuccessful
         case aiChatSingleDeleteFailed
         case aiChatClearedWithSettingOff
+        case aiChatChatsDisappearedAfterWeek
 
         // MARK: AI Chat Recent Chats
         case aiChatRecentChatSelectedPinned
@@ -3032,6 +3033,7 @@ extension Pixel.Event {
         case .aiChatSingleDeleteSuccessful: return "m_aichat_single_delete_successful"
         case .aiChatSingleDeleteFailed: return "m_aichat_single_delete_failed"
         case .aiChatClearedWithSettingOff: return "m_aichat_cleared_with_setting_off"
+        case .aiChatChatsDisappearedAfterWeek: return "m_aichat_chats_disappeared_after_week"
 
         // MARK: AI Chat Recent Chats
         case .aiChatRecentChatSelectedPinned: return "m_aichat_recent_chat_selected_pinned"
