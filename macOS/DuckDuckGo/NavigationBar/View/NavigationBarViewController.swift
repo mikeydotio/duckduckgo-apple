@@ -505,7 +505,7 @@ final class NavigationBarViewController: NSViewController {
             ])
         }
 
-#if DEBUG || REVIEW
+#if DEBUG
         addDebugNotificationListeners()
 #endif
 
@@ -2220,7 +2220,7 @@ extension NavigationBarViewController: MemoryUsagePresenting {
 }
 
 // MARK: - DEBUG
-#if DEBUG || REVIEW
+#if DEBUG
 extension NavigationBarViewController {
 
     fileprivate func addDebugNotificationListeners() {

@@ -67,7 +67,7 @@ final class VPNUIActionHandler {
 extension VPNUIActionHandler: VPNUIActionHandling {
 
     func moveAppToApplications() async {
-#if !APPSTORE && !DEBUG
+#if !DEBUG
         await vpnURLEventHandler.moveAppToApplicationsFolder()
 #endif
     }

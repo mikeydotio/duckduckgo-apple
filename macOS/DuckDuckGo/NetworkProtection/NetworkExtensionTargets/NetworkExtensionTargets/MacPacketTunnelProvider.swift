@@ -503,17 +503,11 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
 
         // MARK: - Subscription configuration
 
-        // Align Subscription environment to the VPN environment
-        var subscriptionEnvironment = SubscriptionEnvironment.default
-        switch settings.selectedEnvironment {
-        case .production:
-            subscriptionEnvironment.serviceEnvironment = .production
-        case .staging:
-            subscriptionEnvironment.serviceEnvironment = .staging
-        }
+        let serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment = settings.selectedEnvironment == .production ? .production : .staging
         // The SysExt doesn't care about the purchase platform because the only operations executed here are about the Auth token. No purchase or
         // platforms-related operations are performed.
-        subscriptionEnvironment.purchasePlatform = .stripe
+        let subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: serviceEnvironment, purchasePlatform: .stripe)
+        
         Logger.networkProtection.debug("Subscription ServiceEnvironment: \(subscriptionEnvironment.serviceEnvironment.rawValue, privacy: .public)")
 
         let notificationCenter: NetworkProtectionNotificationCenter = DistributedNotificationCenter.default()
@@ -681,10 +675,8 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
     private func setupPixels(defaultHeaders: [String: String] = [:]) {
         let source: String
 
-#if NETP_SYSTEM_EXTENSION && !APPSTORE
-        source = "vpnSystemExtension"
-#elseif NETP_SYSTEM_EXTENSION && APPSTORE
-        source = "vpnSystemExtensionAppStore"
+#if NETP_SYSTEM_EXTENSION
+        source = AppVersion.isAppStoreBuild ? "vpnSystemExtensionAppStore" : "vpnSystemExtension"
 #else
         source = "vpnAppExtension"
 #endif
@@ -716,11 +708,12 @@ private struct WideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
     func isEnabled(_ flag: WideEventFeatureFlag) -> Bool {
         switch flag {
         case .postEndpoint:
-#if DEBUG || REVIEW || ALPHA
-            return false
-#else
-            return settings.wideEventPostEndpointEnabled
-#endif
+            let buildType = StandardApplicationBuildType()
+            if buildType.isDebugBuild || buildType.isReviewBuild || buildType.isAlphaBuild {
+                return false
+            } else {
+                return settings.wideEventPostEndpointEnabled
+            }
         }
     }
 }

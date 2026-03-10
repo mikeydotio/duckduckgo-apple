@@ -1616,13 +1616,13 @@ extension MainViewController {
     }
 
     @objc func showSaveCredentialsPopover(_ sender: Any?) {
-#if DEBUG || REVIEW
+#if DEBUG
         NotificationCenter.default.post(name: .ShowSaveCredentialsPopover, object: nil)
 #endif
     }
 
     @objc func showCredentialsSavedPopover(_ sender: Any?) {
-#if DEBUG || REVIEW
+#if DEBUG
         NotificationCenter.default.post(name: .ShowCredentialsSavedPopover, object: nil)
 #endif
     }

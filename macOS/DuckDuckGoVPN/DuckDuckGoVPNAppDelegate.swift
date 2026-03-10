@@ -78,14 +78,7 @@ final class DuckDuckGoVPNApplication: NSApplication {
 
     @MainActor
     private func setupPixelKit() {
-        let pixelSource: String
-
-#if !APPSTORE
-        pixelSource = "vpnAgent"
-#else
-        pixelSource = "vpnAgentAppStore"
-#endif
-
+        let pixelSource = AppVersion.isAppStoreBuild ? "vpnAgentAppStore" : "vpnAgent"
         let userAgent = UserAgent.duckDuckGoUserAgent()
 
         PixelKit.setUp(dryRun: PixelKitConfig.isDryRun(isProductionBuild: BuildFlags.isProductionBuild),
@@ -215,19 +208,19 @@ final class DuckDuckGoVPNAppDelegate: NSObject, NSApplicationDelegate {
     private static let proxyAppexBundleID = Bundle.proxyAppexBundleID
 
     private let tunnelExtensions: VPNExtensionResolver.AvailableExtensions = {
-#if APPSTORE
-        return .both(appexBundleID: tunnelAppexBundleID, sysexBundleID: tunnelSysexBundleID)
-#else
-        return .sysex(sysexBundleID: tunnelSysexBundleID)
-#endif
+        if AppVersion.isAppStoreBuild {
+            return .both(appexBundleID: tunnelAppexBundleID, sysexBundleID: tunnelSysexBundleID)
+        } else {
+            return .sysex(sysexBundleID: tunnelSysexBundleID)
+        }
     }()
 
     private let proxyExtensions: VPNExtensionResolver.AvailableExtensions = {
-#if APPSTORE
-        return .both(appexBundleID: proxyAppexBundleID, sysexBundleID: proxySysexBundleID)
-#else
-        return .sysex(sysexBundleID: proxySysexBundleID)
-#endif
+        if AppVersion.isAppStoreBuild {
+            return .both(appexBundleID: proxyAppexBundleID, sysexBundleID: proxySysexBundleID)
+        } else {
+            return .sysex(sysexBundleID: proxySysexBundleID)
+        }
     }()
 
     @MainActor
@@ -341,16 +334,16 @@ final class DuckDuckGoVPNAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private lazy var isExtensionUpdateOfferedSubject: CurrentValueSubject<Bool, Never> = {
-#if APPSTORE
+        guard AppVersion.isAppStoreBuild else {
+            return CurrentValueSubject(false)
+        }
+
         let initialValue = featureFlagger.isFeatureOn(.networkProtectionAppStoreSysexMessage)
             && !vpnAppState.isUsingSystemExtension
 
         let isExtensionUpdateOfferedSubject = CurrentValueSubject<Bool, Never>(initialValue)
 
         return isExtensionUpdateOfferedSubject
-#else
-        return CurrentValueSubject(false)
-#endif
     }()
 
     private func statusViewSubmenu() -> [StatusBarMenu.MenuItem] {
@@ -403,13 +396,15 @@ final class DuckDuckGoVPNAppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     private func makeStatusBarMenu() -> StatusBarMenu {
-        #if DEBUG
-        let iconProvider = DebugMenuIconProvider()
-        #elseif REVIEW
-        let iconProvider = ReviewMenuIconProvider()
-        #else
-        let iconProvider = MenuIconProvider()
-        #endif
+        let buildType = StandardApplicationBuildType()
+        let iconProvider: IconProvider
+        if buildType.isDebugBuild {
+            iconProvider = DebugMenuIconProvider()
+        } else if buildType.isReviewBuild {
+            iconProvider = ReviewMenuIconProvider()
+        } else {
+            iconProvider = MenuIconProvider()
+        }
 
         let onboardingStatusPublisher = UserDefaults.netP.publisher(for: \.networkProtectionOnboardingStatusRawValue).map { rawValue in
             OnboardingStatus(rawValue: rawValue) ?? .default
