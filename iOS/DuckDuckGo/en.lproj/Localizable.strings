@@ -2495,6 +2495,9 @@ https://duckduckgo.com/mac";
 "onboarding.privacypro.promo.buttons.learnMore" = "Learn More";
 
 /* Button to continue the onboarding process. */
+"onboarding.privacypro.promo.buttons.rebranding.skip" = "No Thanks";
+
+/* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Skip";
 
 /* The title of the onboarding dialog that promotes Privacy Pro */
