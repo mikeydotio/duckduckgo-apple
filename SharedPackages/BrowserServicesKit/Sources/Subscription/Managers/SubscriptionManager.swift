@@ -48,7 +48,7 @@ public protocol SubscriptionManager: SubscriptionTokenProvider, SubscriptionAuth
 
     /// Retrieve the purchased subscription
     /// - Parameter cachePolicy: The cache policy, `remoteFirst` or `cacheFirst`
-    /// - Returns: A `DuckDuckGoSubscription` if available, throws `SubscriptionEndpointServiceError.noData` if the subscription is not available or any other errors if the process failed at any point.
+    /// - Returns: A `DuckDuckGoSubscription` if available, throws `SubscriptionEndpointServiceError.noData` if the subscription is not available on the backend and `SubscriptionEndpointServiceError.noLocalSubscription` if the subscription is not available in the local cache.
     @discardableResult func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> DuckDuckGoSubscription
 
     /// - Returns: true is a subscription (expired or not) is present, false otherwise.
@@ -157,10 +157,6 @@ extension SubscriptionManager {
         case .stripe:
             return true
         }
-    }
-
-    public func currentSubscriptionFeatures() async throws -> [SubscriptionEntitlement] {
-        try await currentSubscriptionFeatures(forceRefresh: false)
     }
 }
 
@@ -280,7 +276,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         Logger.subscription.log("Loading initial data...")
 
         do {
-            _ = try? await getTokenContainer(policy: .localValid)
             let subscription = try await getSubscription(cachePolicy: .remoteFirst)
             Logger.subscription.log("Subscription is \(subscription.isActive ? "active" : "not active", privacy: .public)")
         } catch SubscriptionEndpointServiceError.noData {
@@ -303,21 +298,18 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         var subscription: DuckDuckGoSubscription
 
         switch cachePolicy {
-
-        case .remoteFirst, .cacheFirst:
-            if cachePolicy == .cacheFirst {
-                // We skip ahead and try to get the cached subscription, useful with slow/no connections where we don't want to wait for a get token timeout
-                do {
-                    subscription = try await subscriptionEndpointService.getSubscription(accessToken: nil, cachePolicy: cachePolicy)
-                    break
-                } catch {}
+        case .cacheFirst:
+            guard let localSubscription = subscriptionEndpointService.getCachedSubscription() else {
+                return try await getSubscription(cachePolicy: .remoteFirst)
             }
+            subscription = localSubscription
 
+        case .remoteFirst:
             var tokenContainer: TokenContainer
             do {
                 tokenContainer = try await getTokenContainer(policy: .localValid)
             } catch SubscriptionManagerError.noTokenAvailable {
-                throw SubscriptionEndpointServiceError.noData
+                throw SubscriptionManagerError.noTokenAvailable
             } catch {
                 // Failed to get a valid token, fall back on cache
                 subscription = try await subscriptionEndpointService.getSubscription(accessToken: nil, cachePolicy: .cacheFirst)
@@ -326,10 +318,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: cachePolicy)
         }
 
-        if subscription.isActive {
-            pixelHandler.handle(pixel: .subscriptionIsActive)
-        }
-
+        if subscription.isActive { pixelHandler.handle(pixel: .subscriptionIsActive) }
         return subscription
     }
 
@@ -358,7 +347,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func clearSubscriptionCache() {
-        subscriptionEndpointService.clearSubscription()
+        subscriptionEndpointService.clearSubscriptionCache()
     }
 
     // MARK: - URLs
@@ -616,10 +605,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     // MARK: - Features
 
     public func currentSubscriptionFeatures(forceRefresh: Bool) async throws -> [SubscriptionEntitlement] {
-        guard isUserAuthenticated else { return [] }
-
         let availableFeatures: [SubscriptionEntitlement]
-
         if forceRefresh {
             let currentSubscription = try await getSubscription(cachePolicy: .remoteFirst)
             availableFeatures = currentSubscription.features ?? []
@@ -627,7 +613,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             let currentSubscription = try await getSubscription(cachePolicy: .cacheFirst)
             availableFeatures = currentSubscription.features ?? []
         }
-
         return availableFeatures
     }
 

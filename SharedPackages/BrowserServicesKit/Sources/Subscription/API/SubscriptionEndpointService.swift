@@ -57,12 +57,14 @@ public enum SubscriptionEndpointServiceError: DDGError {
     case noData
     case invalidRequest
     case invalidResponseCode(HTTPStatusCode)
+    case noLocalSubscription
 
     public var description: String {
         switch self {
         case .noData: "No data returned from the server."
         case .invalidRequest: "Invalid request."
         case .invalidResponseCode(let code): "Invalid response code: \(code)"
+        case .noLocalSubscription: "No local subscription available."
         }
     }
 
@@ -73,6 +75,7 @@ public enum SubscriptionEndpointServiceError: DDGError {
         case .noData: 12300
         case .invalidRequest: 12301
         case .invalidResponseCode: 12302
+        case .noLocalSubscription: 12303
         }
     }
 }
@@ -101,7 +104,7 @@ public protocol SubscriptionEndpointService {
     func ingestSubscription(_ subscription: DuckDuckGoSubscription) async throws
     func getSubscription(accessToken: String?, cachePolicy: SubscriptionCachePolicy) async throws -> DuckDuckGoSubscription
     func getCachedSubscription() -> DuckDuckGoSubscription?
-    func clearSubscription()
+    func clearSubscriptionCache()
 
     /// Fetches products using the new /api/v2/products endpoint with tier information.
     /// - Parameters:
@@ -171,7 +174,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         } else {
             if statusCode == .badRequest || statusCode == .notFound {
                 Logger.subscriptionEndpointService.log("No subscription found")
-                clearSubscription()
+                clearSubscriptionCache()
                 throw SubscriptionEndpointServiceError.noData
             } else {
                 let bodyString: String = try response.decodeBody()
@@ -236,22 +239,22 @@ New: \(subscription.debugDescription, privacy: .public)
             if let subscription = getCachedSubscription() {
                 return subscription
             } else {
-                throw SubscriptionEndpointServiceError.noData
+                throw SubscriptionEndpointServiceError.noLocalSubscription
             }
         }
 
         switch cachePolicy {
         case .remoteFirst:
             do {
-                let subscription = try await getRemoteSubscription(accessToken: accessToken)
-                return subscription
+                return try await getRemoteSubscription(accessToken: accessToken)
             } catch SubscriptionEndpointServiceError.noData {
+                clearSubscriptionCache()
                 throw SubscriptionEndpointServiceError.noData
             } catch {
                 if let cachedSubscription = getCachedSubscription() {
                     return cachedSubscription
                 } else {
-                    throw SubscriptionEndpointServiceError.noData
+                    throw SubscriptionEndpointServiceError.noLocalSubscription
                 }
             }
 
@@ -272,7 +275,7 @@ New: \(subscription.debugDescription, privacy: .public)
         return result
     }
 
-    public func clearSubscription() {
+    public func clearSubscriptionCache() {
         cacheSerialQueue.sync {
             subscriptionCache.reset()
         }

@@ -1336,7 +1336,7 @@ extension SettingsViewModel {
             }
 
             updatedSubscription.entitlements = currentEntitlements
-            updatedSubscription.subscriptionFeatures = try await subscriptionManager.currentSubscriptionFeatures()
+            updatedSubscription.subscriptionFeatures = try await subscriptionManager.currentSubscriptionFeatures(forceRefresh: false)
         } catch SubscriptionEndpointServiceError.noData {
             Logger.subscription.debug("No subscription data available")
             updatedSubscription.hasSubscription = false

@@ -401,6 +401,10 @@ final class PreferencesSidebarModel: ObservableObject {
 
                     self.refreshSections()
                 }
+            } catch SubscriptionEndpointServiceError.noData {
+                // The server has no subscription for this user, logging out
+                await subscriptionManager.signOut(notifyUI: false)
+                refreshSubscriptionStateAndSectionsIfNeeded()
             } catch {
                 Logger.general.error("Failed to refresh subscription state: \(error, privacy: .public)")
             }
@@ -408,32 +412,37 @@ final class PreferencesSidebarModel: ObservableObject {
     }
 
     private func makeSubscriptionState() async throws -> PreferencesSidebarSubscriptionState {
+
         let shouldHideSubscriptionPurchase = subscriptionManager.currentEnvironment.purchasePlatform == .appStore && subscriptionManager.hasAppStoreProductsAvailable == false
 
-        // Enabled: Is the entitlement in the token?
-        let entitlementStatus = await subscriptionManager.getAllEntitlementStatus()
+        if subscriptionManager.isSubscriptionPresent() {
+            // Enabled: Is the entitlement in the token?
+            let entitlementStatus = await subscriptionManager.getAllEntitlementStatus()
 
-        // Availability: Is included in the purchased subscription?
-        let subscriptionFeatures = try await subscriptionManager.currentSubscriptionFeatures()
-        let isIdentityTheftRestorationAvailable = subscriptionFeatures.contains(.identityTheftRestoration)
-        let isIdentityTheftRestorationGlobalAvailable = subscriptionFeatures.contains(.identityTheftRestorationGlobal)
-        let isPaidAIChatAvailable = subscriptionFeatures.contains(.paidAIChat)
-        let isNetworkProtectionAvailable = subscriptionFeatures.contains(.networkProtection)
-        let isDataBrokerProtectionAvailable = subscriptionFeatures.contains(.dataBrokerProtection)
+            // Availability: Is included in the purchased subscription?
+            let subscriptionFeatures = try await subscriptionManager.currentSubscriptionFeatures(forceRefresh: false)
+            let isIdentityTheftRestorationAvailable = subscriptionFeatures.contains(.identityTheftRestoration)
+            let isIdentityTheftRestorationGlobalAvailable = subscriptionFeatures.contains(.identityTheftRestorationGlobal)
+            let isPaidAIChatAvailable = subscriptionFeatures.contains(.paidAIChat)
+            let isNetworkProtectionAvailable = subscriptionFeatures.contains(.networkProtection)
+            let isDataBrokerProtectionAvailable = subscriptionFeatures.contains(.dataBrokerProtection)
 
-        return PreferencesSidebarSubscriptionState(
-            hasSubscription: subscriptionManager.isSubscriptionPresent(),
-            shouldHideSubscriptionPurchase: shouldHideSubscriptionPurchase,
+            return PreferencesSidebarSubscriptionState(
+                hasSubscription: subscriptionManager.isSubscriptionPresent(),
+                shouldHideSubscriptionPurchase: shouldHideSubscriptionPurchase,
 
-            isNetworkProtectionRemovalEnabled: entitlementStatus.networkProtection,
-            isPersonalInformationRemovalEnabled: entitlementStatus.dataBrokerProtection,
-            isIdentityTheftRestorationEnabled: entitlementStatus.identityTheftRestoration || entitlementStatus.identityTheftRestorationGlobal,
-            isPaidAIChatEnabled: entitlementStatus.paidAIChat,
+                isNetworkProtectionRemovalEnabled: entitlementStatus.networkProtection,
+                isPersonalInformationRemovalEnabled: entitlementStatus.dataBrokerProtection,
+                isIdentityTheftRestorationEnabled: entitlementStatus.identityTheftRestoration || entitlementStatus.identityTheftRestorationGlobal,
+                isPaidAIChatEnabled: entitlementStatus.paidAIChat,
 
-            isNetworkProtectionRemovalAvailable: isNetworkProtectionAvailable,
-            isPersonalInformationRemovalAvailable: isDataBrokerProtectionAvailable,
-            isIdentityTheftRestorationAvailable: isIdentityTheftRestorationAvailable || isIdentityTheftRestorationGlobalAvailable,
-            isPaidAIChatAvailable: featureFlagger.isFeatureOn(.paidAIChat) && isPaidAIChatAvailable)
+                isNetworkProtectionRemovalAvailable: isNetworkProtectionAvailable,
+                isPersonalInformationRemovalAvailable: isDataBrokerProtectionAvailable,
+                isIdentityTheftRestorationAvailable: isIdentityTheftRestorationAvailable || isIdentityTheftRestorationGlobalAvailable,
+                isPaidAIChatAvailable: featureFlagger.isFeatureOn(.paidAIChat) && isPaidAIChatAvailable)
+        } else {
+            return PreferencesSidebarSubscriptionState(shouldHideSubscriptionPurchase: shouldHideSubscriptionPurchase)
+        }
     }
 
     func refreshSections() {
