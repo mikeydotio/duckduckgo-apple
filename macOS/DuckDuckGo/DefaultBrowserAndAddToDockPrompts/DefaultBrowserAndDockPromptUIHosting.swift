@@ -21,6 +21,9 @@ import AppKit
 /// Protocol for view controllers that can host default browser/dock prompts.
 /// Used by the presenter's async show methods when driven by PromoService.
 protocol DefaultBrowserAndDockPromptUIHosting: AnyObject {
+    /// When true, prompts must not be shown (e.g. popup windows).
+    var isInPopUpWindow: Bool { get }
+
     /// Anchor view for the popover (address bar or bookmarks bar).
     func providePopoverAnchor() -> NSView?
 

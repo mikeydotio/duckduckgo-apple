@@ -48,10 +48,15 @@ protocol DefaultBrowserAndDockPromptPresenting {
     /// If the user is eligible for the banner, the function uses the `bannerViewHandler` closure to configure and present the banner. This allows the caller to customize the appearance and behavior of the banner as needed.
     ///
     /// The popover is more ephemeral and will only be shown in a single window, while the banner is more persistent and will be shown in all windows until the user takes an action on it.
+    ///
+    /// - Parameter onNoShow: Optional callback invoked when no prompt is shown (e.g. `getPromptType()` returns nil, a different type is shown, or anchors are nil). Used by PromoDelegate to avoid hanging continuations.
+    /// - Parameter expectedType: When non-nil, if the coordinator returns a different type, `onNoShow` is invoked since the caller will not receive a dismiss event.
     func tryToShowPrompt(popoverAnchorProvider: @escaping () -> NSView?,
                          bannerViewHandler: @escaping (BannerMessageViewController) -> Void,
                          inactiveUserModalWindowProvider: @escaping () -> NSWindow?,
-                         forceShowType: DefaultBrowserAndDockPromptPresentationType?)
+                         expectedType: DefaultBrowserAndDockPromptPresentationType?,
+                         forceShow: Bool,
+                         onNoShow: (() -> Void)?)
 }
 
 extension DefaultBrowserAndDockPromptPresenting {
@@ -61,7 +66,9 @@ extension DefaultBrowserAndDockPromptPresenting {
         tryToShowPrompt(popoverAnchorProvider: popoverAnchorProvider,
                         bannerViewHandler: bannerViewHandler,
                         inactiveUserModalWindowProvider: inactiveUserModalWindowProvider,
-                        forceShowType: nil)
+                        expectedType: nil,
+                        forceShow: false,
+                        onNoShow: nil)
     }
 }
 
@@ -147,19 +154,38 @@ final class DefaultBrowserAndDockPromptPresenter: DefaultBrowserAndDockPromptPre
     func tryToShowPrompt(popoverAnchorProvider: @escaping () -> NSView?,
                          bannerViewHandler: @escaping (BannerMessageViewController) -> Void,
                          inactiveUserModalWindowProvider: @escaping () -> NSWindow?,
-                         forceShowType: DefaultBrowserAndDockPromptPresentationType? = nil) {
-        guard let type = forceShowType ?? coordinator.getPromptType() else { return }
+                         expectedType: DefaultBrowserAndDockPromptPresentationType? = nil,
+                         forceShow: Bool = false,
+                         onNoShow: (() -> Void)? = nil) {
+        guard let type = forceShow ? expectedType : coordinator.getPromptType() else {
+            onNoShow?()
+            return
+        }
+
+        if let expectedType, type != expectedType {
+            onNoShow?()
+            return
+        }
 
         func showPrompt() {
             switch type {
             case .active(.banner):
-                guard let banner = getBanner() else { return }
+                guard let banner = getBanner() else {
+                    onNoShow?()
+                    return
+                }
                 bannerViewHandler(banner)
             case .active(.popover):
-                guard let view = popoverAnchorProvider() else { return }
+                guard let view = popoverAnchorProvider() else {
+                    onNoShow?()
+                    return
+                }
                 showPopover(below: view)
             case .inactive:
-                guard let window = inactiveUserModalWindowProvider() else { return }
+                guard let window = inactiveUserModalWindowProvider() else {
+                    onNoShow?()
+                    return
+                }
                 showInactiveUserModal(over: window)
             }
 
