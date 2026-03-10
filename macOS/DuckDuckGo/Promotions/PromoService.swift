@@ -172,7 +172,7 @@ final class PromoService: @unchecked Sendable, PromoHistoryProviding {
             }
             let record = historyStore.record(for: promoId)
             Task { @MainActor in
-                _ = await delegate.show(history: record)
+                _ = await delegate.show(history: record, force: true)
                 delegate.hide()
             }
         }
@@ -524,7 +524,7 @@ final class PromoService: @unchecked Sendable, PromoHistoryProviding {
 
         let showTask = Task { @MainActor [weak self] in
             guard !Task.isCancelled else { return }
-            let result = await delegate.show(history: recordToUse)
+            let result = await delegate.show(history: recordToUse, force: false)
             self?.stateQueue.async { [weak self] in
                 self?.recordResultAndCleanup(promoId: promoId, result: result)
             }
