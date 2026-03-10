@@ -36,6 +36,10 @@ final class FilePresenterTests: XCTestCase {
     var onFileRead: ((FileReadResult) -> Void)?
     var onError: ((NSError) -> Void)?
 
+    var isCI: Bool {
+        ProcessInfo.processInfo.environment["CI"] != nil
+    }
+
     override func setUp() async throws {
         DistributedNotificationCenter.default().publisher(for: SandboxTestNotification.fileRead.name).sink { [unowned self] n in
             guard let onFileRead,
@@ -137,9 +141,11 @@ final class FilePresenterTests: XCTestCase {
     }
 
     // MARK: - Test sandboxed file access
-#if APPSTORE && !CI
 
     func testTool_run() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
         // 1. make non-sandbox file
         let nonSandboxUrl = try makeNonSandboxFile()
 
@@ -160,6 +166,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testTool_bookmarkCreation() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file
         let nonSandboxUrl = try makeNonSandboxFile()
 
@@ -175,6 +185,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenSandboxFilePresenterIsOpen_itCanReadFile_accessStoppedWhenClosed() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -218,6 +232,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenFileIsRenamed_accessIsPreserved() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -284,6 +302,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenFileIsRenamed_renamedFileCanBeRead() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -314,6 +336,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenFileIsMovedToTrash_moveIsDetected() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -353,6 +379,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenSandboxFilePresenterIsOpenAndFileIsRenamed_accessStoppedWhenClosed() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -404,6 +434,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenSandboxFilePresenterIsClosed_fileRenameIsNotDetected() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -454,6 +488,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenFileIsRenamedAndRecreatedWithOriginalName_fileIsNotAccessible() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -501,6 +539,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhenFileIsRemoved_removalIsDetected() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make non-sandbox file; open the file and create bookmark with the helper app
         let nonSandboxUrl = try makeNonSandboxFile()
         var fileReadPromise = self.fileReadPromise()
@@ -537,6 +579,10 @@ final class FilePresenterTests: XCTestCase {
     }
 
     func testWhen2FilesAreCrossRenamedAnd1stFileClosed_accessTo2ndIsPreserved() async throws {
+        guard NSApp.isSandboxed && !isCI else {
+            throw XCTSkip("Sandbox file presenter tests only run in App Store builds outside CI")
+        }
+
         // 1. make 2 non-sandbox files; open the files and create bookmarks with the helper app
         let nonSandboxUrl1 = try makeNonSandboxFile()
         let nonSandboxUrl2 = try makeNonSandboxFile()
@@ -606,8 +652,6 @@ final class FilePresenterTests: XCTestCase {
             XCTAssertEqual(error, CocoaError(.fileReadNoPermission) as NSError)
         }
     }
-
-#endif
 
     // MARK: - Test non-sandboxed file access
 

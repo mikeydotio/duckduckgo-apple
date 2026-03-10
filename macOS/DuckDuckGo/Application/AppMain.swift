@@ -24,13 +24,6 @@ struct AppMain {
 
     static func main() {
         _=Application.shared
-
-        let buildType = StandardApplicationBuildType()
-        if !buildType.isAppStoreBuild && !buildType.isDebugBuild {
-            // this should be run after NSApplication.shared is set
-            PFMoveToApplicationsFolderIfNecessary(/*allowAlertSilencing:*/ true)
-        }
-
         Application.shared.run()
     }
 
