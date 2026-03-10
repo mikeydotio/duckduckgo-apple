@@ -21,23 +21,28 @@ import AIChat
 import Core
 import Persistence
 
-/// Monitors for unexpected Duck.ai chat disappearances over time.
+/// Validates that Duck.ai chats are not unexpectedly disappearing over time.
 ///
 /// On app background, saves the current chat count.
 /// On app foreground, if 7+ days have passed, compares the saved count
 /// with the current count and fires a pixel if chats have disappeared.
-final class AIChatDisappearanceValidator {
+protocol AIChatDisappearanceValidating {
+    @MainActor func saveChatSnapshot() async
+    @MainActor func checkForUnexpectedDeletion() async
+}
+
+struct AIChatDisappearanceValidator: AIChatDisappearanceValidating {
 
     private let storage: ThrowingKeyValueStoring
     private let suggestionsReaderProvider: @MainActor () -> SuggestionsReading
     private let pixelFiring: PixelFiring.Type
 
-    private enum Keys {
+    enum Keys {
         static let savedChatCount = "aichat_disappearance_validator_saved_chat_count"
         static let savedTimestamp = "aichat_disappearance_validator_saved_timestamp"
     }
 
-    private static let sevenDaysInSeconds: TimeInterval = 7 * 24 * 60 * 60
+    static let sevenDaysInSeconds: TimeInterval = 7 * 24 * 60 * 60
 
     init(storage: ThrowingKeyValueStoring,
          suggestionsReaderProvider: @escaping @MainActor () -> SuggestionsReading,
