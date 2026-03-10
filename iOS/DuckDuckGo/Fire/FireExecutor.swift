@@ -87,6 +87,7 @@ class FireExecutor: FireExecuting {
     
     typealias HistoryCleanerProvider = () -> HistoryCleaning
     
+    typealias SuggestionsReaderProvider = @MainActor () -> SuggestionsReading
     // MARK: - Variables
     
     private let tabManager: TabManaging
@@ -132,7 +133,8 @@ class FireExecutor: FireExecuting {
          historyCleanerProvider: HistoryCleanerProvider? = nil,
          appSettings: AppSettings,
          privacyStats: PrivacyStatsProviding? = nil,
-         aiChatSyncCleaner: AIChatSyncCleaning) {
+         aiChatSyncCleaner: AIChatSyncCleaning,
+         suggestionsReaderProvider: SuggestionsReaderProvider? = nil) {
         self.tabManager = tabManager
         self.downloadManager = downloadManager
         self.websiteDataManager = websiteDataManager
@@ -153,9 +155,12 @@ class FireExecutor: FireExecuting {
         self.appSettings = appSettings
         self.privacyStats = privacyStats
         self.aiChatSyncCleaner = aiChatSyncCleaner
+        self.suggestionsReaderProvider = suggestionsReaderProvider ??
+        { SuggestionsReader(featureFlagger: featureFlagger,
+                            privacyConfig: privacyConfigurationManager) }
     }
 
-    
+
     // MARK: - Public Functions
     @MainActor
     func prepare(for request: FireRequest) {
@@ -185,7 +190,10 @@ class FireExecutor: FireExecuting {
         let shouldBurnTabs = request.options.contains(.tabs)
         let shouldBurnData = request.options.contains(.data)
         let shouldBurnAIChats = shouldBurnAIHistory(request)
-        
+
+        // Snapshot chat count before burning when the setting is OFF
+        let chatCountBefore = await fetchChatCountIfSettingOff()
+
         // Pre-fetch domains once for tab scope when tabs or data burning is needed
         let domains: [String]?
         if case .tab(let viewModel) = request.scope, shouldBurnTabs || shouldBurnData {
@@ -208,6 +216,8 @@ class FireExecutor: FireExecuting {
         // Await async tasks
         _ = await (dataTask, aiTask)
         
+        // Check if chats disappeared while the setting was OFF
+        await fireClearedWithSettingOffPixelIfNeeded(chatCountBefore: chatCountBefore, trigger: request.trigger)
         // Notify delegate that we finished
         await didFinishBurning(fireRequest: request)
         
@@ -460,7 +470,43 @@ class FireExecutor: FireExecuting {
             }
         }
     }
-    
+
+    // MARK: - Unexpected Clearing Detection
+
+    /// Fetches the chat count only when autoClearAIChatHistory is OFF.
+    /// Returns nil if the setting is ON or if fetching fails.
+    @MainActor
+    private func fetchChatCountIfSettingOff() async -> Int? {
+        guard !appSettings.autoClearAIChatHistory else { return nil }
+
+        let reader = suggestionsReaderProvider()
+        let result = await reader.fetchSuggestions(query: nil, maxChats: 100)
+        reader.tearDown()
+
+        if case .success(let suggestions) = result {
+            return suggestions.pinned.count + suggestions.recent.count
+        }
+        return nil
+    }
+
+    /// After a successful clear, fetches chat count again and fires a diagnostic pixel
+    /// if chats were deleted while the autoClearAIChatHistory setting was OFF.
+    @MainActor
+    private func fireClearedWithSettingOffPixelIfNeeded(chatCountBefore: Int?, trigger: FireRequest.Trigger) async {
+        guard let before = chatCountBefore, before > 0 else { return }
+
+        let reader = suggestionsReaderProvider()
+        let afterResult = await reader.fetchSuggestions(query: nil, maxChats: 100)
+        reader.tearDown()
+
+        if case .success(let afterSuggestions) = afterResult {
+            let after = afterSuggestions.pinned.count + afterSuggestions.recent.count
+            if after == before {
+                Pixel.fire(pixel: .aiChatClearedWithSettingOff)
+            }
+        }
+    }
+
     private func burnTabAIHistory(tabViewModel: TabViewModel) async {
         if let chatID = await tabViewModel.currentAIChatId {
             await deleteChat(chatID: chatID)

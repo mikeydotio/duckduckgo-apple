@@ -1501,6 +1501,7 @@ extension Pixel {
         case aiChatHistoryDeleteFailed
         case aiChatSingleDeleteSuccessful
         case aiChatSingleDeleteFailed
+        case aiChatClearedWithSettingOff
 
         // MARK: AI Chat Recent Chats
         case aiChatRecentChatSelectedPinned
@@ -3030,6 +3031,7 @@ extension Pixel.Event {
         case .aiChatHistoryDeleteFailed: return "m_aichat_history_delete_failed"
         case .aiChatSingleDeleteSuccessful: return "m_aichat_single_delete_successful"
         case .aiChatSingleDeleteFailed: return "m_aichat_single_delete_failed"
+        case .aiChatClearedWithSettingOff: return "m_aichat_cleared_with_setting_off"
 
         // MARK: AI Chat Recent Chats
         case .aiChatRecentChatSelectedPinned: return "m_aichat_recent_chat_selected_pinned"
