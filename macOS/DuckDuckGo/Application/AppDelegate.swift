@@ -1273,6 +1273,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statisticsLoader = AppVersion.runType.requiresEnvironment ? StatisticsLoader.shared : nil
         statisticsLoader?.load()
 
+        startupSync()
+
         Task {
             await setupWebExtensions()
             restoreStateIfNeeded(profilerToken)
@@ -1294,8 +1296,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func performPostLaunchTasks(_ profilerToken: StartupProfilerSequence? = nil) {
 
         profilerToken?.advance(to: .appDidFinishLaunchingAfterRestoration)
-
-        startupSync()
 
         let urlEventHandlerResult = urlEventHandler.applicationDidFinishLaunching()
 
