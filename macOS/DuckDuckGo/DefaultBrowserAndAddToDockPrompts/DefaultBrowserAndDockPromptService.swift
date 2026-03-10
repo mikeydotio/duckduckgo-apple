@@ -38,8 +38,9 @@ final class DefaultBrowserAndDockPromptService {
     ) {
 
 #if DEBUG || REVIEW
+        let debugSimulatedDateStore = DebugSimulatedDateStore(keyValueStore: keyValueStore)
         let defaultBrowserAndDockPromptDebugStore = DefaultBrowserAndDockPromptDebugStore()
-        let defaultBrowserAndDockPromptDateProvider: () -> Date = { defaultBrowserAndDockPromptDebugStore.simulatedTodayDate ?? Date() }
+        let defaultBrowserAndDockPromptDateProvider: () -> Date = { debugSimulatedDateStore.simulatedDate ?? Date() }
         let defaultBrowserAndDockInstallDateProvider: () -> Date? = {
             defaultBrowserAndDockPromptDebugStore.simulatedInstallDate ?? LocalStatisticsStore().installDate
         }
@@ -87,5 +88,14 @@ final class DefaultBrowserAndDockPromptService {
 
     func handleNotificationResponse(_ response: DefaultBrowserAndDockPromptNotificationIdentifier) async {
         await notificationPresenter.handleNotificationResponse(for: response)
+    }
+
+    /// DEBUG ONLY: Resets the stored state for the prompts and user activity.
+    func resetDebugState() {
+        store.popoverShownDate = nil
+        store.bannerShownDate = nil
+        store.inactiveUserModalShownDate = nil
+        store.isBannerPermanentlyDismissed = false
+        userActivityManager.recordActivity()
     }
 }
