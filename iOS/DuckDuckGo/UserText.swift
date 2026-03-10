@@ -2424,6 +2424,9 @@ public struct UserText {
             static let learnMore =  NSLocalizedString("onboarding.privacypro.promo.buttons.learnMore", value: "Learn More", comment: "Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall.")
             static let skip = NSLocalizedString("onboarding.privacypro.promo.buttons.skip", value: "Skip", comment: "Button to continue the onboarding process.")
 
+            public enum Rebranding {
+                static let skip = NSLocalizedString("onboarding.privacypro.promo.buttons.rebranding.skip", value: "No Thanks", comment: "Button to continue the onboarding process.")
+            }
         }
     }
     
