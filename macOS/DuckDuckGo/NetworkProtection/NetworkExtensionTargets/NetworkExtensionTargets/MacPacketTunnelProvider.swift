@@ -507,7 +507,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
         // The SysExt doesn't care about the purchase platform because the only operations executed here are about the Auth token. No purchase or
         // platforms-related operations are performed.
         let subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: serviceEnvironment, purchasePlatform: .stripe)
-        
+
         Logger.networkProtection.debug("Subscription ServiceEnvironment: \(subscriptionEnvironment.serviceEnvironment.rawValue, privacy: .public)")
 
         let notificationCenter: NetworkProtectionNotificationCenter = DistributedNotificationCenter.default()
