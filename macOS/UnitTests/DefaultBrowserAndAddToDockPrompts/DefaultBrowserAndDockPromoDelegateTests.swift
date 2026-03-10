@@ -181,6 +181,21 @@ final class DefaultBrowserAndDockPromoDelegateTests: XCTestCase {
         XCTAssertEqual(result, .noChange)
     }
 
+    func testWhenShowCalledAndUIHostingIsInPopUpWindowThenReturnsNoChangeWithoutShowing() async {
+        // GIVEN - eligible delegate but hosting is in a popup window
+        let popupHosting = MockDefaultBrowserAndDockPromptUIHosting()
+        popupHosting.isInPopUpWindow = true
+        let delegate = makeDelegate(type: .active(.banner), uiHosting: popupHosting)
+        coordinator.eligiblePrompt.send(.active(.banner))
+
+        // WHEN
+        let result = await delegate.show(history: PromoHistoryRecord(id: "test"))
+
+        // THEN
+        XCTAssertEqual(presenter.tryToShowPromptCallCount, 0)
+        XCTAssertEqual(result, .noChange)
+    }
+
     func testWhenShowCalledAndPromptDismissedThenReturnsExpectedResult() async {
         // GIVEN
         let expectedType = DefaultBrowserAndDockPromptPresentationType.active(.banner)
@@ -196,6 +211,21 @@ final class DefaultBrowserAndDockPromoDelegateTests: XCTestCase {
         // THEN
         XCTAssertEqual(presenter.tryToShowPromptCallCount, 1)
         XCTAssertEqual(result, .ignored(cooldown: 1))
+    }
+
+    func testWhenShowCalledAndPresenterReturnsEarlyWithoutShowingThenReturnsNoChange() async {
+        // GIVEN - delegate is "eligible" (cached) but presenter returns early (e.g. coordinator.getPromptType() returns nil)
+        let expectedType = DefaultBrowserAndDockPromptPresentationType.active(.banner)
+        coordinator.eligiblePrompt.send(expectedType)
+        let delegate = makeDelegate(type: expectedType)
+        presenter.shouldCallOnNoShow = true
+
+        // WHEN
+        let result = await delegate.show(history: PromoHistoryRecord(id: "test"))
+
+        // THEN - continuation is resumed with .noChange, no hang
+        XCTAssertEqual(presenter.tryToShowPromptCallCount, 1)
+        XCTAssertEqual(result, .noChange)
     }
 
     func testWhenShowCalledAndDifferentPromptTypeDismissedThenShowDoesNotReturn() async {
@@ -262,6 +292,8 @@ final class DefaultBrowserAndDockPromoDelegateTests: XCTestCase {
 }
 
 private final class MockDefaultBrowserAndDockPromptUIHosting: DefaultBrowserAndDockPromptUIHosting {
+    var isInPopUpWindow: Bool = false
+
     func providePopoverAnchor() -> NSView? {
         return nil
     }

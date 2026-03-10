@@ -43,9 +43,18 @@ final class DefaultBrowserAndDockPromptPresentingMock: DefaultBrowserAndDockProm
         allPromptsDismissed = true
     }
 
+    /// When true, invokes `onNoShow` immediately to simulate the presenter returning early without showing.
+    var shouldCallOnNoShow = false
+
     func tryToShowPrompt(popoverAnchorProvider: @escaping () -> NSView?,
                          bannerViewHandler: @escaping (BannerMessageViewController) -> Void,
-                         inactiveUserModalWindowProvider: @escaping () -> NSWindow?) {
+                         inactiveUserModalWindowProvider: @escaping () -> NSWindow?,
+                         expectedType: DefaultBrowserAndDockPromptPresentationType? = nil,
+                         forceShow: Bool = false,
+                         onNoShow: (() -> Void)? = nil) {
         tryToShowPromptCallCount += 1
+        if shouldCallOnNoShow {
+            onNoShow?()
+        }
     }
 }

@@ -1,5 +1,5 @@
 //
-//  DefaultBrowserPromoDelegate.swift
+//  DefaultBrowserAndDockPromoDelegate.swift
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -64,19 +64,28 @@ final class DefaultBrowserAndDockPromoDelegate: PromoDelegate {
     }
 
     @MainActor
-    func show(history: PromoHistoryRecord, force: Bool) async -> PromoResult {
-        guard let uiHosting = uiHosting(), (isEligible || force) else {
+    func show(history: PromoHistoryRecord, force: Bool = false) async -> PromoResult {
+        guard let uiHosting = uiHosting(),
+              !uiHosting.isInPopUpWindow,
+              isEligible || force else {
             return .noChange
         }
 
         return await withCheckedContinuation { continuation in
             showContinuation = continuation
 
+            func resumeWithNoChange() {
+                showContinuation?.resume(returning: .noChange)
+                showContinuation = nil
+            }
+
             presenter.tryToShowPrompt(
                 popoverAnchorProvider: { uiHosting.providePopoverAnchor() },
                 bannerViewHandler: { uiHosting.addSetAsDefaultBanner($0) },
                 inactiveUserModalWindowProvider: { uiHosting.provideModalAnchor() },
-                forceShowType: force ? type : nil
+                expectedType: type,
+                forceShow: force,
+                onNoShow: { resumeWithNoChange() }
             )
 
             coordinator.promptDismissedPublisher
