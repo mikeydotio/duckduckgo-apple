@@ -178,7 +178,6 @@ jobs:
         env: ONBOARDING_COMPLETED=true
         device-os: iOS-18-2
         device-model: ${{ matrix.device-model }}
-        device-name: ${{ matrix.device-name }}
 
     - name: Report job duration
       continue-on-error: true
