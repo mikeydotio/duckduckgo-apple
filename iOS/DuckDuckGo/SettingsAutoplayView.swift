@@ -23,6 +23,7 @@ import SwiftUI
 struct SettingsAutoplayView: View {
 
     @EnvironmentObject var viewModel: SettingsViewModel
+    @State private var showDuckPlayerSettings = false
 
     var body: some View {
         ListBasedPicker(
@@ -30,12 +31,73 @@ struct SettingsAutoplayView: View {
             options: AutoplayBlockingMode.allCases,
             selectedOption: viewModel.autoplayBlockingModeBinding,
             descriptionForOption: { $0.description },
-            sectionHeader: UserText.settingsAutoplayLabel,
-            sectionFooter: UserText.settingsAutoplayFooter
-        )
+            sectionHeader: UserText.settingsAutoplayLabel
+        ) {
+            Text(footerAttributedString)
+                .environment(\.openURL, OpenURLAction { url in
+                    switch FooterAction.from(url) {
+                    case .duckPlayerSettings?:
+                        showDuckPlayerSettings = true
+                        return .handled
+                    case nil:
+                        return .systemAction
+                    }
+                })
+        }
+        .sheet(isPresented: $showDuckPlayerSettings) {
+            NavigationView {
+                SettingsDuckPlayerView().environmentObject(viewModel)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button {
+                                showDuckPlayerSettings = false
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .foregroundColor(Color(designSystemColor: .textPrimary))
+                            }
+                        }
+                    }
+            }
+        }
         .applySettingsListModifiers(title: "", displayMode: .inline, viewModel: viewModel)
         .onFirstAppear {
             Pixel.fire(pixel: .settingsAutoplayOpen)
+        }
+    }
+}
+
+private extension SettingsAutoplayView {
+    var footerAttributedString: AttributedString {
+        var base = AttributedString(UserText.settingsAutoplayFooter)
+        var link = AttributedString(UserText.settingsAutoplayDuckPlayerLink)
+        link.foregroundColor = Color(designSystemColor: .accent)
+        link.link = FooterAction.duckPlayerSettings.url
+        base.append(link)
+        base.append(AttributedString("."))
+        return base
+    }
+}
+
+private enum FooterAction {
+    static let scheme = "action"
+
+    case duckPlayerSettings
+
+    var url: URL {
+        URL(string: "\(Self.scheme)://\(host)")!
+    }
+
+    private var host: String {
+        switch self {
+        case .duckPlayerSettings: return "duck-player-settings"
+        }
+    }
+
+    static func from(_ url: URL) -> FooterAction? {
+        guard url.scheme == Self.scheme else { return nil }
+        switch url.host {
+        case "duck-player-settings": return .duckPlayerSettings
+        default: return nil
         }
     }
 }

@@ -1477,8 +1477,8 @@
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Videos opened in Duck Player will automatically begin playback. Turn this off if you would like to manually start playback of videos opened in Duck Player.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Auto-play videos";
+/* Label for the autoplay toggle in Duck Player settings */
+"duckplayer.settings.autoplay.label" = "Autoplay Videos";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Experimental";
@@ -2995,8 +2995,11 @@ Take back control of your personal information with the browser designed for dat
 /* Settings label for the autoplay settings screen */
 "settings.autoplay" = "Autoplay";
 
-/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs */
-"settings.autoplay.footer" = "Autoplay settings will only apply to newly opened tabs. Changes cannot be applied to existing tabs unless the application is restarted.";
+/* Link text in the autoplay settings footer that navigates to Duck Player settings */
+"settings.autoplay.duck.player.link" = "Duck Player Settings";
+
+/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs, followed by a link to Duck Player Settings */
+"settings.autoplay.footer" = "Autoplay settings will only apply to newly opened tabs. Changes cannot be applied to existing tabs unless the application is restarted. To manage autoplay in Duck Player, go to ";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Browser Feedback";

@@ -22,7 +22,7 @@ import DesignResourcesKit
 import DesignResourcesKitIcons
 
 /// A generalised view for picking items from a list with checkmark selection.
-struct ListBasedPicker<T: Hashable>: View {
+struct ListBasedPicker<T: Hashable, Footer: View>: View {
 
     let title: String
     let options: [T]
@@ -30,7 +30,7 @@ struct ListBasedPicker<T: Hashable>: View {
     let descriptionForOption: (T) -> String
     let iconProvider: ((T) -> Image?)?
     let sectionHeader: String?
-    let sectionFooter: String?
+    let footer: Footer
 
     init(title: String,
          options: [T],
@@ -38,14 +38,14 @@ struct ListBasedPicker<T: Hashable>: View {
          descriptionForOption: @escaping (T) -> String,
          iconProvider: ((T) -> Image?)? = nil,
          sectionHeader: String? = nil,
-         sectionFooter: String? = nil) {
+         @ViewBuilder footer: () -> Footer = { EmptyView() }) {
         self.title = title
         self.options = options
         self._selectedOption = selectedOption
         self.descriptionForOption = descriptionForOption
         self.iconProvider = iconProvider
         self.sectionHeader = sectionHeader
-        self.sectionFooter = sectionFooter
+        self.footer = footer()
     }
 
     var body: some View {
@@ -77,9 +77,7 @@ struct ListBasedPicker<T: Hashable>: View {
                     Text(sectionHeader)
                 }
             } footer: {
-                if let sectionFooter {
-                    Text(sectionFooter)
-                }
+                footer
             }
         }
         .navigationTitle(Text(title))
