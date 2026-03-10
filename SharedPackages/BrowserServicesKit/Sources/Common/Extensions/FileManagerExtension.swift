@@ -37,7 +37,6 @@ extension FileManager {
         applicationSupportDirectoryForComponent(named: "Diagnostics")
     }
 
-    @available(macOS 10.8, *)
     public func isInTrash(_ url: URL) -> Bool {
         let resolvedUrl = url.resolvingSymlinksInPath()
         guard let trashUrl = (try? self.url(for: .trashDirectory, in: .allDomainsMask, appropriateFor: resolvedUrl, create: false))
