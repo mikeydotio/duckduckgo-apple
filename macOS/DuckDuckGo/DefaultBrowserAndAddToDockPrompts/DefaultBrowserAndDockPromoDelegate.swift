@@ -89,7 +89,9 @@ final class DefaultBrowserAndDockPromoDelegate: PromoDelegate {
             )
 
             coordinator.promptDismissedPublisher
-                .filter { $0.0 == self.type }
+                .filter { [weak self] (dismissedType, _) in
+                    dismissedType == self?.type
+                }
                 .first()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _, result in
