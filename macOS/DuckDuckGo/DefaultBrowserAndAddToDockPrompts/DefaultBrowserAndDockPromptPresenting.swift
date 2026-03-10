@@ -180,13 +180,19 @@ final class DefaultBrowserAndDockPromptPresenter: DefaultBrowserAndDockPromptPre
                     onNoShow?()
                     return
                 }
-                showPopover(below: view)
+                guard showPopover(below: view) else {
+                    onNoShow?()
+                    return
+                }
             case .inactive:
                 guard let window = inactiveUserModalWindowProvider() else {
                     onNoShow?()
                     return
                 }
-                showInactiveUserModal(over: window)
+                guard showInactiveUserModal(over: window) else {
+                    onNoShow?()
+                    return
+                }
             }
 
             // Keep track of what type of prompt is shown.
@@ -230,22 +236,24 @@ final class DefaultBrowserAndDockPromptPresenter: DefaultBrowserAndDockPromptPre
         statusUpdateNotifier.startNotifyingStatus(interval: 1.0)
     }
 
-    private func showPopover(below view: NSView) {
+    private func showPopover(below view: NSView) -> Bool {
         guard let content = coordinator.evaluatePromptEligibility else {
-            return
+            return false
         }
 
         initializePopover(with: content)
         showPopover(positionedBelow: view)
+        return true
     }
 
-    private func showInactiveUserModal(over window: NSWindow) {
+    private func showInactiveUserModal(over window: NSWindow) -> Bool {
         guard let content = coordinator.evaluatePromptEligibility else {
-            return
+            return false
         }
 
         initializeInactiveUserModal(with: content)
         showInactiveUserModal(positionedOver: window)
+        return true
     }
 
     /// Creates the banner view controller with three possible user actions.

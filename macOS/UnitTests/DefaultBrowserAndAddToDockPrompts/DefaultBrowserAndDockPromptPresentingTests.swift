@@ -98,6 +98,7 @@ final class DefaultBrowserAndDockPromptPresentingTests: XCTestCase {
         // GIVEN
         var popoverShown = false
         coordinatorMock.getPromptTypeResult = .active(.popover)
+        coordinatorMock.evaluatePromptEligibility = .bothDefaultBrowserAndDockPrompt
 
         let expectation = expectation(description: "Popover shown")
         let popoverAnchorProvider: () -> NSView? = {
@@ -118,6 +119,7 @@ final class DefaultBrowserAndDockPromptPresentingTests: XCTestCase {
         // GIVEN
         var inactiveUserModalShown = false
         coordinatorMock.getPromptTypeResult = .inactive
+        coordinatorMock.evaluatePromptEligibility = .bothDefaultBrowserAndDockPrompt
 
         let expectation = expectation(description: "Inactive user modal shown")
         let inactiveUserModalWindowProvider: () -> NSWindow? = {
@@ -137,6 +139,7 @@ final class DefaultBrowserAndDockPromptPresentingTests: XCTestCase {
     func testTryToShowPromptKeepsTrackOfPromptShownWhenPopoverIsReturned() {
         // GIVEN
         coordinatorMock.getPromptTypeResult = .active(.popover)
+        coordinatorMock.evaluatePromptEligibility = .bothDefaultBrowserAndDockPrompt
         XCTAssertNil(sut.currentShownPrompt)
 
         let expectation = expectation(description: "Popover shown")
@@ -195,6 +198,7 @@ final class DefaultBrowserAndDockPromptPresentingTests: XCTestCase {
     func testTryToShowPromptStartsUpdateNotifierWhenPopoverIsReturned() {
         // GIVEN
         coordinatorMock.getPromptTypeResult = .active(.popover)
+        coordinatorMock.evaluatePromptEligibility = .bothDefaultBrowserAndDockPrompt
         XCTAssertFalse(statusUpdateNotifierMock.didCallStartNotifyingStatus)
 
         let expectation = expectation(description: "Popover shown")
@@ -248,6 +252,46 @@ final class DefaultBrowserAndDockPromptPresentingTests: XCTestCase {
 
         // THEN
         XCTAssertTrue(statusUpdateNotifierMock.didCallStartNotifyingStatus)
+    }
+
+    func testTryToShowPromptCallsOnNoShowWhenPopoverEligibilityChangesBeforePresentation() {
+        // GIVEN
+        coordinatorMock.getPromptTypeResult = .active(.popover)
+        coordinatorMock.evaluatePromptEligibility = nil
+        let expectation = expectation(description: "onNoShow called")
+
+        // WHEN
+        sut.tryToShowPrompt(popoverAnchorProvider: { NSView() },
+                            bannerViewHandler: { _ in },
+                            inactiveUserModalWindowProvider: { nil },
+                            expectedType: nil,
+                            forceShow: false,
+                            onNoShow: { expectation.fulfill() })
+        wait(for: [expectation], timeout: 1)
+
+        // THEN
+        XCTAssertNil(sut.currentShownPrompt)
+        XCTAssertFalse(statusUpdateNotifierMock.didCallStartNotifyingStatus)
+    }
+
+    func testTryToShowPromptCallsOnNoShowWhenInactiveEligibilityChangesBeforePresentation() {
+        // GIVEN
+        coordinatorMock.getPromptTypeResult = .inactive
+        coordinatorMock.evaluatePromptEligibility = nil
+        let expectation = expectation(description: "onNoShow called")
+
+        // WHEN
+        sut.tryToShowPrompt(popoverAnchorProvider: { nil },
+                            bannerViewHandler: { _ in },
+                            inactiveUserModalWindowProvider: { MockWindow() },
+                            expectedType: nil,
+                            forceShow: false,
+                            onNoShow: { expectation.fulfill() })
+        wait(for: [expectation], timeout: 1)
+
+        // THEN
+        XCTAssertNil(sut.currentShownPrompt)
+        XCTAssertFalse(statusUpdateNotifierMock.didCallStartNotifyingStatus)
     }
 
     func testBannerConfirmationCallsCoordinatorConfirmationActionForBannerPrompt() {
