@@ -18,11 +18,13 @@
 
 import BrowserServicesKit
 import Combine
+import Common
 import NewTabPage
 import PrivacyConfig
 import PrivacyConfigTestsUtils
 import SubscriptionTestingUtilities
 import XCTest
+
 @testable import DuckDuckGo_Privacy_Browser
 
 final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
@@ -41,7 +43,8 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
         appearancePreferences = AppearancePreferences(
             persistor: MockAppearancePreferencesPersistor(),
             privacyConfigurationManager: MockPrivacyConfigurationManager(),
-            featureFlagger: MockFeatureFlagger()
+            featureFlagger: MockFeatureFlagger(),
+            aiChatMenuConfig: MockAIChatConfig()
         )
     }
 
@@ -86,6 +89,7 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
         XCTAssertEqual(pixelHandler.fireNextStepsCardShownPixelsCalledWith, [.duckplayer])
     }
 
+    @MainActor
     func testWhenFeatureFlagIsOff_ThenCardsPublisher_EmitsChangesFromLegacyProvider() throws {
         featureFlagger.enabledFeatureFlags = []
         let facade = createFacade(featureFlagger: featureFlagger)
@@ -104,6 +108,7 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
         XCTAssertEqual(receivedCards, [[.defaultApp]])
     }
 
+    @MainActor
     func testWhenFeatureFlagIsOff_ThenIsViewExpandedPublisher_EmitsChangesLegacyProvider() throws {
         featureFlagger.enabledFeatureFlags = []
         let facade = createFacade(featureFlagger: featureFlagger)
@@ -126,7 +131,7 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
 
     @MainActor
     func testWhenFeatureFlagIsOn_ThenForwardsToSingleCardProvider() throws {
-        featureFlagger.enabledFeatureFlags = [.nextStepsSingleCardIteration]
+        featureFlagger.enabledFeatureFlags = [.nextStepsListWidget]
         let facade = createFacade(featureFlagger: featureFlagger)
 
         let provider = try XCTUnwrap(facade.activeProvider as? NewTabPageNextStepsSingleCardProvider)
@@ -155,7 +160,7 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
 
     @MainActor
     func testWhenFeatureFlagIsOn_ThenCardsPublisher_EmitsChangesFromSingleCardProvider() throws {
-        featureFlagger.enabledFeatureFlags = [.nextStepsSingleCardIteration]
+        featureFlagger.enabledFeatureFlags = [.nextStepsListWidget]
         let facade = createFacade(featureFlagger: featureFlagger)
 
         let provider = try XCTUnwrap(facade.activeProvider as? NewTabPageNextStepsSingleCardProvider)
@@ -172,8 +177,9 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
         XCTAssertEqual(receivedCards, [defaultCards(for: provider).filter({ $0 != .defaultApp })])
     }
 
+    @MainActor
     func testWhenFeatureFlagIsOn_ThenIsViewExpandedPublisher_EmitsChangesFromSingleCardProvider() throws {
-        featureFlagger.enabledFeatureFlags = [.nextStepsSingleCardIteration]
+        featureFlagger.enabledFeatureFlags = [.nextStepsListWidget]
         let facade = createFacade(featureFlagger: featureFlagger)
 
         let provider = try XCTUnwrap(facade.activeProvider as? NewTabPageNextStepsSingleCardProvider)
@@ -202,6 +208,16 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
             receivedCards.append(cards)
         }
 
+        let singleCardProviderExpectation = XCTestExpectation(description: "Active provider was updated to single card provider")
+        let legacyProviderExpectation = XCTestExpectation(description: "Active provider was updated to legacy provider")
+        let cancellable2 = facade.$activeProvider.dropFirst().sink { provider in
+            if provider is NewTabPageNextStepsSingleCardProvider {
+                singleCardProviderExpectation.fulfill()
+            } else if provider is NewTabPageNextStepsCardsProvider {
+                legacyProviderExpectation.fulfill()
+            }
+        }
+
         // Initially uses legacy provider
         let legacyProvider = try XCTUnwrap(facade.activeProvider as? NewTabPageNextStepsCardsProvider)
         XCTAssertEqual(facade.cards, legacyProvider.cards)
@@ -210,8 +226,9 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
         XCTAssertEqual(receivedCards.last, legacyProvider.cards)
 
         // Switch flag on
-        featureFlagger.enabledFeatureFlags = [.nextStepsSingleCardIteration]
+        featureFlagger.enabledFeatureFlags = [.nextStepsListWidget]
         featureFlagger.triggerUpdate()
+        wait(for: [singleCardProviderExpectation], timeout: 1.0)
 
         // Now uses single card provider
         let singleCardProvider = try XCTUnwrap(facade.activeProvider as? NewTabPageNextStepsSingleCardProvider)
@@ -222,6 +239,8 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
         // Switch flag off
         featureFlagger.enabledFeatureFlags = []
         featureFlagger.triggerUpdate()
+        wait(for: [legacyProviderExpectation], timeout: 1.0)
+        cancellable2.cancel()
 
         // Back to legacy provider
         let legacyProvider2 = try XCTUnwrap(facade.activeProvider as? NewTabPageNextStepsCardsProvider)
@@ -235,13 +254,16 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
 }
 
 private extension NewTabPageNextStepsCardsProviderFacadeTests {
-    func defaultCards(for provider: NewTabPageNextStepsSingleCardProvider) -> [NewTabPageDataModel.CardID] {
-        let cards = provider.defaultCards.map { $0.cardID }
-#if APPSTORE
-        return cards.filter { $0 != .addAppToDockMac }
-#else
-        return cards
-#endif
+    func defaultCards(for _: NewTabPageNextStepsSingleCardProvider) -> [NewTabPageDataModel.CardID] {
+        let cards = featureFlagger.isFeatureOn(.nextStepsListAdvancedCardOrdering)
+            ? NewTabPageNextStepsSingleCardProvider.defaultAdvancedCards
+            : NewTabPageNextStepsSingleCardProvider.defaultStandardCards
+
+        if NSApp.isSandboxed {
+            return cards.filter { $0 != .addAppToDockMac }
+        } else {
+            return cards
+        }
     }
 
     func createFacade(featureFlagger: FeatureFlagger) -> NewTabPageNextStepsCardsProviderFacade {
@@ -256,7 +278,8 @@ private extension NewTabPageNextStepsCardsProviderFacadeTests {
             legacySubscriptionCardPersistor: MockHomePageSubscriptionCardPersisting(),
             persistor: MockNewTabPageNextStepsCardsPersistor(),
             duckPlayerPreferences: DuckPlayerPreferencesPersistorMock(),
-            syncService: MockDDGSyncing(authState: .inactive, isSyncInProgress: false)
+            syncService: MockDDGSyncing(authState: .inactive, isSyncInProgress: false),
+            scheduler: .immediate
         )
     }
 }

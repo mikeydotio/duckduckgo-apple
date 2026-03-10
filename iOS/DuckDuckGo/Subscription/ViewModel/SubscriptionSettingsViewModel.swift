@@ -27,6 +27,12 @@ import PrivacyConfig
 import Networking
 import Persistence
 
+/// Status for the cancel-downgrade overlay
+enum CancelDowngradeOverlayStatus {
+    case planChangeInProgress
+    case completingPlanChange
+}
+
 final class SubscriptionSettingsViewModel: ObservableObject {
 
     private let subscriptionManager: SubscriptionManager
@@ -34,6 +40,7 @@ final class SubscriptionSettingsViewModel: ObservableObject {
     private var signOutObserver: Any?
     private var subscriptionChangeObserver: Any?
     private let featureFlagger: FeatureFlagger
+    private let subscriptionFlowsExecuter: SubscriptionFlowsExecuting
 
     private var externalAllowedDomains = ["stripe.com"]
 
@@ -48,8 +55,12 @@ final class SubscriptionSettingsViewModel: ObservableObject {
         var isShowingLearnMoreView: Bool = false
         var isShowingPlansView: Bool = false
         var isShowingUpgradeView: Bool = false
+        var pendingUpgradeTier: String?
         var subscriptionInfo: DuckDuckGoSubscription?
         var isLoadingSubscriptionInfo: Bool = false
+        var cancelPendingDowngradeDetails: String?
+        var cancelDowngradeTransactionStatus: CancelDowngradeOverlayStatus?
+        var cancelDowngradeError: SubscriptionPurchaseError?
 
         // Used to display stripe WebUI
         var stripeViewModel: SubscriptionExternalLinkViewModel?
@@ -62,9 +73,12 @@ final class SubscriptionSettingsViewModel: ObservableObject {
         var faqViewModel: SubscriptionExternalLinkViewModel
         var learnMoreViewModel: SubscriptionExternalLinkViewModel
 
-        init(faqURL: URL, learnMoreURL: URL, userScriptsDependencies: DefaultScriptSourceProvider.Dependencies) {
-            self.faqViewModel = SubscriptionExternalLinkViewModel(url: faqURL, userScriptsDependencies: userScriptsDependencies)
-            self.learnMoreViewModel = SubscriptionExternalLinkViewModel(url: learnMoreURL, userScriptsDependencies: userScriptsDependencies)
+        let featureFlagger: FeatureFlagger
+
+        init(faqURL: URL, learnMoreURL: URL, userScriptsDependencies: DefaultScriptSourceProvider.Dependencies, featureFlagger: FeatureFlagger) {
+            self.featureFlagger = featureFlagger
+            self.faqViewModel = SubscriptionExternalLinkViewModel(url: faqURL, userScriptsDependencies: userScriptsDependencies, featureFlagger: featureFlagger)
+            self.learnMoreViewModel = SubscriptionExternalLinkViewModel(url: learnMoreURL, userScriptsDependencies: userScriptsDependencies, featureFlagger: featureFlagger)
         }
     }
 
@@ -73,6 +87,9 @@ final class SubscriptionSettingsViewModel: ObservableObject {
 
     // Read only View State - Should only be modified from the VM
     @Published private(set) var state: State
+
+    /// Cancel-downgrade error; use this for alert binding so SwiftUI reliably updates when set from callbacks.
+    @Published private(set) var cancelDowngradeError: SubscriptionPurchaseError?
 
     public let usesUnifiedFeedbackForm: Bool
 
@@ -131,21 +148,27 @@ final class SubscriptionSettingsViewModel: ObservableObject {
 
     /// Handles navigation to plans page based on subscription platform
     /// - Parameters:
-    ///   - goToUpgrade: If true, navigates to /plans?goToUpgrade=true for direct upgrade flow
-    func navigateToPlans(goToUpgrade: Bool = false) {
+    ///   - tier: The tier to upgrade to
+    func navigateToPlans(tier: String? = nil) {
         guard let platform = state.subscriptionInfo?.platform else { return }
 
+        // Fire appropriate pixel
+        if tier != nil {
+            Pixel.fire(pixel: .subscriptionUpgradeClick)
+        } else {
+            Pixel.fire(pixel: .subscriptionViewAllPlansClick)
+        }
+
         switch platform {
-        case .apple:
-            if goToUpgrade {
+        case .apple, .stripe:
+            if tier != nil {
+                state.pendingUpgradeTier = tier
                 state.isShowingUpgradeView = true
             } else {
                 state.isShowingPlansView = true
             }
         case .google:
             displayGoogleView(true)
-        case .stripe:
-            Task { await manageStripeSubscription() }
         case .unknown:
             displayInternalSubscriptionNotice(true)
         }
@@ -162,13 +185,17 @@ final class SubscriptionSettingsViewModel: ObservableObject {
     init(subscriptionManager: SubscriptionManager = AppDependencyProvider.shared.subscriptionManager,
          featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger,
          keyValueStorage: KeyValueStoring = SubscriptionSettingsStore(),
-         userScriptsDependencies: DefaultScriptSourceProvider.Dependencies) {
+         userScriptsDependencies: DefaultScriptSourceProvider.Dependencies,
+         subscriptionFlowsExecuter: SubscriptionFlowsExecuting? = nil) {
         self.subscriptionManager = subscriptionManager
         self.userScriptsDependencies = userScriptsDependencies
         self.featureFlagger = featureFlagger
+        self.subscriptionFlowsExecuter = subscriptionFlowsExecuter ?? SubscriptionContainerViewFactory.makeSubscriptionFlowsExecuter(
+            subscriptionManager: subscriptionManager,
+            wideEvent: AppDependencyProvider.shared.wideEvent)
         let subscriptionFAQURL = subscriptionManager.url(for: .faq)
         let learnMoreURL = subscriptionFAQURL.appendingPathComponent("adding-email")
-        self.state = State(faqURL: subscriptionFAQURL, learnMoreURL: learnMoreURL, userScriptsDependencies: userScriptsDependencies)
+        self.state = State(faqURL: subscriptionFAQURL, learnMoreURL: learnMoreURL, userScriptsDependencies: userScriptsDependencies, featureFlagger: featureFlagger)
         self.usesUnifiedFeedbackForm = subscriptionManager.isUserAuthenticated
         self.keyValueStorage = keyValueStorage
         setupNotificationObservers()
@@ -209,10 +236,12 @@ final class SubscriptionSettingsViewModel: ObservableObject {
 
         do {
             let subscription = try await self.subscriptionManager.getSubscription(cachePolicy: cachePolicy)
-            Task { @MainActor in
-                self.state.subscriptionInfo = subscription
-                if loadingIndicator { self.displaySubscriptionLoader(false) }
+            if loadingIndicator {
+                Task { @MainActor in
+                    self.displaySubscriptionLoader(false)
+                }
             }
+
             await updateSubscriptionsStatusMessage(subscription: subscription,
                                                    date: subscription.expiresOrRenewsAt,
                                                    product: subscription.productId,
@@ -278,6 +307,98 @@ final class SubscriptionSettingsViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Cancel Pending Downgrade
+
+    /// Handles cancel pending downgrade based on subscription platform (mirrors navigateToPlans pattern).
+    func cancelPendingDowngrade() {
+        guard let platform = state.subscriptionInfo?.platform else {
+            if state.subscriptionInfo != nil {
+                assertionFailure("Missing or unknown subscription platform")
+            }
+            displayInternalSubscriptionNotice(true)
+            return
+        }
+
+        switch platform {
+        case .apple:
+            guard state.cancelDowngradeTransactionStatus == nil else { return }
+            state.cancelDowngradeTransactionStatus = .planChangeInProgress
+            state.cancelDowngradeError = nil
+            cancelDowngradeError = nil
+            Pixel.fire(pixel: .subscriptionCancelPendingDowngradeClick)
+            Task { await self.runCancelHandler() }
+        case .google:
+            displayGoogleView(true)
+        case .stripe:
+            Task { await manageStripeSubscription() }
+        case .unknown:
+            displayInternalSubscriptionNotice(true)
+        }
+    }
+
+    @MainActor
+    private func runCancelHandler() async {
+        guard let productId = state.subscriptionInfo?.availableChanges?.currentProductId else {
+            state.cancelDowngradeTransactionStatus = nil
+            setCancelDowngradeError(nil)
+            return
+        }
+        let setError: (AppStorePurchaseFlowError?) -> Void = { [weak self] in self?.setCancelDowngradeError($0) }
+        let setStatus: (SubscriptionTransactionStatus) -> Void = { [weak self] in self?.setCancelDowngradeStatus($0) }
+        await subscriptionFlowsExecuter.performTierChange(to: productId,
+                                                          changeType: "upgrade",
+                                                          contextName: "cancel-downgrade",
+                                                          setTransactionStatus: setStatus,
+                                                          setTransactionError: setError,
+                                                          pushPurchaseUpdate: nil)
+    }
+
+    /// Called by the cancel-downgrade performer callbacks when transaction status changes (e.g. .idle when done).
+    @MainActor
+    func setCancelDowngradeStatus(_ status: SubscriptionTransactionStatus) {
+        switch status {
+        case .changingPlan:
+            state.cancelDowngradeTransactionStatus = .planChangeInProgress
+        case .planChangePolling:
+            state.cancelDowngradeTransactionStatus = .completingPlanChange
+        default:
+            state.cancelDowngradeTransactionStatus = nil
+        }
+    }
+
+    /// Called by the cancel-downgrade performer callbacks when an error occurs.
+    /// Maps AppStorePurchaseFlowError to SubscriptionPurchaseError so the view can reuse the same alert logic as the purchase flow.
+    @MainActor
+    func setCancelDowngradeError(_ error: AppStorePurchaseFlowError?) {
+        let mapped = subscriptionPurchaseError(from: error)
+        state.cancelDowngradeError = mapped
+        cancelDowngradeError = mapped
+    }
+
+    private func subscriptionPurchaseError(from error: AppStorePurchaseFlowError?) -> SubscriptionPurchaseError? {
+        guard let error = error else { return nil }
+        switch error {
+        case .cancelledByUser:
+            return .cancelledByUser
+        case .transactionPendingAuthentication:
+            return .purchasePendingTransaction
+        case .missingEntitlements:
+            return .missingEntitlements
+        case .purchaseFailed:
+            return .purchaseFailed
+        case .internalError:
+            return .generalError
+        default:
+            return .purchaseFailed
+        }
+    }
+
+    /// Called by the view when the user dismisses the cancel-downgrade error alert.
+    func clearCancelDowngradeError() {
+        state.cancelDowngradeError = nil
+        cancelDowngradeError = nil
+    }
+
     // MARK: -
 
     private func setupNotificationObservers() {
@@ -296,12 +417,17 @@ final class SubscriptionSettingsViewModel: ObservableObject {
 
     @MainActor
     private func updateSubscriptionsStatusMessage(subscription: DuckDuckGoSubscription, date: Date, product: String, billingPeriod: DuckDuckGoSubscription.BillingPeriod) {
-        // Check for pending plan first (downgrade scheduled)
-        if let pendingPlan = subscription.firstPendingPlan {
+        state.cancelPendingDowngradeDetails = nil
+        state.subscriptionInfo = subscription
+
+        // Check for pending plan first (downgrade scheduled) — only show downgrade copy when pending tier differs from current
+        if let pendingPlan = subscription.firstPendingPlan,
+           let currentTier = subscription.tier,
+           pendingPlan.tier != currentTier {
             let effectiveDate = dateFormatter.string(from: pendingPlan.effectiveAt)
             let tierName = pendingPlan.tier.rawValue.capitalized
-            let billingPeriodName = pendingPlan.billingPeriod.rawValue
-            state.subscriptionDetails = UserText.pendingDowngradeInfo(tierName: tierName, billingPeriod: billingPeriodName, effectiveDate: effectiveDate)
+            state.subscriptionDetails = UserText.pendingDowngradeInfo(tierName: tierName, billingPeriod: pendingPlan.billingPeriod, effectiveDate: effectiveDate)
+            state.cancelPendingDowngradeDetails = UserText.cancelPendingDowngradeBannerInfo(tierName: tierName, effectiveDate: effectiveDate)
             return
         }
 
@@ -431,7 +557,8 @@ final class SubscriptionSettingsViewModel: ObservableObject {
             } else {
                 let model = SubscriptionExternalLinkViewModel(url: url,
                                                               allowedDomains: externalAllowedDomains,
-                                                              userScriptsDependencies: userScriptsDependencies)
+                                                              userScriptsDependencies: userScriptsDependencies,
+                                                              featureFlagger: featureFlagger)
                 Task { @MainActor in
                     self.state.stripeViewModel = model
                 }

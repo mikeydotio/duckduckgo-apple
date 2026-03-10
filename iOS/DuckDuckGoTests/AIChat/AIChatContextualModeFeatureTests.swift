@@ -33,65 +33,86 @@ final class AIChatContextualModeFeatureTests: XCTestCase {
         static let shared = MockDevicePlatform()
     }
 
-    // MARK: - Tests
+    // MARK: - Helpers
 
-    func testIsAvailableWhenFeatureFlagOnAndIphone() {
-        // Given
-        let mockFlagger = MockFeatureFlagger(enabledFeatureFlags: [.contextualDuckAIMode])
-        MockDevicePlatform.shared.mockIsIphone = true
+    private static let duckAIURL = URL(string: "https://duck.ai")!
+    private static let nonDuckAIURL = URL(string: "https://duckduckgo.com")!
 
-        // When
-        let feature = AIChatContextualModeFeature(
-            featureFlagger: mockFlagger,
-            devicePlatform: MockDevicePlatform.self
+    private func makeFeature(
+        enabledFlags: [FeatureFlag] = [.contextualDuckAIMode, .pageContextFeature],
+        isIphone: Bool = true,
+        aiChatURL: URL = duckAIURL
+    ) -> AIChatContextualModeFeature {
+        MockDevicePlatform.shared.mockIsIphone = isIphone
+        return AIChatContextualModeFeature(
+            featureFlagger: MockFeatureFlagger(enabledFeatureFlags: enabledFlags),
+            devicePlatform: MockDevicePlatform.self,
+            aiChatURLProvider: { aiChatURL }
         )
+    }
 
-        // Then
+    // MARK: - iPhone Tests
+
+    func testWhenIphoneAndAllConditionsMetThenIsAvailable() {
+        let feature = makeFeature()
         XCTAssertTrue(feature.isAvailable)
     }
 
-    func testIsNotAvailableWhenFeatureFlagOnButNotIphone() {
-        // Given
-        let mockFlagger = MockFeatureFlagger(enabledFeatureFlags: [.contextualDuckAIMode])
-        MockDevicePlatform.shared.mockIsIphone = false
-
-        // When
-        let feature = AIChatContextualModeFeature(
-            featureFlagger: mockFlagger,
-            devicePlatform: MockDevicePlatform.self
-        )
-
-        // Then
+    func testWhenIphoneAndContextualDuckAIModeDisabledThenIsNotAvailable() {
+        let feature = makeFeature(enabledFlags: [.pageContextFeature])
         XCTAssertFalse(feature.isAvailable)
     }
 
-    func testIsNotAvailableWhenFeatureFlagOffButIsIphone() {
-        // Given
-        let mockFlagger = MockFeatureFlagger(enabledFeatureFlags: [])
-        MockDevicePlatform.shared.mockIsIphone = true
-
-        // When
-        let feature = AIChatContextualModeFeature(
-            featureFlagger: mockFlagger,
-            devicePlatform: MockDevicePlatform.self
-        )
-
-        // Then
+    func testWhenIphoneAndPageContextFeatureDisabledThenIsNotAvailable() {
+        let feature = makeFeature(enabledFlags: [.contextualDuckAIMode])
         XCTAssertFalse(feature.isAvailable)
     }
 
-    func testIsNotAvailableWhenFeatureFlagOffAndNotIphone() {
-        // Given
-        let mockFlagger = MockFeatureFlagger(enabledFeatureFlags: [])
-        MockDevicePlatform.shared.mockIsIphone = false
+    func testWhenIphoneAndURLDomainIsNotDuckAIThenIsNotAvailable() {
+        let feature = makeFeature(aiChatURL: Self.nonDuckAIURL)
+        XCTAssertFalse(feature.isAvailable)
+    }
 
-        // When
-        let feature = AIChatContextualModeFeature(
-            featureFlagger: mockFlagger,
-            devicePlatform: MockDevicePlatform.self
+    func testWhenIphoneAndOnlyIPadPageContextEnabledThenIsNotAvailable() {
+        let feature = makeFeature(
+            enabledFlags: [.contextualDuckAIMode, .iPadPageContext],
+            isIphone: true
         )
+        XCTAssertFalse(feature.isAvailable)
+    }
 
-        // Then
+    // MARK: - iPad Tests
+
+    func testWhenIPadAndIpadPageContextEnabledThenIsAvailable() {
+        let feature = makeFeature(
+            enabledFlags: [.contextualDuckAIMode, .iPadPageContext],
+            isIphone: false
+        )
+        XCTAssertTrue(feature.isAvailable)
+    }
+
+    func testWhenIPadAndIpadPageContextDisabledThenIsNotAvailable() {
+        let feature = makeFeature(
+            enabledFlags: [.contextualDuckAIMode],
+            isIphone: false
+        )
+        XCTAssertFalse(feature.isAvailable)
+    }
+
+    func testWhenIPadAndOnlyIphonePageContextEnabledThenIsNotAvailable() {
+        let feature = makeFeature(
+            enabledFlags: [.contextualDuckAIMode, .pageContextFeature],
+            isIphone: false
+        )
+        XCTAssertFalse(feature.isAvailable)
+    }
+
+    func testWhenIPadAndURLDomainIsNotDuckAIThenIsNotAvailable() {
+        let feature = makeFeature(
+            enabledFlags: [.contextualDuckAIMode, .iPadPageContext],
+            isIphone: false,
+            aiChatURL: Self.nonDuckAIURL
+        )
         XCTAssertFalse(feature.isAvailable)
     }
 

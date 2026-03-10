@@ -17,6 +17,7 @@
 //
 
 import AppKit
+import BWManagementShared
 import SwiftUI
 import SwiftUIExtensions
 import Combine
@@ -37,8 +38,9 @@ final class PreferencesViewController: NSViewController {
     private var selectedTabContentCancellable: AnyCancellable?
     private var selectedPreferencePaneCancellable: AnyCancellable?
 
-    private var bitwardenManager: BWManagement = BWManager.shared
+    private var bitwardenManager: BWManagement? = Application.appDelegate.bitwardenManager
     private let featureFlagger: FeatureFlagger
+    private let pinningManager: PinningManager
 
     init(
         syncService: DDGSyncing,
@@ -58,16 +60,18 @@ final class PreferencesViewController: NSViewController {
         accessibilityPreferences: AccessibilityPreferences,
         duckPlayerPreferences: DuckPlayerPreferences,
         subscriptionManager: any SubscriptionManager,
-        winBackOfferVisibilityManager: WinBackOfferVisibilityManaging
+        winBackOfferVisibilityManager: WinBackOfferVisibilityManaging,
+        pinningManager: PinningManager
     ) {
         self.tabCollectionViewModel = tabCollectionViewModel
         self.privacyConfigurationManager = privacyConfigurationManager
         self.featureFlagger = featureFlagger
         self.aiChatRemoteSettings = aiChatRemoteSettings
+        self.pinningManager = pinningManager
         model = PreferencesSidebarModel(privacyConfigurationManager: privacyConfigurationManager,
                                         featureFlagger: featureFlagger,
                                         syncService: syncService,
-                                        vpnGatekeeper: DefaultVPNFeatureGatekeeper(subscriptionManager: subscriptionManager),
+                                        vpnGatekeeper: DefaultVPNFeatureGatekeeper(vpnUninstaller: VPNUninstaller(pinningManager: pinningManager), subscriptionManager: subscriptionManager),
                                         includeDuckPlayer: duckPlayer.shouldDisplayPreferencesSideBar,
                                         includeAIChat: aiChatRemoteSettings.isAIChatEnabled,
                                         subscriptionManager: subscriptionManager,
@@ -100,7 +104,8 @@ final class PreferencesViewController: NSViewController {
                                                   subscriptionUIHandler: Application.appDelegate.subscriptionUIHandler,
                                                   featureFlagger: featureFlagger,
                                                   aiChatURLSettings: aiChatRemoteSettings,
-                                                  wideEvent: Application.appDelegate.wideEvent)
+                                                  wideEvent: Application.appDelegate.wideEvent,
+                                                  pinningManager: pinningManager)
         let host = NSHostingView(rootView: prefRootView)
         view.addAndLayout(host)
     }
@@ -108,7 +113,7 @@ final class PreferencesViewController: NSViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
         model.refreshSections()
-        bitwardenManager.refreshStatusIfNeeded()
+        bitwardenManager?.refreshStatusIfNeeded()
     }
 
     override func viewDidAppear() {

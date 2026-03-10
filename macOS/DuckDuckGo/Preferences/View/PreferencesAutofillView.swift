@@ -17,9 +17,11 @@
 //
 
 import PreferencesUI_macOS
+import BWManagementShared
 import SwiftUI
 import SwiftUIExtensions
 import PixelKit
+import Combine
 
 fileprivate extension Preferences.Const {
     static let autoLockWarningOffset: CGFloat = {
@@ -35,7 +37,8 @@ extension Preferences {
 
     struct AutofillView: View {
         @ObservedObject var model: AutofillPreferencesModel
-        @ObservedObject var bitwardenManager = BWManager.shared
+        private let bitwardenManager = Application.appDelegate.bitwardenManager
+        @State private var bitwardenStatus: BWStatus = Application.appDelegate.bitwardenManager?.status ?? .disabled
         @State private var showingResetNeverPromptSitesSheet = false
 
         var passwordManagerBinding: Binding<PasswordManager> {
@@ -70,14 +73,14 @@ extension Preferences {
                 }
 
                 // Autofill Content  Button
-                PreferencePaneSection {
+                PreferencePaneSection(spacing: 12) {
                     Button(UserText.autofillViewContentButtonPasswords) {
                         model.showAutofillPopover(.logins, source: .settings)
                     }
                     Button(UserText.autofillViewContentButtonIdentities) {
                         model.showAutofillPopover(.identities, source: .settings)
                     }
-                    Button(UserText.autofillViewContentButtonPaymentMethods) {
+                    Button(UserText.autofillViewContentButtonCreditCards) {
                         model.showAutofillPopover(.cards, source: .settings)
                     }
 #if APPSTORE
@@ -89,6 +92,8 @@ extension Preferences {
                     }
 #endif
 
+                    Text(UserText.autofillContentStoredSecurelyInfo)
+                        .foregroundColor(.textSecondary)
                 }
 
 #if !APPSTORE
@@ -101,7 +106,7 @@ extension Preferences {
                     }
 
                     if shouldShowImportExportButtons {
-                        VStack {
+                        VStack(spacing: 12) {
                             Button(UserText.importPasswords) {
                                 model.openImportPasswordsWindow()
                             }
@@ -110,6 +115,7 @@ extension Preferences {
                             }
                         }
                         .padding(.leading, 15)
+                        .padding(.bottom, 4)
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -117,7 +123,7 @@ extension Preferences {
                             Text(UserText.autofillPasswordManagerBitwarden).tag(PasswordManager.bitwarden)
                         }
                         if model.passwordManager == .bitwarden && !model.isBitwardenSetupFlowPresented {
-                            bitwardenStatusView(for: bitwardenManager.status)
+                            bitwardenStatusView(for: bitwardenStatus)
                         }
                     }
 
@@ -130,7 +136,7 @@ extension Preferences {
                     VStack(alignment: .leading, spacing: 6) {
                         ToggleMenuItem(UserText.autofillPasswords, isOn: $model.askToSaveUsernamesAndPasswords)
                         ToggleMenuItem(UserText.autofillAddresses, isOn: $model.askToSaveAddresses)
-                        ToggleMenuItem(UserText.autofillPaymentMethods, isOn: $model.askToSavePaymentMethods)
+                        ToggleMenuItem(UserText.autofillCreditCards, isOn: $model.askToSavePaymentMethods)
                     }
                     TextMenuItemCaption(UserText.autofillAskToSaveExplanation)
                 }
@@ -186,6 +192,17 @@ extension Preferences {
                     .offset(x: PreferencesUI_macOS.Const.pickerHorizontalOffset)
                     TextMenuItemCaption(UserText.autofillNeverLockWarning)
                 }
+
+                if Application.appDelegate.featureFlagger.isFeatureOn(.autofillPasswordsStatusBar) {
+                    // SECTION 5: Menu Bar
+                    PreferencePaneSection {
+                        TextMenuItemHeader(UserText.passwordsMenuBarSection)
+                        ToggleMenuItem(UserText.showPasswordsInMenuBar, isOn: $model.showInMenuBar)
+                    }
+                }
+            }
+            .onReceive(bitwardenStatusPublisher) { status in
+                bitwardenStatus = status
             }
         }
 
@@ -210,6 +227,13 @@ extension Preferences {
 
         private var shouldShowImportExportButtons: Bool {
             return model.passwordManager == .duckduckgo
+        }
+
+        private var bitwardenStatusPublisher: AnyPublisher<BWStatus, Never> {
+            if let bitwardenManager {
+                return bitwardenManager.statusPublisher.eraseToAnyPublisher()
+            }
+            return Just(.disabled).eraseToAnyPublisher()
         }
 
         @ViewBuilder private func bitwardenStatusView(for status: BWStatus) -> some View {

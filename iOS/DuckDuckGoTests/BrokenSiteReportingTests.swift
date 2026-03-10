@@ -54,15 +54,7 @@ final class BrokenSiteReportingTests: XCTestCase {
         }
     }
 
-    override func setUp() {
-        super.setUp()
-
-        Pixel.isDryRun = false
-    }
-
     override func tearDown() {
-        Pixel.isDryRun = true
-
         HTTPStubs.removeAllStubs()
         super.tearDown()
     }
@@ -123,7 +115,8 @@ final class BrokenSiteReportingTests: XCTestCase {
                                       cookieConsentInfo: CookieConsentInfo(consentManaged: true, cosmetic: true, optoutFailed: true, selftestFailed: true, consentReloadLoop: nil, consentRule: "test-cmp", consentHeuristicEnabled: nil),
                                       debugFlags: "",
                                       privacyExperiments: "",
-                                      isPirEnabled: nil)
+                                      isPirEnabled: nil,
+                                      isForceDarkModeEnabled: nil)
 
         let reporter = BrokenSiteReporter(pixelHandler: { params in
 

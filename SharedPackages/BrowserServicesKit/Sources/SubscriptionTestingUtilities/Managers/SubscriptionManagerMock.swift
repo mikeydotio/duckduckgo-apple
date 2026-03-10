@@ -74,7 +74,10 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     public var subscriptionURL: SubscriptionURL?
     public func url(for type: SubscriptionURL) -> URL {
         subscriptionURL = type
-        return resultURL
+        if let resultURL {
+            return resultURL
+        }
+        return type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
 
     public var urlForPurchaseFromRedirect: URL!
@@ -149,16 +152,6 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         }
     }
 
-    public var productsResponse: Result<[GetProductsItem], Error>?
-    public func getProducts() async throws -> [GetProductsItem] {
-        switch productsResponse! {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
-        }
-    }
-
     public var tierProductsResponse: Result<GetTierProductsResponse, Error>?
     public func getTierProducts(region: String?, platform: String?) async throws -> GetTierProductsResponse {
         switch tierProductsResponse! {
@@ -167,6 +160,13 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         case .failure(let error):
             throw error
         }
+    }
+
+    public var subscriptionTierOptionsResult: Result<SubscriptionTierOptions, Error>?
+    public var subscriptionTierOptionsIncludeProTierCalled: Bool?
+    public func subscriptionTierOptions(includeProTier: Bool) async -> Result<SubscriptionTierOptions, Error> {
+        subscriptionTierOptionsIncludeProTierCalled = includeProTier
+        return subscriptionTierOptionsResult ?? .failure(SubscriptionTierOptionsProviderError.tierOptionsNotAvailableForPlatform)
     }
 
     public func adopt(tokenContainer: Networking.TokenContainer) async throws {

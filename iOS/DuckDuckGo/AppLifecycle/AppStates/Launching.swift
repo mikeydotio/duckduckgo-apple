@@ -18,10 +18,13 @@
 //
 
 import Core
+import Persistence
 import UIKit
 import PixelKit
 import BrowserServicesKit
 import Subscription
+import RemoteMessaging
+import WebExtensions
 
 /// Represents the transient state where the app is being prepared for user interaction after being launched by the system.
 /// - Usage:
@@ -50,6 +53,7 @@ struct Launching: LaunchingHandling {
     private let mainCoordinator: MainCoordinator
     private let launchTaskManager = LaunchTaskManager()
     private let launchSourceManager = LaunchSourceManager()
+    private let lastBackgroundDateStorage: any ThrowingKeyedStoring<IdleReturnLastBackgroundDateKeys>
 
     // MARK: - Handle application(_:didFinishLaunchingWithOptions:) logic here
 
@@ -57,6 +61,7 @@ struct Launching: LaunchingHandling {
         Logger.lifecycle.info("Launching: \(#function)")
 
         let appKeyValueFileStoreService = try AppKeyValueFileStoreService()
+        lastBackgroundDateStorage = appKeyValueFileStoreService.keyValueFilesStore.throwingKeyedStoring()
 
         // Initialize configuration with the key-value store
         configuration = AppConfiguration(appKeyValueStore: appKeyValueFileStoreService.keyValueFilesStore)
@@ -69,6 +74,12 @@ struct Launching: LaunchingHandling {
         // MARK: - Application Setup
         // Handles one-time application setup during launch
         try configuration.start(isBookmarksDBFilePresent: isBookmarksDBFilePresent)
+
+        // Set idleReturnNewUser at launch (before statistics load) so new vs existing users get the correct after-inactivity default.
+        IdleReturnCohort.setCohortIfNeeded(
+            storage: appKeyValueFileStoreService.keyValueFilesStore.throwingKeyedStoring(),
+            statisticsStore: StatisticsUserDefaults()
+        )
 
         // MARK: - Service Initialization (continued)
         // Create and initialize remaining core services
@@ -84,16 +95,26 @@ struct Launching: LaunchingHandling {
                                       privacyConfigurationManager: contentBlocking.privacyConfigurationManager,
                                       keyValueStore: appKeyValueFileStoreService.keyValueFilesStore)
 
+        let webExtensionManagerHolder = WebExtensionManagerHolder()
+        let webExtensionAvailability = WebExtensionAvailability(
+            featureFlagger: featureFlagger,
+            webExtensionManagerProvider: {
+                webExtensionManagerHolder.manager
+            }
+        )
+
         let contentBlockingService = ContentBlockingService(appSettings: appSettings,
                                                             contentBlocking: contentBlocking,
                                                             sync: syncService.sync,
                                                             fireproofing: fireproofing,
                                                             contentScopeExperimentsManager: contentScopeExperimentsManager,
-                                                            internalUserDecider: AppDependencyProvider.shared.internalUserDecider)
+                                                            internalUserDecider: AppDependencyProvider.shared.internalUserDecider,
+                                                            syncErrorHandler: syncService.syncErrorHandler,
+                                                            webExtensionAvailability: webExtensionAvailability)
 
         let dbpService = DBPService(appDependencies: AppDependencyProvider.shared, contentBlocking: contentBlockingService.common)
         let configurationService = RemoteConfigurationService()
-        let crashCollectionService = CrashCollectionService()
+        let crashCollectionService = CrashCollectionService(featureFlagger: featureFlagger)
         let statisticsService = StatisticsService()
 
         let productSurfaceTelemetry = PixelProductSurfaceTelemetry(featureFlagger: featureFlagger, dailyPixelFiring: DailyPixel.self)
@@ -113,6 +134,10 @@ struct Launching: LaunchingHandling {
                                                                   featureFlagger: featureFlagger,
                                                                   daxDialogs: daxDialogs)
 
+        let remoteMessagingImageLoader = RemoteMessagingImageLoader(
+            dataProvider: RemoteMessagingImageLoader.defaultDataProvider,
+            cache: RemoteMessagingImageLoader.defaultCache
+        )
         let remoteMessagingService = RemoteMessagingService(bookmarksDatabase: configuration.persistentStoresConfiguration.bookmarksDatabase,
                                                             database: configuration.persistentStoresConfiguration.database,
                                                             appSettings: appSettings,
@@ -123,6 +148,7 @@ struct Launching: LaunchingHandling {
                                                             syncService: syncService.sync,
                                                             winBackOfferService: winBackOfferService,
                                                             subscriptionDataReporter: reportingService.subscriptionDataReporter,
+                                                            remoteMessagingImageLoader: remoteMessagingImageLoader,
                                                             dbpRunPrerequisitesDelegate: dbpService.dbpIOSPublicInterface)
         let subscriptionService = SubscriptionService(privacyConfigurationManager: contentBlockingService.common.privacyConfigurationManager, featureFlagger: featureFlagger)
         let maliciousSiteProtectionService = MaliciousSiteProtectionService(featureFlagger: featureFlagger,
@@ -130,7 +156,6 @@ struct Launching: LaunchingHandling {
         let systemSettingsPiPTutorialService = SystemSettingsPiPTutorialService()
         let wideEventService = WideEventService(
             wideEvent: AppDependencyProvider.shared.wideEvent,
-            featureFlagger: featureFlagger,
             subscriptionManager: AppDependencyProvider.shared.subscriptionManager
         )
 
@@ -162,6 +187,7 @@ struct Launching: LaunchingHandling {
                 whatsNewRepository: whatsNewRepository,
                 remoteMessagingActionHandler: remoteMessagingService.remoteMessagingActionHandler,
                 remoteMessagingPixelReporter: remoteMessagingService.pixelReporter,
+                remoteMessagingImageLoader: remoteMessagingImageLoader,
                 appSettings: appSettings,
                 aiChatSettings: aiChatSettings,
                 experimentalAIChatManager: ExperimentalAIChatManager(),
@@ -210,6 +236,7 @@ struct Launching: LaunchingHandling {
         // MARK: - UI-Dependent Services Setup
         // Initialize and configure services that depend on UI components
 
+        webExtensionManagerHolder.manager = mainCoordinator.webExtensionManager
         systemSettingsPiPTutorialService.setPresenter(mainCoordinator)
         syncService.presenter = mainCoordinator.controller
         remoteMessagingService.messageNavigator = DefaultMessageNavigator(delegate: mainCoordinator.controller)
@@ -258,11 +285,19 @@ struct Launching: LaunchingHandling {
         // MARK: - Final Configuration
         // Complete the configuration process and set up the main window
 
-        configuration.finalize(
+#if DEBUG || ALPHA
+        mainCoordinator.controller.automationServer = configuration.finalize(
             reportingService: reportingService,
             mainViewController: mainCoordinator.controller,
             launchTaskManager: launchTaskManager
         )
+#else
+        _ = configuration.finalize(
+            reportingService: reportingService,
+            mainViewController: mainCoordinator.controller,
+            launchTaskManager: launchTaskManager
+        )
+#endif
 
         logAppLaunchTime()
         // Keep this init method minimal and think twice before adding anything here.
@@ -289,7 +324,8 @@ struct Launching: LaunchingHandling {
             aiChatSettings: aiChatSettings,
             featureFlagger: featureFlagger,
             voiceSearchHelper: voiceSearchHelper,
-            appSettings: appSettings
+            appSettings: appSettings,
+            backgroundTaskManager: BackgroundTaskManager(featureFlagger: featureFlagger)
         )
     }
 
@@ -310,7 +346,8 @@ extension Launching {
     }
 
     func makeConnectedState(window: UIWindow, actionToHandle: AppAction?) -> any ConnectedHandling {
-        Connected(stateContext: makeStateContext(), actionToHandle: actionToHandle, window: window)
+        Connected(stateContext: makeStateContext(), actionToHandle: actionToHandle, window: window,
+                  lastBackgroundDateStorage: lastBackgroundDateStorage)
     }
 
 }

@@ -39,6 +39,7 @@ extension SyncSettingsView {
 
     @ViewBuilder
     func syncWithAnotherDeviceView() -> some View {
+        let syncWithAnotherDeviceMessage = model.isAIChatSyncEnabled ? UserText.syncWithAnotherDeviceMessageUpdated : UserText.syncWithAnotherDeviceMessage
         Section {
             HStack {
                 Spacer()
@@ -46,7 +47,7 @@ extension SyncSettingsView {
                     Image("Sync-Pair-96")
                     Text(UserText.syncWithAnotherDeviceTitle)
                         .daxTitle3()
-                    Text(UserText.syncWithAnotherDeviceMessage)
+                    Text(syncWithAnotherDeviceMessage)
                         .daxBodyRegular()
                         .multilineTextAlignment(.center)
                         .foregroundColor(Color(designSystemColor: .textPrimary))
@@ -74,10 +75,13 @@ extension SyncSettingsView {
     @ViewBuilder
     func otherOptions() -> some View {
         Section {
-            Button(UserText.syncAndBackUpThisDeviceLink) {
+            Button {
                 Task { @MainActor in
                     await model.presentSyncWithSetUpSheetIfNeeded()
                 }
+            } label: {
+                Text(UserText.syncAndBackUpThisDeviceLink)
+                    .foregroundColor(Color(designSystemColor: .accent))
             }
             .sheet(isPresented: $model.isSyncWithSetUpSheetVisible, content: {
                 SyncWithServerView(model: model, onCancel: {
@@ -86,12 +90,15 @@ extension SyncSettingsView {
             })
             .disabled(!model.isAccountCreationAvailable)
 
-            Button(UserText.recoverSyncedDataLink) {
+            Button {
                 Task { @MainActor in
                     if await model.commonAuthenticate() {
                         isRecoverSyncedDataSheetVisible = true
                     }
                 }
+            } label: {
+                Text(UserText.recoverSyncedDataLink)
+                    .foregroundColor(Color(designSystemColor: .accent))
             }
             .sheet(isPresented: $isRecoverSyncedDataSheetVisible, content: {
                 RecoverSyncedDataView(model: model, onCancel: {
@@ -222,6 +229,10 @@ extension SyncSettingsView {
                     .frame(width: 8)
                     .padding(.bottom, 1)
                 devEnvironmentIndicator()
+            }
+        } footer: {
+            if model.isAIChatSyncEnabled {
+                Text(UserText.turnSyncOffSectionFooter)
             }
         }
     }

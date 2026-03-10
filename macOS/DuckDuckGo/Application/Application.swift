@@ -19,20 +19,22 @@
 import AppKit
 import Combine
 import Common
-import FeatureFlags
 import Foundation
 import PrivacyConfig
 
 @objc(Application)
-final class Application: NSApplication {
+final class Application: NSApplication, WarnBeforeQuitManagerDelegate {
 
     public static var appDelegate: AppDelegate! // swiftlint:disable:this weak_delegate
     private var fireWindowPreferenceCancellable: AnyCancellable?
-    private var featureFlagger: FeatureFlagger { delegateTyped.featureFlagger }
 
     /// Event interceptor hook for WarnBeforeQuitManager
     /// Returns nil to consume event, or the event to pass through
-    var eventInterceptor: ((NSEvent) -> NSEvent?)?
+    private var eventInterceptor: (token: UUID, interceptor: ((NSEvent) -> NSEvent?))?
+
+    public var eventInterceptorToken: UUID? {
+        eventInterceptor?.token
+    }
 
     override init() {
         super.init()
@@ -44,9 +46,13 @@ final class Application: NSApplication {
         // See SecurityScopedFileURLController.swift
         NSURL.swizzleStartStopAccessingSecurityScopedResourceOnce()
 
-        let delegate = AppDelegate()
+        let buildType = StandardApplicationBuildType()
+        let dockCustomization = buildType.isSparkleBuild ? DockCustomizer() : nil
+        let delegate = AppDelegate(dockCustomization: dockCustomization)
         self.delegate = delegate
         Application.appDelegate = delegate
+
+        let menuProfilerToken = delegate.startupProfiler.startMeasuring(.mainMenuInit)
 
         let mainMenu = MainMenu(
             featureFlagger: delegate.featureFlagger,
@@ -54,6 +60,7 @@ final class Application: NSApplication {
             historyCoordinator: delegate.historyCoordinator,
             recentlyClosedCoordinator: delegate.recentlyClosedCoordinator,
             faviconManager: delegate.faviconManager,
+            dockCustomizer: dockCustomization,
             defaultBrowserPreferences: delegate.defaultBrowserPreferences,
             aiChatMenuConfig: delegate.aiChatMenuConfiguration,
             internalUserDecider: delegate.internalUserDecider,
@@ -62,9 +69,13 @@ final class Application: NSApplication {
             isFireWindowDefault: delegate.visualizeFireSettingsDecider.isOpenFireWindowByDefaultEnabled,
             configurationURLProvider: delegate.configurationURLProvider,
             contentScopePreferences: delegate.contentScopePreferences,
-            quitSurveyPersistor: QuitSurveyUserDefaultsPersistor(keyValueStore: delegate.keyValueStore)
+            quitSurveyPersistor: QuitSurveyUserDefaultsPersistor(keyValueStore: delegate.keyValueStore),
+            pinningManager: delegate.pinningManager,
+            subscriptionManager: delegate.subscriptionManager
         )
         self.mainMenu = mainMenu
+
+        menuProfilerToken.stop()
 
         // Subscribe to Fire Window preference changes to update menu dynamically
         fireWindowPreferenceCancellable = delegate.dataClearingPreferences.$shouldOpenFireWindowByDefault
@@ -117,6 +128,15 @@ final class Application: NSApplication {
     @MainActor
     var shouldResetClickCountForNextEventOfTypes: Set<NSEvent.EventType>?
 
+    public func installEventInterceptor(token: UUID, interceptor: @escaping (NSEvent) -> NSEvent?) {
+        eventInterceptor = (token: token, interceptor: interceptor)
+    }
+
+    public func resetEventInterceptor(token: UUID?) {
+        guard token == nil || eventInterceptor?.token == token else { return }
+        eventInterceptor = nil
+    }
+
     override func sendEvent(_ event: NSEvent) {
 #if DEBUG
         // Ignore user events when running Tests
@@ -129,15 +149,14 @@ final class Application: NSApplication {
 
         // Check event interceptor hook (for WarnBeforeQuitManager)
         var event = event
-        if let interceptor = eventInterceptor {
+        if let interceptor = eventInterceptor?.interceptor {
             guard let interceptedEvent = interceptor(event) else { return } // Event consumed
             // Event passed through, continue processing
             event = interceptedEvent
         }
 
         // Handle the hack to reset the click count to 1 for the next incoming mouse event of the given type.
-        if let expectedEventType = shouldResetClickCountForNextEventOfTypes, expectedEventType.contains(event.type),
-           featureFlagger.isFeatureOn(.tabClosingEventRecreation) {
+        if let expectedEventType = shouldResetClickCountForNextEventOfTypes, expectedEventType.contains(event.type) {
             if event.clickCount > 1 {
                 event = {
                     guard let cg = event.cgEvent?.copy() else { return event }

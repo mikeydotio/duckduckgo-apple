@@ -18,6 +18,8 @@
 
 import Cocoa
 import Combine
+import AIChat
+import PixelKit
 
 final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpdateListening, NSTextViewDelegate {
 
@@ -45,6 +47,9 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
     var themeUpdateCancellable: AnyCancellable?
     private var appearanceCancellable: AnyCancellable?
     weak var customToggleControl: NSControl?
+    weak var containerViewController: AIChatOmnibarContainerViewController? {
+        didSet { wireTabCycle() }
+    }
     var heightDidChange: ((CGFloat) -> Void)?
 
     init(omnibarController: AIChatOmnibarController, themeManager: ThemeManaging) {
@@ -82,6 +87,7 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
         applyThemeStyle()
 
         scrollView.documentView = textView
+        textView.navigationDelegate = self
     }
 
     override func viewWillAppear() {
@@ -260,7 +266,7 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
         let bottomSpacing: CGFloat = Constants.bottomPadding
         let totalHeight = usedRect.height + textInsets.height + bottomSpacing
 
-        return min(totalHeight, Constants.maximumPanelHeight)
+        return max(Constants.minimumPanelHeight, min(totalHeight, Constants.maximumPanelHeight))
     }
 
     // MARK: - NSTextViewDelegate
@@ -300,6 +306,12 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
         backgroundView.stopListening()
     }
 
+    /// Sets the height from the bottom that should pass events through to views behind.
+    /// Used to allow clicks to reach suggestions in the container view.
+    func setPassthroughBottomHeight(_ height: CGFloat) {
+        backgroundView.passthroughBottomHeight = height
+    }
+
     func focusTextView() {
         view.window?.makeFirstResponder(textView)
     }
@@ -308,6 +320,40 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
         focusTextView()
         let textLength = textView.string.count
         textView.selectedRange = NSRange(location: textLength, length: 0)
+    }
+
+    // MARK: - Tab Navigation
+
+    /// Called by the owner when the toggle receives a Tab press in AI Chat mode.
+    func handleToggleTabPressed() {
+        guard let containerVC = containerViewController else {
+            focusTextViewWithCursorAtEnd()
+            return
+        }
+        if containerVC.isImageUploadButtonAvailableForFocus {
+            containerVC.makeImageUploadButtonFirstResponder()
+        } else if containerVC.isModelPickerButtonAvailableForFocus {
+            containerVC.makeModelPickerButtonFirstResponder()
+        } else {
+            focusTextViewWithCursorAtEnd()
+        }
+    }
+
+    private func wireTabCycle() {
+        guard let containerVC = containerViewController else { return }
+
+        containerVC.onImageUploadButtonTabPressed = { [weak self, weak containerVC] in
+            guard let self, let containerVC else { return }
+            if containerVC.isModelPickerButtonAvailableForFocus {
+                containerVC.makeModelPickerButtonFirstResponder()
+            } else {
+                self.focusTextViewWithCursorAtEnd()
+            }
+        }
+
+        containerVC.onModelPickerButtonTabPressed = { [weak self] in
+            self?.focusTextViewWithCursorAtEnd()
+        }
     }
 
     func insertNewline() {
@@ -335,8 +381,60 @@ final class AIChatOmnibarTextContainerViewController: NSViewController, ThemeUpd
     }
 }
 
+// MARK: - FocusableTextViewNavigationDelegate
+extension AIChatOmnibarTextContainerViewController: FocusableTextViewNavigationDelegate {
+
+    func textViewDidRequestMoveToSuggestions() -> Bool {
+        let viewModel = omnibarController.suggestionsViewModel
+
+        // If already at last suggestion, clear selection (cycle back to text field)
+        if let currentIndex = viewModel.selectedIndex,
+           currentIndex >= viewModel.filteredSuggestions.count - 1 {
+            viewModel.clearSelection(keepMouseSuppressed: true)
+            return true
+        }
+
+        // Try to select next suggestion
+        return viewModel.selectNext()
+    }
+
+    func textViewDidRequestMoveFromSuggestions() -> Bool {
+        let viewModel = omnibarController.suggestionsViewModel
+        // selectPrevious handles both cases:
+        // - No selection: selects last item
+        // - Has selection: moves up or clears selection at top
+        return viewModel.selectPrevious()
+    }
+
+    func textViewDidRequestSelectCurrentSuggestion() -> Bool {
+        guard let suggestion = omnibarController.suggestionsViewModel.selectedSuggestion else {
+            return false
+        }
+        let pixel: AIChatPixel = suggestion.isPinned ? .aiChatRecentChatSelectedPinnedKeyboard : .aiChatRecentChatSelectedKeyboard
+        PixelKit.fire(pixel, frequency: .dailyAndCount, includeAppVersionParameter: true)
+        omnibarController.delegate?.aiChatOmnibarController(omnibarController, didSelectSuggestion: suggestion)
+        return true
+    }
+}
+
+/// Delegate protocol for handling navigation events from FocusableTextView
+protocol FocusableTextViewNavigationDelegate: AnyObject {
+    /// Called when user presses down arrow on the last line
+    /// - Returns: `true` if navigation was handled (moved to suggestions), `false` otherwise
+    func textViewDidRequestMoveToSuggestions() -> Bool
+    /// Called when user presses up arrow on the first line (when suggestions are selected)
+    /// - Returns: `true` if navigation was handled, `false` otherwise
+    func textViewDidRequestMoveFromSuggestions() -> Bool
+    /// Called when user presses Enter while a suggestion is selected
+    /// - Returns: `true` if a suggestion was selected, `false` otherwise
+    func textViewDidRequestSelectCurrentSuggestion() -> Bool
+}
+
 /// Custom NSTextView that ensures it can always accept focus when clicked
 private final class FocusableTextView: NSTextView {
+
+    weak var navigationDelegate: FocusableTextViewNavigationDelegate?
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         return true
     }
@@ -350,5 +448,52 @@ private final class FocusableTextView: NSTextView {
             window?.makeFirstResponder(self)
         }
         super.mouseDown(with: event)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        // Handle Enter key when a suggestion might be selected
+        if event.keyCode == 36 { // Return/Enter key
+            if navigationDelegate?.textViewDidRequestSelectCurrentSuggestion() == true {
+                return
+            }
+        }
+        super.keyDown(with: event)
+    }
+
+    override func moveDown(_ sender: Any?) {
+        if isCursorOnLastLine() {
+            if navigationDelegate?.textViewDidRequestMoveToSuggestions() == true {
+                return
+            }
+        }
+        super.moveDown(sender)
+    }
+
+    override func moveUp(_ sender: Any?) {
+        // First check if we should navigate in suggestions
+        if navigationDelegate?.textViewDidRequestMoveFromSuggestions() == true {
+            return
+        }
+        super.moveUp(sender)
+    }
+
+    /// Checks if the cursor is on the last line of the text view
+    private func isCursorOnLastLine() -> Bool {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer else {
+            return true
+        }
+
+        let selectedRange = selectedRange()
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: selectedRange, actualCharacterRange: nil)
+
+        var lineRange = NSRange()
+        layoutManager.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: &lineRange)
+
+        let lastGlyphIndex = layoutManager.numberOfGlyphs > 0 ? layoutManager.numberOfGlyphs - 1 : 0
+        var lastLineRange = NSRange()
+        layoutManager.lineFragmentRect(forGlyphAt: lastGlyphIndex, effectiveRange: &lastLineRange)
+
+        return NSMaxRange(lineRange) >= NSMaxRange(lastLineRange)
     }
 }

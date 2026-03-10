@@ -23,6 +23,7 @@ import Common
 import Configuration
 import Core
 import Foundation
+import UIKit
 import NetworkExtension
 import Networking
 import os.log
@@ -501,19 +502,16 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
 
     @MainActor
     @objc init() {
-#if DEBUG
-        Pixel.isDryRun = true
-#endif
-
         APIRequest.Headers.setUserAgent(DefaultUserAgentManager.duckDuckGoUserAgent)
+        Self.setupPixelKit()
 
         let settings = VPNSettings(defaults: .networkProtectionGroupDefaults)
 
         configurationManager = ConfigurationManager(fetcher: ConfigurationFetcher(store: configurationStore, configurationURLProvider: VPNAgentConfigurationURLProvider(), eventMapping: ConfigurationManager.configurationDebugEvents), store: configurationStore)
         configurationManager.start()
         let privacyConfigurationManager = VPNPrivacyConfigurationManager.shared
-        // Load cached config (if any)
-        privacyConfigurationManager.reload(etag: configurationStore.loadEtag(for: .privacyConfiguration), data: configurationStore.loadData(for: .privacyConfiguration))
+        // Privacy configuration is loaded in loadProtectedResources() after the device is confirmed unlocked.
+        // Until then, embedded config is used as fallback.
 
         let featureFlagger = DefaultFeatureFlagger(
             internalUserDecider: privacyConfigurationManager.internalUserDecider,
@@ -541,7 +539,7 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
         let authService = DefaultOAuthService(baseURL: authEnvironment.url,
                                               apiService: APIServiceFactory.makeAPIServiceForAuthV2(withUserAgent: DefaultUserAgentManager.duckDuckGoUserAgent))
 
-        let pixelHandler = SubscriptionPixelHandler(source: .systemExtension)
+        let pixelHandler = SubscriptionPixelHandler(source: .systemExtension, pixelKit: PixelKit.shared)
         // keychain storage
         let subscriptionAppGroup = Bundle.main.appGroup(bundle: .subs)
         let keychainType: KeychainType = .dataProtection(.named(subscriptionAppGroup))
@@ -666,6 +664,32 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
         .store(in: &cancellables)
     }
 
+    private static func setupPixelKit() {
+        PixelKit.setUp(
+            dryRun: PixelKitConfig.isDryRun(isProductionBuild: BuildFlags.isProductionBuild),
+            appVersion: AppVersion.shared.versionNumber,
+            source: (UIDevice.current.userInterfaceIdiom == .phone ? PixelKit.Source.iOS : PixelKit.Source.iPadOS).rawValue,
+            defaultHeaders: [:],
+            defaults: .networkProtectionGroupDefaults
+        ) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, onComplete: @escaping PixelKit.CompletionBlock) in
+            let url = URL.pixelUrl(forPixelNamed: pixelName)
+            let apiHeaders = APIRequestV2.HeadersV2(userAgent: Pixel.defaultPixelUserAgent, additionalHeaders: headers)
+            guard let request = APIRequestV2(url: url, method: .get, queryItems: parameters.toQueryItems(), headers: apiHeaders) else {
+                onComplete(false, nil)
+                return
+            }
+
+            Task {
+                do {
+                    _ = try await DefaultAPIService().fetch(request: request)
+                    onComplete(true, nil)
+                } catch {
+                    onComplete(false, error)
+                }
+            }
+        }
+    }
+
     private let activationDateStore = DefaultVPNActivationDateStore()
 
     public override func handleConnectionStatusChange(old: ConnectionStatus, new: ConnectionStatus) {
@@ -676,6 +700,16 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
 
         VPNReloadStatusWidgets()
     }
+
+    public override func loadProtectedResources() async {
+        // Load cached privacy configuration now that the device is confirmed unlocked.
+        // This is deferred from init() because the config file may be protected by iOS data protection
+        // and inaccessible when Connect on Demand starts the VPN before the user unlocks after reboot.
+        VPNPrivacyConfigurationManager.shared.reload(
+            etag: configurationStore.loadEtag(for: .privacyConfiguration),
+            data: configurationStore.loadData(for: .privacyConfiguration)
+        )
+    }
 }
 
 private struct WideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
@@ -684,7 +718,11 @@ private struct WideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
     func isEnabled(_ flag: WideEventFeatureFlag) -> Bool {
         switch flag {
         case .postEndpoint:
+#if DEBUG || ALPHA || EXPERIMENTAL
+            return false
+#else
             return featureFlagger.isFeatureOn(.wideEventPostEndpoint)
+#endif
         }
     }
 }

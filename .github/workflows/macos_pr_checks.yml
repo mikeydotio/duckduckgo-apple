@@ -97,7 +97,7 @@ jobs:
 
     name: Test Shell Scripts
 
-    runs-on: macos-15
+    runs-on: macos-26
 
     needs: should-run-checks
     if: needs.should-run-checks.outputs.should_run == 'true'
@@ -256,6 +256,9 @@ jobs:
           -derivedDataPath "DerivedData" \
           -configuration "CI" \
           -skipPackagePluginValidation -skipMacroValidation \
+          -test-timeouts-enabled YES \
+          -default-test-execution-time-allowance 60 \
+          -maximum-test-execution-time-allowance 120 \
           ENABLE_TESTABILITY=true \
           ONLY_ACTIVE_ARCH=${{ matrix.active-arch }} \
           "-skip-testing:${{ matrix.integration-tests-target }}" \
@@ -271,6 +274,9 @@ jobs:
           -derivedDataPath "DerivedData" \
           -configuration "CI" \
           -skipPackagePluginValidation -skipMacroValidation \
+          -test-timeouts-enabled YES \
+          -default-test-execution-time-allowance 60 \
+          -maximum-test-execution-time-allowance 120 \
           ENABLE_TESTABILITY=true \
           ONLY_ACTIVE_ARCH=${{ matrix.active-arch }} \
           "-only-testing:${{ matrix.integration-tests-target }}" \
@@ -360,7 +366,7 @@ jobs:
 
     - name: Upload failed unit tests log
       uses: actions/upload-artifact@v4
-      if: failure()
+      if: failure() || cancelled()
       with:
         name: ${{ matrix.flavor }}-unittests-xcodebuild.log
         path: macOS/${{ matrix.flavor }}-unittests-xcodebuild.log
@@ -368,7 +374,7 @@ jobs:
 
     - name: Upload failed unit tests xcresult
       uses: actions/upload-artifact@v4
-      if: failure()
+      if: failure() || cancelled()
       with:
         name: ${{ matrix.flavor }}-unittests.xcresult
         path: macOS/${{ matrix.flavor }}-unittests.xcresult
@@ -376,7 +382,7 @@ jobs:
 
     - name: Upload failed integration tests log
       uses: actions/upload-artifact@v4
-      if: failure()
+      if: failure() || cancelled()
       with:
         name: ${{ matrix.flavor }}-integrationtests-xcodebuild.log
         path: macOS/${{ matrix.flavor }}-integrationtests-xcodebuild.log
@@ -384,10 +390,21 @@ jobs:
 
     - name: Upload failed integration tests xcresult
       uses: actions/upload-artifact@v4
-      if: failure()
+      if: failure() || cancelled()
       with:
         name: ${{ matrix.flavor }}-integrationtests.xcresult
         path: macOS/${{ matrix.flavor }}-integrationtests.xcresult
+        retention-days: 7
+
+    - name: Upload crash reports
+      uses: actions/upload-artifact@v4
+      if: failure() || cancelled()
+      with:
+        name: ${{ matrix.flavor }}-crash-reports
+        path: |
+          ~/Library/Logs/DiagnosticReports/*.crash
+          ~/Library/Logs/DiagnosticReports/*.ips
+        if-no-files-found: ignore
         retention-days: 7
 
     - name: Fetch latest commit author and PR reviewers
@@ -419,10 +436,13 @@ jobs:
       inputs.skip-release-build != true &&
       needs.should-run-checks.outputs.should_run == 'true'
 
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     env:
-      RUNS_ON: macos-15 # keep this in sync with runs-on above
+      RUNS_ON: macos-26 # keep this in sync with runs-on above
+
+    outputs:
+      changed_files: ${{ steps.changed-strings-files.outputs.changed_files }}
 
     steps:
     - name: Register SSH key for certificates repository access
@@ -512,6 +532,15 @@ jobs:
         pixel-params: |
           runner: ${{ env.RUNS_ON }}
 
+    - name: Check for changed strings files
+      id: changed-strings-files
+      run: |
+        changed_files=$(git diff --name-only HEAD -- ':(glob)**/*.strings' || true)
+        # Preserve newlines in the changed_files output
+        echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+        echo "$changed_files" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
     - name: Upload failed test log
       uses: actions/upload-artifact@v4
       if: failure()
@@ -556,7 +585,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    needs: should-run-checks
+    needs: [should-run-checks, release-build]
     # Only run for PRs targeting main, release/*, or hotfix/* branches
     if: >
       github.event_name == 'pull_request' &&
@@ -580,7 +609,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Verify string extraction
+      - name: Verify string extraction to strings files
+        env:
+          CHANGED_FILES: ${{ needs.release-build.outputs.changed_files }}
+        run: |
+          # Check if any .strings files were modified during build
+          if [[ -n "$CHANGED_FILES" ]]; then
+            echo "⚠️ Uncommitted changes to .strings files detected after build. Please commit these files:"
+            echo "$CHANGED_FILES"
+            exit 1
+          else
+            echo "✅ No uncommitted changes to .strings files detected after build"
+            exit 0
+          fi
+
+      - name: Verify string extraction to xcstrings files
         run: python3 scripts/translation-pr-checks/verify_string_extraction.py --platform macOS
 
       - name: Check translations

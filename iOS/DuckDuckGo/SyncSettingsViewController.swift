@@ -120,6 +120,7 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
         setUpSyncPaused(viewModel, syncPausedStateManager: syncPausedStateManager)
         setUpSyncInvalidObjectsInfo(viewModel)
         setUpSyncFeatureFlags(viewModel)
+        setUpAIChatSyncFeatureFlag(viewModel)
         refreshForState(syncService.authState)
 
         syncService.authStatePublisher
@@ -161,6 +162,17 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
                 viewModel.isAccountCreationAvailable = featureFlags.contains(.accountCreation)
                 viewModel.isAccountRecoveryAvailable = featureFlags.contains(.accountRecovery)
                 viewModel.isAppVersionNotSupported = featureFlags.unavailableReason == .appVersionNotSupported
+            }
+            .store(in: &cancellables)
+    }
+
+    private func setUpAIChatSyncFeatureFlag(_ viewModel: SyncSettingsViewModel) {
+        featureFlagger.updatesPublisher
+            .prepend(())
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                viewModel.isAIChatSyncEnabled = self.featureFlagger.isFeatureOn(.aiChatSync)
             }
             .store(in: &cancellables)
     }
@@ -428,6 +440,7 @@ extension SyncSettingsViewController: ScanOrPasteCodeViewModelDelegate {
         let registeredDevices = try await syncService.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
         mapDevices(registeredDevices)
         Pixel.fire(pixel: .syncLogin, includedParameters: [.appVersion])
+        AutofillOnboardingExperimentPixelReporter().fireSyncEnabled(true)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.dismissVCAndShowRecoveryPDF()
         }
@@ -497,6 +510,7 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
     func controllerDidCreateSyncAccount() {
         let additionalParameters = source.map { ["source": $0] } ?? [:]
         Pixel.fire(pixel: .syncSignupConnect, withAdditionalParameters: additionalParameters, includedParameters: [.appVersion])
+        AutofillOnboardingExperimentPixelReporter().fireSyncEnabled(true)
         self.dismissVCAndShowRecoveryPDF()
         rootView.model.syncEnabled(recoveryCode: recoveryCode)
     }
@@ -532,6 +546,7 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
     func controllerDidCompleteLogin(registeredDevices: [RegisteredDevice], isRecovery: Bool, setupRole: SyncSetupRole) {
         mapDevices(registeredDevices)
         Pixel.fire(pixel: .syncLogin, includedParameters: [.appVersion])
+        AutofillOnboardingExperimentPixelReporter().fireSyncEnabled(true)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.dismissVCAndShowRecoveryPDF()
         }

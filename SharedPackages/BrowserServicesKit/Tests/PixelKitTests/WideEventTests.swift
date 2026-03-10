@@ -43,7 +43,7 @@ final class MockWideEventSending: WideEventSending {
         let mockData = data as? MockWideEventData
         let postEndpointEnabled = featureFlagProvider.isEnabled(.postEndpoint)
         let call = CapturedCall(
-            pixelName: T.pixelName,
+            pixelName: T.metadata.pixelName,
             status: status,
             postEndpointEnabled: postEndpointEnabled,
             contextName: data.contextData.name,
@@ -74,8 +74,13 @@ final class MockWideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
 // MARK: - Mock Wide Event Data
 
 final class MockWideEventData: WideEventData {
-    static let pixelName = "mock-wide-event"
-    static let featureName = "mock-wide-event"
+    static let metadata = WideEventMetadata(
+        pixelName: "mock-wide-event",
+        featureName: "mock-wide-event",
+        mobileMetaType: "ios-test-mock-wide-event",
+        desktopMetaType: "macos-test-mock-wide-event",
+        version: "1.0.0"
+    )
 
     enum FailingStep: String, Codable {
         case step1 = "step_1"
@@ -112,8 +117,8 @@ final class MockWideEventData: WideEventData {
         self.globalData = globalData
     }
 
-    func pixelParameters() -> [String: String] {
-        var params: [String: String] = [:]
+    func jsonParameters() -> [String: Encodable] {
+        var params: [String: Encodable] = [:]
 
         if let failingStep = failingStep {
             params["feature.data.ext.failing_step"] = failingStep.rawValue
@@ -123,7 +128,7 @@ final class MockWideEventData: WideEventData {
             params["feature.data.ext.test_identifier"] = testIdentifier
         }
 
-        params["feature.data.ext.test_eligible"] = String(testEligible)
+        params["feature.data.ext.test_eligible"] = testEligible
 
         return params
     }
@@ -292,14 +297,19 @@ final class WideEventTests: XCTestCase {
 
     func testSerializationFailure() throws {
         struct NonSerializableData: WideEventData {
-            static let pixelName = "non_serializable"
-            static let featureName = "non_serializable"
+            static let metadata = WideEventMetadata(
+                pixelName: "non_serializable",
+                featureName: "non_serializable",
+                mobileMetaType: "ios-test-non-serializable",
+                desktopMetaType: "macos-test-non-serializable",
+                version: "1.0.0"
+            )
             let closure: () -> Void = { }
             var contextData: WideEventContextData = WideEventContextData()
             var appData: WideEventAppData = WideEventAppData()
             var globalData: WideEventGlobalData = WideEventGlobalData(platform: "", sampleRate: 1.0)
             var errorData: WideEventErrorData?
-            func pixelParameters() -> [String: String] { [:] }
+            func jsonParameters() -> [String: Encodable] { [:] }
 
             enum CodingError: Error { case encodingNotSupported }
 
@@ -520,7 +530,7 @@ final class WideEventTests: XCTestCase {
         XCTAssert(capturedPixels.count >= 1 && capturedPixels.count <= 2)
         let params = capturedPixels[0].parameters
         XCTAssertEqual(params["feature.status"], "SUCCESS")
-        XCTAssertEqual(params["feature.status_reason"], "test_success_reason")
+        XCTAssertEqual(params["feature.data.ext.status_reason"], "test_success_reason")
     }
 
     func testFlowRestartWithSameContextID() throws {
@@ -589,6 +599,96 @@ final class WideEventTests: XCTestCase {
 
     enum TestError: Error {
         case flowNotFound
+    }
+}
+
+// MARK: - Parameter Conversion Tests
+
+final class WideEventParameterConversionTests: XCTestCase {
+
+    func testStringValuesPassThroughUnchanged() {
+        let provider = TestParameterProvider(parameters: [
+            "key1": "hello",
+            "key2": "world",
+        ])
+
+        let pixel = provider.pixelParameters()
+        XCTAssertEqual(pixel["key1"], "hello")
+        XCTAssertEqual(pixel["key2"], "world")
+    }
+
+    func testBoolConvertsToString() {
+        let provider = TestParameterProvider(parameters: [
+            "enabled": true,
+            "disabled": false,
+        ])
+
+        let pixel = provider.pixelParameters()
+        XCTAssertEqual(pixel["enabled"], "true")
+        XCTAssertEqual(pixel["disabled"], "false")
+    }
+
+    func testIntConvertsToString() {
+        let provider = TestParameterProvider(parameters: [
+            "code": 42,
+            "negative": -1,
+            "zero": 0,
+        ])
+
+        let pixel = provider.pixelParameters()
+        XCTAssertEqual(pixel["code"], "42")
+        XCTAssertEqual(pixel["negative"], "-1")
+        XCTAssertEqual(pixel["zero"], "0")
+    }
+
+    func testUInt64ConvertsToString() {
+        let provider = TestParameterProvider(parameters: [
+            "large": UInt64(10_737_418_240),
+        ])
+
+        let pixel = provider.pixelParameters()
+        XCTAssertEqual(pixel["large"], "10737418240")
+    }
+
+    func testFloatConvertsToString() {
+        let provider = TestParameterProvider(parameters: [
+            "rate": Float(0.5),
+            "whole": Float(1.0),
+        ])
+
+        let pixel = provider.pixelParameters()
+        XCTAssertEqual(pixel["rate"], "0.5")
+        XCTAssertEqual(pixel["whole"], "1.0")
+    }
+
+    func testMixedTypesConvertCorrectly() {
+        let provider = TestParameterProvider(parameters: [
+            "name": "test",
+            "enabled": true,
+            "count": 7,
+            "rate": Float(0.25),
+            "bytes": UInt64(1024),
+        ])
+
+        let pixel = provider.pixelParameters()
+        XCTAssertEqual(pixel["name"], "test")
+        XCTAssertEqual(pixel["enabled"], "true")
+        XCTAssertEqual(pixel["count"], "7")
+        XCTAssertEqual(pixel["rate"], "0.25")
+        XCTAssertEqual(pixel["bytes"], "1024")
+    }
+
+    func testEmptyParametersReturnsEmpty() {
+        let provider = TestParameterProvider(parameters: [:])
+        XCTAssertTrue(provider.pixelParameters().isEmpty)
+    }
+}
+
+private struct TestParameterProvider: WideEventParameterProviding {
+    let parameters: [String: Encodable]
+
+    func jsonParameters() -> [String: Encodable] {
+        parameters
     }
 }
 
@@ -702,7 +802,7 @@ final class WideEventSendingTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
 
         XCTAssertEqual(mockSender.capturedCalls.count, 1)
-        XCTAssertEqual(mockSender.capturedCalls[0].pixelName, MockWideEventData.pixelName)
+        XCTAssertEqual(mockSender.capturedCalls[0].pixelName, MockWideEventData.metadata.pixelName)
     }
 
     func testWideEventPassesDataToSender() throws {
@@ -979,6 +1079,6 @@ final class DefaultWideEventSendingTests: XCTestCase {
         XCTAssertEqual(parameters["feature.data.ext.test_identifier"], "test-id")
         XCTAssertEqual(parameters["feature.data.ext.test_eligible"], "true")
         XCTAssertEqual(parameters["feature.status"], "SUCCESS")
-        XCTAssertEqual(parameters["feature.status_reason"], "test_reason")
+        XCTAssertEqual(parameters["feature.data.ext.status_reason"], "test_reason")
     }
 }

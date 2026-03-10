@@ -39,7 +39,6 @@ class HistoryTabExtensionTests: XCTestCase {
         let trackersPublisher: AnyPublisher<DetectedTracker, Never> = Empty().eraseToAnyPublisher()
         let urlPublisher: AnyPublisher<URL?, Never> = Empty().eraseToAnyPublisher()
         let titlePublisher: AnyPublisher<String?, Never> = Empty().eraseToAnyPublisher()
-        let popupManagedPublisher: AnyPublisher<AutoconsentUserScript.AutoconsentDoneMessage, Never> = Empty().eraseToAnyPublisher()
 
         let mockScriptProvider = MockScriptProvider(historyViewUserScript: HistoryViewUserScript())
         let scriptsSubject = CurrentValueSubject<MockScriptProvider, Never>(mockScriptProvider)
@@ -51,7 +50,6 @@ class HistoryTabExtensionTests: XCTestCase {
             trackersPublisher: trackersPublisher,
             urlPublisher: urlPublisher,
             titlePublisher: titlePublisher,
-            popupManagedPublisher: popupManagedPublisher,
             scriptsPublisher: scriptsSubject.eraseToAnyPublisher(),
             webViewPublisher: webViewSubject.eraseToAnyPublisher()
         )
@@ -59,7 +57,7 @@ class HistoryTabExtensionTests: XCTestCase {
         let navigationIdentity = NavigationIdentity(nil)
         let responderChain = ResponderChain(responderRefs: [])
         let urlRequest = URLRequest(url: .duckDuckGo)
-        let frameInfo = FrameInfo(frame: WKFrameInfo())
+        let frameInfo = FrameInfo(frame: .mock())
         let navigationAction = NavigationAction(request: urlRequest, navigationType: .reload, currentHistoryItemIdentity: nil, redirectHistory: [], isUserInitiated: false, sourceFrame: frameInfo, targetFrame: nil, shouldDownload: false, mainFrameNavigation: nil)
         let navigation = Navigation(identity: navigationIdentity, responders: responderChain, state: .started, redirectHistory: [navigationAction], isCurrent: true, isCommitted: false)
         historyTabExtension.willStart(navigation)

@@ -20,8 +20,13 @@ import Foundation
 import PixelKit
 
 public final class OptOutSubmissionWideEventData: WideEventData {
-    public static let pixelName = "pir_opt_out_submission"
-    public static let featureName = "pir-opt-out-submission"
+    public static let metadata = WideEventMetadata(
+        pixelName: "pir_opt_out_submission",
+        featureName: "pir-opt-out-submission",
+        mobileMetaType: "ios-pir-opt-out-submission",
+        desktopMetaType: "macos-pir-opt-out-submission",
+        version: "1.0.0"
+    )
 
     public var globalData: WideEventGlobalData
     public var contextData: WideEventContextData
@@ -55,11 +60,11 @@ extension OptOutSubmissionWideEventData {
         case recordFoundDateMissing = "record_found_date_missing"
     }
 
-    public func pixelParameters() -> [String: String] {
+    public func jsonParameters() -> [String: Encodable] {
         Dictionary(compacting: [
             (DBPWideEventParameter.OptOutSubmissionFeature.dataBrokerURL, dataBrokerURL),
             (DBPWideEventParameter.OptOutSubmissionFeature.dataBrokerVersion, dataBrokerVersion),
-            (DBPWideEventParameter.OptOutSubmissionFeature.submissionLatency, submissionInterval?.stringValue(.noBucketing)),
+            (DBPWideEventParameter.OptOutSubmissionFeature.submissionLatency, submissionInterval?.intValue(.noBucketing)),
         ])
     }
 }

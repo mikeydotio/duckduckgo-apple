@@ -26,8 +26,13 @@ import UIKit
 #endif
 
 public class AuthV2TokenRefreshWideEventData: WideEventData {
-    public static let pixelName = "auth_v2_token_refresh"
-    public static let featureName = "authv2-token-refresh"
+    public static let metadata = WideEventMetadata(
+        pixelName: "auth_v2_token_refresh",
+        featureName: "authv2-token-refresh",
+        mobileMetaType: "ios-authv2-token-refresh",
+        desktopMetaType: "macos-authv2-token-refresh",
+        version: "1.0.1"
+    )
 
     public var globalData: WideEventGlobalData
     public var contextData: WideEventContextData
@@ -67,13 +72,13 @@ extension AuthV2TokenRefreshWideEventData {
         case partialData = "partial_data"
     }
 
-    public func pixelParameters() -> [String: String] {
+    public func jsonParameters() -> [String: Encodable] {
         let bucket: DurationBucket = .bucketed(Self.bucket)
 
         return Dictionary(compacting: [
             (WideEventParameter.AuthV2RefreshFeature.failingStep, failingStep?.rawValue),
-            (WideEventParameter.AuthV2RefreshFeature.refreshTokenLatency, refreshTokenDuration?.stringValue(bucket)),
-            (WideEventParameter.AuthV2RefreshFeature.fetchJWKSLatency, fetchJWKSDuration?.stringValue(bucket)),
+            (WideEventParameter.AuthV2RefreshFeature.refreshTokenLatency, refreshTokenDuration?.intValue(bucket)),
+            (WideEventParameter.AuthV2RefreshFeature.fetchJWKSLatency, fetchJWKSDuration?.intValue(bucket)),
         ])
     }
 

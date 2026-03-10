@@ -21,6 +21,18 @@ import Core
 import SwiftUI
 import DesignResourcesKit
 
+enum AfterInactivityOption: String, CaseIterable, CustomStringConvertible {
+    case newTab
+    case lastUsedTab
+
+    var description: String {
+        switch self {
+        case .newTab: return UserText.settingsAfterInactivityOptionNewTab
+        case .lastUsedTab: return UserText.settingsAfterInactivityOptionLastUsedTab
+        }
+    }
+}
+
 struct SettingsGeneralView: View {
 
     @EnvironmentObject var viewModel: SettingsViewModel
@@ -34,12 +46,26 @@ struct SettingsGeneralView: View {
                                  accessory: .toggle(isOn: viewModel.applicationLockBinding))
 
             }
+            // NTP after idle time
+            if viewModel.shouldShowNTPAfterIdleSetting {
+                Section(footer: Text(String(format: UserText.settingsAfterInactivityFooterFormat, viewModel.idleTimeInterval))) {
+                    // Text Size
+                    SettingsPickerCellView(label: UserText.settingsAfterInactivityLabel,
+                                           options: AfterInactivityOption.allCases,
+                                           selectedOption: viewModel.afterInactivityOptionBinding)
+                }
+            }
 
-            Section(header: Text(UserText.privateSearch),
-                    footer: Text(UserText.settingsAutocompleteSubtitle)) {
+            Section(header: Text(showChatSuggestions ? UserText.privateSearchAndChat : UserText.privateSearch),
+                    footer: Text(showChatSuggestions ? UserText.settingsAutocompleteWithChatSubtitle : UserText.settingsAutocompleteSubtitle)) {
                 // Autocomplete Suggestions
                 SettingsCellView(label: UserText.settingsAutocompleteLabel,
                                  accessory: .toggle(isOn: viewModel.autocompleteGeneralBinding))
+
+                if showChatSuggestions {
+                    SettingsCellView(label: UserText.settingsChatSuggestionsTitle,
+                                     accessory: .toggle(isOn: viewModel.isChatSuggestionsEnabled))
+                }
             }
 
             if viewModel.shouldShowRecentlyVisitedSites {
@@ -93,5 +119,11 @@ struct SettingsGeneralView: View {
         .onFirstAppear {
             Pixel.fire(pixel: .settingsGeneralOpen)
         }
+    }
+
+    private var showChatSuggestions: Bool {
+        viewModel.featureFlagger.isFeatureOn(.aiChatSuggestions)
+            && viewModel.isAIChatEnabled
+            && viewModel.aiChatSettings.isAIChatSearchInputUserSettingsEnabled
     }
 }

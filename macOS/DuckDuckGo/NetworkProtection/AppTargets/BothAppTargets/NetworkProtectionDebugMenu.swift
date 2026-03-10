@@ -17,13 +17,14 @@
 //
 
 import AppKit
+import AppKitExtensions
 import Common
 import Foundation
-import VPN
 import NetworkProtectionProxy
-import SwiftUI
 import os.log
 import Subscription
+import SwiftUI
+import VPN
 
 /// Controller for the VPN debug menu.
 ///
@@ -54,8 +55,10 @@ final class NetworkProtectionDebugMenu: NSMenu {
     private let excludeLocalNetworksMenuItem = NSMenuItem(title: "excludeLocalNetworks", action: #selector(NetworkProtectionDebugMenu.toggleShouldExcludeLocalRoutes))
 
     private let networkProtectionDeviceManager: NetworkProtectionDeviceManager
+    private let pinningManager: PinningManager
 
-    init() {
+    init(pinningManager: PinningManager) {
+        self.pinningManager = pinningManager
         preferredServerMenu = NSMenu { [preferredServerAutomaticItem] in
             preferredServerAutomaticItem
         }
@@ -200,7 +203,7 @@ final class NetworkProtectionDebugMenu: NSMenu {
 
     // MARK: - Debug Logic
 
-    private let debugUtilities = NetworkProtectionDebugUtilities()
+    private lazy var debugUtilities = NetworkProtectionDebugUtilities(pinningManager: pinningManager)
 
     // MARK: - Debug Menu Actions
 
@@ -285,7 +288,7 @@ final class NetworkProtectionDebugMenu: NSMenu {
     @objc func simulateSubscriptionExpirationInTunnel(_ sender: Any?) {
         Task { @MainActor in
             do {
-                try await NetworkProtectionDebugUtilities().simulateSubscriptionExpirationInTunnel()
+                try await debugUtilities.simulateSubscriptionExpirationInTunnel()
             } catch {
                 await NSAlert(error: error).runModal()
             }
@@ -622,6 +625,6 @@ final class NetworkProtectionDebugMenu: NSMenu {
 
 #if DEBUG
 #Preview {
-    return MenuPreview(menu: NetworkProtectionDebugMenu())
+    return MenuPreview(menu: NetworkProtectionDebugMenu(pinningManager: LocalPinningManager()))
 }
 #endif

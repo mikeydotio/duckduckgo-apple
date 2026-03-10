@@ -37,13 +37,16 @@ public final class DefaultWideEventSender: WideEventSending {
 
     private let pixelKitProvider: () -> PixelKit?
     private let postRequestHandler: POSTRequestHandler
+    private let storage: WideEventStoring
 
     public init(
         pixelKitProvider: @escaping () -> PixelKit? = { PixelKit.shared },
-        postRequestHandler: POSTRequestHandler? = nil
+        postRequestHandler: POSTRequestHandler? = nil,
+        storage: WideEventStoring = WideEventUserDefaultsStorage()
     ) {
         self.pixelKitProvider = pixelKitProvider
         self.postRequestHandler = postRequestHandler ?? Self.defaultPOSTRequestHandler
+        self.storage = storage
     }
 
     public func send<T: WideEventData>(
@@ -52,13 +55,14 @@ public final class DefaultWideEventSender: WideEventSending {
         featureFlagProvider: WideEventFeatureFlagProviding,
         onComplete: @escaping PixelKit.CompletionBlock
     ) {
-        guard let pixelName = Self.generatePixelName(for: T.pixelName) else {
+        guard let pixelName = Self.generatePixelName(for: T.metadata.pixelName) else {
             Self.logger.warning("Cannot fire wide event: empty pixel name")
             onComplete(false, WideEventError.emptyPixelName)
             return
         }
 
-        let parameters = generateFinalParameters(from: data, status: status)
+        let isFirstDailyOccurrence = checkFirstDailyOccurrence(for: T.metadata.type)
+        let parameters = generateFinalParameters(from: data, status: status, isFirstDailyOccurrence: isFirstDailyOccurrence)
 
         guard !parameters.isEmpty else {
             Self.logger.warning("Cannot fire wide event: empty parameters \(pixelName, privacy: .public)")
@@ -67,15 +71,28 @@ public final class DefaultWideEventSender: WideEventSending {
         }
 
         firePixels(pixelName: pixelName, parameters: parameters, onComplete: onComplete)
+        storage.recordSentTimestamp(for: T.metadata.type, date: Date())
 
         if featureFlagProvider.isEnabled(.postEndpoint) {
-            sendPOSTRequest(data: data, status: status)
+            sendPOSTRequest(data: data, status: status, isFirstDailyOccurrence: isFirstDailyOccurrence)
         }
     }
 
-    private func generateFinalParameters<T: WideEventData>(from data: T, status: WideEventStatus) -> [String: String] {
+    private func checkFirstDailyOccurrence(for eventType: String) -> Bool {
+        guard let lastSent = storage.lastSentTimestamp(for: eventType) else {
+            return true
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+
+        return !calendar.isDateInToday(lastSent)
+    }
+
+    private func generateFinalParameters<T: WideEventData>(from data: T, status: WideEventStatus, isFirstDailyOccurrence: Bool) -> [String: String] {
         var parameters: [String: String] = [:]
 
+        parameters.merge(T.metadata.pixelParameters(), uniquingKeysWith: { _, new in new })
         parameters.merge(data.globalData.pixelParameters(), uniquingKeysWith: { _, new in new })
         parameters.merge(data.appData.pixelParameters(), uniquingKeysWith: { _, new in new })
         parameters.merge(data.contextData.pixelParameters(), uniquingKeysWith: { _, new in new })
@@ -85,7 +102,7 @@ public final class DefaultWideEventSender: WideEventSending {
             parameters.merge(errorData.pixelParameters(), uniquingKeysWith: { _, new in new })
         }
 
-        parameters[WideEventParameter.Feature.name] = T.featureName
+        parameters[WideEventParameter.Feature.name] = T.metadata.featureName
         parameters[WideEventParameter.Feature.status] = status.description
 
         switch status {
@@ -93,6 +110,10 @@ public final class DefaultWideEventSender: WideEventSending {
             parameters[WideEventParameter.Feature.statusReason] = reason
         case .failure, .cancelled, .success(nil):
             break
+        }
+
+        if isFirstDailyOccurrence {
+            parameters[WideEventParameter.Global.isFirstDailyOccurrence] = "true"
         }
 
         return parameters
@@ -155,8 +176,8 @@ public final class DefaultWideEventSender: WideEventSending {
         )
     }
 
-    private func sendPOSTRequest<T: WideEventData>(data: T, status: WideEventStatus) {
-        let parameters = generateJSONParameters(from: data, status: status)
+    private func sendPOSTRequest<T: WideEventData>(data: T, status: WideEventStatus, isFirstDailyOccurrence: Bool) {
+        let parameters = generateJSONParameters(from: data, status: status, isFirstDailyOccurrence: isFirstDailyOccurrence)
         let nested = nestedDictionary(from: parameters)
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: nested, options: []) else {
@@ -171,8 +192,8 @@ public final class DefaultWideEventSender: WideEventSending {
 
         postRequestHandler(Self.postEndpoint, jsonData, headers) { success, error in
             if success {
-#if DEBUG
-                Self.logger.info("Wide event POST request skipped due to DEBUG mode")
+#if DEBUG || REVIEW || ALPHA
+                Self.logger.info("Wide event POST request skipped due to non-release build configuration")
 #else
                 Self.logger.info("Wide event POST request sent successfully")
 #endif
@@ -182,9 +203,10 @@ public final class DefaultWideEventSender: WideEventSending {
         }
     }
 
-    private func generateJSONParameters<T: WideEventData>(from data: T, status: WideEventStatus) -> [String: Encodable] {
+    private func generateJSONParameters<T: WideEventData>(from data: T, status: WideEventStatus, isFirstDailyOccurrence: Bool) -> [String: Encodable] {
         var parameters: [String: Encodable] = [:]
 
+        parameters.merge(T.metadata.jsonParameters(), uniquingKeysWith: { _, new in new })
         parameters.merge(data.globalData.jsonParameters(), uniquingKeysWith: { _, new in new })
         parameters.merge(data.appData.jsonParameters(), uniquingKeysWith: { _, new in new })
         parameters.merge(data.contextData.jsonParameters(), uniquingKeysWith: { _, new in new })
@@ -194,7 +216,7 @@ public final class DefaultWideEventSender: WideEventSending {
             parameters.merge(errorData.jsonParameters(), uniquingKeysWith: { _, new in new })
         }
 
-        parameters[WideEventParameter.Feature.name] = T.featureName
+        parameters[WideEventParameter.Feature.name] = T.metadata.featureName
         parameters[WideEventParameter.Feature.status] = status.description
 
         switch status {
@@ -202,6 +224,10 @@ public final class DefaultWideEventSender: WideEventSending {
             parameters[WideEventParameter.Feature.statusReason] = reason
         case .failure, .cancelled, .success(nil):
             break
+        }
+
+        if isFirstDailyOccurrence {
+            parameters[WideEventParameter.Global.isFirstDailyOccurrence] = true
         }
 
         return parameters
@@ -243,7 +269,7 @@ public final class DefaultWideEventSender: WideEventSending {
         headers: [String: String],
         onComplete: @escaping (Bool, Error?) -> Void
     ) {
-#if DEBUG
+#if DEBUG || REVIEW || ALPHA
         // Avoid sending real POST events when running debug mode, since we can't talk to the staging environment from
         // the client environment directly:
         onComplete(true, nil)

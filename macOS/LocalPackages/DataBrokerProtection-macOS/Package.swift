@@ -71,9 +71,11 @@ let package = Package(
                 "DataBrokerProtectionCore",
                 .product(name: "DataBrokerProtectionCoreTestsUtils", package: "DataBrokerProtectionCore"),
                 "BrowserServicesKit",
+                .product(name: "BrowserServicesKitTestsUtils", package: "BrowserServicesKit"),
                 "Freemium",
                 .product(name: "PersistenceTestingUtils", package: "BrowserServicesKit"),
                 .product(name: "SubscriptionTestingUtilities", package: "BrowserServicesKit"),
+                .product(name: "PrivacyConfigTestsUtils", package: "BrowserServicesKit"),
                 .product(name: "FeatureFlags", package: "FeatureFlags"),
             ]
         )

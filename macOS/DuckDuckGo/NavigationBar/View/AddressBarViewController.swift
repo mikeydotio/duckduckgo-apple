@@ -82,7 +82,6 @@ final class AddressBarViewController: NSViewController {
     @IBOutlet var activeOuterBorderView: ColorView!
     @IBOutlet var activeBackgroundViewWithSuggestions: ColorView!
     @IBOutlet var innerBorderView: ColorView!
-    @IBOutlet var progressIndicator: LoadingProgressView!
     @IBOutlet var buttonsContainerView: NSView!
     @IBOutlet var switchToTabBox: ColorView!
     @IBOutlet var switchToTabLabel: NSTextField!
@@ -106,7 +105,7 @@ final class AddressBarViewController: NSViewController {
     private let onboardingPixelReporter: OnboardingAddressBarReporting
     private var tabViewModel: TabViewModel?
     private let aiChatMenuConfig: AIChatMenuVisibilityConfigurable
-    private let aiChatSidebarPresenter: AIChatSidebarPresenting
+    private let aiChatCoordinator: AIChatCoordinating
     private let searchPreferences: SearchPreferences
     private let tabsPreferences: TabsPreferences
     private let accessibilityPreferences: AccessibilityPreferences
@@ -210,7 +209,7 @@ final class AddressBarViewController: NSViewController {
           onboardingPixelReporter: OnboardingAddressBarReporting = OnboardingPixelReporter(),
           aiChatSettings: AIChatPreferencesStorage = DefaultAIChatPreferencesStorage(),
           aiChatMenuConfig: AIChatMenuVisibilityConfigurable,
-          aiChatSidebarPresenter: AIChatSidebarPresenting,
+          aiChatCoordinator: AIChatCoordinating,
           featureFlagger: FeatureFlagger = NSApp.delegateTyped.featureFlagger) {
         self.tabCollectionViewModel = tabCollectionViewModel
         self.bookmarkManager = bookmarkManager
@@ -238,7 +237,7 @@ final class AddressBarViewController: NSViewController {
         self.accessibilityPreferences = accessibilityPreferences
         self.themeManager = themeManager
         self.aiChatMenuConfig = aiChatMenuConfig
-        self.aiChatSidebarPresenter = aiChatSidebarPresenter
+        self.aiChatCoordinator = aiChatCoordinator
         self.featureFlagger = featureFlagger
 
         super.init(coder: coder)
@@ -255,7 +254,7 @@ final class AddressBarViewController: NSViewController {
                                                          popovers: popovers,
                                                          aiChatTabOpener: NSApp.delegateTyped.aiChatTabOpener,
                                                          aiChatMenuConfig: aiChatMenuConfig,
-                                                         aiChatSidebarPresenter: aiChatSidebarPresenter,
+                                                         aiChatCoordinator: aiChatCoordinator,
                                                          aiChatSettings: aiChatSettings)
 
         self.addressBarButtonsViewController = controller
@@ -271,6 +270,8 @@ final class AddressBarViewController: NSViewController {
 
         setupAddressBarPlaceHolder()
         addressBarTextField.setAccessibilityIdentifier("AddressBarViewController.addressBarTextField")
+
+        passiveTextField.setAccessibilityIdentifier("AddressBarViewController.passiveTextField")
 
         passiveTextField.isSelectable = !isInPopUpWindow
         /// Passive Address Bar text field is centered by the constraints
@@ -419,7 +420,6 @@ final class AddressBarViewController: NSViewController {
                 addressBarTextField.sharedTextState = sharedTextState
 
                 subscribeToTabContent()
-                subscribeToProgressEventsIfNeeded()
 
                 // don't resign first responder on tab switching
                 clickPoint = nil
@@ -449,58 +449,6 @@ final class AddressBarViewController: NSViewController {
         tabViewModel?.tab.$content
             .map { $0 == .newtab }
             .assign(to: \.isHomePage, onWeaklyHeld: self)
-            .store(in: &tabViewModelCancellables)
-    }
-
-    private let displaysTabsProgressIndicator: Bool = NSApp.delegateTyped.displaysTabsProgressIndicator == false
-
-    private func subscribeToProgressEventsIfNeeded() {
-        guard let tabViewModel, displaysTabsProgressIndicator else {
-            progressIndicator.hide(animated: false)
-            return
-        }
-
-        func shouldShowLoadingIndicator(for tabViewModel: TabViewModel, isLoading: Bool, error: Error?) -> Bool {
-            if isLoading,
-               let url = tabViewModel.tab.content.urlForWebView,
-               url.navigationalScheme?.isHypertextScheme == true,
-               !url.isDuckDuckGoSearch, !url.isDuckPlayer,
-               error == nil {
-                return true
-            } else {
-                return false
-            }
-        }
-
-        if shouldShowLoadingIndicator(for: tabViewModel, isLoading: tabViewModel.isLoading, error: tabViewModel.tab.error) {
-            progressIndicator.show(progress: tabViewModel.progress, startTime: tabViewModel.loadingStartTime)
-        } else {
-            progressIndicator.hide(animated: false)
-        }
-
-        tabViewModel.$progress
-            .sink { [weak self] value in
-                guard tabViewModel.isLoading,
-                      let progressIndicator = self?.progressIndicator,
-                      progressIndicator.isProgressShown
-                else { return }
-
-                progressIndicator.increaseProgress(to: value)
-            }
-            .store(in: &tabViewModelCancellables)
-
-        tabViewModel.$isLoading.combineLatest(tabViewModel.tab.$error)
-            .debounce(for: 0.1, scheduler: RunLoop.main)
-            .sink { [weak self] isLoading, error in
-                guard let progressIndicator = self?.progressIndicator else { return }
-
-                if shouldShowLoadingIndicator(for: tabViewModel, isLoading: isLoading, error: error) {
-                    progressIndicator.show(progress: tabViewModel.progress, startTime: tabViewModel.loadingStartTime)
-
-                } else if progressIndicator.isProgressShown {
-                    progressIndicator.finishAndHide()
-                }
-            }
             .store(in: &tabViewModelCancellables)
     }
 
@@ -976,7 +924,7 @@ final class AddressBarViewController: NSViewController {
         self.clickPoint = nil
         guard let window = self.view.window, event.window === window, window.sheets.isEmpty else { return event }
 
-        if beginDraggingSessionIfNeeded(with: event, in: window) {
+        if window.isKeyWindow, beginDraggingSessionIfNeeded(with: event, in: window) {
             return nil
         }
 

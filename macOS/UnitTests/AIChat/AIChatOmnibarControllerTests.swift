@@ -19,6 +19,8 @@
 import XCTest
 import Combine
 import AIChat
+import FeatureFlags
+import PrivacyConfig
 @testable import DuckDuckGo_Privacy_Browser
 
 @MainActor
@@ -27,17 +29,29 @@ final class AIChatOmnibarControllerTests: XCTestCase {
     private var controller: AIChatOmnibarController!
     private var mockDelegate: MockAIChatOmnibarControllerDelegate!
     private var mockTabOpener: MockAIChatTabOpener!
+    private var featureFlagger: MockFeatureFlagger!
+    private var searchPreferencesPersistor: AIChatMockSearchPreferencesPersistor!
+    private var mockPreferences: MockAIChatPreferencesPersisting!
+    private var mockModelsService: MockAIChatModelsProviding!
     private var tabCollectionViewModel: TabCollectionViewModel!
 
     override func setUp() {
         super.setUp()
         mockDelegate = MockAIChatOmnibarControllerDelegate()
         mockTabOpener = MockAIChatTabOpener()
+        featureFlagger = MockFeatureFlagger()
+        searchPreferencesPersistor = AIChatMockSearchPreferencesPersistor()
+        mockPreferences = MockAIChatPreferencesPersisting()
+        mockModelsService = MockAIChatModelsProviding()
         tabCollectionViewModel = TabCollectionViewModel(isPopup: false)
 
         controller = AIChatOmnibarController(
             aiChatTabOpener: mockTabOpener,
-            tabCollectionViewModel: tabCollectionViewModel
+            tabCollectionViewModel: tabCollectionViewModel,
+            featureFlagger: featureFlagger,
+            searchPreferencesPersistor: searchPreferencesPersistor,
+            preferences: mockPreferences,
+            modelsService: mockModelsService
         )
         controller.delegate = mockDelegate
     }
@@ -46,6 +60,10 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         controller = nil
         mockDelegate = nil
         mockTabOpener = nil
+        featureFlagger = nil
+        searchPreferencesPersistor = nil
+        mockPreferences = nil
+        mockModelsService = nil
         tabCollectionViewModel = nil
         super.tearDown()
     }
@@ -213,6 +231,200 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         XCTAssertEqual(sharedTextState?.text, "shared text")
         XCTAssertEqual(sharedTextState?.hasUserInteractedWithText, true)
     }
+
+    // MARK: - Suggestions Feature Tests
+
+    func testWhenFeatureFlagAndAutocompleteBothEnabled_ThenSuggestionsEnabled() {
+        // Given
+        featureFlagger.featuresStub[FeatureFlag.aiChatSuggestions.rawValue] = true
+        searchPreferencesPersistor.showAutocompleteSuggestions = true
+
+        // Then
+        XCTAssertTrue(controller.isSuggestionsEnabled)
+    }
+
+    func testWhenFeatureFlagDisabled_ThenSuggestionsDisabled() {
+        // Given
+        featureFlagger.featuresStub[FeatureFlag.aiChatSuggestions.rawValue] = false
+        searchPreferencesPersistor.showAutocompleteSuggestions = true
+
+        // Then
+        XCTAssertFalse(controller.isSuggestionsEnabled)
+    }
+
+    func testWhenAutocompleteDisabled_ThenSuggestionsDisabled() {
+        // Given
+        featureFlagger.featuresStub[FeatureFlag.aiChatSuggestions.rawValue] = true
+        searchPreferencesPersistor.showAutocompleteSuggestions = false
+
+        // Then
+        XCTAssertFalse(controller.isSuggestionsEnabled)
+    }
+
+    func testWhenBothFeatureFlagAndAutocompleteDisabled_ThenSuggestionsDisabled() {
+        // Given
+        featureFlagger.featuresStub[FeatureFlag.aiChatSuggestions.rawValue] = false
+        searchPreferencesPersistor.showAutocompleteSuggestions = false
+
+        // Then
+        XCTAssertFalse(controller.isSuggestionsEnabled)
+    }
+
+    // MARK: - Model Selection Tests
+
+    func testWhenNoModelSelected_ThenCurrentModelIdIsNil() {
+        XCTAssertNil(controller.currentModelId)
+    }
+
+    func testWhenModelIsSelected_ThenCurrentModelIdReturnsPersistedValue() {
+        // Given
+        mockPreferences.selectedModelId = "claude-sonnet-4-5"
+
+        // Then
+        XCTAssertEqual(controller.currentModelId, "claude-sonnet-4-5")
+    }
+
+    func testWhenUpdateSelectedModel_ThenValueIsPersistedToPreferences() {
+        // When
+        controller.updateSelectedModel("gpt-4o-mini")
+
+        // Then
+        XCTAssertEqual(mockPreferences.selectedModelId, "gpt-4o-mini")
+    }
+
+    func testWhenNoModelSelectedAndNoModels_ThenPersistedModelIdIsEmpty() {
+        XCTAssertEqual(controller.persistedModelId, "")
+    }
+
+    func testWhenModelSelected_ThenPersistedModelIdReturnsSelection() {
+        // Given
+        mockPreferences.selectedModelId = "claude-sonnet-4-5"
+
+        // Then
+        XCTAssertEqual(controller.persistedModelId, "claude-sonnet-4-5")
+    }
+
+    func testWhenModelsEmpty_ThenSelectedModelSupportsImageUploadReturnsTrue() {
+        // Conservative default: show image button when models haven't loaded
+        XCTAssertTrue(controller.selectedModelSupportsImageUpload)
+    }
+
+    // MARK: - Model Selection With Loaded Models
+
+    func testWhenNoModelSelectedAndModelsAvailable_ThenPersistedModelIdFallsBackToFirstAccessible() async {
+        // Given
+        mockModelsService.modelsToReturn = [
+            makeRemoteModel(id: "premium-model", entityHasAccess: false),
+            makeRemoteModel(id: "free-model", entityHasAccess: true),
+        ]
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
+
+        // Then
+        XCTAssertEqual(controller.persistedModelId, "free-model")
+    }
+
+    func testWhenSelectedModelSupportsImages_ThenReturnsTrue() async {
+        // Given
+        mockModelsService.modelsToReturn = [
+            makeRemoteModel(id: "vision-model", supportsImageUpload: true, entityHasAccess: true)
+        ]
+        mockPreferences.selectedModelId = "vision-model"
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
+
+        // Then
+        XCTAssertTrue(controller.selectedModelSupportsImageUpload)
+    }
+
+    func testWhenSelectedModelDoesNotSupportImages_ThenReturnsFalse() async {
+        // Given
+        mockModelsService.modelsToReturn = [
+            makeRemoteModel(id: "text-only-model", supportsImageUpload: false, entityHasAccess: true)
+        ]
+        mockPreferences.selectedModelId = "text-only-model"
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
+
+        // Then
+        XCTAssertFalse(controller.selectedModelSupportsImageUpload)
+    }
+
+    func testWhenSelectedModelNotInList_ThenDefaultsToTrue() async {
+        // Given
+        mockModelsService.modelsToReturn = [
+            makeRemoteModel(id: "some-model", entityHasAccess: true)
+        ]
+        mockPreferences.selectedModelId = "nonexistent-model"
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
+
+        // Then
+        XCTAssertTrue(controller.selectedModelSupportsImageUpload)
+    }
+
+    // MARK: - Model Fetch Tests
+
+    func testWhenOmnibarActivated_ThenModelsFetched() async {
+        // Given
+        mockModelsService.modelsToReturn = [
+            AIChatRemoteModel(id: "gpt-4o-mini", name: "GPT-4o mini", provider: "openai",
+                              entityHasAccess: true, supportsImageUpload: false,
+                              supportedTools: [], accessTier: ["free"])
+        ]
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
+
+        // Then
+        XCTAssertEqual(controller.models.count, 1)
+        XCTAssertEqual(controller.models.first?.id, "gpt-4o-mini")
+    }
+
+    func testWhenModelFetchFails_ThenModelsRemainEmpty() async {
+        // Given
+        mockModelsService.errorToThrow = NSError(domain: "test", code: -1)
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
+
+        // Then
+        XCTAssertTrue(controller.models.isEmpty)
+    }
+
+    // MARK: - Helpers
+
+    private func makeRemoteModel(
+        id: String,
+        supportsImageUpload: Bool = false,
+        entityHasAccess: Bool = true
+    ) -> AIChatRemoteModel {
+        AIChatRemoteModel(
+            id: id,
+            name: id,
+            provider: "openai",
+            entityHasAccess: entityHasAccess,
+            supportsImageUpload: supportsImageUpload,
+            supportedTools: [],
+            accessTier: []
+        )
+    }
+
+    private func waitForModels() async {
+        // Allow the async Task inside onOmnibarActivated to complete
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+    }
 }
 
 // MARK: - Mock Delegate
@@ -221,6 +433,8 @@ private class MockAIChatOmnibarControllerDelegate: AIChatOmnibarControllerDelega
     var didSubmitCalled = false
     var didRequestNavigationToURLCalled = false
     var lastNavigationURL: URL?
+    var didSelectSuggestionCalled = false
+    var lastSelectedSuggestion: AIChatSuggestion?
 
     func aiChatOmnibarControllerDidSubmit(_ controller: AIChatOmnibarController) {
         didSubmitCalled = true
@@ -229,5 +443,36 @@ private class MockAIChatOmnibarControllerDelegate: AIChatOmnibarControllerDelega
     func aiChatOmnibarController(_ controller: AIChatOmnibarController, didRequestNavigationToURL url: URL) {
         didRequestNavigationToURLCalled = true
         lastNavigationURL = url
+    }
+
+    func aiChatOmnibarController(_ controller: AIChatOmnibarController, didSelectSuggestion suggestion: AIChatSuggestion) {
+        didSelectSuggestionCalled = true
+        lastSelectedSuggestion = suggestion
+    }
+}
+
+// MARK: - Mock Search Preferences Persistor
+
+private class AIChatMockSearchPreferencesPersistor: SearchPreferencesPersistor {
+    var showAutocompleteSuggestions: Bool = true
+}
+
+// MARK: - Mock AI Chat Preferences
+
+private class MockAIChatPreferencesPersisting: AIChatPreferencesPersisting {
+    var selectedModelId: String?
+}
+
+// MARK: - Mock Models Service
+
+private class MockAIChatModelsProviding: AIChatModelsProviding {
+    var modelsToReturn: [AIChatRemoteModel] = []
+    var errorToThrow: Error?
+
+    func fetchModels() async throws -> [AIChatRemoteModel] {
+        if let error = errorToThrow {
+            throw error
+        }
+        return modelsToReturn
     }
 }

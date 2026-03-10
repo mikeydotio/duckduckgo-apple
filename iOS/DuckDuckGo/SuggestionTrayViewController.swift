@@ -26,6 +26,7 @@ import History
 import BrowserServicesKit
 import PrivacyConfig
 import UIComponents
+import RemoteMessaging
 import AIChat
 
 class SuggestionTrayViewController: UIViewController {
@@ -59,6 +60,7 @@ class SuggestionTrayViewController: UIViewController {
     private var autocompleteController: AutocompleteViewController?
     private var newTabPage: NewTabPageViewController?
     private var willRemoveAutocomplete = false
+    private var pendingEscapeHatchModel: EscapeHatchModel?
     private let bookmarksDatabase: CoreDataDatabase
     private let favoritesModel: FavoritesListInteracting
     private let historyManager: HistoryManaging
@@ -105,10 +107,12 @@ class SuggestionTrayViewController: UIViewController {
         let favoritesModel: FavoritesListInteracting
         let homePageMessagesConfiguration: HomePageMessagesConfiguration
         let subscriptionDataReporting: SubscriptionDataReporting?
-        let newTabDialogFactory: NewTabDaxDialogFactory
+        let newTabDialogFactory: NewTabDaxDialogsProvider
         let newTabDaxDialogManager: NewTabDialogSpecProvider & SubscriptionPromotionCoordinating
         let faviconLoader: FavoritesFaviconLoading
         let remoteMessagingActionHandler: RemoteMessagingActionHandling
+        let remoteMessagingImageLoader: RemoteMessagingImageLoading
+        let remoteMessagingPixelReporter: RemoteMessagingPixelReporting?
         let appSettings: AppSettings
         let internalUserCommands: URLBasedDebugCommands
     }
@@ -161,8 +165,8 @@ class SuggestionTrayViewController: UIViewController {
         switch type {
         case .autocomplete(let query):
             canShow = canDisplayAutocompleteSuggestions(forQuery: query, animated: animated)
-        case.favorites:
-            canShow = canDisplayFavorites
+        case .favorites:
+            canShow = canDisplayFavorites || hasRemoteMessages || pendingEscapeHatchModel != nil
         }
         return canShow
     }
@@ -208,7 +212,7 @@ class SuggestionTrayViewController: UIViewController {
 
         containerView.layer.cornerRadius = 24
         containerView.layer.masksToBounds = true
- 
+
         backgroundView.layer.cornerRadius = 24
         backgroundView.backgroundColor = UIColor(designSystemColor: .background)
         backgroundView.clipsToBounds = false
@@ -262,8 +266,17 @@ class SuggestionTrayViewController: UIViewController {
         favoritesModel.favorites.count > 0
     }
 
+    var hasFavorites: Bool {
+        canDisplayFavorites
+    }
+
     var hasRemoteMessages: Bool {
         return !newTabPageDependencies.homePageMessagesConfiguration.homeMessages.isEmpty
+    }
+
+    func setEscapeHatch(_ model: EscapeHatchModel?) {
+        pendingEscapeHatchModel = model
+        newTabPage?.setEscapeHatch(model)
     }
 
     private func displayFavoritesIfNeeded(animated: Bool, onInstall: @escaping () -> Void = {}) {
@@ -287,6 +300,8 @@ class SuggestionTrayViewController: UIViewController {
             daxDialogsManager: dependencies.newTabDaxDialogManager,
             faviconLoader: dependencies.faviconLoader,
             remoteMessagingActionHandler: dependencies.remoteMessagingActionHandler,
+            remoteMessagingImageLoader: dependencies.remoteMessagingImageLoader,
+            remoteMessagingPixelReporter: dependencies.remoteMessagingPixelReporter,
             appSettings: dependencies.appSettings,
             internalUserCommands: dependencies.internalUserCommands
         )
@@ -295,6 +310,7 @@ class SuggestionTrayViewController: UIViewController {
         if hideBorder {
             controller.hideBorderView()
         }
+        controller.setEscapeHatch(pendingEscapeHatchModel)
 
         install(controller: controller,
                 animated: animated,
@@ -400,7 +416,7 @@ extension SuggestionTrayViewController: AutocompleteViewControllerPresentationDe
     
     func autocompleteDidChangeContentHeight(height: CGFloat) {
         guard !fullHeightConstraint.isActive else { return }
-        
+
         if height > Constant.suggestionTrayInitialHeight {
             variableHeightConstraint.constant = height
         }

@@ -97,20 +97,21 @@ final class OnboardingActionsManager: OnboardingActionsManaging {
     private let dataImportProvider: DataImportStatusProviding
     private var aiChatPreferencesStorage: AIChatPreferencesStorage
     private let featureFlagger: FeatureFlagger
+    private let applicationBuildType: ApplicationBuildType
     private var cancellables = Set<AnyCancellable>()
 
     @UserDefaultsWrapper(key: .onboardingFinished, defaultValue: false)
     static var isOnboardingFinished: Bool
 
     var configuration: OnboardingConfiguration {
-        var systemSettings: SystemSettings
+        let systemSettings: SystemSettings
         let order = "v3"
         let platform = OnboardingPlatform(name: "macos")
-#if APPSTORE
-        systemSettings = SystemSettings(rows: ["import"])
-#else
-        systemSettings = SystemSettings(rows: ["dock", "import"])
-#endif
+        if applicationBuildType.isAppStoreBuild {
+            systemSettings = SystemSettings(rows: ["import"])
+        } else {
+            systemSettings = SystemSettings(rows: ["dock", "import"])
+        }
         let stepDefinitions = StepDefinitions(systemSettings: systemSettings)
         let preferredLocale = Bundle.main.preferredLocalizations.first ?? "en"
         var env: String
@@ -150,6 +151,7 @@ final class OnboardingActionsManager: OnboardingActionsManaging {
         appearancePreferences: AppearancePreferences,
         startupPreferences: StartupPreferences,
         bookmarkManager: BookmarkManager,
+        pinningManager: PinningManager,
         featureFlagger: FeatureFlagger
     ) {
         self.init(
@@ -158,7 +160,7 @@ final class OnboardingActionsManager: OnboardingActionsManaging {
             defaultBrowserProvider: defaultBrowserProvider,
             appearancePreferences: appearancePreferences,
             startupPreferences: startupPreferences,
-            dataImportProvider: BookmarksAndPasswordsImportStatusProvider(bookmarkManager: bookmarkManager),
+            dataImportProvider: BookmarksAndPasswordsImportStatusProvider(bookmarkManager: bookmarkManager, pinningManager: pinningManager),
             aiChatPreferencesStorage: DefaultAIChatPreferencesStorage(),
             featureFlagger: featureFlagger
         )
@@ -172,7 +174,8 @@ final class OnboardingActionsManager: OnboardingActionsManaging {
         startupPreferences: StartupPreferences,
         dataImportProvider: DataImportStatusProviding,
         aiChatPreferencesStorage: AIChatPreferencesStorage = DefaultAIChatPreferencesStorage(),
-        featureFlagger: FeatureFlagger
+        featureFlagger: FeatureFlagger,
+        applicationBuildType: ApplicationBuildType = StandardApplicationBuildType()
     ) {
         self.navigation = navigationDelegate
         self.dockCustomization = dockCustomization
@@ -182,6 +185,7 @@ final class OnboardingActionsManager: OnboardingActionsManaging {
         self.dataImportProvider = dataImportProvider
         self.aiChatPreferencesStorage = aiChatPreferencesStorage
         self.featureFlagger = featureFlagger
+        self.applicationBuildType = applicationBuildType
     }
 
     func onboardingStarted() {

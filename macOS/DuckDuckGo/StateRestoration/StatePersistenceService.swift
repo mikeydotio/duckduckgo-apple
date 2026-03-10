@@ -33,6 +33,7 @@ final class StatePersistenceService {
     private var lastSessionStateArchive: Data?
     private let queue = DispatchQueue(label: "StateRestorationManager.queue", qos: .background)
     private var job: DispatchWorkItem?
+    private let dataClearingPixelsReporter: DataClearingPixelsReporter
 
     private(set) var error: Error?
 
@@ -46,9 +47,10 @@ final class StatePersistenceService {
         }
     }
 
-    init(fileStore: FileStore, fileName: String) {
+    init(fileStore: FileStore, fileName: String, dataClearingPixelsReporter: DataClearingPixelsReporter = .init()) {
         self.fileStore = fileStore
         self.fileName = fileName
+        self.dataClearingPixelsReporter = dataClearingPixelsReporter
     }
 
     var canRestoreLastSessionState: Bool {
@@ -85,9 +87,23 @@ final class StatePersistenceService {
     func performClearState() {
         lastSessionStateArchive = nil
         let location = URL.persistenceLocation(for: self.fileName)
-        fileStore.remove(fileAtURL: location)
-        fileStore.remove(fileAtURL: .persistenceLocation(for: self.lastLoadedStateFileName))
-        fileStore.remove(fileAtURL: .persistenceLocation(for: self.oldStateFileName))
+        do {
+            try fileStore.removeOrThrow(fileAtURL: location)
+        } catch {
+            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnLastSessionStateError(error))
+        }
+
+        do {
+            try fileStore.removeOrThrow(fileAtURL: .persistenceLocation(for: self.lastLoadedStateFileName))
+        } catch {
+            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnLastSessionStateError(error))
+        }
+
+        do {
+            try fileStore.removeOrThrow(fileAtURL: .persistenceLocation(for: self.oldStateFileName))
+        } catch {
+            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnLastSessionStateError(error))
+        }
     }
 
     /// rename `persistentState` to `persistentState.1` after the state was loaded
@@ -150,7 +166,20 @@ final class StatePersistenceService {
             throw CocoaError(.fileReadNoSuchFile)
         }
         let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+        registerLegacyClassMappings(on: unarchiver)
         try restore(unarchiver)
+    }
+
+}
+
+// MARK: - Instrumentation Helper
+
+private extension StatePersistenceService {
+
+    func registerLegacyClassMappings(on unarchiver: NSKeyedUnarchiver) {
+        // Older archives encoded AI chat state under AIChatSidebar class names.
+        // Map those names to AIChatState so legacy sessions can decode on rename.
+        unarchiver.setClass(AIChatState.self, forClassName: "DuckDuckGo_Privacy_Browser.AIChatSidebar")
     }
 
 }

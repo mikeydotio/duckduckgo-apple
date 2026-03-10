@@ -58,6 +58,7 @@ public struct PreferencesSubscriptionSettingsView: View {
             // Sections
             switch model.settingsState {
             case .subscriptionActive, .subscriptionFreeTrialActive:
+                downgradeBanner
                 upgradeSection
                 activateSection
                 settingsSection
@@ -187,7 +188,7 @@ public struct PreferencesSubscriptionSettingsView: View {
                             .foregroundColor(Color(.textPrimary))
                             .font(.system(size: 13, weight: .semibold))
                         Button(UserText.upgradeButton(tierName: tierName)) {
-                            switch model.viewAllPlansAction(url: .upgrade) {
+                            switch model.viewAllPlansAction(url: .upgradeToTier(tierName)) {
                             case .navigateToPlans(let navigationAction),
                                     .navigateToManageSubscription(let navigationAction):
                                 navigationAction()
@@ -341,5 +342,35 @@ public struct PreferencesSubscriptionSettingsView: View {
                 .buttonStyle(DefaultActionButtonStyle(enabled: true))
         })
         .frame(width: 360)
+    }
+
+    @ViewBuilder
+    private var downgradeBanner: some View {
+        if let details = model.cancelPendingDowngradeDetails {
+            SubfeatureGroup {
+                HStack(spacing: 8) {
+                    Image(.subscriptionPendingIcon)
+                    Text(details)
+                        .font(
+                            .system(size: 13)
+                        )
+                        .foregroundColor(Color(.textSecondary))
+                    Spacer()
+                    Button(UserText.cancelDowngradeButton) {
+                        switch model.cancelPendingDowngrade() {
+                        case .cancelApplePendingDowngrade(let cancelAction):
+                            cancelAction()
+                        case .navigateToManageSubscription(let navigationAction):
+                            navigationAction()
+                        case .presentSheet(let sheet):
+                            manageSubscriptionSheet = sheet
+                        case .showInternalSubscriptionAlert:
+                            showingInternalSubscriptionAlert.toggle()
+                        }
+                    }
+                }
+                .padding(2)
+            }
+        }
     }
 }

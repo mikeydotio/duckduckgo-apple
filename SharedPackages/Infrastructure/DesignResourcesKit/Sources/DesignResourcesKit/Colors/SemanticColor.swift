@@ -46,6 +46,7 @@ public enum DesignSystemColor {
     // Text
     case textPrimary
     case textSecondary
+    case textTertiary
     case textLink
     case textSelectionFill
     case textPlaceholder
@@ -54,6 +55,8 @@ public enum DesignSystemColor {
     case controlsFillPrimary
     case controlsFillSecondary
     case controlsFillTertiary
+    case controlsRaisedBackdrop
+    case controlsRaisedFillPrimary
 
     // Brand
     case accent
@@ -122,6 +125,9 @@ public enum DesignSystemColor {
     case decorationSecondary
     case decorationTertiary
     case decorationQuaternary
+
+    // Fire Tabs
+    case fireMode
 
 }
 #endif

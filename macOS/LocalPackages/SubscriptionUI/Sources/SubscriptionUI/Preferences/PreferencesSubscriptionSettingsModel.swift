@@ -33,6 +33,7 @@ public enum PreferencesSubscriptionSettingsState: String {
 public final class PreferencesSubscriptionSettingsModel: ObservableObject {
 
     @Published var subscriptionDetails: String?
+    @Published var cancelPendingDowngradeDetails: String?
     @Published var subscriptionStatus: DuckDuckGoSubscription.Status = .unknown
     @Published private var hasActiveTrialOffer: Bool = false
     @Published private(set) var subscriptionTier: TierName?
@@ -40,6 +41,7 @@ public final class PreferencesSubscriptionSettingsModel: ObservableObject {
     private var isSubscriptionActive: Bool = false
     private var availableChanges: DuckDuckGoSubscription.AvailableChanges?
     private var pendingPlans: [DuckDuckGoSubscription.PendingPlan]?
+    private var currentProductID: String?
 
     /// Returns the tier badge variant to display, or nil if badge should not be shown
     /// Shows badge if tier is Pro, or if Pro tier purchase feature flag is enabled
@@ -109,6 +111,7 @@ public final class PreferencesSubscriptionSettingsModel: ObservableObject {
     private let blackFridayCampaignProvider: BlackFridayCampaignProviding
     private let userEventHandler: (PreferencesSubscriptionSettingsModel.UserEvent) -> Void
     private let isProTierPurchaseEnabled: () -> Bool
+    private let cancelPendingDowngradeHandler: ((String) async -> Void)?
     private var fetchSubscriptionDetailsTask: Task<(), Never>?
 
     private var subscriptionChangeObserver: Any?
@@ -126,7 +129,10 @@ public final class PreferencesSubscriptionSettingsModel: ObservableObject {
              didOpenSubscriptionSettings,
              didClickChangePlanOrBilling,
              didClickRemoveSubscription,
-             openWinBackOfferLandingPage
+             openWinBackOfferLandingPage,
+             didClickViewAllPlans,
+             didClickUpgradeToPro,
+             didClickCancelPendingDowngrade
     }
 
     public init(userEventHandler: @escaping (PreferencesSubscriptionSettingsModel.UserEvent) -> Void,
@@ -135,13 +141,15 @@ public final class PreferencesSubscriptionSettingsModel: ObservableObject {
                 keyValueStore: ThrowingKeyValueStoring,
                 winBackOfferVisibilityManager: WinBackOfferVisibilityManaging,
                 blackFridayCampaignProvider: BlackFridayCampaignProviding,
-                isProTierPurchaseEnabled: @escaping () -> Bool) {
+                isProTierPurchaseEnabled: @escaping () -> Bool,
+                cancelPendingDowngradeHandler: ((String) async -> Void)? = nil) {
         self.subscriptionManager = subscriptionManager
         self.userEventHandler = userEventHandler
         self.keyValueStore = keyValueStore
         self.winBackOfferVisibilityManager = winBackOfferVisibilityManager
         self.blackFridayCampaignProvider = blackFridayCampaignProvider
         self.isProTierPurchaseEnabled = isProTierPurchaseEnabled
+        self.cancelPendingDowngradeHandler = cancelPendingDowngradeHandler
         Task {
             await self.updateSubscription(cachePolicy: .cacheFirst)
         }
@@ -157,7 +165,8 @@ public final class PreferencesSubscriptionSettingsModel: ObservableObject {
                 }
 
                 await self?.fetchEmail()
-                await self?.updateSubscription(cachePolicy: .cacheFirst)
+                // Use remoteFirst to ensure fresh data after subscription changes
+                await self?.updateSubscription(cachePolicy: .remoteFirst)
             }
         }
 
@@ -225,12 +234,26 @@ hasActiveTrialOffer: \(hasTrialOffer, privacy: .public)
         case showInternalSubscriptionAlert
     }
 
+    enum CancelPendingDowngradeAction {
+        case cancelApplePendingDowngrade(() -> Void)
+        case navigateToManageSubscription(() -> Void)
+        case presentSheet(ManageSubscriptionSheet)
+        case showInternalSubscriptionAlert
+    }
+
     /// Returns the appropriate action for "View All Plans" or "Upgrade" based on:
     /// - Subscription platform: where the subscription was purchased
     /// - Current app platform: App Store version vs Stripe (Sparkling) version
     /// - Parameter url: The subscription URL to navigate to (defaults to `.plans`)
     @MainActor
     func viewAllPlansAction(url: SubscriptionURL = .plans) -> ViewAllPlansAction {
+        // Fire appropriate event for pixel tracking
+        if case .upgradeToTier = url {
+            userEventHandler(.didClickUpgradeToPro)
+        } else {
+            userEventHandler(.didClickViewAllPlans)
+        }
+
         guard let subscriptionPlatform = subscriptionPlatform else {
             assertionFailure("Missing or unknown subscriptionPlatform")
             return .navigateToPlans { }
@@ -248,16 +271,8 @@ hasActiveTrialOffer: \(hasTrialOffer, privacy: .public)
                 return .presentSheet(.apple)
             }
         case .stripe:
-            if currentPurchasePlatform == .stripe {
-                // Stripe subscription on Stripe app → show plans/upgrade page
-                return .navigateToPlans { [weak self] in
-                    self?.userEventHandler(.openURL(url))
-                }
-            } else {
-                // Stripe subscription on App Store app → redirect to Stripe portal
-                return .navigateToManageSubscription { [weak self] in
-                    self?.openStripeCustomerPortal()
-                }
+            return .navigateToPlans { [weak self] in
+                self?.userEventHandler(.openURL(url))
             }
         case .google:
             return .presentSheet(.google)
@@ -274,6 +289,16 @@ hasActiveTrialOffer: \(hasTrialOffer, privacy: .public)
             } catch {
                 Logger.general.log("Error getting customer portal URL: \(error, privacy: .public)")
             }
+        }
+    }
+
+    private func cancelApplePendingDowngrade() {
+        guard let currentProductID, let cancelPendingDowngradeHandler else {
+            assertionFailure("Missing product id or cancelPendingDowngradeHandler in cancelApplePendingDowngrade()")
+            return
+        }
+        Task {
+            await cancelPendingDowngradeHandler(currentProductID)
         }
     }
 
@@ -332,6 +357,36 @@ hasActiveTrialOffer: \(hasTrialOffer, privacy: .public)
             handleEmailAction(type: .activationFlowAddEmailStep)
         case (_, true):
             handleEmailAction(type: .activationFlowLinkViaEmailStep)
+        }
+    }
+
+    @MainActor
+    func cancelPendingDowngrade() -> CancelPendingDowngradeAction {
+        userEventHandler(.didClickCancelPendingDowngrade)
+
+        guard let platform = subscriptionPlatform else {
+            assertionFailure("Missing or unknown subscriptionPlatform")
+            return .navigateToManageSubscription { }
+        }
+
+        switch platform {
+        case .apple:
+            if currentPurchasePlatform == .appStore {
+                return .cancelApplePendingDowngrade { [weak self] in
+                    self?.cancelApplePendingDowngrade()
+                }
+            } else {
+                // Apple subscription on Stripe app → show Apple dialog with instructions
+                return .presentSheet(.apple)
+            }
+        case .google:
+            return .presentSheet(.google)
+        case .stripe:
+            return .navigateToManageSubscription { [weak self] in
+                self?.openStripeCustomerPortal()
+            }
+        case .unknown:
+            return .showInternalSubscriptionAlert
         }
     }
 
@@ -432,6 +487,7 @@ hasActiveTrialOffer: \(hasTrialOffer, privacy: .public)
                 isSubscriptionActive = subscription.isActive
                 availableChanges = subscription.availableChanges
                 pendingPlans = subscription.pendingPlans
+                currentProductID = subscription.availableChanges?.currentProductId
             }
         } catch {
             Logger.subscription.error("Error getting subscription: \(error, privacy: .public)")
@@ -440,12 +496,16 @@ hasActiveTrialOffer: \(hasTrialOffer, privacy: .public)
 
     @MainActor
     func updateDescription(for subscription: DuckDuckGoSubscription) {
-        // Check for pending plan first (downgrade scheduled)
-        if let pendingPlan = subscription.firstPendingPlan {
+        // Clear downgrade banner unless we have a pending plan
+        self.cancelPendingDowngradeDetails = nil
+        // Check for pending plan first (downgrade scheduled) — only show downgrade copy when pending tier differs from current
+        if let pendingPlan = subscription.firstPendingPlan,
+           let currentTier = subscription.tier,
+           pendingPlan.tier != currentTier {
             let effectiveDate = dateFormatter.string(from: pendingPlan.effectiveAt)
             let tierName = pendingPlan.tier.rawValue.capitalized
-            let billingPeriodName = pendingPlan.billingPeriod.rawValue
-            self.subscriptionDetails = UserText.preferencesSubscriptionPendingDowngradeCaption(tierName: tierName, billingPeriod: billingPeriodName, formattedDate: effectiveDate)
+            self.subscriptionDetails = UserText.preferencesSubscriptionPendingDowngradeCaption(tierName: tierName, billingPeriod: pendingPlan.billingPeriod, formattedDate: effectiveDate)
+            self.cancelPendingDowngradeDetails = UserText.cancelPendingDowngradeBannerInfo(tierName: tierName, effectiveDate: effectiveDate)
             return
         }
 

@@ -24,12 +24,13 @@ import DesignResourcesKitIcons
 struct InfoPanelView: View {
 
     private enum Constants {
-        static let contentSpacing: CGFloat = 8
-        static let iconSize: CGFloat = 20
+        static let contentSpacing: CGFloat = 6
+        static let iconSize: CGFloat = 18
         static let infoButtonPadding: CGFloat = 4
-        static let horizontalPadding: CGFloat = 12
+        static let horizontalPadding: CGFloat = 10
         static let verticalPadding: CGFloat = 8
         static let cornerRadius: CGFloat = 16
+        static let maxWidth: CGFloat = 480
     }
 
     struct Model {
@@ -51,7 +52,7 @@ struct InfoPanelView: View {
                 .accessibilityHidden(true)
 
             (Text(model.title).fontWeight(.semibold) + Text(" " + model.subtitle))
-                .font(.system(.subheadline, design: .rounded))
+                .font(.subheadline)
                 .foregroundColor(Color(designSystemColor: .textPrimary))
             Spacer()
 
@@ -68,13 +69,14 @@ struct InfoPanelView: View {
         }
         .padding(.horizontal, Constants.horizontalPadding)
         .padding(.vertical, Constants.verticalPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture { model.onTap() }
         .background(
             RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous)
                 .fill(model.backgroundColor)
         )
+        .contentShape(RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous))
+        .onTapGesture { model.onTap() }
+        .frame(maxWidth: Constants.maxWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(model.title + " " + model.subtitle))
     }
@@ -83,11 +85,6 @@ struct InfoPanelView: View {
 // MARK: - Tracker Info Panel Model Factory
 
 extension InfoPanelView.Model {
-
-    private enum TrackerInfoColors {
-        static let darkModeBackground = Color(0x2C3A2A)
-        static let lightModeBackground = Color.green0
-    }
 
     /// Creates a model configured for displaying tracker count information in the tab switcher.
     /// - Parameters:
@@ -100,17 +97,11 @@ extension InfoPanelView.Model {
         onTap: @escaping () -> Void,
         onInfo: @escaping () -> Void
     ) -> InfoPanelView.Model {
-        let dynamicBackgroundColor = Color(UIColor { traitCollection in
-            traitCollection.userInterfaceStyle == .dark
-                ? UIColor(TrackerInfoColors.darkModeBackground)
-                : UIColor(TrackerInfoColors.lightModeBackground)
-        })
-
         return InfoPanelView.Model(
             title: state.title,
             subtitle: state.subtitle,
             icon: UIImage(resource: .trackerShield),
-            backgroundColor: dynamicBackgroundColor,
+            backgroundColor: Color(singleUseColor: .tabSwitcherTrackerCountBackground),
             onTap: onTap,
             onInfo: onInfo
         )
@@ -124,7 +115,7 @@ struct InfoPanelView_Previews: PreviewProvider {
             model: .init(title: "396 trackers blocked",
                          subtitle: "in the last 7 days",
                          icon: UIImage(resource: .trackerShield),
-                         backgroundColor: .green0,
+                         backgroundColor: Color(singleUseColor: .tabSwitcherTrackerCountBackground),
                          onTap: {},
                          onInfo: {})
         )

@@ -22,10 +22,25 @@ import Bookmarks
 import Core
 
 final class BrowsingMenuBuilder: BrowsingMenuBuilding {
-    weak var entryBuilder: BrowsingMenuEntryBuilding?
 
-    init(entryBuilder: BrowsingMenuEntryBuilding) {
+    struct Options {
+        let mergeActionsAndBookmarks: Bool
+
+        init(mergeActionsAndBookmarks: Bool = false) {
+            self.mergeActionsAndBookmarks = mergeActionsAndBookmarks
+        }
+
+        init(capability: BrowsingMenuSheetCapable) {
+            self.mergeActionsAndBookmarks = capability.mergeActionsAndBookmarks
+        }
+    }
+
+    weak var entryBuilder: BrowsingMenuEntryBuilding?
+    private let options: Options
+
+    init(entryBuilder: BrowsingMenuEntryBuilding, options: Options = Options()) {
         self.entryBuilder = entryBuilder
+        self.options = options
     }
 
     func buildMenu(
@@ -61,6 +76,7 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
         // MARK: Header
         let headerItems: [BrowsingMenuModel.Entry] = [
             .init(entryBuilder.makeNewTabEntry()),
+            .init(entryBuilder.makeNewFireTabEntry()), // TODO: - This is a temporary location
             .init(entryBuilder.makeChatEntry()),
             .init(entryBuilder.makeSettingsEntry())
         ].compactMap { $0 }
@@ -75,6 +91,7 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
         // MARK: Privacy group
         let privacyItems: [BrowsingMenuModel.Entry] = [
             .init(entryBuilder.makeVPNEntry()),
+            .init(entryBuilder.makeUseNewDuckAddressEntry()),
             .init(entryBuilder.makeClearDataEntry(mobileCustomization: mobileCustomization, clearTabsAndData: clearTabsAndData))
         ].compactMap { $0 }
 
@@ -85,8 +102,7 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
 
         return BrowsingMenuModel(
             headerItems: headerItems,
-            sections: sections,
-            footerItems: []
+            sections: sections
         )
     }
 
@@ -108,25 +124,40 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
 
         var sections = [BrowsingMenuModel.Section]()
 
-        // MARK: Bookmark group
-        if let bookmarkEntries = entryBuilder.makeBookmarkEntries(with: bookmarksInterface) {
-            let bookmarkGroupItems: [BrowsingMenuModel.Entry] = [
-                .init(bookmarkEntries.bookmark),
-                .init(bookmarkEntries.favorite, tag: .favorite),
-                .init(entryBuilder.makeShareEntry())
+        if options.mergeActionsAndBookmarks {
+            // MARK: Tab Actions
+            if let bookmarkEntries = entryBuilder.makeBookmarkEntries(with: bookmarksInterface) {
+                let bookmarkGroupItems: [BrowsingMenuModel.Entry] = [
+                    .init(bookmarkEntries.bookmark),
+                    .init(bookmarkEntries.favorite, tag: .favorite),
+                    .init(entryBuilder.makeShareEntry()),
+                    .init(entryBuilder.makeFindInPageEntry()),
+                    .init(entryBuilder.makeZoomEntry()),
+                    .init(entryBuilder.makeDesktopSiteEntry())
+                ].compactMap { $0 }
+                sections.append(BrowsingMenuModel.Section(items: bookmarkGroupItems))
+            }
+        } else {
+            // MARK: Bookmark group
+            if let bookmarkEntries = entryBuilder.makeBookmarkEntries(with: bookmarksInterface) {
+                let bookmarkGroupItems: [BrowsingMenuModel.Entry] = [
+                    .init(bookmarkEntries.bookmark),
+                    .init(bookmarkEntries.favorite, tag: .favorite),
+                    .init(entryBuilder.makeShareEntry())
+                ].compactMap { $0 }
+                sections.append(BrowsingMenuModel.Section(items: bookmarkGroupItems))
+            }
+
+            // MARK: Tab actions group
+            let tabActionItems: [BrowsingMenuModel.Entry] = [
+                .init(entryBuilder.makeFindInPageEntry()),
+                .init(entryBuilder.makeZoomEntry()),
+                .init(entryBuilder.makeDesktopSiteEntry())
             ].compactMap { $0 }
-            sections.append(BrowsingMenuModel.Section(items: bookmarkGroupItems))
-        }
 
-        // MARK: Tab actions group
-        let tabActionItems: [BrowsingMenuModel.Entry] = [
-            .init(entryBuilder.makeFindInPageEntry()),
-            .init(entryBuilder.makeZoomEntry()),
-            .init(entryBuilder.makeDesktopSiteEntry())
-        ].compactMap { $0 }
-
-        if !tabActionItems.isEmpty {
-            sections.append(BrowsingMenuModel.Section(items: tabActionItems))
+            if !tabActionItems.isEmpty {
+                sections.append(BrowsingMenuModel.Section(items: tabActionItems))
+            }
         }
 
         // MARK: Shortcuts group
@@ -145,7 +176,7 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
             .init(entryBuilder.makeVPNEntry()),
             .init(entryBuilder.makeUseNewDuckAddressEntry()),
             .init(entryBuilder.makeKeepSignInEntry()),
-            .init(entryBuilder.makeClearDataEntry(mobileCustomization: mobileCustomization, clearTabsAndData: clearTabsAndData))
+            .init(entryBuilder.makeClearDataEntry(mobileCustomization: mobileCustomization, clearTabsAndData: clearTabsAndData), tag: .fire)
         ].compactMap { $0 }
 
         if !privacyItems.isEmpty {
@@ -166,8 +197,7 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
 
         return BrowsingMenuModel(
             headerItems: headerItems,
-            sections: sections,
-            footerItems: []
+            sections: sections
         )
     }
 }

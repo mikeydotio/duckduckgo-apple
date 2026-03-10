@@ -21,6 +21,7 @@ import Common
 import FeatureFlags
 import Foundation
 import OSLog
+import PixelKit
 import PrivacyConfig
 import UserNotifications
 import UserScript
@@ -155,7 +156,12 @@ final class WebNotificationsHandler: NSObject, Subfeature {
             return true
         case .notDetermined:
             do {
-                return try await notificationService.requestAuthorization(options: [.alert, .sound])
+                PixelKit.fire(WebNotificationPixel.systemAuthorizationRequested, frequency: .dailyAndCount)
+                let granted = try await notificationService.requestAuthorization(options: [.alert, .sound])
+                if granted {
+                    PixelKit.fire(WebNotificationPixel.systemAuthorizationGranted, frequency: .dailyAndCount)
+                }
+                return granted
             } catch {
                 Logger.general.error("WebNotificationsHandler: Authorization failed - \(error.localizedDescription)")
                 return false
@@ -192,8 +198,10 @@ final class WebNotificationsHandler: NSObject, Subfeature {
             content.threadIdentifier = tag
         }
 
-        if let iconURLString = payload.icon, let iconURL = URL(string: iconURLString) {
-            if let attachment = await iconFetcher.fetchIcon(from: iconURL) {
+        if let iconURLString = payload.icon,
+           let iconURL = URL(string: iconURLString),
+           let originURLObject = URL(string: originURL) {
+            if let attachment = await iconFetcher.fetchIcon(from: iconURL, originURL: originURLObject) {
                 content.attachments = [attachment]
             }
         }
@@ -218,9 +226,11 @@ final class WebNotificationsHandler: NSObject, Subfeature {
         do {
             try await notificationService.add(request)
             Logger.general.debug("WebNotificationsHandler: Notification posted (ID: \(id))")
+            PixelKit.fire(WebNotificationPixel.shown, frequency: .dailyAndCount)
             sendShowEvent(id: id, to: webView)
         } catch {
             Logger.general.error("WebNotificationsHandler: Failed to post - \(error.localizedDescription)")
+            PixelKit.fire(WebNotificationPixel.error(error), frequency: .dailyAndCount)
             sendErrorEvent(id: id, to: webView)
         }
     }
@@ -322,7 +332,7 @@ final class WebNotificationsHandler: NSObject, Subfeature {
 
         // Request permission through PermissionModel (shows UI, handles storage)
         // Fire Windows: permissions cleared on burn via burnPermissions()
-        let grantedInUI: Bool = await withCheckedContinuation { continuation in
+        let grantedInUI: Bool = await withCheckedContinuation(isolation: MainActor.shared) { continuation in
             permissionModel.request([.notification], forDomain: domain, url: url)
                 .sink { isGranted in
                     continuation.resume(returning: isGranted)

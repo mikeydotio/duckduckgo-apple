@@ -114,6 +114,7 @@ final class SubscriptionDebugViewController: UITableViewController {
     enum RegionOverrideRows: Int, CaseIterable {
         case currentRegionOverride
     }
+    
 
     private var storefrontID = "Loading"
     private var storefrontCountryCode = "Loading"
@@ -621,7 +622,7 @@ final class SubscriptionDebugViewController: UITableViewController {
             let subscriptionAppGroup = Bundle.main.appGroup(bundle: .subs)
             let subscriptionUserDefaults = UserDefaults(suiteName: subscriptionAppGroup)!
             let pendingTransactionHandler = DefaultPendingTransactionHandler(userDefaults: subscriptionUserDefaults,
-                                                                             pixelHandler: SubscriptionPixelHandler(source: .mainApp))
+                                                                             pixelHandler: SubscriptionPixelHandler(source: .mainApp, pixelKit: nil))
             // Create the flows and feature
             let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(
                 subscriptionManager: subscriptionManager,
@@ -642,6 +643,13 @@ final class SubscriptionDebugViewController: UITableViewController {
                 featureFlagProvider: SubscriptionPageFeatureFlagAdapter(featureFlagger: AppDependencyProvider.shared.featureFlagger)
             )
 
+            let subscriptionFlowsExecuter = DefaultSubscriptionFlowsExecuter(
+                subscriptionManager: subscriptionManager,
+                appStorePurchaseFlow: appStorePurchaseFlow,
+                wideEvent: AppDependencyProvider.shared.wideEvent,
+                pendingTransactionHandler: pendingTransactionHandler
+            )
+
             let feature = DefaultSubscriptionPagesUseSubscriptionFeature(
                 subscriptionManager: subscriptionManager,
                 subscriptionFeatureAvailability: subscriptionFeatureAvailability,
@@ -650,7 +658,9 @@ final class SubscriptionDebugViewController: UITableViewController {
                 appStoreRestoreFlow: appStoreRestoreFlow,
                 internalUserDecider: AppDependencyProvider.shared.internalUserDecider,
                 wideEvent: AppDependencyProvider.shared.wideEvent,
-                pendingTransactionHandler: pendingTransactionHandler
+                pendingTransactionHandler: pendingTransactionHandler,
+                subscriptionFlowsExecuter: subscriptionFlowsExecuter,
+                requestValidator: DefaultScriptRequestValidator(subscriptionManager: subscriptionManager)
             )
 
             // Create params matching what the web would send

@@ -41,7 +41,8 @@ final class SettingsViewModel: ObservableObject {
     // Dependencies
     private(set) lazy var appSettings = AppDependencyProvider.shared.appSettings
     private(set) var privacyStore = PrivacyUserDefaults()
-    private lazy var featureFlagger = AppDependencyProvider.shared.featureFlagger
+    lazy var featureFlagger = AppDependencyProvider.shared.featureFlagger
+    private lazy var dataClearingCapability: DataClearingCapable = DataClearingCapability.create(using: featureFlagger)
     private lazy var animator: FireButtonAnimator = FireButtonAnimator(appSettings: AppUserDefaults())
     private var legacyViewProvider: SettingsLegacyViewProvider
     private lazy var versionProvider: AppVersion = AppVersion.shared
@@ -50,7 +51,6 @@ final class SettingsViewModel: ObservableObject {
     var emailManager: EmailManager { EmailManager() }
     private(set) var historyManager: HistoryManaging
     let subscriptionDataReporter: SubscriptionDataReporting?
-    let textZoomCoordinator: TextZoomCoordinating
     let aiChatSettings: AIChatSettingsProvider
     let serpSettings: SERPSettingsProviding
     let maliciousSiteProtectionPreferencesManager: MaliciousSiteProtectionPreferencesManaging
@@ -66,8 +66,24 @@ final class SettingsViewModel: ObservableObject {
     weak var autoClearActionDelegate: SettingsAutoClearActionDelegate?
     let mobileCustomization: MobileCustomization
     let userScriptsDependencies: DefaultScriptSourceProvider.Dependencies
-    var browsingMenuSheetCapability: BrowsingMenuSheetCapable
     private let onboardingSearchExperienceSettingsResolver: OnboardingSearchExperienceSettingsResolver
+    
+    private lazy var newBadgeVisibilityManager: NewBadgeVisibilityManaging = {
+        NewBadgeVisibilityManager(
+            keyValueStore: keyValueStore,
+            configProvider: DefaultNewBadgeConfigProvider(
+                featureFlagger: featureFlagger,
+                privacyConfigurationManager: privacyConfigurationManager
+            ),
+            currentAppVersionProvider: { AppVersion.shared.versionNumber }
+        )
+    }()
+
+    private var afterInactivityStorage: any ThrowingKeyedStoring<AfterInactivitySettingKeys> {
+        keyValueStore.throwingKeyedStoring()
+    }
+
+    private let idleReturnEligibilityManager: IdleReturnEligibilityManaging
 
     // What's New Dependencies
     private let whatsNewCoordinator: ModalPromptProvider & OnDemandModalPromptProvider
@@ -115,7 +131,7 @@ final class SettingsViewModel: ObservableObject {
     var onRequestPresentLegacyView: ((UIViewController, _ modal: Bool) -> Void)?
     var onRequestPopLegacyView: (() -> Void)?
     var onRequestDismissSettings: (() -> Void)?
-    var onRequestPresentFireConfirmation: ((_ sourceRect: CGRect, _ onConfirm: @escaping (FireOptions) -> Void, _ onCancel: @escaping () -> Void) -> Void)?
+    var onRequestPresentFireConfirmation: ((_ sourceRect: CGRect, _ onConfirm: @escaping (FireRequest) -> Void, _ onCancel: @escaping () -> Void) -> Void)?
 
     // View State
     @Published private(set) var state: SettingsState
@@ -144,6 +160,10 @@ final class SettingsViewModel: ObservableObject {
         featureFlagger.isFeatureOn(.personalInformationRemoval)
     }
 
+    var meetsLocaleRequirement: Bool {
+        runPrerequisitesDelegate?.meetsLocaleRequirement ?? false
+    }
+
     var dbpMeetsProfileRunPrequisite: Bool {
         get {
             (try? runPrerequisitesDelegate?.meetsProfileRunPrequisite) ?? false
@@ -156,6 +176,12 @@ final class SettingsViewModel: ObservableObject {
 
     var isTabSwitcherTrackerCountEnabled: Bool {
         featureFlagger.isFeatureOn(.tabSwitcherTrackerCount)
+    }
+
+    let darkReaderFeatureSettings: DarkReaderFeatureSettings
+
+    var isForceWebsiteDarkModeAvailable: Bool {
+        darkReaderFeatureSettings.isFeatureEnabled
     }
 
     var isBlackFridayCampaignEnabled: Bool {
@@ -228,6 +254,12 @@ final class SettingsViewModel: ObservableObject {
                 Pixel.fire(pixel: .settingsThemeSelectorPressed)
                 self.state.appThemeStyle = $0
                 ThemeManager.shared.setThemeStyle($0)
+                self.state.forceWebsiteDarkMode = self.darkReaderFeatureSettings.isForceDarkModeEnabled
+                // Delay to allow web views to re-render with the new interface style
+                // before the dark reader extension is enabled or disabled.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    self.darkReaderFeatureSettings.themeDidChange()
+                }
             }
         )
     }
@@ -272,24 +304,6 @@ final class SettingsViewModel: ObservableObject {
         )
     }
 
-    var showMenuInSheetBinding: Binding<Bool> {
-        Binding<Bool>(
-            get: {
-                self.state.showMenuInSheet
-            },
-            set: {
-                if $0 {
-                    DailyPixel.fireDailyAndCount(pixel: .experimentalBrowsingMenuEnabled)
-                } else {
-                    DailyPixel.fireDailyAndCount(pixel: .experimentalBrowsingMenuDisabled)
-                }
-                
-                self.browsingMenuSheetCapability.setEnabled($0)
-                self.state.showMenuInSheet = self.browsingMenuSheetCapability.isEnabled
-            }
-        )
-    }
-
     var addressBarShowsFullURL: Binding<Bool> {
         Binding<Bool>(
             get: { self.state.showsFullURL },
@@ -307,6 +321,8 @@ final class SettingsViewModel: ObservableObject {
             set: {
                 self.state.showTrackersBlockedAnimation = $0
                 self.appSettings.showTrackersBlockedAnimation = $0
+                Pixel.fire(pixel: .settingsTrackerCountInAddressBarToggled,
+                          withAdditionalParameters: [PixelParameters.enabled: String($0)])
             }
         )
     }
@@ -317,6 +333,31 @@ final class SettingsViewModel: ObservableObject {
             set: {
                 self.privacyStore.authenticationEnabled = $0
                 self.state.applicationLock = $0
+            }
+        )
+    }
+
+    var shouldShowNTPAfterIdleSetting: Bool {
+        featureFlagger.isFeatureOn(.showNTPAfterIdleReturn)
+    }
+
+    var idleTimeInterval: String {
+        formattedIdleThreshold(from: idleReturnEligibilityManager.idleThresholdSeconds())
+    }
+
+    var afterInactivityOptionBinding: Binding<AfterInactivityOption> {
+        Binding<AfterInactivityOption>(
+            get: {
+                self.idleReturnEligibilityManager.effectiveAfterInactivityOption()
+            },
+            set: {
+                try? self.afterInactivityStorage.set($0.rawValue, for: \AfterInactivitySettingKeys.afterInactivityOption)
+                self.objectWillChange.send()
+
+                let pixel: Pixel.Event = $0 == .newTab
+                    ? .ntpAfterIdleSettingChangedToNewTab
+                    : .ntpAfterIdleSettingChangedToLastUsedTab
+                DailyPixel.fireDailyAndCount(pixel: pixel)
             }
         )
     }
@@ -561,6 +602,20 @@ final class SettingsViewModel: ObservableObject {
         )
     }
 
+    var forceWebsiteDarkModeBinding: Binding<Bool> {
+        Binding<Bool>(
+            get: { self.state.forceWebsiteDarkMode },
+            set: {
+                self.darkReaderFeatureSettings.setForceDarkModeEnabled($0)
+                self.state.forceWebsiteDarkMode = $0
+                DailyPixel.fireDailyAndCount(
+                    pixel: $0 ? .webExtensionDarkReaderEnabled : .webExtensionDarkReaderDisabled,
+                    pixelNameSuffixes: DailyPixel.Constant.dailyAndStandardSuffixes
+                )
+            }
+        )
+    }
+
     var universalLinksBinding: Binding<Bool> {
         Binding<Bool>(
             get: { self.state.allowUniversalLinks },
@@ -633,7 +688,6 @@ final class SettingsViewModel: ObservableObject {
          historyManager: HistoryManaging,
          syncPausedStateManager: any SyncPausedStateManaging,
          subscriptionDataReporter: SubscriptionDataReporting,
-         textZoomCoordinator: TextZoomCoordinating,
          aiChatSettings: AIChatSettingsProvider,
          serpSettings: SERPSettingsProviding,
          maliciousSiteProtectionPreferencesManager: MaliciousSiteProtectionPreferencesManaging,
@@ -645,18 +699,20 @@ final class SettingsViewModel: ObservableObject {
          urlOpener: URLOpener = UIApplication.shared,
          privacyConfigurationManager: PrivacyConfigurationManaging,
          keyValueStore: ThrowingKeyValueStoring,
+         idleReturnEligibilityManager: IdleReturnEligibilityManaging,
          systemSettingsPiPTutorialManager: SystemSettingsPiPTutorialManaging,
          runPrerequisitesDelegate: DBPIOSInterface.RunPrerequisitesDelegate?,
          dataBrokerProtectionViewControllerProvider: DBPIOSInterface.DataBrokerProtectionViewControllerProvider?,
          winBackOfferVisibilityManager: WinBackOfferVisibilityManaging,
          mobileCustomization: MobileCustomization,
          userScriptsDependencies: DefaultScriptSourceProvider.Dependencies,
-         browsingMenuSheetCapability: BrowsingMenuSheetCapable,
          onboardingSearchExperienceSettingsResolver: OnboardingSearchExperienceSettingsResolver? = nil,
          whatsNewCoordinator: ModalPromptProvider & OnDemandModalPromptProvider,
-         tabSwitcherSettings: TabSwitcherSettings = DefaultTabSwitcherSettings()
+         tabSwitcherSettings: TabSwitcherSettings = DefaultTabSwitcherSettings(),
+         darkReaderFeatureSettings: DarkReaderFeatureSettings
     ) {
 
+        self.darkReaderFeatureSettings = darkReaderFeatureSettings
         self.state = SettingsState.defaults
         self.tabSwitcherSettings = tabSwitcherSettings
         self.legacyViewProvider = legacyViewProvider
@@ -667,7 +723,6 @@ final class SettingsViewModel: ObservableObject {
         self.historyManager = historyManager
         self.syncPausedStateManager = syncPausedStateManager
         self.subscriptionDataReporter = subscriptionDataReporter
-        self.textZoomCoordinator = textZoomCoordinator
         self.aiChatSettings = aiChatSettings
         self.serpSettings = serpSettings
         self.maliciousSiteProtectionPreferencesManager = maliciousSiteProtectionPreferencesManager
@@ -679,13 +734,13 @@ final class SettingsViewModel: ObservableObject {
         self.urlOpener = urlOpener
         self.privacyConfigurationManager = privacyConfigurationManager
         self.keyValueStore = keyValueStore
+        self.idleReturnEligibilityManager = idleReturnEligibilityManager
         self.systemSettingsPiPTutorialManager = systemSettingsPiPTutorialManager
         self.runPrerequisitesDelegate = runPrerequisitesDelegate
         self.dataBrokerProtectionViewControllerProvider = dataBrokerProtectionViewControllerProvider
         self.winBackOfferVisibilityManager = winBackOfferVisibilityManager
         self.mobileCustomization = mobileCustomization
         self.userScriptsDependencies = userScriptsDependencies
-        self.browsingMenuSheetCapability = browsingMenuSheetCapability
         self.onboardingSearchExperienceSettingsResolver = onboardingSearchExperienceSettingsResolver ?? OnboardingSearchExperienceSettingsResolver(
             featureFlagger: AppDependencyProvider.shared.featureFlagger,
             onboardingProvider: OnboardingSearchExperience(),
@@ -724,7 +779,7 @@ extension SettingsViewModel {
             isExperimentalAIChatEnabled: experimentalAIChatManager.isExperimentalAIChatSettingsEnabled,
             refreshButtonPosition: appSettings.currentRefreshButtonPosition,
             mobileCustomization: mobileCustomization.state,
-            showMenuInSheet: browsingMenuSheetCapability.isEnabled,
+            forceWebsiteDarkMode: darkReaderFeatureSettings.isForceDarkModeEnabled,
             sendDoNotSell: appSettings.sendDoNotSell,
             autoconsentEnabled: appSettings.autoconsentEnabled,
             autoClearAIChatHistory: appSettings.autoClearAIChatHistory,
@@ -890,6 +945,28 @@ extension SettingsViewModel {
         shouldShowSetAsDefaultBrowser = false
         shouldShowImportPasswords = false
     }
+
+    private func formattedIdleThreshold(from seconds: Int) -> String {
+        let oneHour = 3600
+        if seconds >= oneHour {
+            let hours = seconds / oneHour
+            if hours == 1 {
+                return UserText.settingsAfterInactivityIdleIntervalHourSingular
+            }
+            return String(format: UserText.settingsAfterInactivityIdleIntervalHoursFormat, hours)
+        }
+        let minutes = seconds / 60
+        if minutes >= 1 {
+            if minutes == 1 {
+                return UserText.settingsAfterInactivityIdleIntervalPlaceholder
+            }
+            return String(format: UserText.settingsAfterInactivityIdleIntervalMinutesFormat, minutes)
+        }
+        if seconds == 1 {
+            return UserText.settingsAfterInactivityIdleIntervalSecondSingular
+        }
+        return String(format: UserText.settingsAfterInactivityIdleIntervalSecondsFormat, seconds)
+    }
 }
 
 // MARK: Subscribers
@@ -977,6 +1054,23 @@ extension SettingsViewModel {
 
     func openEmailSupport() {
         urlOpener.open(URL.emailProtectionSupportLink)
+    }
+
+    func shouldShowNewBadge(for feature: NewBadgeFeature) -> Bool {
+        guard isFeatureAvailableForNewBadge(feature) else { return false }
+        return newBadgeVisibilityManager.shouldShowBadge(for: feature)
+    }
+
+    func storeNewBadgeFirstImpressionDateIfNeeded(for feature: NewBadgeFeature) {
+        guard isFeatureAvailableForNewBadge(feature) else { return }
+        newBadgeVisibilityManager.storeFirstImpressionDateIfNeeded(for: feature)
+    }
+
+    private func isFeatureAvailableForNewBadge(_ feature: NewBadgeFeature) -> Bool {
+        switch feature {
+        case .personalInformationRemoval:
+            return isPIREnabled && meetsLocaleRequirement && dataBrokerProtectionViewControllerProvider != nil
+        }
     }
 
     func openOtherPlatforms() {
@@ -1302,8 +1396,8 @@ extension SettingsViewModel {
         }
     }
 
-    func forgetAll(with options: FireOptions) {
-        autoClearActionDelegate?.performDataClearing(with: options)
+    func forgetAll(fireRequest: FireRequest) {
+        autoClearActionDelegate?.performDataClearing(for: fireRequest)
     }
 
     func restoreAccountPurchase() async {
@@ -1445,11 +1539,25 @@ extension SettingsViewModel {
         )
     }
 
+    var isChatSuggestionsEnabled: Binding<Bool> {
+        Binding<Bool>(
+            get: { self.aiChatSettings.isChatSuggestionsEnabled },
+            set: { newValue in
+                withAnimation {
+                    self.objectWillChange.send()
+                    self.aiChatSettings.enableChatSuggestions(enable: newValue)
+                }
+            }
+        )
+    }
+
     var showTrackerCountInTabSwitcherBinding: Binding<Bool> {
         Binding<Bool>(
             get: { self.tabSwitcherSettings.showTrackerCountInTabSwitcher },
             set: { newValue in
                 self.tabSwitcherSettings.showTrackerCountInTabSwitcher = newValue
+                Pixel.fire(pixel: .settingsTrackerCountInTabSwitcherToggled,
+                          withAdditionalParameters: [PixelParameters.enabled: String(newValue)])
             }
         )
     }
@@ -1468,7 +1576,7 @@ extension SettingsViewModel: DataClearingSettingsViewModelDelegate {
     }
 
     func navigateToAutoClearData() {
-        if featureFlagger.isFeatureOn(.enhancedDataClearingSettings) {
+        if dataClearingCapability.isEnhancedDataClearingEnabled {
             let viewModel = AutoClearSettingsViewModel(
                 appSettings: appSettings,
                 aiChatSettings: aiChatSettings
@@ -1483,8 +1591,8 @@ extension SettingsViewModel: DataClearingSettingsViewModelDelegate {
     }
 
     func presentFireConfirmation(from sourceRect: CGRect) {
-        onRequestPresentFireConfirmation?(sourceRect, { [weak self] options in
-            self?.forgetAll(with: options)
+        onRequestPresentFireConfirmation?(sourceRect, { [weak self] fireRequest in
+            self?.forgetAll(fireRequest: fireRequest)
         }, {
             // Cancelled - no action needed
         })

@@ -135,12 +135,12 @@ extension MainViewControllerFactory {
         let tabCollectionViewModel = TabCollectionViewModel(isPopup: isPopup, windowControllersManager: windowControllersManager)
         let featureFlagger = MockFeatureFlagger()
         let fireCoordinator = makeFireCoordinator(windowControllersManager: windowControllersManager, featureFlagger: featureFlagger)
-        let aiChatSidebarProvider = AIChatSidebarProvider(featureFlagger: featureFlagger)
+        let aiChatSessionStore = AIChatSessionStore(featureFlagger: featureFlagger)
 
         return MainViewController(
             tabCollectionViewModel: tabCollectionViewModel,
-            autofillPopoverPresenter: DefaultAutofillPopoverPresenter(),
-            aiChatSidebarProvider: aiChatSidebarProvider,
+            autofillPopoverPresenter: DefaultAutofillPopoverPresenter(pinningManager: MockPinningManager()),
+            aiChatSessionStore: aiChatSessionStore,
             defaultBrowserAndDockPromptPresenting: defaultBrowserPromptPresenter,
             fireCoordinator: fireCoordinator,
             winBackOfferPromptPresenting: winBackOfferPromptPresenter

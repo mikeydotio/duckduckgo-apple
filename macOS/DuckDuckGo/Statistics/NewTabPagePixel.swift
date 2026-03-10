@@ -138,12 +138,28 @@ enum NewTabPagePixel: PixelKitEvent {
 
     case newTabPageExceptionReported
 
+    /**
+     * Event Trigger: NTP's Customizer is Shown or Hidden.
+     *
+     * > Related links:
+     * [Privacy Triage](`PLACEHOLDER`)
+     *
+     * Anomaly Investigation:
+     * - Anomaly in this pixel may mean an increase/drop in app use.
+     */
+    case customizerShown(themePopoverWasOpen: Bool)
+    case customizerHidden
+
     // See macOS/PixelDefinitions/pixels/new_tab_page_pixels.json5
     case searchSubmitted
     case promptSubmitted
     case omnibarModeChanged(mode: OmnibarMode)
     case omnibarHidden
     case omnibarShown
+    case aiChatRecentChatSelectedPinnedMouse
+    case aiChatRecentChatSelectedPinnedKeyboard
+    case aiChatRecentChatSelectedMouse
+    case aiChatRecentChatSelectedKeyboard
 
     // Parameter duration: Load time in **seconds** (will be converted to milliseconds in pixel).
     case newTabPageLoadingTime(duration: TimeInterval, osMajorVersion: Int)
@@ -169,6 +185,8 @@ enum NewTabPagePixel: PixelKitEvent {
         case .protectionsSectionHidden: return "m_mac_protections-section-hidden"
         case .blockedTrackingAttemptsShowLess: return "m_mac_new-tab-page_blocked-tracking-attempts_show-less"
         case .blockedTrackingAttemptsShowMore: return "m_mac_new-tab-page_blocked-tracking-attempts_show-more"
+        case .customizerHidden: return "new-tab-page_customizer_hidden"
+        case .customizerShown: return "new-tab-page_customizer_shown"
         case .privacyStatsCouldNotLoadDatabase: return "new-tab-page_privacy-stats_could-not-load-database"
         case .privacyStatsDatabaseError: return "new-tab-page_privacy-stats_database_error"
         case .newTabPageExceptionReported: return "new-tab-page_exception-reported"
@@ -177,6 +195,10 @@ enum NewTabPagePixel: PixelKitEvent {
         case .omnibarModeChanged: return "new-tab-page_omnibar_mode_changed"
         case .omnibarHidden: return "new-tab-page_omnibar_hidden"
         case .omnibarShown: return "new-tab-page_omnibar_shown"
+        case .aiChatRecentChatSelectedPinnedMouse: return "new-tab-page_aichat_recent_chat_selected_pinned_mouse"
+        case .aiChatRecentChatSelectedPinnedKeyboard: return "new-tab-page_aichat_recent_chat_selected_pinned_keyboard"
+        case .aiChatRecentChatSelectedMouse: return "new-tab-page_aichat_recent_chat_selected_mouse"
+        case .aiChatRecentChatSelectedKeyboard: return "new-tab-page_aichat_recent_chat_selected_keyboard"
         case .newTabPageLoadingTime: return "new-tab-page_loading_time"
         case .nextStepsCardClicked(let card): return "new-tab-page_next-steps_\(card)_clicked"
         case .nextStepsCardDismissed(let card): return "new-tab-page_next-steps_\(card)_dismissed"
@@ -186,6 +208,10 @@ enum NewTabPagePixel: PixelKitEvent {
 
     var parameters: [String: String]? {
         switch self {
+        case .customizerShown(let themePopoverWasOpen):
+            return [
+                "themePopoverWasOpen": themePopoverWasOpen.description
+            ]
         case .newTabPageShown(let favorites, let protections, let customBackground):
             return [
                 "favorites": String(favorites),
@@ -206,6 +232,7 @@ enum NewTabPagePixel: PixelKitEvent {
                 .protectionsSectionHidden,
                 .blockedTrackingAttemptsShowLess,
                 .blockedTrackingAttemptsShowMore,
+                .customizerHidden,
                 .privacyFeedHistoryLinkOpened,
                 .privacyStatsCouldNotLoadDatabase,
                 .privacyStatsDatabaseError,
@@ -214,6 +241,10 @@ enum NewTabPagePixel: PixelKitEvent {
                 .promptSubmitted,
                 .omnibarHidden,
                 .omnibarShown,
+                .aiChatRecentChatSelectedPinnedMouse,
+                .aiChatRecentChatSelectedPinnedKeyboard,
+                .aiChatRecentChatSelectedMouse,
+                .aiChatRecentChatSelectedKeyboard,
                 .nextStepsCardClicked,
                 .nextStepsCardDismissed,
                 .nextStepsCardShown:
@@ -234,6 +265,8 @@ enum NewTabPagePixel: PixelKitEvent {
                 .protectionsSectionHidden,
                 .blockedTrackingAttemptsShowLess,
                 .blockedTrackingAttemptsShowMore,
+                .customizerHidden,
+                .customizerShown,
                 .privacyStatsCouldNotLoadDatabase,
                 .privacyStatsDatabaseError,
                 .newTabPageExceptionReported,
@@ -242,6 +275,10 @@ enum NewTabPagePixel: PixelKitEvent {
                 .omnibarModeChanged,
                 .omnibarHidden,
                 .omnibarShown,
+                .aiChatRecentChatSelectedPinnedMouse,
+                .aiChatRecentChatSelectedPinnedKeyboard,
+                .aiChatRecentChatSelectedMouse,
+                .aiChatRecentChatSelectedKeyboard,
                 .newTabPageLoadingTime:
             return [.pixelSource]
         case .nextStepsCardClicked,

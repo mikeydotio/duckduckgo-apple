@@ -54,6 +54,7 @@ final class AIChatUserScript: NSObject, Subfeature {
         case promptInterruption
         case openSettingsAction
         case toggleSidebarAction
+        case syncStatusChanged(AIChatSyncHandler.SyncStatus)
 
         var methodName: String {
             switch self {
@@ -69,6 +70,8 @@ final class AIChatUserScript: NSObject, Subfeature {
                 return "submitOpenSettingsAction"
             case .toggleSidebarAction:
                 return "submitToggleSidebarAction"
+            case .syncStatusChanged:
+                return "submitSyncStatusChanged"
             }
         }
 
@@ -76,6 +79,8 @@ final class AIChatUserScript: NSObject, Subfeature {
             switch self {
             case .submitPrompt(let prompt):
                 return prompt
+            case .syncStatusChanged(let status):
+                return status
             default:
                 return nil
             }
@@ -90,7 +95,8 @@ final class AIChatUserScript: NSObject, Subfeature {
 
     private let handler: AIChatUserScriptHandling
     private(set) var messageOriginPolicy: MessageOriginPolicy
-    private var cancellables = Set<AnyCancellable>()
+    private(set) var messageDestinationPolicy: MessageOriginPolicy
+    private var inputBoxCancellables = Set<AnyCancellable>()
 
     var inputBoxHandler: AIChatInputBoxHandling? {
         didSet { subscribeToInputBoxEvents() }
@@ -103,10 +109,14 @@ final class AIChatUserScript: NSObject, Subfeature {
     init(handler: AIChatUserScriptHandling, debugSettings: AIChatDebugSettingsHandling) {
         self.handler = handler
         self.messageOriginPolicy = .only(rules: Self.buildMessageOriginRules(debugSettings: debugSettings))
+        self.messageDestinationPolicy = .only(rules: Self.buildMessageDestinationRules(debugSettings: debugSettings))
         super.init()
 
         // Set self as the metric reporting handler
         handler.setMetricReportingHandler(self)
+        handler.setSyncStatusChangedHandler { [weak self] status in
+            self?.submitSyncStatusChanged(status)
+        }
     }
 
     private static func buildMessageOriginRules(debugSettings: AIChatDebugSettingsHandling) -> [HostnameMatchingRule] {
@@ -115,6 +125,19 @@ final class AIChatUserScript: NSObject, Subfeature {
         if let ddgDomain = URL.ddg.host {
             rules.append(.exact(hostname: ddgDomain))
         }
+
+        if let duckAiDomain = URL.duckAi.host {
+            rules.append(.exact(hostname: duckAiDomain))
+        }
+
+        if let debugHostname = debugSettings.messagePolicyHostname {
+            rules.append(.exact(hostname: debugHostname))
+        }
+        return rules
+    }
+
+    private static func buildMessageDestinationRules(debugSettings: AIChatDebugSettingsHandling) -> [HostnameMatchingRule] {
+        var rules: [HostnameMatchingRule] = []
 
         if let duckAiDomain = URL.duckAi.host {
             rules.append(.exact(hostname: duckAiDomain))
@@ -147,6 +170,8 @@ final class AIChatUserScript: NSObject, Subfeature {
             return handler.getAIChatNativeConfigValues
         case .getAIChatNativeHandoffData:
             return handler.getAIChatNativeHandoffData
+        case .getAIChatPageContext:
+            return handler.getAIChatPageContext
         case .openAIChat:
             return handler.openAIChat
         case .hideChatInput:
@@ -155,6 +180,8 @@ final class AIChatUserScript: NSObject, Subfeature {
             return handler.showChatInput
         case .reportMetric:
             return handler.reportMetric
+        case .togglePageContextTelemetry:
+            return handler.togglePageContextTelemetry
         case .openKeyboard:
             return { [weak self] params, message in
                 await self?.handler.openKeyboard(params: params, message: message, webView: self?.webView)
@@ -194,24 +221,34 @@ final class AIChatUserScript: NSObject, Subfeature {
         handler.displayMode = displayMode
     }
 
+    func setPageContextProvider(_ provider: ((PageContextRequestReason) -> AIChatPageContextData?)?) {
+        self.handler.setPageContextProvider(provider)
+    }
+
+    func setContextualModePixelHandler(_ pixelHandler: AIChatContextualModePixelFiring) {
+        self.handler.setContextualModePixelHandler(pixelHandler)
+    }
+
     // MARK: - Input Box Event Subscription
 
     private func subscribeToInputBoxEvents() {
+        inputBoxCancellables.removeAll()
+
         inputBoxHandler?.didSubmitPrompt
             .sink(receiveValue: submitPrompt)
-            .store(in: &cancellables)
+            .store(in: &inputBoxCancellables)
 
         inputBoxHandler?.didPressNewChatButton
             .sink(receiveValue: { [weak self] _ in self?.push(.newChatAction) })
-            .store(in: &cancellables)
+            .store(in: &inputBoxCancellables)
 
         inputBoxHandler?.didPressFireButton
             .sink(receiveValue: { [weak self] _ in self?.push(.fireButtonAction) })
-            .store(in: &cancellables)
+            .store(in: &inputBoxCancellables)
 
         inputBoxHandler?.didPressStopGeneratingButton
             .sink(receiveValue: { [weak self] _ in self?.push(.promptInterruption) })
-            .store(in: &cancellables)
+            .store(in: &inputBoxCancellables)
 
         handler.setAIChatInputBoxHandler(inputBoxHandler)
     }
@@ -233,12 +270,31 @@ final class AIChatUserScript: NSObject, Subfeature {
         push(.openSettingsAction)
     }
 
-    /// Submits a toggle sidebar action to the web content, opening/closing the sidebar.
+    /// Submits page context to the frontend (push update).
+    func submitPageContext(_ context: AIChatPageContextData?) {
+        pushPageContextToFrontend(context)
+    }
+
     func submitToggleSidebarAction() {
         push(.toggleSidebarAction)
     }
 
+    /// Pushes sync status change to the web content when sync state changes (login/logout, availability).
+    func submitSyncStatusChanged(_ status: AIChatSyncHandler.SyncStatus) {
+        // Push only to websites matching origin policy
+        guard let host = webView?.url?.host,
+              messageDestinationPolicy.isAllowed(host) else { return }
+
+        push(.syncStatusChanged(status))
+    }
+
     // MARK: - Private Helper
+
+    private func pushPageContextToFrontend(_ context: AIChatPageContextData?) {
+        guard let webView = webView else { return }
+        let response = PageContextResponse(pageContext: context)
+        broker?.push(method: AIChatUserScriptMessages.submitAIChatPageContext.rawValue, params: response, for: self, into: webView)
+    }
 
     private func push(_ message: AIChatPushMessage) {
         guard let webView = webView else { return }

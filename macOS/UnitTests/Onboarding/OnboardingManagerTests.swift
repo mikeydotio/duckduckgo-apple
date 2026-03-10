@@ -17,6 +17,7 @@
 //
 
 import Persistence
+import PersistenceTestingUtils
 import PrivacyConfig
 import PrivacyConfigTestsUtils
 import SharedTestUtilities
@@ -38,13 +39,17 @@ class OnboardingManagerTests: XCTestCase {
     var dataClearingPreferences: DataClearingPreferences!
     var startupPersistor: StartupPreferencesUserDefaultsPersistor!
     var importProvider: CapturingDataImportProvider!
+    var applicationBuildType: MockApplicationBuildType!
 
     @MainActor override func setUp() {
         navigationDelegate = CapturingOnboardingNavigation()
         dockCustomization = CapturingDockCustomizer()
         defaultBrowserProvider = CapturingDefaultBrowserProvider()
         appearancePersistor = MockAppearancePreferencesPersistor()
-        appearancePreferences = AppearancePreferences(persistor: appearancePersistor, privacyConfigurationManager: MockPrivacyConfigurationManager(), featureFlagger: MockFeatureFlagger())
+        appearancePreferences = AppearancePreferences(persistor: appearancePersistor,
+                                                      privacyConfigurationManager: MockPrivacyConfigurationManager(),
+                                                      featureFlagger: MockFeatureFlagger(),
+                                                      aiChatMenuConfig: MockAIChatConfig())
         startupPersistor = StartupPreferencesUserDefaultsPersistor(keyValueStore: MockKeyValueStore())
         fireButtonPreferencesPersistor = MockFireButtonPreferencesPersistor()
         dataClearingPreferences = DataClearingPreferences(
@@ -55,9 +60,19 @@ class OnboardingManagerTests: XCTestCase {
             featureFlagger: MockFeatureFlagger(),
             aiChatHistoryCleaner: MockAIChatHistoryCleaner()
         )
-        startupPreferences = StartupPreferences(persistor: startupPersistor, appearancePreferences: appearancePreferences)
+        startupPreferences = StartupPreferences(pinningManager: MockPinningManager(), persistor: startupPersistor, appearancePreferences: appearancePreferences)
         importProvider = CapturingDataImportProvider()
-        manager = OnboardingActionsManager(navigationDelegate: navigationDelegate, dockCustomization: dockCustomization, defaultBrowserProvider: defaultBrowserProvider, appearancePreferences: appearancePreferences, startupPreferences: startupPreferences, dataImportProvider: importProvider, featureFlagger: MockFeatureFlagger())
+        applicationBuildType = MockApplicationBuildType()
+        manager = OnboardingActionsManager(
+            navigationDelegate: navigationDelegate,
+            dockCustomization: dockCustomization,
+            defaultBrowserProvider: defaultBrowserProvider,
+            appearancePreferences: appearancePreferences,
+            startupPreferences: startupPreferences,
+            dataImportProvider: importProvider,
+            featureFlagger: MockFeatureFlagger(),
+            applicationBuildType: applicationBuildType
+        )
     }
 
     override func tearDown() {
@@ -71,16 +86,12 @@ class OnboardingManagerTests: XCTestCase {
         dataClearingPreferences = nil
         fireButtonPreferencesPersistor = nil
         importProvider = nil
+        applicationBuildType = nil
     }
 
     func testReturnsExpectedOnboardingConfig_WhenBothFlagsAreOff_ExcludesAddressBarMode() {
         // Given
-        var systemSettings: SystemSettings
-#if APPSTORE
-        systemSettings = SystemSettings(rows: ["import"])
-#else
-        systemSettings = SystemSettings(rows: ["dock", "import"])
-#endif
+        let systemSettings = SystemSettings(rows: ["dock", "import"])
         let stepDefinitions = StepDefinitions(systemSettings: systemSettings)
         let expectedConfig = OnboardingConfiguration(
             stepDefinitions: stepDefinitions,
@@ -95,6 +106,33 @@ class OnboardingManagerTests: XCTestCase {
         XCTAssertEqual(manager.configuration, expectedConfig)
     }
 
+    func testReturnsExpectedOnboardingConfig_WhenAppStoreBuild_DoesNotShowDockRow() {
+        // Given
+        applicationBuildType.isAppStoreBuild = true
+        let appStoreManager = OnboardingActionsManager(
+            navigationDelegate: navigationDelegate,
+            dockCustomization: dockCustomization,
+            defaultBrowserProvider: defaultBrowserProvider,
+            appearancePreferences: appearancePreferences,
+            startupPreferences: startupPreferences,
+            dataImportProvider: importProvider,
+            featureFlagger: MockFeatureFlagger(),
+            applicationBuildType: applicationBuildType
+        )
+        let stepDefinitions = StepDefinitions(systemSettings: SystemSettings(rows: ["import"]))
+        let expectedConfig = OnboardingConfiguration(
+            stepDefinitions: stepDefinitions,
+            exclude: [OnboardingExcludedStep.addressBarMode.rawValue],
+            order: "v3",
+            env: "development",
+            locale: "en",
+            platform: .init(name: "macos")
+        )
+
+        // Then
+        XCTAssertEqual(appStoreManager.configuration, expectedConfig)
+    }
+
     func testReturnsExpectedOnboardingConfig_WhenOnlyOmnibarToggleIsOn_ExcludesAddressBarMode() {
         // Given
         let featureFlagger = MockFeatureFlagger()
@@ -106,15 +144,11 @@ class OnboardingManagerTests: XCTestCase {
             appearancePreferences: appearancePreferences,
             startupPreferences: startupPreferences,
             dataImportProvider: importProvider,
-            featureFlagger: featureFlagger
+            featureFlagger: featureFlagger,
+            applicationBuildType: applicationBuildType
         )
 
-        var systemSettings: SystemSettings
-#if APPSTORE
-        systemSettings = SystemSettings(rows: ["import"])
-#else
-        systemSettings = SystemSettings(rows: ["dock", "import"])
-#endif
+        let systemSettings = SystemSettings(rows: ["dock", "import"])
         let stepDefinitions = StepDefinitions(systemSettings: systemSettings)
         let expectedConfig = OnboardingConfiguration(
             stepDefinitions: stepDefinitions,
@@ -140,15 +174,11 @@ class OnboardingManagerTests: XCTestCase {
             appearancePreferences: appearancePreferences,
             startupPreferences: startupPreferences,
             dataImportProvider: importProvider,
-            featureFlagger: featureFlagger
+            featureFlagger: featureFlagger,
+            applicationBuildType: applicationBuildType
         )
 
-        var systemSettings: SystemSettings
-#if APPSTORE
-        systemSettings = SystemSettings(rows: ["import"])
-#else
-        systemSettings = SystemSettings(rows: ["dock", "import"])
-#endif
+        let systemSettings = SystemSettings(rows: ["dock", "import"])
         let stepDefinitions = StepDefinitions(systemSettings: systemSettings)
         let expectedConfig = OnboardingConfiguration(
             stepDefinitions: stepDefinitions,
@@ -174,15 +204,11 @@ class OnboardingManagerTests: XCTestCase {
             appearancePreferences: appearancePreferences,
             startupPreferences: startupPreferences,
             dataImportProvider: importProvider,
-            featureFlagger: featureFlagger
+            featureFlagger: featureFlagger,
+            applicationBuildType: applicationBuildType
         )
 
-        var systemSettings: SystemSettings
-#if APPSTORE
-        systemSettings = SystemSettings(rows: ["import"])
-#else
-        systemSettings = SystemSettings(rows: ["dock", "import"])
-#endif
+        let systemSettings = SystemSettings(rows: ["dock", "import"])
         let stepDefinitions = StepDefinitions(systemSettings: systemSettings)
         let expectedConfig = OnboardingConfiguration(
             stepDefinitions: stepDefinitions,
@@ -358,16 +384,4 @@ class OnboardingManagerTests: XCTestCase {
         XCTAssertEqual(self.appearancePersistor.homeButtonPosition, .hidden)
     }
 
-}
-
-private final class MockKeyValueStore: ThrowingKeyValueStoring {
-    func object(forKey defaultName: String) throws -> Any? {
-        return nil
-    }
-
-    func set(_ value: Any?, forKey defaultName: String) throws {
-    }
-
-    func removeObject(forKey defaultName: String) throws {
-    }
 }

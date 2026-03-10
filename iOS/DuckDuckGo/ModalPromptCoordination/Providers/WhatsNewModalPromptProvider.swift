@@ -21,6 +21,7 @@ import UIKit
 import SwiftUI
 import DesignResourcesKitIcons
 import RemoteMessaging
+import PrivacyConfig
 
 @MainActor
 final class WhatsNewCoordinator: NSObject, ModalPromptProvider {
@@ -42,6 +43,7 @@ final class WhatsNewCoordinator: NSObject, ModalPromptProvider {
     private weak var navigationController: UINavigationController?
 
     private var remoteMessage: RemoteMessageModel?
+    private let featureFlagger: FeatureFlagger
 
     init(
         displayContext: DisplayContext,
@@ -50,7 +52,9 @@ final class WhatsNewCoordinator: NSObject, ModalPromptProvider {
         isIPad: Bool,
         pixelReporter: RemoteMessagingPixelReporting?,
         userScriptsDependencies: DefaultScriptSourceProvider.Dependencies,
-        displayModelMapper: WhatsNewDisplayModelMapping = WhatsNewDisplayModelMapper()
+        imageLoader: RemoteMessagingImageLoading,
+        displayModelMapper: WhatsNewDisplayModelMapping? = nil,
+        featureFlagger: FeatureFlagger
     ) {
         self.displayContext = displayContext
         self.repository = repository
@@ -58,7 +62,8 @@ final class WhatsNewCoordinator: NSObject, ModalPromptProvider {
         self.isIPad = isIPad
         self.pixelReporter = pixelReporter
         self.userScriptsDependencies = userScriptsDependencies
-        self.displayModelMapper = displayModelMapper
+        self.displayModelMapper = displayModelMapper ?? WhatsNewDisplayModelMapper(imageLoader: imageLoader, pixelReporter: pixelReporter)
+        self.featureFlagger = featureFlagger
     }
 
     // MARK: - ModalPromptProvider
@@ -112,6 +117,17 @@ extension WhatsNewCoordinator: RemoteMessagingPresenter {
     @MainActor
     func presentActivitySheet(value: String, title: String?) async {
         let activityController = UIActivityViewController(activityItems: [TitleValueShareItem(value: value, title: title).item], applicationActivities: nil)
+        if let popoverPresentationController = activityController.popoverPresentationController,
+           let sourceView = navigationController?.view {
+            popoverPresentationController.sourceView = sourceView
+            popoverPresentationController.sourceRect = CGRect(
+                x: sourceView.bounds.midX,
+                y: sourceView.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popoverPresentationController.permittedArrowDirections = []
+        }
         activityController.completionWithItemsHandler = { [weak self] _, result, _, _ in
             self?.measureSheetShown(result: result)
         }
@@ -120,8 +136,10 @@ extension WhatsNewCoordinator: RemoteMessagingPresenter {
 
     @MainActor
     func presentEmbeddedWebView(url: URL) async {
-        let embeddedWebViewController = EmbeddedWebViewController(url: url,
-                                                                  userScriptsDependencies: userScriptsDependencies)
+        let embeddedWebViewController = EmbeddedWebViewController(
+            url: url,
+            userScriptsDependencies: userScriptsDependencies,
+            featureFlagger: featureFlagger)
         navigationController?.pushViewController(embeddedWebViewController, animated: true)
     }
 
@@ -163,7 +181,7 @@ private extension WhatsNewCoordinator {
                 },
                 onItemAction: { [weak self] action, cardId in
                     self?.measureCardTapped(cardId: cardId)
-                    await self?.handleAction(action)
+                    await self?.handleAction(action, dismissSource: .itemAction)
                 },
                 onPrimaryAction: { [weak self] action in
                     self?.measurePrimaryActionTapped()
@@ -201,10 +219,17 @@ private extension WhatsNewCoordinator {
         Logger.modalPrompt.info("\(self.logPrefix) - What's New - Marked message as shown: \(message.id, privacy: .public)")
     }
 
-    func dismiss(source: DismissSource) {
+    func dismiss(source: DismissSource, onComplete: (() -> Void)? = nil) {
         Logger.modalPrompt.info("\(self.logPrefix) - What's New - Dismissed From source: \(source.debugDescription, privacy: .public)")
-        navigationController?.dismiss(animated: true)
         measureMessageDismissed(source: source)
+
+        if let navigationController, navigationController.presentingViewController != nil {
+            navigationController.dismiss(animated: true) {
+                onComplete?()
+            }
+        } else {
+            onComplete?()
+        }
     }
 }
 
@@ -215,7 +240,30 @@ extension WhatsNewCoordinator {
     func handleAction(_ action: RemoteAction) async {
         await remoteMessageActionHandler.handleAction(action, context: .init(presenter: self, presentationStyle: .withinCurrentContext))
     }
-    
+
+    fileprivate func handleAction(_ action: RemoteAction, dismissSource: DismissSource) async {
+        guard case .url = action else {
+            await handleAction(action)
+            return
+        }
+
+        let presentingViewController = displayContext == .onDemand ? navigationController?.presentingViewController : nil
+        let performURLAction: () -> Void = { [weak self] in
+            guard let self else { return }
+            Task { @MainActor in
+                await self.handleAction(action)
+            }
+        }
+
+        dismiss(source: dismissSource, onComplete: {
+            if let presentingViewController {
+                presentingViewController.dismiss(animated: true, completion: performURLAction)
+            } else {
+                performURLAction()
+            }
+        })
+    }
+
 }
 
 // MARK: - Pixels
@@ -245,6 +293,8 @@ private extension WhatsNewCoordinator {
             pixelReporter?.measureRemoteMessageDismissed(message, dismissType: .pullDown)
         case .mainAction:
             pixelReporter?.measureRemoteMessageDismissed(message, dismissType: .primaryAction)
+        case .itemAction:
+            pixelReporter?.measureRemoteMessageDismissed(message, dismissType: .itemAction)
         }
     }
 
@@ -304,12 +354,14 @@ private extension WhatsNewCoordinator {
 
     enum DismissSource: String, CustomDebugStringConvertible {
         case closeButton
+        case itemAction
         case mainAction
         case pullDown
 
         var debugDescription: String {
             switch self {
             case .closeButton: "Close Button"
+            case .itemAction: "Item CTA"
             case .mainAction: "Main CTA"
             case .pullDown: "Pull Down"
             }

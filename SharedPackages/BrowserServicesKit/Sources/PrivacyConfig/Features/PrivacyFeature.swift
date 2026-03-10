@@ -20,7 +20,6 @@ import Foundation
 
 /// Features whose `rawValue` should be the key to access their corresponding `PrivacyConfigurationData.PrivacyFeature` object
 public enum PrivacyFeature: String {
-    case breakageReporting
     case contentBlocking
     case duckPlayer
     case fingerprintingTemporaryStorage
@@ -47,8 +46,6 @@ public enum PrivacyFeature: String {
     case sync
     case privacyDashboard
     case updates
-    case updatesWontAutomaticallyRestartApp
-    case performanceMetrics
     case privacyPro
     case sslCertificates
     case toggleReports
@@ -67,6 +64,7 @@ public enum PrivacyFeature: String {
     case forceOldAppDelegate
     case htmlHistoryPage
     case tabManager
+    case tabSwitcherTrackerCount
     case webViewStateRestoration
     case experimentalTheming
     case setAsDefaultAndAddToDock
@@ -84,9 +82,13 @@ public enum PrivacyFeature: String {
     case openFireWindowByDefault
     case attributedMetrics
     case dataImport
+    case duckAiChatHistory
     case serp
     case popupBlocking
     case combinedPermissionView
+    case pageContext
+    case webExtensions
+    case forceDarkModeOnWebsites
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -115,10 +117,6 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// https://app.asana.com/1/137249556945/project/72649045549333/task/1211260578559159?focus=true
     case unifiedURLPredictor
 
-    /// Enable WebKit page load timing performance reporting
-    /// https://app.asana.com/1/137249556945/project/72649045549333/task/XXXXXXXXX?focus=true
-    case webKitPerformanceReporting
-
     // Gradual rollout for new Fire dialog replacing the legacy popover
     // https://app.asana.com/1/137249556945/project/72649045549333/task/1210417832822045
     case fireDialog
@@ -141,25 +139,9 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// https://app.asana.com/1/137249556945/project/1204006570077678/task/1211448334620171?focus=true
     case blurryAddressBarTahoeFix
 
-    /// Tab closing event recreation feature flag (failsafe for removing private API)
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212206087745586?focus=true
-    case tabClosingEventRecreation
-
-    /// Feature Flag for the Tab Spinner
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866479296718
-    case tabProgressIndicator
-
-    /// Feature flag for Themes
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866720557742
-    case themes
-
     /// Feature Flag for the First Time Quit Survey
     /// https://app.asana.com/1/137249556945/inbox/1203972458584425/item/1212200919350194/story/1212483080081687
     case firstTimeQuitSurvey
-
-    /// Failsafe for the modular termination decider pattern
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212684817782056?focus=true
-    case terminationDeciderSequence
 
     /// Web Notifications API polyfill - allows websites to show notifications via native macOS Notification Center
     /// https://app.asana.com/1/137249556945/project/414235014887631/task/1211395954816928?focus=true
@@ -172,6 +154,28 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// Memory Pressure Reporter
     /// https://app.asana.com/1/137249556945/project/1201048563534612/task/1212762049862427?focus=true
     case memoryPressureReporting
+
+    /// Memory Usage Reporting
+    /// https://app.asana.com/1/137249556945/project/72649045549333/task/1212762049862432?focus=true
+    case memoryUsageReporting
+
+    /// Failsafe flag to bring back keys sorting in crash collector
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213037849588149
+    case crashCollectionDisableKeysSorting
+
+    /// Failsafe flag for disabling call stack tree depth limiting in crash collector
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213037858764817
+    case crashCollectionLimitCallStackTreeDepth
+
+    /// Ctrl+click compatibility fix to preserve right click behavior
+    case controlClickFix
+
+    /// Enable Look Up (three-finger click) while keeping link preview disabled
+    case webViewLookUpAction
+
+    /// Startup Metrics Reporting
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213380840527060
+    case startupMetrics
 }
 
 public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
@@ -197,18 +201,43 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// https://app.asana.com/1/137249556945/project/481882893211075/task/1212057154681076?focus=true
     case productTelemetrySurfaceUsage
 
-    /// https://app.asana.com/1/137249556945/project/1206226850447395/task/1211661206210892?focus=true
-    case experimentalBrowsingMenu
-
     ///  https://app.asana.com/1/137249556945/project/414709148257752/task/1212395110448661?focus=true
     case appRatingPrompt
 
     /// https://app.asana.com/1/137249556945/project/1206329551987282/task/1212238464901412?focus=true
     case showWhatsNewPromptOnDemand
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212875994217788?focus=true
+    case genericBackgroundTask
+
     /// Whether the wide event POST endpoint is enabled
     /// https://app.asana.com/1/137249556945/project/1199333091098016/task/1212738953909168?focus=true
     case wideEventPostEndpoint
+
+    /// Failsafe flag to bring back keys sorting in crash collector
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213037849588149
+    case crashCollectionDisableKeysSorting
+
+    /// Failsafe flag for disabling call stack tree depth limiting in crash collector
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213037858764805
+    case crashCollectionLimitCallStackTreeDepth
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212835969125260
+    case browsingMenuSheetEnabledByDefault
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212556727029805
+    case enhancedDataClearingSettings
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212632627091091
+    case burnSingleTab
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213336304802675
+    case showNTPAfterIdleReturn
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213343468100319
+    case suppressTrackerAnimationOnColdStart
+
+    case customXSafariRedirectHandling
 }
 
 public enum TabManagerSubfeature: String, PrivacySubfeature {
@@ -247,6 +276,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case canPromoteAutofillExtensionInPasswordManagement
     case migrateKeychainAccessibility
     case autofillPasswordSearchPrioritizeDomain
+    case onboardingExperiment
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -263,6 +293,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case foregroundRunningWhenDashboardOpen
     case clickActionDelayReductionOptimization
     case pirRollout
+    case goToMarket
 }
 
 public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
@@ -327,17 +358,42 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Enables the omnibar cluster for AI Chat
     case omnibarCluster
 
+    /// Enables the omnibar tools (customize, search toggle, image upload) for AI Chat
+    case omnibarTools
+
     /// Controls showing the Hide AI section in Settings -> AI Features
     case showHideAiGeneratedImages
 
-    /// Controls different input sizes and fade out animation for toggle.
-    case fadeOutOnToggle
+    case unifiedToggleInput
 
     /// Signals that the iOS app should display duck.ai chats in "contextual mode" when opened from specific entry points
     case contextualDuckAIMode
 
     /// Enables ATB measurement for Duck.ai usage on iOS
     case aiChatAtb
+
+    /// Controls whether automatic page context attachment defaults to enabled
+    case autoAttachContextByDefault
+
+    /// Signals that the iPad app should display duck.ai chats in a tab instead of a sheet
+    case iPadDuckaiOnTab
+
+    /// Signals that the iPad app should display the duck.ai toggle
+    case iPadAIChatToggle
+
+    /// Controls deletion of Synced chats
+    case supportsSyncChatsDeletion
+
+    case sidebarResizable
+
+    /// Enables recent AI chats on the New Tab Page omnibar
+    case ntpRecentChats
+
+    /// Enables support for adding multiple page contexts to a single chat session
+    case multiplePageContexts
+
+    /// Enables page context feature on iPad
+    case iPadPageContext
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
@@ -354,8 +410,8 @@ public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
     /// Global switch to control managing state of NTP in frontend using tab IDs
     case newTabPageTabIDs
 
-    /// Global switch to display autoconsent stats on New Tab Page
-    case autoconsentStats
+    /// Controls whether the Next Steps List widget is enabled on New Tab Page
+    case nextStepsListWidget
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
@@ -432,8 +488,8 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case winBackOffer
     case vpnMenuItem
     case blackFridayCampaign
-    case tierMessagingEnabled
     case allowProTierPurchase
+    case freeTrialConversionWideEvent
 }
 
 public enum DuckPlayerSubfeature: String, PrivacySubfeature {
@@ -509,13 +565,6 @@ public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
     case scamProtection
 }
 
-public enum SetAsDefaultAndAddToDockSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .setAsDefaultAndAddToDock }
-
-    // https://app.asana.com/1/137249556945/project/492600419927320/task/1210863200265479?focus=true
-    case scheduledDefaultBrowserAndDockPromptsInactiveUser // macOS
-}
-
 public enum OnboardingSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .extendedOnboarding }
 
@@ -553,7 +602,6 @@ public enum DataImportSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .dataImport }
 
     case newSafariFilePicker
-    case dataImportWideEventMeasurement
     case newDataImportExperience
     case dataImportSummarySyncPromotion
 }
@@ -573,25 +621,16 @@ public enum PopupBlockingSubfeature: String, PrivacySubfeature {
     }
 
     case createWebViewGatingFailsafe
-
-    /// Use extended user-initiated popup timeout (extends from 1s to 6s)
-    case extendedUserInitiatedPopupTimeout
-
-    /// Suppress empty or about: URL popups after permission approval
-    case suppressEmptyPopUpsOnApproval
-
-    /// Allow popups for current page after permission approval (until next navigation)
-    case allowPopupsForCurrentPage
-
-    /// Show popup permission button in inactive state when temporary allowance is active
-    case popupPermissionButtonPersistence
 }
 
-public enum UpdatesSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature {
-        .updates
-    }
+public enum WebExtensionsSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .webExtensions }
 
-    /// Simplified update flow without expiration logic
-    case simplifiedFlow
+    case embeddedExtension = "embedded"
+}
+
+public enum ForceDarkModeOnWebsitesSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .forceDarkModeOnWebsites }
+
+    case featureRollout
 }

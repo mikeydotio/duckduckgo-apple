@@ -74,10 +74,11 @@ final class WideEventSenderTests: XCTestCase {
         )
     }
 
-    private func makeSender(pixelKitProvider: (() -> PixelKit?)? = nil) -> DefaultWideEventSender {
+    private func makeSender(pixelKitProvider: (() -> PixelKit?)? = nil, storage: WideEventStoring? = nil) -> DefaultWideEventSender {
         return DefaultWideEventSender(
             pixelKitProvider: pixelKitProvider ?? { PixelKit.shared },
-            postRequestHandler: mockPostRequestHandler
+            postRequestHandler: mockPostRequestHandler,
+            storage: storage ?? WideEventUserDefaultsStorage(userDefaults: testDefaults)
         )
     }
 
@@ -174,10 +175,10 @@ final class WideEventSenderTests: XCTestCase {
         XCTAssertEqual(capturedPixels.count, 2)
         #if os(macOS)
         XCTAssertTrue(capturedPixels[0].name.hasPrefix("m_mac_wide_"))
-        XCTAssertTrue(capturedPixels[0].name.contains(SenderTestWideEventData.pixelName))
+        XCTAssertTrue(capturedPixels[0].name.contains(SenderTestWideEventData.metadata.pixelName))
         #elseif os(iOS)
         XCTAssertTrue(capturedPixels[0].name.hasPrefix("m_ios_wide_"))
-        XCTAssertTrue(capturedPixels[0].name.contains(SenderTestWideEventData.pixelName))
+        XCTAssertTrue(capturedPixels[0].name.contains(SenderTestWideEventData.metadata.pixelName))
         #endif
     }
 
@@ -294,7 +295,22 @@ final class WideEventSenderTests: XCTestCase {
         wait(for: [expectation], timeout: 5.0)
 
         let parameters = capturedPixels[0].parameters
-        XCTAssertEqual(parameters["feature.name"], SenderTestWideEventData.featureName)
+        XCTAssertEqual(parameters["feature.name"], SenderTestWideEventData.metadata.featureName)
+    }
+
+    func testSendIncludesMetaVersion() {
+        let sender = makeSender()
+        let data = makeTestData()
+
+        let expectation = XCTestExpectation(description: "Pixels fired")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: false)) { _, _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
+
+        let parameters = capturedPixels[0].parameters
+        XCTAssertEqual(parameters["meta.version"], SenderTestWideEventData.metadata.version)
     }
 
     func testSendIncludesFeatureSpecificParameters() {
@@ -368,7 +384,7 @@ final class WideEventSenderTests: XCTestCase {
 
         let parameters = capturedPixels[0].parameters
         XCTAssertEqual(parameters["feature.status"], "SUCCESS")
-        XCTAssertNil(parameters["feature.status_reason"])
+        XCTAssertNil(parameters["feature.data.ext.status_reason"])
     }
 
     func testSendIncludesSuccessStatusWithReason() {
@@ -384,7 +400,7 @@ final class WideEventSenderTests: XCTestCase {
 
         let parameters = capturedPixels[0].parameters
         XCTAssertEqual(parameters["feature.status"], "SUCCESS")
-        XCTAssertEqual(parameters["feature.status_reason"], "completed_successfully")
+        XCTAssertEqual(parameters["feature.data.ext.status_reason"], "completed_successfully")
     }
 
     func testSendIncludesFailureStatus() {
@@ -400,7 +416,7 @@ final class WideEventSenderTests: XCTestCase {
 
         let parameters = capturedPixels[0].parameters
         XCTAssertEqual(parameters["feature.status"], "FAILURE")
-        XCTAssertNil(parameters["feature.status_reason"])
+        XCTAssertNil(parameters["feature.data.ext.status_reason"])
     }
 
     func testSendIncludesCancelledStatus() {
@@ -416,7 +432,7 @@ final class WideEventSenderTests: XCTestCase {
 
         let parameters = capturedPixels[0].parameters
         XCTAssertEqual(parameters["feature.status"], "CANCELLED")
-        XCTAssertNil(parameters["feature.status_reason"])
+        XCTAssertNil(parameters["feature.data.ext.status_reason"])
     }
 
     func testSendIncludesUnknownStatusWithReason() {
@@ -432,7 +448,7 @@ final class WideEventSenderTests: XCTestCase {
 
         let parameters = capturedPixels[0].parameters
         XCTAssertEqual(parameters["feature.status"], "UNKNOWN")
-        XCTAssertEqual(parameters["feature.status_reason"], "unexpected_state")
+        XCTAssertEqual(parameters["feature.data.ext.status_reason"], "unexpected_state")
     }
 
     // MARK: - POST Request Tests
@@ -543,7 +559,7 @@ final class WideEventSenderTests: XCTestCase {
 
         let feature = json?["feature"] as? [String: Any]
         XCTAssertNotNil(feature)
-        XCTAssertEqual(feature?["name"] as? String, SenderTestWideEventData.featureName)
+        XCTAssertEqual(feature?["name"] as? String, SenderTestWideEventData.metadata.featureName)
         XCTAssertEqual(feature?["status"] as? String, "SUCCESS")
 
         let featureData = feature?["data"] as? [String: Any]
@@ -636,13 +652,136 @@ final class WideEventSenderTests: XCTestCase {
         XCTAssertEqual(capturedPixels.count, 2)
         XCTAssertEqual(capturedPOSTRequests.count, 1)
     }
+
+    // MARK: - First Daily Occurrence Tests
+
+    func testSendIncludesFirstDailyOccurrenceOnFirstFire() {
+        let sender = makeSender()
+        let data = makeTestData()
+
+        let expectation = XCTestExpectation(description: "Pixels fired")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: false)) { _, _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
+
+        let parameters = capturedPixels[0].parameters
+        XCTAssertEqual(parameters["global.is_first_daily_occurrence"], "true")
+    }
+
+    func testSendOmitsFirstDailyOccurrenceOnSubsequentFireSameDay() {
+        let sender = makeSender()
+        let data = makeTestData()
+
+        let expectation1 = XCTestExpectation(description: "First pixels fired")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: false)) { _, _ in
+            expectation1.fulfill()
+        }
+
+        wait(for: [expectation1], timeout: 5.0)
+
+        capturedPixels.removeAll()
+
+        let expectation2 = XCTestExpectation(description: "Second pixels fired")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: false)) { _, _ in
+            expectation2.fulfill()
+        }
+
+        wait(for: [expectation2], timeout: 5.0)
+
+        let parameters = capturedPixels[0].parameters
+        XCTAssertNil(parameters["global.is_first_daily_occurrence"])
+    }
+
+    func testSendIncludesFirstDailyOccurrenceWhenLastSentYesterday() {
+        let mockStorage = MockWideEventStorage()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: Date())!
+        mockStorage.timestamps[SenderTestWideEventData.metadata.type] = yesterday
+
+        let sender = makeSender(storage: mockStorage)
+        let data = makeTestData()
+
+        let expectation = XCTestExpectation(description: "Pixels fired")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: false)) { _, _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
+
+        let parameters = capturedPixels[0].parameters
+        XCTAssertEqual(parameters["global.is_first_daily_occurrence"], "true")
+    }
+
+    func testSendRecordsTimestampAfterFiring() {
+        let mockStorage = MockWideEventStorage()
+        let sender = makeSender(storage: mockStorage)
+        let data = makeTestData()
+
+        XCTAssertNil(mockStorage.timestamps[SenderTestWideEventData.metadata.type])
+
+        let expectation = XCTestExpectation(description: "Pixels fired")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: false)) { _, _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
+
+        XCTAssertNotNil(mockStorage.timestamps[SenderTestWideEventData.metadata.type])
+    }
+
+    func testPOSTRequestIncludesFirstDailyOccurrenceAsBooleanWhenTrue() {
+        let sender = makeSender()
+        let data = makeTestData()
+
+        let expectation = XCTestExpectation(description: "Request sent")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: true)) { _, _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
+
+        XCTAssertEqual(capturedPOSTRequests.count, 1)
+        let body = capturedPOSTRequests[0].body
+        let json = try? JSONSerialization.jsonObject(with: body, options: []) as? [String: Any]
+        let global = json?["global"] as? [String: Any]
+        XCTAssertEqual(global?["is_first_daily_occurrence"] as? Bool, true)
+    }
+
+    func testPOSTRequestOmitsFirstDailyOccurrenceWhenNotFirstToday() {
+        let mockStorage = MockWideEventStorage()
+        mockStorage.timestamps[SenderTestWideEventData.metadata.type] = Date()
+
+        let sender = makeSender(storage: mockStorage)
+        let data = makeTestData()
+
+        let expectation = XCTestExpectation(description: "Request sent")
+        sender.send(data, status: .success, featureFlagProvider: makeFeatureFlagProvider(isPostEndpointEnabled: true)) { _, _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
+
+        XCTAssertEqual(capturedPOSTRequests.count, 1)
+        let body = capturedPOSTRequests[0].body
+        let json = try? JSONSerialization.jsonObject(with: body, options: []) as? [String: Any]
+        let global = json?["global"] as? [String: Any]
+        XCTAssertNil(global?["is_first_daily_occurrence"])
+    }
 }
 
 // MARK: - Test Wide Event Data Types
 
 final class SenderTestWideEventData: WideEventData {
-    static let pixelName = "sender_test_event"
-    static var featureName = "sender_test_event"
+    static let metadata = WideEventMetadata(
+        pixelName: "sender_test_event",
+        featureName: "sender_test_event",
+        mobileMetaType: "ios-sender-test-event",
+        desktopMetaType: "macos-sender-test-event",
+        version: "1.0.0"
+    )
 
     var testIdentifier: String?
     var testEligible: Bool
@@ -667,17 +806,6 @@ final class SenderTestWideEventData: WideEventData {
         self.globalData = globalData
     }
 
-    func pixelParameters() -> [String: String] {
-        var params: [String: String] = [:]
-
-        if let testIdentifier = testIdentifier {
-            params["feature.data.ext.test_identifier"] = testIdentifier
-        }
-
-        params["feature.data.ext.test_eligible"] = String(testEligible)
-        return params
-    }
-
     func jsonParameters() -> [String: Encodable] {
         var params: [String: Encodable] = [:]
 
@@ -687,5 +815,45 @@ final class SenderTestWideEventData: WideEventData {
 
         params["feature.data.ext.test_eligible"] = testEligible
         return params
+    }
+}
+
+// MARK: - Mock Wide Event Storage
+
+final class MockWideEventStorage: WideEventStoring {
+    var timestamps: [String: Date] = [:]
+    var savedData: [String: Data] = [:]
+
+    func save<T: WideEventData>(_ data: T) throws {
+        let encoded = try JSONEncoder().encode(data)
+        savedData["\(T.metadata.pixelName).\(data.globalData.id)"] = encoded
+    }
+
+    func load<T: WideEventData>(globalID: String) throws -> T {
+        let key = "\(T.metadata.pixelName).\(globalID)"
+        guard let data = savedData[key] else {
+            throw WideEventError.flowNotFound(pixelName: T.metadata.pixelName)
+        }
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    func update<T: WideEventData>(_ data: T) throws {
+        try save(data)
+    }
+
+    func delete<T: WideEventData>(_ data: T) {
+        savedData.removeValue(forKey: "\(T.metadata.pixelName).\(data.globalData.id)")
+    }
+
+    func allWideEvents<T: WideEventData>(for type: T.Type) -> [T] {
+        return []
+    }
+
+    func lastSentTimestamp(for eventType: String) -> Date? {
+        return timestamps[eventType]
+    }
+
+    func recordSentTimestamp(for eventType: String, date: Date) {
+        timestamps[eventType] = date
     }
 }

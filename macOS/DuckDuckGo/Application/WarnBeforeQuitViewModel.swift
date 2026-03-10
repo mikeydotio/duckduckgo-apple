@@ -22,19 +22,35 @@ import Foundation
 
 enum ConfirmationAction {
     case quit
-    case close
+    case closePinnedTab
+    case closeTabWithFloatingAIChat
 
     var shortcutText: String {
         switch self {
         case .quit: return "⌘Q"
-        case .close: return "⌘W"
+        case .closePinnedTab: return "⌘W"
+        case .closeTabWithFloatingAIChat: return "⌘W"
         }
     }
+}
 
-    var actionText: String {
+enum WarnBeforeButtonRole: Hashable {
+    case dontShowAgain
+    case closeTab
+    case dismiss
+}
+
+enum ProgressState: Equatable {
+    case idle                           // 0%, no animation
+    case animating(duration: TimeInterval, targetValue: CGFloat = 1.0)  // animating to targetValue with specified duration
+    case complete                       // 100%, no animation
+    case resetting                      // animating back to 0% with spring
+
+    var targetProgress: CGFloat {
         switch self {
-        case .quit: return UserText.confirmQuitAction
-        case .close: return UserText.confirmCloseAction
+        case .idle, .resetting: return 0
+        case .animating(_, targetValue: let targetValue): return targetValue
+        case .complete: return 1.0
         }
     }
 }
@@ -42,42 +58,92 @@ enum ConfirmationAction {
 @MainActor
 final class WarnBeforeQuitViewModel: ObservableObject {
 
-    @Published private(set) var progress: CGFloat = 0
+    @Published private(set) var progressState: ProgressState = .idle
+    @Published var balloonAnchorPosition: CGPoint = .zero
+    @Published var shouldHide: Bool = false
     let action: ConfirmationAction
     private let startupPreferences: StartupPreferences?
+    private let buttonHandlers: [WarnBeforeButtonRole: () -> Void]
 
-    var onDontAskAgain: (() -> Void)?
     var onHoverChange: ((Bool) -> Void)?
 
-    var subtitleText: String? {
-        // For quit action, only show "Tabs will be restored" subtitle if restore tabs is enabled
-        // For close action, no subtitle
+    private var usesFloatingCloseLayout: Bool {
+        action == .closeTabWithFloatingAIChat && (buttonHandlers[.closeTab] != nil || buttonHandlers[.dismiss] != nil)
+    }
+
+    var shouldShowShortcutIndicator: Bool {
+        !usesFloatingCloseLayout
+    }
+
+    var actionText: String {
         switch action {
         case .quit:
-            return startupPreferences?.restorePreviousSession == true ? UserText.confirmQuitSubtitle : nil
-        case .close:
-            return nil
+            return UserText.confirmQuitAction
+        case .closePinnedTab:
+            return UserText.confirmCloseAction
+        case .closeTabWithFloatingAIChat:
+            return usesFloatingCloseLayout ? UserText.aiChatFloatingCloseWarningTitle : UserText.aiChatFloatingCloseConfirmationAction
         }
     }
 
-    init(action: ConfirmationAction = .quit, startupPreferences: StartupPreferences? = nil) {
-        self.action = action
-        self.startupPreferences = startupPreferences
+    var shortcutText: String {
+        action.shortcutText
     }
 
-    func updateProgress(_ newProgress: CGFloat) {
-        progress = min(1.0, max(0, newProgress))
+    var subtitleText: String? {
+        switch action {
+        case .quit:
+            return startupPreferences?.restorePreviousSession == true ? UserText.confirmQuitSubtitle : nil
+        case .closePinnedTab:
+            return nil
+        case .closeTabWithFloatingAIChat:
+            return UserText.aiChatFloatingCloseWarningSubtitle
+        }
+    }
+
+    var isFloatingChatCloseAction: Bool {
+        usesFloatingCloseLayout
+    }
+
+    init(action: ConfirmationAction = .quit,
+         startupPreferences: StartupPreferences? = nil,
+         buttonHandlers: [WarnBeforeButtonRole: () -> Void] = [:],
+         onHoverChange: ((Bool) -> Void)? = nil) {
+        self.action = action
+        self.startupPreferences = startupPreferences
+        self.buttonHandlers = buttonHandlers
+        self.onHoverChange = onHoverChange
+    }
+
+    func startProgress(duration: TimeInterval = 0.6, targetValue: CGFloat = 1.0) {
+        progressState = .animating(duration: duration, targetValue: targetValue)
+    }
+
+    func completeProgress() {
+        progressState = .complete
     }
 
     func resetProgress() {
-        progress = 0
+        progressState = .resetting
     }
 
     func dontAskAgainTapped() {
-        onDontAskAgain?()
+        buttonHandlers[.dontShowAgain]?()
+    }
+
+    func triggerButton(_ role: WarnBeforeButtonRole) {
+        buttonHandlers[role]?()
+    }
+
+    func shouldShowButton(_ role: WarnBeforeButtonRole) -> Bool {
+        buttonHandlers[role] != nil
     }
 
     func hoverChanged(_ isHovering: Bool) {
         onHoverChange?(isHovering)
+    }
+
+    func transitionToIdle() {
+        progressState = .idle
     }
 }

@@ -92,7 +92,7 @@ class SettingsHostingController: UIHostingController<AnyView> {
     }
 
     @MainActor
-    func presentFireConfirmation(sourceRect: CGRect, onConfirm: @escaping (FireOptions) -> Void, onCancel: @escaping () -> Void) {
+    func presentFireConfirmation(sourceRect: CGRect, onConfirm: @escaping (FireRequest) -> Void, onCancel: @escaping () -> Void) {
         let presenter = FireConfirmationPresenter(
             tabsModel: viewProvider.tabManager.model,
             featureFlagger: AppDependencyProvider.shared.featureFlagger,
@@ -104,6 +104,9 @@ class SettingsHostingController: UIHostingController<AnyView> {
         presenter.presentFireConfirmation(
             on: self,
             sourceRect: sourceRect,
+            tabViewModel: nil,
+            pixelSource: .settings,
+            daxDialogsManager: viewProvider.daxDialogsManager,
             onConfirm: onConfirm,
             onCancel: onCancel
         )

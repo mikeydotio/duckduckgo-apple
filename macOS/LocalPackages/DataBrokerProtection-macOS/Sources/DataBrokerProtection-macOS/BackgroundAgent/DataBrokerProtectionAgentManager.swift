@@ -40,7 +40,7 @@ public class DataBrokerProtectionAgentManagerProvider {
 
     public static func agentManager(authenticationManager: DataBrokerProtectionAuthenticationManaging,
                                     configurationManager: DefaultConfigurationManager,
-                                    privacyConfigurationManager: DBPPrivacyConfigurationManager,
+                                    privacyConfigurationManager: PrivacyConfigurationManaging,
                                     featureFlagger: DBPFeatureFlagging,
                                     wideEvent: WideEventManaging,
                                     vpnBypassService: VPNBypassFeatureProvider) -> DataBrokerProtectionAgentManager? {
@@ -99,7 +99,8 @@ public class DataBrokerProtectionAgentManagerProvider {
         let localBrokerService = LocalBrokerJSONService(resources: FileResources(runTypeProvider: dbpSettings),
                                                         vault: vault,
                                                         pixelHandler: sharedPixelsHandler,
-                                                        runTypeProvider: dbpSettings)
+                                                        runTypeProvider: dbpSettings,
+                                                        isAuthenticatedUser: { await authenticationManager.isUserAuthenticated })
         let brokerUpdater = RemoteBrokerJSONService(featureFlagger: featureFlagger,
                                                     settings: dbpSettings,
                                                     vault: vault,
@@ -130,7 +131,8 @@ public class DataBrokerProtectionAgentManagerProvider {
         let emailServiceV1 = EmailServiceV1(authenticationManager: authenticationManager,
                                             settings: dbpSettings,
                                             servicePixel: backendServicePixels)
-        let emailConfirmationDataService = EmailConfirmationDataService(database: dataManager.database,
+        let emailConfirmationDataService = EmailConfirmationDataService(emailConfirmationStore: dataManager.database,
+                                                                        database: dataManager.database,
                                                                         emailServiceV0: emailService,
                                                                         emailServiceV1: emailServiceV1,
                                                                         featureFlagger: featureFlagger,
@@ -157,7 +159,8 @@ public class DataBrokerProtectionAgentManagerProvider {
             captchaService: captchaService,
             featureFlagger: featureFlagger,
             vpnBypassService: vpnBypassService,
-            wideEvent: wideEvent)
+            wideEvent: wideEvent,
+            isAuthenticatedUserProvider: { await authenticationManager.isUserAuthenticated })
 
         return DataBrokerProtectionAgentManager(
             eventsHandler: eventsHandler,
@@ -207,7 +210,7 @@ public final class DataBrokerProtectionAgentManager {
     private let agentStopper: DataBrokerProtectionAgentStopper
     private let configurationManger: DefaultConfigurationManager
     private let brokerUpdater: BrokerJSONServiceProvider
-    private let privacyConfigurationManager: DBPPrivacyConfigurationManager
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let authenticationManager: DataBrokerProtectionAuthenticationManaging
     private let freemiumDBPUserStateManager: FreemiumDBPUserStateManager
     private let wideEventSweeper: DBPWideEventSweeper?
@@ -216,6 +219,16 @@ public final class DataBrokerProtectionAgentManager {
     private lazy var browserWindowManager = BrowserWindowManager()
 
     private var didStartActivityScheduler = false
+    private var currentRunIsFreeScan: Bool?
+
+    /// Snapshots the current authentication state and caches whether this is a free scan run.
+    /// Returns the current `isAuthenticated` value for callers that need it.
+    @discardableResult
+    private func refreshIsAuthenticatedState() async -> Bool {
+        let isAuthenticated = await authenticationManager.isUserAuthenticated
+        currentRunIsFreeScan = !isAuthenticated
+        return isAuthenticated
+    }
 
     init(eventsHandler: EventMapping<JobEvent>,
          activityScheduler: DataBrokerProtectionBackgroundActivityScheduler,
@@ -232,7 +245,7 @@ public final class DataBrokerProtectionAgentManager {
          agentStopper: DataBrokerProtectionAgentStopper,
          configurationManager: DefaultConfigurationManager,
          brokerUpdater: BrokerJSONServiceProvider,
-         privacyConfigurationManager: DBPPrivacyConfigurationManager,
+         privacyConfigurationManager: PrivacyConfigurationManaging,
          authenticationManager: DataBrokerProtectionAuthenticationManaging,
          freemiumDBPUserStateManager: FreemiumDBPUserStateManager,
          wideEvent: WideEventManaging? = nil
@@ -334,7 +347,8 @@ private extension DataBrokerProtectionAgentManager {
                                                         errorHandler: ((DataBrokerProtectionJobsErrorCollection?) -> Void)?,
                                                         completion: (() -> Void)?) {
         Task {
-            if await authenticationManager.isUserAuthenticated {
+            let isAuthenticated = await refreshIsAuthenticatedState()
+            if isAuthenticated {
                 queueManager.startScheduledAllOperationsIfPermitted(showWebView: showWebView, jobDependencies: jobDependencies, errorHandler: errorHandler, completion: completion)
             } else {
                 queueManager.startScheduledScanOperationsIfPermitted(showWebView: showWebView, jobDependencies: jobDependencies, errorHandler: errorHandler, completion: completion)
@@ -400,7 +414,7 @@ extension DataBrokerProtectionAgentManager: JobQueueManagerDelegate {
             let hasCompletedInitialScans = try database.haveAllScansRunAtLeastOnce()
             if hasCompletedInitialScans {
                 let profile = try database.fetchProfile()
-                eventPixels.fireInitialScansTotalDurationPixel(numberOfProfileQueries: profile?.profileQueries.count ?? 0)
+                eventPixels.fireInitialScansTotalDurationPixel(numberOfProfileQueries: profile?.profileQueries.count ?? 0, isFreeScan: currentRunIsFreeScan)
             }
         } catch {
             Logger.dataBrokerProtection.error("Error when calculating if we should send the initial scans duration pixel, error: \(error.localizedDescription, privacy: .public)")
@@ -415,6 +429,8 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentAppEvents {
         let database = jobDependencies.database
         let eventPixels = DataBrokerProtectionEventPixels(database: database, repository: eventPixelRepository, handler: sharedPixelsHandler)
         eventPixels.markInitialScansStarted()
+
+        await refreshIsAuthenticatedState()
 
         eventsHandler.fire(.profileSaved)
         await fireMonitoringPixels()

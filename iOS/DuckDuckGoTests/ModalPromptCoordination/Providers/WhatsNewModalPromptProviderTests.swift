@@ -40,7 +40,9 @@ final class WhatsNewCoordinatorTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -67,7 +69,9 @@ final class WhatsNewCoordinatorTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -95,7 +99,9 @@ final class WhatsNewCoordinatorTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: true,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -119,7 +125,9 @@ final class WhatsNewCoordinatorTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -153,7 +161,9 @@ final class WhatsNewCoordinatorTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -175,7 +185,9 @@ final class WhatsNewCoordinatorTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -211,7 +223,9 @@ struct WhatsNewCoordinatorActionHandlingTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         let configuration = try #require(coordinator.provideModalPrompt())
@@ -254,7 +268,9 @@ struct WhatsNewCoordinatorActionHandlingTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: MockRemoteMessagingPixelReporter(),
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -291,7 +307,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             isIPad: false,
             pixelReporter: mockPixelReporter,
             userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
-            displayModelMapper: mockMapper
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -320,7 +338,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             isIPad: false,
             pixelReporter: mockPixelReporter,
             userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
-            displayModelMapper: mockMapper
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -348,7 +368,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             isIPad: false,
             pixelReporter: mockPixelReporter,
             userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
-            displayModelMapper: mockMapper
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -378,7 +400,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             isIPad: false,
             pixelReporter: mockPixelReporter,
             userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
-            displayModelMapper: mockMapper
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -409,7 +433,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             isIPad: false,
             pixelReporter: mockPixelReporter,
             userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
-            displayModelMapper: mockMapper
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -439,7 +465,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             isIPad: false,
             pixelReporter: mockPixelReporter,
             userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
-            displayModelMapper: mockMapper
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -452,6 +480,100 @@ struct WhatsNewCoordinatorPixelTrackingTests {
         #expect(mockPixelReporter.didCallMeasureRemoteMessageCardClicked)
         #expect(mockPixelReporter.capturedCardClickedMessage?.id == "test-message")
         #expect(mockPixelReporter.capturedCardClickedCardId == "card-123")
+        #expect(!mockPixelReporter.didCallMeasureRemoteMessageDismissed)
+    }
+
+    @Test("Check URL Item Action Callback Dismisses Modal With Item Action Type")
+    func whenURLItemActionCallbackInvokedThenDismissPixelFiresWithItemActionType() async throws {
+        // GIVEN
+        let message = RemoteMessageModel.makeCardsListMessage(id: "test-message")
+        let mockRepository = MockWhatsNewMessageRepository(scheduledRemoteMessage: message)
+        let mockHandler = MockRemoteMessagingActionHandler()
+        let mockPixelReporter = MockRemoteMessagingPixelReporter()
+        let mockMapper = MockWhatsNewDisplayModelMapper()
+        mockMapper.displayModelToReturn = .mock
+
+        let coordinator = WhatsNewCoordinator(
+            displayContext: .scheduled,
+            repository: mockRepository,
+            remoteMessageActionHandler: mockHandler,
+            isIPad: false,
+            pixelReporter: mockPixelReporter,
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
+        )
+        _ = coordinator.provideModalPrompt()
+
+        let testAction = RemoteAction.url(value: "https://example.com")
+        let onItemAction = try #require(mockMapper.capturedOnItemAction)
+
+        // WHEN — handleAction is deferred to an unstructured Task inside
+        // dismiss(onComplete:); bridge via continuation so we wait for it.
+        await withCheckedContinuation { continuation in
+            mockHandler.onHandleActionCalled = {
+                continuation.resume()
+            }
+            Task { @MainActor in
+                await onItemAction(testAction, "card-123")
+            }
+        }
+
+        // THEN
+        #expect(mockHandler.didCallHandleAction)
+        #expect(mockHandler.capturedRemoteAction == testAction)
+        #expect(mockPixelReporter.didCallMeasureRemoteMessageCardClicked)
+        #expect(mockPixelReporter.capturedCardClickedMessage?.id == "test-message")
+        #expect(mockPixelReporter.capturedCardClickedCardId == "card-123")
+        #expect(mockPixelReporter.didCallMeasureRemoteMessageDismissed)
+        #expect(mockPixelReporter.capturedDismissedMessage?.id == "test-message")
+        #expect(mockPixelReporter.capturedDismissType == .itemAction)
+    }
+
+    @available(iOS 16, *) // TimeLimitTrait is only available since iOS 16+
+    @Test("Check URL Item Action Callback Handles Action For On-Demand Context", .timeLimit(.minutes(1)))
+    func whenURLItemActionCallbackInvokedInOnDemandContextThenActionHandledAndDismissPixelFires() async throws {
+        // GIVEN
+        let message = RemoteMessageModel.makeCardsListMessage(id: "test-message")
+        let mockRepository = MockWhatsNewMessageRepository(scheduledRemoteMessage: message)
+        let mockHandler = MockRemoteMessagingActionHandler()
+        let mockPixelReporter = MockRemoteMessagingPixelReporter()
+        let mockMapper = MockWhatsNewDisplayModelMapper()
+        mockMapper.displayModelToReturn = .mock
+
+        let coordinator = WhatsNewCoordinator(
+            displayContext: .onDemand,
+            repository: mockRepository,
+            remoteMessageActionHandler: mockHandler,
+            isIPad: false,
+            pixelReporter: mockPixelReporter,
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
+        )
+        _ = coordinator.provideModalPrompt()
+
+        let testAction = RemoteAction.url(value: "https://example.com")
+        let onItemAction = try #require(mockMapper.capturedOnItemAction)
+
+        // WHEN — handleAction is deferred to an unstructured Task inside
+        // dismiss(onComplete:); bridge via continuation so we wait for it.
+        await withCheckedContinuation { continuation in
+            mockHandler.onHandleActionCalled = {
+                continuation.resume()
+            }
+            Task { @MainActor in
+                await onItemAction(testAction, "card-123")
+            }
+        }
+
+        // THEN
+        #expect(mockHandler.didCallHandleAction)
+        #expect(mockHandler.capturedRemoteAction == testAction)
+        #expect(mockPixelReporter.didCallMeasureRemoteMessageDismissed)
+        #expect(mockPixelReporter.capturedDismissType == .itemAction)
     }
 
     // MARK: - Dismiss Pixel Tests
@@ -473,7 +595,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             isIPad: false,
             pixelReporter: mockPixelReporter,
             userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
-            displayModelMapper: mockMapper
+            imageLoader: MockRemoteMessagingImageLoader(),
+            displayModelMapper: mockMapper,
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -500,7 +624,9 @@ struct WhatsNewCoordinatorPixelTrackingTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: mockPixelReporter,
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
         let configuration = try #require(coordinator.provideModalPrompt())
 
@@ -531,7 +657,9 @@ final class WhatsNewCoordinatorOnDemandTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: nil,
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -554,7 +682,9 @@ final class WhatsNewCoordinatorOnDemandTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: nil,
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -578,7 +708,9 @@ final class WhatsNewCoordinatorOnDemandTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: nil,
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -602,7 +734,9 @@ final class WhatsNewCoordinatorOnDemandTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: nil,
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
         _ = coordinator.provideModalPrompt()
 
@@ -632,7 +766,9 @@ final class WhatsNewCoordinatorOnDemandProtocolTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: nil,
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -654,7 +790,9 @@ final class WhatsNewCoordinatorOnDemandProtocolTests {
             remoteMessageActionHandler: mockHandler,
             isIPad: false,
             pixelReporter: nil,
-            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock()
+            userScriptsDependencies: DefaultScriptSourceProvider.Dependencies.makeMock(),
+            imageLoader: MockRemoteMessagingImageLoader(),
+            featureFlagger: MockFeatureFlagger()
         )
 
         // WHEN
@@ -672,6 +810,11 @@ private extension RemoteMessagingUI.CardsListDisplayModel {
     static let mock = RemoteMessagingUI.CardsListDisplayModel(
         screenTitle: "Test",
         icon: nil,
+        preloadedHeaderImage: nil,
+        headerImageUrl: nil,
+        loadHeaderImage: nil,
+        onHeaderImageLoadSuccess: nil,
+        onHeaderImageLoadFailed: nil,
         items: [],
         onAppear: {},
         primaryAction: (title: "OK", action: {})

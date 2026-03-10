@@ -66,8 +66,7 @@ public enum VPNSubscriptionStatusPixel: PixelKitEvent, PixelKitEventWithCustomPr
             }()
 
             return [
-                "isSubscriptionActive": isSubscriptionActiveString,
-                "authVersion": "v2",
+                "vpnSubscriptionActive": isSubscriptionActiveString,
                 "notificationObjectClass": Self.sourceClass(from: sourceObject)
             ]
         }

@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import AIChat
 import Common
 import Foundation
 import PrivacyConfig
@@ -25,9 +26,11 @@ import PrivacyConfig
 protocol AIChatContextualModeFeatureProviding {
     /// Whether Duck AI contextual chat mode is available on this device.
     ///
-    /// Returns `true` only when both conditions are met:
-    /// - The `contextualDuckAIMode` feature flag is enabled
-    /// - The device is running on an iPhone (not iPad or other devices)
+    /// Returns `true` only when all conditions are met:
+    /// - The `contextualDuckAIMode` sub-feature flag is enabled
+    /// - The AI Chat URL domain is `duck.ai`
+    /// - On iPhone: the `pageContextFeature` flag is enabled
+    /// - On iPad: the `iPadPageContext` flag is enabled
     var isAvailable: Bool { get }
 }
 
@@ -36,15 +39,27 @@ struct AIChatContextualModeFeature: AIChatContextualModeFeatureProviding {
 
     private let featureFlagger: any FeatureFlagger
     private let devicePlatform: DevicePlatformProviding.Type
+    private let aiChatURLProvider: () -> URL
 
     init(featureFlagger: any FeatureFlagger = AppDependencyProvider.shared.featureFlagger,
-         devicePlatform: DevicePlatformProviding.Type = DevicePlatform.self) {
+         devicePlatform: DevicePlatformProviding.Type = DevicePlatform.self,
+         aiChatURLProvider: @escaping () -> URL = { [settings = AIChatSettings()] in settings.aiChatURL }) {
         self.featureFlagger = featureFlagger
         self.devicePlatform = devicePlatform
+        self.aiChatURLProvider = aiChatURLProvider
     }
 
     /// Whether Duck AI contextual chat mode is available.
     var isAvailable: Bool {
-        featureFlagger.isFeatureOn(.contextualDuckAIMode) && devicePlatform.isIphone
+        featureFlagger.isFeatureOn(.contextualDuckAIMode)
+            && isPageContextEnabled
+            && aiChatURLProvider().isStandaloneDuckAIURL
+    }
+
+    private var isPageContextEnabled: Bool {
+        if devicePlatform.isIphone {
+            return featureFlagger.isFeatureOn(.pageContextFeature)
+        }
+        return featureFlagger.isFeatureOn(.iPadPageContext)
     }
 }

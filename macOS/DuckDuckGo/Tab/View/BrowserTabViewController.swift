@@ -101,6 +101,7 @@ final class BrowserTabViewController: NSViewController {
     private let duckPlayer: DuckPlayer
     private let subscriptionManager: any SubscriptionManager
     private let winBackOfferVisibilityManager: WinBackOfferVisibilityManaging
+    private let pinningManager: PinningManager
 
     private let tld: TLD
 
@@ -124,6 +125,24 @@ final class BrowserTabViewController: NSViewController {
     private(set) var transientTabContentViewController: NSViewController?
 
     public weak var aiChatSidebarHostingDelegate: AIChatSidebarHostingDelegate?
+    weak var aiChatSidebarResizeDelegate: AIChatSidebarResizeDelegate?
+
+    /// Resize handle placed on the leading edge of the sidebar container.
+    private(set) lazy var sidebarResizeHandle: AIChatSidebarResizeHandleView = {
+        let handle = AIChatSidebarResizeHandleView()
+        handle.translatesAutoresizingMaskIntoConstraints = false
+        handle.isHidden = true
+        handle.currentWidthProvider = { [weak self] in
+            self?.sidebarContainerWidthConstraint?.constant ?? 0
+        }
+        handle.onResize = { [weak self] proposedWidth in
+            self?.aiChatSidebarResizeDelegate?.sidebarHostDidResize(to: proposedWidth) ?? proposedWidth
+        }
+        handle.onResizeEnd = { [weak self] finalWidth in
+            self?.aiChatSidebarResizeDelegate?.sidebarHostDidFinishResize(to: finalWidth)
+        }
+        return handle
+    }()
 
     var isInPopUpWindow: Bool {
         tabCollectionViewModel.isPopup
@@ -156,6 +175,7 @@ final class BrowserTabViewController: NSViewController {
          duckPlayer: DuckPlayer,
          subscriptionManager: any SubscriptionManager = NSApp.delegateTyped.subscriptionManager,
          winBackOfferVisibilityManager: WinBackOfferVisibilityManaging = NSApp.delegateTyped.winBackOfferVisibilityManager,
+         pinningManager: PinningManager,
          tld: TLD = NSApp.delegateTyped.tld
     ) {
         self.tabCollectionViewModel = tabCollectionViewModel
@@ -181,6 +201,7 @@ final class BrowserTabViewController: NSViewController {
         self.duckPlayer = duckPlayer
         self.subscriptionManager = subscriptionManager
         self.winBackOfferVisibilityManager = winBackOfferVisibilityManager
+        self.pinningManager = pinningManager
 
         self.tld = tld
         containerStackView = NSStackView()
@@ -231,6 +252,14 @@ final class BrowserTabViewController: NSViewController {
             sidebarContainerLeadingConstraint!,
             sidebarContainerWidthConstraint!
         ])
+
+        view.addSubview(sidebarResizeHandle)
+        NSLayoutConstraint.activate([
+            sidebarResizeHandle.leadingAnchor.constraint(equalTo: sidebarContainer.leadingAnchor),
+            sidebarResizeHandle.topAnchor.constraint(equalTo: sidebarContainer.topAnchor),
+            sidebarResizeHandle.bottomAnchor.constraint(equalTo: sidebarContainer.bottomAnchor),
+            sidebarResizeHandle.widthAnchor.constraint(equalToConstant: 6)
+        ])
     }
 
     override func viewDidLoad() {
@@ -243,6 +272,15 @@ final class BrowserTabViewController: NSViewController {
         }
 
         view.registerForDraggedTypes([.URL, .fileURL])
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+
+        // Only adjust sidebar width when it is visually on-screen (leading < 0 means pulled into view)
+        if let leading = sidebarContainerLeadingConstraint?.constant, leading < 0 {
+            aiChatSidebarResizeDelegate?.sidebarHostDidChangeAvailableWidth(view.bounds.width)
+        }
     }
 
     override func viewWillAppear() {
@@ -597,6 +635,8 @@ final class BrowserTabViewController: NSViewController {
             return
         }
 
+        guard !isInPopUpWindow else { return }
+
         guard let tab = tabViewModel?.tab else { return }
 
         // if showLastDialog is true it asks the onboardingDialogTypeProvider for the lastDialog if the last dialog was shown on this tab
@@ -723,7 +763,10 @@ final class BrowserTabViewController: NSViewController {
                let configuration = context.webViewConfiguration {
 
                 // Create web view with extension's configuration
-                let webView = WebView(frame: .zero, configuration: configuration)
+                let webView = WebView(frame: .zero,
+                                      configuration: configuration,
+                                      featureFlagger: featureFlagger,
+                                      privacyConfig: privacyConfigurationManager.privacyConfig)
                 let request = URLRequest(url: url)
                 webView.load(request)
                 return webView
@@ -1203,7 +1246,8 @@ final class BrowserTabViewController: NSViewController {
                 accessibilityPreferences: accessibilityPreferences,
                 duckPlayerPreferences: duckPlayer.preferences,
                 subscriptionManager: subscriptionManager,
-                winBackOfferVisibilityManager: winBackOfferVisibilityManager
+                winBackOfferVisibilityManager: winBackOfferVisibilityManager,
+                pinningManager: pinningManager
             )
             preferencesViewController.delegate = self
             self.preferencesViewController = preferencesViewController
@@ -1216,7 +1260,7 @@ final class BrowserTabViewController: NSViewController {
     var bookmarksViewController: BookmarkManagementSplitViewController?
     private func bookmarksViewControllerCreatingIfNeeded() -> BookmarkManagementSplitViewController {
         return bookmarksViewController ?? {
-            let bookmarksViewController = BookmarkManagementSplitViewController(bookmarkManager: bookmarkManager, dragDropManager: bookmarkDragDropManager)
+            let bookmarksViewController = BookmarkManagementSplitViewController(bookmarkManager: bookmarkManager, dragDropManager: bookmarkDragDropManager, pinningManager: pinningManager)
             bookmarksViewController.delegate = self
             self.bookmarksViewController = bookmarksViewController
             return bookmarksViewController
@@ -1231,7 +1275,8 @@ final class BrowserTabViewController: NSViewController {
                 privacyConfigurationManager: privacyConfigurationManager,
                 webTrackingProtectionPreferences: webTrackingProtectionPreferences,
                 featureFlagger: featureFlagger,
-                tld: tld
+                tld: tld,
+                pinningManager: pinningManager
             )
             self.contentOverlayPopover = overlayPopover
             self.contentOverlayDismissalCancellable = windowControllersManager.stateChanged
@@ -1318,9 +1363,7 @@ extension BrowserTabViewController: TabDelegate {
     }
 
     func tabPageDOMLoaded(_ tab: Tab) {
-        if tabViewModel?.tab === tab {
-            tabViewModel?.isLoading = false
-        }
+        // NO-OP
     }
 
     func tabDidStartNavigation(_ tab: Tab) {
@@ -1377,11 +1420,12 @@ extension BrowserTabViewController: TabDelegate {
         subscribeToPinnedTabs()
         hideWebViewSnapshotIfNeeded()
 
-        // When a windows become key it will reload the last contextual onboarding dialog if needed
+        // When a window becomes key it will reload the last contextual onboarding dialog if needed
         // This helps keep dialogs consistent when moving between Windows
         //  - If the dialog was dismissed it will not reload when leaving and coming back to the Window
         //  - It tells presentContextualOnboarding that should show the lastDialog if possible
-        if !wasContextualOnboardingDialogDismissed && onboardingDialogTypeProvider.state != .onboardingCompleted {
+        //  - Skip for pop-up windows; contextual onboarding is excluded there
+        if !isInPopUpWindow && !wasContextualOnboardingDialogDismissed && onboardingDialogTypeProvider.state != .onboardingCompleted {
             presentContextualOnboarding(showLastDialog: true)
         }
     }
@@ -1755,8 +1799,19 @@ extension BrowserTabViewController {
         aiChatPreferences: Application.appDelegate.aiChatPreferences,
         aboutPreferences: Application.appDelegate.aboutPreferences,
         accessibilityPreferences: Application.appDelegate.accessibilityPreferences,
-        duckPlayer: Application.appDelegate.duckPlayer
+        duckPlayer: Application.appDelegate.duckPlayer,
+        pinningManager: Application.appDelegate.pinningManager
     )
+}
+
+// MARK: - Tab Selection for AI Chat Sidebar
+
+extension BrowserTabViewController {
+
+    func selectTab(with tabID: TabIdentifier) {
+        guard let tabIndex = tabCollectionViewModel.indexInAllTabs(where: { $0.uuid == tabID }) else { return }
+        tabCollectionViewModel.select(at: tabIndex)
+    }
 }
 
 private extension NSViewController {

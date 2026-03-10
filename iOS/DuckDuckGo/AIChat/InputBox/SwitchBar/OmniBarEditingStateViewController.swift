@@ -38,7 +38,10 @@ protocol OmniBarEditingStateViewControllerDelegate: AnyObject {
     func onEditFavorite(_ favorite: BookmarkEntity)
     func onSelectSuggestion(_ suggestion: Suggestion)
     func onVoiceSearchRequested(from mode: TextEntryMode)
+    func onChatHistorySelected(url: URL)
     func onDismissRequested()
+    func onSwitchTabToIndex(_ index: Int)
+    func onToggleModeSwitched()
 }
 
 /// Main coordinator for the OmniBar editing state, managing multiple specialized components
@@ -52,6 +55,7 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
     weak var delegate: OmniBarEditingStateViewControllerDelegate?
     var automaticallySelectsTextOnAppear = false
+    var useNewTransitionBehaviour = false
 
     // MARK: - Core Components
     private lazy var contentContainerView = UIView()
@@ -84,15 +88,21 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
     let appSettings: AppSettings
     private let featureFlagger: FeatureFlagger
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
+    private let aiChatSettings: AIChatSettingsProvider
 
     // MARK: - Manager Components
 
     private var swipeContainerManager: SwipeContainerManager?
     private var navigationActionBarManager: NavigationActionBarManager?
     private var suggestionTrayManager: SuggestionTrayManager?
+    private var aiChatHistoryManager: AIChatHistoryManager?
     private let daxLogoManager: DaxLogoManager
     private var notificationCancellable: AnyCancellable?
     private let switchBarSubmissionMetrics: SwitchBarSubmissionMetricsProviding
+
+    // MARK: - Escape Hatch
+    private var escapeHatchModel: EscapeHatchModel?
 
     private weak var contentAnimator: UIViewPropertyAnimator?
 
@@ -101,12 +111,18 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
     internal init(switchBarHandler: any SwitchBarHandling,
                   switchBarSubmissionMetrics: SwitchBarSubmissionMetricsProviding = SwitchBarSubmissionMetrics(),
                   appSettings: AppSettings = AppDependencyProvider.shared.appSettings,
-                  featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger) {
+                  featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger,
+                  privacyConfigurationManager: PrivacyConfigurationManaging = ContentBlocking.shared.privacyConfigurationManager,
+                  aiChatSettings: AIChatSettingsProvider = AIChatSettings(),
+                  escapeHatch: EscapeHatchModel? = nil) {
         self.switchBarHandler = switchBarHandler
         self.switchBarSubmissionMetrics = switchBarSubmissionMetrics
         self.daxLogoManager = DaxLogoManager()
         self.appSettings = appSettings
         self.featureFlagger = featureFlagger
+        self.privacyConfigurationManager = privacyConfigurationManager
+        self.aiChatSettings = aiChatSettings
+        self.escapeHatchModel = escapeHatch
         self.isUsingTopBarPosition = appSettings.currentAddressBarPosition == .top || isLandscapeOrientation
         self.isAdjustedForTopBar = self.isUsingTopBarPosition
 
@@ -139,6 +155,10 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
+        if aiChatHistoryManager == nil && featureFlagger.isFeatureOn(.aiChatSuggestions) && aiChatSettings.isChatSuggestionsEnabled {
+            installChatHistoryList()
+        }
+
         switchBarVC.focusTextField()
         if automaticallySelectsTextOnAppear {
             DispatchQueue.main.async {
@@ -154,6 +174,12 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         DailyPixel.fireDailyAndCount(pixel: .aiChatExperimentalOmnibarShown)
     }
 
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        aiChatHistoryManager?.tearDown()
+        aiChatHistoryManager = nil
+    }
+
     // MARK: - Public Methods
 
     @objc func dismissAnimated(_ completion: (() -> Void)? = nil) {
@@ -162,8 +188,16 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         }
     }
 
+    var isEscapeHatchCardVisible: Bool {
+        escapeHatchModel != nil
+    }
+
     func setLogoYOffset(_ offset: CGFloat) {
         daxLogoManager.containerYCenterConstraint?.constant = offset
+    }
+
+    func setLogoHidden(_ hidden: Bool) {
+        daxLogoManager.setForcedHidden(hidden)
     }
 
     override func viewWillLayoutSubviews() {
@@ -285,8 +319,40 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
         let manager = SuggestionTrayManager(switchBarHandler: switchBarHandler, dependencies: dependencies)
         manager.delegate = self
-        manager.installInContainerView(searchContainer, parentViewController: containerViewController)
+        manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatch: escapeHatchModel)
         suggestionTrayManager = manager
+    }
+
+    private func installChatHistoryList() {
+        guard let swipeContainerManager else { return }
+
+        let reader = SuggestionsReader(featureFlagger: featureFlagger, privacyConfig: privacyConfigurationManager)
+        let historySettings = AIChatHistorySettings(privacyConfig: privacyConfigurationManager)
+        let suggestionsReader = AIChatSuggestionsReader(suggestionsReader: reader, historySettings: historySettings)
+
+        let manager = AIChatHistoryManager(suggestionsReader: suggestionsReader,
+                                           aiChatSettings: aiChatSettings,
+                                           viewModel: AIChatSuggestionsViewModel(maxSuggestions: suggestionsReader.maxHistoryCount))
+        manager.delegate = self
+        swipeContainerManager.installChatHistory(using: manager)
+        manager.subscribeToTextChanges(switchBarHandler.currentTextPublisher)
+        manager.hasSuggestionsPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.scheduleAnimation {
+                    self.updateDaxVisibility()
+                    self.view.layoutIfNeeded()
+                }
+            }
+            .store(in: &cancellables)
+        aiChatHistoryManager = manager
+
+        if let escapeHatchModel {
+            manager.setEscapeHatch(escapeHatchModel, onTapped: { [weak self] in
+                self?.delegate?.onSwitchTabToIndex(escapeHatchModel.targetTabIndex)
+            })
+        }
     }
 
     private func installDaxLogoView() {
@@ -308,7 +374,20 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         navigationActionBarManager = manager
     }
 
+    private var lastKnownToggleState: TextEntryMode?
+
     private func setupSubscriptions() {
+        lastKnownToggleState = switchBarHandler.currentToggleState
+
+        switchBarHandler.toggleStatePublisher
+            .dropFirst()
+            .sink { [weak self] newState in
+                guard let self, newState != self.lastKnownToggleState else { return }
+                self.lastKnownToggleState = newState
+                self.delegate?.onToggleModeSwitched()
+            }
+            .store(in: &cancellables)
+
         switchBarVC.textEntryViewController.textHeightChangePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -479,18 +558,22 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         let shouldDisplaySuggestionTray = suggestionTrayManager?.shouldDisplaySuggestionTray == true
         let shouldDisplayFavoritesOverlay = suggestionTrayManager?.shouldDisplayFavoritesOverlay == true
         let isHorizontallyCompactLayoutEnabled = requiresHorizontallyCompactLayout(for: view.bounds.size)
+        let isShowingChatHistory = aiChatHistoryManager?.hasSuggestions == true
 
-        let isHomeDaxVisible = !shouldDisplaySuggestionTray && !shouldDisplayFavoritesOverlay && !isHorizontallyCompactLayoutEnabled
+        let hasEscapeHatchWithoutFavorites = escapeHatchModel != nil && !(suggestionTrayManager?.hasFavorites ?? false)
+        let isHomeDaxVisible = !shouldDisplaySuggestionTray && (!shouldDisplayFavoritesOverlay || hasEscapeHatchWithoutFavorites) && !isHorizontallyCompactLayoutEnabled
 
         let isAIDaxVisible: Bool
         if switchBarHandler.isUsingFadeOutAnimation {
-            isAIDaxVisible = !isHorizontallyCompactLayoutEnabled
+            isAIDaxVisible = !isHorizontallyCompactLayoutEnabled && !isShowingChatHistory
         } else {
-            isAIDaxVisible = !shouldDisplaySuggestionTray && !isHorizontallyCompactLayoutEnabled
+            isAIDaxVisible = !shouldDisplaySuggestionTray && !isHorizontallyCompactLayoutEnabled && !isShowingChatHistory
         }
 
         daxLogoManager.updateVisibility(isHomeDaxVisible: isHomeDaxVisible, isAIDaxVisible: isAIDaxVisible)
+        daxLogoManager.setEscapeHatchBaseOffset(escapeHatchModel != nil ? Constants.escapeHatchLogoZoneHeight : 0)
     }
+
 }
 
 // MARK: - NavigationActionBarViewAnimationDelegate
@@ -555,11 +638,15 @@ extension OmniBarEditingStateViewController: SuggestionTrayManagerDelegate {
     }
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, shouldUpdateTextTo text: String) {
-        switchBarHandler.updateCurrentText(text)
+        switchBarVC.textEntryViewController.setQueryText(text)
     }
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsEditFavorite favorite: BookmarkEntity) {
         delegate?.onEditFavorite(favorite)
+    }
+
+    func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsSwitchTabToIndex index: Int) {
+        delegate?.onSwitchTabToIndex(index)
     }
 
 }
@@ -614,11 +701,21 @@ extension OmniBarEditingStateViewController: VoiceSearchViewControllerDelegate {
     }
 }
 
+// MARK: - AIChatHistoryManagerDelegate
+
+extension OmniBarEditingStateViewController: AIChatHistoryManagerDelegate {
+
+    func aiChatHistoryManager(_ manager: AIChatHistoryManager, didSelectChatURL url: URL) {
+        delegate?.onChatHistorySelected(url: url)
+    }
+}
+
 private extension OmniBarEditingStateViewController {
     struct Constants {
         // Adjusts for two buttons in the action bar
         static let horizontalMarginForCompactLayout: CGFloat = 108
         static let backgroundColor = UIColor(designSystemColor: .background)
         static let animationDuration: TimeInterval = 0.15
+        static let escapeHatchLogoZoneHeight: CGFloat = 70
     }
 }

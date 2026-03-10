@@ -24,20 +24,28 @@ public protocol WideEventParameterProviding {
 }
 
 public extension WideEventParameterProviding {
-    func jsonParameters() -> [String: Encodable] {
-        // Allows all event types to get JSON endpoint support for free.
-        // This only needs to be overriden by objects that don't want to return string values in their JSON
-        // bodies, such as the sample_rate value for global data objects.
-        return pixelParameters()
+    func pixelParameters() -> [String: String] {
+        jsonParameters().mapValues { value in
+            if let string = value as? String {
+                return string
+            }
+            return String(describing: value)
+        }
     }
 }
 
 public enum WideEventParameter {
 
+    public enum Meta {
+        static let type = "meta.type"
+        static let version = "meta.version"
+    }
+
     public enum Global {
         static let platform = "global.platform"
         static let type = "global.type"
         static let sampleRate = "global.sample_rate"
+        static let isFirstDailyOccurrence = "global.is_first_daily_occurrence"
     }
 
     public enum App {
@@ -54,7 +62,7 @@ public enum WideEventParameter {
     public enum Feature {
         public static let name = "feature.name"
         public static let status = "feature.status"
-        public static let statusReason = "feature.status_reason"
+        public static let statusReason = "feature.data.ext.status_reason"
 
         public static let errorDomain = "feature.data.error.domain"
         public static let errorCode = "feature.data.error.code"

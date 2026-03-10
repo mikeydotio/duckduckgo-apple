@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import AppKitExtensions
 import Combine
 import Common
 import Foundation
@@ -196,6 +197,11 @@ final class NewTabPageCustomizationModel: ObservableObject {
         lastPickedCustomColorHexValue = nil
         customImagesManager?.availableImages.forEach { image in
             customImagesManager?.deleteImage(image)
+        }
+        // Once customizations have been reset, we can reset the flag for customization setting changes.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            appearancePreferences.didChangeAnyNewTabPageCustomizationSetting = false
         }
     }
 }

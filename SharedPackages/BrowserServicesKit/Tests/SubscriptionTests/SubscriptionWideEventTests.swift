@@ -84,12 +84,11 @@ final class SubscriptionWideEventTests: XCTestCase {
     // MARK: - Successful Subscription Flow Tests
 
     func testSuccessfulAppStoreSubscriptionFlow() throws {
-        let context = WideEventContextData(name: "funnel_onboarding_ios")
         let subscriptionData = SubscriptionPurchaseWideEventData(
             purchasePlatform: .appStore,
             subscriptionIdentifier: "ddg.privacy.pro.monthly.renews.us",
             freeTrialEligible: true,
-            contextData: context
+            funnelName: "funnel_onboarding_ios"
         )
 
         wideEvent.startFlow(subscriptionData)
@@ -142,7 +141,8 @@ final class SubscriptionWideEventTests: XCTestCase {
         XCTAssertEqual(params["feature.data.ext.account_creation_latency_ms_bucketed"], "5000")
         XCTAssertEqual(params["feature.data.ext.account_payment_latency_ms_bucketed"], "5000")
         XCTAssertEqual(params["feature.data.ext.account_activation_latency_ms_bucketed"], "10000")
-        XCTAssertEqual(params["context.name"], "funnel_onboarding_ios")
+        XCTAssertEqual(params["feature.data.ext.funnel_name"], "funnel_onboarding_ios")
+        XCTAssertNil(params["context.name"])
 
         XCTAssertNotNil(params["app.name"])
         XCTAssertNotNil(params["app.version"])
@@ -154,12 +154,11 @@ final class SubscriptionWideEventTests: XCTestCase {
     }
 
     func testSuccessfulStripeSubscriptionFlow() throws {
-        let context = WideEventContextData(name: "funnel_onboarding_ios")
         let subscriptionData = SubscriptionPurchaseWideEventData(
             purchasePlatform: .stripe,
             subscriptionIdentifier: "ddg.privacy.pro.yearly.renews.us",
             freeTrialEligible: false,
-            contextData: context
+            funnelName: "funnel_onboarding_ios"
         )
 
         wideEvent.startFlow(subscriptionData)
@@ -188,7 +187,8 @@ final class SubscriptionWideEventTests: XCTestCase {
         let params = firedPixels[0].parameters
         XCTAssertEqual(params["feature.data.ext.purchase_platform"], "stripe")
         XCTAssertEqual(params["feature.data.ext.free_trial_eligible"], "false")
-        XCTAssertEqual(params["context.name"], "funnel_onboarding_ios")
+        XCTAssertEqual(params["feature.data.ext.funnel_name"], "funnel_onboarding_ios")
+        XCTAssertNil(params["context.name"])
     }
 
     // MARK: - Failed Subscription Flow Tests
@@ -339,7 +339,7 @@ final class SubscriptionWideEventTests: XCTestCase {
         XCTAssert(firedPixels.count >= 1 && firedPixels.count <= 2)
         let params = firedPixels[0].parameters
         XCTAssertEqual(params["feature.status"], "UNKNOWN")
-        XCTAssertEqual(params["feature.status_reason"], "activation_timeout")
+        XCTAssertEqual(params["feature.data.ext.status_reason"], "activation_timeout")
         XCTAssertEqual(params["feature.data.ext.account_activation_latency_ms_bucketed"], "300000") // Max bucket
     }
 
@@ -468,7 +468,7 @@ final class SubscriptionWideEventTests: XCTestCase {
 
 }
 
-private struct MockWideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
+struct MockWideEventFeatureFlagProvider: WideEventFeatureFlagProviding {
     let isPostEndpointEnabled: Bool
 
     func isEnabled(_ flag: WideEventFeatureFlag) -> Bool {

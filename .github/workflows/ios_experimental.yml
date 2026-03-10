@@ -20,7 +20,7 @@ on:
 
 jobs:
   build-experimental:
-    runs-on: macos-15
+    runs-on: macos-26
     name: Build Experimental
     timeout-minutes: 30
     
@@ -160,7 +160,7 @@ jobs:
   upload:
     needs: build-experimental
     if: needs.build-experimental.outputs.should_skip != 'true'
-    runs-on: macos-15
+    runs-on: macos-26
     name: Upload to TestFlight
     timeout-minutes: 15
 
