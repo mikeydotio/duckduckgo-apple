@@ -129,20 +129,20 @@ final class DBPContinuedProcessingCoordinator {
     func startInitialRun(profile: DataBrokerProtectionProfile) async throws {
         guard let manager else { return }
 
-        guard let preparation = try await manager.prepareContinuedProcessingInitialRun(profile: profile) else {
+        guard let scanSummary = try await manager.prepareContinuedProcessingInitialRun(profile: profile) else {
             Logger.dataBrokerProtection.log("Continued processing: no pending scans found during initial run preparation")
             return
         }
 
         Logger.dataBrokerProtection.log(
-            "Continued processing: preparing initial run with \(preparation.scanSummary.scanCount, privacy: .public) scans"
+            "Continued processing: preparing initial run with \(scanSummary.scanCount, privacy: .public) scans"
         )
-        let scanJobTimeout = preparation.scanJobTimeout
+        let scanJobTimeout = manager.continuedProcessingScanJobTimeout()
         let scanBudgetUnitsPerJob = max(Int64(scanJobTimeout / Constants.heartbeatInterval), 1)
         Logger.dataBrokerProtection.log(
             "Continued processing: derived scan budget units per job \(scanBudgetUnitsPerJob, privacy: .public) from timeout \(scanJobTimeout, privacy: .public)s and heartbeat \(Constants.heartbeatInterval, privacy: .public)s"
         )
-        progressReporter.startInitialRun(summary: preparation.scanSummary, scanBudgetUnitsPerJob: scanBudgetUnitsPerJob)
+        progressReporter.startInitialRun(summary: scanSummary, scanBudgetUnitsPerJob: scanBudgetUnitsPerJob)
         runStartedAt = Date()
 
         phase = .initialScan
