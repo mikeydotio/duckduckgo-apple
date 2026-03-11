@@ -72,17 +72,9 @@ import WebKit
 @MainActor
 final class Launching: LaunchingHandling {
 
-    var dependencies: AppDependencies
+    private(set) var dependencies: AppDependencies
 
     // MARK: - Properties that live on Launching (not in AppDependencies)
-
-    /// Cancellables for Combine subscriptions set up during init
-    private var isInternalUserSharingCancellable: AnyCancellable?
-    private var isSyncInProgressCancellable: AnyCancellable?
-    private var syncFeatureFlagsCancellable: AnyCancellable?
-    private var screenLockedCancellable: AnyCancellable?
-    private var emailCancellables = Set<AnyCancellable>()
-    private var passwordsMenuBarCancellable: AnyCancellable?
 
     /// Properties that need to outlive init but aren't part of AppDependencies
     private var hangReportingFeatureMonitor: HangReportingFeatureMonitor?

@@ -82,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Stored Properties
 
     /// Set after transitioning to the Launching state. All forwarding properties read from here.
-    private(set) var appDependencies: AppDependencies!
+    private var appDependencies: AppDependencies!
 
     private var didFinishLaunching = false
     var dockCustomization: DockCustomization?
