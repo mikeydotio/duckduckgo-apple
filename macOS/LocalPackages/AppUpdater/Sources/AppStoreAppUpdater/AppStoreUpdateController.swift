@@ -173,12 +173,6 @@ extension UpdateControllerFactory: AppStoreUpdateControllerFactory {
         if featureFlagger.isFeatureOn(.appStoreUpdateFlow) {
             // New flow - check cloud for updates
             Task { @UpdateCheckActor in
-                // User-initiated checks skip rate limiting but still log the attempt
-                guard await updateCheckState.canStartNewCheck(updater: updaterChecker, minimumInterval: 0) else {
-                    Logger.updates.debug("User-initiated App Store update check skipped - updater not available")
-                    return
-                }
-
                 Logger.updates.debug("User-initiated App Store update check starting")
                 await performUpdateCheck(dismissRateLimiting: true)
             }
@@ -197,13 +191,10 @@ extension UpdateControllerFactory: AppStoreUpdateControllerFactory {
 
     @UpdateCheckActor
     private func performUpdateCheck(dismissRateLimiting: Bool = false) async {
-        // Check if we can start a new check (rate limiting for automatic checks)
-        if !dismissRateLimiting {
-            guard await updateCheckState.canStartNewCheck(updater: updaterChecker) else {
-                Logger.updates.debug("App Store update check skipped - rate limited")
-                return
-            }
-            await updateCheckState.beginCheck()
+        let minimumInterval: TimeInterval = dismissRateLimiting ? 0 : UpdateCheckState.defaultMinimumCheckInterval
+        guard await updateCheckState.beginCheckIfAllowed(updater: updaterChecker, minimumInterval: minimumInterval) else {
+            Logger.updates.debug("App Store update check skipped - rate limited or in progress")
+            return
         }
 
         do {

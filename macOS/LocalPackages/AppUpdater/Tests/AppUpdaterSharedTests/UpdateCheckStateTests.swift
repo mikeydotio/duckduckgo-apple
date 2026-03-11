@@ -47,93 +47,93 @@ final class UpdateCheckStateTests: XCTestCase {
         try await super.tearDown()
     }
 
-    // MARK: - canStartNewCheck Tests
+    // MARK: - beginCheckIfAllowed Tests
 
     /// Tests that update checks are allowed when the system is in its initial state.
     func testAllowsUpdateChecksInInitialState() async {
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertTrue(canStart, "Should be able to start check in initial state")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertTrue(started, "Should be able to start check in initial state")
     }
 
     /// Tests that update checks are rate limited to prevent excessive requests.
     func testRateLimitingPreventsExcessiveRequests() async {
         await updateCheckState.endCheck()
 
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertFalse(canStart, "Should be rate limited when checking too soon")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertFalse(started, "Should be rate limited when checking too soon")
     }
 
     /// Tests that rate limiting can be bypassed when needed (e.g., user-initiated checks).
     func testRateLimitingCanBeBypassed() async {
         await updateCheckState.endCheck()
 
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0)
-        XCTAssertTrue(canStart, "Should be able to start check when rate limit is disabled")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0)
+        XCTAssertTrue(started, "Should be able to start check when rate limit is disabled")
     }
 
     /// Tests that rate limiting intervals are configurable for different scenarios.
     func testRateLimitingIntervalsAreConfigurable() async {
         await updateCheckState.endCheck()
 
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0.1)
-        XCTAssertFalse(canStart, "Should respect custom minimum interval")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0.1)
+        XCTAssertFalse(started, "Should respect custom minimum interval")
     }
 
     /// Tests that checks are blocked when Sparkle doesn't allow updates.
     func testChecksAreBlockedWhenSparkleDoesntAllow() async {
         mockUpdater.mockCanCheckForUpdates = false
 
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertFalse(canStart, "Should not be able to start check when Sparkle doesn't allow it")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertFalse(started, "Should not be able to start check when Sparkle doesn't allow it")
     }
 
     /// Tests that checks are allowed when Sparkle allows updates.
     func testChecksAreAllowedWhenSparkleAllows() async {
         mockUpdater.mockCanCheckForUpdates = true
 
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertTrue(canStart, "Should be able to start check when Sparkle allows it")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertTrue(started, "Should be able to start check when Sparkle allows it")
     }
 
     /// Tests that nil updater allows update checks (doesn't block them).
     func testNilUpdaterAllowsChecks() async {
-        let canStart = await updateCheckState.canStartNewCheck(updater: nil)
-        XCTAssertTrue(canStart, "Should be able to start check with nil updater")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: nil)
+        XCTAssertTrue(started, "Should be able to start check with nil updater")
     }
 
     /// Tests that nil updater still respects rate limiting.
     func testNilUpdaterRespectsRateLimiting() async {
         await updateCheckState.endCheck()
 
-        let canStart = await updateCheckState.canStartNewCheck(updater: nil)
-        XCTAssertFalse(canStart, "Should still be rate limited with nil updater")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: nil)
+        XCTAssertFalse(started, "Should still be rate limited with nil updater")
     }
 
     // MARK: - endCheck Tests
 
-    /// Tests that recording check timestamps enables rate limiting behavior.
-    func testRecordingTimestampsEnablesRateLimiting() async {
-        let initialCanStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertTrue(initialCanStart, "Should initially be able to start check")
+    /// Tests that endCheck enables rate limiting for subsequent checks.
+    func testEndCheckEnablesRateLimiting() async {
+        let initialStart = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertTrue(initialStart, "Should initially be able to start check")
 
         await updateCheckState.endCheck()
 
-        let canStartAfterRecord = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertFalse(canStartAfterRecord, "Should be rate limited after recording check time")
+        let startAfterEnd = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertFalse(startAfterEnd, "Should be rate limited after endCheck")
     }
 
     /// Tests that rate limiting expires after sufficient time passes.
     func testRateLimitingExpiresAfterTime() async {
         await updateCheckState.endCheck()
 
-        // Check immediately after recording - should be rate limited
-        let canStartImmediately = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0.01)
-        XCTAssertFalse(canStartImmediately, "Should be rate limited immediately after recording")
+        // Check immediately after — should be rate limited
+        let canStartImmediately = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0.01)
+        XCTAssertFalse(canStartImmediately, "Should be rate limited immediately after endCheck")
 
         // Wait for rate limit to expire
         try? await Task.sleep(nanoseconds: 20_000_000) // 20ms
 
-        let canStartAfterWait = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0.01)
+        let canStartAfterWait = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0.01)
         XCTAssertTrue(canStartAfterWait, "Should be able to start check after rate limit expires")
     }
 
@@ -142,17 +142,17 @@ final class UpdateCheckStateTests: XCTestCase {
     /// Tests the basic rate limiting workflow.
     func testBasicRateLimitingWorkflow() async {
         // Initial state - should allow checks
-        let initialCanStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertTrue(initialCanStart, "Should initially be able to start check")
+        let initialStart = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertTrue(initialStart, "Should initially be able to start check")
 
-        // Record check time - should now be rate limited
+        // End check - should now be rate limited
         await updateCheckState.endCheck()
-        let canStartAfterRecord = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertFalse(canStartAfterRecord, "Should be rate limited after recording check time")
+        let startAfterEnd = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertFalse(startAfterEnd, "Should be rate limited after endCheck")
 
         // User-initiated check can bypass rate limit
-        let canStartUserInitiated = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0)
-        XCTAssertTrue(canStartUserInitiated, "User-initiated check should bypass rate limit")
+        let userInitiatedStart = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0)
+        XCTAssertTrue(userInitiatedStart, "User-initiated check should bypass rate limit")
     }
 
     /// Tests behavior with different Sparkle states and rate limiting.
@@ -162,16 +162,16 @@ final class UpdateCheckStateTests: XCTestCase {
 
         // Even if rate limited, Sparkle state should still be respected
         mockUpdater.mockCanCheckForUpdates = false
-        let canStartWithBlockedSparkle = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0)
+        let canStartWithBlockedSparkle = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0)
         XCTAssertFalse(canStartWithBlockedSparkle, "Should not be able to start even when bypassing rate limit if Sparkle blocks")
 
         // When Sparkle allows but we're rate limited
         mockUpdater.mockCanCheckForUpdates = true
-        let canStartWithAllowedSparkle = await updateCheckState.canStartNewCheck(updater: mockUpdater)
+        let canStartWithAllowedSparkle = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
         XCTAssertFalse(canStartWithAllowedSparkle, "Should still be rate limited even when Sparkle allows")
 
         // When both Sparkle allows and rate limit is bypassed
-        let canStartBothAllowed = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0)
+        let canStartBothAllowed = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0)
         XCTAssertTrue(canStartBothAllowed, "Should be able to start when both conditions are met")
     }
 
@@ -182,46 +182,46 @@ final class UpdateCheckStateTests: XCTestCase {
         XCTAssertEqual(UpdateCheckState.defaultMinimumCheckInterval, .minutes(5), "Default minimum check interval should be 5 minutes")
     }
 
-    // MARK: - In-flight guard tests
+    // MARK: - Atomicity / in-flight guard tests
 
-    /// The gate must block a second check while the first is still in flight.
-    /// This prevents concurrent CDN fetches when @UpdateCheckActor suspends at await.
+    /// beginCheckIfAllowed must atomically check AND set the flag.
+    /// A second call while the first is in flight must return false immediately.
     func testBlocksNewCheckWhileOneIsInFlight() async {
-        await updateCheckState.beginCheck()
+        let firstStart = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertTrue(firstStart, "First check should start")
 
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertFalse(canStart, "Should block a second check while one is already in flight")
+        let secondStart = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertFalse(secondStart, "Should block a second check while one is already in flight")
     }
 
     /// After endCheck(), the gate should open again (respecting the time interval).
     func testAllowsCheckAfterEndCheck() async {
-        await updateCheckState.beginCheck()
+        _ = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
         await updateCheckState.endCheck()
 
         // minimumInterval: 0 to bypass the time check — we only want to test the flag
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 0)
-        XCTAssertTrue(canStart, "Should allow a new check after endCheck() clears the flag")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 0)
+        XCTAssertTrue(started, "Should allow a new check after endCheck() clears the flag")
     }
 
     /// Rate limiting must apply even when no update has ever been found.
-    /// Previously, latestUpdate == nil bypassed the time check entirely.
     func testRateLimitingAppliesEvenWhenNoUpdateFound() async {
-        // Simulate: a check ran, found no update (latestUpdate stays nil), endCheck() called
-        await updateCheckState.beginCheck()
+        // Simulate: a check ran, found no update, endCheck() called
+        _ = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
         await updateCheckState.endCheck()
 
         // Immediately after — should be rate limited
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater)
-        XCTAssertFalse(canStart, "Rate limiting must apply even when no update has ever been found")
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
+        XCTAssertFalse(started, "Rate limiting must apply even when no update has ever been found")
     }
 
     /// endCheck() records check time, so the rate limit window starts from that call.
     func testEndCheckRecordsCheckTime() async {
-        await updateCheckState.beginCheck()
+        _ = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater)
         await updateCheckState.endCheck()
 
-        // With a tiny interval, should be blocked immediately after endCheck
-        let canStart = await updateCheckState.canStartNewCheck(updater: mockUpdater, minimumInterval: 60)
-        XCTAssertFalse(canStart, "endCheck() must record check time for rate limiting")
+        // With a large interval, should be blocked immediately after endCheck
+        let started = await updateCheckState.beginCheckIfAllowed(updater: mockUpdater, minimumInterval: 60)
+        XCTAssertFalse(started, "endCheck() must record check time for rate limiting")
     }
 }

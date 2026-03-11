@@ -33,12 +33,22 @@ public actor UpdateCheckState {
 
     public init() {}
 
-    /// Determines whether a new update check can be started.
+    /// Atomically checks whether a new update check can be started and, if so, marks one as in progress.
     ///
-    /// Returns `false` if a check is already in flight, the updater disallows checks,
-    /// or the minimum interval since the last check has not elapsed.
+    /// Because this method has no `await` inside its body, the entire check-and-set runs as a single
+    /// actor turn with no suspension points. This prevents the TOCTOU race that would arise from
+    /// separate `canStartNewCheck` + `beginCheck` calls.
     ///
-    public func canStartNewCheck(
+    /// - Parameters:
+    ///   - updater: The updater instance to check for availability. Pass `nil` to skip this check.
+    ///   - minimumInterval: Minimum time that must have elapsed since the last `endCheck()` call.
+    ///     Pass `0` to bypass rate limiting (e.g. for user-initiated checks).
+    ///     Defaults to `UpdateCheckState.defaultMinimumCheckInterval`.
+    /// - Returns: `true` if the check was allowed and the in-flight flag has been set;
+    ///   `false` if a check is already in flight, the updater disallows checks,
+    ///   or the minimum interval has not elapsed.
+    ///
+    public func beginCheckIfAllowed(
         updater: UpdaterAvailabilityChecking?,
         minimumInterval: TimeInterval = UpdateCheckState.defaultMinimumCheckInterval
     ) -> Bool {
@@ -53,12 +63,8 @@ public actor UpdateCheckState {
             return false
         }
 
-        return true
-    }
-
-    /// Marks a check as in progress. Call this immediately after `canStartNewCheck` returns `true`.
-    public func beginCheck() {
         isCheckInProgress = true
+        return true
     }
 
     /// Marks the check as finished and records the current time for rate limiting.
