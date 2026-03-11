@@ -23,11 +23,11 @@ import PixelKit
 @MainActor
 final class Foreground: ForegroundHandling {
 
-    private weak var appDelegate: AppDelegate?
+    let dependencies: AppDependencies
     private var terminationHandler: TerminationDeciderHandler?
 
-    init(appDelegate: AppDelegate) {
-        self.appDelegate = appDelegate
+    init(dependencies: AppDependencies) {
+        self.dependencies = dependencies
     }
 
     func onTransition() {
@@ -68,22 +68,20 @@ final class Foreground: ForegroundHandling {
     // MARK: - Private
 
     private func createTerminationDeciders() -> [ApplicationTerminationDecider] {
-        guard let appDelegate else { return [] }
-
-        let persistor = QuitSurveyUserDefaultsPersistor(keyValueStore: appDelegate.keyValueStore)
+        let persistor = QuitSurveyUserDefaultsPersistor(keyValueStore: dependencies.stores.keyValueStore)
 
         let deciders: [ApplicationTerminationDecider?] = [
             QuitSurveyAppTerminationDecider(
-                featureFlagger: appDelegate.featureFlagger,
-                dataClearingPreferences: appDelegate.dataClearingPreferences,
-                downloadManager: appDelegate.downloadManager,
+                featureFlagger: dependencies.featureFlags.featureFlagger,
+                dataClearingPreferences: dependencies.preferences.dataClearingPreferences,
+                downloadManager: dependencies.services.downloadManager,
                 installDate: AppDelegate.firstLaunchDate,
                 persistor: persistor,
-                reinstallUserDetection: DefaultReinstallUserDetection(keyValueStore: appDelegate.keyValueStore),
-                showQuitSurvey: { [weak appDelegate] in
-                    guard let appDelegate else { return }
+                reinstallUserDetection: DefaultReinstallUserDetection(keyValueStore: dependencies.stores.keyValueStore),
+                showQuitSurvey: { [weak self] in
+                    guard let self else { return }
                     let presenter = QuitSurveyPresenter(
-                        windowControllersManager: appDelegate.windowControllersManager,
+                        windowControllersManager: self.dependencies.ui.windowControllersManager,
                         persistor: persistor
                     )
                     await presenter.showSurvey()
@@ -91,26 +89,26 @@ final class Foreground: ForegroundHandling {
             ),
 
             ActiveDownloadsAppTerminationDecider(
-                downloadManager: appDelegate.downloadManager,
-                downloadListCoordinator: appDelegate.downloadListCoordinator
+                downloadManager: dependencies.services.downloadManager,
+                downloadListCoordinator: dependencies.services.downloadListCoordinator
             ),
 
             makeWarnBeforeQuitDecider(),
 
-            .perform { [weak appDelegate] in
-                appDelegate?.updateController?.handleAppTermination()
+            .perform { [weak self] in
+                self?.dependencies.services.updateController?.handleAppTermination()
             },
 
-            .perform { [weak appDelegate] in
-                appDelegate?.stateRestorationManager?.applicationWillTerminate()
+            .perform { [weak self] in
+                self?.dependencies.services.stateRestorationManager?.applicationWillTerminate()
             },
 
-            appDelegate.autoClearHandler,
+            dependencies.services.autoClearHandler,
 
-            .terminationDecider { [weak appDelegate] _ in
-                guard let appDelegate else { return .sync(.next) }
+            .terminationDecider { [weak self] _ in
+                guard let self else { return .sync(.next) }
                 return .async(Task {
-                    await appDelegate.privacyStats.handleAppTermination()
+                    await self.dependencies.services.privacyStats.handleAppTermination()
                     return .next
                 })
             },
@@ -124,14 +122,12 @@ final class Foreground: ForegroundHandling {
     }
 
     private func makeWarnBeforeQuitDecider() -> ApplicationTerminationDecider? {
-        guard let appDelegate else { return nil }
+        let willShowAutoClearWarning = dependencies.preferences.dataClearingPreferences.isAutoClearEnabled
+            && dependencies.preferences.dataClearingPreferences.isWarnBeforeClearingEnabled
 
-        let willShowAutoClearWarning = appDelegate.dataClearingPreferences.isAutoClearEnabled
-            && appDelegate.dataClearingPreferences.isWarnBeforeClearingEnabled
+        let hasWindow = dependencies.ui.windowControllersManager.lastKeyMainWindowController?.window != nil
 
-        let hasWindow = appDelegate.windowControllersManager.lastKeyMainWindowController?.window != nil
-
-        guard appDelegate.featureFlagger.isFeatureOn(.warnBeforeQuit),
+        guard dependencies.featureFlags.featureFlagger.isFeatureOn(.warnBeforeQuit),
               !willShowAutoClearWarning,
               hasWindow,
               let currentEvent = NSApp.currentEvent else { return nil }
@@ -139,17 +135,17 @@ final class Foreground: ForegroundHandling {
         guard let manager = WarnBeforeQuitManager(
             currentEvent: currentEvent,
             action: .quit,
-            isWarningEnabled: { [weak appDelegate] in
-                appDelegate?.tabsPreferences.warnBeforeQuitting ?? false
+            isWarningEnabled: { [weak self] in
+                self?.dependencies.preferences.tabsPreferences.warnBeforeQuitting ?? false
             },
             isPhysicalKeyPress: WarnBeforeQuitManager.makePhysicalKeyPressCheck(for: currentEvent)
         ) else { return nil }
 
         let presenter = WarnBeforeQuitOverlayPresenter(
-            startupPreferences: appDelegate.startupPreferences,
-            buttonHandlers: [.dontShowAgain: { [weak appDelegate] in
+            startupPreferences: dependencies.preferences.startupPreferences,
+            buttonHandlers: [.dontShowAgain: { [weak self] in
                 PixelKit.fire(GeneralPixel.warnBeforeQuitDontShowAgain, frequency: .standard)
-                appDelegate?.tabsPreferences.warnBeforeQuitting = false
+                self?.dependencies.preferences.tabsPreferences.warnBeforeQuitting = false
             }],
             onHoverChange: { [weak manager] isHovering in
                 manager?.setMouseHovering(isHovering)

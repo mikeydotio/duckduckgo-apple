@@ -1039,9 +1039,7 @@ final class Launching: LaunchingHandling {
     }
 
     func makeForegroundState() throws -> any ForegroundHandling {
-        // Foreground currently requires an AppDelegate reference. This will be updated in Task 5
-        // to use AppDependencies instead. For now, bridge via Application.appDelegate.
-        return Foreground(appDelegate: Application.appDelegate)
+        Foreground(dependencies: dependencies)
     }
 }
 
