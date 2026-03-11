@@ -873,7 +873,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     @MainActor
     func prepareContinuedProcessingInitialRun(
         profile: DataBrokerProtectionCore.DataBrokerProtectionProfile
-    ) async throws {
+    ) async throws -> Bool {
         try await saveProfileAndPrepareForInitialScans(profile)
 
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
@@ -882,9 +882,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
             jobType: .manualScan,
             priorityDate: Date()
         )
-        guard !eligibleScanJobs.isEmpty else {
-            throw DBPContinuedProcessingError.noPendingScans
-        }
+        return !eligibleScanJobs.isEmpty
     }
 
     @MainActor

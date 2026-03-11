@@ -20,14 +20,11 @@
 import Foundation
 
 enum DBPContinuedProcessingError: LocalizedError {
-    case noPendingScans
     case taskHandlerRegistrationFailed
     case taskRequestSubmissionFailed(underlyingError: Error)
 
     var errorDescription: String? {
         switch self {
-        case .noPendingScans:
-            "No pending scans are available to run."
         case .taskHandlerRegistrationFailed:
             "Failed to register continued processing task handler."
         case .taskRequestSubmissionFailed(let underlyingError):

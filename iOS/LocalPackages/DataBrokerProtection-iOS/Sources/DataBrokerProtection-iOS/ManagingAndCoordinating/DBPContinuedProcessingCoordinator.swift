@@ -68,7 +68,12 @@ final class DBPContinuedProcessingCoordinator {
     func startInitialRun(profile: DataBrokerProtectionProfile) async throws {
         guard let manager else { return }
 
-        try await manager.prepareContinuedProcessingInitialRun(profile: profile)
+        let hasPendingScans = try await manager.prepareContinuedProcessingInitialRun(profile: profile)
+        guard hasPendingScans else {
+            Logger.dataBrokerProtection.log("Continued processing: no pending scans found during initial run preparation")
+            return
+        }
+
         Logger.dataBrokerProtection.log("Continued processing: prepared initial run")
         runStartedAt = Date()
 
