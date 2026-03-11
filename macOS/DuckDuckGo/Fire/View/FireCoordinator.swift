@@ -299,7 +299,6 @@ extension FireCoordinator {
                                                 clearSiteData: result.includeCookiesAndSiteData,
                                                 clearChatHistory: result.includeChatHistory,
                                                 urlToOpenIfWindowsAreClosed: nil)
-            dataClearingPixelsReporter.fireCompletionPixel(from: startTime, dialogResult: result, path: .burnVisits, autoClear: false)
             return
         }
         pixelFiring?.fire(GeneralPixel.fireButtonFirstBurn, frequency: .legacyDailyNoSuffix)
@@ -319,7 +318,6 @@ extension FireCoordinator {
                                                 includingHistory: result.includeHistory,
                                                 includeCookiesAndSiteData: result.includeCookiesAndSiteData,
                                                 includeChatHistory: result.includeChatHistory)
-            dataClearingPixelsReporter.fireCompletionPixel(from: startTime, dialogResult: result, path: .burnEntity, autoClear: false)
 
         case .currentWindow:
             pixelFiring?.fire(GeneralPixel.fireButton(option: .window))
@@ -334,7 +332,6 @@ extension FireCoordinator {
                                                 includingHistory: result.includeHistory,
                                                 includeCookiesAndSiteData: result.includeCookiesAndSiteData,
                                                 includeChatHistory: result.includeChatHistory)
-            dataClearingPixelsReporter.fireCompletionPixel(from: startTime, dialogResult: result, path: .burnEntity, autoClear: false)
 
         case .allData:
             pixelFiring?.fire(GeneralPixel.fireButton(option: .allSites))
@@ -344,7 +341,6 @@ extension FireCoordinator {
                                                  opening: .newtab,
                                                  includeCookiesAndSiteData: result.includeCookiesAndSiteData,
                                                  includeChatHistory: result.includeChatHistory)
-                dataClearingPixelsReporter.fireCompletionPixel(from: startTime, dialogResult: result, path: .burnAll, autoClear: false)
             } else {
                 let entity = Fire.BurningEntity.allWindows(mainWindowControllers: windowControllersManager.mainWindowControllers,
                                                            selectedDomains: result.selectedCookieDomains ?? [],
@@ -354,7 +350,6 @@ extension FireCoordinator {
                                                     includingHistory: result.includeHistory,
                                                     includeCookiesAndSiteData: result.includeCookiesAndSiteData,
                                                     includeChatHistory: result.includeChatHistory)
-                dataClearingPixelsReporter.fireCompletionPixel(from: startTime, dialogResult: result, path: .burnEntity, autoClear: false)
             }
         }
         if result.includeHistory,

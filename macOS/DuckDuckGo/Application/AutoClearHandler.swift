@@ -128,9 +128,7 @@ final class AutoClearHandler: ApplicationTerminationDecider {
                 await aiChatSyncCleaner?.recordLocalClear(date: Date())
             }
         }
-        let startTime = CACurrentMediaTime()
         await fireViewModel.fire.burnAll(isBurnOnExit: true, includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
-        Self.fireCompletionPixel(from: startTime, isAutoClearAIChatHistoryEnabled: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
         appTerminationHandledCorrectly = true
     }
 
@@ -146,29 +144,8 @@ final class AutoClearHandler: ApplicationTerminationDecider {
         let shouldBurnOnStart = dataClearingPreferences.isAutoClearEnabled && !appTerminationHandledCorrectly
         guard shouldBurnOnStart else { return false }
 
-        let startTime = CACurrentMediaTime()
-        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled) { [weak self] in
-            guard let self else { return }
-            Self.fireCompletionPixel(from: startTime, isAutoClearAIChatHistoryEnabled: self.dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
-        }
+        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
         return true
     }
 
-}
-
-// MARK: - Instrumentation
-
-extension AutoClearHandler {
-    private static func fireCompletionPixel(from startTime: CFTimeInterval, isAutoClearAIChatHistoryEnabled: Bool) {
-        PixelKit.fire(
-            DataClearingPixels.fireCompletion(
-                duration: Int((CACurrentMediaTime() - startTime) * 1000),
-                option: "all_data",
-                domains: isAutoClearAIChatHistoryEnabled ? "CookiesAndSiteData,ChatHistory": "CookiesAndSiteData",
-                path: "burnAll",
-                autoClear: "true"
-            ),
-            frequency: .standard
-        )
-    }
 }

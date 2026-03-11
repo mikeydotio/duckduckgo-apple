@@ -314,7 +314,6 @@ final class Fire: FireProtocol {
                                                                                  privacyConfig: NSApp.delegateTyped.privacyFeatures.contentBlocking.privacyConfigurationManager)
         self.dataClearingPixelsReporter = dataClearingPixelsReporter
         self.tabCleanupPreparer = tabCleanupPreparer
-        self.historyCoordinating.dataClearingPixelsHandling = DataClearingPixelsBurnHistoryHandler(dataClearingPixelsReporter)
     }
 
     @MainActor
@@ -554,9 +553,7 @@ final class Fire: FireProtocol {
 
     @MainActor
     func burnChatHistory() async {
-        let startTime = CACurrentMediaTime()
         await aiChatHistoryCleaner.cleanAIChatHistory()
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnChatHistoryDuration, from: startTime)
         if syncService?.authState != .inactive {
             syncService?.scheduler.requestSyncImmediately()
         }
@@ -672,13 +669,11 @@ final class Fire: FireProtocol {
     @MainActor
     private func burnHistory(ofEntity entity: BurningEntity, completion: @escaping @MainActor () -> Void) {
         let visits: [Visit]
-        let burnHistoryStartTime = CACurrentMediaTime()
 
         switch entity {
         case .none(selectedDomains: let domains):
             burnHistory(of: domains) { urls in
                 self.burnVisitedLinks(urls)
-                self.dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnHistoryDuration, from: burnHistoryStartTime, entity: entity.description)
                 completion()
             }
             return
@@ -699,14 +694,12 @@ final class Fire: FireProtocol {
 
             burnAllVisitedLinks()
             burnAllHistory(completion: completion)
-            dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnHistoryDuration, from: burnHistoryStartTime, entity: entity.description)
 
             return
         }
 
         burnVisitedLinks(visits)
         historyCoordinating.burnVisits(visits, completion: completion)
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnHistoryDuration, from: burnHistoryStartTime, entity: entity.description)
     }
 
     @MainActor
@@ -733,32 +726,26 @@ final class Fire: FireProtocol {
 
     @MainActor
     private func burnAllVisitedLinks() {
-        let startTime = CACurrentMediaTime()
         getVisitedLinkStore()?.removeAll()
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnVisitedLinksDuration, from: startTime)
     }
 
     @MainActor
     private func burnVisitedLinks(_ visits: [Visit]) {
         guard let visitedLinkStore = getVisitedLinkStore() else { return }
 
-        let startTime = CACurrentMediaTime()
         for visit in visits {
             guard let url = visit.historyEntry?.url else { continue }
             visitedLinkStore.removeVisitedLink(with: url)
         }
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnVisitedLinksDuration, from: startTime)
     }
 
     @MainActor
     private func burnVisitedLinks(_ urls: Set<URL>) {
         guard let visitedLinkStore = getVisitedLinkStore() else { return }
 
-        let startTime = CACurrentMediaTime()
         for url in urls {
             visitedLinkStore.removeVisitedLink(with: url)
         }
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnVisitedLinksDuration, from: startTime)
     }
 
     // MARK: - Zoom levels
@@ -785,16 +772,12 @@ final class Fire: FireProtocol {
 
     @MainActor
     private func burnDownloads() {
-        let startTime = CACurrentMediaTime()
         self.downloadListCoordinator.cleanupInactiveDownloads(for: nil)
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnDownloadsDuration, from: startTime)
     }
 
     @MainActor
     private func burnDownloads(of baseDomains: Set<String>) {
-        let startTime = CACurrentMediaTime()
         self.downloadListCoordinator.cleanupInactiveDownloads(for: baseDomains, tld: tld)
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnDownloadsDuration, from: startTime)
     }
 
     // MARK: - Favicons
@@ -865,8 +848,6 @@ final class Fire: FireProtocol {
                   close: let shouldClose):
             assert(tabViewModel === tabCollectionViewModel.selectedTabViewModel)
             if shouldClose {
-                let startTime = CACurrentMediaTime()
-
                 if tabCollectionViewModel.pinnedTabsManager?.isTabPinned(tabViewModel.tab) ?? false {
                     let tab = replacementPinnedTab(from: tabViewModel.tab)
                     if let index = tabCollectionViewModel.selectionIndex {
@@ -875,19 +856,17 @@ final class Fire: FireProtocol {
                 } else {
                     if tabCollectionViewModel.allTabsCount == 1,
                        windowControllersManager.mainWindowControllers.count == 1 {
-                        // If closing last Window‘s last Tab: Insert a new tab to prevent key window closing:
+                        // If closing last Window's last Tab: Insert a new tab to prevent key window closing:
                         _=insertNewTabIfNeeded(into: windowControllersManager.mainWindowControllers[0])
                     }
                     tabCollectionViewModel.removeSelected(forceChange: true)
                 }
-                dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnTabsDuration, from: startTime, entity: burningEntity.description)
             }
 
         case .window(tabCollectionViewModel: let tabCollectionViewModel,
                      selectedDomains: _,
                      close: let shouldClose):
             if shouldClose {
-                let startTime = CACurrentMediaTime()
                 // If closing last Window: Insert a new tab to prevent key window closing:
                 var insertedTabIndex: Int?
                 if windowControllersManager.mainWindowControllers.count == 1 {
@@ -896,8 +875,6 @@ final class Fire: FireProtocol {
                 tabCollectionViewModel.removeAllTabs(except: insertedTabIndex, forceChange: true)
                 burnPinnedTabs(in: tabCollectionViewModel)
                 selectPinnedTabIfNeeded(in: tabCollectionViewModel)
-
-                dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnTabsDuration, from: startTime, entity: burningEntity.description)
             }
 
         case .allWindows(mainWindowControllers: let mainWindowControllers,
@@ -905,7 +882,6 @@ final class Fire: FireProtocol {
                          customURLToOpen: let customURL,
                          close: let shouldClose):
             guard shouldClose else { break }
-            let startTime = CACurrentMediaTime()
             for windowController in mainWindowControllers {
                 // If closing all Tabs/Windows: Insert a new tab to prevent key window closing:
                 let insertedTabIndex = insertNewTabIfNeeded(into: windowController, with: customURL)
@@ -913,8 +889,6 @@ final class Fire: FireProtocol {
                 burnPinnedTabs(in: windowController.mainViewController.tabCollectionViewModel)
                 selectPinnedTabIfNeeded(in: windowController.mainViewController.tabCollectionViewModel)
             }
-
-            dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnTabsDuration, from: startTime, entity: burningEntity.description)
         }
     }
 
@@ -963,18 +937,14 @@ final class Fire: FireProtocol {
 
     @MainActor
     private func burnLastSessionState() {
-        let startTime = CACurrentMediaTime()
         stateRestorationManager?.clearLastSessionState()
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnLastSessionStateDuration, from: startTime)
     }
 
     // MARK: - Burn Recently Closed
 
     @MainActor
     private func burnRecentlyClosed(baseDomains: Set<String>? = nil) {
-        let startTime = CACurrentMediaTime()
         recentlyClosedCoordinator?.burnCache(baseDomains: baseDomains, tld: tld)
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnRecentlyClosedDuration, from: startTime)
     }
 
     // MARK: - Bookmarks cleanup

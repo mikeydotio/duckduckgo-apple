@@ -40,16 +40,13 @@ internal class WebCacheManager {
 
     private let fireproofDomains: FireproofDomains
     private let websiteDataStore: WebsiteDataStore
-    private let dataClearingPixelsReporter: DataClearingPixelsReporter
 
-    init(fireproofDomains: FireproofDomains, websiteDataStore: WebsiteDataStore = WKWebsiteDataStore.default(), dataClearingPixelsReporter: DataClearingPixelsReporter = .init()) {
+    init(fireproofDomains: FireproofDomains, websiteDataStore: WebsiteDataStore = WKWebsiteDataStore.default()) {
         self.fireproofDomains = fireproofDomains
         self.websiteDataStore = websiteDataStore
-        self.dataClearingPixelsReporter = dataClearingPixelsReporter
     }
 
     func clear(baseDomains: Set<String>? = nil) async {
-        let startTime = CACurrentMediaTime()
         // first cleanup ~/Library/Caches
         await clearFileCache()
 
@@ -62,8 +59,6 @@ internal class WebCacheManager {
         await removeCookies(for: baseDomains)
 
         await self.removeResourceLoadStatisticsDatabase()
-
-        dataClearingPixelsReporter.fireDurationPixel(DataClearingPixels.burnWebCacheDuration, from: startTime)
     }
 
     private func clearFileCache() async {
@@ -75,7 +70,6 @@ internal class WebCacheManager {
         do {
             try fm.createDirectory(at: tmpDir, withIntermediateDirectories: false, attributes: nil)
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
             Logger.general.error("Could not create temporary directory: \(error.localizedDescription)")
             return
         }
@@ -87,7 +81,7 @@ internal class WebCacheManager {
             do {
                 try fm.moveItem(at: cachesDir.appendingPathComponent(name), to: tmpDir.appendingPathComponent(name))
             } catch {
-                dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
+                // Silently continue on error
             }
         }
 
@@ -96,7 +90,7 @@ internal class WebCacheManager {
                                     withIntermediateDirectories: false,
                                     attributes: nil)
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
+            // Silently continue on error
         }
 
         Process("/bin/rm", "-rf", tmpDir.path).launch()
@@ -115,7 +109,6 @@ internal class WebCacheManager {
         do {
             try fm.createDirectory(at: tmpDir, withIntermediateDirectories: false, attributes: nil)
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
             Logger.general.error("Could not create temporary directory: \(error.localizedDescription)")
             return
         }
@@ -123,7 +116,7 @@ internal class WebCacheManager {
         do {
             try fm.moveItem(at: libraryURL, to: tmpDir.appendingPathComponent("1"))
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
+            // Silently continue on error
         }
 
         do {
@@ -131,7 +124,7 @@ internal class WebCacheManager {
                                     withIntermediateDirectories: false,
                                     attributes: nil)
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
+            // Silently continue on error
         }
 
         Process("/bin/rm", "-rf", tmpDir.path).launch()
@@ -212,7 +205,7 @@ internal class WebCacheManager {
         do {
             try await pool.vacuum()
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
+            // Silently continue on error
         }
 
         // For an unknown reason, domains may be still present in the database binary when running `strings` over it, despite SQL queries returning an
@@ -232,7 +225,6 @@ internal class WebCacheManager {
                 }
             }
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnWebCacheError(error))
             Logger.fire.error("Failed to clear observations database: \(error.localizedDescription)")
         }
     }
