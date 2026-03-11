@@ -174,7 +174,7 @@ extension UpdateControllerFactory: AppStoreUpdateControllerFactory {
             // New flow - check cloud for updates
             Task { @UpdateCheckActor in
                 // User-initiated checks skip rate limiting but still log the attempt
-                guard await updateCheckState.canStartNewCheck(updater: updaterChecker, latestUpdate: latestUpdate, minimumInterval: 0) else {
+                guard await updateCheckState.canStartNewCheck(updater: updaterChecker, minimumInterval: 0) else {
                     Logger.updates.debug("User-initiated App Store update check skipped - updater not available")
                     return
                 }
@@ -199,10 +199,11 @@ extension UpdateControllerFactory: AppStoreUpdateControllerFactory {
     private func performUpdateCheck(dismissRateLimiting: Bool = false) async {
         // Check if we can start a new check (rate limiting for automatic checks)
         if !dismissRateLimiting {
-            guard await updateCheckState.canStartNewCheck(updater: updaterChecker, latestUpdate: latestUpdate) else {
+            guard await updateCheckState.canStartNewCheck(updater: updaterChecker) else {
                 Logger.updates.debug("App Store update check skipped - rate limited")
                 return
             }
+            await updateCheckState.beginCheck()
         }
 
         do {
@@ -243,7 +244,7 @@ extension UpdateControllerFactory: AppStoreUpdateControllerFactory {
             showUpdateNotificationIfNeeded(isOnboardingFinished: isOnboardingFinished)
 
             // Record check time for rate limiting
-            await updateCheckState.recordCheckTime()
+            await updateCheckState.endCheck()
 
         } catch {
             /// If we fail to fetch the latest version we do not want to show any messages to the user.
@@ -256,6 +257,7 @@ extension UpdateControllerFactory: AppStoreUpdateControllerFactory {
             await MainActor.run {
                 self.lastUpdateCheckDate = Date()
             }
+            await updateCheckState.endCheck()
         }
     }
 
