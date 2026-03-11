@@ -63,17 +63,12 @@ final class DBPContinuedProcessingCoordinator {
         task != nil
     }
 
-    init(manager: DataBrokerProtectionIOSManager) {
-        self.manager = manager
-        self.progressReporter = DBPContinuedProcessingProgressReporter()
-    }
-
     init(
         manager: DataBrokerProtectionIOSManager,
-        progressReporter: DBPContinuedProcessingProgressReporter
+        progressReporter: DBPContinuedProcessingProgressReporter? = nil
     ) {
         self.manager = manager
-        self.progressReporter = progressReporter
+        self.progressReporter = progressReporter ?? DBPContinuedProcessingProgressReporter()
     }
 
     // MARK: - Run Lifecycle
@@ -206,6 +201,7 @@ final class DBPContinuedProcessingCoordinator {
 
     // MARK: - Task Presentation
 
+    @MainActor
     private func publishProgress() {
         guard let task else { return }
         let snapshot = progressReporter.snapshot()
@@ -213,11 +209,13 @@ final class DBPContinuedProcessingCoordinator {
         task.progress.completedUnitCount = min(snapshot.completed, max(snapshot.total, 1))
     }
 
+    @MainActor
     private func refreshContinuedProcessingUI() {
         publishProgress()
         updateTaskPresentation()
     }
 
+    @MainActor
     func updateTaskPresentation() {
         guard let task else { return }
         task.updateTitle(title(for: self.phase), subtitle: subtitle(for: self.phase))
@@ -236,7 +234,8 @@ final class DBPContinuedProcessingCoordinator {
         }
     }
 
-    private func transition(to phase: Phase, updateProgress: () -> Void) {
+    @MainActor
+    private func transition(to phase: Phase, updateProgress: @MainActor () -> Void) {
         self.phase = phase
         updateProgress()
         refreshContinuedProcessingUI()
