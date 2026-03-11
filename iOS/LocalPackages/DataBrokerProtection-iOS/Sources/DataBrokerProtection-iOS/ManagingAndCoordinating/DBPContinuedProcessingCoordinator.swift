@@ -121,8 +121,7 @@ final class DBPContinuedProcessingCoordinator {
             }
         }
 
-        publishProgress()
-        updateTaskPresentation()
+        refreshContinuedProcessingUI()
     }
 
     func expire() {
@@ -166,7 +165,7 @@ final class DBPContinuedProcessingCoordinator {
 
     func handleScanPhaseCompleted() async {
         progressReporter.completeScanPhase()
-        publishProgress()
+        refreshContinuedProcessingUI()
         Logger.dataBrokerProtection.log("Continued processing: scan phase completed for run \(self.logRunIdentifier(), privacy: .public)")
 
         guard let manager,
@@ -200,7 +199,7 @@ final class DBPContinuedProcessingCoordinator {
 
     func handleOptOutPhaseCompleted() {
         progressReporter.completeOptOutPhase()
-        publishProgress()
+        refreshContinuedProcessingUI()
         Logger.dataBrokerProtection.log("Continued processing: opt-out phase completed for run \(self.logRunIdentifier(), privacy: .public)")
         finish(success: true)
     }
@@ -212,6 +211,11 @@ final class DBPContinuedProcessingCoordinator {
         let snapshot = progressReporter.snapshot()
         task.progress.totalUnitCount = max(snapshot.total, 1)
         task.progress.completedUnitCount = min(snapshot.completed, max(snapshot.total, 1))
+    }
+
+    private func refreshContinuedProcessingUI() {
+        publishProgress()
+        updateTaskPresentation()
     }
 
     func updateTaskPresentation() {
@@ -226,15 +230,14 @@ final class DBPContinuedProcessingCoordinator {
         heartbeatTimer = Timer.scheduledTimer(withTimeInterval: Constants.heartbeatInterval, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.progressReporter.advanceHeartbeat()
-            self.publishProgress()
+            self.refreshContinuedProcessingUI()
         }
     }
 
     private func transition(to phase: Phase, updateProgress: () -> Void) {
         self.phase = phase
         updateProgress()
-        publishProgress()
-        updateTaskPresentation()
+        refreshContinuedProcessingUI()
     }
 
     private func makeTaskIdentifier() -> String {
@@ -325,13 +328,11 @@ extension DBPContinuedProcessingCoordinator: DBPContinuedProcessingEventDelegate
         case .scanJobCompleted(let id):
             guard phase == .initialScan else { return }
             progressReporter.recordCompletedScan(id)
-            publishProgress()
-            updateTaskPresentation()
+            refreshContinuedProcessingUI()
         case .optOutJobCompleted(let id):
             guard phase == .initialOptOut else { return }
             progressReporter.recordCompletedOptOut(id)
-            publishProgress()
-            updateTaskPresentation()
+            refreshContinuedProcessingUI()
         case .scanPhaseCompleted:
             Task { @MainActor in
                 await handleScanPhaseCompleted()
