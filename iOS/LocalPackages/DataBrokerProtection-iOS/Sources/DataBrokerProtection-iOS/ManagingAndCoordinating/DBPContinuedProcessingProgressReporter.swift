@@ -70,9 +70,12 @@ final class DBPContinuedProcessingProgressReporter {
 
     private enum Constants {
         static let preparingScanSubtitle = "Preparing scan"
-        static let preparingOptOutSubtitle = "Preparing opt-outs"
-        static let scanSubtitle = "Scanning brokers"
-        static let optOutSubtitle = "Submitting opt-out requests"
+        static let preparingOptOutSubtitle = "Continuing opt-outs for found matches"
+    }
+
+    private struct SummaryKey: Hashable {
+        let brokerId: Int64
+        let profileQueryId: Int64
     }
 
     private struct PlannedItemProgress<ID: Hashable> {
@@ -89,6 +92,8 @@ final class DBPContinuedProcessingProgressReporter {
     private var reservedOptOutUnits: Int64 = 0
     private var plannedScans: [ScanJobID: PlannedItemProgress<ScanJobID>] = [:]
     private var plannedOptOuts: [OptOutJobID: PlannedItemProgress<OptOutJobID>] = [:]
+
+    // MARK: - Run Setup
 
     func startInitialRun(summary: InitialScanSummary, scanBudgetUnitsPerJob: Int64) {
         let scanBudgetUnitsPerJob = max(scanBudgetUnitsPerJob, 1)
@@ -130,6 +135,8 @@ final class DBPContinuedProcessingProgressReporter {
             )
         })
     }
+
+    // MARK: - Progress Updates
 
     func advanceHeartbeat() {
         switch phase {
@@ -179,20 +186,32 @@ final class DBPContinuedProcessingProgressReporter {
         optOutCompletedUnits = max(optOutCompletedUnits, plannedOptOuts.values.filter(\.isCompleted).reduce(0) { $0 + $1.allottedUnits })
     }
 
+    // MARK: - Reporting
+
     func snapshot() -> Snapshot {
-        Snapshot(
-            completed: scanCompletedUnits + optOutCompletedUnits,
-            total: max(scanTotalUnits + optOutTotalUnits, 1)
-        )
+        Snapshot(completed: scanCompletedUnits + optOutCompletedUnits,
+                 total: max(scanTotalUnits + optOutTotalUnits, 1))
     }
 
     var scanSubtitle: String {
-        plannedScans.isEmpty ? Constants.preparingScanSubtitle : Constants.scanSubtitle
+        let brokerCount = uniqueScanBrokerCount
+        guard brokerCount > 0 else {
+            return Constants.preparingScanSubtitle
+        }
+
+        return "Scanning \(completedScanBrokerCount) of \(brokerCount) brokers"
     }
 
     var optOutSubtitle: String {
-        plannedOptOuts.isEmpty ? Constants.preparingOptOutSubtitle : Constants.optOutSubtitle
+        let optOutCount = plannedOptOuts.count
+        guard optOutCount > 0 else {
+            return Constants.preparingOptOutSubtitle
+        }
+
+        return "Submitting \(optOutCount) opt-out requests"
     }
+
+    // MARK: - Helpers
 
     private func advance(completedUnits: inout Int64, totalUnits: inout Int64) {
         if completedUnits < totalUnits {
@@ -213,7 +232,21 @@ final class DBPContinuedProcessingProgressReporter {
             baseUnits + (Int64(index) < remainder ? 1 : 0)
         }
     }
+
+    private var uniqueScanBrokerCount: Int {
+        Set(plannedScans.keys.map(\.brokerId)).count
+    }
+
+    private var completedScanBrokerCount: Int {
+        Dictionary(grouping: plannedScans.values, by: \.id.brokerId)
+            .values
+            .filter { brokerJobs in brokerJobs.allSatisfy(\.isCompleted) }
+            .count
+    }
+
 }
+
+// MARK: - Summary Builders
 
 extension DBPContinuedProcessingProgressReporter {
     static func makeInitialScanSummary(
@@ -227,13 +260,13 @@ extension DBPContinuedProcessingProgressReporter {
         )
 
         let scanJobs = eligibleJobs.compactMap { $0 as? ScanJobData }
-        return InitialScanSummary(
-            scanJobs: scanJobs.map { job in
-                ScanJobSummary(
-                    id: .init(brokerId: job.brokerId, profileQueryId: job.profileQueryId)
-                )
-            }
-        )
+        let scanJobsSummary = scanJobs.map { job in
+            return ScanJobSummary(
+                id: .init(brokerId: job.brokerId, profileQueryId: job.profileQueryId)
+            )
+        }
+
+        return InitialScanSummary(scanJobs: scanJobsSummary)
     }
 
     static func makeOptOutSummary(
@@ -247,17 +280,47 @@ extension DBPContinuedProcessingProgressReporter {
         )
 
         let optOutJobs = eligibleJobs.compactMap { $0 as? OptOutJobData }
-        return OptOutSummary(
-            optOutJobs: optOutJobs.compactMap { job in
-                guard let extractedProfileId = job.extractedProfile.id else { return nil }
-                return OptOutJobSummary(
-                    id: .init(
-                        brokerId: job.brokerId,
-                        profileQueryId: job.profileQueryId,
-                        extractedProfileId: extractedProfileId
-                    )
-                )
+        let dataByKey: [SummaryKey: BrokerProfileQueryData] = Dictionary(uniqueKeysWithValues: brokerProfileQueryData.compactMap { queryData -> (SummaryKey, BrokerProfileQueryData)? in
+            guard let brokerId = queryData.dataBroker.id,
+                  let profileQueryId = queryData.profileQuery.id else { return nil }
+            return (
+                SummaryKey(brokerId: brokerId, profileQueryId: profileQueryId),
+                queryData
+            )
+        })
+
+        let optOutJobsSummary = optOutJobs.compactMap { job -> OptOutJobSummary? in
+            guard let extractedProfileId = job.extractedProfile.id else { return nil }
+            let key = SummaryKey(brokerId: job.brokerId, profileQueryId: job.profileQueryId)
+            guard let queryData = dataByKey[key],
+                  shouldIncludeInInitialOptOutProgress(job: job, queryData: queryData) else {
+                return nil
             }
-        )
+
+            return OptOutJobSummary(
+                id: .init(
+                    brokerId: job.brokerId,
+                    profileQueryId: job.profileQueryId,
+                    extractedProfileId: extractedProfileId
+                )
+            )
+        }
+
+        return OptOutSummary(optOutJobs: optOutJobsSummary)
+    }
+
+    private static func shouldIncludeInInitialOptOutProgress(
+        job: OptOutJobData,
+        queryData: BrokerProfileQueryData
+    ) -> Bool {
+        guard job.extractedProfile.removedDate == nil else {
+            return false
+        }
+
+        guard !queryData.dataBroker.performsOptOutWithinParent() else {
+            return false
+        }
+
+        return !job.historyEvents.doesBelongToUserRemovedRecord
     }
 }
