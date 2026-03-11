@@ -100,12 +100,12 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
     private func refreshUpdateFromCache(_ cachedUpdateResult: UpdateCheckResult, progress: UpdateCycleProgress? = nil) {
         latestUpdate = Update(appcastItem: cachedUpdateResult.item, isInstalled: cachedUpdateResult.isInstalled, needsLatestReleaseNote: cachedUpdateResult.needsLatestReleaseNote)
-        let isInstalled = latestUpdate?.isInstalled == false
+        let isInstalled = latestUpdate?.isInstalled == true
         // Use passed progress if available (avoids @Published willSet timing issue)
         let currentProgress = progress ?? progressState.updateProgress
         let isDone = currentProgress.isDone
         let isResumable = progressState.isResumable
-        hasPendingUpdate = isInstalled && isDone && isResumable
+        hasPendingUpdate = !isInstalled && isDone && isResumable
     }
 
     // MARK: - Update Progress State Machine

@@ -43,19 +43,24 @@ final class UpdateNotificationPresenter: UpdateNotificationPresenting {
         }
 
         let action = areAutomaticUpdatesEnabled ? UserText.autoUpdateAction : manualActionText
+        let onTap: () -> Void = areAutomaticUpdatesEnabled
+            ? { [weak self] in self?.restartToUpdate() }
+            : { [weak self] in self?.openUpdatesPage() }
 
         switch updateType {
         case .critical:
             showUpdateNotification(
                 icon: NSImage.criticalUpdateNotificationInfo,
                 text: "\(UserText.criticalUpdateNotification) \(action)",
-                presentMultiline: true
+                presentMultiline: true,
+                onTap: onTap
             )
         case .regular:
             showUpdateNotification(
                 icon: NSImage.updateNotificationInfo,
                 text: "\(UserText.updateAvailableNotification) \(action)",
-                presentMultiline: true
+                presentMultiline: true,
+                onTap: onTap
             )
         }
 
@@ -73,7 +78,7 @@ final class UpdateNotificationPresenter: UpdateNotificationPresenting {
         }
     }
 
-    private func showUpdateNotification(icon: NSImage, text: String, buttonText: String? = nil, presentMultiline: Bool = false) {
+    private func showUpdateNotification(icon: NSImage, text: String, buttonText: String? = nil, presentMultiline: Bool = false, onTap: (() -> Void)? = nil) {
         Logger.updates.log("Notification presented: \(text, privacy: .public)")
 
         DispatchQueue.main.async { [weak self] in
@@ -90,7 +95,7 @@ final class UpdateNotificationPresenter: UpdateNotificationPresenting {
                 return
             }
 
-            let buttonAction: (() -> Void)? = { [weak self] in
+            let tapAction = onTap ?? { [weak self] in
                 self?.openUpdatesPage()
             }
 
@@ -100,10 +105,8 @@ final class UpdateNotificationPresenter: UpdateNotificationPresenting {
                                                               shouldShowCloseButton: true,
                                                               presentMultiline: presentMultiline,
                                                               buttonText: buttonText,
-                                                              buttonAction: buttonAction,
-                                                              clickAction: { [weak self] in
-                self?.openUpdatesPage()
-            },
+                                                              buttonAction: tapAction,
+                                                              clickAction: tapAction,
                                                               onDismiss: { [weak self] in
                 self?.currentPopover = nil
             })
@@ -121,6 +124,18 @@ final class UpdateNotificationPresenter: UpdateNotificationPresenting {
                   let presenter = popover.presentingViewController else { return }
             presenter.dismiss(popover)
             self.currentPopover = nil
+        }
+    }
+
+    /// Installs the already-downloaded update and relaunches the app.
+    ///
+    /// Called when the user taps the "Restart to update" notification (automatic updates).
+    /// Fires the notification-tapped pixel and invokes Sparkle's install-and-relaunch flow directly,
+    /// skipping the Release Notes page.
+    func restartToUpdate() {
+        pixelFiring?.fire(UpdateFlowPixels.updateNotificationTapped)
+        DispatchQueue.main.async {
+            Application.appDelegate.updateController?.runUpdate()
         }
     }
 
