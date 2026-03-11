@@ -18,6 +18,7 @@
 
 import XCTest
 @testable import PrivacyDashboard
+import UserScript
 import WebKit
 
 final class BreakageReportingSubfeatureTests: XCTestCase {
@@ -27,6 +28,13 @@ final class BreakageReportingSubfeatureTests: XCTestCase {
     func testWhenBreakageDataIsPercentEncodedThenItIsDecoded() async throws {
         let webView = WKWebView()
         let subfeature = BreakageReportingSubfeature(targetWebview: webView)
+        let broker = UserScriptMessageBroker(context: "test")
+        subfeature.with(broker: broker)
+
+        var capturedBreakageData: String?
+        subfeature.notifyHandler { _, _, breakageData in
+            capturedBreakageData = breakageData
+        }
 
         let percentEncodedBreakageData = "%7B%22webDetection%22%3A%5B%7B%22detectorId%22%3A%22adwalls.generic_en%22%2C%22detected%22%3Atrue%7D%5D%2C%22detectorData%22%3A%7B%22botDetection%22%3A%7B%22detected%22%3Afalse%2C%22type%22%3A%22botDetection%22%2C%22results%22%3A%5B%5D%7D%2C%22fraudDetection%22%3A%7B%22detected%22%3Afalse%2C%22type%22%3A%22fraudDetection%22%2C%22results%22%3A%5B%5D%7D%2C%22adwallDetection%22%3A%7B%22detected%22%3Atrue%2C%22type%22%3A%22adwallDetection%22%2C%22results%22%3A%5B%7B%22detected%22%3Atrue%2C%22detectorId%22%3A%22generic%22%7D%5D%7D%2C%22youtubeAds%22%3A%7B%22detected%22%3Afalse%2C%22type%22%3A%22youtubeAds%22%2C%22results%22%3A%5B%5D%7D%7D%7D"
 
@@ -42,11 +50,7 @@ final class BreakageReportingSubfeatureTests: XCTestCase {
         let mockMessage = MockWKScriptMessage(body: payload)
         _ = try await subfeature.breakageReportResult(params: payload, original: mockMessage)
 
-        // The breakageData should be decoded when passed to completion handler
-        // We verify this by checking if removingPercentEncoding works correctly
-        let decoded = percentEncodedBreakageData.removingPercentEncoding
-        XCTAssertNotNil(decoded)
-        XCTAssertEqual(decoded, expectedDecodedData)
+        XCTAssertEqual(capturedBreakageData, expectedDecodedData)
     }
 
     func testWhenBreakageDataIsNotPercentEncodedThenItIsPassedThrough() {
