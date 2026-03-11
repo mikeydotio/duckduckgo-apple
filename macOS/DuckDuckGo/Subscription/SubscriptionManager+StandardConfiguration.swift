@@ -51,7 +51,9 @@ extension DefaultSubscriptionManager {
             WideEventFeatureFlagAdapter(featureFlagger: $0)
         } ?? StaticWideEventFeatureFlagProvider(isPostEndpointEnabled: true)
 
-        let wideEvent: WideEventManaging = WideEvent(featureFlagProvider: featureFlagProvider)
+        let buildType = StandardApplicationBuildType()
+        let wideEvent: WideEventManaging = WideEvent(skipPOSTRequests: buildType.isDebugBuild || buildType.isReviewBuild || buildType.isAlphaBuild,
+                                                     featureFlagProvider: featureFlagProvider)
         let authRefreshEventMapping = AuthV2TokenRefreshWideEventData.authV2RefreshEventMapping(wideEvent: wideEvent, isFeatureEnabled: {
 #if DEBUG
             return true // Allow the refresh event when using staging in debug mode, for easier testing

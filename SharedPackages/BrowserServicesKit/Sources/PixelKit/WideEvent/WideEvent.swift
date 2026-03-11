@@ -77,7 +77,7 @@ public final class WideEvent: WideEventManaging {
     }
 
     public convenience init(
-        skipPOSTRequests: Bool,
+        skipPOSTRequests: Bool = false,
         storage: WideEventStoring = WideEventUserDefaultsStorage(),
         failureEventMapping: EventMapping<WideEventFailureEvent>? = WideEventFailureEvent.eventMapping,
         featureFlagProvider: WideEventFeatureFlagProviding
