@@ -49,6 +49,54 @@ final class DBPContinuedProcessingCoordinator {
         static let heartbeatInterval: TimeInterval = 1.5
     }
 
+    private enum ProgressUpdateSource {
+        case taskAttached
+        case transition(Phase)
+        case heartbeat
+        case scanJobCompleted(DBPContinuedProcessingProgressReporter.ScanJobID)
+        case optOutJobCompleted(DBPContinuedProcessingProgressReporter.OptOutJobID)
+        case scanPhaseCompleted
+        case optOutPhaseCompleted
+        case runCompleted(success: Bool)
+
+        var eventKind: String {
+            switch self {
+            case .heartbeat:
+                return "synthetic"
+            case .scanJobCompleted,
+                 .optOutJobCompleted,
+                 .scanPhaseCompleted,
+                 .optOutPhaseCompleted,
+                 .runCompleted:
+                return "real"
+            case .taskAttached,
+                 .transition:
+                return "lifecycle"
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .taskAttached:
+                return "taskAttached"
+            case .transition(let state):
+                return "transition(\(String(describing: state)))"
+            case .heartbeat:
+                return "heartbeat"
+            case .scanJobCompleted(let id):
+                return "scanJobCompleted(brokerId:\(id.brokerId),profileQueryId:\(id.profileQueryId))"
+            case .optOutJobCompleted(let id):
+                return "optOutJobCompleted(brokerId:\(id.brokerId),profileQueryId:\(id.profileQueryId),extractedProfileId:\(id.extractedProfileId))"
+            case .scanPhaseCompleted:
+                return "scanPhaseCompleted"
+            case .optOutPhaseCompleted:
+                return "optOutPhaseCompleted"
+            case .runCompleted(let success):
+                return "runCompleted(success:\(success))"
+            }
+        }
+    }
+
     private weak var manager: DataBrokerProtectionIOSManager?
     private let progressReporter: DBPContinuedProcessingProgressReporter
 
@@ -121,7 +169,7 @@ final class DBPContinuedProcessingCoordinator {
             }
         }
 
-        publishProgress()
+        publishProgress(source: .taskAttached)
         updateTaskPresentation()
     }
 
@@ -135,7 +183,7 @@ final class DBPContinuedProcessingCoordinator {
 
     private func finish(success: Bool) {
         Logger.dataBrokerProtection.log(
-            "Continued processing: finishing run \(self.logRunIdentifier(), privacy: .public) success=\(success, privacy: .public) phase=\(String(describing: self.phase), privacy: .public)"
+            "Continued processing: finishing run \(self.logRunIdentifier(), privacy: .public) elapsed=\(self.elapsedDescription(), privacy: .public) success=\(success, privacy: .public) phase=\(String(describing: self.phase), privacy: .public)"
         )
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
@@ -143,7 +191,7 @@ final class DBPContinuedProcessingCoordinator {
 
         if success {
             progressReporter.completeAll()
-            publishProgress()
+            publishProgress(source: .runCompleted(success: true), note: "snap=run-allotted")
         }
 
         task?.setTaskCompleted(success: success)
@@ -166,7 +214,7 @@ final class DBPContinuedProcessingCoordinator {
 
     func handleScanPhaseCompleted() async {
         progressReporter.completeScanPhase()
-        publishProgress()
+        publishProgress(source: .scanPhaseCompleted, note: "snap=phase-allotted")
         Logger.dataBrokerProtection.log("Continued processing: scan phase completed for run \(self.logRunIdentifier(), privacy: .public)")
 
         guard let manager,
@@ -200,22 +248,29 @@ final class DBPContinuedProcessingCoordinator {
 
     func handleOptOutPhaseCompleted() {
         progressReporter.completeOptOutPhase()
-        publishProgress()
+        publishProgress(source: .optOutPhaseCompleted, note: "snap=phase-allotted")
         Logger.dataBrokerProtection.log("Continued processing: opt-out phase completed for run \(self.logRunIdentifier(), privacy: .public)")
         finish(success: true)
     }
 
     // MARK: - Task Presentation
 
-    private func publishProgress() {
+    private func publishProgress(source: ProgressUpdateSource, note: String? = nil) {
         guard let task else { return }
         let snapshot = progressReporter.snapshot()
         task.progress.totalUnitCount = max(snapshot.total, 1)
         task.progress.completedUnitCount = min(snapshot.completed, max(snapshot.total, 1))
+        let noteDescription = note ?? "none"
+        Logger.dataBrokerProtection.log(
+            "Continued processing: published progress for run \(self.logRunIdentifier(), privacy: .public) elapsed=\(self.elapsedDescription(), privacy: .public) phase=\(String(describing: self.phase), privacy: .public) eventKind=\(source.eventKind, privacy: .public) event=\(source.description, privacy: .public) completed=\(task.progress.completedUnitCount, privacy: .public) total=\(task.progress.totalUnitCount, privacy: .public) note=\(noteDescription, privacy: .public)"
+        )
     }
 
     func updateTaskPresentation() {
         guard let task else { return }
+        Logger.dataBrokerProtection.log(
+            "Continued processing: updating task presentation for run \(self.logRunIdentifier(), privacy: .public) title=\(self.title(for: self.phase), privacy: .public) subtitle=\(self.subtitle(for: self.phase), privacy: .public)"
+        )
         task.updateTitle(title(for: self.phase), subtitle: subtitle(for: self.phase))
     }
 
@@ -226,15 +281,24 @@ final class DBPContinuedProcessingCoordinator {
         heartbeatTimer = Timer.scheduledTimer(withTimeInterval: Constants.heartbeatInterval, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.progressReporter.advanceHeartbeat()
-            self.publishProgress()
+            self.publishProgress(source: .heartbeat)
         }
     }
 
     private func transition(to phase: Phase, updateProgress: () -> Void) {
+        Logger.dataBrokerProtection.log(
+            "Continued processing: transitioning run \(self.logRunIdentifier(), privacy: .public) from \(String(describing: self.phase), privacy: .public) to \(String(describing: phase), privacy: .public)"
+        )
         self.phase = phase
         updateProgress()
-        publishProgress()
+        publishProgress(source: .transition(phase))
         updateTaskPresentation()
+    }
+
+    private func elapsedDescription() -> String {
+        guard let runStartedAt else { return "n/a" }
+
+        return String(format: "%.1fs", Date().timeIntervalSince(runStartedAt))
     }
 
     private func makeTaskIdentifier() -> String {
@@ -321,16 +385,29 @@ final class DBPContinuedProcessingCoordinator {
 @available(iOS 26.0, *)
 extension DBPContinuedProcessingCoordinator: DBPContinuedProcessingEventDelegate {
     func iosManager(_ manager: DataBrokerProtectionIOSManager, didEmit event: DBPContinuedProcessingEvent) {
+        Logger.dataBrokerProtection.log(
+            "Continued processing: received manager event \(String(describing: event), privacy: .public) for run \(self.logRunIdentifier(), privacy: .public)"
+        )
         switch event {
         case .scanJobCompleted(let id):
-            guard phase == .initialScan else { return }
+            guard phase == .initialScan else {
+                Logger.dataBrokerProtection.log(
+                    "Continued processing: ignoring late scan completion for run \(self.logRunIdentifier(), privacy: .public) in phase \(String(describing: self.phase), privacy: .public)"
+                )
+                return
+            }
             progressReporter.recordCompletedScan(id)
-            publishProgress()
+            publishProgress(source: .scanJobCompleted(id), note: "snap=job-allotted")
             updateTaskPresentation()
         case .optOutJobCompleted(let id):
-            guard phase == .initialOptOut else { return }
+            guard phase == .initialOptOut else {
+                Logger.dataBrokerProtection.log(
+                    "Continued processing: ignoring opt-out completion outside opt-out phase for run \(self.logRunIdentifier(), privacy: .public) in phase \(String(describing: self.phase), privacy: .public)"
+                )
+                return
+            }
             progressReporter.recordCompletedOptOut(id)
-            publishProgress()
+            publishProgress(source: .optOutJobCompleted(id), note: "snap=job-allotted")
             updateTaskPresentation()
         case .scanPhaseCompleted:
             Task { @MainActor in
