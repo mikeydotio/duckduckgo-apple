@@ -141,11 +141,6 @@ public class DBPIOSInterface {
 
 public final class DataBrokerProtectionIOSManager {
 
-    struct ContinuedProcessingInitialRunPreparation {
-        let scanSummary: DBPContinuedProcessingInitialScanSummary
-        let scanJobTimeout: TimeInterval
-    }
-
     private struct Constants {
         /// Maximum delay before the next background task must run
         static let defaultMaxBackgroundTaskWaitTime: TimeInterval = .hours(48)
@@ -434,33 +429,6 @@ extension DataBrokerProtectionIOSManager: JobQueueManagerDelegate {
     }
 
     public func queueManagerDidCompleteIndividualJob(_ queueManager: any DataBrokerProtectionCore.JobQueueManaging, context: BrokerProfileJobContext?) {
-        if let context {
-            switch context.stepType {
-            case .scan:
-                let event = DBPContinuedProcessingEvent.scanJobCompleted(
-                    .init(brokerId: context.brokerId, profileQueryId: context.profileQueryId)
-                )
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    continuedProcessingDelegate?.iosManager(self, didEmit: event)
-                }
-            case .optOut:
-                if let extractedProfileId = context.extractedProfileId {
-                        let event = DBPContinuedProcessingEvent.optOutJobCompleted(
-                            .init(
-                                brokerId: context.brokerId,
-                            profileQueryId: context.profileQueryId,
-                            extractedProfileId: extractedProfileId
-                        )
-                    )
-                    Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        continuedProcessingDelegate?.iosManager(self, didEmit: event)
-                    }
-                }
-            }
-        }
-
         // Figure out if we've just finished initial scans, and send the appropriate pixel if necessary
         if eventPixels.hasInitialScansTotalDurationPixelBeenSent() {
             return
@@ -905,25 +873,29 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     @MainActor
     func prepareContinuedProcessingInitialRun(
         profile: DataBrokerProtectionCore.DataBrokerProtectionProfile
-    ) async throws -> ContinuedProcessingInitialRunPreparation {
+    ) async throws {
         try await saveProfileAndPrepareForInitialScans(profile)
 
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
-        let scanSummary = DBPContinuedProcessingSummaryBuilder.makeInitialScanSummary(from: brokerProfileQueryData)
-        guard scanSummary.scanCount > 0 else {
+        let eligibleScanJobs = BrokerProfileJob.sortedEligibleJobs(
+            brokerProfileQueriesData: brokerProfileQueryData,
+            jobType: .manualScan,
+            priorityDate: Date()
+        )
+        guard !eligibleScanJobs.isEmpty else {
             throw DBPContinuedProcessingError.noPendingScans
         }
-
-        return ContinuedProcessingInitialRunPreparation(
-            scanSummary: scanSummary,
-            scanJobTimeout: jobDependencies.executionConfig.scanJobTimeout
-        )
     }
 
     @MainActor
-    func makeContinuedProcessingOptOutSummary() throws -> DBPContinuedProcessingOptOutSummary {
+    func hasPendingContinuedProcessingOptOuts() throws -> Bool {
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
-        return DBPContinuedProcessingSummaryBuilder.makeOptOutSummary(from: brokerProfileQueryData)
+        let eligibleOptOutJobs = BrokerProfileJob.sortedEligibleJobs(
+            brokerProfileQueriesData: brokerProfileQueryData,
+            jobType: .optOut,
+            priorityDate: Date()
+        )
+        return !eligibleOptOutJobs.isEmpty
     }
 
     @MainActor
