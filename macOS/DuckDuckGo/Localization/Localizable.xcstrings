@@ -2720,6 +2720,18 @@
         }
       }
     },
+    "aichat.model-picker.advanced-models-section-header" : {
+      "comment" : "Section header in the model picker menu for advanced models when user has an active subscription",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Advanced Models"
+          }
+        }
+      }
+    },
     "aichat.model-picker.advanced-section-header" : {
       "comment" : "Section header in the model picker menu for premium models that require a subscription",
       "extractionState" : "extracted_with_value",
@@ -2776,6 +2788,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Расширенные модели — подписка на DuckDuckGo"
+          }
+        }
+      }
+    },
+    "aichat.model-picker.basic-models-section-header" : {
+      "comment" : "Section header in the model picker menu for basic/free models when user has an active subscription",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Basic Models"
           }
         }
       }

@@ -23,6 +23,7 @@ import FeatureFlags
 import os.log
 import PixelKit
 import PrivacyConfig
+import Subscription
 import URLPredictor
 
 protocol AIChatOmnibarControllerDelegate: AnyObject {
@@ -45,6 +46,7 @@ final class AIChatOmnibarController {
     private let searchPreferencesPersistor: SearchPreferencesPersistor
     private let suggestionsReader: AIChatSuggestionsReading?
     private let modelsService: AIChatModelsProviding
+    private let subscriptionManager: any SubscriptionManager
     private var preferences: AIChatPreferencesPersisting
     private var cancellables = Set<AnyCancellable>()
     private var sharedTextStateCancellable: AnyCancellable?
@@ -55,6 +57,9 @@ final class AIChatOmnibarController {
 
     /// Available AI models. Empty until successfully fetched from the API.
     @Published private(set) var models: [AIChatModel] = []
+
+    /// Whether the user has an active paid subscription (plus or pro).
+    private(set) var hasActiveSubscription = false
 
     /// Provides the current image attachments from the container VC.
     var attachmentsProvider: (() -> [AIChatImageAttachment])?
@@ -105,7 +110,8 @@ final class AIChatOmnibarController {
         searchPreferencesPersistor: SearchPreferencesPersistor = SearchPreferencesUserDefaultsPersistor(),
         suggestionsReader: AIChatSuggestionsReading? = nil,
         preferences: AIChatPreferencesPersisting = AIChatPreferencesPersistor(),
-        modelsService: AIChatModelsProviding = AIChatModelsService()
+        modelsService: AIChatModelsProviding = AIChatModelsService(),
+        subscriptionManager: any SubscriptionManager = Application.appDelegate.subscriptionManager
     ) {
         self.aiChatTabOpener = aiChatTabOpener
         self.tabCollectionViewModel = tabCollectionViewModel
@@ -115,6 +121,7 @@ final class AIChatOmnibarController {
         self.suggestionsReader = suggestionsReader
         self.preferences = preferences
         self.modelsService = modelsService
+        self.subscriptionManager = subscriptionManager
         self.suggestionsViewModel = AIChatSuggestionsViewModel(
             maxSuggestions: suggestionsReader?.maxHistoryCount ?? AIChatSuggestionsViewModel.defaultMaxSuggestions
         )
@@ -158,11 +165,29 @@ final class AIChatOmnibarController {
             do {
                 let remoteModels = try await modelsService.fetchModels()
                 guard !Task.isCancelled else { return }
-                self.models = remoteModels.map { AIChatModel(remoteModel: $0) }
+                let userTier = await self.resolveUserTier()
+                Logger.aiChat.debug("[ModelsService] Resolved user tier: \(userTier.rawValue)")
+                self.hasActiveSubscription = userTier != .free
+                self.models = remoteModels.map { AIChatModel(remoteModel: $0, userTier: userTier) }
             } catch {
                 Logger.aiChat.error("Failed to fetch models: \(error.localizedDescription)")
                 PixelKit.fire(AIChatPixel.aiChatModelsFetchFailed, frequency: .dailyAndCount, includeAppVersionParameter: true)
             }
+        }
+    }
+
+    private func resolveUserTier() async -> AIChatUserTier {
+        do {
+            let subscription = try await subscriptionManager.getSubscription(cachePolicy: .cacheFirst)
+            guard subscription.isActive else { return .free }
+            switch subscription.tier {
+            case .plus: return .plus
+            case .pro: return .pro
+            case .none: return .free
+            }
+        } catch {
+            Logger.aiChat.debug("[ModelsService] Could not resolve subscription tier: \(error.localizedDescription)")
+            return .free
         }
     }
 
@@ -186,15 +211,31 @@ final class AIChatOmnibarController {
 
     // MARK: - Public Methods
 
-    /// The persisted model ID. Only valid when models have been loaded.
+    /// The persisted model ID. Falls back to the first accessible model if the
+    /// persisted selection is no longer available (e.g. model was removed from the API).
     var persistedModelId: String {
-        preferences.selectedModelId ?? models.first(where: { $0.entityHasAccess })?.id ?? ""
+        if let selectedId = preferences.selectedModelId,
+           models.contains(where: { $0.id == selectedId }) {
+            return selectedId
+        }
+        let fallback = models.first(where: { $0.entityHasAccess })?.id ?? ""
+        if preferences.selectedModelId != nil {
+            // Clear stale selection so the fallback sticks
+            preferences.selectedModelId = nil
+            preferences.selectedModelShortName = nil
+        }
+        return fallback
     }
 
     /// The model ID to include in the prompt. Returns nil if the user has never
     /// explicitly selected a model, so the backend uses its default.
     var currentModelId: String? {
         preferences.selectedModelId
+    }
+
+    /// The cached short name of the last selected model, available before models are fetched.
+    var cachedModelShortName: String? {
+        preferences.selectedModelShortName
     }
 
     /// Whether the currently selected model supports image upload.
@@ -211,9 +252,10 @@ final class AIChatOmnibarController {
         return models.first(where: { $0.id == persistedModelId })?.supportedImageFormats ?? ["png", "webp"]
     }
 
-    /// Updates the selected model ID and persists it for future sessions.
+    /// Updates the selected model ID and persists it (along with its short name) for future sessions.
     func updateSelectedModel(_ modelId: String) {
         preferences.selectedModelId = modelId
+        preferences.selectedModelShortName = models.first(where: { $0.id == modelId })?.shortName
     }
 
     /// Updates the current text being typed by the user

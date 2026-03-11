@@ -21,6 +21,7 @@ import Combine
 import AIChat
 import FeatureFlags
 import PrivacyConfig
+import SubscriptionTestingUtilities
 @testable import DuckDuckGo_Privacy_Browser
 
 @MainActor
@@ -33,6 +34,7 @@ final class AIChatOmnibarControllerTests: XCTestCase {
     private var searchPreferencesPersistor: AIChatMockSearchPreferencesPersistor!
     private var mockPreferences: MockAIChatPreferencesPersisting!
     private var mockModelsService: MockAIChatModelsProviding!
+    private var mockSubscriptionManager: SubscriptionManagerMock!
     private var tabCollectionViewModel: TabCollectionViewModel!
 
     override func setUp() {
@@ -43,6 +45,7 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         searchPreferencesPersistor = AIChatMockSearchPreferencesPersistor()
         mockPreferences = MockAIChatPreferencesPersisting()
         mockModelsService = MockAIChatModelsProviding()
+        mockSubscriptionManager = SubscriptionManagerMock()
         tabCollectionViewModel = TabCollectionViewModel(isPopup: false)
 
         controller = AIChatOmnibarController(
@@ -51,7 +54,8 @@ final class AIChatOmnibarControllerTests: XCTestCase {
             featureFlagger: featureFlagger,
             searchPreferencesPersistor: searchPreferencesPersistor,
             preferences: mockPreferences,
-            modelsService: mockModelsService
+            modelsService: mockModelsService,
+            subscriptionManager: mockSubscriptionManager
         )
         controller.delegate = mockDelegate
     }
@@ -64,6 +68,7 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         searchPreferencesPersistor = nil
         mockPreferences = nil
         mockModelsService = nil
+        mockSubscriptionManager = nil
         tabCollectionViewModel = nil
         super.tearDown()
     }
@@ -462,6 +467,7 @@ private class AIChatMockSearchPreferencesPersistor: SearchPreferencesPersistor {
 
 private class MockAIChatPreferencesPersisting: AIChatPreferencesPersisting {
     var selectedModelId: String?
+    var selectedModelShortName: String?
 }
 
 // MARK: - Mock Models Service

@@ -35,16 +35,19 @@ public struct AIChatModel {
     public let supportedImageFormats: [String]
     /// Whether the current user has access to this model based on their subscription tier.
     public let entityHasAccess: Bool
+    /// The access tiers this model belongs to (e.g. ["free", "plus", "pro", "internal"]).
+    public let accessTier: [String]
 
     public enum ModelProvider {
         case openAI
         case meta
         case anthropic
         case mistral
+        case oss
         case unknown
     }
 
-    public init(id: String, name: String, shortName: String? = nil, provider: ModelProvider, supportsImageUpload: Bool, supportedImageFormats: [String] = [], entityHasAccess: Bool) {
+    public init(id: String, name: String, shortName: String? = nil, provider: ModelProvider, supportsImageUpload: Bool, supportedImageFormats: [String] = [], entityHasAccess: Bool, accessTier: [String] = []) {
         self.id = id
         self.name = name
         self.shortName = shortName ?? name
@@ -52,6 +55,7 @@ public struct AIChatModel {
         self.supportsImageUpload = supportsImageUpload
         self.supportedImageFormats = supportedImageFormats
         self.entityHasAccess = entityHasAccess
+        self.accessTier = accessTier
     }
 
     /// Returns a platform-appropriate icon for use in menu items.
@@ -62,6 +66,7 @@ public struct AIChatModel {
         case .meta: return DesignSystemImages.Glyphs.Size16.aiModelLlama
         case .anthropic: return DesignSystemImages.Glyphs.Size16.aiModelClaude
         case .mistral: return DesignSystemImages.Glyphs.Size16.aiModelMistral
+        case .oss: return DesignSystemImages.Glyphs.Size16.aiModelOSS
         case .unknown: return nil
         }
     }
@@ -72,6 +77,7 @@ public struct AIChatModel {
         case .meta: return DesignSystemImages.Glyphs.Size16.aiModelLlama
         case .anthropic: return DesignSystemImages.Glyphs.Size16.aiModelClaude
         case .mistral: return DesignSystemImages.Glyphs.Size16.aiModelMistral
+        case .oss: return DesignSystemImages.Glyphs.Size16.aiModelOSS
         case .unknown: return nil
         }
     }

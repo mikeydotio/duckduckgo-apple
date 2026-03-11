@@ -111,14 +111,33 @@ final class AIChatModelsServiceTests: XCTestCase {
             accessTier: ["free"]
         )
 
-        // When
-        let model = AIChatModel(remoteModel: remoteModel)
+        // When — free user should have access to a free-tier model
+        let model = AIChatModel(remoteModel: remoteModel, userTier: .free)
 
         // Then
         XCTAssertEqual(model.id, "gpt-4o-mini")
         XCTAssertEqual(model.name, "GPT-4o mini")
         XCTAssertTrue(model.entityHasAccess)
         XCTAssertFalse(model.supportsImageUpload)
+    }
+
+    func testWhenUserTierMatchesAccessTier_ThenEntityHasAccess() {
+        let remoteModel = AIChatRemoteModel(
+            id: "gpt-4o",
+            name: "GPT-4o",
+            modelShortName: "GPT-4o",
+            provider: "openai",
+            entityHasAccess: false,
+            supportsImageUpload: true,
+            supportedTools: [],
+            accessTier: ["plus", "pro", "internal"]
+        )
+
+        let plusModel = AIChatModel(remoteModel: remoteModel, userTier: .plus)
+        XCTAssertTrue(plusModel.entityHasAccess)
+
+        let freeModel = AIChatModel(remoteModel: remoteModel, userTier: .free)
+        XCTAssertFalse(freeModel.entityHasAccess)
     }
 
     // MARK: - ModelProvider Mapping Tests
