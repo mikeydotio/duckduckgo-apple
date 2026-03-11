@@ -141,11 +141,6 @@ public class DBPIOSInterface {
 
 public final class DataBrokerProtectionIOSManager {
 
-    struct ContinuedProcessingInitialRunPreparation {
-        let scanSummary: DBPContinuedProcessingProgressReporter.InitialScanSummary
-        let scanJobTimeout: TimeInterval
-    }
-
     private struct Constants {
         /// Maximum delay before the next background task must run
         static let defaultMaxBackgroundTaskWaitTime: TimeInterval = .hours(48)
@@ -905,7 +900,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     @MainActor
     func prepareContinuedProcessingInitialRun(
         profile: DataBrokerProtectionCore.DataBrokerProtectionProfile
-    ) async throws -> ContinuedProcessingInitialRunPreparation? {
+    ) async throws -> DBPContinuedProcessingProgressReporter.InitialScanSummary? {
         try await saveProfileAndPrepareForInitialScans(profile)
 
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
@@ -914,10 +909,12 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
             return nil
         }
 
-        return ContinuedProcessingInitialRunPreparation(
-            scanSummary: scanSummary,
-            scanJobTimeout: jobDependencies.executionConfig.scanJobTimeout
-        )
+        return scanSummary
+    }
+
+    @MainActor
+    func continuedProcessingScanJobTimeout() -> TimeInterval {
+        jobDependencies.executionConfig.scanJobTimeout
     }
 
     @MainActor
