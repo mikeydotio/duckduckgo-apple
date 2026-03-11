@@ -65,6 +65,8 @@ import WebKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
+    private var appStateMachine: AppStateMachine!
+
 #if DEBUG
     let disableCVDisplayLinkLogs: Void = {
         // Disable CVDisplayLink logs
@@ -377,7 +379,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private var didFinishLaunching = false
-    private var appStateMachine: AppStateMachine!
 
     var updateController: UpdateController?
     var dockCustomization: DockCustomization?
