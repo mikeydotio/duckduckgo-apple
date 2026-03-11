@@ -47,8 +47,7 @@ public class DBPIOSInterface {
      Where possible, avoid using this and prefer to use individual delegates
      This is only used for injecting through layers of the app that don't care about DBP
      */
-    public typealias PublicInterface = AppLifecycleEventsDelegate & DatabaseDelegate & DebuggingDelegate & RunPrerequisitesDelegate & DataBrokerProtectionViewControllerProvider
-
+    public typealias PublicInterface = AppLifecycleEventsDelegate & DatabaseDelegate & ContinuedProcessingDelegate & DebuggingDelegate & RunPrerequisitesDelegate & DataBrokerProtectionViewControllerProvider
     public typealias DebuggingDelegate = DebugInformationDelegate & DebugCommandsDelegate
     public typealias DebugInformationDelegate = BackgroundTaskInformationDelegate & JobQueueInformationDelegate & RunPrerequisitesDelegate
 
@@ -79,6 +78,10 @@ public class DBPIOSInterface {
         func fireWeeklyPixels() async
 
         func resetAllNotificationStatesForDebug()
+    }
+
+    public protocol ContinuedProcessingDelegate: AnyObject {
+        func saveProfileAndStartInitialRun(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws
     }
 
     public protocol AuthenticationDelegate: AnyObject {
@@ -133,9 +136,15 @@ public class DBPIOSInterface {
     protocol OptOutEmailConfirmationHandlingDelegate: AnyObject {
         func checkForEmailConfirmationData() async
     }
+
 }
 
 public final class DataBrokerProtectionIOSManager {
+
+    struct ContinuedProcessingInitialRunPreparation {
+        let scanSummary: DBPContinuedProcessingProgressReporter.InitialScanSummary
+        let scanJobTimeout: TimeInterval
+    }
 
     private struct Constants {
         /// Maximum delay before the next background task must run
@@ -169,6 +178,30 @@ public final class DataBrokerProtectionIOSManager {
     private let isWebViewInspectable: Bool
     private let freeTrialConversionService: FreeTrialConversionInstrumentationService?
     private var currentRunIsFreeScan: Bool?
+    weak var continuedProcessingDelegate: DBPContinuedProcessingEventDelegate?
+    private var _continuedProcessingCoordinator: AnyObject?
+
+    @available(iOS 26.0, *)
+    @MainActor
+    private var continuedProcessingCoordinator: DBPContinuedProcessingCoordinator {
+        if let coordinator = _continuedProcessingCoordinator as? DBPContinuedProcessingCoordinator {
+            return coordinator
+        }
+
+        let coordinator = DBPContinuedProcessingCoordinator(manager: self)
+        _continuedProcessingCoordinator = coordinator
+        return coordinator
+    }
+
+    @MainActor
+    private var hasAttachedContinuedProcessingTask: Bool {
+        if #available(iOS 26.0, *),
+           let coordinator = _continuedProcessingCoordinator as? DBPContinuedProcessingCoordinator {
+            return coordinator.hasAttachedTask
+        }
+
+        return false
+    }
 
     /// Snapshots the current authentication state and caches whether this is a free scan run.
     /// Returns the current `isAuthenticated` value for callers that need it.
@@ -362,6 +395,12 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DatabaseDelegate {
 
     @MainActor
     public func saveProfile(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
+        try await saveProfileAndPrepareForInitialScans(profile)
+        await startImmediateScanOperations()
+    }
+
+    @MainActor
+    func saveProfileAndPrepareForInitialScans(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
         do {
             try await database.save(profile)
         } catch {
@@ -372,7 +411,6 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DatabaseDelegate {
         freeTrialConversionService?.markPIRActivated()
 
         await refreshFreeScanState()
-        await startImmediateScanOperations()
     }
 
     public func deleteAllUserProfileData() throws {
@@ -395,7 +433,33 @@ extension DataBrokerProtectionIOSManager: JobQueueManagerDelegate {
         }
     }
 
-    public func queueManagerDidCompleteIndividualJob(_ queueManager: any DataBrokerProtectionCore.JobQueueManaging) {
+    public func queueManagerDidCompleteIndividualJob(_ queueManager: any DataBrokerProtectionCore.JobQueueManaging, context: BrokerProfileJobContext?) {
+        if let context {
+            switch context.stepType {
+            case .scan:
+                let event = DBPContinuedProcessingEvent.scanJobCompleted(
+                    .init(brokerId: context.brokerId, profileQueryId: context.profileQueryId)
+                )
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    continuedProcessingDelegate?.iosManager(self, didEmit: event)
+                }
+            case .optOut:
+                if let extractedProfileId = context.extractedProfileId {
+                    let event = DBPContinuedProcessingEvent.optOutJobCompleted(
+                        .init(
+                            brokerId: context.brokerId,
+                            profileQueryId: context.profileQueryId,
+                            extractedProfileId: extractedProfileId
+                        )
+                    )
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        continuedProcessingDelegate?.iosManager(self, didEmit: event)
+                    }
+                }
+            }
+        }
 
         // Figure out if we've just finished initial scans, and send the appropriate pixel if necessary
         if eventPixels.hasInitialScansTotalDurationPixelBeenSent() {
@@ -451,13 +515,12 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DebugCommandsDelegate 
                 completion: completionHandler
             )
         case .optOut:
-            let optOutCommand = DataBrokerProtectionQueueManagerDebugCommand.startOptOutOperations(
+            queueManager.startImmediateOptOutOperationsIfPermitted(
                 showWebView: true,
                 jobDependencies: jobDependencies,
                 errorHandler: errorHandler,
                 completion: completionHandler
             )
-            queueManager.execute(optOutCommand)
         case .all:
             queueManager.startScheduledAllOperationsIfPermitted(
                 showWebView: true,
@@ -797,6 +860,16 @@ private extension DataBrokerProtectionIOSManager {
             self.queueManager.stop()
         }
 
+        await performImmediateScanOperations(backgroundAssertion: backgroundAssertion) {
+            backgroundAssertion.release()
+        }
+    }
+
+    @MainActor
+    private func performImmediateScanOperations(
+        backgroundAssertion: QRunInBackgroundAssertion,
+        completion: @escaping () -> Void
+    ) async {
         await checkForEmailConfirmationData()
         queueManager.startImmediateScanOperationsIfPermitted(
             showWebView: false,
@@ -810,10 +883,90 @@ private extension DataBrokerProtectionIOSManager {
             if let hasMatches = try? self?.database.hasMatches(), hasMatches {
                 self?.eventsHandler.fire(.firstScanCompletedAndMatchesFound)
             }
-            
+
             DispatchQueue.main.async {
-                backgroundAssertion.release()
+                completion()
             }
         }
+    }
+
+}
+
+extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDelegate {
+    @MainActor
+    public func saveProfileAndStartInitialRun(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
+        if #available(iOS 26.0, *) {
+            try await continuedProcessingCoordinator.startInitialRun(profile: profile)
+        } else {
+            try await saveProfile(profile)
+        }
+    }
+
+    @MainActor
+    func prepareContinuedProcessingInitialRun(
+        profile: DataBrokerProtectionCore.DataBrokerProtectionProfile
+    ) async throws -> ContinuedProcessingInitialRunPreparation {
+        try await saveProfileAndPrepareForInitialScans(profile)
+
+        let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
+        let scanSummary = DBPContinuedProcessingProgressReporter.makeInitialScanSummary(from: brokerProfileQueryData)
+        guard scanSummary.scanCount > 0 else {
+            throw DBPContinuedProcessingError.noPendingScans
+        }
+
+        return ContinuedProcessingInitialRunPreparation(
+            scanSummary: scanSummary,
+            scanJobTimeout: jobDependencies.executionConfig.scanJobTimeout
+        )
+    }
+
+    @MainActor
+    func makeContinuedProcessingOptOutSummary() throws -> DBPContinuedProcessingProgressReporter.OptOutSummary {
+        let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
+        return DBPContinuedProcessingProgressReporter.makeOptOutSummary(from: brokerProfileQueryData)
+    }
+
+    @MainActor
+    func startImmediateScanOperationsForContinuedProcessing() async {
+        Logger.dataBrokerProtection.log("Continued processing: starting immediate scan operations")
+        let backgroundAssertion = QRunInBackgroundAssertion(name: "DataBrokerProtectionIOSManager", application: .shared) {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+
+                guard !self.hasAttachedContinuedProcessingTask else {
+                    Logger.dataBrokerProtection.log("Ignoring legacy background assertion expiry because continued task is attached")
+                    return
+                }
+
+                Logger.dataBrokerProtection.log("Legacy background assertion expired without attached continued task; stopping queue")
+                self.queueManager.stop()
+            }
+        }
+
+        await performImmediateScanOperations(backgroundAssertion: backgroundAssertion) { [weak self] in
+            guard let self else { return }
+            self.continuedProcessingDelegate?.iosManager(self, didEmit: .scanPhaseCompleted)
+            backgroundAssertion.release()
+        }
+    }
+
+    func startImmediateOptOutOperationsForContinuedProcessing() {
+        Logger.dataBrokerProtection.log("Continued processing: delegating to immediate opt-out operations")
+        queueManager.startImmediateOptOutOperationsIfPermitted(
+            showWebView: false,
+            jobDependencies: jobDependencies,
+            errorHandler: nil
+        ) { [weak self] in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                Logger.dataBrokerProtection.log("Continued processing: immediate opt-out operations completed")
+                self.continuedProcessingDelegate?.iosManager(self, didEmit: .optOutPhaseCompleted)
+            }
+        }
+    }
+
+    func stopContinuedProcessingOperations() {
+        Logger.dataBrokerProtection.log("Continued processing: stopping queue operations")
+        queueManager.stop()
     }
 }
