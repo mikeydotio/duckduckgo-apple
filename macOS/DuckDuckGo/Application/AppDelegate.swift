@@ -845,6 +845,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                           faviconManagement: faviconManager,
                                           windowControllersManager: windowControllersManager,
                                           pixelFiring: PixelKit.shared,
+                                          wideEventManaging: wideEvent,
                                           aiChatSyncCleaner: { Application.appDelegate.aiChatSyncCleaner })
 
         var appContentBlocking: AppContentBlocking?

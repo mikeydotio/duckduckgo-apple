@@ -703,7 +703,6 @@ final class TabCollectionViewModel: NSObject {
         guard changesEnabled || forceChange else { return }
 
         guard let selectionIndex else {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnTabsError(TabCollectionViewModelError.noTabSelected))
             Logger.tabLazyLoading.error("TabCollectionViewModel: No tab selected")
             return
         }
@@ -792,7 +791,6 @@ final class TabCollectionViewModel: NSObject {
     func replaceTab(at index: TabIndex, with tab: Tab, forceChange: Bool = false) {
         guard changesEnabled || forceChange else { return }
         guard let tabCollection = tabCollection(for: index) else {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnTabsError(TabCollectionViewModelError.tabCollectionAtIndexNotFound(String(describing: index))))
             Logger.tabLazyLoading.error("TabCollectionViewModel: Tab collection for index \(String(describing: index)) not found")
             return
         }
@@ -800,7 +798,6 @@ final class TabCollectionViewModel: NSObject {
         tabCollection.replaceTab(at: index.item, with: tab)
 
         guard let selectionIndex else {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnTabsError(TabCollectionViewModelError.noTabSelected))
             Logger.tabLazyLoading.error("TabCollectionViewModel: No tab selected")
             return
         }

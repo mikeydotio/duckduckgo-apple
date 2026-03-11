@@ -128,7 +128,7 @@ final class AutoClearHandler: ApplicationTerminationDecider {
                 await aiChatSyncCleaner?.recordLocalClear(date: Date())
             }
         }
-        await fireViewModel.fire.burnAll(isBurnOnExit: true, includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
+        await fireViewModel.fire.burnAll(isBurnOnExit: true, includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled, isAutoClear: true)
         appTerminationHandledCorrectly = true
     }
 
@@ -144,7 +144,8 @@ final class AutoClearHandler: ApplicationTerminationDecider {
         let shouldBurnOnStart = dataClearingPreferences.isAutoClearEnabled && !appTerminationHandledCorrectly
         guard shouldBurnOnStart else { return false }
 
-        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled)
+        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled, isAutoClear: true)
+
         return true
     }
 

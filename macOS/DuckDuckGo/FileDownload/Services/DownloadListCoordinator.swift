@@ -432,7 +432,6 @@ final class DownloadListCoordinator {
                 try fm.removeItem(at: url)
             })
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnDownloadsError(error))
             Logger.fileDownload.error("🦀 coordinator: failed to remove temp file: \(error)")
         }
 
@@ -440,7 +439,6 @@ final class DownloadListCoordinator {
         do {
             guard let presenter = filePresenters[item.identifier]?.destination,
                   (try? presenter.url?.resourceValues(forKeys: [.fileSizeKey]).fileSize) == 0 else {
-                dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnDownloadsError(DestinationFileNotEmpty()))
                 throw DestinationFileNotEmpty()
             }
             try presenter.coordinateWrite(with: .forDeleting, using: { url in
@@ -450,7 +448,6 @@ final class DownloadListCoordinator {
         } catch is DestinationFileNotEmpty {
             // don‘t delete non-empty destination file
         } catch {
-            dataClearingPixelsReporter.fireErrorPixel(DataClearingPixels.burnDownloadsError(error))
             Logger.fileDownload.error("🦀 coordinator: failed to remove destination file: \(error)")
         }
     }

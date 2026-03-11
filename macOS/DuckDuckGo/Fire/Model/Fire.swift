@@ -43,6 +43,7 @@ protocol FireProtocol: AnyObject {
                             opening url: URL,
                             includeCookiesAndSiteData: Bool,
                             includeChatHistory: Bool,
+                            isAutoClear: Bool,
                             completion: (@MainActor () -> Void)?)
     @MainActor func burnEntity(_ entity: Fire.BurningEntity,
                                includingHistory: Bool,
@@ -66,11 +67,13 @@ extension FireProtocol {
     func burnAll(isBurnOnExit: Bool = false,
                  opening url: URL = .newtab,
                  includeChatHistory: Bool = true,
+                 isAutoClear: Bool = false,
                  completion: (@MainActor () -> Void)? = nil) {
         burnAll(isBurnOnExit: isBurnOnExit,
                 opening: url,
                 includeCookiesAndSiteData: true,
                 includeChatHistory: includeChatHistory,
+                isAutoClear: isAutoClear,
                 completion: completion)
     }
 
@@ -78,12 +81,14 @@ extension FireProtocol {
     func burnAll(isBurnOnExit: Bool = false,
                  opening url: URL = .newtab,
                  includeCookiesAndSiteData: Bool = true,
-                 includeChatHistory: Bool) async {
+                 includeChatHistory: Bool,
+                 isAutoClear: Bool = false) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             self.burnAll(isBurnOnExit: isBurnOnExit,
                          opening: url,
                          includeCookiesAndSiteData: includeCookiesAndSiteData,
-                         includeChatHistory: includeChatHistory) {
+                         includeChatHistory: includeChatHistory,
+                         isAutoClear: isAutoClear) {
                 continuation.resume()
             }
         }
@@ -174,6 +179,7 @@ final class Fire: FireProtocol {
     let isAppActiveProvider: @MainActor () -> Bool
     let aiChatHistoryCleaner: AIChatHistoryCleaning
     let dataClearingPixelsReporter: DataClearingPixelsReporter
+    let dataClearingWideEventService: DataClearingWideEventService?
 
     private var dispatchGroup: DispatchGroup?
 
@@ -280,6 +286,7 @@ final class Fire: FireProtocol {
          isAppActiveProvider: @escaping @MainActor () -> Bool = { @MainActor in NSApp.isActive },
          aIChatHistoryCleaner: AIChatHistoryCleaning? = nil,
          dataClearingPixelsReporter: DataClearingPixelsReporter = .init(),
+         dataClearingWideEventService: DataClearingWideEventService? = nil,
          tabCleanupPreparer: TabCleanupPreparing = TabCleanupPreparer()
     ) {
         self.webCacheManager = cacheManager ?? NSApp.delegateTyped.webCacheManager
@@ -313,6 +320,7 @@ final class Fire: FireProtocol {
                                                                                  featureDiscovery: DefaultFeatureDiscovery(),
                                                                                  privacyConfig: NSApp.delegateTyped.privacyFeatures.contentBlocking.privacyConfigurationManager)
         self.dataClearingPixelsReporter = dataClearingPixelsReporter
+        self.dataClearingWideEventService = dataClearingWideEventService
         self.tabCleanupPreparer = tabCleanupPreparer
     }
 
@@ -416,12 +424,20 @@ final class Fire: FireProtocol {
                  opening url: URL,
                  includeCookiesAndSiteData: Bool,
                  includeChatHistory: Bool,
+                 isAutoClear: Bool,
                  completion: (@MainActor () -> Void)?) {
         // Prevent re-entry if burn is already in progress
         guard dispatchGroup == nil, burningData == nil else {
             assertionFailure("burnAll called while burn already in progress")
             completion?()
             return
+        }
+
+        // Start wide event tracking for auto-clear flows
+        if isAutoClear {
+            let result = makeAutoClearResult(includeCookiesAndSiteData: includeCookiesAndSiteData,
+                                              includeChatHistory: includeChatHistory)
+            dataClearingWideEventService?.start(options: result, path: .burnAll, isAutoClear: true)
         }
 
         Logger.fire.debug("Fire started")
@@ -491,6 +507,11 @@ final class Fire: FireProtocol {
             }
 
             await self.reloadWebExtensions()
+
+            // Complete wide event tracking for auto-clear flows
+            if isAutoClear {
+                self.dataClearingWideEventService?.complete()
+            }
 
             completion?()
             Logger.fire.debug("Fire finished")
@@ -953,6 +974,23 @@ final class Fire: FireProtocol {
         if syncService?.authState == .inactive {
             syncDataProviders?.bookmarksAdapter.databaseCleaner.cleanUpDatabaseNow()
         }
+    }
+
+    // MARK: - Wide Event Helpers
+
+    /// Creates a FireDialogResult representing an auto-clear operation.
+    /// Auto-clear always clears all data with all options enabled except chat history (which is configurable).
+    private func makeAutoClearResult(includeCookiesAndSiteData: Bool, includeChatHistory: Bool) -> FireDialogResult {
+        return FireDialogResult(
+            clearingOption: .allData,
+            includeHistory: true,
+            includeTabsAndWindows: true,
+            includeCookiesAndSiteData: includeCookiesAndSiteData,
+            includeChatHistory: includeChatHistory,
+            selectedCookieDomains: nil,
+            selectedVisits: nil,
+            isToday: false
+        )
     }
 }
 
