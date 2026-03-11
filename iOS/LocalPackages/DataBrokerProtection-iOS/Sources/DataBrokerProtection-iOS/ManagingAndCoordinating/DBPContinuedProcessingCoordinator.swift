@@ -97,12 +97,6 @@ final class DBPContinuedProcessingCoordinator {
         }
     }
 
-    private enum CompletionReason: String {
-        case completedCleanly
-        case expired
-        case failed
-    }
-
     private weak var manager: DataBrokerProtectionIOSManager?
     private let progressReporter: DBPContinuedProcessingProgressReporter
 
@@ -135,7 +129,11 @@ final class DBPContinuedProcessingCoordinator {
     func startInitialRun(profile: DataBrokerProtectionProfile) async throws {
         guard let manager else { return }
 
-        let preparation = try await manager.prepareContinuedProcessingInitialRun(profile: profile)
+        guard let preparation = try await manager.prepareContinuedProcessingInitialRun(profile: profile) else {
+            Logger.dataBrokerProtection.log("Continued processing: no pending scans found during initial run preparation")
+            return
+        }
+
         Logger.dataBrokerProtection.log(
             "Continued processing: preparing initial run with \(preparation.scanSummary.scanCount, privacy: .public) scans"
         )
@@ -180,13 +178,12 @@ final class DBPContinuedProcessingCoordinator {
             "Continued processing: task expired for run \(self.logRunIdentifier(), privacy: .public) in phase \(String(describing: self.phase), privacy: .public)"
         )
         manager?.stopContinuedProcessingOperations()
-        finish(success: false, reason: .expired)
+        finish(success: false)
     }
 
-    private func finish(success: Bool, reason: CompletionReason? = nil) {
-        let completionReason = reason ?? (success ? .completedCleanly : .failed)
+    private func finish(success: Bool) {
         Logger.dataBrokerProtection.log(
-            "Continued processing: finishing run \(self.logRunIdentifier(), privacy: .public) elapsed=\(self.elapsedDescription(), privacy: .public) success=\(success, privacy: .public) reason=\(completionReason.rawValue, privacy: .public) phase=\(String(describing: self.phase), privacy: .public)"
+            "Continued processing: finishing run \(self.logRunIdentifier(), privacy: .public) elapsed=\(self.elapsedDescription(), privacy: .public) success=\(success, privacy: .public) phase=\(String(describing: self.phase), privacy: .public)"
         )
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
@@ -223,14 +220,14 @@ final class DBPContinuedProcessingCoordinator {
         guard let manager,
               let optOutSummary = try? manager.makeContinuedProcessingOptOutSummary() else {
             Logger.dataBrokerProtection.log("Continued processing: failed to load opt-out summary after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
-            finish(success: false, reason: .failed)
+            finish(success: false)
             return
         }
 
         guard
               optOutSummary.optOutCount > 0 else {
             Logger.dataBrokerProtection.log("Continued processing: no initial opt-outs found after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
-            finish(success: true, reason: .completedCleanly)
+            finish(success: true)
             return
         }
 
@@ -253,7 +250,7 @@ final class DBPContinuedProcessingCoordinator {
         progressReporter.completeOptOutPhase()
         publishProgress(source: .optOutPhaseCompleted, note: "snap=phase-allotted")
         Logger.dataBrokerProtection.log("Continued processing: opt-out phase completed for run \(self.logRunIdentifier(), privacy: .public)")
-        finish(success: true, reason: .completedCleanly)
+        finish(success: true)
     }
 
     // MARK: - Task Presentation
