@@ -603,7 +603,6 @@ class TabViewController: UIViewController {
         self.aiChatFullModeFeature = aiChatFullModeFeature
         self.aiChatContentHandler = AIChatContentHandler(aiChatSettings: aiChatSettings,
                                                          featureDiscovery: featureDiscovery,
-                                                         featureFlagger: featureFlagger,
                                                          productSurfaceTelemetry: productSurfaceTelemetry)
         self.subscriptionAIChatStateHandler = SubscriptionAIChatStateHandler()
         self.voiceSearchHelper = voiceSearchHelper
@@ -2281,7 +2280,7 @@ extension TabViewController: WKNavigationDelegate {
                         NotificationCenter.default.post(name: .userDidPerformDDGSearch, object: self)
                     }
 
-                    let shouldSkipSearchAtbForDuckAI = url.isDuckAIURL && featureFlagger.isFeatureOn(.aiChatAtb)
+                    let shouldSkipSearchAtbForDuckAI = url.isDuckAIURL
                     if !shouldSkipSearchAtbForDuckAI {
                         let backgroundAssertion = QRunInBackgroundAssertion(name: "StatisticsLoader background assertion - search",
                                                                             application: UIApplication.shared)
@@ -3015,6 +3014,13 @@ extension TabViewController: UIGestureRecognizerDelegate {
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherRecognizer: UIGestureRecognizer) -> Bool {
         guard gestureRecognizer == showBarsTapGestureRecogniser else {
+            return false
+        }
+
+        // Don't delay tap gestures that are inside the onboarding dialog
+        if let daxContextualOnboardingController,
+           let otherView = otherRecognizer.view,
+           otherView.isDescendant(of: daxContextualOnboardingController.view) {
             return false
         }
 
