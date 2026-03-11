@@ -19,6 +19,7 @@
 
 import AppKit
 import Common
+import os.log
 
 // MARK: - Events
 
@@ -104,6 +105,8 @@ protocol TerminatingStateFactory {
 
 @MainActor
 struct DefaultTerminatingStateFactory: TerminatingStateFactory {
+
+    nonisolated init() {}
 
     func makeTerminatingState(error: Error) -> any TerminatingHandling {
         Terminating(error: error)
