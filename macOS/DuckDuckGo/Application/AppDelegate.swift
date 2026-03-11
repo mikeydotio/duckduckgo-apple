@@ -107,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let contentScopePreferences: ContentScopePreferences
     let featureFlagOverridesPublishingHandler = FeatureFlagOverridesPublishingHandler<FeatureFlag>()
     private var appIconChanger: AppIconChanger!
-    private var autoClearHandler: AutoClearHandler!
+    private(set) var autoClearHandler: AutoClearHandler!
     private(set) var autofillPixelReporter: AutofillPixelReporter?
     private var passwordsStatusBarMenu: PasswordsStatusBarMenu?
     private var passwordsMenuBarCancellable: AnyCancellable?
@@ -1504,126 +1504,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private var terminationHandler: TerminationDeciderHandler?
-
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // Already running — the in-flight handler will reply() when done
-        if terminationHandler != nil {
-            return .terminateLater
-        }
-
-        let handler = TerminationDeciderHandler(
-            deciders: createTerminationDeciders(),
-            replyToApplicationShouldTerminate: { [weak self] shouldTerminate in
-                self?.terminationHandler = nil
-                NSApp.reply(toApplicationShouldTerminate: shouldTerminate)
-            }
-        )
-        terminationHandler = handler
-        let reply = handler.executeTerminationDeciders()
-
-        if reply == .terminateCancel {
-            // Synchronous cancellation — discard handler
-            terminationHandler = nil
-        }
-        return reply
-    }
-
-    @MainActor
-    private func createTerminationDeciders() -> [ApplicationTerminationDecider] {
-        let persistor = QuitSurveyUserDefaultsPersistor(keyValueStore: keyValueStore)
-
-        let deciders: [ApplicationTerminationDecider?] = [
-            // 1. Quit survey (for new users within first 3 days)
-            QuitSurveyAppTerminationDecider(
-                featureFlagger: featureFlagger,
-                dataClearingPreferences: dataClearingPreferences,
-                downloadManager: downloadManager,
-                installDate: AppDelegate.firstLaunchDate,
-                persistor: persistor,
-                reinstallUserDetection: DefaultReinstallUserDetection(keyValueStore: keyValueStore),
-                showQuitSurvey: { [weak self] in
-                    guard let self else { return }
-                    let presenter = QuitSurveyPresenter(windowControllersManager: self.windowControllersManager, persistor: persistor)
-                    await presenter.showSurvey()
-                }
-            ),
-
-            // 2. Active downloads check
-            ActiveDownloadsAppTerminationDecider(
-                downloadManager: downloadManager,
-                downloadListCoordinator: downloadListCoordinator
-            ),
-
-            // 3. Warn before quit confirmation
-            makeWarnBeforeQuitDecider(),
-
-            // 4. Update controller cleanup
-            .perform { [updateController] in
-                updateController?.handleAppTermination()
-            },
-
-            // 5. State restoration
-            .perform { [stateRestorationManager] in
-                stateRestorationManager?.applicationWillTerminate()
-            },
-
-            // 6. Auto-clear (burn on quit)
-            autoClearHandler,
-
-            // 7. Privacy stats cleanup
-            .terminationDecider { [privacyStats] _ in
-                .async(Task {
-                    await privacyStats.handleAppTermination()
-                    return .next
-                })
-            },
-
-            // 8. Close windows before quitting while waiting for ⌘Q release
-            .perform {
-                NSApp.visibleWindows.forEach { $0.close() }
-            }
-        ]
-
-        return deciders.compactMap { $0 }
-    }
-
-    @MainActor
-    private func makeWarnBeforeQuitDecider() -> ApplicationTerminationDecider? {
-        // Don't show "warn before quit" if autoclear warning will be shown
-        let willShowAutoClearWarning = dataClearingPreferences.isAutoClearEnabled && dataClearingPreferences.isWarnBeforeClearingEnabled
-
-        // Don't show if no window is open
-        let hasWindow = windowControllersManager.lastKeyMainWindowController?.window != nil
-
-        guard featureFlagger.isFeatureOn(.warnBeforeQuit),
-              !willShowAutoClearWarning,
-              hasWindow,
-              let currentEvent = NSApp.currentEvent else { return nil }
-
-        guard let manager = WarnBeforeQuitManager(
-            currentEvent: currentEvent,
-            action: .quit,
-            isWarningEnabled: { [tabsPreferences] in
-                tabsPreferences.warnBeforeQuitting
-            },
-            isPhysicalKeyPress: WarnBeforeQuitManager.makePhysicalKeyPressCheck(for: currentEvent)
-        ) else { return nil }
-
-        let presenter = WarnBeforeQuitOverlayPresenter(
-            startupPreferences: startupPreferences,
-            buttonHandlers: [.dontShowAgain: { [tabsPreferences] in
-                PixelKit.fire(GeneralPixel.warnBeforeQuitDontShowAgain, frequency: .standard)
-                tabsPreferences.warnBeforeQuitting = false
-            }],
-            onHoverChange: { [weak manager] isHovering in
-                manager?.setMouseHovering(isHovering)
-            }
-        )
-
-        // Subscribe to state stream (the Task keeps presenter alive)
-        presenter.subscribe(to: manager.stateStream)
-        return manager
+        return appStateMachine.handleTerminationRequest()
     }
 
     // MARK: - Automation Server

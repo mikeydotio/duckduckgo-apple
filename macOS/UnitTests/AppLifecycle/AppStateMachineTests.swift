@@ -67,11 +67,14 @@ final class MockForeground: ForegroundHandling {
     var onTransitionCalled: Bool { eventLog.contains("onTransition") }
     var didReturnCalled: Bool { eventLog.contains("didReturn") }
 
+    private(set) var lastAsyncTerminationClosure: (@MainActor () -> Void)?
+
     func onTransition() { eventLog.append("onTransition") }
     func didReturn() { eventLog.append("didReturn") }
 
-    func handleTerminationRequest() -> NSApplication.TerminateReply {
+    func handleTerminationRequest(onAsyncTerminationApproved: @escaping @MainActor () -> Void) -> NSApplication.TerminateReply {
         eventLog.append("handleTerminationRequest")
+        lastAsyncTerminationClosure = onAsyncTerminationApproved
         return terminationReply
     }
 
@@ -269,6 +272,24 @@ final class ForegroundTests {
         let reply = stateMachine.handleTerminationRequest()
         #expect(reply == .terminateLater)
         #expect(stateMachine.currentState.name == "foreground")
+    }
+
+    @Test("terminateLater followed by async confirmation should transition to terminating")
+    func asyncTerminationConfirmed() {
+        if case .foreground(let foreground) = stateMachine.currentState,
+           let mock = foreground as? MockForeground {
+            mock.terminationReply = .terminateLater
+        }
+        let reply = stateMachine.handleTerminationRequest()
+        #expect(reply == .terminateLater)
+        #expect(stateMachine.currentState.name == "foreground")
+
+        // Simulate async decider chain completing with approval
+        if case .foreground(let foreground) = stateMachine.currentState,
+           let mock = foreground as? MockForeground {
+            mock.lastAsyncTerminationClosure?()
+        }
+        #expect(stateMachine.currentState.name == "terminating")
     }
 
     @Test("didFinishLaunching in foreground should be ignored")

@@ -79,7 +79,7 @@ protocol ForegroundHandling {
 
     func onTransition()
     func didReturn()
-    func handleTerminationRequest() -> NSApplication.TerminateReply
+    func handleTerminationRequest(onAsyncTerminationApproved: @escaping @MainActor () -> Void) -> NSApplication.TerminateReply
 
 }
 
@@ -149,13 +149,23 @@ final class AppStateMachine {
             Logger.general.error("Termination request received in unexpected state: \(self.currentState.name)")
             return .terminateCancel
         }
-        let reply = foreground.handleTerminationRequest()
+        let reply = foreground.handleTerminationRequest(onAsyncTerminationApproved: { [weak self] in
+            self?.confirmTermination()
+        })
         if reply == .terminateNow {
-            let terminating = terminatingStateFactory.makeTerminatingState()
-            terminating.terminate()
-            currentState = .terminating(terminating)
+            confirmTermination()
         }
         return reply
+    }
+
+    private func confirmTermination() {
+        guard case .foreground = currentState else {
+            Logger.general.error("Async termination confirmation received in unexpected state: \(self.currentState.name)")
+            return
+        }
+        let terminating = terminatingStateFactory.makeTerminatingState()
+        terminating.terminate()
+        currentState = .terminating(terminating)
     }
 
     // MARK: - Private
