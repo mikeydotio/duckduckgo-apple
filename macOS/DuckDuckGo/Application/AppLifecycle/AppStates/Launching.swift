@@ -1026,8 +1026,6 @@ final class Launching: LaunchingHandling {
         startupProfiler.delegate = metricsReporter
         startupMetricsReporter = metricsReporter
 
-        // Skip: appContentBlocking?.userContentUpdating.userScriptDependenciesProvider = self
-        // AppDelegate will handle this via forwarding (separate task).
     }
 
     func makeForegroundState() throws -> any ForegroundHandling {

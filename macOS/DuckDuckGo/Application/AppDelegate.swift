@@ -305,6 +305,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             fatalError("Expected .launching state after didFinishLaunching")
         }
+
+        // Wire AppDelegate as the UserScriptDependenciesProvider.
+        // This was originally at the end of the old init() — Launching can't do it
+        // because the provider must be AppDelegate (which conforms to the protocol).
+        (privacyFeatures.contentBlocking as? AppContentBlocking)?.userContentUpdating.userScriptDependenciesProvider = self
     }
 
     // MARK: - Forwarding Properties (backward compatibility)
