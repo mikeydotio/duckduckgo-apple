@@ -291,6 +291,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _didCrashDuringCrashHandlersSetUp = didCrashDuringCrashHandlersSetUp
         self.dockCustomization = dockCustomization
         super.init()
+
+        // Create state machine and transition through Initializing → Launching.
+        // This must happen in init() so that forwarding properties (which read from
+        // appDependencies) are available immediately — matching the original behavior
+        // where all ~89 properties were created in init().
+        appStateMachine = AppStateMachine(initialState: .initializing(Initializing()))
+        appStateMachine.handle(.willFinishLaunching)
+        appStateMachine.handle(.didFinishLaunching)
+        if case .launching(let launching) = appStateMachine.currentState,
+           let concreteState = launching as? Launching {
+            appDependencies = concreteState.dependencies
+        } else {
+            fatalError("Expected .launching state after didFinishLaunching")
+        }
     }
 
     // MARK: - Forwarding Properties (backward compatibility)
@@ -435,17 +449,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var freeTrialConversionService: FreeTrialConversionInstrumentationService { appDependencies.subscription.freeTrialConversionService }
 
     func applicationWillFinishLaunching(_ notification: Notification) {
-        appStateMachine = AppStateMachine(initialState: .initializing(Initializing()))
-        appStateMachine.handle(.willFinishLaunching)
-        appStateMachine.handle(.didFinishLaunching)
-        // State is now .launching — extract dependencies for forwarding properties
-        if case .launching(let launching) = appStateMachine.currentState,
-           let concreteState = launching as? Launching {
-            appDependencies = concreteState.dependencies
-        } else {
-            fatalError("Expected .launching state after didFinishLaunching")
-        }
-
         let profilerToken = startupProfiler.startMeasuring(.appWillFinishLaunching)
         defer {
             profilerToken.stop()
