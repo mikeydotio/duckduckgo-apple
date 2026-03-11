@@ -56,6 +56,7 @@ struct AIChatModelsResponse: Decodable {
 struct AIChatRemoteModel: Decodable, Equatable {
     let id: String
     let name: String
+    let modelShortName: String?
     let provider: String
     let entityHasAccess: Bool
     let supportsImageUpload: Bool
@@ -119,17 +120,22 @@ final class AIChatModelsService: AIChatModelsProviding {
 
         return try JSONDecoder().decode(AIChatModelsResponse.self, from: data).models
     }
+
 }
 
 // MARK: - AIChatModel Mapping
 
 extension AIChatModel {
+    private static let nativeSupportedImageFormats = ["png", "jpeg", "webp"]
+
     init(remoteModel: AIChatRemoteModel) {
         self.init(
             id: remoteModel.id,
             name: remoteModel.name,
+            shortName: remoteModel.modelShortName,
             provider: .from(id: remoteModel.id, providerString: remoteModel.provider),
             supportsImageUpload: remoteModel.supportsImageUpload,
+            supportedImageFormats: remoteModel.supportsImageUpload ? Self.nativeSupportedImageFormats : [],
             entityHasAccess: remoteModel.entityHasAccess
         )
     }
@@ -138,10 +144,11 @@ extension AIChatModel {
 extension AIChatModel.ModelProvider {
     /// Maps a remote model's ID and provider string to the local ModelProvider enum.
     /// Model ID takes precedence since togetherai hosts models from multiple providers.
+    /// Handles both `/` and `_` separators in model IDs (e.g. "meta-llama/Llama" or "meta-llama_Llama").
     static func from(id: String, providerString: String) -> AIChatModel.ModelProvider {
-        if id.hasPrefix("meta-llama/") || providerString == "azure" {
+        if id.hasPrefix("meta-llama/") || id.hasPrefix("meta-llama_") || providerString == "azure" {
             return .meta
-        } else if id.hasPrefix("mistralai/") {
+        } else if id.hasPrefix("mistralai/") || id.hasPrefix("mistralai_") {
             return .mistral
         } else if providerString == "anthropic" {
             return .anthropic

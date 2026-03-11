@@ -103,6 +103,7 @@ final class AIChatModelsServiceTests: XCTestCase {
         let remoteModel = AIChatRemoteModel(
             id: "gpt-4o-mini",
             name: "GPT-4o mini",
+            modelShortName: "4o-mini",
             provider: "openai",
             entityHasAccess: true,
             supportsImageUpload: false,
@@ -132,8 +133,13 @@ final class AIChatModelsServiceTests: XCTestCase {
         XCTAssertEqual(provider, .anthropic)
     }
 
-    func testWhenModelIdHasMetaLlamaPrefix_ThenMapsToMeta() {
+    func testWhenModelIdHasMetaLlamaSlashPrefix_ThenMapsToMeta() {
         let provider = AIChatModel.ModelProvider.from(id: "meta-llama/Llama-4-Scout", providerString: "togetherai")
+        XCTAssertEqual(provider, .meta)
+    }
+
+    func testWhenModelIdHasMetaLlamaUnderscorePrefix_ThenMapsToMeta() {
+        let provider = AIChatModel.ModelProvider.from(id: "meta-llama_Llama-4-Scout-17B-16E-Instruct", providerString: "azure")
         XCTAssertEqual(provider, .meta)
     }
 
@@ -142,8 +148,13 @@ final class AIChatModelsServiceTests: XCTestCase {
         XCTAssertEqual(provider, .meta)
     }
 
-    func testWhenModelIdHasMistralPrefix_ThenMapsToMistral() {
+    func testWhenModelIdHasMistralSlashPrefix_ThenMapsToMistral() {
         let provider = AIChatModel.ModelProvider.from(id: "mistralai/Mistral-Small-3", providerString: "togetherai")
+        XCTAssertEqual(provider, .mistral)
+    }
+
+    func testWhenModelIdHasMistralUnderscorePrefix_ThenMapsToMistral() {
+        let provider = AIChatModel.ModelProvider.from(id: "mistralai_Mistral-Small-24B-Instruct-2501", providerString: "togetherai")
         XCTAssertEqual(provider, .mistral)
     }
 
@@ -159,12 +170,12 @@ final class AIChatModelsServiceTests: XCTestCase {
 
     func testWhenModelIdHasMetaPrefix_ThenIdTakesPrecedenceOverProviderString() {
         // Model ID prefix should take precedence over provider string
-        let provider = AIChatModel.ModelProvider.from(id: "meta-llama/Llama-4-Scout", providerString: "anthropic")
+        let provider = AIChatModel.ModelProvider.from(id: "meta-llama_Llama-4-Scout", providerString: "anthropic")
         XCTAssertEqual(provider, .meta)
     }
 
     func testWhenModelIdHasMistralPrefix_ThenIdTakesPrecedenceOverProviderString() {
-        let provider = AIChatModel.ModelProvider.from(id: "mistralai/Mistral-Small-3", providerString: "openai")
+        let provider = AIChatModel.ModelProvider.from(id: "mistralai_Mistral-Small-3", providerString: "openai")
         XCTAssertEqual(provider, .mistral)
     }
 

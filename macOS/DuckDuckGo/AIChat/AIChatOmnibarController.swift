@@ -204,6 +204,13 @@ final class AIChatOmnibarController {
         return models.first(where: { $0.id == persistedModelId })?.supportsImageUpload ?? true
     }
 
+    /// Image formats supported by the currently selected model (e.g. ["png", "webp"]).
+    /// Returns a default set when models are unavailable.
+    var selectedModelImageFormats: [String] {
+        guard !models.isEmpty else { return ["png", "webp"] }
+        return models.first(where: { $0.id == persistedModelId })?.supportedImageFormats ?? ["png", "webp"]
+    }
+
     /// Updates the selected model ID and persists it for future sessions.
     func updateSelectedModel(_ modelId: String) {
         preferences.selectedModelId = modelId
@@ -323,7 +330,7 @@ final class AIChatOmnibarController {
 
             // Get attachments after resizes are complete
             let attachments = attachmentsProvider?() ?? []
-            let images = Self.nativePromptImages(from: attachments)
+            let images = Self.nativePromptImages(from: attachments, supportedFormats: self.selectedModelImageFormats)
 
             if !attachments.isEmpty {
                 PixelKit.fire(AIChatPixel.aiChatAddressBarSubmitWithImage(imageCount: attachments.count), frequency: .dailyAndCount, includeAppVersionParameter: true)
@@ -346,10 +353,12 @@ final class AIChatOmnibarController {
     }
 
     /// Converts image attachments to base64-encoded `NativePromptImage` values for the JS bridge.
-    /// Preserves JPEG encoding for `.jpg`/`.jpeg` sources to avoid payload bloat;
-    /// uses PNG for all other formats (including resized WebP).
-    private static func nativePromptImages(from attachments: [AIChatImageAttachment]) -> [AIChatNativePrompt.NativePromptImage]? {
+    /// Encodes each image in a format the model supports. Prefers the source format when supported;
+    /// otherwise falls back to the first supported format (typically PNG).
+    private static func nativePromptImages(from attachments: [AIChatImageAttachment], supportedFormats: [String]) -> [AIChatNativePrompt.NativePromptImage]? {
         guard !attachments.isEmpty else { return nil }
+        let lowercasedFormats = Set(supportedFormats.map { $0.lowercased() })
+
         let images = attachments.compactMap { attachment -> AIChatNativePrompt.NativePromptImage? in
             guard let tiffData = attachment.image.tiffRepresentation,
                   let bitmap = NSBitmapImageRep(data: tiffData) else {
@@ -357,17 +366,57 @@ final class AIChatOmnibarController {
             }
 
             let ext = (attachment.fileName as NSString).pathExtension.lowercased()
-            let isJPEG = ext == "jpg" || ext == "jpeg"
-            let fileType: NSBitmapImageRep.FileType = isJPEG ? .jpeg : .png
-            let format = isJPEG ? "jpeg" : "png"
+            let resolvedFormat = resolveImageFormat(sourceExtension: ext, supportedFormats: lowercasedFormats)
 
-            guard let data = bitmap.representation(using: fileType, properties: [:]) else {
+            guard let data = bitmap.representation(using: resolvedFormat.fileType, properties: [:]) else {
                 return nil
             }
 
-            return AIChatNativePrompt.NativePromptImage(data: data.base64EncodedString(), format: format)
+            return AIChatNativePrompt.NativePromptImage(data: data.base64EncodedString(), format: resolvedFormat.formatString)
         }
         return images.isEmpty ? nil : images
+    }
+
+    private static func resolveImageFormat(sourceExtension: String, supportedFormats: Set<String>) -> (fileType: NSBitmapImageRep.FileType, formatString: String) {
+        // Normalize extension aliases (e.g. "jpg" → "jpeg")
+        let sourceFormat = canonicalFormatName(for: sourceExtension)
+
+        // Use source format if the model supports it and we can encode it
+        if supportedFormats.contains(sourceFormat), let fileType = bitmapFileType(for: sourceFormat) {
+            return (fileType, sourceFormat)
+        }
+
+        // Fall back to the first supported format we can encode
+        for format in supportedFormats {
+            if let fileType = bitmapFileType(for: format) {
+                return (fileType, format)
+            }
+        }
+
+        // Ultimate fallback
+        return (.png, "png")
+    }
+
+    /// Normalizes file extensions to canonical format names used by the API.
+    private static func canonicalFormatName(for extension: String) -> String {
+        switch `extension` {
+        case "jpg": return "jpeg"
+        case "tif": return "tiff"
+        default: return `extension`
+        }
+    }
+
+    /// Maps a format name to NSBitmapImageRep.FileType, returning nil for formats
+    /// that NSBitmapImageRep cannot encode (e.g. WebP).
+    private static func bitmapFileType(for format: String) -> NSBitmapImageRep.FileType? {
+        switch format {
+        case "png": return .png
+        case "jpeg": return .jpeg
+        case "gif": return .gif
+        case "bmp": return .bmp
+        case "tiff": return .tiff
+        default: return nil
+        }
     }
 
     /// Checks if the input text is a navigable URL (not a search query).

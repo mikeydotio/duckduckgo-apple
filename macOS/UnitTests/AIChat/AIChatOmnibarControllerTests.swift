@@ -376,8 +376,8 @@ final class AIChatOmnibarControllerTests: XCTestCase {
     func testWhenOmnibarActivated_ThenModelsFetched() async {
         // Given
         mockModelsService.modelsToReturn = [
-            AIChatRemoteModel(id: "gpt-4o-mini", name: "GPT-4o mini", provider: "openai",
-                              entityHasAccess: true, supportsImageUpload: false,
+            AIChatRemoteModel(id: "gpt-4o-mini", name: "GPT-4o mini", modelShortName: "4o-mini",
+                              provider: "openai", entityHasAccess: true, supportsImageUpload: false,
                               supportedTools: [], accessTier: ["free"])
         ]
 
@@ -412,6 +412,7 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         AIChatRemoteModel(
             id: id,
             name: id,
+            modelShortName: nil,
             provider: "openai",
             entityHasAccess: entityHasAccess,
             supportsImageUpload: supportsImageUpload,

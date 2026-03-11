@@ -27,8 +27,12 @@ import DesignResourcesKitIcons
 public struct AIChatModel {
     public let id: String
     public let name: String
+    /// A shorter display name suitable for compact UI elements like the model picker button.
+    public let shortName: String
     public let provider: ModelProvider
     public let supportsImageUpload: Bool
+    /// Image formats supported by this model (e.g. ["png", "webp"]). Empty when image upload is not supported.
+    public let supportedImageFormats: [String]
     /// Whether the current user has access to this model based on their subscription tier.
     public let entityHasAccess: Bool
 
@@ -40,11 +44,13 @@ public struct AIChatModel {
         case unknown
     }
 
-    public init(id: String, name: String, provider: ModelProvider, supportsImageUpload: Bool, entityHasAccess: Bool) {
+    public init(id: String, name: String, shortName: String? = nil, provider: ModelProvider, supportsImageUpload: Bool, supportedImageFormats: [String] = [], entityHasAccess: Bool) {
         self.id = id
         self.name = name
+        self.shortName = shortName ?? name
         self.provider = provider
         self.supportsImageUpload = supportsImageUpload
+        self.supportedImageFormats = supportedImageFormats
         self.entityHasAccess = entityHasAccess
     }
 

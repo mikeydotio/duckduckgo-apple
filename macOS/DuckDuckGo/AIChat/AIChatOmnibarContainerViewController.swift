@@ -494,7 +494,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.jpeg, .png, .webP]
+        panel.allowedContentTypes = allowedContentTypes(for: omnibarController.selectedModelImageFormats)
 
         guard let window = view.window else { return }
         panel.beginSheetModal(for: window) { [weak self] response in
@@ -504,6 +504,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 self.addImageAttachment(from: url)
             }
         }
+    }
+
+    private func allowedContentTypes(for formats: [String]) -> [UTType] {
+        let types = formats.compactMap { UTType(filenameExtension: $0.lowercased()) }
+        return types.isEmpty ? [.png, .webP] : types
     }
 
     private func addImageAttachment(from url: URL) {
@@ -602,7 +607,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     /// Short display name for the currently persisted model.
     private var persistedModelShortName: String {
-        omnibarController.models.first(where: { $0.id == omnibarController.persistedModelId })?.name ?? ""
+        omnibarController.models.first(where: { $0.id == omnibarController.persistedModelId })?.shortName ?? ""
     }
 
     private func subscribeToModelUpdates() {
@@ -662,7 +667,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     @objc private func modelSelected(_ sender: NSMenuItem) {
         guard let model = sender.representedObject as? AIChatModel else { return }
         omnibarController.updateSelectedModel(model.id)
-        modelPickerButton.modelName = model.name
+        modelPickerButton.modelName = model.shortName
         updateImageUploadVisibility(supportsImageUpload: model.supportsImageUpload)
         PixelKit.fire(AIChatPixel.aiChatAddressBarModelSelected, frequency: .dailyAndCount, includeAppVersionParameter: true)
     }
