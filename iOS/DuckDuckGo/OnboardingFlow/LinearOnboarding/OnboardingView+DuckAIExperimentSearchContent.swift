@@ -28,7 +28,7 @@ import UIComponents
 extension OnboardingView {
     private enum Metrics {
         static let initialToggleStartDelay: TimeInterval = 0.35
-        static let suggestionInitialRevealDelay: TimeInterval = 4
+        static let suggestionInitialRevealDelay: TimeInterval = 1
         static let suggestionRevealFallbackDelayAfterFocus: TimeInterval = 0.4
         static let pickerSelectionAnimationDuration: TimeInterval = 0.22
         static let contentFadeAnimationDuration: TimeInterval = 0.2
@@ -155,6 +155,16 @@ extension OnboardingView {
         private func startInitialSelectionAnimationIfNeeded() {
             if !didRunInitialToggleAnimation {
                 didRunInitialToggleAnimation = true
+                // For cohorts that land on Search, keep initial state stable (no Duck.ai -> Search auto-switch).
+                // We only keep the intro auto-switch animation for Search -> Duck.ai.
+                guard defaultDuckAISelection else {
+                    isDuckAISelected = false
+                    isInputFocused = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionRevealFallbackDelayAfterFocus) {
+                        startSuggestionSequenceIfNeeded()
+                    }
+                    return
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.initialToggleStartDelay) {
                     guard didRunInitialToggleAnimation else { return }
                     // Short intro animation: move from initial picker state to experiment default.
@@ -230,17 +240,21 @@ extension OnboardingView {
             VStack(spacing: 9.33) {
                 if visibleSuggestionCount >= 1 {
                     suggestionChip(
-                        UserText.Onboarding.DuckAIQueryExperiment.suggestionOption1,
+                        isDuckAISelected
+                        ? UserText.Onboarding.DuckAIQueryExperiment.suggestionOption1
+                        : UserText.Onboarding.DuckAIQueryExperiment.searchSuggestionOption1,
                         promptSource: .option1,
-                        icon: DesignSystemImages.Glyphs.Size16.aiChat
+                        icon: suggestionIcon
                     )
                     .transition(suggestionTransition)
                 }
                 if visibleSuggestionCount >= 2 {
                     suggestionChip(
-                        UserText.Onboarding.DuckAIQueryExperiment.suggestionOption2,
+                        isDuckAISelected
+                        ? UserText.Onboarding.DuckAIQueryExperiment.suggestionOption2
+                        : UserText.Onboarding.DuckAIQueryExperiment.searchSuggestionOption2,
                         promptSource: .option2,
-                        icon: DesignSystemImages.Glyphs.Size16.aiChat
+                        icon: suggestionIcon
                     )
                     .transition(suggestionTransition)
                 }
@@ -253,6 +267,10 @@ extension OnboardingView {
                     .transition(suggestionTransition)
                 }
             }
+        }
+
+        private var suggestionIcon: UIImage {
+            isDuckAISelected ? DesignSystemImages.Glyphs.Size16.aiChat : DesignSystemImages.Glyphs.Size24.findSearchSmall
         }
 
         private var suggestionTransition: AnyTransition {
