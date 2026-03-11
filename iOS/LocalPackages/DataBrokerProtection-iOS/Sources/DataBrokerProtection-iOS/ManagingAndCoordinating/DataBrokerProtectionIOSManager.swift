@@ -905,13 +905,13 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     @MainActor
     func prepareContinuedProcessingInitialRun(
         profile: DataBrokerProtectionCore.DataBrokerProtectionProfile
-    ) async throws -> ContinuedProcessingInitialRunPreparation {
+    ) async throws -> ContinuedProcessingInitialRunPreparation? {
         try await saveProfileAndPrepareForInitialScans(profile)
 
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
         let scanSummary = DBPContinuedProcessingProgressReporter.makeInitialScanSummary(from: brokerProfileQueryData)
         guard scanSummary.scanCount > 0 else {
-            throw DBPContinuedProcessingError.noPendingScans
+            return nil
         }
 
         return ContinuedProcessingInitialRunPreparation(
