@@ -557,8 +557,8 @@ final class Foreground: ForegroundHandling {
                     switch response {
                     case .alertSecondButtonReturn:
                         alert.window.sheetParent?.endSheet(alert.window)
-                        DispatchQueue.main.async {
-                            Application.appDelegate.windowControllersManager.showPreferencesTab(withSelectedPane: .sync)
+                        DispatchQueue.main.async { [weak self] in
+                            self?.dependencies.ui.windowControllersManager.showPreferencesTab(withSelectedPane: .sync)
                         }
                     default:
                         break
