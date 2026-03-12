@@ -44,11 +44,13 @@ protocol FireProtocol: AnyObject {
                             includeCookiesAndSiteData: Bool,
                             includeChatHistory: Bool,
                             isAutoClear: Bool,
+                            dataClearingWideEventService: DataClearingWideEventService?,
                             completion: (@MainActor () -> Void)?)
     @MainActor func burnEntity(_ entity: Fire.BurningEntity,
                                includingHistory: Bool,
                                includeCookiesAndSiteData: Bool,
                                includeChatHistory: Bool,
+                               dataClearingWideEventService: DataClearingWideEventService?,
                                completion: (@MainActor () -> Void)?)
     @MainActor func burnVisits(_ visits: [Visit],
                                except fireproofDomains: DomainFireproofStatusProviding,
@@ -57,6 +59,7 @@ protocol FireProtocol: AnyObject {
                                clearSiteData: Bool,
                                clearChatHistory: Bool,
                                urlToOpenIfWindowsAreClosed url: URL?,
+                               dataClearingWideEventService: DataClearingWideEventService?,
                                completion: (@MainActor () -> Void)?)
     @MainActor func burnChatHistory() async
 }
@@ -68,12 +71,14 @@ extension FireProtocol {
                  opening url: URL = .newtab,
                  includeChatHistory: Bool = true,
                  isAutoClear: Bool = false,
+                 dataClearingWideEventService: DataClearingWideEventService? = nil,
                  completion: (@MainActor () -> Void)? = nil) {
         burnAll(isBurnOnExit: isBurnOnExit,
                 opening: url,
                 includeCookiesAndSiteData: true,
                 includeChatHistory: includeChatHistory,
                 isAutoClear: isAutoClear,
+                dataClearingWideEventService: dataClearingWideEventService,
                 completion: completion)
     }
 
@@ -82,24 +87,29 @@ extension FireProtocol {
                  opening url: URL = .newtab,
                  includeCookiesAndSiteData: Bool = true,
                  includeChatHistory: Bool,
-                 isAutoClear: Bool = false) async {
+                 isAutoClear: Bool = false,
+                 dataClearingWideEventService: DataClearingWideEventService? = nil) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             self.burnAll(isBurnOnExit: isBurnOnExit,
                          opening: url,
                          includeCookiesAndSiteData: includeCookiesAndSiteData,
                          includeChatHistory: includeChatHistory,
-                         isAutoClear: isAutoClear) {
+                         isAutoClear: isAutoClear,
+                         dataClearingWideEventService: dataClearingWideEventService) {
                 continuation.resume()
             }
         }
     }
 
     @MainActor
-    func burnEntity(_ entity: Fire.BurningEntity, completion: (() -> Void)? = nil) {
+    func burnEntity(_ entity: Fire.BurningEntity,
+                    dataClearingWideEventService: DataClearingWideEventService? = nil,
+                    completion: (() -> Void)? = nil) {
         burnEntity(entity,
                    includingHistory: true,
                    includeCookiesAndSiteData: true,
                    includeChatHistory: false,
+                   dataClearingWideEventService: dataClearingWideEventService,
                    completion: completion)
     }
 
@@ -107,12 +117,14 @@ extension FireProtocol {
     func burnEntity(_ entity: Fire.BurningEntity,
                     includingHistory: Bool,
                     includeCookiesAndSiteData: Bool = true,
-                    includeChatHistory: Bool) async {
+                    includeChatHistory: Bool,
+                    dataClearingWideEventService: DataClearingWideEventService? = nil) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             self.burnEntity(entity,
                             includingHistory: includingHistory,
                             includeCookiesAndSiteData: includeCookiesAndSiteData,
-                            includeChatHistory: includeChatHistory) {
+                            includeChatHistory: includeChatHistory,
+                            dataClearingWideEventService: dataClearingWideEventService) {
                 continuation.resume()
             }
         }
@@ -125,7 +137,8 @@ extension FireProtocol {
                     closeWindows: Bool,
                     clearSiteData: Bool,
                     clearChatHistory: Bool,
-                    urlToOpenIfWindowsAreClosed url: URL? = .newtab) async {
+                    urlToOpenIfWindowsAreClosed url: URL? = .newtab,
+                    dataClearingWideEventService: DataClearingWideEventService? = nil) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             self.burnVisits(visits,
                             except: fireproofDomains,
@@ -133,7 +146,8 @@ extension FireProtocol {
                             closeWindows: closeWindows,
                             clearSiteData: clearSiteData,
                             clearChatHistory: clearChatHistory,
-                            urlToOpenIfWindowsAreClosed: url) {
+                            urlToOpenIfWindowsAreClosed: url,
+                            dataClearingWideEventService: dataClearingWideEventService) {
                 continuation.resume()
             }
         }
@@ -146,8 +160,9 @@ extension FireProtocol {
                     closeWindows: Bool,
                     clearSiteData: Bool,
                     clearChatHistory: Bool,
+                    dataClearingWideEventService: DataClearingWideEventService? = nil,
                     completion: (@MainActor () -> Void)?) {
-        burnVisits(visits, except: fireproofDomains, isToday: isToday, closeWindows: closeWindows, clearSiteData: clearSiteData, clearChatHistory: clearChatHistory, urlToOpenIfWindowsAreClosed: .newtab, completion: completion)
+        burnVisits(visits, except: fireproofDomains, isToday: isToday, closeWindows: closeWindows, clearSiteData: clearSiteData, clearChatHistory: clearChatHistory, urlToOpenIfWindowsAreClosed: .newtab, dataClearingWideEventService: dataClearingWideEventService, completion: completion)
     }
 
 }
@@ -179,7 +194,7 @@ final class Fire: FireProtocol {
     let isAppActiveProvider: @MainActor () -> Bool
     let aiChatHistoryCleaner: AIChatHistoryCleaning
     let dataClearingPixelsReporter: DataClearingPixelsReporter
-    let dataClearingWideEventService: DataClearingWideEventService?
+    var dataClearingWideEventService: DataClearingWideEventService?
 
     private var dispatchGroup: DispatchGroup?
 
@@ -329,6 +344,7 @@ final class Fire: FireProtocol {
                     includingHistory: Bool,
                     includeCookiesAndSiteData: Bool,
                     includeChatHistory: Bool,
+                    dataClearingWideEventService: DataClearingWideEventService?,
                     completion: (@MainActor () -> Void)?) {
         // Prevent re-entry if burn is already in progress
         guard dispatchGroup == nil, burningData == nil else {
@@ -336,6 +352,9 @@ final class Fire: FireProtocol {
             completion?()
             return
         }
+
+        // Set the wide event service if provided
+        self.dataClearingWideEventService = dataClearingWideEventService
 
         Logger.fire.debug("Fire started")
 
@@ -425,6 +444,7 @@ final class Fire: FireProtocol {
                  includeCookiesAndSiteData: Bool,
                  includeChatHistory: Bool,
                  isAutoClear: Bool,
+                 dataClearingWideEventService: DataClearingWideEventService?,
                  completion: (@MainActor () -> Void)?) {
         // Prevent re-entry if burn is already in progress
         guard dispatchGroup == nil, burningData == nil else {
@@ -433,11 +453,14 @@ final class Fire: FireProtocol {
             return
         }
 
+        // Set the wide event service if provided
+        self.dataClearingWideEventService = dataClearingWideEventService
+
         // Start wide event tracking for auto-clear flows
         if isAutoClear {
             let result = makeAutoClearResult(includeCookiesAndSiteData: includeCookiesAndSiteData,
                                               includeChatHistory: includeChatHistory)
-            dataClearingWideEventService?.start(options: result, path: .burnAll, isAutoClear: true)
+            self.dataClearingWideEventService?.start(options: result, path: .burnAll, isAutoClear: true)
         }
 
         Logger.fire.debug("Fire started")
@@ -527,7 +550,11 @@ final class Fire: FireProtocol {
                     clearSiteData: Bool,
                     clearChatHistory: Bool,
                     urlToOpenIfWindowsAreClosed url: URL?,
+                    dataClearingWideEventService: DataClearingWideEventService?,
                     completion: (@MainActor () -> Void)?) {
+
+        // Set the wide event service if provided
+        self.dataClearingWideEventService = dataClearingWideEventService
 
         // Get domains to burn
         var domains = Set<String>()
@@ -566,6 +593,7 @@ final class Fire: FireProtocol {
                             includingHistory: false,
                             includeCookiesAndSiteData: clearSiteData,
                             includeChatHistory: clearChatHistory,
+                            dataClearingWideEventService: dataClearingWideEventService,
                             completion: completion)
         }
     }

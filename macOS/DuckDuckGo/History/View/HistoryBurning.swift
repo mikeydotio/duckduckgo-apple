@@ -61,7 +61,8 @@ struct FireHistoryBurner: HistoryBurning {
                                         closeWindows: false,
                                         clearSiteData: true,
                                         clearChatHistory: burnChats,
-                                        urlToOpenIfWindowsAreClosed: .history) {
+                                        urlToOpenIfWindowsAreClosed: .history,
+                                        dataClearingWideEventService: nil) {
                     continuation.resume()
                 }
             }

@@ -1996,7 +1996,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                 startupPreferences: startupPreferences,
                                                 fireViewModel: fireCoordinator.fireViewModel,
                                                 stateRestorationManager: self.stateRestorationManager,
-                                                aiChatSyncCleaner: aiChatSyncCleaner)
+                                                aiChatSyncCleaner: aiChatSyncCleaner,
+                                                wideEvent: wideEvent)
         self.autoClearHandler = autoClearHandler
         DispatchQueue.main.async {
             autoClearHandler.handleAppLaunch()

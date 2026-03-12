@@ -302,7 +302,8 @@ extension FireCoordinator {
                                                 closeWindows: result.includeTabsAndWindows,
                                                 clearSiteData: result.includeCookiesAndSiteData,
                                                 clearChatHistory: result.includeChatHistory,
-                                                urlToOpenIfWindowsAreClosed: nil)
+                                                urlToOpenIfWindowsAreClosed: nil,
+                                                dataClearingWideEventService: dataClearingWideEventService)
             dataClearingWideEventService.complete()
             return
         }
@@ -323,7 +324,8 @@ extension FireCoordinator {
             await fireViewModel.fire.burnEntity(entity,
                                                 includingHistory: result.includeHistory,
                                                 includeCookiesAndSiteData: result.includeCookiesAndSiteData,
-                                                includeChatHistory: result.includeChatHistory)
+                                                includeChatHistory: result.includeChatHistory,
+                                                dataClearingWideEventService: dataClearingWideEventService)
 
         case .currentWindow:
             pixelFiring?.fire(GeneralPixel.fireButton(option: .window))
@@ -338,7 +340,8 @@ extension FireCoordinator {
             await fireViewModel.fire.burnEntity(entity,
                                                 includingHistory: result.includeHistory,
                                                 includeCookiesAndSiteData: result.includeCookiesAndSiteData,
-                                                includeChatHistory: result.includeChatHistory)
+                                                includeChatHistory: result.includeChatHistory,
+                                                dataClearingWideEventService: dataClearingWideEventService)
 
         case .allData:
             pixelFiring?.fire(GeneralPixel.fireButton(option: .allSites))
@@ -348,7 +351,8 @@ extension FireCoordinator {
                 await fireViewModel.fire.burnAll(isBurnOnExit: false,
                                                  opening: .newtab,
                                                  includeCookiesAndSiteData: result.includeCookiesAndSiteData,
-                                                 includeChatHistory: result.includeChatHistory)
+                                                 includeChatHistory: result.includeChatHistory,
+                                                 dataClearingWideEventService: dataClearingWideEventService)
             } else {
                 let entity = Fire.BurningEntity.allWindows(mainWindowControllers: windowControllersManager.mainWindowControllers,
                                                            selectedDomains: result.selectedCookieDomains ?? [],
@@ -358,7 +362,8 @@ extension FireCoordinator {
                 await fireViewModel.fire.burnEntity(entity,
                                                     includingHistory: result.includeHistory,
                                                     includeCookiesAndSiteData: result.includeCookiesAndSiteData,
-                                                    includeChatHistory: result.includeChatHistory)
+                                                    includeChatHistory: result.includeChatHistory,
+                                                    dataClearingWideEventService: dataClearingWideEventService)
             }
         }
         if result.includeHistory,

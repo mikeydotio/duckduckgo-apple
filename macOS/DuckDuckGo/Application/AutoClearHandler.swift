@@ -21,6 +21,7 @@ import Combine
 import Foundation
 import AIChat
 import PixelKit
+import BrowserServicesKit
 
 protocol AutoClearAlertPresenting {
     func confirmAutoClear(clearChats: Bool) -> NSApplication.ModalResponse
@@ -41,12 +42,14 @@ final class AutoClearHandler: ApplicationTerminationDecider {
     private let stateRestorationManager: AppStateRestorationManaging
     private let aiChatSyncCleaner: AIChatSyncCleaning?
     private let alertPresenter: AutoClearAlertPresenting
+    private let dataClearingWideEventService: DataClearingWideEventService
 
     init(dataClearingPreferences: DataClearingPreferences,
          startupPreferences: StartupPreferences,
          fireViewModel: FireViewModel,
          stateRestorationManager: AppStateRestorationManaging,
          aiChatSyncCleaner: AIChatSyncCleaning?,
+         wideEvent: WideEventManaging,
          alertPresenter: AutoClearAlertPresenting = DefaultAutoClearAlertPresenter()) {
         self.dataClearingPreferences = dataClearingPreferences
         self.startupPreferences = startupPreferences
@@ -54,6 +57,7 @@ final class AutoClearHandler: ApplicationTerminationDecider {
         self.stateRestorationManager = stateRestorationManager
         self.aiChatSyncCleaner = aiChatSyncCleaner
         self.alertPresenter = alertPresenter
+        self.dataClearingWideEventService = DataClearingWideEventService(wideEvent: wideEvent)
     }
 
     @MainActor
@@ -128,7 +132,10 @@ final class AutoClearHandler: ApplicationTerminationDecider {
                 await aiChatSyncCleaner?.recordLocalClear(date: Date())
             }
         }
-        await fireViewModel.fire.burnAll(isBurnOnExit: true, includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled, isAutoClear: true)
+        await fireViewModel.fire.burnAll(isBurnOnExit: true,
+                                         includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled,
+                                         isAutoClear: true,
+                                         dataClearingWideEventService: dataClearingWideEventService)
         appTerminationHandledCorrectly = true
     }
 
@@ -144,7 +151,9 @@ final class AutoClearHandler: ApplicationTerminationDecider {
         let shouldBurnOnStart = dataClearingPreferences.isAutoClearEnabled && !appTerminationHandledCorrectly
         guard shouldBurnOnStart else { return false }
 
-        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled, isAutoClear: true)
+        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled,
+                                   isAutoClear: true,
+                                   dataClearingWideEventService: dataClearingWideEventService)
 
         return true
     }
