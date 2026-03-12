@@ -1079,9 +1079,6 @@
 "Confirm" = "確認";
 
 /* No comment provided by engineer. */
-"Contextual Onboarding" = "コンテキストに基づくオンボーディング";
-
-/* No comment provided by engineer. */
 "Contextual Session Timer" = "Contextual Session Timer";
 
 /* Button to continue the onboarding process */
@@ -1212,6 +1209,9 @@
 
 /* No comment provided by engineer. */
 "Custom URL: %@" = "カスタムURL：%@";
+
+/* No comment provided by engineer. */
+"Dark Reader Excluded Domains (%@)" = "Dark Reader 除外ドメイン (%@)";
 
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "ブックマークファイルをインポート...";
@@ -1453,14 +1453,6 @@
 /* Info text shown below the context chip explaining that content will be sent with the message */
 "duckai.context.chip.info" = "Duck.aiに送信するメッセージと一緒に送信されます";
 
-/* Body text for the Duck.ai contextual onboarding screen explaining the feature */
-
-/* Primary button text to dismiss the Duck.ai contextual onboarding screen */
-
-/* Title for the Duck.ai contextual onboarding screen */
-
-/* Secondary button text to open settings from the Duck.ai contextual onboarding screen */
-
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "DuckDuckGoのAI機能はプライベートでオプションです。データはAIのトレーニングに使用されません。";
 
@@ -1649,6 +1641,12 @@
 
 /* Title for Duck Player welcome message highlighting privacy benefits */
 "duckplayer.welcome.message.text" = "Duck Playerで視聴中です！\nここにはターゲティング広告はありません。";
+
+/* No comment provided by engineer. */
+"Effective threshold: %@ s (override)" = "有効閾値：%@秒（オーバーライド）";
+
+/* No comment provided by engineer. */
+"Effective threshold: config default (no override)" = "有効閾値：構成デフォルト（オーバーライドなし）";
 
 /* Email protection service offered by DuckDuckGo */
 "email-protection" = "メール保護";
@@ -2575,6 +2573,9 @@
 "No active subscriptions" = "アクティブなサブスクリプションはありません";
 
 /* No comment provided by engineer. */
+"No excluded domains" = "除外ドメインなし";
+
+/* No comment provided by engineer. */
 "No existing subscription found" = "既存のサブスクリプションが見つかりません";
 
 /* No comment provided by engineer. */
@@ -2694,6 +2695,9 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "詳細情報";
 
+/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
+"onboarding.privacypro.promo.buttons.rebranding.skip" = "いいえ、結構です";
+
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "スキップ";
 
@@ -2702,10 +2706,13 @@
 
 /* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.message" = "プライバシー重視。スピーディで広告も少ない。";
+
 /* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.title" = "それがDuckDuckGo Searchです！";
+
 /* The message of the onboarding dialog popup */
 "onboarding.rebranding.intro.message" = "保護された状態を維持する、より高速なブラウザの準備はできていますか？";
+
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "こんにちは。";
 
@@ -2768,6 +2775,9 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "オプトアウトしています...";
+
+/* No comment provided by engineer. */
+"Override" = "オーバーライド";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "登録者限定のDuck.aiモデルにアクセスできない";
@@ -3152,9 +3162,6 @@
 
 /* Settings screen cell text for addess bar position */
 "settings.appearance.address.bar" = "アドレスバーの位置";
-
-/* Settings screen cell text for experimental menu */
-"settings.appearance.experimental.menu" = "実験的なブラウザメニュー";
 
 /* Settings screen cell for opening links in associated apps */
 "settings.associated.apps" = "関連付けられたアプリでリンクを開く";
@@ -3708,11 +3715,11 @@
 /* Title for the manage billing page */
 "subscription.billing.google.title" = "サブスクリプションプラン";
 
-/* Subscription Removal confirmation message */
-"subscription.cancel.message" = "このデバイスからサブスクリプションが削除されました。";
-
 /* Button to cancel a pending downgrade of the subscription */
 "subscription.cancel.downgrade.button" = "ダウングレードをキャンセル";
+
+/* Subscription Removal confirmation message */
+"subscription.cancel.message" = "このデバイスからサブスクリプションが削除されました。";
 
 /* Pending downgrade info for monthly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus on (date).' */
 "subscription.cancel.pending.downgrade.banner.caption" = "プランは%2$@に%1$@にダウングレードされます。";
@@ -3927,6 +3934,9 @@
 /* No comment provided by engineer. */
 "SwiftUI Alert" = "SwiftUIアラート";
 
+/* No comment provided by engineer. */
+"Switches to this tab" = "このタブに切り替えます";
+
 /* Message confirming that recovery code was copied to clipboard */
 "sync.code.copied" = "リカバリーコードがクリップボードにコピーされました";
 
@@ -4067,6 +4077,9 @@
 
 /* Do not translate - stringsdict entry */
 "tab.switcher.tracker.count.title" = "tab.switcher.tracker.count.title";
+
+/* No comment provided by engineer. */
+"Temp" = "一時的";
 
 /* Description text for the text size adjustment setting */
 "textSize.description" = "すべてのサイトでテキストサイズを増減します。";

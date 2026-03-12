@@ -1079,9 +1079,6 @@
 "Confirm" = "Kinnita";
 
 /* No comment provided by engineer. */
-"Contextual Onboarding" = "Kontekstuaalne juhendamine";
-
-/* No comment provided by engineer. */
 "Contextual Session Timer" = "Contextual Session Timer";
 
 /* Button to continue the onboarding process */
@@ -1212,6 +1209,9 @@
 
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Kohandatud URL: %@";
+
+/* No comment provided by engineer. */
+"Dark Reader Excluded Domains (%@)" = "Dark Readeri välistatud domeenid (%@)";
 
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Impordi järjehoidjate fail...";
@@ -1453,14 +1453,6 @@
 /* Info text shown below the context chip explaining that content will be sent with the message */
 "duckai.context.chip.info" = "Saadetud koos sinu sõnumiga Duck.ai-le";
 
-/* Body text for the Duck.ai contextual onboarding screen explaining the feature */
-
-/* Primary button text to dismiss the Duck.ai contextual onboarding screen */
-
-/* Title for the Duck.ai contextual onboarding screen */
-
-/* Secondary button text to open settings from the Duck.ai contextual onboarding screen */
-
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "DuckDuckGo tehisintellekti funktsioonid on privaatsed ja valikulised. Sinu andmeid ei kasutata tehisintellekti treenimiseks.";
 
@@ -1649,6 +1641,12 @@
 
 /* Title for Duck Player welcome message highlighting privacy benefits */
 "duckplayer.welcome.message.text" = "Sa vaatad Duck Playeris!\nSiin pole suunatud reklaame.";
+
+/* No comment provided by engineer. */
+"Effective threshold: %@ s (override)" = "Tõhus lävi: %@ s (tühistamine)";
+
+/* No comment provided by engineer. */
+"Effective threshold: config default (no override)" = "Tõhus lävi: vaikimisi konfiguratsioon (ilma tühistamiseta)";
 
 /* Email protection service offered by DuckDuckGo */
 "email-protection" = "E-posti kaitse";
@@ -2575,6 +2573,9 @@
 "No active subscriptions" = "Aktiivseid tellimusi ei ole";
 
 /* No comment provided by engineer. */
+"No excluded domains" = "Välistatud domeenid puuduvad";
+
+/* No comment provided by engineer. */
 "No existing subscription found" = "Olemasolevat tellimust ei leitud";
 
 /* No comment provided by engineer. */
@@ -2694,6 +2695,9 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Loe edasi";
 
+/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
+"onboarding.privacypro.promo.buttons.rebranding.skip" = "Ei aitäh";
+
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Jäta vahele";
 
@@ -2702,10 +2706,13 @@
 
 /* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.message" = "Privaatne. Kiire. Vähem reklaame.";
+
 /* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.title" = "See on DuckDuckGo Search!";
+
 /* The message of the onboarding dialog popup */
 "onboarding.rebranding.intro.message" = "Kas oled valmis kasutama kiiremat brauserit, mis hoiab sind kaitstud?";
+
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Tere!";
 
@@ -2768,6 +2775,9 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Loobumine...";
+
+/* No comment provided by engineer. */
+"Override" = "Tühista";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Ei pääse ainult tellijatele mõeldud Duck.ai mudelitele ligi";
@@ -3152,9 +3162,6 @@
 
 /* Settings screen cell text for addess bar position */
 "settings.appearance.address.bar" = "Aadressiriba asukoht";
-
-/* Settings screen cell text for experimental menu */
-"settings.appearance.experimental.menu" = "Eksperimentaalne brauseri menüü";
 
 /* Settings screen cell for opening links in associated apps */
 "settings.associated.apps" = "Ava lingid seotud rakendustes";
@@ -3708,11 +3715,11 @@
 /* Title for the manage billing page */
 "subscription.billing.google.title" = "Püsitellimuse plaanid";
 
-/* Subscription Removal confirmation message */
-"subscription.cancel.message" = "Sinu tellimus on sellest seadmest eemaldatud.";
-
 /* Button to cancel a pending downgrade of the subscription */
 "subscription.cancel.downgrade.button" = "Tühista alandamine";
+
+/* Subscription Removal confirmation message */
+"subscription.cancel.message" = "Sinu tellimus on sellest seadmest eemaldatud.";
 
 /* Pending downgrade info for monthly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus on (date).' */
 "subscription.cancel.pending.downgrade.banner.caption" = "Teie pakett alandatakse kuupäeval %2$@ paketile %1$@.";
@@ -3927,6 +3934,9 @@
 /* No comment provided by engineer. */
 "SwiftUI Alert" = "SwiftUI teade";
 
+/* No comment provided by engineer. */
+"Switches to this tab" = "Lülitub sellele vahekaardile";
+
 /* Message confirming that recovery code was copied to clipboard */
 "sync.code.copied" = "Taastamiskood kopeeriti lõikelauale";
 
@@ -4067,6 +4077,9 @@
 
 /* Do not translate - stringsdict entry */
 "tab.switcher.tracker.count.title" = "tab.switcher.tracker.count.title";
+
+/* No comment provided by engineer. */
+"Temp" = "Ajutine";
 
 /* Description text for the text size adjustment setting */
 "textSize.description" = "Suurendage või vähendage teksti suurust kõigil saitidel.";

@@ -1079,9 +1079,6 @@
 "Confirm" = "Confirmar";
 
 /* No comment provided by engineer. */
-"Contextual Onboarding" = "Integração contextual";
-
-/* No comment provided by engineer. */
 "Contextual Session Timer" = "Contextual Session Timer";
 
 /* Button to continue the onboarding process */
@@ -1212,6 +1209,9 @@
 
 /* No comment provided by engineer. */
 "Custom URL: %@" = "URL personalizada: %@";
+
+/* No comment provided by engineer. */
+"Dark Reader Excluded Domains (%@)" = "Domínios excluídos do Dark Reader (%@)";
 
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Importar ficheiro de marcadores…";
@@ -1453,14 +1453,6 @@
 /* Info text shown below the context chip explaining that content will be sent with the message */
 "duckai.context.chip.info" = "Enviado com a tua mensagem para Duck.ai";
 
-/* Body text for the Duck.ai contextual onboarding screen explaining the feature */
-
-/* Primary button text to dismiss the Duck.ai contextual onboarding screen */
-
-/* Title for the Duck.ai contextual onboarding screen */
-
-/* Secondary button text to open settings from the Duck.ai contextual onboarding screen */
-
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "As funcionalidades de IA do DuckDuckGo são privadas e opcionais. Os teus dados não são utilizados para treinar a IA.";
 
@@ -1649,6 +1641,12 @@
 
 /* Title for Duck Player welcome message highlighting privacy benefits */
 "duckplayer.welcome.message.text" = "Estás a ver no Duck Player!\nNão existem anúncios segmentados aqui.";
+
+/* No comment provided by engineer. */
+"Effective threshold: %@ s (override)" = "Limiar efetivo: %@ s (substituição)";
+
+/* No comment provided by engineer. */
+"Effective threshold: config default (no override)" = "Limiar efetivo: configuração predefinida (sem substituição)";
 
 /* Email protection service offered by DuckDuckGo */
 "email-protection" = "Proteção de e-mail";
@@ -2575,6 +2573,9 @@
 "No active subscriptions" = "Sem subscrições ativas";
 
 /* No comment provided by engineer. */
+"No excluded domains" = "Não há domínios excluídos";
+
+/* No comment provided by engineer. */
 "No existing subscription found" = "Não foi encontra qualquer subscrição existente";
 
 /* No comment provided by engineer. */
@@ -2694,6 +2695,9 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Saiba mais";
 
+/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
+"onboarding.privacypro.promo.buttons.rebranding.skip" = "Não, obrigado";
+
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Ignorar";
 
@@ -2702,10 +2706,13 @@
 
 /* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.message" = "Privado. Rápido. Menos anúncios.";
+
 /* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.title" = "É o DuckDuckGo Search!";
+
 /* The message of the onboarding dialog popup */
 "onboarding.rebranding.intro.message" = "Pronto para um navegador mais rápido que te mantém protegido?";
+
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Olá!";
 
@@ -2768,6 +2775,9 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "A recusar…";
+
+/* No comment provided by engineer. */
+"Override" = "Substituição";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Não é possível aceder aos modelos Duck.ai só para subscritores";
@@ -3152,9 +3162,6 @@
 
 /* Settings screen cell text for addess bar position */
 "settings.appearance.address.bar" = "Posição da barra de endereços";
-
-/* Settings screen cell text for experimental menu */
-"settings.appearance.experimental.menu" = "Menu experimental do navegador";
 
 /* Settings screen cell for opening links in associated apps */
 "settings.associated.apps" = "Abrir links nas aplicações associadas";
@@ -3708,11 +3715,11 @@
 /* Title for the manage billing page */
 "subscription.billing.google.title" = "Planos de Subscrição";
 
-/* Subscription Removal confirmation message */
-"subscription.cancel.message" = "A tua subscrição foi removida deste dispositivo.";
-
 /* Button to cancel a pending downgrade of the subscription */
 "subscription.cancel.downgrade.button" = "Cancelar downgrade";
+
+/* Subscription Removal confirmation message */
+"subscription.cancel.message" = "A tua subscrição foi removida deste dispositivo.";
 
 /* Pending downgrade info for monthly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus on (date).' */
 "subscription.cancel.pending.downgrade.banner.caption" = "Será feito o downgrade do teu plano para %1$@ a %2$@.";
@@ -3927,6 +3934,9 @@
 /* No comment provided by engineer. */
 "SwiftUI Alert" = "Alerta SwiftUI";
 
+/* No comment provided by engineer. */
+"Switches to this tab" = "Muda para este separador";
+
 /* Message confirming that recovery code was copied to clipboard */
 "sync.code.copied" = "Código de recuperação copiado para a área de transferência";
 
@@ -4067,6 +4077,9 @@
 
 /* Do not translate - stringsdict entry */
 "tab.switcher.tracker.count.title" = "tab.switcher.tracker.count.title";
+
+/* No comment provided by engineer. */
+"Temp" = "Temp.";
 
 /* Description text for the text size adjustment setting */
 "textSize.description" = "Aumenta ou diminui o tamanho do texto em todos os sites.";
