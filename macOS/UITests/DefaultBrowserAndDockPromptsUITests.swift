@@ -40,14 +40,7 @@ final class DefaultBrowserAndDockPromptsUITests: UITestCase {
     // System-level verification (e.g. checking if the app is added to the dock,
     // or if the app is set as default browser) is out of scope for UI tests.
     func testInactiveUserPrompt_ConfirmButtonDismissesPrompt() throws {
-        // Simulate conditions for user eligibility for the prompt:
-        // 28 days after app install and 7 days of user inactivity
-        app.simulateFreshAppInstall()
-        app.advanceBy14Days()
-        app.advanceBy14Days()
-
-        // Trigger the prompt
-        triggerPrompt(app.inactiveUserPrompt)
+        app.showInactiveUserModal()
 
         // Confirm the prompt
         app.confirmButton.click()
@@ -64,14 +57,7 @@ final class DefaultBrowserAndDockPromptsUITests: UITestCase {
     // Note that this test only covers the behavior in the app under test, not the system behavior.
     // System-level verification (e.g. checking or interacting with the feedback notification) is out of scope for UI tests.
     func testInactiveUserPrompt_CancelButtonDismissesPrompt() throws {
-        // Simulate conditions for user eligibility for the prompt:
-        // 28 days after app install and 7 days of user inactivity
-        app.simulateFreshAppInstall()
-        app.advanceBy14Days()
-        app.advanceBy14Days()
-
-        // Trigger the prompt
-        triggerPrompt(app.inactiveUserPrompt)
+        app.showInactiveUserModal()
 
         // Dismiss the prompt
         app.dismissButton.click()
@@ -139,6 +125,13 @@ private extension XCUIApplication {
 
     func advanceBy14Days() {
         advanceBy14DaysMenuItem.clickAfterExistenceTestSucceeds()
+    }
+
+    func showInactiveUserModal() {
+        openPromoQueueMenu()
+        let promoMenuItem = promoQueueMenu.menuItems[Utilities.AccessibilityIdentifiers.PromoQueue.promoMenuItem("default-browser-and-dock-inactive-modal")]
+        promoMenuItem.hover()
+        promoMenuItem.menuItems[Utilities.AccessibilityIdentifiers.PromoQueue.forceShowPromo].click()
     }
 
 }
