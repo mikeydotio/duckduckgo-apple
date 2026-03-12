@@ -32,7 +32,8 @@ extension BrowsingMenuModel {
             itemCount: allItemCount,
             sectionCount: sections.count,
             includesWebsiteInfo: headerDataSource.isHeaderVisible,
-            includesCloseButtonHeader: isCompact && !headerDataSource.isHeaderVisible
+            includesCloseButtonHeader: isCompact && !headerDataSource.isHeaderVisible,
+            adjustingForFold: false
         )
     }
 
@@ -59,7 +60,8 @@ extension BrowsingMenuModel {
             itemCount: itemCount,
             sectionCount: sectionCount,
             includesWebsiteInfo: headerDataSource.isHeaderVisible,
-            includesCloseButtonHeader: isCompact && !headerDataSource.isHeaderVisible
+            includesCloseButtonHeader: isCompact && !headerDataSource.isHeaderVisible,
+            adjustingForFold: true
         )
     }
 
@@ -67,7 +69,8 @@ extension BrowsingMenuModel {
         itemCount: Int,
         sectionCount: Int,
         includesWebsiteInfo: Bool,
-        includesCloseButtonHeader: Bool
+        includesCloseButtonHeader: Bool,
+        adjustingForFold: Bool
     ) -> CGFloat {
         typealias Metrics = BrowsingMenuSheetView.Metrics
 
@@ -96,11 +99,14 @@ extension BrowsingMenuModel {
         let hasHeaderSectionContent = !headerItems.isEmpty
         let sectionGapsCount = hasHeaderSectionContent ? sectionCount : max(0, sectionCount - 1)
 
+        let foldAdjustment = adjustingForFold ? -(rowHeight / 2) : 0
+
         return websiteHeaderHeight
             + headerButtonsHeight
             + (CGFloat(itemCount) * rowHeight)
             + (CGFloat(sectionGapsCount) * Metrics.listSectionSpacing)
             + Metrics.listTopPadding
             + Metrics.grabberHeight
+            + foldAdjustment
     }
 }
