@@ -377,7 +377,9 @@ final class Fire: FireProtocol {
             }
 
             group.enter()
-            self.burnTabs(burningEntity: entity)
+            dataClearingWideEventService?.start(.clearTabs)
+            let tabsResult = self.burnTabs(burningEntity: entity)
+            dataClearingWideEventService?.update(.clearTabs, result: tabsResult)
 
             if includeCookiesAndSiteData {
                 await self.burnWebCache(baseDomains: domains, dataClearingWideEventService: dataClearingWideEventService)
@@ -496,7 +498,9 @@ final class Fire: FireProtocol {
             await tabCleanupPreparer.prepareTabsForCleanup(tabViewModels)
 
             group.enter()
-            self.burnTabs(burningEntity: .allWindows(mainWindowControllers: windowControllers, selectedDomains: Set(), customURLToOpen: url, close: true))
+            dataClearingWideEventService?.start(.clearTabs)
+            let tabsResult = self.burnTabs(burningEntity: .allWindows(mainWindowControllers: windowControllers, selectedDomains: Set(), customURLToOpen: url, close: true))
+            dataClearingWideEventService?.update(.clearTabs, result: tabsResult)
 
             if includeCookiesAndSiteData {
                 await self.burnWebCache(dataClearingWideEventService: dataClearingWideEventService)
@@ -895,7 +899,7 @@ final class Fire: FireProtocol {
 
     @MainActor
     /// Closes tabs/windows when `close` is true; otherwise clears back/forward history and session state when requested.
-    private func burnTabs(burningEntity: BurningEntity) {
+    private func burnTabs(burningEntity: BurningEntity) -> Result<Void, Error> {
 
         func replacementPinnedTab(from pinnedTab: Tab) -> Tab {
             return Tab(content: pinnedTab.content.loadedFromCache(), shouldLoadInBackground: true)
@@ -907,16 +911,17 @@ final class Fire: FireProtocol {
             }
         }
 
-        func burnPinnedTabs(in tabCollectionViewModel: TabCollectionViewModel) {
+        func burnPinnedTabs(in tabCollectionViewModel: TabCollectionViewModel) -> Result<Void, Error> {
             guard let pinnedTabsManager = tabCollectionViewModel.pinnedTabsManager else {
                 assertionFailure("No pinned tabs manager")
-                return
+                return .failure(DataClearingWideEventError(description: "No pinned tabs manager"))
             }
 
             for (index, pinnedTab) in pinnedTabsManager.tabCollection.tabs.enumerated() {
                 let newTab = replacementPinnedTab(from: pinnedTab)
                 pinnedTabsManager.tabCollection.replaceTab(at: index, with: newTab)
             }
+            return .success(())
         }
 
         // Close tabs or reset history based on entity.close
@@ -927,6 +932,9 @@ final class Fire: FireProtocol {
                   parentTabCollectionViewModel: let tabCollectionViewModel,
                   close: let shouldClose):
             assert(tabViewModel === tabCollectionViewModel.selectedTabViewModel)
+            if tabViewModel !== tabCollectionViewModel.selectedTabViewModel {
+                return .failure(DataClearingWideEventError(description: "Expected tabViewModel to match selectedTabViewModel"))
+            }
             if shouldClose {
                 if tabCollectionViewModel.pinnedTabsManager?.isTabPinned(tabViewModel.tab) ?? false {
                     let tab = replacementPinnedTab(from: tabViewModel.tab)
@@ -953,7 +961,10 @@ final class Fire: FireProtocol {
                     insertedTabIndex = insertNewTabIfNeeded(into: windowControllersManager.mainWindowControllers[0])
                 }
                 tabCollectionViewModel.removeAllTabs(except: insertedTabIndex, forceChange: true)
-                burnPinnedTabs(in: tabCollectionViewModel)
+                let burnResult = burnPinnedTabs(in: tabCollectionViewModel)
+                if case .failure(let error) = burnResult {
+                    return .failure(error)
+                }
                 selectPinnedTabIfNeeded(in: tabCollectionViewModel)
             }
 
@@ -966,10 +977,14 @@ final class Fire: FireProtocol {
                 // If closing all Tabs/Windows: Insert a new tab to prevent key window closing:
                 let insertedTabIndex = insertNewTabIfNeeded(into: windowController, with: customURL)
                 windowController.mainViewController.tabCollectionViewModel.removeAllTabs(except: insertedTabIndex, forceChange: true)
-                burnPinnedTabs(in: windowController.mainViewController.tabCollectionViewModel)
+                let burnResult = burnPinnedTabs(in: windowController.mainViewController.tabCollectionViewModel)
+                if case .failure(let error) = burnResult {
+                    return .failure(error)
+                }
                 selectPinnedTabIfNeeded(in: windowController.mainViewController.tabCollectionViewModel)
             }
         }
+        return .success(())
     }
 
     private func domainsToBurn(from entity: BurningEntity) -> Set<String> {
