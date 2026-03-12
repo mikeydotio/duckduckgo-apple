@@ -1028,8 +1028,114 @@ final class Launching: LaunchingHandling {
 
     }
 
+    private(set) var vpnSubscriptionEventHandler: VPNSubscriptionEventsHandler?
+
     func handleWillFinishLaunching() {
-        // Will be implemented in a later task
+        let profilerToken = dependencies.services.startupProfiler.startMeasuring(.appWillFinishLaunching)
+        defer {
+            profilerToken.stop()
+        }
+
+        /// Check for reinstalling user by comparing bundle creation dates.
+        /// Stores the bundle's creation date in the KeyValueStore and compares
+        /// on subsequent launches. If the date changes and it's not a Sparkle update,
+        /// the user has reinstalled the app.
+        ///
+        /// This needs to run before the SparkleUpdateController is run to avoid having the user defaults resetted after an update restart.
+        do {
+            try DefaultReinstallUserDetection(keyValueStore: dependencies.stores.keyValueStore).checkForReinstallingUser()
+        } catch {
+            Logger.general.error("Problem when checking for reinstalling user: \(error.localizedDescription)")
+        }
+
+        APIRequest.Headers.setUserAgent(UserAgent.duckDuckGoUserAgent())
+
+        dependencies.services.stateRestorationManager = AppStateRestorationManager(
+            fileStore: dependencies.stores.fileStore,
+            startupPreferences: dependencies.preferences.startupPreferences,
+            tabsPreferences: dependencies.preferences.tabsPreferences,
+            keyValueStore: dependencies.stores.keyValueStore,
+            sessionRestorePromptCoordinator: SessionRestorePromptCoordinator(pixelFiring: PixelKit.shared),
+            pixelFiring: PixelKit.shared
+        )
+
+        initializeUpdateController()
+
+        dependencies.services.appIconChanger = AppIconChanger(
+            internalUserDecider: dependencies.featureFlags.internalUserDecider,
+            appearancePreferences: dependencies.preferences.appearancePreferences
+        )
+
+        if AppVersion.runType.requiresEnvironment {
+            // Configure Event handlers
+            let vpnUninstaller = VPNUninstaller(pinningManager: dependencies.ui.pinningManager, ipcClient: VPNControllerXPCClient.shared)
+            let featureGatekeeper = DefaultVPNFeatureGatekeeper(vpnUninstaller: vpnUninstaller, subscriptionManager: dependencies.subscription.subscriptionManager)
+            let tunnelController = NetworkProtectionIPCTunnelController(featureGatekeeper: featureGatekeeper, ipcClient: VPNControllerXPCClient.shared)
+
+            vpnSubscriptionEventHandler = VPNSubscriptionEventsHandler(
+                subscriptionManager: dependencies.subscription.subscriptionManager,
+                tunnelController: tunnelController,
+                vpnUninstaller: vpnUninstaller
+            )
+
+            // Freemium DBP
+            dependencies.services.freemiumDBPFeature.subscribeToDependencyUpdates()
+        }
+
+        // ignore popovers shown from a view not in view hierarchy
+        // https://app.asana.com/0/1201037661562251/1206407295280737/f
+        _ = NSPopover.swizzleShowRelativeToRectOnce
+        // disable macOS system-wide window tabbing
+        NSWindow.allowsAutomaticWindowTabbing = false
+        // Fix SwifUI context menus and its owner View leaking
+        SwiftUIContextMenuRetainCycleFix.setUp()
+    }
+
+    @MainActor
+    private func initializeUpdateController() {
+        guard AppVersion.runType.allowsUpdates else { return }
+
+        let buildType = StandardApplicationBuildType()
+        let notificationPresenter = UpdateNotificationPresenter(pixelFiring: PixelKit.shared)
+
+        if buildType.isAppStoreBuild {
+            guard let appStoreFactory = UpdateControllerFactory.self as? any AppStoreUpdateControllerFactory.Type else {
+                assertionFailure("Failed to instantiate app store update controller")
+                return
+            }
+
+            dependencies.services.updateController = appStoreFactory.instantiate(
+                internalUserDecider: dependencies.featureFlags.internalUserDecider,
+                featureFlagger: dependencies.featureFlags.featureFlagger,
+                pixelFiring: PixelKit.shared,
+                notificationPresenter: notificationPresenter,
+                isOnboardingFinished: { OnboardingActionsManager.isOnboardingFinished }
+            )
+        } else {
+            assert(buildType.isSparkleBuild)
+
+            guard let sparkleFactory = UpdateControllerFactory.self as? any SparkleUpdateControllerFactory.Type else {
+                assertionFailure("Failed to instantiate sparkle update controller")
+                return
+            }
+
+            let allowCustomUpdateFeed = buildType.isDebugBuild || buildType.isReviewBuild
+            let sparkleUpdateController = sparkleFactory.instantiate(
+                internalUserDecider: dependencies.featureFlags.internalUserDecider,
+                featureFlagger: dependencies.featureFlags.featureFlagger,
+                pixelFiring: PixelKit.shared,
+                notificationPresenter: notificationPresenter,
+                keyValueStore: UserDefaults.standard,
+                allowCustomUpdateFeed: allowCustomUpdateFeed,
+                wideEvent: dependencies.services.wideEvent,
+                isOnboardingFinished: { OnboardingActionsManager.isOnboardingFinished },
+                openUpdatesPage: { [windowControllersManager = dependencies.ui.windowControllersManager] in
+                    windowControllersManager.showTab(with: .releaseNotes)
+                }
+            )
+            dependencies.services.stateRestorationManager.subscribeToAutomaticAppRelaunching(using: sparkleUpdateController.willRelaunchAppPublisher)
+            dependencies.services.updateController = sparkleUpdateController
+        }
     }
 
     func makeForegroundState() throws -> any ForegroundHandling {
