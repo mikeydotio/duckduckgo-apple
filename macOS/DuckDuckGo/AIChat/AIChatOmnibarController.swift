@@ -247,11 +247,11 @@ final class AIChatOmnibarController {
         return models.first(where: { $0.id == persistedModelId })?.supportsImageUpload ?? true
     }
 
-    /// Image formats supported by the currently selected model (e.g. ["png", "webp"]).
+    /// Image formats supported by the currently selected model (e.g. ["png", "jpeg", "webp"]).
     /// Returns a default set when models are unavailable.
     var selectedModelImageFormats: [String] {
-        guard !models.isEmpty else { return ["png", "webp"] }
-        return models.first(where: { $0.id == persistedModelId })?.supportedImageFormats ?? ["png", "webp"]
+        guard !models.isEmpty else { return ["png", "jpeg", "webp"] }
+        return models.first(where: { $0.id == persistedModelId })?.supportedImageFormats ?? ["png", "jpeg", "webp"]
     }
 
     /// Updates the selected model ID and persists it (along with its short name) for future sessions.

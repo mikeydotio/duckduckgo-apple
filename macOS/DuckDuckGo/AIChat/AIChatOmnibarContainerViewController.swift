@@ -509,7 +509,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     private func allowedContentTypes(for formats: [String]) -> [UTType] {
         let types = formats.compactMap { UTType(filenameExtension: $0.lowercased()) }
-        return types.isEmpty ? [.png, .webP] : types
+        return types.isEmpty ? [.jpeg, .png, .webP] : types
     }
 
     private func addImageAttachment(from url: URL) {
