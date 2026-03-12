@@ -404,7 +404,9 @@ final class Fire: FireProtocol {
                 let autoconsentCacheResult = self.burnAutoconsentCache()
                 dataClearingWideEventService?.update(.clearAutoconsentManagementCache, result: autoconsentCacheResult)
 
-                self.burnZoomLevels(of: domains)
+                dataClearingWideEventService?.start(.forgetTextZoom)
+                let zoomLevelsResult = self.burnZoomLevels(of: domains)
+                dataClearingWideEventService?.update(.forgetTextZoom, result: zoomLevelsResult)
 
                 // when removing cookies for the domain we also need to clear cookiePopupBlocked flag
                 // this is only necessary when not removing history for the domain - flag is part of HistoryEntry
@@ -413,7 +415,9 @@ final class Fire: FireProtocol {
                 }
             }
 
-            self.burnRecentlyClosed(baseDomains: domains)
+            dataClearingWideEventService?.start(.clearRecentlyClosed)
+            let recentlyClosedResult = self.burnRecentlyClosed(baseDomains: domains)
+            dataClearingWideEventService?.update(.clearRecentlyClosed, result: recentlyClosedResult)
 
             if includeChatHistory {
                 group.enter()
@@ -512,13 +516,17 @@ final class Fire: FireProtocol {
                 }
             }
 
-            self.burnRecentlyClosed()
+            dataClearingWideEventService?.start(.clearRecentlyClosed)
+            let recentlyClosedResult = self.burnRecentlyClosed()
+            dataClearingWideEventService?.update(.clearRecentlyClosed, result: recentlyClosedResult)
 
             dataClearingWideEventService?.start(.clearAutoconsentManagementCache)
             let autoconsentCacheResult = self.burnAutoconsentCache()
             dataClearingWideEventService?.update(.clearAutoconsentManagementCache, result: autoconsentCacheResult)
 
-            self.burnZoomLevels()
+            dataClearingWideEventService?.start(.forgetTextZoom)
+            let zoomLevelsResult = self.burnZoomLevels()
+            dataClearingWideEventService?.update(.forgetTextZoom, result: zoomLevelsResult)
 
             await withCheckedContinuation { continuation in
                 group.notify(queue: .main) {
@@ -806,12 +814,14 @@ final class Fire: FireProtocol {
 
     // MARK: - Zoom levels
 
-     private func burnZoomLevels() {
+     private func burnZoomLevels() -> Result<Void, Error> {
          savedZoomLevelsCoordinating.burnZoomLevels(except: fireproofDomains)
+         return .success(())
      }
 
-     private func burnZoomLevels(of baseDomains: Set<String>) {
+     private func burnZoomLevels(of baseDomains: Set<String>) -> Result<Void, Error> {
          savedZoomLevelsCoordinating.burnZoomLevel(of: baseDomains)
+         return .success(())
      }
 
     // MARK: - Permissions
@@ -1000,8 +1010,9 @@ final class Fire: FireProtocol {
     // MARK: - Burn Recently Closed
 
     @MainActor
-    private func burnRecentlyClosed(baseDomains: Set<String>? = nil) {
+    private func burnRecentlyClosed(baseDomains: Set<String>? = nil) -> Result<Void, Error> {
         recentlyClosedCoordinator?.burnCache(baseDomains: baseDomains, tld: tld)
+        return .success(())
     }
 
     // MARK: - Bookmarks cleanup
