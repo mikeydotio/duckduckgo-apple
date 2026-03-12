@@ -395,7 +395,8 @@ extension DataBrokerProtectionIOSManager: JobQueueManagerDelegate {
         }
     }
 
-    public func queueManagerDidCompleteIndividualJob(_ queueManager: any DataBrokerProtectionCore.JobQueueManaging) {
+    public func queueManagerDidCompleteIndividualJob(_ queueManager: any DataBrokerProtectionCore.JobQueueManaging,
+                                                     context: BrokerProfileJobContext?) {
 
         // Figure out if we've just finished initial scans, and send the appropriate pixel if necessary
         if eventPixels.hasInitialScansTotalDurationPixelBeenSent() {
@@ -451,13 +452,12 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DebugCommandsDelegate 
                 completion: completionHandler
             )
         case .optOut:
-            let optOutCommand = DataBrokerProtectionQueueManagerDebugCommand.startOptOutOperations(
+            queueManager.startImmediateOptOutOperationsIfPermitted(
                 showWebView: true,
                 jobDependencies: jobDependencies,
                 errorHandler: errorHandler,
                 completion: completionHandler
             )
-            queueManager.execute(optOutCommand)
         case .all:
             queueManager.startScheduledAllOperationsIfPermitted(
                 showWebView: true,
