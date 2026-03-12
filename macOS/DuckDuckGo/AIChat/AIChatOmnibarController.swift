@@ -166,6 +166,7 @@ final class AIChatOmnibarController {
                 let remoteModels = try await modelsService.fetchModels()
                 guard !Task.isCancelled else { return }
                 let userTier = await self.resolveUserTier()
+                guard !Task.isCancelled else { return }
                 self.hasActiveSubscription = userTier != .free
                 self.models = remoteModels.map { AIChatModel(remoteModel: $0, userTier: userTier) }
                 self.clearStaleModelSelectionIfNeeded()
