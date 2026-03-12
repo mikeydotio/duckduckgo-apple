@@ -268,12 +268,11 @@ final class DBPContinuedProcessingCoordinator {
         Logger.dataBrokerProtection.log(
             "Continued processing: preparing initial run with \(scanPlan.scanCount, privacy: .public) scans"
         )
+
         let scanJobTimeout = manager?.continuedProcessingScanJobTimeout() ?? .minutes(3)
         let scanBudgetUnitsPerJob = max(Int64(scanJobTimeout / Constants.heartbeatInterval), 1)
-        Logger.dataBrokerProtection.log(
-            "Continued processing: derived scan budget units per job \(scanBudgetUnitsPerJob, privacy: .public) from timeout \(scanJobTimeout, privacy: .public)s and heartbeat \(Constants.heartbeatInterval, privacy: .public)s"
-        )
         progressReporter.startInitialRun(plan: scanPlan, scanBudgetUnitsPerJob: scanBudgetUnitsPerJob)
+
         return scanPlan
     }
 
@@ -291,7 +290,7 @@ final class DBPContinuedProcessingCoordinator {
         heartbeatTimer?.invalidate()
         heartbeatTimer = Timer.scheduledTimer(withTimeInterval: Constants.heartbeatInterval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self else { return }
+                guard let self, self.task != nil, self.phase != nil else { return }
                 self.progressReporter.advanceHeartbeat()
                 self.refreshContinuedProcessingUI(source: .heartbeat)
             }
