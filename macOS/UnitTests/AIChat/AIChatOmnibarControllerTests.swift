@@ -301,9 +301,24 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         XCTAssertEqual(controller.persistedModelId, "")
     }
 
-    func testWhenModelSelected_ThenPersistedModelIdReturnsSelection() {
-        // Given
+    func testWhenModelSelectedButModelsNotLoaded_ThenPersistedModelIdFallsBackToEmpty() {
+        // Given — model selected but models haven't loaded yet
         mockPreferences.selectedModelId = "claude-sonnet-4-5"
+
+        // Then — can't validate the selection without models, falls back to empty
+        XCTAssertEqual(controller.persistedModelId, "")
+    }
+
+    func testWhenModelSelectedAndExistsInLoadedModels_ThenPersistedModelIdReturnsSelection() async {
+        // Given
+        mockModelsService.modelsToReturn = [
+            makeRemoteModel(id: "claude-sonnet-4-5", entityHasAccess: true)
+        ]
+        mockPreferences.selectedModelId = "claude-sonnet-4-5"
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
 
         // Then
         XCTAssertEqual(controller.persistedModelId, "claude-sonnet-4-5")
@@ -361,10 +376,10 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         XCTAssertFalse(controller.selectedModelSupportsImageUpload)
     }
 
-    func testWhenSelectedModelNotInList_ThenDefaultsToTrue() async {
+    func testWhenSelectedModelNotInList_ThenFallsBackToFirstAccessible() async {
         // Given
         mockModelsService.modelsToReturn = [
-            makeRemoteModel(id: "some-model", entityHasAccess: true)
+            makeRemoteModel(id: "some-model", supportsImageUpload: true, entityHasAccess: true)
         ]
         mockPreferences.selectedModelId = "nonexistent-model"
 
@@ -372,7 +387,9 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         controller.onOmnibarActivated()
         await waitForModels()
 
-        // Then
+        // Then — stale selection cleared, falls back to "some-model"
+        XCTAssertNil(mockPreferences.selectedModelId)
+        XCTAssertEqual(controller.persistedModelId, "some-model")
         XCTAssertTrue(controller.selectedModelSupportsImageUpload)
     }
 
