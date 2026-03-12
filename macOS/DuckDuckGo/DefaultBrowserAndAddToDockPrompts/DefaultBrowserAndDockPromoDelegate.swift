@@ -87,7 +87,8 @@ final class DefaultBrowserAndDockPromoDelegate: PromoDelegate {
                 }
                 .first()
                 .sink { [weak self] _, result in
-                    self?.showContinuation?.resume(returning: result)
+                    // Force show is debug-only and must not mutate promo history through dismiss/action results.
+                    self?.showContinuation?.resume(returning: force ? .noChange : result)
                     self?.showContinuation = nil
                 }
                 .store(in: &cancellables)
