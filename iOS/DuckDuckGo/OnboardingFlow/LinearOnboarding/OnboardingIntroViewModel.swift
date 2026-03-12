@@ -232,8 +232,13 @@ final class OnboardingIntroViewModel: ObservableObject {
     }
 
     func restoreSyncAccountAction() {
+        pixelReporter.measureAutoRestoreOnboardingRestoreCTAAction()
         restorePromptHandler.restoreSyncAccount()
         contextualDaxDialogs.disableContextualDaxDialogs()
+    }
+
+    func restorePromptSkipAction() {
+        pixelReporter.measureAutoRestoreOnboardingSkipCTAAction()
     }
 
 #if DEBUG || ALPHA
@@ -303,8 +308,9 @@ private extension OnboardingIntroViewModel {
     func measureScreenImpression() {
         guard let intro = state.intro else { return }
         switch intro.type {
-        case .startOnboardingDialog:
+        case .startOnboardingDialog(let dialogType):
             pixelReporter.measureOnboardingIntroImpression()
+            measureAutoRestorePromptImpressionIfNeeded(dialogType: dialogType)
         case .browsersComparisonDialog:
             pixelReporter.measureBrowserComparisonImpression()
         case .addToDockPromoDialog:
@@ -323,6 +329,13 @@ private extension OnboardingIntroViewModel {
             return .default
         }
         return restorePromptHandler.isEligibleForRestorePrompt() ? .restoreData : .skipTutorial
+    }
+
+    func measureAutoRestorePromptImpressionIfNeeded(dialogType: OnboardingView.ViewState.Intro.IntroDialogType) {
+        guard dialogType == .restoreData else {
+            return
+        }
+        pixelReporter.measureAutoRestoreOnboardingPromptShown()
     }
 
 }

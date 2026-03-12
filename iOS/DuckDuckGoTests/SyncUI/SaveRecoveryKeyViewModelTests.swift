@@ -31,8 +31,7 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
             key: "test-key",
             showRecoveryPDFAction: {},
             onDismiss: {},
-            autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {}
+            autoRestoreProvider: autoRestoreProvider
         )
 
         XCTAssertEqual(autoRestoreProvider.persistedDecisions, [true])
@@ -48,8 +47,7 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
             key: "test-key",
             showRecoveryPDFAction: {},
             onDismiss: {},
-            autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {}
+            autoRestoreProvider: autoRestoreProvider
         )
 
         XCTAssertFalse(sut.isAutoRestoreEnabled)
@@ -65,8 +63,7 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
             key: "test-key",
             showRecoveryPDFAction: {},
             onDismiss: {},
-            autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {}
+            autoRestoreProvider: autoRestoreProvider
         )
 
         XCTAssertFalse(sut.isAutoRestoreEnabled)
@@ -82,8 +79,7 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
             key: "test-key",
             showRecoveryPDFAction: {},
             onDismiss: {},
-            autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {}
+            autoRestoreProvider: autoRestoreProvider
         )
 
         XCTAssertFalse(sut.isAutoRestoreFeatureEnabled)
@@ -99,8 +95,7 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
             key: "test-key",
             showRecoveryPDFAction: {},
             onDismiss: {},
-            autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {}
+            autoRestoreProvider: autoRestoreProvider
         )
 
         sut.autoRestoreToggled(true)
@@ -116,8 +111,7 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
             key: "test-key",
             showRecoveryPDFAction: {},
             onDismiss: {},
-            autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {}
+            autoRestoreProvider: autoRestoreProvider
         )
 
         sut.autoRestoreToggled(false)
@@ -135,8 +129,7 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
             key: "test-key",
             showRecoveryPDFAction: {},
             onDismiss: {},
-            autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {}
+            autoRestoreProvider: autoRestoreProvider
         )
 
         sut.autoRestoreToggled(false)
@@ -145,25 +138,72 @@ final class SaveRecoveryKeyViewModelTests: XCTestCase {
         XCTAssertTrue(autoRestoreProvider.persistedDecisions.isEmpty)
     }
 
-    func testWhenPresentLearnMoreCalledThenForwardsAction() {
+    func testWhenNextButtonPressedThenDismissesFlow() {
         let autoRestoreProvider = MockSyncAutoRestoreHandler()
-        autoRestoreProvider.isAutoRestoreFeatureEnabled = true
-        autoRestoreProvider.existingAutoRestoreDecision = true
-        var presentLearnMoreCalled = false
+        autoRestoreProvider.isAutoRestoreFeatureEnabled = false
+        var onDismissCalled = false
         let sut = SaveRecoveryKeyViewModel(
             key: "test-key",
             showRecoveryPDFAction: {},
-            onDismiss: {},
+            onDismiss: {
+                onDismissCalled = true
+            },
+            autoRestoreProvider: autoRestoreProvider
+        )
+
+        sut.nextButtonPressed()
+
+        XCTAssertTrue(onDismissCalled)
+    }
+
+    func testWhenNextButtonPressedAndAutoRestoreIsDisabledThenFiresOptOutAndDismissesFlow() {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        autoRestoreProvider.isAutoRestoreFeatureEnabled = true
+        autoRestoreProvider.existingAutoRestoreDecision = false
+        var onDismissCalled = false
+        var optedOutCalled = false
+        let sut = SaveRecoveryKeyViewModel(
+            key: "test-key",
+            showRecoveryPDFAction: {},
+            onDismiss: {
+                onDismissCalled = true
+            },
             autoRestoreProvider: autoRestoreProvider,
-            presentLearnMore: {
-                presentLearnMoreCalled = true
+            onAutoRestoreToggleOptedOut: {
+                optedOutCalled = true
             }
         )
 
-        sut.presentLearnMore()
+        sut.nextButtonPressed()
 
-        XCTAssertTrue(presentLearnMoreCalled)
+        XCTAssertTrue(optedOutCalled)
+        XCTAssertTrue(onDismissCalled)
     }
+
+    func testWhenNextButtonPressedAndAutoRestoreIsEnabledThenDoesNotFireOptOutAndDismissesFlow() {
+        let autoRestoreProvider = MockSyncAutoRestoreHandler()
+        autoRestoreProvider.isAutoRestoreFeatureEnabled = true
+        autoRestoreProvider.existingAutoRestoreDecision = true
+        var onDismissCalled = false
+        var optedOutCalled = false
+        let sut = SaveRecoveryKeyViewModel(
+            key: "test-key",
+            showRecoveryPDFAction: {},
+            onDismiss: {
+                onDismissCalled = true
+            },
+            autoRestoreProvider: autoRestoreProvider,
+            onAutoRestoreToggleOptedOut: {
+                optedOutCalled = true
+            }
+        )
+
+        sut.nextButtonPressed()
+
+        XCTAssertFalse(optedOutCalled)
+        XCTAssertTrue(onDismissCalled)
+    }
+
 }
 
 private enum AutoRestoreProviderTestError: Error {

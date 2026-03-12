@@ -39,6 +39,12 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
         static let passwordsPromotion = "promotion_passwords"
     }
 
+    enum AutoRestorePromptSource: String {
+        case syncPairing = "sync_pairing"
+        case syncBackup = "sync_backup"
+        case syncRecover = "sync_recover"
+    }
+
     lazy var authenticator = Authenticator()
     lazy var connectionController: SyncConnectionControlling = syncService.createConnectionController(deviceName: deviceName, deviceType: deviceType, delegate: self)
 
@@ -85,6 +91,7 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsView> {
     var source: String?
     var pairingInfo: PairingInfo?
     var needsPreservedAccountCleanupBeforeServerOperation = false
+    var autoRestorePromptSource: AutoRestorePromptSource?
 
     var onConfirmSyncDisable: (() -> Void)?
     var onConfirmAndDeleteAllData: (() -> Void)?
@@ -491,6 +498,7 @@ extension SyncSettingsViewController: ScanOrPasteCodeViewModelDelegate {
     func codeCollectionCancelled() {
         assert(navigationController?.visibleViewController is UIHostingController<AnyView>)
         needsPreservedAccountCleanupBeforeServerOperation = false
+        autoRestorePromptSource = nil
         dismissPresentedViewController()
         Pixel.fire(pixel: .syncSetupEndedAbandoned)
     }
@@ -548,7 +556,7 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
     func controllerWillPerformServerSyncOperation(setupRole _: SyncSetupRole) async -> Bool {
         await performDeferredPreservedAccountCleanupIfNeeded()
     }
-    
+
     func controllerDidFindTwoAccountsDuringRecovery(_ recoveryKey: SyncCode.RecoveryKey, setupRole: SyncSetupRole) async {
         if rootView.model.devices.count > 1 {
             promptToSwitchAccounts(recoveryKey: recoveryKey)
