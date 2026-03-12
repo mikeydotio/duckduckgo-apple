@@ -25,9 +25,7 @@ import PixelKit
 @MainActor
 struct Initializing: InitializingHandling {
 
-    init() {}
-
-    func handleWillFinishLaunching() {
+    init() {
         let didCrashDuringCrashHandlersSetUp = UserDefaultsWrapper(key: .didCrashDuringCrashHandlersSetUp, defaultValue: false)
         if case .normal = AppVersion.runType,
            !didCrashDuringCrashHandlersSetUp.wrappedValue {
