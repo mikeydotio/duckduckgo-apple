@@ -18,6 +18,7 @@
 //
 
 import DDGSync
+import os.log
 import SyncUI_iOS
 
 protocol SyncAutoRestoreSyncing {
@@ -66,7 +67,11 @@ final class SyncAutoRestoreHandler: SyncAutoRestoreHandling {
     }
 
     func restoreFromPreservedAccount() async {
-        try? await syncService.enableSyncFromPreservedAccount()
+        do {
+            try await syncService.enableSyncFromPreservedAccount()
+        } catch {
+            Logger.onboarding.error("Failed to restore sync account from preserved account: \(String(describing: error), privacy: .private)")
+        }
     }
 
     private func evaluateAutoRestoreEligibility() -> Bool {
