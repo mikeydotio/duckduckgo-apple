@@ -23,6 +23,8 @@ import SwiftUI
 import SyncUI_iOS
 import DDGSync
 import AVFoundation
+import WebKit
+import os.log
 
 extension SyncSettingsViewController: SyncManagementViewModelDelegate {
     var syncBookmarksPausedTitle: String? {
@@ -169,6 +171,9 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
             guard error == nil, let self else { return }
             Task { @MainActor in
                 do {
+                    guard await self.performDeferredPreservedAccountCleanupIfNeeded() else {
+                        return
+                    }
                     self.dismissPresentedViewController()
                     self.showPreparingSync(nil)
                     try await self.syncService.createAccount(deviceName: self.deviceName, deviceType: self.deviceType)
@@ -177,7 +182,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
                     AutofillOnboardingExperimentPixelReporter().fireSyncEnabled(true)
                     self.rootView.model.syncEnabled(recoveryCode: self.recoveryCode)
                     self.refreshDevices()
-                    self.navigationController?.topViewController?.dismiss(animated: true, completion: self.showRecoveryPDF)
+                    self.dismissVCAndShowRecoveryPDF()
                 } catch {
                     await self.handleError(SyncErrorMessage.unableToSyncToServer, error: error, event: .syncSignupError)
                 }
@@ -281,17 +286,77 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
         }
     }
 
+    func isPreservedAccountPromptNeeded() -> Bool {
+        // Only route through the preserved-account prompt when auto-restore is eligible.
+        // If auto-restore is disabled, keep the existing setup behavior.
+        syncAutoRestoreHandler.isEligibleForAutoRestore()
+    }
+
+    @MainActor
+    func showAutoRestoreReady(for _: SyncSettingsViewModel.PreservedAccountContinuation) {
+        needsPreservedAccountCleanupBeforeServerOperation = false
+        dismissPresentedViewController { [weak self] in
+            guard let self else { return }
+            let readyView = AutoRestoreReadyView(model: self.rootView.model, onCancel: { [weak self] in
+                self?.rootView.model.clearPendingPreservedAccountContinuation()
+                self?.dismissPresentedViewController()
+            })
+            let controller = DismissibleHostingController(rootView: readyView, onDismiss: { [weak self] in
+                self?.rootView.model.clearPendingPreservedAccountContinuation()
+            })
+            self.navigationController?.present(controller, animated: true)
+        }
+    }
+
+    @MainActor
+    func continueAfterPreservedAccountRemoval(_ continuation: SyncSettingsViewModel.PreservedAccountContinuation) {
+        needsPreservedAccountCleanupBeforeServerOperation = true
+        dismissPresentedViewController { [weak self] in
+            guard let self else { return }
+            switch continuation {
+            case .setup(let entryPoint):
+                self.continueSyncSetupFlow(entryPoint: entryPoint)
+            case .recover:
+                self.presentRecoveryCodeScan()
+            }
+        }
+    }
+
+    func showRecoveringDataAutoRestore() {
+        needsPreservedAccountCleanupBeforeServerOperation = false
+        dismissPresentedViewController { [weak self] in
+            self?.navigationController?.present(UIHostingController(rootView: RecoveringDataView()), animated: true) { [weak self] in
+                guard let self else { return }
+                Task {
+                    await self.performAutoRestore()
+                }
+            }
+        }
+    }
+
+    func performAutoRestore() async {
+        do {
+            try await syncService.enableSyncFromPreservedAccount()
+        } catch {
+            await handleError(.unableToSyncToServer, error: error, event: .syncLoginError)
+        }
+    }
+
+    func dismissRecoveringDataViewIfPresented() {
+        guard navigationController?.presentedViewController is UIHostingController<RecoveringDataView> else {
+            return
+        }
+        dismissPresentedViewController()
+    }
+
     @MainActor
     func showSyncWithAnotherDevice() {
         collectCode(showQRCode: true)
     }
 
-    func showRecoverData() {
-        authenticateUser { [weak self] error in
-            guard error == nil, let self else { return }
-
-            self.dismissPresentedViewController()
-            self.collectCode(showQRCode: false)
+    func showRecoveryCodeEntry() {
+        dismissPresentedViewController { [weak self] in
+            self?.presentRecoveryCodeScan()
         }
     }
 
@@ -344,15 +409,84 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
 
     @MainActor
     func showRecoveryPDF() {
-        let model = SaveRecoveryKeyViewModel(key: recoveryCode) { [weak self] in
-            self?.shareRecoveryPDF()
-        } onDismiss: {
-            self.showDeviceConnected()
-        }
+        let model = SaveRecoveryKeyViewModel(
+            key: recoveryCode,
+            showRecoveryPDFAction: { [weak self] in
+                self?.shareRecoveryPDF()
+            },
+            onDismiss: { [weak self] in
+                self?.refreshAutoRestoreDecisionState()
+                self?.showDeviceConnected()
+            },
+            autoRestoreProvider: syncAutoRestoreHandler,
+            presentLearnMore: { [weak self] in
+                guard let self else { return }
+                let presenter = self.navigationController?.presentedViewController ?? self.presentedViewController ?? self
+                self.presentAutoRestoreLearnMore(from: presenter)
+            }
+        )
         let controller = UIHostingController(rootView: SaveRecoveryKeyView(model: model))
         navigationController?.present(controller, animated: true) { [weak self] in
-            self?.rootView.model.syncEnabled(recoveryCode: self!.recoveryCode)
+            guard let self else { return }
+            self.rootView.model.syncEnabled(recoveryCode: self.recoveryCode)
         }
+    }
+
+    @MainActor
+    private func presentAutoRestoreLearnMore(from presenter: UIViewController?) {
+        guard let presenter,
+              let url = URL(string: "https://duckduckgo.com/duckduckgo-help-pages/sync-and-backup/recovery-codes-and-troubleshooting") else {
+            return
+        }
+
+        let controller = AutoRestoreLearnMoreViewController(url: url)
+        let navigationController = UIDevice.current.userInterfaceIdiom == .phone
+        ? PortraitNavigationController(rootViewController: controller)
+        : UINavigationController(rootViewController: controller)
+        presenter.present(navigationController, animated: true)
+    }
+
+    @MainActor
+    func performDeferredPreservedAccountCleanupIfNeeded() async -> Bool {
+        guard needsPreservedAccountCleanupBeforeServerOperation else {
+            return true
+        }
+
+        if let preservedDeviceId = syncService.account?.deviceId {
+            do {
+                try await syncService.disconnect(deviceId: preservedDeviceId)
+            } catch {
+                Logger.sync.error("Best-effort remote disconnect failed for preserved sync account: \(error.localizedDescription, privacy: .public)")
+                // Continue with local cleanup so setup can proceed even when remote logout fails.
+            }
+        }
+
+        do {
+            try syncService.removePreservedSyncAccount()
+        } catch {
+            Logger.sync.error("Failed to clear preserved sync account before server operation: \(error.localizedDescription, privacy: .public)")
+            dismissPresentedViewController()
+            return false
+        }
+
+        needsPreservedAccountCleanupBeforeServerOperation = false
+        return true
+    }
+
+    @MainActor
+    private func continueSyncSetupFlow(entryPoint: SyncSettingsViewModel.SyncSetupEntryPoint) {
+        switch entryPoint {
+        case .backup:
+            rootView.model.isSyncWithSetUpSheetVisible = true
+        case .pairing:
+            showSyncWithAnotherDevice()
+        }
+    }
+
+    @MainActor
+    private func presentRecoveryCodeScan() {
+        rootView.model.isRecoverSyncedDataSheetVisible = false
+        collectCode(showQRCode: false)
     }
 
     private func collectCode(showQRCode: Bool) {
@@ -363,7 +497,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
         Task { @MainActor in
             let pairingInfo: PairingInfo
             let source: SyncSetupSource
-            if isSyncEnabled {
+            if shouldUsePreservedAccountForConnectionFlow {
                 do {
                     pairingInfo = try await connectionController.startExchangeMode()
                     source = .exchange
@@ -390,7 +524,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
             let stringForQRCode: String
             let codeForDisplayOrPasting: String
             let onPresentPixelInfo: SyncSetupPixelInfo?
-            if isSyncEnabled {
+            if shouldUsePreservedAccountForConnectionFlow {
                 stringForQRCode = recoveryCode
                 codeForDisplayOrPasting = recoveryCode
                 onPresentPixelInfo = nil
@@ -575,6 +709,45 @@ private class PortraitNavigationController: UINavigationController {
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         [.portrait, .portraitUpsideDown]
+    }
+}
+
+private final class AutoRestoreLearnMoreViewController: UIViewController {
+    private let url: URL
+    private let webView: WKWebView
+
+    init(url: URL) {
+        self.url = url
+        self.webView = WKWebView(frame: .zero, configuration: .nonPersistent())
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func loadView() {
+        view = webView
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        decorateNavigationBar(navigationController?.navigationBar)
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(doneTapped)
+        )
+        webView.load(URLRequest(url: url))
+    }
+
+    @objc private func doneTapped() {
+        dismiss(animated: true)
     }
 }
 

@@ -17,15 +17,13 @@
 //  limitations under the License.
 //
 
-import DDGSync
 import os.log
 import PrivacyConfig
 
 protocol SyncAutoRestoreDecisionManaging {
     var isAutoRestoreFeatureEnabled: Bool { get }
     func existingDecision() -> Bool?
-    @discardableResult
-    func persistDecision(_ decision: Bool) -> Bool
+    func persistDecision(_ decision: Bool) throws
     func clearDecision()
     func shouldPreserveAccountWhenSyncDisabled() -> Bool
 }
@@ -56,16 +54,14 @@ final class SyncAutoRestoreDecisionManager: SyncAutoRestoreDecisionManaging {
         }
     }
 
-    @discardableResult
-    func persistDecision(_ decision: Bool) -> Bool {
+    func persistDecision(_ decision: Bool) throws {
         do {
             try decisionStore.setDecision(decision)
-            return true
         } catch {
             Logger.sync.error(
                 "[Sync Auto Restore] Failed to write auto-restore decision: \(error.localizedDescription, privacy: .private)"
             )
-            return false
+            throw error
         }
     }
 

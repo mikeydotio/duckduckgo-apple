@@ -25,11 +25,39 @@ public class SaveRecoveryKeyViewModel: ObservableObject {
     let key: String
     let showRecoveryPDFAction: () -> Void
     let onDismiss: () -> Void
+    let isAutoRestoreFeatureEnabled: Bool
 
-    public init(key: String, showRecoveryPDFAction: @escaping () -> Void, onDismiss: @escaping () -> Void) {
+    @Published var isAutoRestoreEnabled = false
+
+    private let presentLearnMoreAction: () -> Void
+    private let autoRestoreProvider: SyncAutoRestoreProviding
+
+    public init(
+        key: String,
+        showRecoveryPDFAction: @escaping () -> Void,
+        onDismiss: @escaping () -> Void,
+        autoRestoreProvider: SyncAutoRestoreProviding,
+        presentLearnMore: @escaping () -> Void = {}
+    ) {
         self.key = key
         self.showRecoveryPDFAction = showRecoveryPDFAction
         self.onDismiss = onDismiss
+        self.presentLearnMoreAction = presentLearnMore
+        self.autoRestoreProvider = autoRestoreProvider
+        self.isAutoRestoreFeatureEnabled = autoRestoreProvider.isAutoRestoreFeatureEnabled
+
+        if isAutoRestoreFeatureEnabled {
+            if let decision = autoRestoreProvider.existingDecision() {
+                self.isAutoRestoreEnabled = decision
+            } else {
+                do {
+                    try autoRestoreProvider.persistDecision(true)
+                    self.isAutoRestoreEnabled = true
+                } catch {
+                    self.isAutoRestoreEnabled = false
+                }
+            }
+        }
     }
 
     func copyKey() {
@@ -38,6 +66,21 @@ public class SaveRecoveryKeyViewModel: ObservableObject {
 
     func dismissed() {
         onDismiss()
+    }
+
+    func autoRestoreToggled(_ isEnabled: Bool) {
+        guard isEnabled != isAutoRestoreEnabled else { return }
+
+        do {
+            try autoRestoreProvider.persistDecision(isEnabled)
+            isAutoRestoreEnabled = isEnabled
+        } catch {
+            return
+        }
+    }
+
+    func presentLearnMore() {
+        presentLearnMoreAction()
     }
 
 }
