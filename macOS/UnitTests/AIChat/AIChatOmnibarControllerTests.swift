@@ -409,6 +409,9 @@ final class AIChatOmnibarControllerTests: XCTestCase {
 
     // MARK: - Helpers
 
+    /// Creates a remote model for testing. Access is resolved locally from `accessTier`
+    /// (not `entityHasAccess`), so `accessTier` must include `"free"` for the model to be
+    /// accessible to the default free-tier test user.
     private func makeRemoteModel(
         id: String,
         supportsImageUpload: Bool = false,
@@ -422,7 +425,7 @@ final class AIChatOmnibarControllerTests: XCTestCase {
             entityHasAccess: entityHasAccess,
             supportsImageUpload: supportsImageUpload,
             supportedTools: [],
-            accessTier: []
+            accessTier: entityHasAccess ? ["free"] : ["plus", "pro"]
         )
     }
 
