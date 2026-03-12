@@ -297,7 +297,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // appDependencies) are available immediately — matching the original behavior
         // where all ~89 properties were created in init().
         appStateMachine = AppStateMachine(initialState: .initializing(Initializing()))
-        appStateMachine.handle(.willFinishLaunching)
         appStateMachine.handle(.didFinishLaunching)
         if case .launching(let launching) = appStateMachine.currentState,
            let concreteState = launching as? Launching {
