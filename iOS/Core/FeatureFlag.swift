@@ -112,6 +112,9 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212397941080401
     case dbpClickActionDelayReductionOptimization
 
+    /// https://app.asana.com/1/137249556945/project/72649045549333/task/1213433655862033?focus=true
+    case dbpContinuedProcessing
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866711635701
     case crashReportOptInStatusResetting
 
@@ -363,6 +366,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .newDeviceSyncPrompt,
              .dbpForegroundRunningOnAppActive,
              .dbpForegroundRunningWhenDashboardOpen,
+             .dbpContinuedProcessing,
              .syncCreditCards,
              .unifiedURLPredictor,
              .migrateKeychainAccessibility,
@@ -435,6 +439,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .dbpForegroundRunningOnAppActive,
              .dbpForegroundRunningWhenDashboardOpen,
              .dbpClickActionDelayReductionOptimization,
+             .dbpContinuedProcessing,
              .showAIChatAddressBarChoiceScreen,
              .winBackOffer,
              .syncCreditCards,
@@ -593,6 +598,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(DBPSubfeature.foregroundRunningWhenDashboardOpen))
         case .dbpClickActionDelayReductionOptimization:
             return .remoteReleasable(.subfeature(DBPSubfeature.clickActionDelayReductionOptimization))
+        case .dbpContinuedProcessing:
+            return .remoteReleasable(.subfeature(DBPSubfeature.continuedProcessing))
         case .crashReportOptInStatusResetting:
             return .internalOnly()
         case .syncSeamlessAccountSwitching:

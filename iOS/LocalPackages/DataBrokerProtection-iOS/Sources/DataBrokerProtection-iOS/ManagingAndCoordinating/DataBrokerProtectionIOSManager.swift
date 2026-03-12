@@ -892,7 +892,7 @@ private extension DataBrokerProtectionIOSManager {
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDelegate {
     @MainActor
     public func saveProfileAndStartInitialRun(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), featureFlagger.isContinuedProcessingFeatureOn {
             try await continuedProcessingCoordinator.startInitialRun(profile: profile)
         } else {
             try await saveProfile(profile)
