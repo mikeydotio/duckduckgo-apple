@@ -269,7 +269,6 @@ jobs:
       - name: Run tests
         id: run-unit-tests-ios
         run: |
-          export CI=true
           set -o pipefail && xcodebuild test \
             -scheme BrowserServicesKit \
             -destination '${{ steps.select-simulator.outputs.destination }}' \

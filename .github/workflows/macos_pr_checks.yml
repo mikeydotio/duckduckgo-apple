@@ -250,7 +250,6 @@ jobs:
       run: |
         echo "Runner ${RUNNER_NAME} (${RUNNER_TRACKING_ID})"
         export OS_ACTIVITY_MODE=debug
-        export CI=true
 
         set -o pipefail && xcodebuild test \
           -scheme "${{ matrix.scheme }}" \
@@ -270,7 +269,6 @@ jobs:
     - name: Run integration tests
       id: run-integration-tests
       run: |
-        export CI=true
         set -o pipefail && xcodebuild test \
           -scheme "${{ matrix.scheme }}" \
           -derivedDataPath "DerivedData" \

@@ -20,8 +20,6 @@ MACOSX_DEPLOYMENT_TARGET = 11.4
 CODE_SIGN_IDENTITY[config=CI][sdk=macosx*] = Developer ID Application
 CODE_SIGN_STYLE[config=CI][sdk=*] = Manual
 
-FEATURE_FLAGS =
-
 INFOPLIST_FILE = DBPE2ETests/Info.plist
 PRODUCT_BUNDLE_IDENTIFIER = com.duckduckgo.DBPE2ETests
 PROVISIONING_PROFILE_SPECIFIER[config=CI][sdk=macosx*] = match Direct com.duckduckgo.DBPE2ETests macos

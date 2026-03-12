@@ -26,8 +26,6 @@ CODE_SIGN_ENTITLEMENTS[config=Alpha][arch=*][sdk=*] = DuckDuckGo/DuckDuckGoAlpha
 CODE_SIGN_IDENTITY[sdk=macosx*] = Developer ID Application
 CODE_SIGN_IDENTITY[config=Debug][sdk=macosx*] = Apple Development
 
-FEATURE_FLAGS =
-
 INFOPLIST_FILE = DuckDuckGo/Info.plist
 
 PRODUCT_NAME_PREFIX = DuckDuckGo
@@ -44,11 +42,8 @@ GCC_PREPROCESSOR_DEFINITIONS[config=Debug][arch=*][sdk=*] = DEBUG=1 SWIFT_OBJC_I
 GCC_PREPROCESSOR_DEFINITIONS[config=Review][arch=*][sdk=*] = SWIFT_OBJC_INTERFACE_HEADER_NAME=$(SWIFT_OBJC_INTERFACE_HEADER_NAME) $(inherited)
 GCC_PREPROCESSOR_DEFINITIONS[config=Alpha][arch=*][sdk=*] = SWIFT_OBJC_INTERFACE_HEADER_NAME=$(SWIFT_OBJC_INTERFACE_HEADER_NAME) $(inherited)
 
-SWIFT_ACTIVE_COMPILATION_CONDITIONS[arch=*][sdk=*] = $(FEATURE_FLAGS)
-SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=CI][arch=*][sdk=*] = DEBUG $(FEATURE_FLAGS)
-SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug][arch=*][sdk=*] = DEBUG $(FEATURE_FLAGS)
-SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Review][arch=*][sdk=*] = $(FEATURE_FLAGS)
-SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Alpha][arch=*][sdk=*] = $(FEATURE_FLAGS)
+SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=CI][arch=*][sdk=*] = DEBUG
+SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug][arch=*][sdk=*] = DEBUG
 
 // Install to /Applications/DEBUG/
 DEPLOYMENT_LOCATION[config=Debug] = YES;

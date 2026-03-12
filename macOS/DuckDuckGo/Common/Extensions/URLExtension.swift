@@ -442,7 +442,7 @@ extension URL {
     ///
     private static var isOverrideAllowed: Bool {
         let isTestMode = [.uiTests, .integrationTests, .uiTestsOnboarding].contains(AppVersion.runType)
-        let isCI = ProcessInfo.processInfo.environment["CI"] != nil
+        let isCI = ProcessInfo.processInfo.environment["CI"] == "1"
         return isTestMode || isCI || UserDefaults.appConfiguration.isInternalUser
     }
 

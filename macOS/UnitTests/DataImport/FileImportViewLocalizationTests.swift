@@ -90,7 +90,7 @@ class FileImportViewLocalizationTests: XCTestCase {
                                    items[1.../* 0 == format */].filter { if case .string = $0 { true } else { false } }.count,
                                    "\(locale).\(source.rawValue).\(dataType.rawValue).strings")
 
-                    if ProcessInfo.processInfo.environment["CI"] != nil {
+                    if ProcessInfo.processInfo.environment["CI"] == "1" {
                         customAssert = { condition, message, file, line in
                             XCTAssert(condition(), "\(locale).\(source.rawValue).\(dataType.rawValue).InstructionsView.assert: " + message(), file: file, line: line)
                         }

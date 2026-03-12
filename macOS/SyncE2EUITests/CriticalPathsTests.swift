@@ -36,7 +36,7 @@ extension XCUIElement {
 final class CriticalPathsTests: XCTestCase {
 
     var isCI: Bool {
-        ProcessInfo.processInfo.environment["CI"] != nil
+        ProcessInfo.processInfo.environment["CI"] == "1"
     }
 
     var app: XCUIApplication!
