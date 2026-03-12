@@ -366,7 +366,10 @@ final class Fire: FireProtocol {
 
         burningData = .specificDomains(domains, shouldPlayFireAnimation: entity.shouldPlayFireAnimation(decider: visualizeFireAnimationDecider))
 
-        burnLastSessionState()
+        dataClearingWideEventService?.start(.clearLastSessionState)
+        let lastSessionStateResult = burnLastSessionState()
+        dataClearingWideEventService?.update(.clearLastSessionState, result: lastSessionStateResult)
+
         burnDeletedBookmarks()
 
         let tabViewModels = tabViewModels(of: entity)
@@ -491,7 +494,10 @@ final class Fire: FireProtocol {
             closeWindows(opening: url)
         }
 
-        burnLastSessionState()
+        dataClearingWideEventService?.start(.clearLastSessionState)
+        let lastSessionStateResult = burnLastSessionState()
+        dataClearingWideEventService?.update(.clearLastSessionState, result: lastSessionStateResult)
+
         burnDeletedBookmarks()
 
         let windowControllers = windowControllersManager.mainWindowControllers
@@ -1045,8 +1051,16 @@ final class Fire: FireProtocol {
     // MARK: - Last Session State
 
     @MainActor
-    private func burnLastSessionState() {
-        stateRestorationManager?.clearLastSessionState()
+    private func burnLastSessionState() -> Result<Void, Error> {
+        guard let stateRestorationManager = stateRestorationManager else {
+            return .failure(DataClearingWideEventError(description: "stateRestorationManager is nil"))
+        }
+
+        var capturedResult: Result<Void, Error> = .success(())
+        stateRestorationManager.clearLastSessionState { result in
+            capturedResult = result
+        }
+        return capturedResult
     }
 
     // MARK: - Burn Recently Closed

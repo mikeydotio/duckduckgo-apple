@@ -144,8 +144,8 @@ final class AppStateRestorationManager: NSObject, AppStateRestorationManaging {
         return state
     }
 
-    func clearLastSessionState() {
-        service.clearState(sync: true)
+    func clearLastSessionState(completion: @MainActor @escaping (Result<Void, Error>) -> Void) {
+        service.clearState(sync: true, completion: completion)
     }
 
     // Cleans all stored snapshots except snapshots listed in the state

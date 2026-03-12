@@ -65,12 +65,17 @@ final class StatePersistenceService {
         write(data, sync: sync)
     }
 
-    func clearState(sync: Bool = false) {
+    func clearState(sync: Bool = false, completion: (@MainActor (Result<Void, Error>) -> Void)? = nil) {
         dispatchPrecondition(condition: .onQueue(.main))
 
         job?.cancel()
         job = DispatchWorkItem {
-            self.performClearState()
+            let result = self.performClearState()
+            if let completion = completion {
+                DispatchQueue.main.async {
+                    completion(result)
+                }
+            }
         }
         queue.dispatch(job!, sync: sync)
     }
@@ -84,26 +89,39 @@ final class StatePersistenceService {
     }
 
     // perform state clearing synchronously, called from `clearState(sync:)` on `StateRestorationManager.queue`
-    func performClearState() {
+    func performClearState() -> Result<Void, Error> {
         lastSessionStateArchive = nil
+        var firstError: Error?
+
         let location = URL.persistenceLocation(for: self.fileName)
         do {
             try fileStore.removeOrThrow(fileAtURL: location)
         } catch {
-            // TODO
+            if firstError == nil {
+                firstError = error
+            }
         }
 
         do {
             try fileStore.removeOrThrow(fileAtURL: .persistenceLocation(for: self.lastLoadedStateFileName))
         } catch {
-            // TODO
+            if firstError == nil {
+                firstError = error
+            }
         }
 
         do {
             try fileStore.removeOrThrow(fileAtURL: .persistenceLocation(for: self.oldStateFileName))
         } catch {
-            // TODO
+            if firstError == nil {
+                firstError = error
+            }
         }
+
+        if let error = firstError {
+            return .failure(error)
+        }
+        return .success(())
     }
 
     /// rename `persistentState` to `persistentState.1` after the state was loaded
