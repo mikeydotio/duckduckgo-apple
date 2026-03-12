@@ -440,12 +440,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return nil
     }
 
+    /// Re-extract appDependencies from the current state so forwarding properties
+    /// reflect mutations made by state handlers (e.g. syncService set in Foreground.onTransition).
+    @MainActor
+    private func syncAppDependencies() {
+        switch appStateMachine.currentState {
+        case .launching(let launching):
+            if let state = launching as? Launching {
+                appDependencies = state.dependencies
+            }
+        case .foreground(let foreground):
+            if let state = foreground as? Foreground {
+                appDependencies = state.dependencies
+            }
+        default:
+            break
+        }
+    }
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         appStateMachine.handle(.willFinishLaunching)
+        syncAppDependencies()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         appStateMachine.handle(.appDidFinishLaunching)
+        syncAppDependencies()
         guard AppVersion.runType.requiresEnvironment else { return }
         didFinishLaunching = true
         UNUserNotificationCenter.current().delegate = self
