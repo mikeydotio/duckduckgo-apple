@@ -370,7 +370,9 @@ final class Fire: FireProtocol {
         let lastSessionStateResult = burnLastSessionState()
         dataClearingWideEventService?.update(.clearLastSessionState, result: lastSessionStateResult)
 
-        burnDeletedBookmarks()
+        dataClearingWideEventService?.start(.clearBookmarkDatabase)
+        let bookmarkDatabaseResult = burnDeletedBookmarks()
+        dataClearingWideEventService?.update(.clearBookmarkDatabase, result: bookmarkDatabaseResult)
 
         let tabViewModels = tabViewModels(of: entity)
 
@@ -506,7 +508,9 @@ final class Fire: FireProtocol {
         let lastSessionStateResult = burnLastSessionState()
         dataClearingWideEventService?.update(.clearLastSessionState, result: lastSessionStateResult)
 
-        burnDeletedBookmarks()
+        dataClearingWideEventService?.start(.clearBookmarkDatabase)
+        let bookmarkDatabaseResult = burnDeletedBookmarks()
+        dataClearingWideEventService?.update(.clearBookmarkDatabase, result: bookmarkDatabaseResult)
 
         let windowControllers = windowControllersManager.mainWindowControllers
 
@@ -1110,10 +1114,11 @@ final class Fire: FireProtocol {
 
     // MARK: - Bookmarks cleanup
 
-    private func burnDeletedBookmarks() {
+    private func burnDeletedBookmarks() -> Result<Void, Error> {
         if syncService?.authState == .inactive {
-            syncDataProviders?.bookmarksAdapter.databaseCleaner.cleanUpDatabaseNow()
+            return syncDataProviders?.bookmarksAdapter.databaseCleaner.cleanUpDatabaseNow() ?? .success(())
         }
+        return .success(())
     }
 
     // MARK: - Wide Event Helpers

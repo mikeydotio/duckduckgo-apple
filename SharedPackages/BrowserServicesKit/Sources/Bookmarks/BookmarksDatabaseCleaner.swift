@@ -34,7 +34,7 @@ public struct BookmarksCleanupCancelledError: Error {}
 public protocol BookmarkDatabaseCleaning: AnyObject {
     func scheduleRegularCleaning()
     func cancelCleaningSchedule()
-    func cleanUpDatabaseNow()
+    func cleanUpDatabaseNow() -> Result<Void, Error>
 }
 
 public final class BookmarkDatabaseCleaner: BookmarkDatabaseCleaning {
@@ -57,7 +57,7 @@ public final class BookmarkDatabaseCleaner: BookmarkDatabaseCleaning {
             )
             .receive(on: workQueue)
             .sink { [weak self] cancelIfActive in
-                self?.removeBookmarksPendingDeletion(skipWhenSyncIsActive: cancelIfActive)
+                _ = self?.removeBookmarksPendingDeletion(skipWhenSyncIsActive: cancelIfActive)
             }
     }
 
@@ -73,18 +73,19 @@ public final class BookmarkDatabaseCleaner: BookmarkDatabaseCleaning {
         scheduleCleanupCancellable?.cancel()
     }
 
-    public func cleanUpDatabaseNow() {
-        externalTriggerSubject.send()
+    public func cleanUpDatabaseNow() -> Result<Void, Error> {
+        return removeBookmarksPendingDeletion(skipWhenSyncIsActive: false)
     }
 
-    func removeBookmarksPendingDeletion(skipWhenSyncIsActive: Bool = true) {
+    func removeBookmarksPendingDeletion(skipWhenSyncIsActive: Bool = true) -> Result<Void, Error> {
         if skipWhenSyncIsActive && isSyncActive() {
             errorEvents?.fire(.syncActive)
-            return
+            return .failure(BookmarksCleanupError.syncActive)
         }
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var saveAttemptsLeft = Const.maxContextSaveRetries
+        var result: Result<Void, Error> = .success(())
 
         context.performAndWait {
             var saveError: Error?
@@ -121,8 +122,11 @@ public final class BookmarkDatabaseCleaner: BookmarkDatabaseCleaning {
 
             if let saveError {
                 errorEvents?.fire(.init(cleanupError: saveError))
+                result = .failure(BookmarksCleanupError(cleanupError: saveError))
             }
         }
+
+        return result
     }
 
     enum Const {
