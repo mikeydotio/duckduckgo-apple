@@ -299,6 +299,28 @@ final class DDGSyncLifecycleTests: XCTestCase {
         }
 
         XCTAssertEqual(syncService.authState, .inactive)
+        XCTAssertNil(try? dependencies.keyValueStore.object(forKey: DDGSync.Constants.syncEnabledKey))
+        XCTAssertFalse((dependencies.scheduler as! SchedulerMock).isEnabled)
+        XCTAssertEqual(mockErrorHandler.handledErrors, [.failedToSetupEngine])
+    }
+
+    func testWhenEnableSyncFromPreservedAccountAndEngineSetupFailsAndRemoveFailsThenFallbackClearsSyncEnabledKey() async {
+        secureStorageStub.theAccount = .mock
+        dependencies.shouldPreserveAccountWhenSyncDisabled = { true }
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded()
+        XCTAssertEqual(syncService.authState, .inactive)
+
+        secureStorageStub.mockWriteError = .failedToWriteSecureStore(status: 0)
+        kvfStoreStub.throwOnRemove = MockError.error
+
+        await assertThrowsError(SyncError.failedToSetupEngine) {
+            try await syncService.enableSyncFromPreservedAccount()
+        }
+
+        XCTAssertEqual(syncService.authState, .inactive)
+        XCTAssertNil(try? dependencies.keyValueStore.object(forKey: DDGSync.Constants.syncEnabledKey))
         XCTAssertFalse((dependencies.scheduler as! SchedulerMock).isEnabled)
         XCTAssertEqual(mockErrorHandler.handledErrors, [.failedToSetupEngine])
     }
