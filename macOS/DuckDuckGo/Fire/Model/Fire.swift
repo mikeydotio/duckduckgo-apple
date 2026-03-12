@@ -397,7 +397,9 @@ final class Fire: FireProtocol {
 
             if includeCookiesAndSiteData {
                 group.enter()
-                self.burnPermissions(of: domains) {
+                dataClearingWideEventService?.start(.clearPermissions)
+                self.burnPermissions(of: domains) { result in
+                    dataClearingWideEventService?.update(.clearPermissions, result: result)
                     self.burnDownloads(of: domains)
                     group.leave()
                 }
@@ -520,7 +522,9 @@ final class Fire: FireProtocol {
                 dataClearingWideEventService?.update(.clearAIChatHistory, result: chatHistoryResult)
             }
             self.burnHistory(ofEntity: .allWindows(mainWindowControllers: windowControllers, selectedDomains: [], customURLToOpen: nil, close: false)) {
-                self.burnPermissions {
+                dataClearingWideEventService?.start(.clearPermissions)
+                self.burnPermissions { result in
+                    dataClearingWideEventService?.update(.clearPermissions, result: result)
                     self.burnFavicons {
                         self.burnDownloads()
                         group.leave()
@@ -853,11 +857,11 @@ final class Fire: FireProtocol {
 
     // MARK: - Permissions
 
-    private func burnPermissions(completion: @escaping @MainActor () -> Void) {
+    private func burnPermissions(completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         self.permissionManager.burnPermissions(except: fireproofDomains, completion: completion)
     }
 
-    private func burnPermissions(of baseDomains: Set<String>, completion: @MainActor @escaping () -> Void) {
+    private func burnPermissions(of baseDomains: Set<String>, completion: @MainActor @escaping (Result<Void, Error>) -> Void) {
         self.permissionManager.burnPermissions(of: baseDomains, tld: tld, completion: completion)
     }
 
