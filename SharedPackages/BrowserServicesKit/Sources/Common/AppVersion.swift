@@ -151,7 +151,7 @@ public struct AppVersion: OSVersionProviding {
     }
 
     public static let runType: AppRunType = {
-        let isCI = ProcessInfo.processInfo.environment["CI"] == "1"
+        let isCI = ProcessInfo.processInfo.environment["CI"] == "1" || ProcessInfo.processInfo.environment["CI"] == "true"
 
         if let testBundlePath = ProcessInfo().environment["XCTestBundlePath"] {
             if testBundlePath.contains("Unit") {

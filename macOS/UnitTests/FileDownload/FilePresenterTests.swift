@@ -28,7 +28,7 @@ import XCTest
 @available(macOS 12.0, *)
 final class FilePresenterTests: XCTestCase {
 
-    let isCI = ProcessInfo().environment["CI"] == "1"
+    let isCI = ProcessInfo().environment["CI"] == "1" || ProcessInfo().environment["CI"] == "true"
     let fm = FileManager()
     let testData = "test data".utf8data
     let helperApp = URL(fileURLWithPath: ProcessInfo().environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"]!).appendingPathComponent("sandbox-test-tool.app")
