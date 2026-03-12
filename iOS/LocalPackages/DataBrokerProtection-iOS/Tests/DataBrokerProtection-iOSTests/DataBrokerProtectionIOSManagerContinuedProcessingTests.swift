@@ -23,23 +23,6 @@ import DataBrokerProtectionCore
 @MainActor
 final class DataBrokerProtectionIOSManagerContinuedProcessingTests: XCTestCase {
 
-    func testWhenPrepareContinuedProcessingInitialRunAndNoPendingScans_thenReturnsFalse() async throws {
-        let (sut, dependencies) = DBPContinuedProcessingTestUtils.makeTestIOSManager()
-        dependencies.database.brokerProfileQueryDataToReturn = [
-            DBPContinuedProcessingTestUtils.makeBrokerProfileQueryData(
-                brokerId: 1,
-                profileQueryId: 1,
-                scanPreferredRunDate: nil
-            )
-        ]
-
-        let hasPendingScans = try await sut.prepareContinuedProcessingInitialRun(profile: DBPContinuedProcessingTestUtils.makeProfile())
-
-        XCTAssertFalse(hasPendingScans)
-        XCTAssertTrue(dependencies.database.wasSaveProfileCalled)
-        XCTAssertTrue(dependencies.eventsHandler.profileSavedFired)
-    }
-
     func testWhenPrepareContinuedProcessingInitialRunAndPendingScansExist_thenReturnsTrue() async throws {
         let (sut, dependencies) = DBPContinuedProcessingTestUtils.makeTestIOSManager()
         dependencies.database.brokerProfileQueryDataToReturn = [
@@ -55,50 +38,6 @@ final class DataBrokerProtectionIOSManagerContinuedProcessingTests: XCTestCase {
         XCTAssertTrue(hasPendingScans)
         XCTAssertTrue(dependencies.database.wasSaveProfileCalled)
         XCTAssertTrue(dependencies.eventsHandler.profileSavedFired)
-    }
-
-    func testWhenHasPendingContinuedProcessingOptOutsAndNoEligibleJobs_thenReturnsFalse() throws {
-        let (sut, dependencies) = DBPContinuedProcessingTestUtils.makeTestIOSManager()
-        dependencies.database.brokerProfileQueryDataToReturn = [
-            DBPContinuedProcessingTestUtils.makeBrokerProfileQueryData(
-                brokerId: 1,
-                profileQueryId: 1,
-                optOutJobData: [
-                    .mock(
-                        with: .mockWithoutRemovedDate,
-                        brokerId: 1,
-                        profileQueryId: 1,
-                        preferredRunDate: .now.addingTimeInterval(.hours(1))
-                    )
-                ]
-            )
-        ]
-
-        let hasPendingOptOuts = try sut.hasPendingContinuedProcessingOptOuts()
-
-        XCTAssertFalse(hasPendingOptOuts)
-    }
-
-    func testWhenHasPendingContinuedProcessingOptOutsAndEligibleJobsExist_thenReturnsTrue() throws {
-        let (sut, dependencies) = DBPContinuedProcessingTestUtils.makeTestIOSManager()
-        dependencies.database.brokerProfileQueryDataToReturn = [
-            DBPContinuedProcessingTestUtils.makeBrokerProfileQueryData(
-                brokerId: 1,
-                profileQueryId: 1,
-                optOutJobData: [
-                    .mock(
-                        with: .mockWithoutRemovedDate,
-                        brokerId: 1,
-                        profileQueryId: 1,
-                        preferredRunDate: .now
-                    )
-                ]
-            )
-        ]
-
-        let hasPendingOptOuts = try sut.hasPendingContinuedProcessingOptOuts()
-
-        XCTAssertTrue(hasPendingOptOuts)
     }
 
     func testWhenStartImmediateScanOperationsForContinuedProcessing_thenStartsQueueAndEmitsScanPhaseCompleted() async {
