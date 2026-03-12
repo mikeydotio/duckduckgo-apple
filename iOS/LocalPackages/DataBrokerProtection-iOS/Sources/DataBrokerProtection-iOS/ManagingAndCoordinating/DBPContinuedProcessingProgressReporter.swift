@@ -43,27 +43,19 @@ final class DBPContinuedProcessingProgressReporter {
         let extractedProfileId: Int64
     }
 
-    struct ScanJobSummary: Sendable {
-        let id: ScanJobID
-    }
-
-    struct OptOutJobSummary: Sendable {
-        let id: OptOutJobID
-    }
-
-    struct InitialScanSummary {
-        let scanJobs: [ScanJobSummary]
+    struct InitialScanPlan {
+        let scanJobIDs: [ScanJobID]
 
         var scanCount: Int {
-            scanJobs.count
+            scanJobIDs.count
         }
     }
 
-    struct OptOutSummary {
-        let optOutJobs: [OptOutJobSummary]
+    struct OptOutPlan {
+        let optOutJobIDs: [OptOutJobID]
 
         var optOutCount: Int {
-            optOutJobs.count
+            optOutJobIDs.count
         }
     }
 
@@ -117,16 +109,16 @@ final class DBPContinuedProcessingProgressReporter {
     // MARK: - Run Setup
 
     /// Seeds the scan half of the progress model and reserves the second half for future opt-outs.
-    func startInitialRun(summary: InitialScanSummary, scanBudgetUnitsPerJob: Int64) {
+    func startInitialRun(plan: InitialScanPlan, scanBudgetUnitsPerJob: Int64) {
         let scanBudgetUnitsPerJob = max(scanBudgetUnitsPerJob, 1)
         phase = .scan
         scanCompletedUnits = 0
         optOutCompletedUnits = 0
-        plannedScans = Dictionary(uniqueKeysWithValues: summary.scanJobs.map {
+        plannedScans = Dictionary(uniqueKeysWithValues: plan.scanJobIDs.map {
             (
-                $0.id,
+                $0,
                 PlannedItemProgress(
-                    id: $0.id,
+                    id: $0,
                     allottedUnits: scanBudgetUnitsPerJob,
                     isCompleted: false
                 )
@@ -145,15 +137,15 @@ final class DBPContinuedProcessingProgressReporter {
     }
 
     /// Allocates the reserved opt-out half across the discovered opt-out jobs.
-    func enterOptOutPhase(summary: OptOutSummary) {
+    func enterOptOutPhase(plan: OptOutPlan) {
         phase = .optOut
         optOutTotalUnits = reservedOptOutUnits
-        let allottedUnitsPerJob = distribute(totalUnits: reservedOptOutUnits, acrossItemCount: summary.optOutJobs.count)
-        plannedOptOuts = Dictionary(uniqueKeysWithValues: zip(summary.optOutJobs, allottedUnitsPerJob).map { job, allottedUnits in
+        let allottedUnitsPerJob = distribute(totalUnits: reservedOptOutUnits, acrossItemCount: plan.optOutJobIDs.count)
+        plannedOptOuts = Dictionary(uniqueKeysWithValues: zip(plan.optOutJobIDs, allottedUnitsPerJob).map { jobID, allottedUnits in
             (
-                job.id,
+                jobID,
                 PlannedItemProgress(
-                    id: job.id,
+                    id: jobID,
                     allottedUnits: allottedUnits,
                     isCompleted: false
                 )
@@ -291,10 +283,10 @@ final class DBPContinuedProcessingProgressReporter {
 
 extension DBPContinuedProcessingProgressReporter {
     /// Builds the initial scan summary used to seed the scan half of the progress model.
-    static func makeInitialScanSummary(
+    static func makeInitialScanPlan(
         from brokerProfileQueryData: [BrokerProfileQueryData],
         priorityDate: Date = Date()
-    ) -> InitialScanSummary {
+    ) -> InitialScanPlan {
         let eligibleJobs = BrokerProfileJob.sortedEligibleJobs(
             brokerProfileQueriesData: brokerProfileQueryData,
             jobType: .manualScan,
@@ -302,20 +294,18 @@ extension DBPContinuedProcessingProgressReporter {
         )
 
         let scanJobs = eligibleJobs.compactMap { $0 as? ScanJobData }
-        let scanJobsSummary = scanJobs.map { job in
-            return ScanJobSummary(
-                id: .init(brokerId: job.brokerId, profileQueryId: job.profileQueryId)
-            )
+        let scanJobIDs = scanJobs.map { job in
+            ScanJobID(brokerId: job.brokerId, profileQueryId: job.profileQueryId)
         }
 
-        return InitialScanSummary(scanJobs: scanJobsSummary)
+        return InitialScanPlan(scanJobIDs: scanJobIDs)
     }
 
     /// Builds the initial opt-out summary from runnable opt-outs discovered after scans complete.
-    static func makeOptOutSummary(
+    static func makeOptOutPlan(
         from brokerProfileQueryData: [BrokerProfileQueryData],
         priorityDate: Date = Date()
-    ) -> OptOutSummary {
+    ) -> OptOutPlan {
         let eligibleJobs = BrokerProfileJob.sortedEligibleJobs(
             brokerProfileQueriesData: brokerProfileQueryData,
             jobType: .optOut,
@@ -332,7 +322,7 @@ extension DBPContinuedProcessingProgressReporter {
             )
         })
 
-        let optOutJobsSummary = optOutJobs.compactMap { job -> OptOutJobSummary? in
+        let optOutJobIDs = optOutJobs.compactMap { job -> OptOutJobID? in
             guard let extractedProfileId = job.extractedProfile.id else { return nil }
             let key = SummaryKey(brokerId: job.brokerId, profileQueryId: job.profileQueryId)
             guard let queryData = dataByKey[key],
@@ -340,16 +330,14 @@ extension DBPContinuedProcessingProgressReporter {
                 return nil
             }
 
-            return OptOutJobSummary(
-                id: .init(
-                    brokerId: job.brokerId,
-                    profileQueryId: job.profileQueryId,
-                    extractedProfileId: extractedProfileId
-                )
+            return OptOutJobID(
+                brokerId: job.brokerId,
+                profileQueryId: job.profileQueryId,
+                extractedProfileId: extractedProfileId
             )
         }
 
-        return OptOutSummary(optOutJobs: optOutJobsSummary)
+        return OptOutPlan(optOutJobIDs: optOutJobIDs)
     }
 
     /// Filters out opt-out jobs that will be skipped and should not count toward initial-run progress.
