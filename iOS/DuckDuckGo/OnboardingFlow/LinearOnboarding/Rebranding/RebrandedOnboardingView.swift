@@ -54,6 +54,35 @@ enum OnboardingBubbleAnimationMetrics {
 
 extension OnboardingRebranding.OnboardingView {
 
+    static func animateSkipOnboardingDialogTransition(
+        showContent: Binding<Bool>,
+        showSkipOnboarding: Binding<Bool>,
+        skipAction: () -> Void
+    ) {
+        showContent.wrappedValue = false
+        skipAction()
+
+        if #available(iOS 17.0, *) {
+            withAnimation(.linear(duration: OnboardingBubbleAnimationMetrics.bubbleResizeAnimationDuration)) {
+                showSkipOnboarding.wrappedValue = true
+            } completion: {
+                withAnimation {
+                    showContent.wrappedValue = true
+                }
+            }
+        } else {
+            withAnimation(.linear(duration: OnboardingBubbleAnimationMetrics.bubbleResizeAnimationDuration)) {
+                showSkipOnboarding.wrappedValue = true
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + OnboardingBubbleAnimationMetrics.contentFadeInDelay) {
+                withAnimation {
+                    showContent.wrappedValue = true
+                }
+            }
+        }
+    }
+
     /// A theme-driven layout container for rebranded onboarding dialog steps.
     ///
     /// `LinearDialogContentContainer` arranges dialog content into a standardised vertical
