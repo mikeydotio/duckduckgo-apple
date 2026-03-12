@@ -79,12 +79,6 @@ final class DBPContinuedProcessingProgressReporter {
         let profileQueryId: Int64
     }
 
-    private struct PlannedItemProgress<ID: Hashable> {
-        let id: ID
-        let allottedUnits: Int64
-        var isCompleted: Bool
-    }
-
     // MARK: - Phase State
 
     private var phase: Phase?
@@ -103,8 +97,10 @@ final class DBPContinuedProcessingProgressReporter {
 
     // MARK: - Planned Job Allocations
 
-    private var plannedScans: [ScanJobID: PlannedItemProgress<ScanJobID>] = [:]
-    private var plannedOptOuts: [OptOutJobID: PlannedItemProgress<OptOutJobID>] = [:]
+    private var scanAllottedUnitsByID: [ScanJobID: Int64] = [:]
+    private var completedScanIDs = Set<ScanJobID>()
+    private var optOutAllottedUnitsByID: [OptOutJobID: Int64] = [:]
+    private var completedOptOutIDs = Set<OptOutJobID>()
 
     // MARK: - Run Setup
 
@@ -114,18 +110,11 @@ final class DBPContinuedProcessingProgressReporter {
         phase = .scan
         scanCompletedUnits = 0
         optOutCompletedUnits = 0
-        plannedScans = Dictionary(uniqueKeysWithValues: plan.scanJobIDs.map {
-            (
-                $0,
-                PlannedItemProgress(
-                    id: $0,
-                    allottedUnits: scanBudgetUnitsPerJob,
-                    isCompleted: false
-                )
-            )
-        })
-        plannedOptOuts = [:]
-        scanTotalUnits = max(plannedScans.values.reduce(0) { $0 + $1.allottedUnits }, scanBudgetUnitsPerJob)
+        scanAllottedUnitsByID = Dictionary(uniqueKeysWithValues: plan.scanJobIDs.map { ($0, scanBudgetUnitsPerJob) })
+        completedScanIDs = []
+        optOutAllottedUnitsByID = [:]
+        completedOptOutIDs = []
+        scanTotalUnits = max(scanAllottedUnitsByID.values.reduce(0, +), scanBudgetUnitsPerJob)
         // Reserve a fixed second half up front so the total progress budget stays a 50/50 scan/opt-out split.
         reservedOptOutUnits = scanTotalUnits
         optOutTotalUnits = reservedOptOutUnits
@@ -141,16 +130,8 @@ final class DBPContinuedProcessingProgressReporter {
         phase = .optOut
         optOutTotalUnits = reservedOptOutUnits
         let allottedUnitsPerJob = distribute(totalUnits: reservedOptOutUnits, acrossItemCount: plan.optOutJobIDs.count)
-        plannedOptOuts = Dictionary(uniqueKeysWithValues: zip(plan.optOutJobIDs, allottedUnitsPerJob).map { jobID, allottedUnits in
-            (
-                jobID,
-                PlannedItemProgress(
-                    id: jobID,
-                    allottedUnits: allottedUnits,
-                    isCompleted: false
-                )
-            )
-        })
+        optOutAllottedUnitsByID = Dictionary(uniqueKeysWithValues: zip(plan.optOutJobIDs, allottedUnitsPerJob))
+        completedOptOutIDs = []
     }
 
     // MARK: - Progress Updates
@@ -169,21 +150,13 @@ final class DBPContinuedProcessingProgressReporter {
 
     /// Snaps the scan phase to its full allotted budget.
     func completeScanPhase() {
-        plannedScans = plannedScans.mapValues { progress in
-            var progress = progress
-            progress.isCompleted = true
-            return progress
-        }
+        completedScanIDs = Set(scanAllottedUnitsByID.keys)
         scanCompletedUnits = max(scanCompletedUnits, scanTotalUnits)
     }
 
     /// Snaps the opt-out phase to its full allotted budget.
     func completeOptOutPhase() {
-        plannedOptOuts = plannedOptOuts.mapValues { progress in
-            var progress = progress
-            progress.isCompleted = true
-            return progress
-        }
+        completedOptOutIDs = Set(optOutAllottedUnitsByID.keys)
         optOutCompletedUnits = max(optOutCompletedUnits, optOutTotalUnits)
     }
 
@@ -195,18 +168,22 @@ final class DBPContinuedProcessingProgressReporter {
 
     /// Marks a scan job complete and tops scan progress up to that job's allotted share.
     func recordCompletedScan(_ id: ScanJobID) {
-        guard var progress = plannedScans[id], !progress.isCompleted else { return }
-        progress.isCompleted = true
-        plannedScans[id] = progress
-        scanCompletedUnits = max(scanCompletedUnits, plannedScans.values.filter(\.isCompleted).reduce(0) { $0 + $1.allottedUnits })
+        guard scanAllottedUnitsByID[id] != nil else { return }
+        let inserted = completedScanIDs.insert(id).inserted
+        guard inserted else { return }
+        scanCompletedUnits = max(scanCompletedUnits, completedScanIDs.reduce(0) { total, id in
+            total + (scanAllottedUnitsByID[id] ?? 0)
+        })
     }
 
     /// Marks an opt-out job complete and tops opt-out progress up to that job's allotted share.
     func recordCompletedOptOut(_ id: OptOutJobID) {
-        guard var progress = plannedOptOuts[id], !progress.isCompleted else { return }
-        progress.isCompleted = true
-        plannedOptOuts[id] = progress
-        optOutCompletedUnits = max(optOutCompletedUnits, plannedOptOuts.values.filter(\.isCompleted).reduce(0) { $0 + $1.allottedUnits })
+        guard optOutAllottedUnitsByID[id] != nil else { return }
+        let inserted = completedOptOutIDs.insert(id).inserted
+        guard inserted else { return }
+        optOutCompletedUnits = max(optOutCompletedUnits, completedOptOutIDs.reduce(0) { total, id in
+            total + (optOutAllottedUnitsByID[id] ?? 0)
+        })
     }
 
     // MARK: - Reporting
@@ -229,7 +206,7 @@ final class DBPContinuedProcessingProgressReporter {
 
     /// Builds the opt-out-phase subtitle shown by the system task UI.
     var optOutSubtitle: String {
-        let optOutCount = plannedOptOuts.count
+        let optOutCount = optOutAllottedUnitsByID.count
         guard optOutCount > 0 else {
             return Constants.preparingOptOutSubtitle
         }
@@ -266,14 +243,15 @@ final class DBPContinuedProcessingProgressReporter {
 
     /// Counts distinct brokers represented in the planned scan set.
     private var uniqueScanBrokerCount: Int {
-        Set(plannedScans.keys.map(\.brokerId)).count
+        Set(scanAllottedUnitsByID.keys.map(\.brokerId)).count
     }
 
     /// Counts brokers whose full set of scan jobs has finished.
     private var completedScanBrokerCount: Int {
-        Dictionary(grouping: plannedScans.values, by: \.id.brokerId)
+        let scanIDsGroupedByBroker = Dictionary(grouping: scanAllottedUnitsByID.keys, by: \.brokerId)
+        return scanIDsGroupedByBroker
             .values
-            .filter { brokerJobs in brokerJobs.allSatisfy(\.isCompleted) }
+            .filter { brokerScanIDs in brokerScanIDs.allSatisfy(completedScanIDs.contains) }
             .count
     }
 
