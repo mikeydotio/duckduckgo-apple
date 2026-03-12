@@ -82,28 +82,32 @@ final class DataClearingWideEventService {
         wideEvent.startFlow(data)
     }
 
-    // MARK: - Updating Action Results
+    // MARK: - Action Tracking
 
-    /// Updates the wide event with a successful action result.
+    /// Starts tracking an action by initializing its duration interval.
     ///
-    /// - Parameters:
-    ///   - action: The action that completed successfully.
-    ///   - duration: The measured duration of the action.
-    func update(action: DataClearingWideEventData.Action, duration: WideEvent.MeasuredInterval) {
-        eventData?[keyPath: action.durationPath] = duration
-        eventData?[keyPath: action.statusPath] = .success
+    /// - Parameter action: The action that is about to execute.
+    func start(_ action: DataClearingWideEventData.Action) {
+        eventData?[keyPath: action.durationPath] = .startingNow()
     }
 
-    /// Updates the wide event with a failed action result.
+    /// Updates the wide event with an action result.
+    ///
+    /// Completes the action's duration interval and records success or failure status.
     ///
     /// - Parameters:
-    ///   - action: The action that failed.
-    ///   - error: The error that occurred.
-    ///   - duration: The measured duration of the action.
-    func update(action: DataClearingWideEventData.Action, error: Error, duration: WideEvent.MeasuredInterval) {
-        eventData?[keyPath: action.durationPath] = duration
-        eventData?[keyPath: action.statusPath] = .failure
-        eventData?[keyPath: action.errorPath] = WideEventErrorData(error: error)
+    ///   - action: The action that completed.
+    ///   - result: The result of the action (success or failure).
+    func update(_ action: DataClearingWideEventData.Action, result: Result<Void, Error>) {
+        eventData?[keyPath: action.durationPath]?.complete()
+
+        switch result {
+        case .success:
+            eventData?[keyPath: action.statusPath] = .success
+        case .failure(let error):
+            eventData?[keyPath: action.statusPath] = .failure
+            eventData?[keyPath: action.errorPath] = WideEventErrorData(error: error)
+        }
     }
 
     // MARK: - Completing Wide Event

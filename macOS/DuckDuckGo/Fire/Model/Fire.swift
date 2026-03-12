@@ -400,7 +400,10 @@ final class Fire: FireProtocol {
                     group.leave()
                 }
 
-                self.burnAutoconsentCache()
+                dataClearingWideEventService?.start(.clearAutoconsentManagementCache)
+                let autoconsentCacheResult = self.burnAutoconsentCache()
+                dataClearingWideEventService?.update(.clearAutoconsentManagementCache, result: autoconsentCacheResult)
+
                 self.burnZoomLevels(of: domains)
 
                 // when removing cookies for the domain we also need to clear cookiePopupBlocked flag
@@ -510,7 +513,11 @@ final class Fire: FireProtocol {
             }
 
             self.burnRecentlyClosed()
-            self.burnAutoconsentCache()
+
+            dataClearingWideEventService?.start(.clearAutoconsentManagementCache)
+            let autoconsentCacheResult = self.burnAutoconsentCache()
+            dataClearingWideEventService?.update(.clearAutoconsentManagementCache, result: autoconsentCacheResult)
+
             self.burnZoomLevels()
 
             await withCheckedContinuation { continuation in
@@ -974,8 +981,9 @@ final class Fire: FireProtocol {
 
     // MARK: - Autoconsent visit cache
 
-    private func burnAutoconsentCache() {
+    private func burnAutoconsentCache() -> Result<Void, Error> {
         self.autoconsentManagement?.clearCache()
+        return .success(())
     }
 
     private func burnAutoconsentStats() async {
