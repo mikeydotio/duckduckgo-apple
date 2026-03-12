@@ -17,22 +17,211 @@
 //  limitations under the License.
 //
 
+import AIChat
 import AppKit
+import AppUpdaterShared
+import BrowserServicesKit
+import Combine
+import Common
+import Configuration
+import DataBrokerProtection_macOS
+import DataBrokerProtectionCore
+import DDGSync
+import FeatureFlags
+import Freemium
+import Lottie
+import os.log
 import PixelKit
+import Subscription
+import SyncDataProviders
+import VPN
+import WebExtensions
+
+// swiftlint:disable type_body_length
+// swiftlint:disable function_body_length
+// swiftlint:disable file_length
 
 @MainActor
 final class Foreground: ForegroundHandling {
 
-    let dependencies: AppDependencies
+    var dependencies: AppDependencies
     private var terminationHandler: TerminationDeciderHandler?
 
-    init(dependencies: AppDependencies) {
+    // MARK: - Stored Properties (moved from AppDelegate)
+
+    private var vpnSubscriptionEventHandler: VPNSubscriptionEventsHandler?
+    private var freemiumDBPScanResultPolling: FreemiumDBPScanResultPolling?
+    private(set) var aiChatSyncCleaner: AIChatSyncCleaning?
+    private(set) var autofillPixelReporter: AutofillPixelReporter?
+    private var passwordsStatusBarMenu: PasswordsStatusBarMenu?
+    private var passwordsMenuBarCancellable: AnyCancellable?
+    private var isInternalUserSharingCancellable: AnyCancellable?
+    private var isSyncInProgressCancellable: AnyCancellable?
+    private var syncFeatureFlagsCancellable: AnyCancellable?
+    private var screenLockedCancellable: AnyCancellable?
+    private var emailCancellables = Set<AnyCancellable>()
+    private var updateProgressCancellable: AnyCancellable?
+    private(set) var webExtensionManager: WebExtensionManaging?
+    private var webExtensionFeatureFlagHandler: AnyObject?
+    private var isSyncingEmbeddedExtensions = false
+    private(set) var darkReaderFeatureSettings: DarkReaderFeatureSettings?
+    private var darkReaderCancellables = Set<AnyCancellable>()
+    private var automationServer: AutomationServer?
+
+    @UserDefaultsWrapper(key: .syncDidShowSyncPausedByFeatureFlagAlert, defaultValue: false)
+    private var syncDidShowSyncPausedByFeatureFlagAlert: Bool
+
+    init(dependencies: AppDependencies, vpnSubscriptionEventHandler: VPNSubscriptionEventsHandler? = nil) {
         self.dependencies = dependencies
+        self.vpnSubscriptionEventHandler = vpnSubscriptionEventHandler
     }
 
+    // MARK: - onTransition (moved from AppDelegate.applicationDidFinishLaunching)
+
     func onTransition() {
-        // Phase 1: AppDelegate.applicationDidBecomeActive still runs its own logic.
-        // In Phase 2, that logic moves here.
+        guard AppVersion.runType.requiresEnvironment else { return }
+
+        let startupProfiler = dependencies.services.startupProfiler
+        let profilerToken = startupProfiler.measureSequence(initialStep: .appDidFinishLaunchingBeforeRestoration)
+
+        Task {
+            await dependencies.subscription.subscriptionManager.loadInitialData()
+
+            Application.appDelegate.vpnAppEventsHandler.applicationDidFinishLaunching()
+        }
+
+        dependencies.services.historyCoordinator.loadHistory {
+            self.dependencies.services.historyCoordinator.migrateModelV5toV6IfNeeded()
+        }
+
+        dependencies.services.privacyFeatures.httpsUpgrade.loadDataAsync()
+        dependencies.services.bookmarkManager.loadBookmarks()
+
+        // Force use of .mainThread to prevent high WindowServer Usage
+        // Pending Fix with newer Lottie versions
+        // https://app.asana.com/0/1177771139624306/1207024603216659/f
+        LottieConfiguration.shared.renderingEngine = .mainThread
+
+        dependencies.services.configurationManager.start()
+
+        let isFirstLaunch = LocalStatisticsStore().atb == nil
+
+        if isFirstLaunch {
+            AppDelegate.firstLaunchDate = Date()
+        }
+
+        setupWebExtensions()
+
+        Application.appDelegate.vpnUpsellVisibilityManager.setup(isFirstLaunch: isFirstLaunch, isOnboardingFinished: OnboardingActionsManager.isOnboardingFinished)
+
+        AtbAndVariantCleanup.cleanup()
+        DefaultVariantManager().assignVariantIfNeeded { _ in
+            // MARK: perform first time launch logic here
+        }
+
+        let statisticsLoader = AppVersion.runType.requiresEnvironment ? StatisticsLoader.shared : nil
+        statisticsLoader?.load()
+
+        startupSync()
+
+        profilerToken.advance(to: .appStateRestoration)
+
+        if AppVersion.runType.stateRestorationAllowed {
+            dependencies.services.stateRestorationManager?.applicationDidFinishLaunching()
+        }
+
+        profilerToken.advance(to: .appDidFinishLaunchingAfterRestoration)
+
+        let urlEventHandlerResult = dependencies.services.urlEventHandler.applicationDidFinishLaunching()
+
+        setUpAutoClearHandler()
+        dependencies.services.bitwardenManager?.initCommunication()
+
+        if AppVersion.runType.opensWindowOnStartupIfNeeded,
+           !urlEventHandlerResult.willOpenWindows && WindowsManager.windows.first(where: { $0 is MainWindow }) == nil {
+            // Use startup window preferences if not restoring previous session
+            if !dependencies.preferences.startupPreferences.restorePreviousSession {
+                let burnerMode = dependencies.preferences.startupPreferences.startupBurnerMode()
+                WindowsManager.openNewWindow(burnerMode: burnerMode, lazyLoadTabs: true)
+            } else {
+                WindowsManager.openNewWindow(lazyLoadTabs: true)
+            }
+        }
+
+        dependencies.services.grammarFeaturesManager.manage()
+
+        applyPreferredTheme()
+
+        if case .normal = AppVersion.runType {
+            Task {
+                await dependencies.services.crashReporting.start()
+            }
+        }
+
+        subscribeToEmailProtectionStatusNotifications()
+        subscribeToDataImportCompleteNotification()
+        subscribeToInternalUserChanges()
+        subscribeToUpdateControllerChanges()
+
+        fireFailedCompilationsPixelIfNeeded()
+
+        UserDefaultsWrapper<Any>.clearRemovedKeys()
+
+        vpnSubscriptionEventHandler?.startMonitoring()
+
+        let dataBrokerProtectionSubscriptionEventHandler: DataBrokerProtectionSubscriptionEventHandler = {
+            let authManager = DataBrokerAuthenticationManagerBuilder.buildAuthenticationManager(subscriptionManager: dependencies.subscription.subscriptionManager)
+            return DataBrokerProtectionSubscriptionEventHandler(featureDisabler: DataBrokerProtectionFeatureDisabler(),
+                                                                authenticationManager: authManager,
+                                                                pixelHandler: DataBrokerProtectionMacOSPixelsHandler())
+        }()
+        dataBrokerProtectionSubscriptionEventHandler.registerForSubscriptionAccountManagerEvents()
+
+        let freemiumDBPUserStateManager = DefaultFreemiumDBPUserStateManager(userDefaults: .dbp)
+        let pirGatekeeper = DefaultDataBrokerProtectionFeatureGatekeeper(
+            privacyConfigurationManager: dependencies.services.privacyFeatures.contentBlocking.privacyConfigurationManager,
+            subscriptionManager: dependencies.subscription.subscriptionManager,
+            freemiumDBPUserStateManager: freemiumDBPUserStateManager
+        )
+
+        DataBrokerProtectionAppEvents(featureGatekeeper: pirGatekeeper).applicationDidFinishLaunching()
+
+        TipKitAppEventHandler(featureFlagger: dependencies.featureFlags.featureFlagger).appDidFinishLaunching()
+
+        setUpAutofillPixelReporter()
+        setUpPasswordsMenuBarVisibility()
+
+        dependencies.services.remoteMessagingClient?.startRefreshingRemoteMessages()
+
+        // This messaging system has been replaced by RMF, but we need to clean up the message manifest for any users who had it stored.
+        let deprecatedRemoteMessagingStorage = DefaultSurveyRemoteMessagingStorage.surveys()
+        deprecatedRemoteMessagingStorage.removeStoredMessagesIfNecessary()
+
+        let didCrashDuringCrashHandlersSetUp = UserDefaultsWrapper(key: .didCrashDuringCrashHandlersSetUp, defaultValue: false)
+        if didCrashDuringCrashHandlersSetUp.wrappedValue {
+            PixelKit.fire(GeneralPixel.crashOnCrashHandlersSetUp)
+            didCrashDuringCrashHandlersSetUp.wrappedValue = false
+        }
+
+        freemiumDBPScanResultPolling = DefaultFreemiumDBPScanResultPolling(dataManager: DataBrokerProtectionManager.shared.dataManager, freemiumDBPUserStateManager: freemiumDBPUserStateManager)
+        freemiumDBPScanResultPolling?.startPollingOrObserving()
+
+        let wideEventService = WideEventService(
+            wideEvent: dependencies.services.wideEvent,
+            subscriptionManager: dependencies.subscription.subscriptionManager
+        )
+        Task(priority: .utility) {
+            await wideEventService.sendPendingEvents()
+        }
+
+        dependencies.services.userChurnScheduler.start()
+
+        dependencies.services.memoryUsageMonitor.enableIfNeeded(featureFlagger: dependencies.featureFlags.featureFlagger)
+
+        startAutomationServerIfNeeded()
+
+        PixelKit.fire(GeneralPixel.launch, doNotEnforcePrefix: true)
+        profilerToken.stop()
     }
 
     func didReturn() {
@@ -156,4 +345,449 @@ final class Foreground: ForegroundHandling {
         return manager
     }
 
+    // MARK: - Web Extensions
+
+    @MainActor
+    private func setupWebExtensions() {
+        guard #available(macOS 15.4, *) else { return }
+
+        let featureFlagger = dependencies.featureFlags.featureFlagger
+        let privacyFeatures = dependencies.services.privacyFeatures
+        let keyValueStore = dependencies.stores.keyValueStore
+        let appearancePreferences = dependencies.preferences.appearancePreferences
+        let cookiePopupProtectionPreferences = dependencies.preferences.cookiePopupProtectionPreferences
+
+        let darkReaderSettings = AppDarkReaderFeatureSettings(
+            featureFlagger: featureFlagger,
+            privacyConfigurationManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
+            storage: keyValueStore.throwingKeyedStoring(),
+            currentThemeProvider: appearancePreferences,
+            pixelFiring: PixelKit.shared
+        )
+        self.darkReaderFeatureSettings = darkReaderSettings
+        appearancePreferences.darkReaderFeatureSettings = darkReaderSettings
+
+        darkReaderSettings.forceDarkModeChangedPublisher
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.syncEmbeddedExtensions()
+                }
+            }
+            .store(in: &darkReaderCancellables)
+
+        appearancePreferences.$themeAppearance
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.darkReaderFeatureSettings?.themeDidChange()
+            }
+            .store(in: &darkReaderCancellables)
+
+        let webExtensionsPublisher = featureFlagger.updatesPublisher
+            .compactMap { [weak featureFlagger] in
+                featureFlagger?.isFeatureOn(.webExtensions)
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+
+        let embeddedExtensionPublisher = featureFlagger.updatesPublisher
+            .compactMap { [weak featureFlagger] in
+                featureFlagger?.isFeatureOn(.embeddedExtension)
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+
+        webExtensionFeatureFlagHandler = WebExtensionFeatureFlagHandler(
+            webExtensionManagerProvider: { [weak self] in self?.webExtensionManager },
+            featureFlagPublisher: webExtensionsPublisher,
+            embeddedExtensionFlagPublisher: embeddedExtensionPublisher,
+            onFeatureFlagEnabled: { [weak self] in
+                await self?.initializeWebExtensions()
+            },
+            onFeatureFlagDisabled: { [weak self] in
+                self?.webExtensionManager = nil
+            },
+            onEmbeddedExtensionFlagEnabled: { [weak self] in
+                await self?.syncEmbeddedExtensions()
+            }
+        )
+
+        if featureFlagger.isFeatureOn(.webExtensions) {
+            // Create manager synchronously so it's available during state restoration.
+            // Tabs restored before the manager exists won't have webExtensionController attached.
+            let webExtensionManager = WebExtensionManagerFactory.makeManager(
+                privacyConfigurationManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
+                autoconsentPreferences: cookiePopupProtectionPreferences,
+                darkReaderExcludedDomainsProvider: darkReaderSettings
+            )
+            self.webExtensionManager = webExtensionManager
+
+            // Load extensions asynchronously - the controller is already attached to tabs
+            Task {
+                await webExtensionManager.loadInstalledExtensions()
+                await syncEmbeddedExtensions()
+            }
+        } else {
+            webExtensionManager = nil
+        }
+    }
+
+    @available(macOS 15.4, *)
+    @MainActor
+    private func initializeWebExtensions() async {
+        guard webExtensionManager == nil else {
+            // Already initialized, just load extensions
+            await (webExtensionManager as? WebExtensionManager)?.loadInstalledExtensions()
+            await syncEmbeddedExtensions()
+            return
+        }
+
+        let webExtensionManager = WebExtensionManagerFactory.makeManager(
+            privacyConfigurationManager: dependencies.services.privacyFeatures.contentBlocking.privacyConfigurationManager,
+            autoconsentPreferences: dependencies.preferences.cookiePopupProtectionPreferences,
+            darkReaderExcludedDomainsProvider: darkReaderFeatureSettings
+        )
+        self.webExtensionManager = webExtensionManager
+
+        await webExtensionManager.loadInstalledExtensions()
+        await syncEmbeddedExtensions()
+    }
+
+    @available(macOS 15.4, *)
+    @MainActor
+    private func syncEmbeddedExtensions() async {
+        guard !isSyncingEmbeddedExtensions else { return }
+        guard let webExtensionManager = webExtensionManager as? WebExtensionManager else { return }
+
+        isSyncingEmbeddedExtensions = true
+        defer { isSyncingEmbeddedExtensions = false }
+
+        var enabledTypes: Set<DuckDuckGoWebExtensionType> = []
+        if dependencies.featureFlags.featureFlagger.isFeatureOn(.embeddedExtension) {
+            enabledTypes.insert(.embedded)
+        }
+        if darkReaderFeatureSettings?.isForceDarkModeEnabled == true {
+            enabledTypes.insert(.darkReader)
+        }
+        await webExtensionManager.syncEmbeddedExtensions(enabledTypes: enabledTypes)
+    }
+
+    // MARK: - Sync
+
+    @MainActor
+    private func startupSync() {
+#if DEBUG
+        let defaultEnvironment = ServerEnvironment.development
+#else
+        let defaultEnvironment = ServerEnvironment.production
+#endif
+
+        let environment: ServerEnvironment
+        let buildType = StandardApplicationBuildType()
+        if buildType.isDebugBuild || buildType.isReviewBuild {
+            environment = ServerEnvironment(
+                UserDefaultsWrapper(key: .syncEnvironment, defaultValue: defaultEnvironment.description).wrappedValue
+            ) ?? defaultEnvironment
+        } else {
+            environment = defaultEnvironment
+        }
+
+        let syncDataProviders = SyncDataProvidersSource(
+            bookmarksDatabase: dependencies.stores.bookmarkDatabase.db,
+            bookmarkManager: dependencies.services.bookmarkManager,
+            appearancePreferences: dependencies.preferences.appearancePreferences,
+            syncErrorHandler: dependencies.services.syncErrorHandler
+        )
+        let syncService = DDGSync(
+            dataProvidersSource: syncDataProviders,
+            errorEvents: SyncErrorHandler(),
+            privacyConfigurationManager: dependencies.services.privacyFeatures.contentBlocking.privacyConfigurationManager,
+            keyValueStore: dependencies.stores.keyValueStore,
+            environment: environment
+        )
+        let aiChatSyncCleaner = AIChatSyncCleaner(
+            sync: syncService,
+            keyValueStore: dependencies.stores.keyValueStore,
+            featureFlagProvider: AIChatFeatureFlagProvider(featureFlagger: dependencies.featureFlags.featureFlagger),
+            httpRequestErrorHandler: dependencies.services.syncErrorHandler.handleAiChatsError
+        )
+        syncService.setCustomOperations([AIChatDeleteOperation(cleaner: aiChatSyncCleaner)])
+
+        syncService.initializeIfNeeded()
+        syncDataProviders.setUpDatabaseCleaners(syncService: syncService)
+
+        // This is also called in applicationDidBecomeActive, but we're also calling it here, since
+        // syncService can be nil when applicationDidBecomeActive is called during startup, if a modal
+        // alert is shown before it's instantiated.  In any case it should be safe to call this here,
+        // since the scheduler debounces calls to notifyAppLifecycleEvent().
+        //
+        syncService.scheduler.notifyAppLifecycleEvent()
+
+        dependencies.services.syncDataProviders = syncDataProviders
+        dependencies.services.syncService = syncService
+        self.aiChatSyncCleaner = aiChatSyncCleaner
+
+        isSyncInProgressCancellable = syncService.isSyncInProgressPublisher
+            .filter { $0 }
+            .asVoid()
+            .sink { [weak syncService] in
+                PixelKit.fire(GeneralPixel.syncDaily, frequency: .legacyDailyNoSuffix)
+                syncService?.syncDailyStats.sendStatsIfNeeded(handler: { params in
+                    PixelKit.fire(GeneralPixel.syncSuccessRateDaily, withAdditionalParameters: params)
+                })
+            }
+
+        subscribeSyncQueueToScreenLockedNotifications()
+        subscribeToSyncFeatureFlags(syncService)
+    }
+
+    private func subscribeToSyncFeatureFlags(_ syncService: DDGSync) {
+        syncFeatureFlagsCancellable = syncService.featureFlagsPublisher
+            .dropFirst()
+            .map { $0.contains(.dataSyncing) }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak syncService] isDataSyncingAvailable in
+                if isDataSyncingAvailable {
+                    self?.syncDidShowSyncPausedByFeatureFlagAlert = false
+                } else if syncService?.authState == .active, self?.syncDidShowSyncPausedByFeatureFlagAlert == false {
+                    let isSyncUIVisible = syncService?.featureFlags.contains(.userInterface) == true
+                    let alert = NSAlert.dataSyncingDisabledByFeatureFlag(showLearnMore: isSyncUIVisible)
+                    let response = alert.runModal()
+                    self?.syncDidShowSyncPausedByFeatureFlagAlert = true
+
+                    switch response {
+                    case .alertSecondButtonReturn:
+                        alert.window.sheetParent?.endSheet(alert.window)
+                        DispatchQueue.main.async {
+                            Application.appDelegate.windowControllersManager.showPreferencesTab(withSelectedPane: .sync)
+                        }
+                    default:
+                        break
+                    }
+                }
+            }
+    }
+
+    private func subscribeSyncQueueToScreenLockedNotifications() {
+        let screenIsLockedPublisher = DistributedNotificationCenter.default
+            .publisher(for: .init(rawValue: "com.apple.screenIsLocked"))
+            .map { _ in true }
+        let screenIsUnlockedPublisher = DistributedNotificationCenter.default
+            .publisher(for: .init(rawValue: "com.apple.screenIsUnlocked"))
+            .map { _ in false }
+
+        screenLockedCancellable = Publishers.Merge(screenIsLockedPublisher, screenIsUnlockedPublisher)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isLocked in
+                guard let syncService = self?.dependencies.services.syncService, syncService.authState != .inactive else {
+                    return
+                }
+                if isLocked {
+                    Logger.sync.debug("Screen is locked")
+                    syncService.scheduler.cancelSyncAndSuspendSyncQueue()
+                } else {
+                    Logger.sync.debug("Screen is unlocked")
+                    syncService.scheduler.resumeSyncQueue()
+                }
+            }
+    }
+
+    // MARK: - Email Protection
+
+    private func subscribeToEmailProtectionStatusNotifications() {
+        NotificationCenter.default.publisher(for: .emailDidSignIn)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                self?.emailDidSignInNotification(notification)
+            }
+            .store(in: &emailCancellables)
+
+        NotificationCenter.default.publisher(for: .emailDidSignOut)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                self?.emailDidSignOutNotification(notification)
+            }
+            .store(in: &emailCancellables)
+    }
+
+    private func emailDidSignInNotification(_ notification: Notification) {
+        PixelKit.fire(NonStandardPixel.emailEnabled, doNotEnforcePrefix: true)
+        if AppDelegate.isNewUser {
+            PixelKit.fire(GeneralPixel.emailEnabledInitial, frequency: .legacyInitial)
+        }
+
+        if let object = notification.object as? EmailManager, let emailManager = dependencies.services.syncDataProviders?.settingsAdapter.emailManager, object !== emailManager {
+            dependencies.services.syncService?.scheduler.notifyDataChanged()
+        }
+    }
+
+    private func emailDidSignOutNotification(_ notification: Notification) {
+        PixelKit.fire(NonStandardPixel.emailDisabled, doNotEnforcePrefix: true)
+        if let object = notification.object as? EmailManager, let emailManager = dependencies.services.syncDataProviders?.settingsAdapter.emailManager, object !== emailManager {
+            dependencies.services.syncService?.scheduler.notifyDataChanged()
+        }
+    }
+
+    // MARK: - Data Import
+
+    private func subscribeToDataImportCompleteNotification() {
+        NotificationCenter.default.addObserver(self, selector: #selector(dataImportCompleteNotification(_:)), name: .dataImportComplete, object: nil)
+    }
+
+    @objc private func dataImportCompleteNotification(_ notification: Notification) {
+        if AppDelegate.isNewUser {
+            PixelKit.fire(GeneralPixel.importDataInitial, frequency: .legacyInitial)
+        }
+    }
+
+    // MARK: - Internal User
+
+    private func subscribeToInternalUserChanges() {
+        UserDefaults.appConfiguration.isInternalUser = dependencies.featureFlags.internalUserDecider.isInternalUser
+
+        isInternalUserSharingCancellable = dependencies.featureFlags.internalUserDecider.isInternalUserPublisher
+            .assign(to: \.isInternalUser, onWeaklyHeld: UserDefaults.appConfiguration)
+    }
+
+    // MARK: - Update Controller
+
+    private func subscribeToUpdateControllerChanges() {
+        guard AppVersion.runType.allowsUpdates,
+              let sparkleUpdateController = dependencies.services.updateController as? any SparkleUpdateControlling else { return }
+
+        updateProgressCancellable = sparkleUpdateController.updateProgressPublisher
+            .sink { [weak sparkleUpdateController] progress in
+                sparkleUpdateController?.checkNewApplicationVersionIfNeeded(updateProgress: progress)
+            }
+    }
+
+    // MARK: - AutoClear
+
+    @MainActor
+    private func setUpAutoClearHandler() {
+        let autoClearHandler = AutoClearHandler(dataClearingPreferences: dependencies.preferences.dataClearingPreferences,
+                                                startupPreferences: dependencies.preferences.startupPreferences,
+                                                fireViewModel: dependencies.ui.fireCoordinator.fireViewModel,
+                                                stateRestorationManager: dependencies.services.stateRestorationManager,
+                                                aiChatSyncCleaner: aiChatSyncCleaner)
+        dependencies.services.autoClearHandler = autoClearHandler
+        DispatchQueue.main.async {
+            autoClearHandler.handleAppLaunch()
+        }
+    }
+
+    // MARK: - Autofill
+
+    private func setUpAutofillPixelReporter() {
+        autofillPixelReporter = AutofillPixelReporter(
+            usageStore: AutofillUsageStore(standardUserDefaults: .standard, appGroupUserDefaults: nil),
+            autofillEnabled: AutofillPreferences().askToSaveUsernamesAndPasswords,
+            eventMapping: EventMapping<AutofillPixelEvent> {event, _, params, _ in
+                switch event {
+                case .autofillActiveUser:
+                    PixelKit.fire(GeneralPixel.autofillActiveUser, withAdditionalParameters: params)
+                case .autofillEnabledUser:
+                    PixelKit.fire(GeneralPixel.autofillEnabledUser)
+                case .autofillOnboardedUser:
+                    PixelKit.fire(GeneralPixel.autofillOnboardedUser)
+                case .autofillToggledOn:
+                    PixelKit.fire(GeneralPixel.autofillToggledOn, withAdditionalParameters: params)
+                case .autofillToggledOff:
+                    PixelKit.fire(GeneralPixel.autofillToggledOff, withAdditionalParameters: params)
+                case .autofillLoginsStacked:
+                    PixelKit.fire(GeneralPixel.autofillLoginsStacked, withAdditionalParameters: params)
+                case .autofillCreditCardsStacked:
+                    PixelKit.fire(GeneralPixel.autofillCreditCardsStacked, withAdditionalParameters: params)
+                case .autofillIdentitiesStacked:
+                    PixelKit.fire(GeneralPixel.autofillIdentitiesStacked, withAdditionalParameters: params)
+                }
+            },
+            passwordManager: dependencies.services.passwordManagerCoordinator,
+            installDate: AppDelegate.firstLaunchDate)
+
+        _ = NotificationCenter.default.addObserver(forName: .autofillUserSettingsDidChange,
+                                                   object: nil,
+                                                   queue: nil) { [weak self] _ in
+            self?.autofillPixelReporter?.updateAutofillEnabledStatus(AutofillPreferences().askToSaveUsernamesAndPasswords)
+        }
+    }
+
+    // MARK: - Passwords Menu Bar
+
+    @MainActor
+    private func setUpPasswordsMenuBarVisibility() {
+        guard dependencies.featureFlags.featureFlagger.isFeatureOn(.autofillPasswordsStatusBar) else {
+            passwordsStatusBarMenu?.hide()
+            passwordsStatusBarMenu = nil
+            passwordsMenuBarCancellable = nil
+            return
+        }
+
+        let preferences = AutofillPreferences()
+        if passwordsStatusBarMenu == nil {
+            passwordsStatusBarMenu = PasswordsStatusBarMenu(preferences: preferences, pinningManager: dependencies.ui.pinningManager)
+        }
+
+        if preferences.showInMenuBar {
+            passwordsStatusBarMenu?.show()
+        } else {
+            passwordsStatusBarMenu?.hide()
+        }
+
+        passwordsMenuBarCancellable = NotificationCenter.default.publisher(for: .autofillShowInMenuBarDidChange)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    let showInMenuBar = AutofillPreferences().showInMenuBar
+                    if showInMenuBar {
+                        self?.passwordsStatusBarMenu?.show()
+                    } else {
+                        self?.passwordsStatusBarMenu?.hide()
+                    }
+                }
+            }
+    }
+
+    // MARK: - Theme
+
+    private func applyPreferredTheme() {
+        dependencies.preferences.appearancePreferences.updateUserInterfaceStyle()
+    }
+
+    // MARK: - Compilations Pixel
+
+    private func fireFailedCompilationsPixelIfNeeded() {
+        let store = FailedCompilationsStore()
+        if store.hasAnyFailures {
+            PixelKit.fire(DebugEvent(GeneralPixel.compilationFailed),
+                          frequency: .legacyDaily,
+                          withAdditionalParameters: store.summary,
+                          includeAppVersionParameter: true) { didFire, _ in
+                if !didFire {
+                    store.cleanup()
+                }
+            }
+        }
+    }
+
+    // MARK: - Automation Server
+
+    private func startAutomationServerIfNeeded() {
+        let buildType = StandardApplicationBuildType()
+        guard buildType.isDebugBuild || buildType.isReviewBuild,
+              let port = dependencies.services.launchOptionsHandler.automationPort else {
+            return
+        }
+        Task { @MainActor in
+            automationServer = AutomationServer(
+                windowControllersManager: dependencies.ui.windowControllersManager,
+                contentBlockingManager: dependencies.services.privacyFeatures.contentBlocking.contentBlockingManager,
+                port: port
+            )
+        }
+    }
+
 }
+
+// swiftlint:enable type_body_length
+// swiftlint:enable function_body_length
+// swiftlint:enable file_length

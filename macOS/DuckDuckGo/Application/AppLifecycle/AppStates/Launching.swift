@@ -1139,7 +1139,7 @@ final class Launching: LaunchingHandling {
     }
 
     func makeForegroundState() throws -> any ForegroundHandling {
-        Foreground(dependencies: dependencies)
+        Foreground(dependencies: dependencies, vpnSubscriptionEventHandler: vpnSubscriptionEventHandler)
     }
 }
 
