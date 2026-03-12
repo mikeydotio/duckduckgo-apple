@@ -439,13 +439,19 @@ public class DDGSync: DDGSyncing {
     }
 
     public func enableSyncFromPreservedAccount() async throws {
-        if authState == .active || authState == .addingNewDevice {
+        if isSyncEngineReady {
             return
         }
 
         try dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
         authState = .initializing
         initializeIfNeeded()
+
+        guard isSyncEngineReady else {
+            authState = .inactive
+            throw SyncError.failedToSetupEngine
+        }
+
         dependencies.scheduler.notifyAppLifecycleEvent()
     }
 
@@ -547,6 +553,12 @@ public class DDGSync: DDGSyncing {
     public func setCustomOperations(_ operations: [any SyncCustomOperation]) {
         customOperations = operations
         syncQueue?.customOperations = operations
+    }
+
+    private var isSyncEngineReady: Bool {
+        (authState == .active || authState == .addingNewDevice)
+        && syncQueue != nil
+        && dependencies.scheduler.isEnabled
     }
 
     private func removeAccount(reason: SyncError.AccountRemovedReason) throws {
