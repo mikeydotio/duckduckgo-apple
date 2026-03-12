@@ -530,8 +530,10 @@ private extension Color {
 
 private struct ScrollIndicatorsFlashOnAppearIfAvailable: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 17.0, *) {
+        if #available(iOS 26.0, *) {
             content.scrollIndicatorsFlash(onAppear: true)
+        } else {
+            content
         }
     }
 }
