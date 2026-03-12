@@ -587,7 +587,10 @@ final class Fire: FireProtocol {
         // Convert to eTLD+1 domains
         domains = domains.convertedToETLDPlus1(tld: tld)
 
-        burnVisitedLinks(visits)
+        dataClearingWideEventService?.start(.clearVisitedLinks)
+        let visitedLinksResult = burnVisitedLinks(visits)
+        dataClearingWideEventService?.update(.clearVisitedLinks, result: visitedLinksResult)
+
         historyCoordinating.burnVisits(visits) {
             // If cookie/site data should not be cleared, finish after history burn
             guard clearSiteData else {
@@ -737,7 +740,9 @@ final class Fire: FireProtocol {
         switch entity {
         case .none(selectedDomains: let domains):
             burnHistory(of: domains) { urls in
-                self.burnVisitedLinks(urls)
+                self.dataClearingWideEventService?.start(.clearVisitedLinks)
+                let visitedLinksResult = self.burnVisitedLinks(urls)
+                self.dataClearingWideEventService?.update(.clearVisitedLinks, result: visitedLinksResult)
                 completion()
             }
             return
@@ -756,13 +761,19 @@ final class Fire: FireProtocol {
                 wc.mainViewController.tabCollectionViewModel.clearLocalHistory(keepingCurrent: true)
             }
 
-            burnAllVisitedLinks()
+            dataClearingWideEventService?.start(.clearVisitedLinks)
+            let visitedLinksResult = burnAllVisitedLinks()
+            dataClearingWideEventService?.update(.clearVisitedLinks, result: visitedLinksResult)
+
             burnAllHistory(completion: completion)
 
             return
         }
 
-        burnVisitedLinks(visits)
+        dataClearingWideEventService?.start(.clearVisitedLinks)
+        let visitedLinksResult = burnVisitedLinks(visits)
+        dataClearingWideEventService?.update(.clearVisitedLinks, result: visitedLinksResult)
+
         historyCoordinating.burnVisits(visits, completion: completion)
     }
 
@@ -789,27 +800,30 @@ final class Fire: FireProtocol {
     // MARK: - Visited links
 
     @MainActor
-    private func burnAllVisitedLinks() {
+    private func burnAllVisitedLinks() -> Result<Void, Error> {
         getVisitedLinkStore()?.removeAll()
+        return .success(())
     }
 
     @MainActor
-    private func burnVisitedLinks(_ visits: [Visit]) {
-        guard let visitedLinkStore = getVisitedLinkStore() else { return }
+    private func burnVisitedLinks(_ visits: [Visit]) -> Result<Void, Error> {
+        guard let visitedLinkStore = getVisitedLinkStore() else { return .success(()) }
 
         for visit in visits {
             guard let url = visit.historyEntry?.url else { continue }
             visitedLinkStore.removeVisitedLink(with: url)
         }
+        return .success(())
     }
 
     @MainActor
-    private func burnVisitedLinks(_ urls: Set<URL>) {
-        guard let visitedLinkStore = getVisitedLinkStore() else { return }
+    private func burnVisitedLinks(_ urls: Set<URL>) -> Result<Void, Error> {
+        guard let visitedLinkStore = getVisitedLinkStore() else { return .success(()) }
 
         for url in urls {
             visitedLinkStore.removeVisitedLink(with: url)
         }
+        return .success(())
     }
 
     // MARK: - Zoom levels
