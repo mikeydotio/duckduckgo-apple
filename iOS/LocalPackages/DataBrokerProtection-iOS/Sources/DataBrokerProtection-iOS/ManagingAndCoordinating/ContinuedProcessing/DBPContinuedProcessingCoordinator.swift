@@ -28,8 +28,8 @@ protocol DBPContinuedProcessingEventDelegate: AnyObject {
 }
 
 enum DBPContinuedProcessingEvent {
-    case scanJobCompleted(DBPContinuedProcessingProgressReporter.ScanJobID)
-    case optOutJobCompleted(DBPContinuedProcessingProgressReporter.OptOutJobID)
+    case scanJobCompleted(DBPContinuedProcessingPlans.ScanJobID)
+    case optOutJobCompleted(DBPContinuedProcessingPlans.OptOutJobID)
     case scanPhaseCompleted
     case optOutPhaseCompleted
 }
@@ -72,7 +72,7 @@ final class DBPContinuedProcessingCoordinator {
 
     /// Prepares the initial run, registers the continued task, and starts the initial scan phase.
     func startInitialRun(profile: DataBrokerProtectionProfile) async throws {
-        guard let scanSummary = try await prepareInitialRun(profile: profile) else {
+        guard try await prepareInitialRun(profile: profile) != nil else {
             Logger.dataBrokerProtection.log("Continued processing: no pending scans found during initial run preparation")
             return
         }
@@ -146,28 +146,28 @@ final class DBPContinuedProcessingCoordinator {
         refreshContinuedProcessingUI()
         Logger.dataBrokerProtection.log("Continued processing: scan phase completed for run \(self.logRunIdentifier(), privacy: .public)")
 
-        guard let optOutSummary = try? manager?.makeContinuedProcessingOptOutSummary() else {
-            Logger.dataBrokerProtection.log("Continued processing: failed to load opt-out summary after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
+        guard let optOutPlan = try? manager?.makeContinuedProcessingOptOutPlan() else {
+            Logger.dataBrokerProtection.log("Continued processing: failed to load opt-out plan after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
             finish(success: false)
             return
         }
 
-        guard optOutSummary.optOutCount > 0 else {
+        guard optOutPlan.optOutCount > 0 else {
             Logger.dataBrokerProtection.log("Continued processing: no initial opt-outs found after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
             finish(success: true)
             return
         }
 
         Logger.dataBrokerProtection.log(
-            "Continued processing: discovered \(optOutSummary.optOutCount, privacy: .public) initial opt-outs for run \(self.logRunIdentifier(), privacy: .public)"
+            "Continued processing: discovered \(optOutPlan.optOutCount, privacy: .public) initial opt-outs for run \(self.logRunIdentifier(), privacy: .public)"
         )
-        await startOptOutPhase(optOutSummary: optOutSummary)
+        await startOptOutPhase(optOutPlan: optOutPlan)
     }
 
     /// Transitions into the initial opt-out phase and starts immediate opt-out work.
-    func startOptOutPhase(optOutSummary: DBPContinuedProcessingProgressReporter.OptOutSummary) async {
+    func startOptOutPhase(optOutPlan: DBPContinuedProcessingPlans.OptOutPlan) async {
         transition(to: .initialOptOut) {
-            progressReporter.enterOptOutPhase(summary: optOutSummary)
+            progressReporter.enterOptOutPhase(plan: optOutPlan)
         }
         Logger.dataBrokerProtection.log("Continued processing: starting opt-out phase for run \(self.logRunIdentifier(), privacy: .public)")
         manager?.startImmediateOptOutOperationsForContinuedProcessing()
@@ -194,22 +194,22 @@ final class DBPContinuedProcessingCoordinator {
 
     // MARK: - Helpers
 
-    /// Builds the initial scan summary and seeds the progress reporter for the run.
-    private func prepareInitialRun(profile: DataBrokerProtectionProfile) async throws -> DBPContinuedProcessingProgressReporter.InitialScanSummary? {
-        guard let scanSummary = try await manager?.prepareContinuedProcessingInitialRun(profile: profile) else {
+    /// Builds the initial scan plan and seeds the progress reporter for the run.
+    private func prepareInitialRun(profile: DataBrokerProtectionProfile) async throws -> DBPContinuedProcessingPlans.InitialScanPlan? {
+        guard let scanPlan = try await manager?.prepareContinuedProcessingInitialRun(profile: profile) else {
             return nil
         }
 
         Logger.dataBrokerProtection.log(
-            "Continued processing: preparing initial run with \(scanSummary.scanCount, privacy: .public) scans"
+            "Continued processing: preparing initial run with \(scanPlan.scanCount, privacy: .public) scans"
         )
         let scanJobTimeout = manager?.continuedProcessingScanJobTimeout() ?? .minutes(3)
         let scanBudgetUnitsPerJob = max(Int64(scanJobTimeout / Constants.heartbeatInterval), 1)
         Logger.dataBrokerProtection.log(
             "Continued processing: derived scan budget units per job \(scanBudgetUnitsPerJob, privacy: .public) from timeout \(scanJobTimeout, privacy: .public)s and heartbeat \(Constants.heartbeatInterval, privacy: .public)s"
         )
-        progressReporter.startInitialRun(summary: scanSummary, scanBudgetUnitsPerJob: scanBudgetUnitsPerJob)
-        return scanSummary
+        progressReporter.startInitialRun(plan: scanPlan, scanBudgetUnitsPerJob: scanBudgetUnitsPerJob)
+        return scanPlan
     }
 
     /// Creates a unique task identifier, registers the handler, and submits the continued task request.
