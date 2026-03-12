@@ -27,13 +27,8 @@ import Testing
 final class MockInitializing: InitializingHandling {
 
     var shouldThrowOnLaunching = false
-    private(set) var willFinishLaunchingCalled = false
 
     init() {}
-
-    func handleWillFinishLaunching() {
-        willFinishLaunchingCalled = true
-    }
 
     func makeLaunchingState() throws -> any LaunchingHandling {
         if shouldThrowOnLaunching {
@@ -48,6 +43,11 @@ final class MockInitializing: InitializingHandling {
 final class MockLaunching: LaunchingHandling {
 
     var shouldThrowOnForeground = false
+    private(set) var willFinishLaunchingCalled = false
+
+    func handleWillFinishLaunching() {
+        willFinishLaunchingCalled = true
+    }
 
     func makeForegroundState() throws -> any ForegroundHandling {
         if shouldThrowOnForeground {
@@ -132,17 +132,16 @@ final class InitializingTests {
         stateMachine = AppStateMachine(initialState: .initializing(MockInitializing()), terminatingStateFactory: terminatingFactory)
     }
 
-    @Test("willFinishLaunching should stay in initializing and call handleWillFinishLaunching")
-    func willFinishLaunching() {
+    @Test("willFinishLaunching in initializing should be ignored")
+    func willFinishLaunchingIgnored() {
         stateMachine.handle(.willFinishLaunching)
         #expect(stateMachine.currentState.name == "initializing")
+    }
 
-        if case .initializing(let initializing) = stateMachine.currentState,
-           let mock = initializing as? MockInitializing {
-            #expect(mock.willFinishLaunchingCalled)
-        } else {
-            Issue.record("Expected initializing state with MockInitializing")
-        }
+    @Test("appDidFinishLaunching in initializing should be ignored")
+    func appDidFinishLaunchingIgnored() {
+        stateMachine.handle(.appDidFinishLaunching)
+        #expect(stateMachine.currentState.name == "initializing")
     }
 
     @Test("didFinishLaunching should transition from initializing to launching")
@@ -182,9 +181,9 @@ final class LaunchingTests {
         stateMachine = AppStateMachine(initialState: .launching(MockLaunching()), terminatingStateFactory: terminatingFactory)
     }
 
-    @Test("didBecomeActive should transition from launching to foreground and call onTransition")
+    @Test("appDidFinishLaunching should transition from launching to foreground and call onTransition")
     func transitionToForeground() {
-        stateMachine.handle(.didBecomeActive)
+        stateMachine.handle(.appDidFinishLaunching)
         #expect(stateMachine.currentState.name == "foreground")
 
         if case .foreground(let foreground) = stateMachine.currentState,
@@ -195,13 +194,13 @@ final class LaunchingTests {
         }
     }
 
-    @Test("didBecomeActive with error should transition to terminating")
+    @Test("appDidFinishLaunching with error should transition to terminating")
     func transitionToTerminatingOnError() {
         if case .launching(let launching) = stateMachine.currentState,
            let mock = launching as? MockLaunching {
             mock.shouldThrowOnForeground = true
         }
-        stateMachine.handle(.didBecomeActive)
+        stateMachine.handle(.appDidFinishLaunching)
         #expect(stateMachine.currentState.name == "terminating")
     }
 
@@ -211,9 +210,22 @@ final class LaunchingTests {
         #expect(stateMachine.currentState.name == "launching")
     }
 
-    @Test("willFinishLaunching in launching should be ignored")
-    func willFinishLaunchingIgnored() {
+    @Test("willFinishLaunching in launching should call handleWillFinishLaunching")
+    func willFinishLaunchingHandled() {
         stateMachine.handle(.willFinishLaunching)
+        #expect(stateMachine.currentState.name == "launching")
+
+        if case .launching(let launching) = stateMachine.currentState,
+           let mock = launching as? MockLaunching {
+            #expect(mock.willFinishLaunchingCalled)
+        } else {
+            Issue.record("Expected launching state with MockLaunching")
+        }
+    }
+
+    @Test("didBecomeActive in launching should be ignored")
+    func didBecomeActiveIgnored() {
+        stateMachine.handle(.didBecomeActive)
         #expect(stateMachine.currentState.name == "launching")
     }
 
@@ -304,6 +316,12 @@ final class ForegroundTests {
         #expect(stateMachine.currentState.name == "foreground")
     }
 
+    @Test("appDidFinishLaunching in foreground should be ignored")
+    func appDidFinishLaunchingIgnored() {
+        stateMachine.handle(.appDidFinishLaunching)
+        #expect(stateMachine.currentState.name == "foreground")
+    }
+
 }
 
 // MARK: - Terminating Tests
@@ -324,6 +342,9 @@ final class TerminatingTests {
         #expect(stateMachine.currentState.name == "terminating")
 
         stateMachine.handle(.didFinishLaunching)
+        #expect(stateMachine.currentState.name == "terminating")
+
+        stateMachine.handle(.appDidFinishLaunching)
         #expect(stateMachine.currentState.name == "terminating")
 
         stateMachine.handle(.didBecomeActive)
@@ -349,13 +370,13 @@ final class FullLifecycleTests {
     func fullLifecycle() {
         let stateMachine = AppStateMachine(initialState: .initializing(MockInitializing()), terminatingStateFactory: MockTerminatingStateFactory())
 
-        stateMachine.handle(.willFinishLaunching)
-        #expect(stateMachine.currentState.name == "initializing")
-
         stateMachine.handle(.didFinishLaunching)
         #expect(stateMachine.currentState.name == "launching")
 
-        stateMachine.handle(.didBecomeActive)
+        stateMachine.handle(.willFinishLaunching)
+        #expect(stateMachine.currentState.name == "launching")
+
+        stateMachine.handle(.appDidFinishLaunching)
         #expect(stateMachine.currentState.name == "foreground")
 
         let reply = stateMachine.handleTerminationRequest()
@@ -363,15 +384,15 @@ final class FullLifecycleTests {
         #expect(stateMachine.currentState.name == "terminating")
     }
 
-    @Test("didBecomeActive before didFinishLaunching is ignored")
+    @Test("didBecomeActive in launching is ignored")
     func earlyDidBecomeActiveIgnored() {
-        let stateMachine = AppStateMachine(initialState: .initializing(MockInitializing()), terminatingStateFactory: MockTerminatingStateFactory())
+        let stateMachine = AppStateMachine(initialState: .launching(MockLaunching()), terminatingStateFactory: MockTerminatingStateFactory())
 
         stateMachine.handle(.didBecomeActive)
-        #expect(stateMachine.currentState.name == "initializing")
-
-        stateMachine.handle(.didFinishLaunching)
         #expect(stateMachine.currentState.name == "launching")
+
+        stateMachine.handle(.appDidFinishLaunching)
+        #expect(stateMachine.currentState.name == "foreground")
     }
 
 }

@@ -1028,6 +1028,10 @@ final class Launching: LaunchingHandling {
 
     }
 
+    func handleWillFinishLaunching() {
+        // Will be implemented in a later task
+    }
+
     func makeForegroundState() throws -> any ForegroundHandling {
         Foreground(dependencies: dependencies)
     }

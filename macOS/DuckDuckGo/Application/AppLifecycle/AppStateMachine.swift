@@ -27,6 +27,7 @@ enum AppEvent {
 
     case willFinishLaunching
     case didFinishLaunching
+    case appDidFinishLaunching
     case didBecomeActive
 
 }
@@ -62,7 +63,6 @@ protocol InitializingHandling {
 
     init()
 
-    mutating func handleWillFinishLaunching()
     func makeLaunchingState() throws -> any LaunchingHandling
 
 }
@@ -70,6 +70,7 @@ protocol InitializingHandling {
 @MainActor
 protocol LaunchingHandling {
 
+    func handleWillFinishLaunching()
     func makeForegroundState() throws -> any ForegroundHandling
 
 }
@@ -133,8 +134,8 @@ final class AppStateMachine {
 
     func handle(_ event: AppEvent) {
         switch currentState {
-        case .initializing(var initializing):
-            respond(to: event, in: &initializing)
+        case .initializing(let initializing):
+            respond(to: event, in: initializing)
         case .launching(let launching):
             respond(to: event, in: launching)
         case .foreground(let foreground):
@@ -170,11 +171,8 @@ final class AppStateMachine {
 
     // MARK: - Private
 
-    private func respond(to event: AppEvent, in initializing: inout any InitializingHandling) {
+    private func respond(to event: AppEvent, in initializing: any InitializingHandling) {
         switch event {
-        case .willFinishLaunching:
-            initializing.handleWillFinishLaunching()
-            currentState = .initializing(initializing)
         case .didFinishLaunching:
             do {
                 currentState = try .launching(initializing.makeLaunchingState())
@@ -190,7 +188,9 @@ final class AppStateMachine {
 
     private func respond(to event: AppEvent, in launching: any LaunchingHandling) {
         switch event {
-        case .didBecomeActive:
+        case .willFinishLaunching:
+            launching.handleWillFinishLaunching()
+        case .appDidFinishLaunching:
             do {
                 let foreground = try launching.makeForegroundState()
                 foreground.onTransition()
