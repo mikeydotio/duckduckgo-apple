@@ -900,11 +900,11 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     @MainActor
     func prepareContinuedProcessingInitialRun(
         profile: DataBrokerProtectionCore.DataBrokerProtectionProfile
-    ) async throws -> DBPContinuedProcessingProgressReporter.InitialScanPlan? {
+    ) async throws -> DBPContinuedProcessingPlans.InitialScanPlan? {
         try await saveProfileAndPrepareForInitialScans(profile)
 
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
-        let scanPlan = DBPContinuedProcessingProgressReporter.makeInitialScanPlan(from: brokerProfileQueryData)
+        let scanPlan = DBPContinuedProcessingPlanBuilder.makeInitialScanPlan(from: brokerProfileQueryData)
         guard scanPlan.scanCount > 0 else {
             return nil
         }
@@ -918,9 +918,9 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     }
 
     @MainActor
-    func makeContinuedProcessingOptOutPlan() throws -> DBPContinuedProcessingProgressReporter.OptOutPlan {
+    func makeContinuedProcessingOptOutPlan() throws -> DBPContinuedProcessingPlans.OptOutPlan {
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
-        return DBPContinuedProcessingProgressReporter.makeOptOutPlan(from: brokerProfileQueryData)
+        return DBPContinuedProcessingPlanBuilder.makeOptOutPlan(from: brokerProfileQueryData)
     }
 
     @MainActor

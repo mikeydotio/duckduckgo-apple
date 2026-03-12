@@ -28,8 +28,8 @@ protocol DBPContinuedProcessingEventDelegate: AnyObject {
 }
 
 enum DBPContinuedProcessingEvent {
-    case scanJobCompleted(DBPContinuedProcessingProgressReporter.ScanJobID)
-    case optOutJobCompleted(DBPContinuedProcessingProgressReporter.OptOutJobID)
+    case scanJobCompleted(DBPContinuedProcessingPlans.ScanJobID)
+    case optOutJobCompleted(DBPContinuedProcessingPlans.OptOutJobID)
     case scanPhaseCompleted
     case optOutPhaseCompleted
 }
@@ -147,7 +147,7 @@ final class DBPContinuedProcessingCoordinator {
         Logger.dataBrokerProtection.log("Continued processing: scan phase completed for run \(self.logRunIdentifier(), privacy: .public)")
 
         guard let optOutPlan = try? manager?.makeContinuedProcessingOptOutPlan() else {
-            Logger.dataBrokerProtection.log("Continued processing: failed to load opt-out summary after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
+            Logger.dataBrokerProtection.log("Continued processing: failed to load opt-out plan after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
             finish(success: false)
             return
         }
@@ -165,7 +165,7 @@ final class DBPContinuedProcessingCoordinator {
     }
 
     /// Transitions into the initial opt-out phase and starts immediate opt-out work.
-    func startOptOutPhase(optOutPlan: DBPContinuedProcessingProgressReporter.OptOutPlan) async {
+    func startOptOutPhase(optOutPlan: DBPContinuedProcessingPlans.OptOutPlan) async {
         transition(to: .initialOptOut) {
             progressReporter.enterOptOutPhase(plan: optOutPlan)
         }
@@ -194,8 +194,8 @@ final class DBPContinuedProcessingCoordinator {
 
     // MARK: - Helpers
 
-    /// Builds the initial scan summary and seeds the progress reporter for the run.
-    private func prepareInitialRun(profile: DataBrokerProtectionProfile) async throws -> DBPContinuedProcessingProgressReporter.InitialScanPlan? {
+    /// Builds the initial scan plan and seeds the progress reporter for the run.
+    private func prepareInitialRun(profile: DataBrokerProtectionProfile) async throws -> DBPContinuedProcessingPlans.InitialScanPlan? {
         guard let scanPlan = try await manager?.prepareContinuedProcessingInitialRun(profile: profile) else {
             return nil
         }
