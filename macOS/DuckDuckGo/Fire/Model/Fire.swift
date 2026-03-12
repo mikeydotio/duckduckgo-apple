@@ -389,7 +389,9 @@ final class Fire: FireProtocol {
             }
 
             if includingHistory {
-                self.burnHistory(ofEntity: entity) {
+                dataClearingWideEventService?.start(.clearAllHistory)
+                self.burnHistory(ofEntity: entity) { result in
+                    dataClearingWideEventService?.update(.clearAllHistory, result: result)
                     self.burnFavicons(for: domains) {
                         group.leave()
                     }
@@ -531,7 +533,10 @@ final class Fire: FireProtocol {
                 let chatHistoryResult = await burnChatHistory()
                 dataClearingWideEventService?.update(.clearAIChatHistory, result: chatHistoryResult)
             }
-            self.burnHistory(ofEntity: .allWindows(mainWindowControllers: windowControllers, selectedDomains: [], customURLToOpen: nil, close: false)) {
+            dataClearingWideEventService?.start(.clearAllHistory)
+            self.burnHistory(ofEntity: .allWindows(mainWindowControllers: windowControllers, selectedDomains: [], customURLToOpen: nil, close: false)) { historyResult in
+                dataClearingWideEventService?.update(.clearAllHistory, result: historyResult)
+
                 dataClearingWideEventService?.start(.clearPermissions)
                 self.burnPermissions { result in
                     dataClearingWideEventService?.update(.clearPermissions, result: result)
@@ -617,7 +622,7 @@ final class Fire: FireProtocol {
         let visitedLinksResult = burnVisitedLinks(visits)
         dataClearingWideEventService?.update(.clearVisitedLinks, result: visitedLinksResult)
 
-        historyCoordinating.burnVisits(visits) {
+        historyCoordinating.burnVisits(visits) {_ in 
             // If cookie/site data should not be cleared, finish after history burn
             guard clearSiteData else {
                 completion?()
@@ -761,16 +766,21 @@ final class Fire: FireProtocol {
     // MARK: - History
 
     @MainActor
-    private func burnHistory(ofEntity entity: BurningEntity, completion: @escaping @MainActor () -> Void) {
+    private func burnHistory(ofEntity entity: BurningEntity, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         let visits: [Visit]
 
         switch entity {
         case .none(selectedDomains: let domains):
-            burnHistory(of: domains) { urls in
-                self.dataClearingWideEventService?.start(.clearVisitedLinks)
-                let visitedLinksResult = self.burnVisitedLinks(urls)
-                self.dataClearingWideEventService?.update(.clearVisitedLinks, result: visitedLinksResult)
-                completion()
+            burnHistory(of: domains) { result in
+                switch result {
+                case .success(let urls):
+                    self.dataClearingWideEventService?.start(.clearVisitedLinks)
+                    let visitedLinksResult = self.burnVisitedLinks(urls)
+                    self.dataClearingWideEventService?.update(.clearVisitedLinks, result: visitedLinksResult)
+                    completion(.success(()))
+                case .failure(let error):
+                    completion(.failure(error))
+                }
             }
             return
         case .tab(tabViewModel: let tabViewModel, selectedDomains: _, parentTabCollectionViewModel: _, _):
@@ -805,12 +815,12 @@ final class Fire: FireProtocol {
     }
 
     @MainActor
-    private func burnHistory(of baseDomains: Set<String>, completion: @escaping @MainActor (Set<URL>) -> Void) {
+    private func burnHistory(of baseDomains: Set<String>, completion: @escaping @MainActor (Result<Set<URL>, Error>) -> Void) {
         historyCoordinating.burnDomains(baseDomains, tld: tld, completion: completion)
     }
 
     @MainActor
-    private func burnAllHistory(completion: @escaping @MainActor () -> Void) {
+    private func burnAllHistory(completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         historyCoordinating.burnAll(completion: completion)
     }
 

@@ -81,7 +81,7 @@ public class HistoryManager: HistoryManaging {
     @MainActor
     public func removeAllHistory() async {
         await withCheckedContinuation { continuation in
-            dbCoordinator.burnAll {
+            dbCoordinator.burnAll {_ in 
                 continuation.resume()
             }
         }
@@ -165,8 +165,6 @@ class NullHistoryCoordinator: HistoryCoordinating {
     var historyDictionaryPublisher: Published<[URL: History.HistoryEntry]?>.Publisher {
         $historyDictionary
     }
-    
-    var dataClearingPixelsHandling: (any DataClearingPixelsHandling)?
 
     func addVisit(of url: URL, at date: Date, tabID: String?) -> History.Visit? {
         return nil
@@ -194,21 +192,21 @@ class NullHistoryCoordinator: HistoryCoordinating {
         return nil
     }
 
-    func burnAll(completion: @escaping @MainActor () -> Void) {
+    func burnAll(completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         DispatchQueue.main.asyncOrNow {
-            completion()
+            completion(.success(()))
         }
     }
 
-    func burnDomains(_ baseDomains: Set<String>, tld: Common.TLD, completion: @escaping @MainActor (Set<URL>) -> Void) {
+    func burnDomains(_ baseDomains: Set<String>, tld: Common.TLD, completion: @escaping @MainActor (Result<Set<URL>, Error>) -> Void) {
         DispatchQueue.main.asyncOrNow {
-            completion([])
+            completion(.success([]))
         }
     }
 
-    func burnVisits(_ visits: [History.Visit], completion: @escaping @MainActor () -> Void) {
+    func burnVisits(_ visits: [History.Visit], completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         DispatchQueue.main.asyncOrNow {
-            completion()
+            completion(.success(()))
         }
     }
     

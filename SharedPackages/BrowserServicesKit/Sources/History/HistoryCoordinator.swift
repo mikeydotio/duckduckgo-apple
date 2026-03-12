@@ -53,7 +53,6 @@ public protocol HistoryCoordinating: AnyObject, HistoryCoordinatingDebuggingSupp
     @MainActor var allHistoryVisits: [Visit]? { get }
     @MainActor var historyDictionary: [URL: HistoryEntry]? { get }
     var historyDictionaryPublisher: Published<[URL: HistoryEntry]?>.Publisher { get }
-    var dataClearingPixelsHandling: DataClearingPixelsHandling? { get set }
 
     @MainActor func addBlockedTracker(entityName: String, on url: URL)
     @MainActor func trackerFound(on: URL)
@@ -64,9 +63,9 @@ public protocol HistoryCoordinating: AnyObject, HistoryCoordinatingDebuggingSupp
 
     @MainActor func title(for url: URL) -> String?
 
-    @MainActor func burnAll(completion: @escaping @MainActor () -> Void)
-    @MainActor func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping @MainActor (Set<URL>) -> Void)
-    @MainActor func burnVisits(_ visits: [Visit], completion: @escaping @MainActor () -> Void)
+    @MainActor func burnAll(completion: @escaping @MainActor (Result<Void, Error>) -> Void)
+    @MainActor func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping @MainActor (Result<Set<URL>, Error>) -> Void)
+    @MainActor func burnVisits(_ visits: [Visit], completion: @escaping @MainActor (Result<Void, Error>) -> Void)
     @MainActor func burnVisits(for tabID: String) async throws
 
     @MainActor func resetCookiePopupBlocked(for domains: Set<String>, tld: TLD, completion: @escaping @MainActor (Result<Void, Error>) -> Void)
@@ -100,7 +99,6 @@ extension HistoryCoordinating {
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
 final public class HistoryCoordinator: HistoryCoordinating {
 
-    public lazy var dataClearingPixelsHandling: DataClearingPixelsHandling? = nil
     let historyStoringProvider: () -> HistoryStoring
 
     public init(historyStoring: @autoclosure @escaping () -> HistoryStoring) {
@@ -227,18 +225,21 @@ final public class HistoryCoordinator: HistoryCoordinating {
     }
 
     @MainActor
-    public func burnAll(completion: @escaping @MainActor () -> Void) {
+    public func burnAll(completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         Logger.history.debug("HistoryCoordinator: burnAll")
         self.historyDictionary = [:]
-        clean(until: .distantFuture) {
+        clean(until: .distantFuture) { result in
             Logger.history.debug("HistoryCoordinator: burnAll completed")
-            completion()
+            completion(result)
         }
     }
 
     @MainActor
-    public func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping @MainActor (Set<URL>) -> Void) {
-        guard let historyDictionary else { return }
+    public func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping @MainActor (Result<Set<URL>, Error>) -> Void) {
+        guard let historyDictionary else {
+            completion(.failure(HistoryCoordinatorError(description: "historyDictionary is nil")))
+            return
+        }
 
         var urls = Set<URL>()
         let entries: [HistoryEntry] = historyDictionary.values.filter { historyEntry in
@@ -248,16 +249,19 @@ final public class HistoryCoordinator: HistoryCoordinating {
             return true
         }
 
-        removeEntries(entries, completionHandler: { _ in
-            completion(urls)
+        removeEntries(entries, completionHandler: { result in
+            switch result {
+            case .success:
+                completion(.success(urls))
+            case .failure(let error):
+                completion(.failure(error))
+            }
         })
     }
 
     @MainActor
-    public func burnVisits(_ visits: [Visit], completion: @escaping @MainActor () -> Void) {
-        removeVisits(visits) { _ in
-            completion()
-        }
+    public func burnVisits(_ visits: [Visit], completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
+        removeVisits(visits, completionHandler: completion)
     }
 
     /// Burns all history visits associated with a specific tab.
@@ -285,7 +289,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
                "burnVisits(for:) found \(visitIDs.count) visit IDs but matched only \(visits.count) in memory")
 
         return await withCheckedContinuation { continuation in
-            burnVisits(visits) {
+            burnVisits(visits) {_ in 
                 continuation.resume()
             }
         }
@@ -324,40 +328,49 @@ final public class HistoryCoordinator: HistoryCoordinating {
             return
         }
 
-        removeEntries([entry], completionHandler: completion)
+        // Bridge between old Error? completion and new Result completion
+        removeEntries([entry]) { result in
+            switch result {
+            case .success:
+                completion?(nil)
+            case .failure(let error):
+                completion?(error)
+            }
+        }
     }
 
     var cleaningDate: Date { .monthAgo }
 
     @objc private func cleanOld() {
-        clean(until: cleaningDate)
+        clean(until: cleaningDate, onCleanFinished: { _ in })
     }
 
     private func cleanOldAndLoad(onCleanFinished: @escaping @MainActor () -> Void) {
-        clean(until: cleaningDate, onCleanFinished: onCleanFinished)
+        clean(until: cleaningDate, onCleanFinished: { _ in
+            onCleanFinished()
+        })
     }
 
-    private func clean(until date: Date, onCleanFinished: (@MainActor () -> Void)? = nil) {
+    private func clean(until date: Date, onCleanFinished: (@MainActor (Result<Void, Error>) -> Void)? = nil) {
         Task {
             do {
                 let history = try await historyStoring.cleanOld(until: date)
                 Logger.history.debug("History cleaned successfully")
                 await MainActor.run { [weak self] in
                     self?.historyDictionary = self?.makeHistoryDictionary(from: history)
-                    onCleanFinished?()
+                    onCleanFinished?(.success(()))
                 }
             } catch {
-                dataClearingPixelsHandling?.fireErrorPixel(error)
                 Logger.history.error("Cleaning of history failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    onCleanFinished?()
+                    onCleanFinished?(.failure(error))
                 }
             }
         }
     }
 
     @MainActor
-    private func removeEntries(_ entries: some Sequence<HistoryEntry>, completionHandler: (@MainActor (Error?) -> Void)? = nil) {
+    private func removeEntries(_ entries: some Sequence<HistoryEntry>, completionHandler: (@MainActor (Result<Void, Error>) -> Void)? = nil) {
         // Remove from the local memory
         entries.forEach { entry in
             historyDictionary?.removeValue(forKey: entry.url)
@@ -369,14 +382,13 @@ final public class HistoryCoordinator: HistoryCoordinating {
                 try await historyStoring.removeEntries(entries)
                 Logger.history.debug("Entries removed successfully")
                 await MainActor.run {
-                    completionHandler?(nil)
+                    completionHandler?(.success(()))
                 }
             } catch {
                 assertionFailure("Removal failed")
-                dataClearingPixelsHandling?.fireErrorPixel(error)
                 Logger.history.error("Removal failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    completionHandler?(error)
+                    completionHandler?(.failure(error))
                 }
             }
         }
@@ -384,7 +396,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
     @MainActor
     private func removeVisits(_ visits: [Visit],
-                              completionHandler: (@MainActor (Error?) -> Void)? = nil) {
+                              completionHandler: (@MainActor (Result<Void, Error>) -> Void)? = nil) {
         var entriesToRemove = Set<HistoryEntry>()
         var entriesToSave = Set<HistoryEntry>()
 
@@ -419,20 +431,17 @@ final public class HistoryCoordinator: HistoryCoordinating {
         // Remove from the storage
         Task {
             do {
-                let startTime = CACurrentMediaTime()
                 try await historyStoring.removeVisits(visits)
                 Logger.history.debug("Visits removed successfully")
                 // Remove entries with no remaining visits
                 await MainActor.run {
                     self.removeEntries(entriesToRemove, completionHandler: completionHandler)
                 }
-                dataClearingPixelsHandling?.fireDurationPixel(startTime)
             } catch {
                 assertionFailure("Removal failed")
-                dataClearingPixelsHandling?.fireErrorPixel(error)
                 Logger.history.error("Removal failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    completionHandler?(error)
+                    completionHandler?(.failure(error))
                 }
             }
         }
