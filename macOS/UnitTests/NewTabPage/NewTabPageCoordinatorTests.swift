@@ -24,6 +24,7 @@ import HistoryView
 import NewTabPage
 import PersistenceTestingUtils
 import PixelKit
+import PixelKitTestingUtilities
 import PrivacyConfig
 import PrivacyConfigTestsUtils
 import PrivacyStats
@@ -119,6 +120,7 @@ final class NewTabPageCoordinatorTests: XCTestCase {
                                               faviconManagement: FaviconManagerMock(),
                                               windowControllersManager: windowControllersManager,
                                               pixelFiring: nil,
+                                              wideEventManaging: WideEventMock(),
                                               historyProvider: MockHistoryViewDataProvider())
         let cookiePopupProtectionPreferences = CookiePopupProtectionPreferences(persistor: MockCookiePopupProtectionPreferencesPersistor(), windowControllersManager: windowControllersManager)
         let visualizeFireAnimationDecider = MockVisualizeFireAnimationDecider()

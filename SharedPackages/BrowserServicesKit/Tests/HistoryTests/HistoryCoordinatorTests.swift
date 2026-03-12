@@ -523,7 +523,7 @@ class HistoryCoordinatorTests: XCTestCase {
             saveExpectation2.fulfill()
         }
 
-        historyCoordinator.resetCookiePopupBlocked(for: ["example.com"], tld: TLD()) {
+        historyCoordinator.resetCookiePopupBlocked(for: ["example.com"], tld: TLD()) { _ in
             resetExpectation.fulfill()
         }
 
@@ -560,7 +560,7 @@ class HistoryCoordinatorTests: XCTestCase {
         let initialSaveCount = historyStoringMock.savedHistoryEntries.count
 
         let resetExpectation = expectation(description: "Reset called")
-        historyCoordinator.resetCookiePopupBlocked(for: [], tld: TLD()) {
+        historyCoordinator.resetCookiePopupBlocked(for: [], tld: TLD()) { _ in
             resetExpectation.fulfill()
         }
 
@@ -580,7 +580,7 @@ class HistoryCoordinatorTests: XCTestCase {
         let historyCoordinator = HistoryCoordinator(historyStoring: historyStoringMock)
 
         let completionExpectation = expectation(description: "Completion called")
-        historyCoordinator.resetCookiePopupBlocked(for: ["example.com"], tld: TLD()) {
+        historyCoordinator.resetCookiePopupBlocked(for: ["example.com"], tld: TLD()) { _ in
             completionExpectation.fulfill()
         }
 
@@ -624,7 +624,7 @@ class HistoryCoordinatorTests: XCTestCase {
             saveExpectation2.fulfill()
         }
 
-        historyCoordinator.resetCookiePopupBlocked(for: ["example.com", "test.org"], tld: TLD()) {
+        historyCoordinator.resetCookiePopupBlocked(for: ["example.com", "test.org"], tld: TLD()) { _ in
             resetExpectation.fulfill()
         }
 

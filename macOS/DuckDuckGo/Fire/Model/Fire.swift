@@ -418,7 +418,9 @@ final class Fire: FireProtocol {
                 // when removing cookies for the domain we also need to clear cookiePopupBlocked flag
                 // this is only necessary when not removing history for the domain - flag is part of HistoryEntry
                 if !includingHistory {
-                    await self.resetCookiePopupBlockedFlag(for: domains)
+                    dataClearingWideEventService?.start(.resetCookiePopupBlockedFlag)
+                    let cookiePopupResult = await self.resetCookiePopupBlockedFlag(for: domains)
+                    dataClearingWideEventService?.update(.resetCookiePopupBlockedFlag, result: cookiePopupResult)
                 }
             }
 
@@ -818,8 +820,13 @@ final class Fire: FireProtocol {
         return await getPrivacyStats().clearPrivacyStats()
     }
 
-    private func resetCookiePopupBlockedFlag(for domains: Set<String>) async {
-        await historyCoordinating.resetCookiePopupBlocked(for: domains, tld: tld, completion: {})
+    @MainActor
+    private func resetCookiePopupBlockedFlag(for domains: Set<String>) async -> Result<Void, Error> {
+        await withCheckedContinuation { continuation in
+            historyCoordinating.resetCookiePopupBlocked(for: domains, tld: tld) { result in
+                continuation.resume(returning: result)
+            }
+        }
     }
 
     // MARK: - Visited links

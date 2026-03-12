@@ -24,6 +24,15 @@ import QuartzCore
 
 public typealias BrowsingHistory = [HistoryEntry]
 
+/// Error type for history coordinator operations that don't have a specific underlying error
+public struct HistoryCoordinatorError: Error {
+    public let description: String
+
+    public init(description: String) {
+        self.description = description
+    }
+}
+
 /**
  * This protocol allows for debugging History.
  */
@@ -60,7 +69,7 @@ public protocol HistoryCoordinating: AnyObject, HistoryCoordinatingDebuggingSupp
     @MainActor func burnVisits(_ visits: [Visit], completion: @escaping @MainActor () -> Void)
     @MainActor func burnVisits(for tabID: String) async throws
 
-    @MainActor func resetCookiePopupBlocked(for domains: Set<String>, tld: TLD, completion: @escaping @MainActor () -> Void)
+    @MainActor func resetCookiePopupBlocked(for domains: Set<String>, tld: TLD, completion: @escaping @MainActor (Result<Void, Error>) -> Void)
 
     @MainActor func removeUrlEntry(_ url: URL, completion: (@MainActor (Error?) -> Void)?)
 }
@@ -287,9 +296,9 @@ final public class HistoryCoordinator: HistoryCoordinating {
     }
 
     @MainActor
-    public func resetCookiePopupBlocked(for domains: Set<String>, tld: TLD, completion: @escaping @MainActor () -> Void) {
+    public func resetCookiePopupBlocked(for domains: Set<String>, tld: TLD, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         guard let historyDictionary else {
-            completion()
+            completion(.failure(HistoryCoordinatorError(description: "historyDictionary is nil")))
             return
         }
 
@@ -303,7 +312,8 @@ final public class HistoryCoordinator: HistoryCoordinating {
             entry.cookiePopupBlocked = false
             commitChanges(url: entry.url)
         }
-        completion()
+
+        completion(.success(()))
     }
 
     @MainActor

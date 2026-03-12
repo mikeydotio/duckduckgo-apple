@@ -215,8 +215,8 @@ class NullHistoryCoordinator: HistoryCoordinating {
     func burnVisits(for tabID: String) async throws {
     }
 
-    func resetCookiePopupBlocked(for domains: Set<String>, tld: Common.TLD, completion: @escaping @MainActor () -> Void) {
-
+    func resetCookiePopupBlocked(for domains: Set<String>, tld: Common.TLD, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
+        completion(.success(()))
     }
 
     func removeUrlEntry(_ url: URL, completion: (@MainActor ((any Error)?) -> Void)?) {

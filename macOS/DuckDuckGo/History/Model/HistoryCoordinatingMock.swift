@@ -120,12 +120,12 @@ public final class HistoryCoordinatingMock: HistoryCoordinating, HistoryDataSour
     public var resetCookiePopupBlockedCalled = false
     public var resetCookiePopupBlockedDomains: Set<String>?
     public var resetCookiePopupBlockedTLD: Common.TLD?
-    public func resetCookiePopupBlocked(for domains: Set<String>, tld: Common.TLD, completion: @escaping @MainActor () -> Void) {
+    public func resetCookiePopupBlocked(for domains: Set<String>, tld: Common.TLD, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         resetCookiePopupBlockedCalled = true
         resetCookiePopupBlockedDomains = domains
         resetCookiePopupBlockedTLD = tld
         MainActor.assumeMainThread {
-            completion()
+            completion(.success(()))
         }
     }
 
