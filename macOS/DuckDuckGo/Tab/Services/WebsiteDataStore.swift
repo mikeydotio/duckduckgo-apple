@@ -49,9 +49,13 @@ internal class WebCacheManager {
 
     func clear(baseDomains: Set<String>? = nil, dataClearingWideEventService: DataClearingWideEventService? = nil) async {
         // first cleanup ~/Library/Caches
-        await clearFileCache()
+        dataClearingWideEventService?.start(.clearFileCache)
+        let fileCacheResult = await clearFileCache()
+        dataClearingWideEventService?.update(.clearFileCache, result: fileCacheResult)
 
-        await clearDeviceHashSalts()
+        dataClearingWideEventService?.start(.clearDeviceHashSalts)
+        let deviceHashSaltsResult = await clearDeviceHashSalts()
+        dataClearingWideEventService?.update(.clearDeviceHashSalts, result: deviceHashSaltsResult)
 
         dataClearingWideEventService?.start(.clearSafelyRemovableWebsiteData)
         let safelyRemovableResult = await removeAllSafelyRemovableDataTypes()
@@ -65,10 +69,13 @@ internal class WebCacheManager {
         let cookiesResult = await removeCookies(for: baseDomains)
         dataClearingWideEventService?.update(.clearCookiesForNonFireproofedDomains, result: cookiesResult)
 
-        await self.removeResourceLoadStatisticsDatabase()
+        dataClearingWideEventService?.start(.clearRemoveResourceLoadStatisticsDatabase)
+        let resourceLoadStatsResult = await self.removeResourceLoadStatisticsDatabase()
+        dataClearingWideEventService?.update(.clearRemoveResourceLoadStatisticsDatabase, result: resourceLoadStatsResult)
     }
 
-    private func clearFileCache() async {
+    private func clearFileCache() async -> Result<Void, Error> {
+        var firstError: Error?
         let fm = FileManager.default
         let cachesDir = fm.urls(for: .cachesDirectory, in: .userDomainMask).first!
             .appendingPathComponent(Bundle.main.bundleIdentifier!)
@@ -78,17 +85,23 @@ internal class WebCacheManager {
             try fm.createDirectory(at: tmpDir, withIntermediateDirectories: false, attributes: nil)
         } catch {
             Logger.general.error("Could not create temporary directory: \(error.localizedDescription)")
-            return
+            firstError = firstError ?? error
         }
 
-        let contents = try? fm.contentsOfDirectory(atPath: cachesDir.path)
-        for name in contents ?? [] {
+        var contents: [String] = []
+        do {
+            contents = try fm.contentsOfDirectory(atPath: cachesDir.path)
+        } catch {
+            firstError = firstError ?? error
+        }
+
+        for name in contents {
             guard ["WebKit", "fsCachedData"].contains(name) || name.hasPrefix("Cache.") else { continue }
 
             do {
                 try fm.moveItem(at: cachesDir.appendingPathComponent(name), to: tmpDir.appendingPathComponent(name))
             } catch {
-                // Silently continue on error
+                firstError = firstError ?? error
             }
         }
 
@@ -97,16 +110,24 @@ internal class WebCacheManager {
                                     withIntermediateDirectories: false,
                                     attributes: nil)
         } catch {
-            // Silently continue on error
+            firstError = firstError ?? error
         }
 
         Process("/bin/rm", "-rf", tmpDir.path).launch()
+
+        if let error = firstError {
+            return .failure(error)
+        }
+        return .success(())
     }
 
-    private func clearDeviceHashSalts() async {
+    private func clearDeviceHashSalts() async -> Result<Void, Error> {
+        var firstError: Error?
+
         guard let bundleID = Bundle.main.bundleIdentifier,
               var libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
-            return
+            let error = DataClearingWideEventError(description: "Could not get bundle ID or library URL")
+            return .failure(error)
         }
         libraryURL.appendPathComponent("WebKit/\(bundleID)/WebsiteData/DeviceIdHashSalts/1")
 
@@ -117,13 +138,13 @@ internal class WebCacheManager {
             try fm.createDirectory(at: tmpDir, withIntermediateDirectories: false, attributes: nil)
         } catch {
             Logger.general.error("Could not create temporary directory: \(error.localizedDescription)")
-            return
+            firstError = firstError ?? error
         }
 
         do {
             try fm.moveItem(at: libraryURL, to: tmpDir.appendingPathComponent("1"))
         } catch {
-            // Silently continue on error
+            firstError = firstError ?? error
         }
 
         do {
@@ -131,10 +152,15 @@ internal class WebCacheManager {
                                     withIntermediateDirectories: false,
                                     attributes: nil)
         } catch {
-            // Silently continue on error
+            firstError = firstError ?? error
         }
 
         Process("/bin/rm", "-rf", tmpDir.path).launch()
+
+        if let error = firstError {
+            return .failure(error)
+        }
+        return .success(())
     }
 
     @MainActor
@@ -187,19 +213,32 @@ internal class WebCacheManager {
 
     // WKWebView doesn't provide a way to remove the observations database, which contains domains that have been
     // visited by the user. This database is removed directly as a part of the Fire button process.
-    private func removeResourceLoadStatisticsDatabase() async {
+    private func removeResourceLoadStatisticsDatabase() async -> Result<Void, Error> {
+        var firstError: Error?
+
         guard let bundleID = Bundle.main.bundleIdentifier,
               var libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
-            return
+            let error = DataClearingWideEventError(description: "Could not get bundle ID or library URL")
+            return .failure(error)
         }
 
         libraryURL.appendPathComponent("WebKit/\(bundleID)/WebsiteData/ResourceLoadStatistics")
 
-        let contentsOfDirectory = (try? FileManager.default.contentsOfDirectory(at: libraryURL, includingPropertiesForKeys: [.nameKey])) ?? []
+        var contentsOfDirectory: [URL] = []
+        do {
+            contentsOfDirectory = try FileManager.default.contentsOfDirectory(at: libraryURL, includingPropertiesForKeys: [.nameKey])
+        } catch {
+            firstError = firstError ?? error
+        }
+
         let fileNames = contentsOfDirectory.compactMap(\.suggestedFilename)
 
         guard fileNames.contains("observations.db") else {
-            return
+            // Database doesn't exist, nothing to clear
+            if let error = firstError {
+                return .failure(error)
+            }
+            return .success(())
         }
 
         // We've confirmed that the observations.db exists, now it can be cleaned out. We can't delete it entirely, as
@@ -208,22 +247,29 @@ internal class WebCacheManager {
         let databasePath = libraryURL.appendingPathComponent("observations.db")
 
         guard let pool = try? DatabasePool(path: databasePath.absoluteString) else {
-            return
+            let error = DataClearingWideEventError(description: "Could not open observations database")
+            return .failure(firstError ?? error)
         }
 
-        removeObservationsData(from: pool)
+        removeObservationsData(from: pool, firstError: &firstError)
+
         do {
             try await pool.vacuum()
         } catch {
-            // Silently continue on error
+            firstError = firstError ?? error
         }
 
         // For an unknown reason, domains may be still present in the database binary when running `strings` over it, despite SQL queries returning an
         // empty array, and despite vacuuming the database. Delete again to be safe.
-        removeObservationsData(from: pool)
+        removeObservationsData(from: pool, firstError: &firstError)
+
+        if let error = firstError {
+            return .failure(error)
+        }
+        return .success(())
     }
 
-    private func removeObservationsData(from pool: DatabasePool) {
+    private func removeObservationsData(from pool: DatabasePool, firstError: inout Error?) {
         do {
             try pool.write { database in
                 try database.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE);")
@@ -236,6 +282,7 @@ internal class WebCacheManager {
             }
         } catch {
             Logger.fire.error("Failed to clear observations database: \(error.localizedDescription)")
+            firstError = firstError ?? error
         }
     }
 }
