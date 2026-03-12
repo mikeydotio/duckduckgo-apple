@@ -331,7 +331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var autoconsentStats: AutoconsentStatsCollecting { appDependencies.services.autoconsentStats }
     var remoteMessagingClient: RemoteMessagingClient! { appDependencies.services.remoteMessagingClient }
     var activeRemoteMessageModel: ActiveRemoteMessageModel { appDependencies.services.activeRemoteMessageModel }
-    var appSyncService: AppSyncService { appDependencies.services.appSyncService }
+    var appSyncService: SyncService { appDependencies.services.appSyncService }
     var syncService: DDGSyncing? { appDependencies.services.appSyncService.sync }
     var syncDataProviders: SyncDataProvidersSource? { appDependencies.services.appSyncService.syncDataProviders }
     var syncErrorHandler: SyncErrorHandler { appDependencies.services.appSyncService.syncErrorHandler }

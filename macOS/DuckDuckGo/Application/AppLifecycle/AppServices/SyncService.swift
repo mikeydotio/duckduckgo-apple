@@ -1,5 +1,5 @@
 //
-//  AppSyncService.swift
+//  SyncService.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -28,7 +28,7 @@ import Persistence
 import PixelKit
 import PrivacyConfig
 
-final class AppSyncService {
+final class SyncService {
 
     let syncDataProviders: SyncDataProvidersSource
     let sync: DDGSync

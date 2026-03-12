@@ -547,7 +547,7 @@ final class Launching: LaunchingHandling {
 
         // MARK: - Sync Service
 
-        let appSyncService = AppSyncService(
+        let appSyncService = SyncService(
             bookmarksDatabase: bookmarkDatabase.db,
             bookmarkManager: bookmarkManager,
             appearancePreferences: appearancePreferences,

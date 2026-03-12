@@ -121,7 +121,7 @@ struct AppDependencies {
         let autoconsentStats: AutoconsentStatsCollecting
         let remoteMessagingClient: RemoteMessagingClient!
         let activeRemoteMessageModel: ActiveRemoteMessageModel
-        let appSyncService: AppSyncService
+        let appSyncService: SyncService
         let webCacheManager: WebCacheManager
         let crashReporting: any CrashReporting
         let watchdog: Watchdog
@@ -178,7 +178,7 @@ struct AppDependencies {
             autoconsentStats: AutoconsentStatsCollecting,
             remoteMessagingClient: RemoteMessagingClient!,
             activeRemoteMessageModel: ActiveRemoteMessageModel,
-            appSyncService: AppSyncService,
+            appSyncService: SyncService,
             webCacheManager: WebCacheManager,
             crashReporting: any CrashReporting,
             watchdog: Watchdog,
