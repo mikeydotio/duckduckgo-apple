@@ -199,7 +199,7 @@ extension TestRunHelper: XCTestObservation {
         }
 
         // Check for non-nil variables that should be cleaned up
-        if ProcessInfo.processInfo.environment["CI"] != "1" {
+        if ProcessInfo.processInfo.environment["CI"]?.isEmpty ?? true {
             checkTestCaseVariables(testCase)
         }
 
