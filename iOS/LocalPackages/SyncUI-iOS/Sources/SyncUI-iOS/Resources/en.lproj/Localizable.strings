@@ -1,9 +1,6 @@
 /* Auto-Restore - Description */
 "auto.restore.description" = "Automatically restore your data on this device if you reinstall the app.";
 
-/* Save RecoveryPDF - Learn More Link */
-"auto.restore.learn.more" = "Learn More";
-
 /* Auto-Restore Ready Sheet - Description */
 "auto.restore.ready.description" = "Resume your Sync & Backup session to restore your bookmarks, passwords, and more, or continue with a new setup.";
 

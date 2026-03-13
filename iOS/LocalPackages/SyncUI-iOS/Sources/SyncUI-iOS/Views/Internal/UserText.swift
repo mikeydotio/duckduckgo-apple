@@ -82,7 +82,6 @@ public struct UserText {
     // Save RecoveryPDF
     static let saveRecoveryPDFButton = NSLocalizedString("save.recovery.pdf.button", bundle: Bundle.module, value: "Save Recovery PDF", comment: "Save RecoveryPDF - Button")
     static let saveRecoveryPDFFooter = NSLocalizedString("save.recovery.pdf.footer", bundle: Bundle.module, value: "Use this code to restore your data if you lose access to this device. Sync & Backup data can’t be recovered after 18 months of inactivity. [Learn more](ddgQuickLink://duckduckgo.com/duckduckgo-help-pages/sync-and-backup/recovery-codes-and-troubleshooting)", comment: "Save RecoveryPDF - Footer + Learn More, with markdown link")
-    static let saveRecoveryPDFFooterLearnMore = NSLocalizedString("auto.restore.learn.more", bundle: Bundle.module, value: "Learn More", comment: "Save RecoveryPDF - Learn More Link")
 
     // Delete Server Data
     static let deleteServerData = NSLocalizedString("delete.server.data", bundle: Bundle.module, value: "Turn Off and Delete Server Data...", comment: "Delete Server Data - Button")
