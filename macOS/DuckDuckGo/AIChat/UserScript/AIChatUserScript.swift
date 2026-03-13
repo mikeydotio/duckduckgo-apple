@@ -166,6 +166,10 @@ final class AIChatUserScript: NSObject, Subfeature {
             return handler.sendToSyncSettings
         case .setAIChatHistoryEnabled:
             return handler.setAIChatHistoryEnabled
+        case .chatStreamStarted:
+            return handler.chatStreamStarted
+        case .chatStreamEnded:
+            return handler.chatStreamEnded
         default:
             return nil
         }

@@ -73,6 +73,9 @@ protocol AIChatUserScriptHandling {
     func sendToSyncSettings(params: Any, message: UserScriptMessage) -> Encodable?
     func sendToSetupSync(params: Any, message: UserScriptMessage) -> Encodable?
     func setAIChatHistoryEnabled(params: Any, message: UserScriptMessage) -> Encodable?
+
+    func chatStreamStarted(params: Any, message: UserScriptMessage) -> Encodable?
+    func chatStreamEnded(params: Any, message: UserScriptMessage) -> Encodable?
 }
 
 final class AIChatUserScriptHandler: AIChatUserScriptHandling {
@@ -300,6 +303,16 @@ final class AIChatUserScriptHandler: AIChatUserScriptHandling {
             return AIChatPixel.aiChatPageContextRemoved(automaticEnabled: storage.shouldAutomaticallySendPageContext)
         }()
         pixelFiring?.fire(pixel, frequency: .dailyAndStandard)
+        return nil
+    }
+
+    func chatStreamStarted(params: Any, message: UserScriptMessage) -> Encodable? {
+        print("POTATO: STARTED")
+        return nil
+    }
+
+    func chatStreamEnded(params: Any, message: UserScriptMessage) -> Encodable? {
+        print("POTATO: ENDED")
         return nil
     }
 

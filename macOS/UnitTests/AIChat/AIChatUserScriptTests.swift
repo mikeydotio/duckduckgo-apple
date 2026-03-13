@@ -167,6 +167,9 @@ final class MockAIChatUserScriptHandler: AIChatUserScriptHandling {
     var didClearMigrationData = false
 
     // Sync tracking flags
+    var didChatStreamStarted = false
+    var didChatStreamEnded = false
+
     var didGetSyncStatus = false
     var didGetScopedSyncAuthToken = false
     var didEncryptWithSyncMasterKey = false
@@ -316,6 +319,16 @@ final class MockAIChatUserScriptHandler: AIChatUserScriptHandling {
     }
 
     func setAIChatHistoryEnabled(params: Any, message: any UserScriptMessage) -> (any Encodable)? {
+        return nil
+    }
+
+    func chatStreamStarted(params: Any, message: UserScriptMessage) -> Encodable? {
+        didChatStreamStarted = true
+        return nil
+    }
+
+    func chatStreamEnded(params: Any, message: UserScriptMessage) -> Encodable? {
+        didChatStreamEnded = true
         return nil
     }
 
