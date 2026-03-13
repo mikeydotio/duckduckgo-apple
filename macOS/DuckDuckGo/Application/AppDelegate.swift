@@ -737,7 +737,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         freeTrialConversionService = DefaultFreeTrialConversionInstrumentationService(
             wideEvent: wideEvent,
             pixelHandler: FreeTrialPixelHandler(),
-            subscriptionFetcher: { try? await defaultsubscriptionManager.getSubscription() },
+            subscriptionFetcher: { try? await defaultSubscriptionManager.getSubscription() },
             isFeatureEnabled: { [featureFlagger] in featureFlagger.isFeatureOn(.freeTrialConversionWideEvent) }
         )
         freeTrialConversionService.startObservingSubscriptionChanges()

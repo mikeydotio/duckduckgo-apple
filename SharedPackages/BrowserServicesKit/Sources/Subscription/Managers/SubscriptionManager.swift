@@ -305,11 +305,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     @discardableResult
     public func getSubscription(forceRefresh: Bool = false) async throws -> DuckDuckGoSubscription? {
 
-        // Require authentication before any subscription lookup
-        guard isUserAuthenticated else {
-            throw SubscriptionManagerError.noTokenAvailable
-        }
-
         var subscription: DuckDuckGoSubscription
 
         // Return cached subscription when available and refresh not forced
