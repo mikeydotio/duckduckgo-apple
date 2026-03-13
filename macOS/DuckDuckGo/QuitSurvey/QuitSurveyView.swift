@@ -85,6 +85,9 @@ struct QuitSurveyFlowView: View {
 
             case .negativeFeedback:
                 QuitSurveyNegativeView(viewModel: viewModel, onResize: onResize)
+
+            case .domainSelection:
+                QuitSurveyDomainSelectionView(viewModel: viewModel, onResize: onResize)
             }
         }
     }
@@ -206,6 +209,28 @@ private struct QuitSurveyOptionRow: View {
         .onHover { hovering in
             isHovered = hovering
         }
+    }
+}
+
+// MARK: - Domain Toggle Row
+
+private struct DomainToggleRow: View {
+    let domain: String
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack {
+                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                    .foregroundColor(isSelected ? Color(designSystemColor: .accent) : Color(.secondaryLabelColor))
+                Text(domain)
+                    .systemLabel()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -428,6 +453,97 @@ private struct QuitSurveyNegativeView: View {
             }
             .disabled(!viewModel.shouldEnableSubmit || viewModel.isSubmitting)
             .buttonStyle(DefaultActionButtonStyle(enabled: viewModel.shouldEnableSubmit && !viewModel.isSubmitting))
+            .padding([.leading, .trailing], 24)
+            .padding(.bottom, 16)
+        }
+    }
+}
+
+/// MARK: - Domain Selection View (Variant B)
+
+private struct QuitSurveyDomainSelectionView: View {
+    @ObservedObject var viewModel: QuitSurveyViewModel
+    var onResize: ((CGFloat, CGFloat) -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header()
+            domainList()
+            footer()
+        }
+        .frame(width: QuitSurveyViewController.Constants.negativeWidth)
+        .fixedSize(horizontal: false, vertical: true)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.2)) {
+                onResize?(QuitSurveyViewController.Constants.negativeWidth,
+                          QuitSurveyViewController.Constants.negativeBaseHeight)
+            }
+        }
+    }
+
+    private func header() -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                viewModel.goBackFromDomainSelection()
+            } label: {
+                Image(nsImage: DesignSystemImages.Glyphs.Size16.arrowLeft)
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(UserText.quitSurveyAffectedDomainsTitle)
+                    .systemTitle2()
+
+                Text(UserText.quitSurveyAffectedDomainsSubtitle)
+                    .systemLabel()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+    }
+
+    private func domainList() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(viewModel.recentDomains, id: \.self) { domain in
+                DomainToggleRow(
+                    domain: domain,
+                    isSelected: viewModel.selectedDomains.contains(domain)
+                ) {
+                    viewModel.toggleDomain(domain)
+                }
+            }
+        }
+        .padding([.leading, .trailing], 24)
+        .padding(.bottom, 24)
+    }
+
+    private func footer() -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Divider()
+                .background(Color(.separatorColor))
+                .frame(maxWidth: .infinity)
+                .frame(height: 1)
+
+            Text(UserText.quitSurveyDisclaimer)
+                .caption2()
+                .multilineTextAlignment(.leading)
+                .padding([.leading, .trailing], 24)
+
+            Button {
+                viewModel.submitFeedback()
+            } label: {
+                HStack(spacing: 8) {
+                    if viewModel.isSubmitting {
+                        ProgressView()
+                            .controlSize(.small)
+                            .progressViewStyle(.circular)
+                    }
+                    Text(viewModel.isSubmitting ? UserText.quitSurveySubmitting : UserText.quitSurveySubmitAndQuit)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .disabled(viewModel.isSubmitting)
+            .buttonStyle(DefaultActionButtonStyle(enabled: !viewModel.isSubmitting))
             .padding([.leading, .trailing], 24)
             .padding(.bottom, 16)
         }
