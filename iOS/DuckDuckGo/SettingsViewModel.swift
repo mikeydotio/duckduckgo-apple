@@ -895,43 +895,7 @@ extension SettingsViewModel {
         state.duckPlayerNativeYoutubeMode = duckPlayerSettings.nativeUIYoutubeMode
     }
 
-    // swiftint:disable:next cyclomatic_complexity
-    private func updateCompleteSetupSectionVisiblity() {
-        guard featureFlagger.isFeatureOn(.showSettingsCompleteSetupSection) else {
-            return
-        }
-
-        if let didDismissImportPrompt = try? keyValueStore.object(forKey: Constants.didDismissImportPasswordsKey) as? Bool {
-            shouldShowImportPasswords = !didDismissImportPrompt
-        } else {
-            // No dismissal record found, show by default
-            shouldShowImportPasswords = true
-        }
-
-        if let dismissed = try? keyValueStore.object(forKey: Constants.didDismissAddToDockKey) as? Bool {
-            shouldShowAddToDock = !dismissed
-        } else {
-            shouldShowAddToDock = true
-        }
-
-        if let dismissed = try? keyValueStore.object(forKey: Constants.didDismissAddWidgetKey) as? Bool {
-            shouldShowAddWidget = !dismissed
-        } else {
-            shouldShowAddWidget = true
-        }
-
-        if let dismissed = try? keyValueStore.object(forKey: Constants.didDismissAddressBarKey) as? Bool {
-            shouldShowAddressBarPosition = !dismissed && state.addressBar.enabled
-        } else {
-            shouldShowAddressBarPosition = state.addressBar.enabled
-        }
-
-        if let dismissed = try? keyValueStore.object(forKey: Constants.didDismissVoiceSearchKey) as? Bool {
-            shouldShowVoiceSearch = !dismissed
-        } else {
-            shouldShowVoiceSearch = true
-        }
-
+    fileprivate func updateDefaultBrowserVisibility() {
         // Set as Default Browser is iOS 18.2+ only
         if #available(iOS 18.2, *) {
             if let didDismissBrowserPrompt = try? keyValueStore.object(forKey: Constants.didDismissSetAsDefaultBrowserKey) as? Bool {
@@ -941,6 +905,26 @@ extension SettingsViewModel {
                 shouldShowSetAsDefaultBrowser = true
             }
         }
+    }
+
+    private func shouldShowCompleteSetupForKey(_ key: String, default: Bool = true) -> Bool {
+        guard let dismissed = try? keyValueStore.object(forKey: key) as? Bool else {
+            return `default`
+        }
+        return !dismissed
+    }
+
+    private func updateCompleteSetupSectionVisiblity() {
+        guard featureFlagger.isFeatureOn(.showSettingsCompleteSetupSection) else {
+            return
+        }
+
+        shouldShowImportPasswords = shouldShowCompleteSetupForKey(Constants.didDismissImportPasswordsKey)
+        updateDefaultBrowserVisibility()
+        shouldShowAddToDock = shouldShowCompleteSetupForKey(Constants.didDismissAddToDockKey)
+        shouldShowAddWidget = shouldShowCompleteSetupForKey(Constants.didDismissAddWidgetKey)
+        shouldShowAddressBarPosition = shouldShowCompleteSetupForKey(Constants.didDismissAddressBarKey, default: state.addressBar.enabled)
+        shouldShowVoiceSearch = shouldShowCompleteSetupForKey(Constants.didDismissVoiceSearchKey)
 
         // Only proceed with checks if at least one row is still shown
         guard shouldShowSetAsDefaultBrowser || shouldShowImportPasswords ||
@@ -956,22 +940,27 @@ extension SettingsViewModel {
             return
         }
 
-        // only want to check default browser state once after the first time a user interacts with this row due to API restrictions. After that users can swipe to dismiss
-        if #available(iOS 18.2, *) {
-            if let checkIfDefaultBrowser = try? keyValueStore.object(forKey: Constants.shouldCheckIfDefaultBrowserKey) as? Bool {
-                do {
-                    if checkIfDefaultBrowser, try UIApplication.shared.isDefault(.webBrowser) {
-                        try? keyValueStore.set(true, forKey: Constants.didDismissSetAsDefaultBrowserKey)
-                        shouldShowSetAsDefaultBrowser = false
-                    }
-                } catch {
-                    try? keyValueStore.set(true, forKey: Constants.didDismissSetAsDefaultBrowserKey)
-                    shouldShowSetAsDefaultBrowser = false
-                }
+        // Do this last so that we don't call rate limited APIs
+        checkDefaultBrowserNextStepIfNeeded()
+    }
 
-                try? keyValueStore.set(false, forKey: Constants.shouldCheckIfDefaultBrowserKey)
+    private func checkDefaultBrowserNextStepIfNeeded() {
+        guard #available(iOS 18.2, *),
+                let checkIfDefaultBrowser = try? keyValueStore.object(forKey: Constants.shouldCheckIfDefaultBrowserKey) as? Bool
+        else { return }
+
+        // only want to check default browser state once after the first time a user interacts with this row due to API restrictions. After that users can swipe to dismiss
+        do {
+            if checkIfDefaultBrowser, try UIApplication.shared.isDefault(.webBrowser) {
+                try? keyValueStore.set(true, forKey: Constants.didDismissSetAsDefaultBrowserKey)
+                shouldShowSetAsDefaultBrowser = false
             }
+        } catch {
+            try? keyValueStore.set(true, forKey: Constants.didDismissSetAsDefaultBrowserKey)
+            shouldShowSetAsDefaultBrowser = false
         }
+
+        try? keyValueStore.set(false, forKey: Constants.shouldCheckIfDefaultBrowserKey)
     }
 
     private func permanentlyDismissCompleteSetupSection() {
