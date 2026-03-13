@@ -986,6 +986,29 @@ final class Fire: FireProtocol {
             return .success(())
         }
 
+        func closeFloatingAIChatWindows(for tabIDs: [TabIdentifier]) {
+            let uniqueTabIDs = Set(tabIDs)
+            guard !uniqueTabIDs.isEmpty else {
+                return
+            }
+
+            func coordinatorForTabID(_ tabID: TabIdentifier) -> AIChatCoordinating? {
+                for windowController in windowControllersManager.mainWindowControllers {
+                    let tabCollectionViewModel = windowController.mainViewController.tabCollectionViewModel
+                    let hasUnpinnedTab = tabCollectionViewModel.tabCollection.tabs.contains { $0.uuid == tabID }
+                    let hasPinnedTab = tabCollectionViewModel.pinnedTabsCollection?.tabs.contains { $0.uuid == tabID } ?? false
+                    if hasUnpinnedTab || hasPinnedTab {
+                        return windowController.mainViewController.aiChatCoordinator
+                    }
+                }
+                return windowControllersManager.mainWindowControllers.first?.mainViewController.aiChatCoordinator
+            }
+
+            uniqueTabIDs.forEach { tabID in
+                coordinatorForTabID(tabID)?.closeFloatingWindow(for: tabID)
+            }
+        }
+
         // Close tabs or reset history based on entity.close
         switch burningEntity {
         case .none: break
@@ -995,6 +1018,7 @@ final class Fire: FireProtocol {
                   close: let shouldClose):
             assert(tabViewModel === tabCollectionViewModel.selectedTabViewModel)
             if shouldClose {
+                closeFloatingAIChatWindows(for: [tabViewModel.tab.uuid])
                 if tabCollectionViewModel.pinnedTabsManager?.isTabPinned(tabViewModel.tab) ?? false {
                     let tab = replacementPinnedTab(from: tabViewModel.tab)
                     if let index = tabCollectionViewModel.selectionIndex {
@@ -1018,6 +1042,9 @@ final class Fire: FireProtocol {
                      selectedDomains: _,
                      close: let shouldClose):
             if shouldClose {
+                let unpinnedTabIDs = tabCollectionViewModel.tabCollection.tabs.map(\.uuid)
+                let pinnedTabIDs = tabCollectionViewModel.pinnedTabsManager?.tabCollection.tabs.map(\.uuid) ?? []
+                closeFloatingAIChatWindows(for: unpinnedTabIDs + pinnedTabIDs)
                 // If closing last Window: Insert a new tab to prevent key window closing:
                 var insertedTabIndex: Int?
                 if windowControllersManager.mainWindowControllers.count == 1 {
@@ -1037,14 +1064,18 @@ final class Fire: FireProtocol {
                          close: let shouldClose):
             guard shouldClose else { break }
             for windowController in mainWindowControllers {
+                let tabCollectionViewModel = windowController.mainViewController.tabCollectionViewModel
+                let unpinnedTabIDs = tabCollectionViewModel.tabCollection.tabs.map(\.uuid)
+                let pinnedTabIDs = tabCollectionViewModel.pinnedTabsManager?.tabCollection.tabs.map(\.uuid) ?? []
+                closeFloatingAIChatWindows(for: unpinnedTabIDs + pinnedTabIDs)
                 // If closing all Tabs/Windows: Insert a new tab to prevent key window closing:
                 let insertedTabIndex = insertNewTabIfNeeded(into: windowController, with: customURL)
-                windowController.mainViewController.tabCollectionViewModel.removeAllTabs(except: insertedTabIndex, forceChange: true)
+                tabCollectionViewModel.removeAllTabs(except: insertedTabIndex, forceChange: true)
                 let burnResult = burnPinnedTabs(in: windowController.mainViewController.tabCollectionViewModel)
                 if case .failure(let error) = burnResult {
                     firstError = firstError ?? error
                 }
-                selectPinnedTabIfNeeded(in: windowController.mainViewController.tabCollectionViewModel)
+                selectPinnedTabIfNeeded(in: tabCollectionViewModel)
             }
         }
 

@@ -118,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var syncFeatureFlagsCancellable: AnyCancellable?
     private var screenLockedCancellable: AnyCancellable?
     private var emailCancellables = Set<AnyCancellable>()
+    private(set) var promoService: PromoService?
     var privacyDashboardWindow: NSWindow?
 
     let tabCrashAggregator = TabCrashAggregator()
@@ -201,7 +202,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         subscriptionCardPersistor: homePageSetUpDependencies.subscriptionCardPersistor,
         duckPlayerPreferences: DuckPlayerPreferencesUserDefaultsPersistor(),
         syncService: syncService,
-        pinningManager: pinningManager
+        pinningManager: pinningManager,
+        promoService: promoService
     )
 
     private(set) lazy var aiChatTabOpener: AIChatTabOpening = AIChatTabOpener(
@@ -581,7 +583,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
 
-        wideEvent = WideEvent(featureFlagProvider: WideEventFeatureFlagAdapter(featureFlagger: featureFlagger))
+        wideEvent = WideEvent(
+            useMockRequests: buildType.isDebugBuild || buildType.isReviewBuild || buildType.isAlphaBuild,
+            featureFlagProvider: WideEventFeatureFlagAdapter(featureFlagger: featureFlagger)
+        )
 
         aiChatSessionStore = AIChatSessionStore(featureFlagger: featureFlagger)
         aiChatMenuConfiguration = AIChatMenuConfiguration(
@@ -1261,6 +1266,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DefaultVariantManager().assignVariantIfNeeded { _ in
             // MARK: perform first time launch logic here
         }
+        AttributionXattrCanaryValidator().validateAndReport()
 
         let statisticsLoader = AppVersion.runType.requiresEnvironment ? StatisticsLoader.shared : nil
         statisticsLoader?.load()
@@ -1276,6 +1282,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         profilerToken.advance(to: .appDidFinishLaunchingAfterRestoration)
 
         let urlEventHandlerResult = urlEventHandler.applicationDidFinishLaunching()
+
+        if featureFlagger.isFeatureOn(.promoQueue) {
+            let dependencies = PromoDependencies(
+                keyValueStore: keyValueStore,
+                isExternallyActivated: urlEventHandlerResult.willOpenWindows,
+                activeRemoteMessageModel: activeRemoteMessageModel)
+            promoService = PromoServiceFactory.makePromoService(dependencies: dependencies)
+            NotificationCenter.default.post(name: .promoServiceAppLaunched, object: nil)
+        }
 
         setUpAutoClearHandler()
         bitwardenManager?.initCommunication()
@@ -1374,6 +1389,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         guard didFinishLaunching else { return }
+
+        // Touch coordinator so Next Steps delegate is registered before promo service starts (1s fallback).
+        _ = newTabPageCoordinator
+        promoService?.applicationDidBecomeActive()
 
         // Fire quit survey return user pixel if the user completed the survey and returned within 8-14 day window
         let quitSurveyPersistor = QuitSurveyUserDefaultsPersistor(keyValueStore: keyValueStore)
@@ -2137,7 +2156,8 @@ extension AppDelegate: UserScriptDependenciesProviding {
             subscriptionCardPersistor: homePageSetUpDependencies.subscriptionCardPersistor,
             duckPlayerPreferences: DuckPlayerPreferencesUserDefaultsPersistor(),
             syncService: syncService,
-            pinningManager: pinningManager
+            pinningManager: pinningManager,
+            promoService: promoService
         )
     }
 
