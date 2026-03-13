@@ -824,12 +824,21 @@ extension SettingsViewModel {
 
         updateRecentlyVisitedSitesVisibility()
 
-        if #available(iOS 18.2, *) {
-            updateCompleteSetupSectionVisiblity()
-        }
+        hideSectionsBasedOnPasswordUsage()
+        updateCompleteSetupSectionVisiblity()
+        updateNextStepsSectionVisibility()
 
         setupSubscribers()
         Task { await setupSubscriptionEnvironment() }
+    }
+
+    private func hideSectionsBasedOnPasswordUsage() {
+        if let secureVault = try? AutofillSecureVaultFactory.makeVault(reporter: SecureVaultReporter()),
+           let passwordsCount = try? secureVault.accountsCount(),
+           passwordsCount >= 25 {
+            permanentlyDismissCompleteSetupSection()
+            permanentlyDismissNextStepsSection()
+        }
     }
 
     private func updateRecentlyVisitedSitesVisibility() {
@@ -921,22 +930,9 @@ extension SettingsViewModel {
 
         shouldShowImportPasswords = shouldShowCompleteSetupForKey(Constants.didDismissImportPasswordsKey)
         updateDefaultBrowserVisibility()
-        shouldShowAddToDock = shouldShowCompleteSetupForKey(Constants.didDismissAddToDockKey)
-        shouldShowAddWidget = shouldShowCompleteSetupForKey(Constants.didDismissAddWidgetKey)
-        shouldShowAddressBarPosition = shouldShowCompleteSetupForKey(Constants.didDismissAddressBarKey, default: state.addressBar.enabled)
-        shouldShowVoiceSearch = shouldShowCompleteSetupForKey(Constants.didDismissVoiceSearchKey)
 
         // Only proceed with checks if at least one row is still shown
-        guard shouldShowSetAsDefaultBrowser || shouldShowImportPasswords ||
-                shouldShowAddToDock || shouldShowAddWidget ||
-                shouldShowAddressBarPosition || shouldShowVoiceSearch else {
-            return
-        }
-
-        if let secureVault = try? AutofillSecureVaultFactory.makeVault(reporter: SecureVaultReporter()),
-           let passwordsCount = try? secureVault.accountsCount(),
-           passwordsCount >= 25 {
-            permanentlyDismissCompleteSetupSection()
+        guard shouldShowSetAsDefaultBrowser || shouldShowImportPasswords else {
             return
         }
 
@@ -963,15 +959,29 @@ extension SettingsViewModel {
         try? keyValueStore.set(false, forKey: Constants.shouldCheckIfDefaultBrowserKey)
     }
 
+    private func updateNextStepsSectionVisibility() {
+        guard featureFlagger.isFeatureOn(.showSettingsCompleteSetupSection) else {
+            return
+        }
+
+        shouldShowAddToDock = shouldShowCompleteSetupForKey(Constants.didDismissAddToDockKey)
+        shouldShowAddWidget = shouldShowCompleteSetupForKey(Constants.didDismissAddWidgetKey)
+        shouldShowAddressBarPosition = shouldShowCompleteSetupForKey(Constants.didDismissAddressBarKey) && state.addressBar.enabled
+        shouldShowVoiceSearch = shouldShowCompleteSetupForKey(Constants.didDismissVoiceSearchKey)
+    }
+
     private func permanentlyDismissCompleteSetupSection() {
         try? keyValueStore.set(true, forKey: Constants.didDismissSetAsDefaultBrowserKey)
         try? keyValueStore.set(true, forKey: Constants.didDismissImportPasswordsKey)
+        shouldShowSetAsDefaultBrowser = false
+        shouldShowImportPasswords = false
+    }
+
+    private func permanentlyDismissNextStepsSection() {
         try? keyValueStore.set(true, forKey: Constants.didDismissAddToDockKey)
         try? keyValueStore.set(true, forKey: Constants.didDismissAddWidgetKey)
         try? keyValueStore.set(true, forKey: Constants.didDismissAddressBarKey)
         try? keyValueStore.set(true, forKey: Constants.didDismissVoiceSearchKey)
-        shouldShowSetAsDefaultBrowser = false
-        shouldShowImportPasswords = false
         shouldShowAddToDock = false
         shouldShowAddWidget = false
         shouldShowAddressBarPosition = false
@@ -1065,22 +1075,22 @@ extension SettingsViewModel {
 
     func dismissAddToDock() {
         try? keyValueStore.set(true, forKey: Constants.didDismissAddToDockKey)
-        updateCompleteSetupSectionVisiblity()
+        updateNextStepsSectionVisibility()
     }
 
     func dismissAddWidget() {
         try? keyValueStore.set(true, forKey: Constants.didDismissAddWidgetKey)
-        updateCompleteSetupSectionVisiblity()
+        updateNextStepsSectionVisibility()
     }
 
     func dismissAddressBarPosition() {
         try? keyValueStore.set(true, forKey: Constants.didDismissAddressBarKey)
-        updateCompleteSetupSectionVisiblity()
+        updateNextStepsSectionVisibility()
     }
 
     func dismissVoiceSearch() {
         try? keyValueStore.set(true, forKey: Constants.didDismissVoiceSearchKey)
-        updateCompleteSetupSectionVisiblity()
+        updateNextStepsSectionVisibility()
     }
 
     @MainActor func shouldPresentAutofillViewWith(accountDetails: SecureVaultModels.WebsiteAccount?, card: SecureVaultModels.CreditCard?, showCreditCardManagement: Bool, showSettingsScreen: AutofillSettingsDestination? = nil, source: AutofillSettingsSource? = nil) {

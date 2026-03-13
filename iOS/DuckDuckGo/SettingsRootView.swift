@@ -66,9 +66,7 @@ struct SettingsRootView: View {
                        isActive: $isShowingSubscribeFlow) { EmptyView() }
 
         List {
-            if viewModel.shouldShowSetAsDefaultBrowser || viewModel.shouldShowImportPasswords ||
-                viewModel.shouldShowAddToDock || viewModel.shouldShowAddWidget ||
-                viewModel.shouldShowAddressBarPosition || viewModel.shouldShowVoiceSearch {
+            if viewModel.shouldShowSetAsDefaultBrowser || viewModel.shouldShowImportPasswords {
                 SettingsCompleteSetupView()
                     .listRowBackground(Color(designSystemColor: .surface))
             }
@@ -78,6 +76,11 @@ struct SettingsRootView: View {
                 .listRowBackground(Color(designSystemColor: .surface))
             SettingsMainSettingsView()
                 .listRowBackground(Color(designSystemColor: .surface))
+            if viewModel.shouldShowAddToDock || viewModel.shouldShowAddWidget ||
+                viewModel.shouldShowAddressBarPosition || viewModel.shouldShowVoiceSearch {
+                SettingsNextStepsView()
+                    .listRowBackground(Color(designSystemColor: .surface))
+            }
             SettingsOthersView()
                 .listRowBackground(Color(designSystemColor: .surface))
             SettingsDebugView()
