@@ -2019,7 +2019,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                 wideEvent: wideEvent)
         self.autoClearHandler = autoClearHandler
         DispatchQueue.main.async {
-            autoClearHandler.handleAppLaunch()
+            Task { @MainActor in
+                await autoClearHandler.handleAppLaunch()
+            }
         }
     }
 

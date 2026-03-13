@@ -192,21 +192,21 @@ class AutoClearHandlerTests: XCTestCase {
         }
     }
 
-    func testWhenBurningEnabledAndFlagFalseThenBurnOnStartTriggered() {
+    func testWhenBurningEnabledAndFlagFalseThenBurnOnStartTriggered() async {
         dataClearingPreferences.isAutoClearEnabled = true
         handler.resetTheCorrectTerminationFlag()
 
-        XCTAssertTrue(handler.burnOnStartIfNeeded())
+        XCTAssertTrue(await handler.burnOnStartIfNeeded())
     }
 
-    func testWhenBurningDisabledThenBurnOnStartNotTriggered() {
+    func testWhenBurningDisabledThenBurnOnStartNotTriggered() async {
         dataClearingPreferences.isAutoClearEnabled = false
         handler.resetTheCorrectTerminationFlag()
 
-        XCTAssertFalse(handler.burnOnStartIfNeeded())
+        XCTAssertFalse(await handler.burnOnStartIfNeeded())
     }
 
-    func testShouldTerminate_whenRelaunchingAutomatically_skipsClearPrompt() {
+    func testShouldTerminate_whenRelaunchingAutomatically_skipsClearPrompt() async {
         mockStateRestoration.isRelaunchingAutomatically = true
         dataClearingPreferences.isAutoClearEnabled = true
         dataClearingPreferences.isWarnBeforeClearingEnabled = true
@@ -228,7 +228,7 @@ class AutoClearHandlerTests: XCTestCase {
         XCTAssertFalse(mockAlertPresenter.confirmAutoClearCalled)
 
         // Verify burn-on-start will NOT trigger on next launch
-        XCTAssertFalse(handler.burnOnStartIfNeeded(),
+        XCTAssertFalse(await handler.burnOnStartIfNeeded(),
                        "Burn-on-start should not trigger after automatic relaunch termination")
     }
 

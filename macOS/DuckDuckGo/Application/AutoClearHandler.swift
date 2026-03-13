@@ -60,8 +60,8 @@ final class AutoClearHandler: ApplicationTerminationDecider {
     }
 
     @MainActor
-    func handleAppLaunch() {
-        burnOnStartIfNeeded()
+    func handleAppLaunch() async {
+        _ = await burnOnStartIfNeeded()
         resetTheCorrectTerminationFlag()
     }
 
@@ -146,13 +146,13 @@ final class AutoClearHandler: ApplicationTerminationDecider {
 
     @MainActor
     @discardableResult
-    func burnOnStartIfNeeded() -> Bool {
+    func burnOnStartIfNeeded() async -> Bool {
         let shouldBurnOnStart = dataClearingPreferences.isAutoClearEnabled && !appTerminationHandledCorrectly
         guard shouldBurnOnStart else { return false }
 
-        fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled,
-                                   isAutoClear: true,
-                                   dataClearingWideEventService: dataClearingWideEventService)
+        await fireViewModel.fire.burnAll(includeChatHistory: dataClearingPreferences.isAutoClearAIChatHistoryEnabled,
+                                         isAutoClear: true,
+                                         dataClearingWideEventService: dataClearingWideEventService)
 
         return true
     }
