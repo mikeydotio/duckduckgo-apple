@@ -34,6 +34,11 @@ jobs:
     - name: Select Xcode
       uses: ./.github/actions/select-xcode-version
 
+    - name: Register SSH keys for private dependencies
+      uses: webfactory/ssh-agent@v0.9.1
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_FASTLANE_MATCH }}
+
     - name: Checkout shared web tests
       uses: actions/checkout@v4
       with:
