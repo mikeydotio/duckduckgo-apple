@@ -174,25 +174,20 @@ public final class DataBrokerProtectionIOSManager {
     private let freeTrialConversionService: FreeTrialConversionInstrumentationService?
     private var currentRunIsFreeScan: Bool?
     weak var continuedProcessingDelegate: DBPContinuedProcessingEventDelegate?
-    private var _continuedProcessingCoordinator: AnyObject?
 
-    @available(iOS 26.0, *)
     @MainActor
-    private var continuedProcessingCoordinator: DBPContinuedProcessingCoordinator {
-        if let coordinator = _continuedProcessingCoordinator as? DBPContinuedProcessingCoordinator {
-            return coordinator
+    private lazy var continuedProcessingCoordinator: any DBPContinuedProcessingCoordinating = {
+        guard #available(iOS 26.0, *) else {
+            fatalError("Continued processing coordinator is unavailable before iOS 26")
         }
 
-        let coordinator = DBPContinuedProcessingCoordinator(manager: self)
-        _continuedProcessingCoordinator = coordinator
-        return coordinator
-    }
+        return DBPContinuedProcessingCoordinator(manager: self)
+    }()
 
     @MainActor
     private var hasAttachedContinuedProcessingTask: Bool {
-        if #available(iOS 26.0, *),
-           let coordinator = _continuedProcessingCoordinator as? DBPContinuedProcessingCoordinator {
-            return coordinator.hasAttachedTask
+        if #available(iOS 26.0, *) {
+            return continuedProcessingCoordinator.hasAttachedTask
         }
 
         return false
