@@ -46,8 +46,9 @@ final class CapturingPrivacyStats: PrivacyStatsCollecting {
         return privacyStatsTotalCount
     }
 
-    func clearPrivacyStats() async {
+    func clearPrivacyStats() async -> Result<Void, Error> {
         clearPrivacyStatsCallCount += 1
+        return .success(())
     }
 
     func handleAppTermination() async {

@@ -71,7 +71,7 @@ final class FireCoordinator {
     private let aiChatSyncCleaner: (() -> AIChatSyncCleaning?)?
     private let visualizeFireAnimationDecider: OverridableVisualizeFireSettingsDecider
     let dataClearingPixelsReporter: DataClearingPixelsReporter
-    let dataClearingWideEventService: DataClearingWideEventService
+    let dataClearingWideEventService: DataClearingWideEventService?
 
     init(tld: TLD,
          featureFlagger: FeatureFlagger,
@@ -82,7 +82,7 @@ final class FireCoordinator {
          faviconManagement: FaviconManagement,
          windowControllersManager: WindowControllersManagerProtocol,
          pixelFiring: PixelFiring?,
-         wideEventManaging: WideEventManaging,
+         wideEventManaging: WideEventManaging? = nil,
          aiChatSyncCleaner: (() -> AIChatSyncCleaning?)? = nil,
          historyProvider: HistoryViewDataProviding? = nil, // for testing: created if not provided
          fireViewModel: FireViewModel? = nil, // for testing: created if not provided
@@ -103,7 +103,11 @@ final class FireCoordinator {
         self.pixelFiring = pixelFiring
         self.aiChatSyncCleaner = aiChatSyncCleaner
         self.dataClearingPixelsReporter = .init(pixelFiring: self.pixelFiring)
-        self.dataClearingWideEventService = .init(wideEvent: wideEventManaging)
+        if let wideEventManaging = wideEventManaging {
+            self.dataClearingWideEventService = .init(wideEvent: wideEventManaging)
+        } else {
+            self.dataClearingWideEventService = nil
+        }
         self.visualizeFireAnimationDecider = OverridableVisualizeFireSettingsDecider(internalDecider: visualizeFireAnimationDecider)
 
         self.fireDialogViewFactory = fireDialogViewFactory ?? { config in
@@ -295,7 +299,7 @@ extension FireCoordinator {
         if result.clearingOption == .allData /* not Current Tab or Window */,
            result.includeHistory, !isAllHistorySelected,
            let visits = result.selectedVisits, !visits.isEmpty {
-            dataClearingWideEventService.start(options: result, path: .burnVisits, isAutoClear: false)
+            dataClearingWideEventService?.start(options: result, path: .burnVisits, isAutoClear: false)
             await fireViewModel.fire.burnVisits(visits,
                                                 except: fireViewModel.fire.fireproofDomains,
                                                 isToday: result.isToday,
@@ -304,7 +308,7 @@ extension FireCoordinator {
                                                 clearChatHistory: result.includeChatHistory,
                                                 urlToOpenIfWindowsAreClosed: nil,
                                                 dataClearingWideEventService: dataClearingWideEventService)
-            dataClearingWideEventService.complete()
+            dataClearingWideEventService?.complete()
             return
         }
         pixelFiring?.fire(GeneralPixel.fireButtonFirstBurn, frequency: .legacyDailyNoSuffix)
@@ -320,7 +324,7 @@ extension FireCoordinator {
                                                 selectedDomains: result.selectedCookieDomains ?? [],
                                                 parentTabCollectionViewModel: tabCollectionViewModel,
                                                 close: result.includeTabsAndWindows)
-            dataClearingWideEventService.start(options: result, path: .burnEntity, isAutoClear: false)
+            dataClearingWideEventService?.start(options: result, path: .burnEntity, isAutoClear: false)
             await fireViewModel.fire.burnEntity(entity,
                                                 includingHistory: result.includeHistory,
                                                 includeCookiesAndSiteData: result.includeCookiesAndSiteData,
@@ -336,7 +340,7 @@ extension FireCoordinator {
             let entity = Fire.BurningEntity.window(tabCollectionViewModel: tabCollectionViewModel,
                                                    selectedDomains: result.selectedCookieDomains ?? [],
                                                    close: result.includeTabsAndWindows)
-            dataClearingWideEventService.start(options: result, path: .burnEntity, isAutoClear: false)
+            dataClearingWideEventService?.start(options: result, path: .burnEntity, isAutoClear: false)
             await fireViewModel.fire.burnEntity(entity,
                                                 includingHistory: result.includeHistory,
                                                 includeCookiesAndSiteData: result.includeCookiesAndSiteData,
@@ -347,7 +351,7 @@ extension FireCoordinator {
             pixelFiring?.fire(GeneralPixel.fireButton(option: .allSites))
             // "All" implies history too; respect includeHistory by routing via burnAll or burnEntity
             if isAllHistorySelected && result.includeTabsAndWindows && result.includeHistory {
-                dataClearingWideEventService.start(options: result, path: .burnAll, isAutoClear: false)
+                dataClearingWideEventService?.start(options: result, path: .burnAll, isAutoClear: false)
                 await fireViewModel.fire.burnAll(isBurnOnExit: false,
                                                  opening: .newtab,
                                                  includeCookiesAndSiteData: result.includeCookiesAndSiteData,
@@ -358,7 +362,7 @@ extension FireCoordinator {
                                                            selectedDomains: result.selectedCookieDomains ?? [],
                                                            customURLToOpen: nil,
                                                            close: result.includeTabsAndWindows)
-                dataClearingWideEventService.start(options: result, path: .burnEntity, isAutoClear: false)
+                dataClearingWideEventService?.start(options: result, path: .burnEntity, isAutoClear: false)
                 await fireViewModel.fire.burnEntity(entity,
                                                     includingHistory: result.includeHistory,
                                                     includeCookiesAndSiteData: result.includeCookiesAndSiteData,
@@ -377,7 +381,7 @@ extension FireCoordinator {
         }
 
         // Complete wide event tracking
-        dataClearingWideEventService.complete()
+        dataClearingWideEventService?.complete()
     }
 }
 /// Allows locally disabling Fire animation depending on context
