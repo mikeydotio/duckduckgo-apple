@@ -68,6 +68,7 @@ struct FireModeEmptyStateView: View {
             }
             .padding(.top, Constants.mainTopPadding)
             .padding(.horizontal, Constants.mainHorizontalPadding)
+            .frame(maxWidth: Constants.maxViewWidth)
         }
         .modifier(ScrollBounceBehaviorModifier())
     }
@@ -169,6 +170,7 @@ struct FireModeEmptyStateView: View {
     // MARK: - Constants
 
     enum Constants {
+        static let maxViewWidth: CGFloat = 552
         static let mainSectionSpacing: CGFloat = 16
         static let mainTopPadding: CGFloat = 24
         static let mainHorizontalPadding: CGFloat = 24
