@@ -36,6 +36,7 @@ enum DBPContinuedProcessingEvent {
 
 @MainActor
 protocol DBPContinuedProcessingCoordinating: AnyObject {
+    var hasAttachedTask: Bool { get }
     func startInitialRun(profile: DataBrokerProtectionProfile) async throws
 }
 
