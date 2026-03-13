@@ -225,12 +225,17 @@ final class AIChatOmnibarController {
         return models.first(where: { $0.entityHasAccess })?.id ?? ""
     }
 
-    /// Clears the persisted model selection if it's no longer available or accessible.
+    /// Replaces the persisted model selection if it's no longer available or accessible.
     private func clearStaleModelSelectionIfNeeded() {
         guard let selectedId = preferences.selectedModelId else { return }
         if !models.contains(where: { $0.id == selectedId && $0.entityHasAccess }) {
-            preferences.selectedModelId = nil
-            preferences.selectedModelShortName = nil
+            if let fallbackModel = models.first(where: { $0.entityHasAccess }) {
+                preferences.selectedModelId = fallbackModel.id
+                preferences.selectedModelShortName = fallbackModel.shortName
+            } else {
+                preferences.selectedModelId = nil
+                preferences.selectedModelShortName = nil
+            }
         }
     }
 

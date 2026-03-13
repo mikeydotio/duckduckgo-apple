@@ -682,7 +682,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         }
 
         if !basic.isEmpty {
-            menu.addItem(.separator())
+            if !advanced.isEmpty {
+                menu.addItem(.separator())
+            }
 
             let header = NSMenuItem(title: UserText.aiChatModelPickerBasicModelsSectionHeader, action: nil, keyEquivalent: "")
             header.isEnabled = false
