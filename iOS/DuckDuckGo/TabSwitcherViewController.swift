@@ -783,9 +783,11 @@ extension TabSwitcherViewController: UICollectionViewDataSource {
            let tab = tabsModel.get(tabAt: indexPath.row) {
             tab.removeObserver(self)
             tab.addObserver(self)
+            let isFireModeEnabled = fireModeCapability.isFireModeEnabled
             cell.update(withTab: tab,
                         isSelectionModeEnabled: self.isEditing,
-                        preview: previewsSource.preview(for: tab))
+                        preview: previewsSource.preview(for: tab),
+                        isFireModeEnabled: isFireModeEnabled)
         }
         
         return cell
@@ -930,9 +932,11 @@ extension TabSwitcherViewController: TabObserver {
             return
         }
 
+        let isFireModeEnabled = fireModeCapability.isFireModeEnabled
         cell.update(withTab: tab,
                     isSelectionModeEnabled: self.isEditing,
-                    preview: previewsSource.preview(for: tab))
+                    preview: previewsSource.preview(for: tab),
+                    isFireModeEnabled: isFireModeEnabled)
     }
 }
 

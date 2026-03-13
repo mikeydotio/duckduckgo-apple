@@ -59,6 +59,7 @@ final class TabViewCell: UICollectionViewCell {
 
     weak var delegate: TabViewCellDelegate?
     weak var tab: Tab?
+    private var isFireModeEnabled: Bool = false
 
     var isCurrent = false
     var isDeleting = false
@@ -363,11 +364,13 @@ final class TabViewCell: UICollectionViewCell {
 
     func update(withTab tab: Tab,
                 isSelectionModeEnabled: Bool,
-                preview: UIImage?) {
+                preview: UIImage?,
+                isFireModeEnabled: Bool) {
         accessibilityElements = [ title as Any, removeButton as Any ]
 
         self.tab = tab
         self.isSelectionModeEnabled = isSelectionModeEnabled
+        self.isFireModeEnabled = isFireModeEnabled
 
         if !isDeleting {
             isHidden = false
@@ -410,9 +413,9 @@ final class TabViewCell: UICollectionViewCell {
             self.preview?.image = Self.logoImage
             self.preview?.contentMode = .center
 
+            updateEmptyTabLabel(for: tab)
             link?.isHidden = false
             link?.text = UserText.homeTabSearchAndFavorites
-            title.text = UserText.homeTabTitle
             favicon.image = UIImage(resource: .logo)
             unread.isHidden = true
             self.preview?.isHidden = !tab.viewed
@@ -444,6 +447,16 @@ final class TabViewCell: UICollectionViewCell {
         }
 
         updateUIForSelectionMode(removeButton, selectionIndicator)
+    }
+    
+    private func updateEmptyTabLabel(for tab: Tab) {
+        if isFireModeEnabled {
+            title.text = tab.fireTab ? UserText.fireTabTitle : UserText.newTabTitle
+            title.accessibilityLabel = tab.fireTab ? UserText.openNewFireTab : UserText.openNewTab
+        } else {
+            title.text = UserText.homeTabTitle
+            title.accessibilityLabel = UserText.openHomeTab
+        }
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
