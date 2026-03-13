@@ -2999,6 +2999,18 @@
         }
       }
     },
+    "preferences.sync.recovery-instructions.footer" : {
+      "comment" : "Footer / caption on the restore synced data section in sync settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sync & Backup data can’t be recovered after 18 months of inactivity. [Learn More](https://duckduckgo.com/duckduckgo-help-pages/sync-and-backup/sync-and-backup-privacy/)"
+          }
+        }
+      }
+    },
     "preferences.sync.remove-device" : {
       "comment" : "Button to remove a device",
       "extractionState" : "extracted_with_value",
@@ -7445,55 +7457,55 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Alle Personen, die Zugriff auf diesen Code haben, können auf deine synchronisierten Daten zugreifen. Bewahre ihn daher bitte an einem sicheren Ort auf."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Anyone with access to this code can access your synced data, so please keep it in a safe place."
+            "value" : "Sync & Backup data can’t be recovered after 18 months of inactivity."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Cualquiera que tenga acceso a este código puede acceder a tus datos sincronizados, así que guárdalo en un lugar seguro."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Toute personne ayant accès à ce code peut accéder à vos données synchronisées. Veuillez donc le garder en lieu sûr."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Chiunque abbia accesso a questo codice può accedere ai tuoi dati sincronizzati, quindi conservalo in un luogo sicuro."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Iedereen met toegang tot deze code kan bij je gesynchroniseerde gegevens. Bewaar de code daarom op een veilige plek."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Każdy, kto ma dostęp do tego kodu, może uzyskać dostęp do zsynchronizowanych danych, więc przechowuj go w bezpiecznym miejscu."
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Qualquer pessoa com acesso a este código pode aceder aos teus dados sincronizados, por isso, guarda o código num local seguro."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Этот код позволяет получить доступ к вашим синхронизированным данным, поэтому храните его в надежном месте."
           }
         }
