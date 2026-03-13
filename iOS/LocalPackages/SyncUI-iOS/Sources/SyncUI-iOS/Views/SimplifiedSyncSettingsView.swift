@@ -26,6 +26,7 @@ public struct SimplifiedSyncSettingsView: View {
     @ObservedObject public var model: SyncSettingsViewModel
 
     @State var isRecoverSyncedDataSheetVisible = false
+    @State var isEnvironmentSwitcherInstructionsVisible = false
 
     public init(model: SyncSettingsViewModel) {
         self.model = model
@@ -78,8 +79,34 @@ extension SimplifiedSyncSettingsView {
                         .foregroundColor(Color(designSystemColor: .textSecondary))
                 }
             }
+        } header: {
+            devEnvironmentIndicator
         }
         .listRowBackground(Color(designSystemColor: .background))
+    }
+
+    @ViewBuilder
+    var devEnvironmentIndicator: some View {
+        if model.isOnDevEnvironment {
+            Button(action: {
+                isEnvironmentSwitcherInstructionsVisible.toggle()
+            }, label: {
+                Text("Dev environment")
+                    .daxFootnoteRegular()
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 2)
+                    .foregroundColor(.white)
+                    .background(Color(baseColor: .red40))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            })
+            .alert(isPresented: $isEnvironmentSwitcherInstructionsVisible) {
+                Alert(
+                    title: Text("You're using Sync Development environment"),
+                    primaryButton: .default(Text("Keep Development")),
+                    secondaryButton: .destructive(Text("Switch to Production"), action: model.switchToProdEnvironment)
+                )
+            }
+        }
     }
 
     @ViewBuilder
