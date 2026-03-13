@@ -319,6 +319,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             do {
                 tokenContainer = try await getTokenContainer(policy: .localValid)
             } catch SubscriptionManagerError.noTokenAvailable {
+                clearSubscriptionCache()
                 throw SubscriptionManagerError.noTokenAvailable
             } catch {
                 // Token refresh failed — fall back to cache if available

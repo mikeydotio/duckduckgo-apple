@@ -402,8 +402,6 @@ final class PreferencesSidebarModel: ObservableObject {
                     self.refreshSections()
                 }
             } catch SubscriptionManagerError.noTokenAvailable {
-                // The user is not authenticated, logging out
-                await subscriptionManager.signOut(notifyUI: false)
                 refreshSubscriptionStateAndSectionsIfNeeded()
             } catch {
                 Logger.general.error("Failed to refresh subscription state: \(error, privacy: .public)")
