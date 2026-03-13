@@ -346,6 +346,9 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
         guard let configCopy = configuration.copy() as? WKWebViewConfiguration else {
             fatalError("Failed to copy configuration")
         }
+        if featureFlagger.isFeatureOn(.autoplayBlocking) {
+            configCopy.mediaTypesRequiringUserActionForPlayback = autoplaySettings.currentAutoplayBlockingMode.mediaTypesRequiringUserAction
+        }
 
         let shouldCreateFireTab = model.shouldCreateFireTabs
         if #available(iOS 18.4, *), let webExtensionManager = webExtensionManager {
