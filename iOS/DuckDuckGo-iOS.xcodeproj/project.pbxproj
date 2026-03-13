@@ -22,7 +22,6 @@
 		1AD965E390AC1B7FDE09D956 /* RebrandedOnboardingView+BrowsersComparisonContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8693FFCAC02CE4A85D0BD62C /* RebrandedOnboardingView+BrowsersComparisonContent.swift */; };
 		1CB7B82123CEA1F800AA24EA /* DateExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB7B82023CEA1F800AA24EA /* DateExtension.swift */; };
 		1CB7B82323CEA28300AA24EA /* DateExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB7B82223CEA28300AA24EA /* DateExtensionTests.swift */; };
-		1D200C972BA3157A00108701 /* SettingsNextStepsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D200C962BA3157A00108701 /* SettingsNextStepsView.swift */; };
 		1D200C992BA3176D00108701 /* SettingsOthersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D200C982BA3176D00108701 /* SettingsOthersView.swift */; };
 		1D200C9B2BA31A6A00108701 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D200C9A2BA31A6A00108701 /* AboutView.swift */; };
 		1D94E7A32F33B433008315A2 /* WebExtensionPixelFiring+iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D94E7A22F33B433008315A2 /* WebExtensionPixelFiring+iOS.swift */; };
@@ -2442,7 +2441,6 @@
 		0A6CC0EE23904D5400E4F627 /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
 		1CB7B82023CEA1F800AA24EA /* DateExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtension.swift; sourceTree = "<group>"; };
 		1CB7B82223CEA28300AA24EA /* DateExtensionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensionTests.swift; sourceTree = "<group>"; };
-		1D200C962BA3157A00108701 /* SettingsNextStepsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsNextStepsView.swift; sourceTree = "<group>"; };
 		1D200C982BA3176D00108701 /* SettingsOthersView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsOthersView.swift; sourceTree = "<group>"; };
 		1D200C9A2BA31A6A00108701 /* AboutView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		1D94E7A22F33B433008315A2 /* WebExtensionPixelFiring+iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WebExtensionPixelFiring+iOS.swift"; sourceTree = "<group>"; };
@@ -5152,8 +5150,7 @@
 				1DEAADE32BA386C600E25A97 /* PrivacyProtections */,
 				1DEAADF72BA488E600E25A97 /* Privacy Pro */,
 				1DEAADE42BA386D100E25A97 /* MainSettings */,
-				1DEAADE52BA386E000E25A97 /* NextSteps */,
-				1DEAADE62BA386E800E25A97 /* Others */,
+					1DEAADE62BA386E800E25A97 /* Others */,
 			);
 			name = Sections;
 			sourceTree = "<group>";
@@ -5184,14 +5181,6 @@
 				317CA3422CFF82DB00F88848 /* SettingsAIFeaturesView.swift */,
 			);
 			name = MainSettings;
-			sourceTree = "<group>";
-		};
-		1DEAADE52BA386E000E25A97 /* NextSteps */ = {
-			isa = PBXGroup;
-			children = (
-				1D200C962BA3157A00108701 /* SettingsNextStepsView.swift */,
-			);
-			name = NextSteps;
 			sourceTree = "<group>";
 		};
 		1DEAADE62BA386E800E25A97 /* Others */ = {
@@ -12447,7 +12436,6 @@
 				31D2D2A22D40F7E900549D12 /* AIChatDeepLinkHandler.swift in Sources */,
 				9F989C142E9CB9ED00EC2701 /* ModalPromptCoordinationService.swift in Sources */,
 				1E908BF129827C480008C8F3 /* AutoconsentUserScript.swift in Sources */,
-				1D200C972BA3157A00108701 /* SettingsNextStepsView.swift in Sources */,
 				4B0295192537BC6700E00CEF /* ConfigurationDebugViewController.swift in Sources */,
 				9FD6E6172DFA71A800C2B032 /* PictureInPictureControllerFactory.swift in Sources */,
 				7B020B9A2D11F99D00876178 /* FavoritesDisplayMode+UserDefaults.swift in Sources */,

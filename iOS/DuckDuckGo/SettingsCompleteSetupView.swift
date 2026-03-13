@@ -21,11 +21,10 @@ import SwiftUI
 import DesignResourcesKit
 import DesignResourcesKitIcons
 
-@available(iOS 18.2, *)
 struct SettingsCompleteSetupView: View {
     @EnvironmentObject var viewModel: SettingsViewModel
     @Environment(\.colorScheme) private var colorScheme
-    
+
     private var swipeColor: Color {
         switch colorScheme {
         case .light:
@@ -36,11 +35,11 @@ struct SettingsCompleteSetupView: View {
             Color(red: 0.875, green: 0.875, blue: 0.875)
         }
     }
-    
+
     var body: some View {
         Section(header: Text(UserText.completeSetupSettings)) {
-            // Set As Default Browser
-            if viewModel.shouldShowSetAsDefaultBrowser {
+            // Set As Default Browser (iOS 18.2+ only)
+            if #available(iOS 18.2, *), viewModel.shouldShowSetAsDefaultBrowser {
                 SettingsCellView(label: UserText.setAsDefaultBrowser,
                                  image: Image(uiImage: DesignSystemImages.Color.Size24.defaultBrowserMobile),
                                  action: { viewModel.setAsDefaultBrowser("complete-setup") },
@@ -54,7 +53,7 @@ struct SettingsCompleteSetupView: View {
                         Image(uiImage: DesignSystemImages.Glyphs.Size24.eyeClosed
                             .withTintColor(UIColor(designSystemColor: .textPrimary), renderingMode: .alwaysOriginal))
                     }
-                    .tint(Color(swipeColor))
+                    .tint(swipeColor)
                 }
                 .id(colorScheme)
             }
@@ -73,7 +72,79 @@ struct SettingsCompleteSetupView: View {
                         Image(uiImage: DesignSystemImages.Glyphs.Size24.eyeClosed
                             .withTintColor(UIColor(designSystemColor: .textPrimary), renderingMode: .alwaysOriginal))
                     }
-                    .tint(Color(swipeColor))
+                    .tint(swipeColor)
+                }
+                .id(colorScheme)
+            }
+
+            // Add App to Your Dock
+            if viewModel.shouldShowAddToDock {
+                SettingsCellView(label: UserText.settingsAddToDock,
+                                 image: Image(uiImage: DesignSystemImages.Color.Size24.addToDock),
+                                 action: { viewModel.presentLegacyView(.addToDock) },
+                                 isButton: true)
+                .swipeActions {
+                    Button {
+                        viewModel.dismissAddToDock()
+                    } label: {
+                        Image(uiImage: DesignSystemImages.Glyphs.Size24.eyeClosed
+                            .withTintColor(UIColor(designSystemColor: .textPrimary), renderingMode: .alwaysOriginal))
+                    }
+                    .tint(swipeColor)
+                }
+                .id(colorScheme)
+            }
+
+            // Add Widget to Home Screen
+            if viewModel.shouldShowAddWidget {
+                NavigationLink(destination: WidgetEducationView()) {
+                    SettingsCellView(label: UserText.settingsAddWidget,
+                                     image: Image(uiImage: DesignSystemImages.Color.Size24.addWidget))
+                }
+                .swipeActions {
+                    Button {
+                        viewModel.dismissAddWidget()
+                    } label: {
+                        Image(uiImage: DesignSystemImages.Glyphs.Size24.eyeClosed
+                            .withTintColor(UIColor(designSystemColor: .textPrimary), renderingMode: .alwaysOriginal))
+                    }
+                    .tint(swipeColor)
+                }
+                .id(colorScheme)
+            }
+
+            // Set Your Address Bar Position (iPhone only)
+            if viewModel.shouldShowAddressBarPosition {
+                NavigationLink(destination: SettingsAppearanceView().environmentObject(viewModel)) {
+                    SettingsCellView(label: UserText.setYourAddressBarPosition,
+                                     image: Image(uiImage: DesignSystemImages.Color.Size24.addressBarBottom))
+                }
+                .swipeActions {
+                    Button {
+                        viewModel.dismissAddressBarPosition()
+                    } label: {
+                        Image(uiImage: DesignSystemImages.Glyphs.Size24.eyeClosed
+                            .withTintColor(UIColor(designSystemColor: .textPrimary), renderingMode: .alwaysOriginal))
+                    }
+                    .tint(swipeColor)
+                }
+                .id(colorScheme)
+            }
+
+            // Enable Voice Search
+            if viewModel.shouldShowVoiceSearch {
+                NavigationLink(destination: SettingsAccessibilityView().environmentObject(viewModel)) {
+                    SettingsCellView(label: UserText.enableVoiceSearch,
+                                     image: Image(uiImage: DesignSystemImages.Color.Size24.microphone))
+                }
+                .swipeActions {
+                    Button {
+                        viewModel.dismissVoiceSearch()
+                    } label: {
+                        Image(uiImage: DesignSystemImages.Glyphs.Size24.eyeClosed
+                            .withTintColor(UIColor(designSystemColor: .textPrimary), renderingMode: .alwaysOriginal))
+                    }
+                    .tint(swipeColor)
                 }
                 .id(colorScheme)
             }
