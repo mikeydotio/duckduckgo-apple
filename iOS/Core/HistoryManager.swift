@@ -72,7 +72,7 @@ public class HistoryManager: HistoryManaging {
         self.isAutocompleteEnabledByUser = isAutocompleteEnabledByUser
         self.isRecentlyVisitedSitesEnabledByUser = isRecentlyVisitedSitesEnabledByUser
     }
-    
+
     @MainActor
     public var history: BrowsingHistory? {
         historyCoordinator.history
@@ -81,7 +81,7 @@ public class HistoryManager: HistoryManaging {
     @MainActor
     public func removeAllHistory() async {
         await withCheckedContinuation { continuation in
-            dbCoordinator.burnAll {_ in 
+            dbCoordinator.burnAll { _ in
                 continuation.resume()
             }
         }
@@ -98,7 +98,7 @@ public class HistoryManager: HistoryManaging {
             }
         }
     }
-    
+
     @MainActor
     public func addVisit(of url: URL, tabID: String?, fireTab: Bool = false) {
         // Fire tabs: only record tab history, never global
@@ -108,17 +108,17 @@ public class HistoryManager: HistoryManaging {
             historyCoordinator.addVisit(of: url, tabID: tabID)
         }
     }
-    
+
     @MainActor
     public func updateTitleIfNeeded(title: String, url: URL) {
         historyCoordinator.updateTitleIfNeeded(title: title, url: url)
     }
-    
+
     @MainActor
     public func commitChanges(url: URL) {
         historyCoordinator.commitChanges(url: url)
     }
-    
+
     @MainActor
     public func tabHistory(tabID: String) async throws -> [URL] {
         return try await tabHistoryCoordinator.tabHistory(tabID: tabID)
@@ -209,7 +209,7 @@ class NullHistoryCoordinator: HistoryCoordinating {
             completion(.success(()))
         }
     }
-    
+
     func burnVisits(for tabID: String) async throws {
     }
 
@@ -288,7 +288,7 @@ class HistoryStoreEventMapper: EventMapping<History.HistoryDatabaseError> {
 
             case .insertTabHistoryFailed:
                 Pixel.fire(pixel: .historyInsertTabHistoryFailed, error: error)
-                
+
             case .removeTabHistoryFailed:
                 Pixel.fire(pixel: .historyRemoveTabHistoryFailed, error: error)
 

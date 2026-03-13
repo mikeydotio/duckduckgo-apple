@@ -145,7 +145,7 @@ public final class HistoryCoordinatingMock: HistoryCoordinating, HistoryDataSour
     @MainActor
     public func delete(_ visits: [History.Visit]) async {
         await withCheckedContinuation { continuation in
-            burnVisits(visits) {_ in 
+            burnVisits(visits) { _ in
                 continuation.resume()
             }
         }

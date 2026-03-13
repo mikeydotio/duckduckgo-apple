@@ -167,7 +167,7 @@ class HistoryCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(historyCoordinator.history!.count, 4)
 
-        historyCoordinator.burnAll {
+        historyCoordinator.burnAll { _ in
             // We now clean the database directly so we don't burn by entry
             XCTAssertEqual(historyStoringMock.removeEntriesArray.count, 0)
 

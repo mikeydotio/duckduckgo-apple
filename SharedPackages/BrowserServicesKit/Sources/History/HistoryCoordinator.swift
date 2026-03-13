@@ -289,7 +289,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
                "burnVisits(for:) found \(visitIDs.count) visit IDs but matched only \(visits.count) in memory")
 
         return await withCheckedContinuation { continuation in
-            burnVisits(visits) {_ in 
+            burnVisits(visits) { _ in
                 continuation.resume()
             }
         }
