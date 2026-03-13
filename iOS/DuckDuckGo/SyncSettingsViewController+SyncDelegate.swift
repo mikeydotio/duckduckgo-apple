@@ -365,7 +365,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
     }
 
     func showRecoveryCodeEntry() {
-        dismissPresentedViewController { [weak self] in
+        dismissRecoverSyncedDataSheetIfNeeded { [weak self] in
             self?.presentRecoveryCodeScan()
         }
     }
@@ -506,6 +506,25 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
     private func presentRecoveryCodeScan() {
         rootView.model.isRecoverSyncedDataSheetVisible = false
         collectCode(showQRCode: false)
+    }
+
+    @MainActor
+    private func dismissRecoverSyncedDataSheetIfNeeded(completion: @escaping () -> Void) {
+        rootView.model.isRecoverSyncedDataSheetVisible = false
+        if let presentedViewController = presentedViewController,
+           presentedViewController is UIHostingController<RecoverSyncedDataView> {
+            presentedViewController.dismiss(animated: true, completion: completion)
+            return
+        }
+
+        if let presentedViewController = navigationController?.presentedViewController,
+           presentedViewController is UIHostingController<RecoverSyncedDataView> {
+            presentedViewController.dismiss(animated: true, completion: completion)
+            return
+        }
+
+        // Nothing to dismiss in this flow, continue immediately.
+        completion()
     }
 
     private func collectCode(showQRCode: Bool) {
