@@ -285,7 +285,6 @@ extension DataClearingWideEventData {
         case burnEntity
         case burnAll
         case burnVisits
-        case burnAIChats
     }
 
     /// Status reason for unknown/incomplete clearing attempts.
