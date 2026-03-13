@@ -23,8 +23,30 @@ import DesignResourcesKitIcons
 import DuckUI
 
 struct FireModeEmptyStateView: View {
+    
+    typealias NewFireTabBlock =  () -> Void
+    
+    enum ViewType {
+        case tab
+        case tabSwitcher(onNewFireTab: NewFireTabBlock)
+        
+        var title: String {
+            switch self {
+            case .tab:
+                return UserText.fireTabEmptyStateTitle
+            case .tabSwitcher:
+                return UserText.fireModeEmptyStateTitle
+            }
+        }
+    }
 
-    let onNewFireTab: () -> Void
+    private let type: ViewType
+    private var onNewFireTab: NewFireTabBlock? {
+        if case .tabSwitcher(let onNewFireTab) = type {
+            return onNewFireTab
+        }
+        return nil
+    }
 
     var body: some View {
         ScrollView {
@@ -44,7 +66,7 @@ struct FireModeEmptyStateView: View {
         VStack(spacing: Constants.headerSectionSpacing) {
             Image(uiImage: DesignSystemImages.Color.Size96.fireTab)
 
-            Text(UserText.fireModeEmptyStateTitle)
+            Text(type.title)
                 .daxHeadline()
                 .foregroundColor(Color(designSystemColor: .textPrimary))
         }
@@ -114,18 +136,21 @@ struct FireModeEmptyStateView: View {
 
     // MARK: - New Fire Tab Button
 
+    @ViewBuilder
     private var newFireTabButton: some View {
-        Button(action: onNewFireTab) {
-            HStack(spacing: Constants.iconTextSpacing) {
-                Image(uiImage: DesignSystemImages.Glyphs.Size16.add)
-                Text(UserText.fireModeEmptyStateNewFireTab)
-                    .daxButton()
+        if let onNewFireTab {
+            Button(action: onNewFireTab) {
+                HStack(spacing: Constants.iconTextSpacing) {
+                    Image(uiImage: DesignSystemImages.Glyphs.Size16.add)
+                    Text(UserText.fireModeEmptyStateNewFireTab)
+                        .daxButton()
+                }
+                .foregroundColor(Color(designSystemColor: .accentContentPrimary))
+                .frame(height: Constants.buttonHeight)
+                .padding(.horizontal, Constants.buttonHorizontalPadding)
+                .background(Color(singleUseColor: .fireModeAccent))
+                .clipShape(RoundedRectangle(cornerRadius: Constants.buttonCornerRadius))
             }
-            .foregroundColor(Color(designSystemColor: .accentContentPrimary))
-            .frame(height: Constants.buttonHeight)
-            .padding(.horizontal, Constants.buttonHorizontalPadding)
-            .background(Color(singleUseColor: .fireModeAccent))
-            .clipShape(RoundedRectangle(cornerRadius: Constants.buttonCornerRadius))
         }
     }
 

@@ -451,9 +451,10 @@ class TabSwitcherViewController: UIViewController {
         guard fireModeCapability.isFireModeEnabled else {
             return
         }
-        let hostingController = UIHostingController(rootView: FireModeEmptyStateView(onNewFireTab: { [weak self] in
+        let emptyStateView = FireModeEmptyStateView(type: .tabSwitcher(onNewFireTab: { [weak self] in
             self?.addNewTab()
         }))
+        let hostingController = UIHostingController(rootView: emptyStateView)
         hostingController.view.backgroundColor = .clear
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
 

@@ -114,7 +114,7 @@ private extension NewTabPageView {
         GeometryReader { proxy in
             ZStack {
                 if shouldShowLogoInEmptyState {
-                    NewTabPageDaxLogoView()
+                    mainEmptyView
                 }
 
                 ScrollView {
@@ -137,6 +137,15 @@ private extension NewTabPageView {
         .if(dismissKeyboardOnScroll, transform: {
             $0.ignoresSafeArea(.keyboard)
         })
+    }
+    
+    @ViewBuilder
+    private var mainEmptyView: some View {
+        if viewModel.fireTab {
+            FireModeEmptyStateView(type: .tab)
+        } else {
+            NewTabPageDaxLogoView()
+        }
     }
 
     private var shouldShowLogoInEmptyState: Bool {
@@ -209,7 +218,7 @@ private struct Metrics {
 
 #Preview("Regular") {
     NewTabPageView(
-        viewModel: NewTabPageViewModel(),
+        viewModel: NewTabPageViewModel(fireTab: false),
         messagesModel: NewTabPageMessagesModel(
             homePageMessagesConfiguration: PreviewMessagesConfiguration(
                 homeMessages: []
@@ -223,7 +232,7 @@ private struct Metrics {
 
 #Preview("With message") {
     NewTabPageView(
-        viewModel: NewTabPageViewModel(),
+        viewModel: NewTabPageViewModel(fireTab: false),
         messagesModel: NewTabPageMessagesModel(
             homePageMessagesConfiguration: PreviewMessagesConfiguration(
                 homeMessages: [
@@ -248,7 +257,7 @@ private struct Metrics {
 
 #Preview("No favorites") {
     NewTabPageView(
-        viewModel: NewTabPageViewModel(),
+        viewModel: NewTabPageViewModel(fireTab: false),
         messagesModel: NewTabPageMessagesModel(
             homePageMessagesConfiguration: PreviewMessagesConfiguration(
                 homeMessages: []
@@ -262,7 +271,7 @@ private struct Metrics {
 
 #Preview("Empty") {
     NewTabPageView(
-        viewModel: NewTabPageViewModel(),
+        viewModel: NewTabPageViewModel(fireTab: false),
         messagesModel: NewTabPageMessagesModel(
             homePageMessagesConfiguration: PreviewMessagesConfiguration(
                 homeMessages: []
