@@ -115,7 +115,7 @@ final class StateRestorationManagerTests: XCTestCase {
         srm.loadLastSessionState()
         XCTAssertTrue(srm.canRestoreLastSessionState)
 
-        srm.clearState(sync: true)
+        _ = srm.clearState()
         XCTAssertFalse(srm.canRestoreLastSessionState)
     }
 

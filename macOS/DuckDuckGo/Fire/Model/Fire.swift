@@ -868,7 +868,9 @@ final class Fire: FireProtocol {
 
     @MainActor
     private func burnVisitedLinks(_ visits: [Visit]) -> Result<Void, Error> {
-        guard let visitedLinkStore = getVisitedLinkStore() else { return .success(()) }
+        guard let visitedLinkStore = getVisitedLinkStore() else {
+            return .failure(DataClearingWideEventError(description: "visitedLinkStore not available"))
+        }
 
         for visit in visits {
             guard let url = visit.historyEntry?.url else { continue }
@@ -879,7 +881,9 @@ final class Fire: FireProtocol {
 
     @MainActor
     private func burnVisitedLinks(_ urls: Set<URL>) -> Result<Void, Error> {
-        guard let visitedLinkStore = getVisitedLinkStore() else { return .success(()) }
+        guard let visitedLinkStore = getVisitedLinkStore() else {
+            return .failure(DataClearingWideEventError(description: "visitedLinkStore not available"))
+        }
 
         for url in urls {
             visitedLinkStore.removeVisitedLink(with: url)
@@ -957,6 +961,7 @@ final class Fire: FireProtocol {
     @MainActor
     /// Closes tabs/windows when `close` is true; otherwise clears back/forward history and session state when requested.
     private func burnTabs(burningEntity: BurningEntity) -> Result<Void, Error> {
+        var firstError: Error?
 
         func replacementPinnedTab(from pinnedTab: Tab) -> Tab {
             return Tab(content: pinnedTab.content.loadedFromCache(), shouldLoadInBackground: true)
@@ -989,14 +994,13 @@ final class Fire: FireProtocol {
                   parentTabCollectionViewModel: let tabCollectionViewModel,
                   close: let shouldClose):
             assert(tabViewModel === tabCollectionViewModel.selectedTabViewModel)
-            if tabViewModel !== tabCollectionViewModel.selectedTabViewModel {
-                return .failure(DataClearingWideEventError(description: "Expected tabViewModel to match selectedTabViewModel"))
-            }
             if shouldClose {
                 if tabCollectionViewModel.pinnedTabsManager?.isTabPinned(tabViewModel.tab) ?? false {
                     let tab = replacementPinnedTab(from: tabViewModel.tab)
                     if let index = tabCollectionViewModel.selectionIndex {
-                        tabCollectionViewModel.replaceTab(at: index, with: tab, forceChange: true)
+                        if case .failure(let error) = tabCollectionViewModel.replaceTab(at: index, with: tab, forceChange: true) {
+                            firstError = firstError ?? error
+                        }
                     }
                 } else {
                     if tabCollectionViewModel.allTabsCount == 1,
@@ -1004,7 +1008,9 @@ final class Fire: FireProtocol {
                         // If closing last Window's last Tab: Insert a new tab to prevent key window closing:
                         _=insertNewTabIfNeeded(into: windowControllersManager.mainWindowControllers[0])
                     }
-                    tabCollectionViewModel.removeSelected(forceChange: true)
+                    if case .failure(let error) = tabCollectionViewModel.removeSelected(forceChange: true) {
+                        firstError = firstError ?? error
+                    }
                 }
             }
 
@@ -1020,7 +1026,7 @@ final class Fire: FireProtocol {
                 tabCollectionViewModel.removeAllTabs(except: insertedTabIndex, forceChange: true)
                 let burnResult = burnPinnedTabs(in: tabCollectionViewModel)
                 if case .failure(let error) = burnResult {
-                    return .failure(error)
+                    firstError = firstError ?? error
                 }
                 selectPinnedTabIfNeeded(in: tabCollectionViewModel)
             }
@@ -1036,10 +1042,14 @@ final class Fire: FireProtocol {
                 windowController.mainViewController.tabCollectionViewModel.removeAllTabs(except: insertedTabIndex, forceChange: true)
                 let burnResult = burnPinnedTabs(in: windowController.mainViewController.tabCollectionViewModel)
                 if case .failure(let error) = burnResult {
-                    return .failure(error)
+                    firstError = firstError ?? error
                 }
                 selectPinnedTabIfNeeded(in: windowController.mainViewController.tabCollectionViewModel)
             }
+        }
+
+        if let error = firstError {
+            return .failure(error)
         }
         return .success(())
     }
@@ -1097,11 +1107,7 @@ final class Fire: FireProtocol {
             return .failure(DataClearingWideEventError(description: "stateRestorationManager is nil"))
         }
 
-        var capturedResult: Result<Void, Error> = .success(())
-        stateRestorationManager.clearLastSessionState { result in
-            capturedResult = result
-        }
-        return capturedResult
+        return stateRestorationManager.clearLastSessionState()
     }
 
     // MARK: - Burn Recently Closed
@@ -1116,7 +1122,7 @@ final class Fire: FireProtocol {
 
     private func burnDeletedBookmarks() -> Result<Void, Error> {
         if syncService?.authState == .inactive {
-            return syncDataProviders?.bookmarksAdapter.databaseCleaner.cleanUpDatabaseNow() ?? .success(())
+            syncDataProviders?.bookmarksAdapter.databaseCleaner.cleanUpDatabaseNow()
         }
         return .success(())
     }

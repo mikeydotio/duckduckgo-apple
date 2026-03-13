@@ -345,7 +345,7 @@ class FireExecutor: FireExecuting {
         daxDialogsManager.clearHeldURLData()
 
         if self.syncService.authState == .inactive {
-            _ = self.bookmarksDatabaseCleaner?.cleanUpDatabaseNow()
+            self.bookmarksDatabaseCleaner?.cleanUpDatabaseNow()
         }
 
         self.forgetTextZoom()

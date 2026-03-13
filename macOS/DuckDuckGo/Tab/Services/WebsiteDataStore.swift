@@ -186,7 +186,9 @@ internal class WebCacheManager {
 
     @MainActor
     private func removeCookies(for baseDomains: Set<String>? = nil) async -> Result<Void, Error> {
-        guard let cookieStore = websiteDataStore.cookieStore else { return .success(()) }
+        guard let cookieStore = websiteDataStore.cookieStore else {
+            return .failure(DataClearingWideEventError(description: "cookieStore not available"))
+        }
         var cookies = await cookieStore.allCookies()
 
         if let baseDomains = baseDomains {
