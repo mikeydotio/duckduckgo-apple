@@ -266,6 +266,38 @@ class SubscriptionManagerTests: XCTestCase {
         XCTAssertTrue(result!.isActive)
     }
 
+    func testGetSubscription_TierFeaturesError_ReturnsCachedSubscription() async throws {
+        // Populate the cache with an active subscription
+        let cachedSubscription = DuckDuckGoSubscription(
+            productId: "testProduct",
+            name: "Test Subscription",
+            billingPeriod: .monthly,
+            startedAt: Date().addingTimeInterval(.minutes(-5)),
+            expiresOrRenewsAt: Date().addingTimeInterval(.days(30)),
+            platform: .stripe,
+            status: .autoRenewable,
+            activeOffers: [],
+            tier: nil,
+            availableChanges: nil,
+            pendingPlans: nil
+        )
+        mockSubscriptionEndpointService.getSubscriptionResult = .success(cachedSubscription)
+        mockSubscriptionEndpointService.getSubscriptionTierFeaturesResult = .success(GetSubscriptionTierFeaturesResponse(features: [:]))
+        let tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        mockOAuthClient.getTokensResponse = .success(tokenContainer)
+        mockOAuthClient.internalCurrentTokenContainer = tokenContainer
+
+        _ = try await subscriptionManager.getSubscription(forceRefresh: true)
+
+        // Subscription endpoint succeeds but tier-features endpoint fails
+        mockSubscriptionEndpointService.getSubscriptionTierFeaturesResult = .failure(APIServiceError.serverError(statusCode: 500, statusDescription: "Internal Server Error"))
+
+        let result = try await subscriptionManager.getSubscription(forceRefresh: true)
+        XCTAssertNotNil(result, "Should fall back to the cached subscription when tier-features fails")
+        XCTAssertEqual(result?.productId, cachedSubscription.productId)
+        XCTAssertTrue(result!.isActive)
+    }
+
     func testGetSubscription_CachedSubscription_ReturnsCachedWithoutRefresh() async throws {
         // First, populate the cache with an active subscription
         let activeSubscription = DuckDuckGoSubscription(

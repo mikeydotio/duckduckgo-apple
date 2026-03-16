@@ -302,6 +302,16 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
+    /// Returns the cached subscription if available, firing the isActive pixel as a side effect.
+    /// When no cache exists, throws `fallbackError` so callers propagate the appropriate error.
+    private func cachedSubscriptionOrThrow(_ fallbackError: Error) throws -> DuckDuckGoSubscription {
+        guard let cached = subscriptionCachingService.get() else {
+            throw fallbackError
+        }
+        if cached.isActive { pixelHandler.handle(pixel: .subscriptionIsActive) }
+        return cached
+    }
+
     @discardableResult
     public func getSubscription(forceRefresh: Bool = false) async throws -> DuckDuckGoSubscription? {
 
@@ -323,12 +333,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 throw SubscriptionManagerError.noTokenAvailable
             } catch {
                 // Token refresh failed — fall back to cache if available
-                if let cachedSubscription = previousSubscription {
-                    subscription = cachedSubscription
-                    if subscription.isActive { pixelHandler.handle(pixel: .subscriptionIsActive) }
-                    return subscription
-                }
-                throw SubscriptionManagerError.noLocalSubscription
+                return try cachedSubscriptionOrThrow(SubscriptionManagerError.noLocalSubscription)
             }
 
             // Fetch subscription from backend
@@ -344,22 +349,26 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 return nil
             } catch {
                 // Transient error (network failure, HTTP 500, etc.) — fall back to cache if available
-                if let cachedSubscription = previousSubscription {
-                    subscription = cachedSubscription
-                    if subscription.isActive { pixelHandler.handle(pixel: .subscriptionIsActive) }
-                    return subscription
-                }
-                throw error
+                return try cachedSubscriptionOrThrow(error)
             }
 
-            // Enrich with tier features and update cache
-            let enrichedSubscription = try await enrichSubscriptionWithFeatures(remoteSubscription)
-            subscriptionCachingService.set(enrichedSubscription)
-            // Notify only if the subscription actually changed
-            if enrichedSubscription != previousSubscription {
-                NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: enrichedSubscription])
+            // Enrich with features
+            let finalSubscription: DuckDuckGoSubscription
+            do {
+                finalSubscription = try await enrichSubscriptionWithFeatures(remoteSubscription)
+            } catch {
+                // Tier-features endpoint failed — fall back to cache if available
+                return try cachedSubscriptionOrThrow(error)
             }
-            subscription = enrichedSubscription
+
+            // Update cache
+            subscriptionCachingService.set(finalSubscription)
+
+            // Notify only if the subscription actually changed
+            if finalSubscription != previousSubscription {
+                NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: finalSubscription])
+            }
+            subscription = finalSubscription
         }
 
         if subscription.isActive { pixelHandler.handle(pixel: .subscriptionIsActive) }
