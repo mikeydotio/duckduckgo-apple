@@ -130,6 +130,9 @@ final class AIChatUserScript: NSObject, Subfeature {
             rules.append(.exact(hostname: duckAiDomain))
         }
 
+        // TODO: Temporary onboarding experiment override; remove when onboarding no longer uses demo host.
+        rules.append(.exact(hostname: AIChatURLParameters.onboardingDemoHost))
+
         if let debugHostname = debugSettings.messagePolicyHostname {
             rules.append(.exact(hostname: debugHostname))
         }
@@ -142,6 +145,9 @@ final class AIChatUserScript: NSObject, Subfeature {
         if let duckAiDomain = URL.duckAi.host {
             rules.append(.exact(hostname: duckAiDomain))
         }
+
+        // TODO: Temporary onboarding experiment override; remove when onboarding no longer uses demo host.
+        rules.append(.exact(hostname: AIChatURLParameters.onboardingDemoHost))
 
         if let debugHostname = debugSettings.messagePolicyHostname {
             rules.append(.exact(hostname: debugHostname))

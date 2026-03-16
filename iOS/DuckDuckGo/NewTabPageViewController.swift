@@ -46,6 +46,7 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
     private let associatedTab: Tab
 
     private var hostingController: UIHostingController<AnyView>?
+    private let onboardingOverlayContainer = UIView()
 
     private let appSettings: AppSettings
     private let appWidthObserver: AppWidthObserver
@@ -113,6 +114,7 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupOnboardingOverlayContainer()
 
         registerForNotifications()
     }
@@ -214,6 +216,19 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
         }
     }
 
+    private func setupOnboardingOverlayContainer() {
+        onboardingOverlayContainer.translatesAutoresizingMaskIntoConstraints = false
+        onboardingOverlayContainer.backgroundColor = .clear
+        onboardingOverlayContainer.isUserInteractionEnabled = true
+        view.addSubview(onboardingOverlayContainer)
+        NSLayoutConstraint.activate([
+            onboardingOverlayContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            onboardingOverlayContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            onboardingOverlayContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            onboardingOverlayContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
     // MARK: - NewTabPage
 
     var isDragging: Bool { newTabPageViewModel.isDragging }
@@ -270,6 +285,52 @@ extension NewTabPageViewController: HomeScreenTransitionSource {
 
 extension NewTabPageViewController {
 
+    func showExperimentCompletionDialog(message: String) {
+        dismissHostingController(didFinishNTPOnboarding: false)
+
+        let onDismiss = { [weak self] in
+            guard let self else { return }
+            self.dismissHostingController(didFinishNTPOnboarding: true)
+            ViewHighlighter.hideAll()
+            self.chromeDelegate?.omniBar.beginEditing(animated: true, forTextEntryMode: .search)
+        }
+
+        let dialogView = OnboardingFinalDialog(
+            logoPosition: .top,
+            message: message,
+            cta: UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenButton,
+            dismissAction: onDismiss,
+            onManualDismiss: onDismiss
+        )
+
+        let root = AnyView(
+            dialogView
+                .onboardingDaxDialogStyle()
+                .onboardingContextualBackgroundStyle(background: .illustratedGradient)
+        )
+
+        let hostingController = UIHostingController(rootView: root)
+        self.hostingController = hostingController
+
+        hostingController.view.backgroundColor = .clear
+        addChild(hostingController)
+        onboardingOverlayContainer.addSubview(hostingController.view)
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            hostingController.view.topAnchor.constraint(equalTo: onboardingOverlayContainer.topAnchor),
+            hostingController.view.leadingAnchor.constraint(equalTo: onboardingOverlayContainer.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: onboardingOverlayContainer.trailingAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: onboardingOverlayContainer.bottomAnchor)
+        ])
+
+        hostingController.didMove(toParent: self)
+        newTabPageViewModel.startOnboarding()
+        if let chromeDelegate = chromeDelegate, let window = view.window {
+            ViewHighlighter.showIn(window, focussedOnView: chromeDelegate.omniBar.barView.aiChatButton)
+        }
+    }
+
     func showNextDaxDialogNew(dialogProvider: NewTabDialogSpecProvider, factory: any NewTabDaxDialogProviding) {
         dismissHostingController(didFinishNTPOnboarding: false)
 
@@ -316,14 +377,14 @@ extension NewTabPageViewController {
 
         hostingController.view.backgroundColor = .clear
         addChild(hostingController)
-        view.addSubview(hostingController.view)
+        onboardingOverlayContainer.addSubview(hostingController.view)
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            hostingController.view.topAnchor.constraint(equalTo: onboardingOverlayContainer.topAnchor),
+            hostingController.view.leadingAnchor.constraint(equalTo: onboardingOverlayContainer.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: onboardingOverlayContainer.trailingAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: onboardingOverlayContainer.bottomAnchor)
         ])
 
         hostingController.didMove(toParent: self)

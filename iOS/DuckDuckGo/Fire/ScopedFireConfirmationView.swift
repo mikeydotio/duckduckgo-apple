@@ -104,13 +104,23 @@ struct ScopedFireConfirmationView: View {
             
             // This Tab button - Secondary Destructive (outline)
             if viewModel.canBurnSingleTab {
-                Button(action: {
-                    viewModel.burnThisTab()
-                }) {
-                    Text(viewModel.tabScopeButtonTitle)
+                if viewModel.isDuckAIExperimentFlow {
+                    Button(action: {
+                        viewModel.burnThisTab()
+                    }) {
+                        Text(viewModel.tabScopeButtonTitle)
+                    }
+                    .buttonStyle(PrimaryDestructiveButtonStyle())
+                    .accessibilityIdentifier("Fire.Confirmation.Button.ThisTab")
+                } else {
+                    Button(action: {
+                        viewModel.burnThisTab()
+                    }) {
+                        Text(viewModel.tabScopeButtonTitle)
+                    }
+                    .buttonStyle(SecondaryDestructiveButtonStyle())
+                    .accessibilityIdentifier("Fire.Confirmation.Button.ThisTab")
                 }
-                .buttonStyle(SecondaryDestructiveButtonStyle())
-                .accessibilityIdentifier("Fire.Confirmation.Button.ThisTab")
             }
         }
     }

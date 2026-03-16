@@ -21,6 +21,7 @@ import Foundation
 import SwiftUI
 import Onboarding
 import DuckUI
+import DesignResourcesKitIcons
 
 // MARK: - Try Anonymous Search
 
@@ -102,10 +103,11 @@ struct OnboardingFireButtonDialogContent: View {
     let message: String
 
     private var attributedMessage: NSAttributedString {
-        let boldString = "Fire Button."
-        return message
-            .attributed
-            .withFont(.daxBodyBold(), forText: boldString)
+        let titleBoldString = UserText.Onboarding.DuckAIQueryExperiment.fireOnboardingTitle
+        let fireButtonBoldString = "Fire Button."
+        let attributed = message.attributed
+            .withFont(.daxBodyBold(), forText: titleBoldString)
+        return attributed.withFont(.daxBodyBold(), forText: fireButtonBoldString)
     }
 
     var body: some View {
@@ -213,6 +215,12 @@ struct OnboardingFinalDialog: View {
     let cta: String
     let dismissAction: () -> Void
     let onManualDismiss: () -> Void
+    private let chatIconToken = "[[chat_icon]]"
+
+    private var baseMessage: String {
+        guard message.contains(chatIconToken) else { return message }
+        return message.components(separatedBy: "\n\n").first ?? message.replacingOccurrences(of: chatIconToken, with: "")
+    }
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -220,7 +228,7 @@ struct OnboardingFinalDialog: View {
                 ContextualDaxDialogContent(
                     title: UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenTitle,
                     titleFont: Font(UIFont.daxTitle3()),
-                    message: NSAttributedString(string: message),
+                    message: NSAttributedString(string: baseMessage),
                     messageFont: Font.system(size: 16),
                     customActionView: AnyView(customActionView)
                 )
@@ -231,13 +239,23 @@ struct OnboardingFinalDialog: View {
 
     @ViewBuilder
     private var customActionView: some View {
-        OnboardingCTAButton(
-            title: cta,
-            buttonStyle: .primary(),
-            action: {
-                dismissAction()
+        VStack(spacing: 12) {
+            if message.contains(chatIconToken) {
+                (
+                    Text("You can use Duck.ai from anywhere you see the chat icon ")
+                    + Text(Image(uiImage: DesignSystemImages.Glyphs.Size16.aiChat))
+                )
+                .multilineTextAlignment(.center)
             }
-        )
+
+            OnboardingCTAButton(
+                title: cta,
+                buttonStyle: .primary(),
+                action: {
+                    dismissAction()
+                }
+            )
+        }
     }
 
 }

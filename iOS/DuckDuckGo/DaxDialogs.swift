@@ -50,6 +50,7 @@ protocol ContextualOnboardingLogic {
     var shouldShowFireButtonPulse: Bool { get }
 
     var isShowingFireDialog: Bool { get }
+    var isShowingFinalDialog: Bool { get }
     var isShowingSearchSuggestions: Bool { get }
     var isShowingSitesSuggestions: Bool { get }
     var isAddFavoriteFlow: Bool { get }
@@ -312,6 +313,11 @@ final class DaxDialogs: NewTabDialogSpecProvider, ContextualOnboardingLogic, Con
     var isShowingFireDialog: Bool {
         guard let lastShownDaxDialogType else { return false }
         return lastShownDaxDialogType == .fire
+    }
+
+    var isShowingFinalDialog: Bool {
+        guard let lastShownDaxDialogType else { return false }
+        return lastShownDaxDialogType == .final
     }
 
     func setLastShownDialog(type: BrowsingSpec.SpecType) {

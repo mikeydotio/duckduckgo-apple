@@ -96,7 +96,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     
     var headerTitle: String {
         if flow == .duckAIExperiment {
-            return UserText.Onboarding.DuckAIQueryExperiment.fireOnboardingMessage
+            return UserText.scopedFireConfirmationDuckAIExperimentTitle
         }
 
         let shouldIncludeAIChat = appSettings.autoClearAIChatHistory
@@ -105,6 +105,10 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
 
     var showsDeleteAllButton: Bool {
         flow == .standard
+    }
+
+    var isDuckAIExperimentFlow: Bool {
+        flow == .duckAIExperiment
     }
     
     var tabScopeButtonTitle: String {
@@ -148,7 +152,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     /// 7. Otherwise → return nil
     private func computeSubtitle() -> String? {
         if flow == .duckAIExperiment {
-            return nil
+            return UserText.scopedFireConfirmationDuckAIExperimentSubtitle
         }
 
         // Skip all subtitles if in onboarding

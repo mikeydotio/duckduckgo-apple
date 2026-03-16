@@ -57,6 +57,8 @@ public struct UserText {
     public static let scopedFireConfirmationDeleteAllButton = NSLocalizedString("scoped.fire.confirmation.delete.all.button", value: "Delete All", comment: "Button to delete all tabs and data in scoped fire confirmation dialog")
     public static let scopedFireConfirmationDeleteThisTabButton = NSLocalizedString("scoped.fire.confirmation.delete.this.tab.button", value: "Delete This Tab", comment: "Button to delete only the current tab in scoped fire confirmation dialog")
     public static let scopedFireConfirmationDeleteThisChatButton = NSLocalizedString("scoped.fire.confirmation.delete.this.chat.button", value: "Delete This Chat", comment: "Button to delete only the current chat in scoped fire confirmation dialog")
+    public static let scopedFireConfirmationDuckAIExperimentTitle = NSLocalizedString("scoped.fire.confirmation.duckai.experiment.title", value: "Delete chats?", comment: "Title for Duck.ai experiment scoped fire confirmation dialog")
+    public static let scopedFireConfirmationDuckAIExperimentSubtitle = NSLocalizedString("scoped.fire.confirmation.duckai.experiment.subtitle", value: "This chat will be cleared from your device.", comment: "Subtitle for Duck.ai experiment scoped fire confirmation dialog")
     public static let scopedFireConfirmationSignOutWarning = NSLocalizedString("scoped.fire.confirmation.sign.out.warning", value: "Deleting site data can sign you out of accounts.", comment: "Warning message explaining that deleting site data may sign users out of accounts")
     public static let scopedFireConfirmationDeleteThisChatDescription = NSLocalizedString("scoped.fire.confirmation.delete.this.chat.description", value: "\"Delete All\" will not delete your Duck.ai chat history.", comment: "Description explaining what that Delete All action does not delete chats.")
     public static let scopedFireConfirmationDownloadsWarning = NSLocalizedString("scoped.fire.confirmation.downloads.warning", value: "This will cancel downloads in progress.", comment: "Warning message that deleting will cancel any active downloads")
@@ -2193,10 +2195,20 @@ public struct UserText {
                 value: "surprise me!",
                 comment: "Surprise me suggestion chip label in onboarding Duck.ai query experiment screen."
             )
+            public static let fireOnboardingTitle = NotLocalizedString(
+                "onboarding.highlights.duckAIQueryExperiment.fire.title",
+                value: "And that’s Duck.ai!",
+                comment: "Experiment-only fire onboarding title shown after the first Duck.ai response."
+            )
             public static let fireOnboardingMessage = NotLocalizedString(
                 "onboarding.highlights.duckAIQueryExperiment.fire.message",
-                value: "Instantly delete your chats with the Fire Button.\n\nGive it a try! 🔥",
+                value: "Private AI chats you can delete anytime with the Fire Button.\n\nGive it a try! 🔥",
                 comment: "Experiment-only fire onboarding message shown after the first Duck.ai response."
+            )
+            public static let completionOnboardingMessage = NotLocalizedString(
+                "onboarding.highlights.duckAIQueryExperiment.completion.message",
+                value: "Use the address bar to search and visit sites or toggle to Duck.ai for private AI chat.\n\nYou can use Duck.ai from anywhere you see the chat icon [[chat_icon]]",
+                comment: "Experiment-only completion onboarding message shown after finishing Fire onboarding in Duck.ai flow."
             )
         }
 

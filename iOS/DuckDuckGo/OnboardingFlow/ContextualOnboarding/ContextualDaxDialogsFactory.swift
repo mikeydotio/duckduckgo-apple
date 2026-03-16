@@ -103,6 +103,7 @@ final class DefaultContextualDaxDialogsFactory: ContextualDaxDialogsFactory {
         case .final:
             rootView = AnyView(
                 endOfJourneyDialog(
+                    message: spec.message,
                     delegate: delegate,
                     pixelName: spec.pixelName
                 )
@@ -257,6 +258,7 @@ final class DefaultContextualDaxDialogsFactory: ContextualDaxDialogsFactory {
     }
 
     private func endOfJourneyDialog(
+        message: String,
         delegate: ContextualOnboardingDelegate,
         pixelName: Pixel.Event
     ) -> some View {
@@ -270,9 +272,10 @@ final class DefaultContextualDaxDialogsFactory: ContextualDaxDialogsFactory {
             delegate?.didTapDismissContextualOnboardingAction()
         }
 
+        let endOfJourneyMessage = message.isEmpty ? UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenMessage : message
         return OnboardingFinalDialog(
             logoPosition: .left,
-            message: UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenMessage,
+            message: endOfJourneyMessage,
             cta: UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenButton,
             dismissAction: dismissAction,
             onManualDismiss: onManualDismiss

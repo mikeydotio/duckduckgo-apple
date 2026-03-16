@@ -209,6 +209,7 @@ class MainViewController: UIViewController {
         var shouldForcePostFireAddressBarPickerRestore = false
         var controlsLocked = false
         var triggerWorkItem: DispatchWorkItem?
+        var pendingCompletionDialogMessage: String?
     }
 
     private var experimentDuckAIFireOnboardingFlow = ExperimentDuckAIFireOnboardingFlowContext()
@@ -1393,6 +1394,9 @@ class MainViewController: UIViewController {
         // ie remove back/forward and show bookmarks/passwords
         // but also before any other UI updates so that data from the old tab doesn't find its way into the new one
         refreshControls()
+        DispatchQueue.main.async { [weak self] in
+            self?.presentPendingExperimentCompletionDialogIfNeeded()
+        }
 
         if isNewTab && allowingKeyboard && KeyboardSettings().onNewTab {
             omniBar.beginEditing(animated: true)
@@ -1465,7 +1469,6 @@ class MainViewController: UIViewController {
                 onConfirm: { [weak self] fireRequest in
                     self?.forgetAllWithAnimation(request: fireRequest) {
                         self?.experimentDuckAIFireOnboardingFlow.shouldForcePostFireAddressBarPickerRestore = true
-                        self?.currentTab?.submitStartChatAction()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             self?.refreshOmniBar()
                         }
@@ -2488,7 +2491,9 @@ class MainViewController: UIViewController {
         setExperimentFireControlsLocked(true)
         showFireButtonPulse()
         currentTab?.presentExperimentContextualDaxFireDialog(
-            message: UserText.Onboarding.DuckAIQueryExperiment.fireOnboardingMessage
+            message: UserText.Onboarding.DuckAIQueryExperiment.fireOnboardingTitle
+                + "\n\n"
+                + UserText.Onboarding.DuckAIQueryExperiment.fireOnboardingMessage
         )
     }
 
@@ -2516,29 +2521,33 @@ class MainViewController: UIViewController {
         experimentDuckAIFireOnboardingFlow.triggerWorkItem?.cancel()
         experimentDuckAIFireOnboardingFlow.triggerWorkItem = nil
         setExperimentFireControlsLocked(false)
-        markContextualOnboardingAsSeenAfterExperimentFire()
+        experimentDuckAIFireOnboardingFlow.pendingCompletionDialogMessage = UserText.Onboarding.DuckAIQueryExperiment.completionOnboardingMessage
+        if let tabToClose = currentTab?.tabModel {
+            closeTab(tabToClose, behavior: .createEmptyTabAtSamePosition, clearTabHistory: false)
+        } else {
+            updateCurrentTab()
+        }
         refreshOmniBar()
         restorePostFireAddressBarPickerIfNeeded()
     }
 
-    private func markContextualOnboardingAsSeenAfterExperimentFire() {
-        // Mark all contextual onboarding milestones as completed to prevent follow-up dialogs and impression pixels.
+    private func presentPendingExperimentCompletionDialogIfNeeded() {
+        guard experimentDuckAIFireOnboardingFlow.state == .completed,
+              let message = experimentDuckAIFireOnboardingFlow.pendingCompletionDialogMessage,
+              let newTabPageViewController else {
+            return
+        }
+
+        experimentDuckAIFireOnboardingFlow.pendingCompletionDialogMessage = nil
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            newTabPageViewController.showExperimentCompletionDialog(message: message)
+        }
+    }
+
+    private func markSearchContextualOnboardingAsSeenForExperiment() {
         daxDialogsManager.setTryAnonymousSearchMessageSeen()
         daxDialogsManager.setSearchMessageSeen()
-        daxDialogsManager.setTryVisitSiteMessageSeen()
-//        daxDialogsManager.setFireEducationMessageSeen()
-        daxDialogsManager.setFinalOnboardingDialogSeen()
-
-        daxDialogsManager.overrideShownFlagFor(.afterSearch, flag: true)
-        daxDialogsManager.overrideShownFlagFor(.withoutTrackers, flag: true)
-        daxDialogsManager.overrideShownFlagFor(.siteIsMajorTracker, flag: true)
-        daxDialogsManager.overrideShownFlagFor(.siteOwnedByMajorTracker, flag: true)
-        daxDialogsManager.overrideShownFlagFor(.withOneTracker, flag: true)
-        daxDialogsManager.overrideShownFlagFor(.withMultipleTrackers, flag: true)
-        daxDialogsManager.overrideShownFlagFor(.fire, flag: true)
-        daxDialogsManager.overrideShownFlagFor(.final, flag: true)
-        var subscriptionCoordinator = daxDialogsManager
-        subscriptionCoordinator.subscriptionPromotionDialogSeen = true
     }
 
     private func restorePostFireAddressBarPickerIfNeeded() {
@@ -3598,6 +3607,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onAIChatPressed() {
+        ViewHighlighter.hideAll()
         hideSuggestionTray()
 
         if let currentTab, aiChatContextualModeFeature.isAvailable, newTabPageViewController == nil {
@@ -3699,6 +3709,7 @@ extension MainViewController: OmniBarDelegate {
 
     // MARK: - Experimental Address Bar (pixels only)
     func onExperimentalAddressBarTapped() {
+        ViewHighlighter.hideAll()
         fireControllerAwarePixel(ntp: .addressBarClickOnNTP,
                                  serp: .addressBarClickOnSERP,
                                  website: .addressBarClickOnWebsite,
@@ -3727,6 +3738,7 @@ extension MainViewController: OmniBarDelegate {
 
     /// Delegate method called when the omnibar branding area is tapped while in AI Chat mode.
     func onAIChatBrandingPressed() {
+        ViewHighlighter.hideAll()
         Pixel.fire(pixel: .addressBarClickOnAIChat)
         viewCoordinator.omniBar.beginEditing(animated: true, forTextEntryMode: .aiChat)
     }
@@ -4506,6 +4518,11 @@ extension MainViewController {
         }
     }
 
+    private func showAIChatButtonPulse() {
+        guard let window = view.window else { return }
+        ViewHighlighter.showIn(window, focussedOnView: viewCoordinator.omniBar.barView.aiChatButton)
+    }
+
     private func findFireButton() -> UIView? {
         let state = mobileCustomization.state
 
@@ -4779,8 +4796,7 @@ extension MainViewController: OnboardingDelegate {
         experimentDuckAIFireOnboardingFlow.triggerWorkItem = nil
         if shouldArmExperimentFireOnboarding {
             experimentDuckAIFireOnboardingFlow.state = .awaitingFirstResponse
-            // Disable legacy contextual onboarding immediately for the experiment flow so redirects cannot surface other dialogs.
-            markContextualOnboardingAsSeenAfterExperimentFire()
+            markSearchContextualOnboardingAsSeenForExperiment()
         } else if experimentDuckAIFireOnboardingFlow.state != .completed {
             experimentDuckAIFireOnboardingFlow.state = .idle
         }

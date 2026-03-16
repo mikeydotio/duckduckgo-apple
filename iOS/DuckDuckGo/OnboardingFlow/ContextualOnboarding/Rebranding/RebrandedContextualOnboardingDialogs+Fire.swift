@@ -65,6 +65,9 @@ extension OnboardingRebranding {
 
         private var attributedMessage: AttributedString {
             var attributedString = AttributedString(message)
+            if let titleRange = attributedString.range(of: UserText.Onboarding.DuckAIQueryExperiment.fireOnboardingTitle) {
+                attributedString[titleRange].inlinePresentationIntent = .stronglyEmphasized
+            }
             // Find the range of "Fire Button"
             if let range = attributedString.range(of: "Fire Button") {
                 attributedString[range].inlinePresentationIntent = .stronglyEmphasized // Bold
