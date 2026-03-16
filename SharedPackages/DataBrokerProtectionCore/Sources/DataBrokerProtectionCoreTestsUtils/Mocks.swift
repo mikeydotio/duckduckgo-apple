@@ -985,6 +985,7 @@ public final class MockDatabase: DataBrokerProtectionRepository {
     }
 
     public var wasSaveProfileCalled = false
+    public var saveProfileCallCount = 0
     public var wasFetchProfileCalled = false
     public var wasDeleteProfileDataCalled = false
     public var wasSaveOptOutOperationCalled = false
@@ -1072,6 +1073,7 @@ public final class MockDatabase: DataBrokerProtectionRepository {
 
     public func save(_ profile: DataBrokerProtectionProfile) throws {
         wasSaveProfileCalled = true
+        saveProfileCallCount += 1
         switch saveResult {
         case .success:
             return
@@ -1333,6 +1335,7 @@ public final class MockDatabase: DataBrokerProtectionRepository {
 
     public func clear() {
         wasSaveProfileCalled = false
+        saveProfileCallCount = 0
         wasFetchProfileCalled = false
         wasSaveOptOutOperationCalled = false
         wasBrokerProfileQueryDataCalled = false
@@ -2003,6 +2006,7 @@ public final class MockDBPFeatureFlagger: DBPFeatureFlagging {
 public final class MockOperationEventsHandler: EventMapping<JobEvent> {
 
     public var profileSavedFired = false
+    public var profileSavedFireCount = 0
     public var firstScanCompletedFired = false
     public var firstScanCompletedAndMatchesFoundFired = false
     public var firstProfileRemovedFired = false
@@ -2022,6 +2026,7 @@ public final class MockOperationEventsHandler: EventMapping<JobEvent> {
         switch event {
         case .profileSaved:
             profileSavedFired = true
+            profileSavedFireCount += 1
         case .firstScanCompleted:
             firstScanCompletedFired = true
         case .firstScanCompletedAndMatchesFound:
@@ -2035,6 +2040,7 @@ public final class MockOperationEventsHandler: EventMapping<JobEvent> {
 
     public func reset() {
         profileSavedFired = false
+        profileSavedFireCount = 0
         firstScanCompletedFired = false
         firstScanCompletedAndMatchesFoundFired = false
         firstProfileRemovedFired = false
