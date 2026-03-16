@@ -1,39 +1,3 @@
-/* Auto-Restore - Description */
-"auto.restore.description" = "アプリを再インストールすると、このデバイスのデータが自動的に復元されます。";
-
-/* Auto-Restore - Description */
-"auto.restore.learn.more.full" = "DuckDuckGoアプリを再インストールすると、このデバイスでデータを復元するかどうかを尋ねられます。";
-
-/* Auto-Restore Ready Sheet - Description */
-"auto.restore.ready.description" = "Sync & Backupセッションを再開してブックマークやパスワードなどを復元するか、新しいセットアップを続行します。";
-
-/* Auto-Restore Ready Sheet - Restore Button */
-"auto.restore.ready.restore.button" = "同期とバックアップを再開";
-
-/* Auto-Restore Ready Sheet - Scan Code Link */
-"auto.restore.ready.scan.code.link" = "セットアップを続行";
-
-/* Auto-Restore Ready Sheet - Title */
-"auto.restore.ready.title" = "前回のSync & Backupセッションが準備完了です。";
-
-/* Auto-Restore Screen - Description */
-"auto.restore.screen.description" = "DuckDuckGoアプリを再インストールすると、このデバイスでデータを復元するかどうかを尋ねられます。";
-
-/* Auto-Restore Screen - Title */
-"auto.restore.screen.title" = "アプリの再インストール時に復元";
-
-/* Auto-Restore Settings Row - Label */
-"auto.restore.settings.row.label" = "アプリの再インストール時に復元";
-
-/* Auto-Restore Settings Row - Off */
-"auto.restore.settings.row.off" = "無効";
-
-/* Auto-Restore Settings Row - On */
-"auto.restore.settings.row.on" = "有効";
-
-/* Auto-Restore - Toggle Label */
-"auto.restore.toggle.label" = "アプリの再インストール時に復元";
-
 /* Standard Buttons - Back Button */
 "back.button" = "戻る";
 
@@ -134,9 +98,6 @@
 "fetch.favicons.option.title" = "アイコンを自動ダウンロード";
 
 /* No comment provided by engineer. */
-"Go to Settings" = "設定に移動";
-
-/* No comment provided by engineer. */
 "Keep Development" = "開発環境で継続";
 
 /* Manually Enter Code View - Instruction with sync menu path and view text code menu item inserted */
@@ -190,24 +151,6 @@
 /* Link label for recovering synced data */
 "recover.synced.data.link" = "同期データを復元";
 
-/* Recover Synced Data Sheet - Button */
-"recover.synced.data.sheet.button" = "同期データを復元";
-
-/* Recover Synced Data Sheet - Description */
-"recover.synced.data.sheet.description" = "Sync & Backupをセットアップする際に入手したリカバリーコードが必要です。使用したデバイスにPDFとして保存している可能性があります。";
-
-/* Recover Synced Data Sheet - Title */
-"recover.synced.data.sheet.title" = "同期したデータを復元";
-
-/* Recovering Data Sheet - Description */
-"recovering.data.description" = "ブックマーク、保存したログイン、その他のデバイスを同期するために再接続しています。";
-
-/* Recovering Data Sheet - Status */
-"recovering.data.status" = "接続中...";
-
-/* Recovering Data Sheet - Title */
-"recovering.data.title" = "データの復元";
-
 /* Remove Device View - Button */
 "remove.device.button" = "デバイスを削除";
 
@@ -217,26 +160,14 @@
 /* Remove Device View - Title */
 "remove.device.title" = "デバイスを削除しますか？";
 
-/* Save Recovery Code Sheet - Card Title */
-"save.recovery.code.card.title" = "リカバリーコード";
-
 /* Save Recovery Code Sheet - Copy Code Toast */
 "save.recovery.code.code.copied.button" = "リカバリーコードがクリップボードにコピーされました";
 
 /* Save Recovery Code Sheet - Copy Code Button */
 "save.recovery.code.copy.code.button" = "コードをコピー";
 
-/* Save Recovery Code Sheet - Save as PDF Button */
-"save.recovery.code.save.as.pdf.button" = "PDFでダウンロード";
-
 /* Save Recovery Code Sheet - Footer */
 "save.recovery.code.sheet.footer" = "このコードにアクセスできる人は誰でも同期されたデータにアクセスできるため、安全な場所に保管してください。";
-
-/* Recovery Code Sheet - Description */
-"save.recovery.key.body" = "このデバイスにアクセスできなくなった場合にデータを回復できるように、このコードを保存して安全に保管してください。";
-
-/* Recovery Code Sheet - Title */
-"save.recovery.key.title" = "データを簡単に復元";
 
 /* Save RecoveryPDF - Button */
 "save.recovery.pdf.button" = "回復PDFを保存";
@@ -290,9 +221,6 @@
 "scan.or.see.code.title" = "QRコードをスキャン";
 
 /* No comment provided by engineer. */
-"Secure Your Device to Use Sync & Backup" = "デバイスを保護してSync & Backupを使用";
-
-/* No comment provided by engineer. */
 "Switch to Production" = "本番環境に切り替え";
 
 /* Link label for syncing and backing up the device */
@@ -318,18 +246,6 @@
 
 /* Sync Menu Path */
 "sync.menu.path" = "設定 > Sync & Backup > 別のデバイスと同期";
-
-/* Sync passcode required alert - button */
-"sync.passcode.required.alert.go.to.settings.button" = "設定に移動";
-
-/* Sync passcode required alert - message */
-"sync.passcode.required.alert.message" = "Sync & Backupを使用するには、デバイスのパスワードが必要です。";
-
-/* Sync passcode required alert - title */
-"sync.passcode.required.alert.title" = "デバイスを保護してSync & Backupを使用";
-
-/* Sync Settings - Recovery section header */
-"sync.settings.recovery.section.header" = "回復";
 
 /* Sync & Backup Title */
 "sync.title" = "Sync & Backup";

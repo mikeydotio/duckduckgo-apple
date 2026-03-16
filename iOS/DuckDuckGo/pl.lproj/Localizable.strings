@@ -1079,9 +1079,6 @@
 "Confirm" = "Potwierdź";
 
 /* No comment provided by engineer. */
-"Contextual Onboarding" = "Wprowadzenie kontekstowe";
-
-/* No comment provided by engineer. */
 "Contextual Session Timer" = "Contextual Session Timer";
 
 /* Button to continue the onboarding process */
@@ -1212,6 +1209,9 @@
 
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Niestandardowy adres URL: %@";
+
+/* No comment provided by engineer. */
+"Dark Reader Excluded Domains (%@)" = "Domeny wykluczone w Dark Reader (%@)";
 
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Importuj plik zakładek...";
@@ -1453,14 +1453,6 @@
 /* Info text shown below the context chip explaining that content will be sent with the message */
 "duckai.context.chip.info" = "Wysyłane z Twoją wiadomością do Duck.ai";
 
-/* Body text for the Duck.ai contextual onboarding screen explaining the feature */
-
-/* Primary button text to dismiss the Duck.ai contextual onboarding screen */
-
-/* Title for the Duck.ai contextual onboarding screen */
-
-/* Secondary button text to open settings from the Duck.ai contextual onboarding screen */
-
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "Funkcje sztucznej inteligencji DuckDuckGo są prywatne i opcjonalne. Twoje dane nie są używane do trenowania AI.";
 
@@ -1649,6 +1641,12 @@
 
 /* Title for Duck Player welcome message highlighting privacy benefits */
 "duckplayer.welcome.message.text" = "Oglądasz w Duck Player!\nNie ma tu reklam ukierunkowanych.";
+
+/* No comment provided by engineer. */
+"Effective threshold: %@ s (override)" = "Obowiązujący próg: %@ s (nadpisany)";
+
+/* No comment provided by engineer. */
+"Effective threshold: config default (no override)" = "Obowiązujący próg: domyślna konfiguracja (bez nadpisania)";
 
 /* Email protection service offered by DuckDuckGo */
 "email-protection" = "Ochrona poczty e-mail";
@@ -2575,6 +2573,9 @@
 "No active subscriptions" = "Brak aktywnych subskrypcji";
 
 /* No comment provided by engineer. */
+"No excluded domains" = "Brak wykluczonych domen";
+
+/* No comment provided by engineer. */
 "No existing subscription found" = "Nie znaleziono istniejącej subskrypcji";
 
 /* No comment provided by engineer. */
@@ -2694,35 +2695,14 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Dowiedz się więcej";
 
-/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
-"onboarding.privacypro.promo.buttons.rebranding.skip" = "Nie, dziękuję";
-
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Pomiń";
 
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Jeszcze jedno.";
 
-/* Body copy for the returning-user restore prompt */
-"onboarding.restore.prompt.body" = "Chcesz przywrócić zakładki, hasła i nie tylko z poprzedniej synchronizacji DuckDuckGo?";
-
-/* Primary CTA to start restoring data on returning-user restore prompt */
-"onboarding.restore.prompt.restore.cta" = "Przywróć moje dane";
-
-/* Secondary CTA to skip restore on returning-user restore prompt */
-"onboarding.restore.prompt.skip.cta" = "Pomiń";
-
-/* Title for the returning-user restore prompt */
-"onboarding.restore.prompt.title" = "Kontynuuj od miejsca zakończenia";
-
-/* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.message" = "Prywatna. Szybka. Z mniejszą liczbą reklam.";
-/* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.title" = "To DuckDuckGo Search!";
-/* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Chcesz skorzystać z szybszej przeglądarki, która zapewni Ci ochronę?";
-/* The title of the onboarding intro */
-"onboarding.rebranding.intro.title" = "Cześć!";
+/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
+"onboarding.privacypro.promo.title.delayed" = "Czy wiesz, że?";
 
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Rozpocznij przeglądanie";
@@ -2783,6 +2763,9 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Rezygnacja...";
+
+/* No comment provided by engineer. */
+"Override" = "Nadpisz";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Nie można uzyskać dostępu do modeli Duck.ai dostępnych wyłącznie dla subskrybentów";
@@ -2991,27 +2974,6 @@
 /* Alert title */
 "prompt.custom.url.scheme.title" = "Otworzyć w innej aplikacji?";
 
-/* Button to go back to the previous page after redirect loop */
-"prompt.x-safari-https.go-back" = "Wróć";
-
-/* Alert message when a redirect loop is detected */
-"prompt.x-safari-https.loop.message" = "Czy chcesz otworzyć tę stronę w Safari?";
-
-/* Alert title when a redirect loop is detected after staying in DuckDuckGo */
-"prompt.x-safari-https.loop.title" = "Niestety nie udało się załadować strony.";
-
-/* Button to open the page in Safari */
-"prompt.x-safari-https.open-in-safari" = "Otwórz w Safari";
-
-/* Button to stay in DuckDuckGo instead of opening Safari */
-"prompt.x-safari-https.stay" = "Zostań w DuckDuckGo";
-
-/* Alert message when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.message" = "Niektóre funkcje strony mogą nie działać w tej przeglądarce.";
-
-/* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.title" = "Ta strona chce otworzyć się w przeglądarce Safari.";
-
 /* No comment provided by engineer. */
 "REBRANDED" = "REBRANDING";
 
@@ -3188,9 +3150,6 @@
 
 /* Settings screen cell text for addess bar position */
 "settings.appearance.address.bar" = "Pozycja paska adresu";
-
-/* Settings screen cell text for experimental menu */
-"settings.appearance.experimental.menu" = "Eksperymentalne menu przeglądarki";
 
 /* Settings screen cell for opening links in associated apps */
 "settings.associated.apps" = "Otwieraj łącza w powiązanych aplikacjach";
@@ -3744,11 +3703,11 @@
 /* Title for the manage billing page */
 "subscription.billing.google.title" = "Plany subskrypcji";
 
-/* Subscription Removal confirmation message */
-"subscription.cancel.message" = "Twoja subskrypcja została usunięta z tego urządzenia.";
-
 /* Button to cancel a pending downgrade of the subscription */
 "subscription.cancel.downgrade.button" = "Anuluj obniżenie poziomu";
+
+/* Subscription Removal confirmation message */
+"subscription.cancel.message" = "Twoja subskrypcja została usunięta z tego urządzenia.";
 
 /* Pending downgrade info for monthly plan. Parameters are tier name and effective date. This reads as 'Your plan will downgrade to Plus on (date).' */
 "subscription.cancel.pending.downgrade.banner.caption" = "W dniu %2$@ Twój plan zostanie obniżony do poziomu %1$@.";
@@ -3962,6 +3921,9 @@
 
 /* No comment provided by engineer. */
 "SwiftUI Alert" = "Alert SwiftUI";
+
+/* No comment provided by engineer. */
+"Switches to this tab" = "Przełącza na tę kartę";
 
 /* Message confirming that recovery code was copied to clipboard */
 "sync.code.copied" = "Kod odzyskiwania skopiowany do schowka";
