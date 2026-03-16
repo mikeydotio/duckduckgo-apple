@@ -198,9 +198,13 @@ final class SubscriptionPagesUseSubscriptionFeature: Subfeature {
 
         do {
             try await subscriptionManager.adopt(accessToken: subscriptionValues.accessToken, refreshToken: subscriptionValues.refreshToken)
-            try await subscriptionManager.getSubscription(forceRefresh: true)
+            guard let subscription = try await subscriptionManager.getSubscription(forceRefresh: true) else {
+                Logger.subscription.error("No subscription found after token adoption")
+                markEmailAddressRestoreAsFailure(data: restoreDataList)
+                return nil
+            }
             markEmailAddressRestoreAsSuccess(data: restoreDataList)
-            Logger.subscription.log("Subscription retrieved")
+            Logger.subscription.log("Subscription retrieved: \(subscription.isActive ? "active" : "inactive", privacy: .public)")
         } catch {
             markEmailAddressRestoreAsFailure(data: restoreDataList, with: error)
             Logger.subscription.error("Failed to adopt V2 tokens: \(error, privacy: .public)")
