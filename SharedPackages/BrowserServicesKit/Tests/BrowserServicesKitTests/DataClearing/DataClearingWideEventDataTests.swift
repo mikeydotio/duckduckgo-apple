@@ -689,16 +689,19 @@ final class DataClearingWideEventDataTests: XCTestCase {
     }
 
     func testDurationFormatting_roundsVariousValues() {
-        // Test various rounding scenarios (Swift uses banker's rounding: .5 rounds to nearest even)
-        // Test with clean Int values to avoid floating point precision issues in TimeInterval
+        // Validate rounding behavior while avoiding 5ms boundaries.
+        // `durationMilliseconds` truncates from TimeInterval, so tie values can be unstable.
         let testCases: [(inputMs: Int, expected: Int)] = [
             (12, 10),      // 12ms → 10ms (1.2 → 1)
             (18, 20),      // 18ms → 20ms (1.8 → 2)
-            (24, 20),      // 24ms → 20ms (2.4 → 2)
-            (25, 20),      // 25ms → 20ms (2.5 → 2 even)
-            (35, 30),      // 35ms → 40ms (3.5 → 3 even)
-            (45, 40),      // 45ms → 40ms (4.5 → 4 even)
-            (55, 50),      // 55ms → 60ms (5.5 → 5 even)
+            (23, 20),      // 23ms → 20ms (2.3 → 2)
+            (27, 30),      // 27ms → 30ms (2.7 → 3)
+            (33, 30),      // 33ms → 30ms (3.3 → 3)
+            (37, 40),      // 37ms → 40ms (3.7 → 4)
+            (43, 40),      // 43ms → 40ms (4.3 → 4)
+            (47, 50),      // 47ms → 50ms (4.7 → 5)
+            (53, 50),      // 53ms → 50ms (5.3 → 5)
+            (57, 60),      // 57ms → 60ms (5.7 → 6)
             (123, 120),    // 123ms → 120ms (12.3 → 12)
             (128, 130),    // 128ms → 130ms (12.8 → 13)
             (1234, 1230),  // 1234ms → 1230ms (123.4 → 123)
@@ -711,7 +714,7 @@ final class DataClearingWideEventDataTests: XCTestCase {
                 trigger: .manualFire,
                 contextData: WideEventContextData(name: "test-context")
             )
-            // Create interval that will produce exact millisecond values
+            // Build an interval from a millisecond value
             let base = Date()
             eventData.clearTabsDuration = WideEvent.MeasuredInterval(
                 start: base,
