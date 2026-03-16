@@ -885,14 +885,13 @@ private extension DataBrokerProtectionIOSManager {
             self.queueManager.stop()
         }
 
-        await performImmediateScanOperations(backgroundAssertion: backgroundAssertion) {
+        await performImmediateScanOperations {
             backgroundAssertion.release()
         }
     }
 
     @MainActor
     private func performImmediateScanOperations(
-        backgroundAssertion: QRunInBackgroundAssertion,
         completion: @escaping () -> Void
     ) async {
         await checkForEmailConfirmationData()
@@ -970,7 +969,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
             }
         }
 
-        await performImmediateScanOperations(backgroundAssertion: backgroundAssertion) { [weak self] in
+        await performImmediateScanOperations { [weak self] in
             guard let self else { return }
             self.continuedProcessingDelegate?.iosManager(self, didEmit: .scanPhaseCompleted)
             backgroundAssertion.release()
