@@ -205,6 +205,7 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
     private func reloadData() {
         collectionView.reloadData()
         tabSwitcherButton.tabCount = tabsCount
+        tabSwitcherButton.isFireMode = (tabManager?.currentBrowsingMode ?? .normal) == .fire
     }
 
     func backgroundTabAdded() {

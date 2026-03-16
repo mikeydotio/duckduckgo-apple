@@ -1780,6 +1780,7 @@ class MainViewController: UIViewController {
         assert(tabSwitcherButton != nil)
         tabSwitcherButton?.tabCount = tabManager.currentTabsModel.count
         tabSwitcherButton?.hasUnread = tabManager.currentTabsModel.hasUnread
+        tabSwitcherButton?.isFireMode = tabManager.currentBrowsingMode == .fire
     }
 
     private func refreshOmniBar() {
