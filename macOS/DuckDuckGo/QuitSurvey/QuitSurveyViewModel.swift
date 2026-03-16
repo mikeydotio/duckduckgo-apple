@@ -110,6 +110,7 @@ final class QuitSurveyViewModel: ObservableObject {
     private let feedbackSender: FeedbackSenderImplementing
     private var persistor: QuitSurveyPersistor?
     private let featureFlagger: FeatureFlagger
+    private let pixelFiring: PixelFiring?
     private let onQuit: () -> Void
     private var autoQuitTimer: Timer?
 
@@ -135,6 +136,7 @@ final class QuitSurveyViewModel: ObservableObject {
         feedbackSender: FeedbackSenderImplementing = FeedbackSender(),
         persistor: QuitSurveyPersistor? = nil,
         featureFlagger: FeatureFlagger,
+        pixelFiring: PixelFiring? = PixelKit.shared,
         historyCoordinating: HistoryCoordinating? = nil,
         faviconManaging: FaviconManagement? = nil,
         onQuit: @escaping () -> Void
@@ -142,6 +144,7 @@ final class QuitSurveyViewModel: ObservableObject {
         self.feedbackSender = feedbackSender
         self.persistor = persistor
         self.featureFlagger = featureFlagger
+        self.pixelFiring = pixelFiring
         self.onQuit = onQuit
         let otherOptions = Self.allOptions.filter { $0.id != Self.websitesDidntWorkOption.id }
         let randomOptions = Array(otherOptions.shuffled().prefix(7))
@@ -269,19 +272,19 @@ final class QuitSurveyViewModel: ObservableObject {
     // MARK: - Pixels
 
     private func fireSurveyShown() {
-        PixelKit.fire(QuitSurveyPixels.quitSurveyShown)
+        pixelFiring?.fire(QuitSurveyPixels.quitSurveyShown)
     }
 
     private func fireSurveyThumbsUp() {
-        PixelKit.fire(QuitSurveyPixels.quitSurveyThumbsUp)
+        pixelFiring?.fire(QuitSurveyPixels.quitSurveyThumbsUp)
     }
 
     private func fireSurveyThumbsDown() {
-        PixelKit.fire(QuitSurveyPixels.quitSurveyThumbsDown)
+        pixelFiring?.fire(QuitSurveyPixels.quitSurveyThumbsDown)
     }
 
     private func fireThumbsDownPixelSubmission(reasons: String, affectedDomains: String?) {
-        PixelKit.fire(QuitSurveyPixels.quitSurveyThumbsDownSubmission(reasons: reasons, affectedDomains: affectedDomains))
+        pixelFiring?.fire(QuitSurveyPixels.quitSurveyThumbsDownSubmission(reasons: reasons, affectedDomains: affectedDomains))
     }
 
     /// This methods calculates the parameters for the thumbs down submission pixel.

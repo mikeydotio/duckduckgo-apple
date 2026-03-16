@@ -17,6 +17,8 @@
 //
 
 import History
+import PixelKit
+import PixelKitTestingUtilities
 import XCTest
 import PrivacyConfig
 
@@ -37,6 +39,26 @@ private func makeEntry(host: String, lastVisit: Date) -> HistoryEntry {
         blockedTrackingEntities: [],
         trackersFound: false,
         cookiePopupBlocked: false
+    )
+}
+
+// MARK: - View Model Factory
+
+@MainActor
+private func makeViewModel(
+    feedbackSender: FeedbackSenderImplementing = MockFeedbackSender(),
+    featureFlagger: MockFeatureFlagger = MockFeatureFlagger(),
+    pixelFiring: PixelFiring? = nil,
+    historyCoordinating: HistoryCoordinatingMock? = nil,
+    onQuit: @escaping () -> Void = {}
+) -> QuitSurveyViewModel {
+    QuitSurveyViewModel(
+        feedbackSender: feedbackSender,
+        persistor: nil,
+        featureFlagger: featureFlagger,
+        pixelFiring: pixelFiring,
+        historyCoordinating: historyCoordinating,
+        onQuit: onQuit
     )
 }
 
@@ -229,5 +251,36 @@ final class QuitSurveyViewModelTests: XCTestCase {
         XCTAssertTrue(vm.selectedDomains.isEmpty)
         XCTAssertFalse(vm.isOtherDomainSelected)
         XCTAssertTrue(vm.otherDomainText.isEmpty)
+    }
+
+    // MARK: - Pixels
+
+    func testSubmitFeedbackFiresPixelWithAffectedDomainsParameter() {
+        let pixelMock = PixelKitMock(expecting: [])
+        let sender = MockFeedbackSender()
+        let vm = makeViewModel(feedbackSender: sender, pixelFiring: pixelMock)
+        vm.toggleOption("websites-didnt-work")
+        vm.toggleDomain("example.com")
+        vm.submitFeedback()
+
+        let submissionCall = pixelMock.actualFireCalls.first {
+            $0.pixel.name == QuitSurveyPixelName.quitSurveyThumbsDownSubmission.rawValue
+        }
+        XCTAssertNotNil(submissionCall)
+        XCTAssertEqual(submissionCall?.pixel.parameters?["affected_domains"], "example.com")
+    }
+
+    func testSubmitFeedbackDoesNotIncludeAffectedDomainsParameterWhenNoneSelected() {
+        let pixelMock = PixelKitMock(expecting: [])
+        let sender = MockFeedbackSender()
+        let vm = makeViewModel(feedbackSender: sender, pixelFiring: pixelMock)
+        vm.toggleOption("slow-to-open")
+        vm.submitFeedback()
+
+        let submissionCall = pixelMock.actualFireCalls.first {
+            $0.pixel.name == QuitSurveyPixelName.quitSurveyThumbsDownSubmission.rawValue
+        }
+        XCTAssertNotNil(submissionCall)
+        XCTAssertNil(submissionCall?.pixel.parameters?["affected_domains"])
     }
 }
