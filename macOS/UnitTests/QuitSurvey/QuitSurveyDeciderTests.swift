@@ -272,7 +272,6 @@ final class QuitSurveyDeciderTests: XCTestCase {
 
         XCTAssertFalse(decider.shouldShowQuitSurvey)
     }
-
 }
 
 // MARK: - DataClearingPreferences Test Extension
