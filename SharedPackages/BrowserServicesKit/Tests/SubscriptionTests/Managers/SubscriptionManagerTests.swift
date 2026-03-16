@@ -198,7 +198,7 @@ class SubscriptionManagerTests: XCTestCase {
         XCTAssertTrue(subscription!.isActive)
     }
 
-    func testRefreshCachedSubscription_ExpiredSubscription() async {
+    func testRefreshCachedSubscription_ExpiredSubscription() async throws {
         let expiredSubscription = DuckDuckGoSubscription(
             productId: "testProduct",
             name: "Test Subscription",
@@ -214,14 +214,14 @@ class SubscriptionManagerTests: XCTestCase {
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(expiredSubscription)
         mockSubscriptionEndpointService.getSubscriptionTierFeaturesResult = .success(GetSubscriptionTierFeaturesResponse(features: [:]))
-        mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
-        do {
-            try await subscriptionManager.getSubscription(forceRefresh: true)
-        } catch SubscriptionManagerError.noTokenAvailable {
+        let tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        mockOAuthClient.getTokensResponse = .success(tokenContainer)
+        mockOAuthClient.internalCurrentTokenContainer = tokenContainer
 
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+        let subscription = try await subscriptionManager.getSubscription(forceRefresh: true)
+        XCTAssertNotNil(subscription, "Expired subscription should still be returned")
+        XCTAssertFalse(subscription!.isActive, "Expired subscription should not be active")
+        XCTAssertEqual(subscription!.status, .expired)
     }
 
     func testGetSubscription_NoDataOnBackend_ReturnsNil() async throws {
@@ -443,7 +443,6 @@ class SubscriptionManagerTests: XCTestCase {
     func testDeadTokenRecoverySuccess() async throws {
         mockOAuthClient.getTokensResponse = .failure(OAuthClientError.invalidTokenRequest(OAuthRequest.TokenStatus.expired))
         overrideTokenResponseInRecoveryHandler = .success(OAuthTokensFactory.makeValidTokenContainer())
-        mockSubscriptionEndpointService.getSubscriptionResult = .success(SubscriptionMockFactory.appleSubscription)
         mockAppStoreRestoreFlowV2.restoreAccountFromPastPurchaseResult = .success("some")
         let tokenContainer = try await subscriptionManager.getTokenContainer(policy: .localValid)
         XCTAssertFalse(tokenContainer.decodedAccessToken.isExpired())
@@ -466,7 +465,6 @@ class SubscriptionManagerTests: XCTestCase {
     /// Dead token error loop detector: this case shouldn't be possible, but if the BE starts to send back expired tokens we risk to enter in an infinite loop.
     func testDeadTokenRecoveryLoop() async throws {
         mockOAuthClient.getTokensResponse = .failure(OAuthClientError.invalidTokenRequest(OAuthRequest.TokenStatus.expired))
-        mockSubscriptionEndpointService.getSubscriptionResult = .success(SubscriptionMockFactory.appleSubscription)
         mockAppStoreRestoreFlowV2.restoreAccountFromPastPurchaseResult = .success("some")
         do {
             try await subscriptionManager.getTokenContainer(policy: .localValid)
