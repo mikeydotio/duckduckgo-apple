@@ -228,7 +228,7 @@ private struct DomainToggleRow: View {
         Button(action: onToggle) {
             HStack(spacing: 8) {
                 Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                    .foregroundColor(isSelected ? Color(designSystemColor: .accentAltContentPrimary) : Color(.secondaryLabelColor))
+                    .foregroundColor(isSelected ? Color(designSystemColor: .accentAltContentPrimary) : Color(designSystemColor: .iconsSecondary))
 
                 if let favicon = entry.favicon {
                     Image(nsImage: favicon)
@@ -238,7 +238,7 @@ private struct DomainToggleRow: View {
                 } else {
                     Image(systemName: "globe")
                         .frame(width: 16, height: 16)
-                        .foregroundColor(Color(.secondaryLabelColor))
+                        .foregroundColor(Color(designSystemColor: .iconsSecondary))
                 }
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -275,11 +275,11 @@ private struct OtherDomainRow: View {
             Button(action: { viewModel.toggleOtherDomain() }) {
                 HStack(spacing: 8) {
                     Image(systemName: viewModel.isOtherDomainSelected ? "checkmark.square.fill" : "square")
-                        .foregroundColor(viewModel.isOtherDomainSelected ? Color(designSystemColor: .accentAltContentPrimary) : Color(.secondaryLabelColor))
+                        .foregroundColor(viewModel.isOtherDomainSelected ? Color(designSystemColor: .accentAltContentPrimary) : Color(designSystemColor: .iconsSecondary))
 
                     Image(systemName: "globe")
                         .frame(width: 16, height: 16)
-                        .foregroundColor(Color(.secondaryLabelColor))
+                        .foregroundColor(Color(designSystemColor: .iconsSecondary))
 
                     Text(UserText.quitSurveyAffectedDomainsOther)
                         .systemLabel()
