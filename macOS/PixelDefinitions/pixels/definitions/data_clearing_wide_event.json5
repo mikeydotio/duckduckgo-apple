@@ -61,10 +61,22 @@
                 "key": "feature.data.ext.included_domains",
                 "type": "string",
                 "description": "Comma-separated list of domain categories included",
-                "examples": [
-                    "History,TabsAndWindows,CookiesAndSiteData,ChatHistory",
+                "enum": [
+                    "History",
+                    "TabsAndWindows",
                     "History,TabsAndWindows",
-                    "CookiesAndSiteData,ChatHistory"
+                    "CookiesAndSiteData",
+                    "History,CookiesAndSiteData",
+                    "TabsAndWindows,CookiesAndSiteData",
+                    "History,TabsAndWindows,CookiesAndSiteData",
+                    "ChatHistory",
+                    "History,ChatHistory",
+                    "TabsAndWindows,ChatHistory",
+                    "History,TabsAndWindows,ChatHistory",
+                    "CookiesAndSiteData,ChatHistory",
+                    "History,CookiesAndSiteData,ChatHistory",
+                    "TabsAndWindows,CookiesAndSiteData,ChatHistory",
+                    "History,TabsAndWindows,CookiesAndSiteData,ChatHistory"
                 ]
             },
             {
