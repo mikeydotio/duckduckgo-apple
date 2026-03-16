@@ -353,13 +353,23 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             }
 
             // Enrich with tier features and update cache
-            let enrichedSubscription = try await enrichSubscriptionWithFeatures(remoteSubscription)
-            subscriptionCachingService.set(enrichedSubscription)
-            // Notify only if the subscription actually changed
-            if enrichedSubscription != previousSubscription {
-                NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: enrichedSubscription])
+            do {
+                let enrichedSubscription = try await enrichSubscriptionWithFeatures(remoteSubscription)
+                subscriptionCachingService.set(enrichedSubscription)
+                // Notify only if the subscription actually changed
+                if enrichedSubscription != previousSubscription {
+                    NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: enrichedSubscription])
+                }
+                subscription = enrichedSubscription
+            } catch {
+                // Feature enrichment failed — fall back to cache if available
+                if let cachedSubscription = previousSubscription {
+                    subscription = cachedSubscription
+                    if subscription.isActive { pixelHandler.handle(pixel: .subscriptionIsActive) }
+                    return subscription
+                }
+                throw error
             }
-            subscription = enrichedSubscription
         }
 
         if subscription.isActive { pixelHandler.handle(pixel: .subscriptionIsActive) }
