@@ -37,7 +37,7 @@ enum DBPContinuedProcessingEvent {
 @MainActor
 protocol DBPContinuedProcessingCoordinating: AnyObject {
     var hasAttachedTask: Bool { get }
-    func startInitialRun(profile: DataBrokerProtectionProfile) async throws
+    func startInitialRun(scanPlan: DBPContinuedProcessingPlans.InitialScanPlan) async throws
 }
 
 @available(iOS 26.0, *)
@@ -125,12 +125,9 @@ final class DBPContinuedProcessingCoordinator {
 
     // MARK: - Run Lifecycle
 
-    /// Prepares the initial run, registers the continued task, and starts the initial scan phase.
-    func startInitialRun(profile: DataBrokerProtectionProfile) async throws {
-        guard try await prepareInitialRun(profile: profile) != nil else {
-            Logger.dataBrokerProtection.log("Continued processing: no pending scans found during initial run preparation")
-            return
-        }
+    /// Registers the continued task for a prepared scan plan and starts the initial scan phase.
+    func startInitialRun(scanPlan: DBPContinuedProcessingPlans.InitialScanPlan) async throws {
+        prepareInitialRun(scanPlan: scanPlan)
 
         runStartedAt = Date()
         phase = .initialScan
@@ -265,12 +262,8 @@ final class DBPContinuedProcessingCoordinator {
 
     // MARK: - Helpers
 
-    /// Builds the initial scan plan and seeds the progress reporter for the run.
-    private func prepareInitialRun(profile: DataBrokerProtectionProfile) async throws -> DBPContinuedProcessingPlans.InitialScanPlan? {
-        guard let scanPlan = try await manager?.prepareContinuedProcessingInitialRun(profile: profile) else {
-            return nil
-        }
-
+    /// Seeds the progress reporter for the prepared initial scan plan.
+    private func prepareInitialRun(scanPlan: DBPContinuedProcessingPlans.InitialScanPlan) {
         Logger.dataBrokerProtection.log(
             "Continued processing: preparing initial run with \(scanPlan.scanCount, privacy: .public) scans"
         )
@@ -278,8 +271,6 @@ final class DBPContinuedProcessingCoordinator {
         let scanJobTimeout = manager?.continuedProcessingScanJobTimeout() ?? .minutes(3)
         let scanBudgetUnitsPerJob = max(Int64(scanJobTimeout / Constants.heartbeatInterval), 1)
         progressReporter.startInitialRun(plan: scanPlan, scanBudgetUnitsPerJob: scanBudgetUnitsPerJob)
-
-        return scanPlan
     }
 
     /// Creates a unique task identifier, registers the handler, and submits the continued task request.

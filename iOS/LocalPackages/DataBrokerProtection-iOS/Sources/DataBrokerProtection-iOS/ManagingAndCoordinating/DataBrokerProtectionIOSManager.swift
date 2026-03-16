@@ -943,16 +943,29 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     public func saveProfileAndStartContinuedProcessingInitialRunIfSupported(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
         if shouldUseContinuedProcessingForInitialRun() {
             do {
+                try await saveProfileAndPrepareForInitialScans(profile)
+            } catch {
+                Logger.dataBrokerProtection.error("Continued processing preparation failed before task submission, falling back to legacy save. Error: \(error.localizedDescription, privacy: .public)")
+                try await saveProfileAndStartImmediateScans(profile)
+                return
+            }
+
+            do {
+                guard let scanPlan = try makeContinuedProcessingInitialRunPlan() else {
+                    Logger.dataBrokerProtection.log("Continued processing: no pending scans found during initial run preparation")
+                    return
+                }
+
                 if let coordinatorForTesting = continuedProcessingTestConfiguration?.coordinator {
-                    try await coordinatorForTesting.startInitialRun(profile: profile)
+                    try await coordinatorForTesting.startInitialRun(scanPlan: scanPlan)
                 } else if #available(iOS 26.0, *) {
-                    try await continuedProcessingCoordinator.startInitialRun(profile: profile)
+                    try await continuedProcessingCoordinator.startInitialRun(scanPlan: scanPlan)
                 } else {
                     fatalError("Continued processing coordinator is unavailable before iOS 26")
                 }
             } catch {
-                Logger.dataBrokerProtection.error("Continued processing start failed, falling back to legacy save. Error: \(error.localizedDescription, privacy: .public)")
-                try await saveProfileAndStartImmediateScans(profile)
+                Logger.dataBrokerProtection.error("Continued processing start failed after preparation, falling back to immediate scans. Error: \(error.localizedDescription, privacy: .public)")
+                await startImmediateScanOperations()
             }
         } else {
             try await saveProfileAndStartImmediateScans(profile)
@@ -964,6 +977,11 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
         profile: DataBrokerProtectionCore.DataBrokerProtectionProfile
     ) async throws -> DBPContinuedProcessingPlans.InitialScanPlan? {
         try await saveProfileAndPrepareForInitialScans(profile)
+
+        return try makeContinuedProcessingInitialRunPlan()
+    }
+
+    private func makeContinuedProcessingInitialRunPlan() throws -> DBPContinuedProcessingPlans.InitialScanPlan? {
 
         let brokerProfileQueryData = try database.fetchAllBrokerProfileQueryData(shouldFilterRemovedBrokers: true)
         let scanPlan = DBPContinuedProcessingPlanBuilder.makeInitialScanPlan(from: brokerProfileQueryData)
