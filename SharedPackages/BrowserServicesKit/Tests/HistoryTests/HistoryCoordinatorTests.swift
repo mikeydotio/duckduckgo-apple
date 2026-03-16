@@ -281,11 +281,16 @@ class HistoryCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(historyCoordinator.history!.count, 6)
 
-        historyCoordinator.burnDomains(["duckduckgo.com", fireproofDomain], tld: TLD()) { urls in
+        historyCoordinator.burnDomains(["duckduckgo.com", fireproofDomain], tld: TLD()) { result in
             let expectedUrls = Set([url1, url2, url3, url4])
 
             XCTAssertEqual(Set(historyStoringMock.removeEntriesArray.map(\.url)), expectedUrls)
-            XCTAssertEqual(urls, expectedUrls)
+
+            if case .success(let urls) = result {
+                XCTAssertEqual(urls, expectedUrls)
+            } else {
+                XCTFail("Expected success result")
+            }
 
             burnAllFinished.fulfill()
         }
