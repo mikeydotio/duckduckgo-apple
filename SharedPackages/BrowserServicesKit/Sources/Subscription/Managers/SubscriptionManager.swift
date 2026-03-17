@@ -289,6 +289,8 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public func loadInitialData() async {
         Logger.subscription.log("Loading initial data...")
 
+        _ = try? await getTokenContainer(policy: .localValid)
+
         do {
             if let subscription = try await getSubscription(forceRefresh: true) {
                 Logger.subscription.log("Subscription is \(subscription.isActive ? "active" : "not active", privacy: .public)")
@@ -658,7 +660,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                                                                                  additionalParams: additionalParams)
         try await ingestSubscription(confirmation.subscription)
         Logger.subscription.log("Purchase confirmed!")
-        return confirmation.subscription
+        return subscriptionCachingService.get()!
     }
 
     public var currentStorefrontRegion: SubscriptionRegion {
