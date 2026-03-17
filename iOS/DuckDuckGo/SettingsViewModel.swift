@@ -1310,22 +1310,23 @@ extension SettingsViewModel {
             updatedSubscription.hasActiveSubscription = subscription.isActive
             updatedSubscription.isActiveTrialOffer = subscription.hasActiveTrialOffer
 
-            // 5. Check which entitlements are active for this subscription
-            let entitlementsToCheck: [SubscriptionEntitlement] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration, .identityTheftRestorationGlobal, .paidAIChat]
-            var currentEntitlements: [SubscriptionEntitlement] = []
-            for entitlement in entitlementsToCheck {
-                if let hasEntitlement = try? await subscriptionManager.isFeatureEnabled(entitlement),
-                    hasEntitlement {
-                    currentEntitlements.append(entitlement)
+            // 5. Check which features are enabled for the user (entitlements present in the access token)
+            let featuresToCheck: [SubscriptionEntitlement] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration, .identityTheftRestorationGlobal, .paidAIChat]
+            var enabledFeatures: [SubscriptionEntitlement] = []
+            for feature in featuresToCheck {
+                if let isEnabled = try? await subscriptionManager.isFeatureEnabled(feature),
+                    isEnabled {
+                    enabledFeatures.append(feature)
                 }
             }
 
-            // 6. Set entitlements and tier features
-            updatedSubscription.entitlements = currentEntitlements
+            // 6. Set enabled features and plan-included features
+            updatedSubscription.entitlements = enabledFeatures
             updatedSubscription.subscriptionFeatures = try await subscriptionManager.currentSubscriptionFeatures(forceRefresh: false)
         } catch SubscriptionManagerError.noTokenAvailable {
             // 3b. User is not authenticated — reset subscription fields (no pixel: user has no account)
             Logger.subscription.debug("No subscription data available - user not authenticated")
+            updatedSubscription.isSignedIn = false
             applyNoSubscriptionState(&updatedSubscription)
         } catch {
             // 3c. Transient error — keep cached state as-is
@@ -1344,6 +1345,7 @@ extension SettingsViewModel {
         subscription.entitlements = []
         subscription.platform = .unknown
         subscription.isActiveTrialOffer = false
+        subscription.subscriptionFeatures = []
     }
     
     private func setupNotificationObservers() {

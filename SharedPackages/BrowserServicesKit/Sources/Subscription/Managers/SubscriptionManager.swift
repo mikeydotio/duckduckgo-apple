@@ -173,6 +173,25 @@ extension SubscriptionManager {
 
 // MARK: -  Default implementation
 
+/// Deduplicates concurrent async calls that share the same key, so only one in-flight
+/// request runs at a time per key. Subsequent callers suspend and receive the same result.
+private actor SubscriptionRequestCoalescer {
+    private var inFlightTasks: [Bool: Task<DuckDuckGoSubscription?, Error>] = [:]
+
+    /// If a task for `forceRefresh` is already in flight, suspends and returns its result.
+    /// Otherwise, creates a new task from `work`, stores it, awaits it, and cleans up.
+    func coalesce(forceRefresh: Bool, work: @Sendable @escaping () async throws -> DuckDuckGoSubscription?) async throws -> DuckDuckGoSubscription? {
+        if let existingTask = inFlightTasks[forceRefresh] {
+            return try await existingTask.value
+        }
+
+        let task = Task<DuckDuckGoSubscription?, Error> { try await work() }
+        inFlightTasks[forceRefresh] = task
+        defer { inFlightTasks.removeValue(forKey: forceRefresh) }
+        return try await task.value
+    }
+}
+
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
 
@@ -187,6 +206,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private let userDefaults: UserDefaults
     private let hasAppStoreProductsAvailableSubject = PassthroughSubject<Bool, Never>()
     private var cancellables = Set<AnyCancellable>()
+    private let requestCoalescer = SubscriptionRequestCoalescer()
     private let wideEvent: WideEventManaging?
     private let isAuthV2WideEventEnabled: () -> Bool
     private let tierOptionsProvider: SubscriptionTierOptionsProviding
@@ -315,6 +335,14 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     @discardableResult
     public func getSubscription(forceRefresh: Bool = false) async throws -> DuckDuckGoSubscription? {
+        try await requestCoalescer.coalesce(forceRefresh: forceRefresh) { [self] in
+            try await fetchSubscription(forceRefresh: forceRefresh)
+        }
+    }
+
+    /// The actual subscription-fetching logic, invoked at most once per `forceRefresh` value
+    /// at any given time thanks to `requestCoalescer`.
+    private func fetchSubscription(forceRefresh: Bool) async throws -> DuckDuckGoSubscription? {
 
         var subscription: DuckDuckGoSubscription
 
@@ -381,6 +409,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func ingestSubscription(_ subscription: DuckDuckGoSubscription) async throws -> DuckDuckGoSubscription {
+        subscriptionCachingService.reset()
         let enrichedSubscription = try await enrichSubscriptionWithFeatures(subscription)
         subscriptionCachingService.set(enrichedSubscription)
         NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: enrichedSubscription])
