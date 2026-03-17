@@ -629,10 +629,14 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         guard let duckAIChromeControlContainer, let duckAIChromeTitleButton, let duckAIChromeSidebarButton else { return }
 
         let colorsProvider = theme.colorsProvider
-        duckAIChromeControlContainer.backgroundColor = colorsProvider.buttonMouseOverColor
+        let isFireWindow = tabCollectionViewModel.isBurner && !tabCollectionViewModel.isPopup
+
+        duckAIChromeControlContainer.backgroundColor = isFireWindow ? .clear : colorsProvider.buttonMouseOverColor
         duckAIChromeControlContainer.cornerRadius = theme.toolbarButtonsCornerRadius
         duckAIChromeControlContainer.borderColor = nil
         duckAIChromeControlContainer.borderWidth = 0
+
+        updateDuckAIChromeVibrancyBackground(isFireWindow: isFireWindow)
 
         let titleFont = NSFont.systemFont(ofSize: 13)
         duckAIChromeTitleButton.attributedTitle = NSAttributedString(string: UserText.aiChatTitle, attributes: [
@@ -656,6 +660,45 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         duckAIChromeSidebarButton.layer?.maskedCorners = [.layerMaxXMinYCorner, .layerMaxXMaxYCorner]
         applyDuckAIChromeButtonVisibility()
         updateDuckAIChromeDividerState()
+    }
+
+    private func updateDuckAIChromeVibrancyBackground(isFireWindow: Bool) {
+        guard let duckAIChromeControlContainer else { return }
+
+        let existingVibrancy = duckAIChromeControlContainer.subviews.first { $0 is NSVisualEffectView }
+
+        if isFireWindow {
+            if existingVibrancy == nil {
+                let vibrancyView = NSVisualEffectView()
+                vibrancyView.translatesAutoresizingMaskIntoConstraints = false
+                vibrancyView.material = .hudWindow
+                vibrancyView.blendingMode = .withinWindow
+                vibrancyView.state = .active
+                vibrancyView.wantsLayer = true
+                vibrancyView.layer?.cornerRadius = theme.toolbarButtonsCornerRadius
+                vibrancyView.layer?.masksToBounds = true
+
+                duckAIChromeControlContainer.addSubview(vibrancyView, positioned: .below, relativeTo: duckAIChromeControlContainer.subviews.first)
+
+                NSLayoutConstraint.activate([
+                    vibrancyView.leadingAnchor.constraint(equalTo: duckAIChromeControlContainer.leadingAnchor),
+                    vibrancyView.trailingAnchor.constraint(equalTo: duckAIChromeControlContainer.trailingAnchor),
+                    vibrancyView.topAnchor.constraint(equalTo: duckAIChromeControlContainer.topAnchor),
+                    vibrancyView.bottomAnchor.constraint(equalTo: duckAIChromeControlContainer.bottomAnchor),
+                ])
+            }
+
+            let shadow = NSShadow()
+            shadow.shadowColor = NSColor.black.withAlphaComponent(0.10)
+            shadow.shadowOffset = CGSize(width: 0, height: -0.5)
+            shadow.shadowBlurRadius = 1
+            duckAIChromeControlContainer.shadow = shadow
+            duckAIChromeControlContainer.wantsLayer = true
+            duckAIChromeControlContainer.layer?.masksToBounds = false
+        } else {
+            existingVibrancy?.removeFromSuperview()
+            duckAIChromeControlContainer.shadow = nil
+        }
     }
 
     private func updateDuckAIChromeDividerState() {
