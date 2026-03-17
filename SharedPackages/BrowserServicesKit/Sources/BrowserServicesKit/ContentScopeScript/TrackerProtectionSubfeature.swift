@@ -19,6 +19,7 @@
 import Common
 import ContentBlocking
 import Foundation
+import TrackerRadarKit
 import os.log
 import UserScript
 import WebKit
