@@ -33,6 +33,7 @@ class SubscriptionManagerTests: XCTestCase {
     var subscriptionManager: DefaultSubscriptionManager!
     var mockOAuthClient: MockOAuthClient!
     var mockSubscriptionEndpointService: SubscriptionEndpointServiceMock!
+    var mockSubscriptionCachingService: SubscriptionCachingServiceMock!
     var mockStorePurchaseManager: StorePurchaseManagerMock!
     var mockAppStoreRestoreFlowV2: AppStoreRestoreFlowMock!
     fileprivate var mockPixelHandler: MockSubscriptionPixelHandler!
@@ -43,6 +44,7 @@ class SubscriptionManagerTests: XCTestCase {
 
         mockOAuthClient = MockOAuthClient()
         mockSubscriptionEndpointService = SubscriptionEndpointServiceMock()
+        mockSubscriptionCachingService = SubscriptionCachingServiceMock()
         mockStorePurchaseManager = StorePurchaseManagerMock()
         mockAppStoreRestoreFlowV2 = AppStoreRestoreFlowMock()
         mockPixelHandler = MockSubscriptionPixelHandler()
@@ -52,6 +54,7 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             userDefaults: userDefaults,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionCachingService: mockSubscriptionCachingService,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore),
             pixelHandler: mockPixelHandler
         )
@@ -74,6 +77,7 @@ class SubscriptionManagerTests: XCTestCase {
         subscriptionManager = nil
         mockOAuthClient = nil
         mockSubscriptionEndpointService = nil
+        mockSubscriptionCachingService = nil
         mockStorePurchaseManager = nil
         mockPixelHandler = nil
         super.tearDown()
@@ -349,6 +353,7 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             userDefaults: userDefaults,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionCachingService: mockSubscriptionCachingService,
             subscriptionEnvironment: environment,
             pixelHandler: MockPixelHandler()
         )
@@ -407,6 +412,7 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             userDefaults: userDefaults,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionCachingService: mockSubscriptionCachingService,
             subscriptionEnvironment: productionEnvironment,
             pixelHandler: MockPixelHandler()
         )
@@ -427,6 +433,7 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             userDefaults: userDefaults,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionCachingService: mockSubscriptionCachingService,
             subscriptionEnvironment: stagingEnvironment,
             pixelHandler: MockPixelHandler()
         )
@@ -497,6 +504,7 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             userDefaults: userDefaults,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionCachingService: mockSubscriptionCachingService,
             subscriptionEnvironment: stripeEnvironment,
             pixelHandler: MockPixelHandler()
         )
@@ -518,6 +526,7 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             userDefaults: userDefaults,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionCachingService: mockSubscriptionCachingService,
             subscriptionEnvironment: appStoreEnvironment,
             pixelHandler: MockPixelHandler()
         )
@@ -539,6 +548,7 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             userDefaults: userDefaults,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionCachingService: mockSubscriptionCachingService,
             subscriptionEnvironment: appStoreEnvironment,
             pixelHandler: MockPixelHandler()
         )
