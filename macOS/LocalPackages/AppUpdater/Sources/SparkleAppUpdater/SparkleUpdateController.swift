@@ -210,7 +210,11 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
     // MARK: - Feature Flags support
 
     private let featureFlagger: FeatureFlagger
-    private let allowCustomUpdateFeed: Bool
+    private let allowCustomUpdateFeedOverride: Bool
+
+    private var allowCustomUpdateFeed: Bool {
+        allowCustomUpdateFeedOverride || internalUserDecider.isInternalUser
+    }
     private let pixelFiring: PixelFiring?
     private let isOnboardingFinished: () -> Bool
     private let openUpdatesPageAction: () -> Void
@@ -256,7 +260,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
         willRelaunchAppPublisher = willRelaunchAppSubject.eraseToAnyPublisher()
         self.featureFlagger = featureFlagger
-        self.allowCustomUpdateFeed = allowCustomUpdateFeed
+        self.allowCustomUpdateFeedOverride = allowCustomUpdateFeed
         self.internalUserDecider = internalUserDecider
         self.notificationPresenter = notificationPresenter
         self.pixelFiring = pixelFiring
