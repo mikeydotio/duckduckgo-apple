@@ -1322,7 +1322,7 @@ extension SettingsViewModel {
 
             // 6. Set enabled features and plan-included features
             updatedSubscription.entitlements = enabledFeatures
-            updatedSubscription.subscriptionFeatures = try await subscriptionManager.currentSubscriptionFeatures(forceRefresh: false)
+            updatedSubscription.subscriptionFeatures = subscription.features ?? []
         } catch SubscriptionManagerError.noTokenAvailable {
             // 3b. User is not authenticated — reset subscription fields (no pixel: user has no account)
             Logger.subscription.debug("No subscription data available - user not authenticated")

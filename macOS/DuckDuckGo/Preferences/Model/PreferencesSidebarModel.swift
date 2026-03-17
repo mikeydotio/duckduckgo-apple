@@ -381,7 +381,7 @@ final class PreferencesSidebarModel: ObservableObject {
         Task { @MainActor in
             let shouldHideSubscriptionPurchase = subscriptionManager.currentEnvironment.purchasePlatform == .appStore && subscriptionManager.hasAppStoreProductsAvailable == false
 
-            let updatedState: PreferencesSidebarSubscriptionState
+            var updatedState: PreferencesSidebarSubscriptionState
             if subscriptionManager.isSubscriptionPresent() {
                 do {
                     let entitlementStatus = await subscriptionManager.getAllEntitlementStatus()
@@ -402,8 +402,11 @@ final class PreferencesSidebarModel: ObservableObject {
                     // Token gone — treat as signed out
                     updatedState = PreferencesSidebarSubscriptionState(shouldHideSubscriptionPurchase: shouldHideSubscriptionPurchase)
                 } catch {
-                    Logger.general.error("Failed to refresh subscription state: \(error, privacy: .public)")
-                    return
+                    Logger.general.error("Failed to refresh subscription state, using degraded state: \(error, privacy: .public)")
+                    updatedState = PreferencesSidebarSubscriptionState(
+                        hasSubscription: subscriptionManager.isSubscriptionPresent(),
+                        shouldHideSubscriptionPurchase: shouldHideSubscriptionPurchase
+                    )
                 }
             } else {
                 updatedState = PreferencesSidebarSubscriptionState(shouldHideSubscriptionPurchase: shouldHideSubscriptionPurchase)
