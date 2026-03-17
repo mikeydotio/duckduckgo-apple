@@ -1341,6 +1341,7 @@ extension SettingsViewModel {
     private func applyNoSubscriptionState(_ subscription: inout SettingsState.Subscription) {
         subscription.hasSubscription = false
         subscription.hasActiveSubscription = false
+        subscription.subscriptionFeatures = []
         subscription.entitlements = []
         subscription.platform = .unknown
         subscription.isActiveTrialOffer = false
