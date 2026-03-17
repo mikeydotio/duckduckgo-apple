@@ -1327,7 +1327,6 @@ extension SettingsViewModel {
             // 3b. User is not authenticated — reset subscription fields
             Logger.subscription.debug("No subscription data available - user not authenticated")
             applyNoSubscriptionState(&updatedSubscription)
-            DailyPixel.fireDailyAndCount(pixel: .settingsSubscriptionAccountWithNoSubscriptionFound)
         } catch {
             // 3c. Transient error — keep cached state as-is
             Logger.subscription.error("Failed to fetch Subscription: \(error, privacy: .public)")
