@@ -231,7 +231,7 @@ final class QuitSurveyViewModel: ObservableObject {
 
         var effectiveDomains = selectedDomains
         let rawOther = otherDomainText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedOther = (URL(string: rawOther)?.trimmingQueryItemsAndFragment().absoluteString ?? rawOther)
+        let trimmedOther = (URL(string: rawOther)?.trimmingQueryItemsAndFragment().host ?? rawOther)
             .replacingOccurrences(of: ",", with: "")
         if isOtherDomainSelected && !trimmedOther.isEmpty {
             effectiveDomains.insert(trimmedOther)
