@@ -691,6 +691,7 @@ private extension AIChatContextualSheetViewController {
     }
 
     func addKeyboardObserver() {
+        removeKeyboardObserver()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(sheetKeyboardWillShow),
