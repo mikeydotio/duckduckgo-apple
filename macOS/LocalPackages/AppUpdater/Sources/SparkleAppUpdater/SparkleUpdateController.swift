@@ -240,7 +240,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
     /// Instance wrapper for the static method - convenience for non-static contexts.
     private func resolveAutoDownloadEnabled(userPreference: Bool) -> Bool {
         Self.resolveAutoDownloadEnabled(
-            allowCustomUpdateFeed: allowCustomUpdateFeed,
+            allowCustomUpdateFeed: allowCustomUpdateFeedOverride,
             featureFlagger: featureFlagger,
             userPreference: userPreference
         )
