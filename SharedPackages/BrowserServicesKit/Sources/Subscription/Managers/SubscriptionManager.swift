@@ -409,7 +409,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func ingestSubscription(_ subscription: DuckDuckGoSubscription) async throws -> DuckDuckGoSubscription {
-        subscriptionCachingService.reset()
         let enrichedSubscription = try await enrichSubscriptionWithFeatures(subscription)
         subscriptionCachingService.set(enrichedSubscription)
         NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: enrichedSubscription])
