@@ -646,8 +646,9 @@ final class UnifiedToggleInputCoordinator: AIChatInputBoxHandling {
 
     nonisolated private func resolveSubscriptionState() async -> SubscriptionState {
         do {
-            let subscription = try await subscriptionManager.getSubscription(cachePolicy: .cacheFirst)
-            guard subscription.isActive, let tier = subscription.tier else {
+            guard let subscription = try await subscriptionManager.getSubscription(),
+                  subscription.isActive,
+                    let tier = subscription.tier else {
                 return .free
             }
             let userTier: AIChatUserTier

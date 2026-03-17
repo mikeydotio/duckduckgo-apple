@@ -189,7 +189,13 @@ public final class WinBackOfferVisibilityManager: WinBackOfferVisibilityManaging
         guard isFeatureEnabled else { return }
 
         observer = NotificationCenter.default.addObserver(forName: .subscriptionDidChange, object: nil, queue: .main) { [weak self] notification in
-            guard let self, let newSubscription = notification.userInfo?[UserDefaultsCacheKey.subscription] as? DuckDuckGoSubscription else { return }
+            guard let self else { return }
+
+            // nil userInfo means subscription was cleared (no subscription on backend)
+            guard let newSubscription = notification.userInfo?[UserDefaultsCacheKey.subscription] as? DuckDuckGoSubscription else {
+                hasActiveSubscription = false
+                return
+            }
 
             let wasActive = hasActiveSubscription
             let isNowActive = newSubscription.status.isActive
