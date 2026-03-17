@@ -986,7 +986,6 @@ struct UserText {
     static let quitSurveyOptionPrivacyConcerns = NSLocalizedString("quit-survey.option.privacy-concerns", value: "Privacy concerns", comment: "Quit survey feedback option - value proposition")
     static let quitSurveyOptionJustTryingItOut = NSLocalizedString("quit-survey.option.just-trying-it-out", value: "Just trying it out", comment: "Quit survey feedback option - value proposition")
     static let quitSurveyOptionSignInHassles = NSLocalizedString("quit-survey.option.sign-in-hassles", value: "Sign in hassles", comment: "Quit survey feedback option - ecosystem")
-    static let quitSurveyOptionNoExtensions = NSLocalizedString("quit-survey.option.no-extensions", value: "No extensions", comment: "Quit survey feedback option - features/extensions")
     static let quitSurveyOptionNoWebsiteTranslations = NSLocalizedString("quit-survey.option.no-website-translations", value: "No website translations", comment: "Quit survey feedback option - features/extensions")
     static let quitSurveyOptionIssueImportingMyStuff = NSLocalizedString("quit-survey.option.issue-importing-my-stuff", value: "Issue importing my stuff", comment: "Quit survey feedback option - onboarding")
     static let quitSurveyOptionSomethingElse = NSLocalizedString("quit-survey.option.something-else", value: "Something else", comment: "Quit survey feedback option for other issues")

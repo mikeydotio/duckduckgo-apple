@@ -97,7 +97,7 @@ final class QuitSurveyViewModel: ObservableObject {
         QuitSurveyOption(id: "privacy-concerns", text: UserText.quitSurveyOptionPrivacyConcerns),
         QuitSurveyOption(id: "just-trying-it-out", text: UserText.quitSurveyOptionJustTryingItOut),
         QuitSurveyOption(id: "sign-in-hassles", text: UserText.quitSurveyOptionSignInHassles),
-        QuitSurveyOption(id: "no-extensions", text: UserText.quitSurveyOptionNoExtensions),
+
         QuitSurveyOption(id: "no-website-translations", text: UserText.quitSurveyOptionNoWebsiteTranslations),
         QuitSurveyOption(id: "issue-importing-my-stuff", text: UserText.quitSurveyOptionIssueImportingMyStuff)
     ]
