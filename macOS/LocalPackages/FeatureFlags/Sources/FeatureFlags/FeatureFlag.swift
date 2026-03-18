@@ -59,6 +59,9 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213380159275576
     case embeddedExtension
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213725495563625
+    case adBlockingExtension
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213538183403577
     case forceDarkModeOnWebsites
 
@@ -430,7 +433,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .webViewLookUpAction,
                 .promoQueue,
                 .semaphoreAlwaysVisible,
-                .tabAnimations:
+                .tabAnimations,
+                .adBlockingExtension:
             return true
         case .freemiumDBP,
                 .contextualOnboarding,
@@ -616,6 +620,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.feature(.promoQueue))
         case .tabAnimations:
             return .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.tabAnimations))
+        case .adBlockingExtension:
+            return .remoteReleasable(.feature(.adBlockingExtension))
         }
     }
 }
