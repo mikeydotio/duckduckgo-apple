@@ -73,6 +73,7 @@ final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
         }
         let shouldShow = featureFlagger.isFeatureOn(for: FeatureFlag.subscriptionPromoForReinstallers, allowOverride: true)
             && featureFlagger.isFeatureOn(for: FeatureFlag.privacyProOnboardingPromotion, allowOverride: true)
+            && isReturningUser
             && tutorialSettings.hasSkippedOnboarding
             && hasCooldownPassed()
         Logger.subscription.debug("[Subscription Promo] shouldPresentLaunchPrompt: \(shouldShow)")
