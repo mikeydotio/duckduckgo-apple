@@ -66,5 +66,4 @@ struct AIChatDeepLinkHandler {
             }
         }
     }
-
 }

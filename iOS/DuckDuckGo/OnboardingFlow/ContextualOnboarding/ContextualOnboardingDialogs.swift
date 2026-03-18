@@ -215,7 +215,22 @@ struct OnboardingFinalDialog: View {
     let cta: String
     let dismissAction: () -> Void
     let onManualDismiss: () -> Void
+    let usesExperimentCompletionFormatting: Bool
     private let chatIconToken = "[[chat_icon]]"
+
+    init(logoPosition: DaxDialogLogoPosition,
+         message: String,
+         cta: String,
+         dismissAction: @escaping () -> Void,
+         onManualDismiss: @escaping () -> Void,
+         usesExperimentCompletionFormatting: Bool = false) {
+        self.logoPosition = logoPosition
+        self.message = message
+        self.cta = cta
+        self.dismissAction = dismissAction
+        self.onManualDismiss = onManualDismiss
+        self.usesExperimentCompletionFormatting = usesExperimentCompletionFormatting
+    }
 
     private var baseMessage: String {
         guard message.contains(chatIconToken) else { return message }
@@ -239,13 +254,16 @@ struct OnboardingFinalDialog: View {
 
     @ViewBuilder
     private var customActionView: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: usesExperimentCompletionFormatting ? .leading : .center, spacing: 12) {
             if message.contains(chatIconToken) {
                 (
                     Text("You can use Duck.ai from anywhere you see the chat icon ")
                     + Text(Image(uiImage: DesignSystemImages.Glyphs.Size16.aiChat))
                 )
-                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, alignment: usesExperimentCompletionFormatting ? .leading : .center)
+                .multilineTextAlignment(usesExperimentCompletionFormatting ? .leading : .center)
+                .padding(.top, usesExperimentCompletionFormatting ? 8 : 0)
+                .padding(.bottom, usesExperimentCompletionFormatting ? 8 : 0)
             }
 
             OnboardingCTAButton(
@@ -255,6 +273,7 @@ struct OnboardingFinalDialog: View {
                     dismissAction()
                 }
             )
+            .padding(.top, usesExperimentCompletionFormatting ? 8 : 0)
         }
     }
 

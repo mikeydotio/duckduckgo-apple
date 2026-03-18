@@ -214,8 +214,11 @@ extension OnboardingPixelReporter {
 
 extension OnboardingPixelReporter: OnboardingIntroPixelReporting {
     private enum DuckAIQueryExperimentMetric {
-        static let searchMetricName = "search_type"
-        static let aiChatMetricName = "aichat_type"
+        enum Name: String {
+            case search = "search_type"
+            case aiChat = "aichat_type"
+        }
+        // TODO: validate from the Experiment Design
         static let conversionWindow: ConversionWindow = 0...0
         static let subfeatureID = AIChatSubfeature.onboardingDuckAIQueryExperiment.rawValue
     }
@@ -297,13 +300,11 @@ extension OnboardingPixelReporter: OnboardingIntroPixelReporting {
     }
 
     func measureDuckAIQueryExperimentQuerySubmission(isDuckAISelected: Bool, promptSource: DuckAIQueryExperimentPromptSource) {
-        let metricName = isDuckAISelected
-        ? DuckAIQueryExperimentMetric.aiChatMetricName
-        : DuckAIQueryExperimentMetric.searchMetricName
+        let metricName: DuckAIQueryExperimentMetric.Name = isDuckAISelected ? .aiChat : .search
 
         experimentPixel.fireExperimentPixel(
             for: DuckAIQueryExperimentMetric.subfeatureID,
-            metric: metricName,
+            metric: metricName.rawValue,
             conversionWindowDays: DuckAIQueryExperimentMetric.conversionWindow,
             value: promptSource.rawValue
         )

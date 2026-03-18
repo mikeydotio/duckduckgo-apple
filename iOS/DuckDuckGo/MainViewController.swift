@@ -251,7 +251,7 @@ class MainViewController: UIViewController {
     }
 
     private enum ExperimentDuckAIFireOnboardingMetrics {
-        static let onboardingFireFailsafeTriggerDelayAfterLoad: TimeInterval = 8
+        static let onboardingFireFailsafeTriggerDelayAfterLoad: TimeInterval = 2
     }
 
     // Skip SERP flow (focusing on autocomplete logic) and prepare for new navigation when selecting search bar
@@ -4887,10 +4887,11 @@ extension MainViewController: OnboardingDelegate {
                 CATransaction.begin()
                 CATransaction.setCompletionBlock {
                     self.applyExperimentDuckAIStatusBackgroundStyle()
-                    self.viewCoordinator.topSlideContainer.alpha = 0
                     UIView.animate(withDuration: 0.25) {
                         onboardingTransitionSnapshotView?.alpha = 0
                     } completion: { _ in
+                        self.viewCoordinator.statusBackground.alpha = 1
+                        self.viewCoordinator.topSlideContainer.alpha = 1
                         self.hideOnboardingTransitionSnapshot(onboardingTransitionSnapshotView)
                         self.hideOnboardingTransitionBottomFill(onboardingTransitionBottomFillView)
                         self.onboardingTransitionInProgress = false
@@ -4898,6 +4899,8 @@ extension MainViewController: OnboardingDelegate {
                 }
                 self.setBarsVisibility(1, animated: true, animationDuration: chromeRevealDuration)
                 UIView.animate(withDuration: chromeRevealDuration) {
+                    self.viewCoordinator.statusBackground.alpha = 1
+                    self.viewCoordinator.topSlideContainer.alpha = 1
                     onboardingTransitionBottomFillView?.alpha = 1
                 }
                 CATransaction.commit()

@@ -148,10 +148,10 @@ enum OnboardingIntroStep: Equatable {
     case introDialog(isReturningUser: Bool)
     case browserComparison
     case appIconSelection
+    case addToDockPromo
     case addressBarPositionSelection
     case searchExperienceSelection
     case duckAIQueryExperimentSelection(defaultExperience: DuckAIExperimentDefaultExperience)
-    case addToDockPromo
 }
 
 protocol OnboardingStepsProvider: AnyObject {

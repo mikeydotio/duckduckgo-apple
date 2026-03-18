@@ -78,6 +78,7 @@ final class OnboardingExperimentPixelFireMock: ExperimentPixelFiring {
     }
 
     static private(set) var firedMetrics: [FiredPixel] = []
+
     static func fireExperimentPixel(for subfeatureID: SubfeatureID, metric: String, conversionWindowDays: ConversionWindow, value: String) {
 
         let firedPixel = FiredPixel(

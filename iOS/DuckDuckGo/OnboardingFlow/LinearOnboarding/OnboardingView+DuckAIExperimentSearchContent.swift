@@ -2,7 +2,7 @@
 //  OnboardingView+DuckAIExperimentSearchContent.swift
 //  DuckDuckGo
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -67,10 +67,12 @@ extension OnboardingView {
         static let rebrandedSuggestionChipBorderWidth: CGFloat = 1.5
 
         // MARK: Animation
-        static let initialToggleStartDelay: TimeInterval = 0.35
+        static let initialToggleStartDelay: TimeInterval = 0.8
+        static let controlsRevealDelayAfterTitleAnimation: TimeInterval = 0.3
+        static let keyboardFocusDelayAfterControlsReveal: TimeInterval = 0.2
         static let legacyInitialInputFocusDelayAfterAppear: TimeInterval = 0.35
         static let rebrandedInitialInputFocusDelayAfterAppear: TimeInterval = 0.55
-        static let suggestionInitialRevealDelay: TimeInterval = 1
+        static let suggestionInitialRevealDelay: TimeInterval = 0.8
         static let suggestionRevealFallbackDelayAfterFocus: TimeInterval = 0.4
         static let pickerSelectionAnimationDuration: TimeInterval = 0.22
         static let contentFadeAnimationDuration: TimeInterval = 0.2
@@ -100,6 +102,7 @@ extension OnboardingView {
         private let measureQuerySubmissionAction: (Bool, DuckAIQueryExperimentPromptSource) -> Void
         private let startExitTransitionAction: () -> Void
         private let visualStyle: VisualStyle
+        private var animateTitle: Binding<Bool>
         @StateObject private var pickerViewModel: ImageSegmentedPickerViewModel
 
         // MARK: State
@@ -111,9 +114,12 @@ extension OnboardingView {
         @State private var isTransitioningOut = false
         @State private var isRunningInitialSelectionAnimation = false
         @State private var suggestionSequenceStarted = false
+        @State private var showInteractiveControls = false
+        @State private var hasStartedEntranceSequence = false
         @State private var hasPassedInitialFocusDelay = false
         @State private var shouldFocusWhenInitialDelayPasses = false
         private let shouldAnimateToDuckAIOnAppear: Bool
+        private let startsInSearchMode: Bool
 
         // MARK: Constants
         private static let pickerItems: [ImageSegmentedPickerItem] = [
@@ -132,6 +138,7 @@ extension OnboardingView {
         init(
             defaultExperience: OnboardingIntroStep.DuckAIExperimentDefaultExperience,
             visualStyle: VisualStyle = .legacy,
+            animateTitle: Binding<Bool> = .constant(false),
             action: @escaping (OnboardingIntroViewModel.DuckAIExperimentSelection) -> Void,
             openAIChatAction: @escaping (String?, Bool) -> Void,
             openSearchAction: @escaping (String) -> Void,
@@ -144,8 +151,10 @@ extension OnboardingView {
             self.measureQuerySubmissionAction = measureQuerySubmissionAction
             self.startExitTransitionAction = startExitTransitionAction
             self.visualStyle = visualStyle
+            self.animateTitle = animateTitle
             self.shouldAnimateToDuckAIOnAppear = defaultExperience == .duckAI
             let startsInSearchMode = defaultExperience == .search || shouldAnimateToDuckAIOnAppear
+            self.startsInSearchMode = startsInSearchMode
             let initialSelection = startsInSearchMode ? Self.pickerItems[0] : Self.pickerItems[1]
             _isDuckAISelected = State(initialValue: !startsInSearchMode)
             _pickerViewModel = StateObject(wrappedValue: ImageSegmentedPickerViewModel(
@@ -161,43 +170,53 @@ extension OnboardingView {
         var body: some View {
             VStack(spacing: Metrics.contentVerticalSpacing) {
                 // Header text inside the onboarding bubble.
-                Text(UserText.Onboarding.DuckAIQueryExperiment.title)
+                Group {
+                    if visualStyle == .rebranded {
+                        Text(UserText.Onboarding.DuckAIQueryExperiment.title)
+                    } else {
+                        AnimatableTypingText(
+                            UserText.Onboarding.DuckAIQueryExperiment.title,
+                            startAnimating: animateTitle,
+                            onTypingFinished: handleTitleAnimationFinished
+                        )
+                    }
+                }
                     .font(visualStyle == .rebranded ? onboardingTheme.typography.title : Font(UIFont.daxTitle3()))
                     .multilineTextAlignment(visualStyle == .rebranded ? .center : .leading)
                     .foregroundColor(visualStyle == .rebranded ? onboardingTheme.colorPalette.textPrimary : Color(designSystemColor: .textPrimary))
                     .frame(maxWidth: .infinity, alignment: visualStyle == .rebranded ? .center : .leading)
                     .fixedSize(horizontal: false, vertical: true)
 
-                // Search / Duck.ai segmented control.
-                ImageSegmentedPickerView(viewModel: pickerViewModel)
-                    .frame(width: Metrics.pickerWidth, height: Metrics.pickerHeight)
-                    .padding(.vertical, Metrics.pickerVerticalPadding)
-                    .frame(width: Metrics.pickerWidth, height: Metrics.pickerContainerHeight)
-                    // Drive content mode (Search vs Duck.ai) from user picker selection.
-                    .onChange(of: pickerViewModel.selectedItem) { selectedItem in
-                        SwiftUI.withAnimation(.easeInOut(duration: Metrics.pickerSelectionAnimationDuration)) {
-                            isDuckAISelected = selectedItem == Self.pickerItems[1]
+                Group {
+                    // Search / Duck.ai segmented control.
+                    ImageSegmentedPickerView(viewModel: pickerViewModel)
+                        .frame(width: Metrics.pickerWidth, height: Metrics.pickerHeight)
+                        .padding(.vertical, Metrics.pickerVerticalPadding)
+                        .frame(width: Metrics.pickerWidth, height: Metrics.pickerContainerHeight)
+                        // Drive content mode (Search vs Duck.ai) from user picker selection.
+                        .onChange(of: pickerViewModel.selectedItem) { selectedItem in
+                            SwiftUI.withAnimation(.easeInOut(duration: Metrics.pickerSelectionAnimationDuration)) {
+                                isDuckAISelected = selectedItem == Self.pickerItems[1]
+                            }
                         }
-                    }
-                    // Keep picker model + visual progress in sync for programmatic/default mode changes.
-                    .onChange(of: isDuckAISelected) { isSelected in
-                        let selection = isSelected ? Self.pickerItems[1] : Self.pickerItems[0]
-                        if pickerViewModel.selectedItem != selection {
-                            pickerViewModel.selectItem(selection)
+                        // Keep picker model + visual progress in sync for programmatic/default mode changes.
+                        .onChange(of: isDuckAISelected) { isSelected in
+                            let selection = isSelected ? Self.pickerItems[1] : Self.pickerItems[0]
+                            if pickerViewModel.selectedItem != selection {
+                                pickerViewModel.selectItem(selection)
+                            }
+                            pickerViewModel.updateScrollProgress(isSelected ? 1 : 0)
                         }
-                        pickerViewModel.updateScrollProgress(isSelected ? 1 : 0)
-                        // During initial intro animation, delay focus until animation completion.
-                        if !isRunningInitialSelectionAnimation {
-                            requestInputFocus()
-                        }
-                    }
-                    .padding(.top, titleToPickerTopPadding)
-                    .padding(.bottom, Metrics.pickerBottomPadding)
+                        .padding(.top, titleToPickerTopPadding)
+                        .padding(.bottom, Metrics.pickerBottomPadding)
 
-                // Query field + trailing action icon.
-                queryField
-                    .padding(.top, Metrics.queryFieldTopPadding)
-                    .padding(.bottom, Metrics.queryFieldBottomPadding)
+                    // Query field + trailing action icon.
+                    queryField
+                        .padding(.top, Metrics.queryFieldTopPadding)
+                        .padding(.bottom, Metrics.queryFieldBottomPadding)
+                }
+                .opacity(showInteractiveControls ? 1 : 0)
+                .allowsHitTesting(showInteractiveControls)
 
                 // Delayed/staggered suggestion chips.
                 if visibleSuggestionCount > 0 {
@@ -207,18 +226,30 @@ extension OnboardingView {
             }
             .opacity(isTransitioningOut ? 0 : 1)
             .onAppear {
+                let initialSelection = startsInSearchMode ? Self.pickerItems[0] : Self.pickerItems[1]
+                pickerViewModel.selectItem(initialSelection)
+                pickerViewModel.updateScrollProgress(startsInSearchMode ? 0 : 1)
+                query = ""
+                isDuckAISelected = !startsInSearchMode
                 isInputFocused = false
+                visibleSuggestionCount = 0
+                didRunInitialToggleAnimation = false
+                isRunningInitialSelectionAnimation = false
+                showInteractiveControls = false
+                hasStartedEntranceSequence = false
                 hasPassedInitialFocusDelay = false
                 shouldFocusWhenInitialDelayPasses = false
                 suggestionSequenceStarted = false
                 scheduleInitialFocusGate()
-                startInitialSelectionAnimationIfNeeded()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
-                startSuggestionSequenceIfNeeded()
+                if visualStyle == .rebranded {
+                    startStaticTitleEntranceSequence()
+                } else {
+                    animateTitle.wrappedValue = true
+                }
             }
             // Fade out this content while transitioning to the selected destination.
             .animation(.easeInOut(duration: Metrics.contentFadeAnimationDuration), value: isTransitioningOut)
+            .animation(.easeInOut(duration: Metrics.contentFadeAnimationDuration), value: showInteractiveControls)
         }
 
         // MARK: Style
@@ -251,33 +282,54 @@ extension OnboardingView {
         }
 
         // MARK: Initial Sequencing
-        private func startInitialSelectionAnimationIfNeeded() {
-            if !didRunInitialToggleAnimation {
-                didRunInitialToggleAnimation = true
-                if shouldAnimateToDuckAIOnAppear {
-                    // Treatment A behavior: start in Search, then animate to Duck.ai.
-                    isDuckAISelected = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.initialToggleStartDelay) {
-                        guard didRunInitialToggleAnimation else { return }
-                        isRunningInitialSelectionAnimation = true
-                        withAnimation(.easeInOut(duration: Metrics.pickerSelectionAnimationDuration)) {
-                            isDuckAISelected = true
-                        } completion: {
-                            isRunningInitialSelectionAnimation = false
-                            requestInputFocus()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionRevealFallbackDelayAfterFocus) {
-                                startSuggestionSequenceIfNeeded()
-                            }
-                        }
-                    }
-                } else {
-                    // Treatment B behavior: stay in Search, no auto-switch.
-                    isDuckAISelected = false
+        private func handleTitleAnimationFinished() {
+            guard !hasStartedEntranceSequence else { return }
+            hasStartedEntranceSequence = true
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.controlsRevealDelayAfterTitleAnimation) {
+                guard hasStartedEntranceSequence, !isTransitioningOut else { return }
+                showInteractiveControls = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.keyboardFocusDelayAfterControlsReveal) {
+                    guard hasStartedEntranceSequence, showInteractiveControls, !isTransitioningOut else { return }
                     requestInputFocus()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionRevealFallbackDelayAfterFocus) {
+                }
+                startInitialSelectionAnimationIfNeeded()
+            }
+        }
+
+        private func startStaticTitleEntranceSequence() {
+            guard !hasStartedEntranceSequence else { return }
+            hasStartedEntranceSequence = true
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.controlsRevealDelayAfterTitleAnimation) {
+                guard hasStartedEntranceSequence, !isTransitioningOut else { return }
+                showInteractiveControls = true
+                requestInputFocus()
+                startInitialSelectionAnimationIfNeeded()
+            }
+        }
+
+        private func startInitialSelectionAnimationIfNeeded() {
+            guard !didRunInitialToggleAnimation else { return }
+            didRunInitialToggleAnimation = true
+
+            if shouldAnimateToDuckAIOnAppear {
+                // Treatment A behavior: start in Search, then animate to Duck.ai.
+                isDuckAISelected = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.initialToggleStartDelay) {
+                    guard didRunInitialToggleAnimation, showInteractiveControls else { return }
+                    isRunningInitialSelectionAnimation = true
+                    withAnimation(.easeInOut(duration: Metrics.pickerSelectionAnimationDuration)) {
+                        isDuckAISelected = true
+                    } completion: {
+                        isRunningInitialSelectionAnimation = false
                         startSuggestionSequenceIfNeeded()
                     }
                 }
+            } else {
+                // Treatment B behavior: stay in Search, no auto-switch.
+                isDuckAISelected = false
+                startSuggestionSequenceIfNeeded()
             }
         }
 
@@ -496,10 +548,10 @@ extension OnboardingView {
 
         // MARK: Suggestion Sequencing
         private func startSuggestionSequenceIfNeeded() {
-            guard !suggestionSequenceStarted else { return }
+            guard !suggestionSequenceStarted, showInteractiveControls else { return }
             suggestionSequenceStarted = true
             DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.suggestionInitialRevealDelay) {
-                guard suggestionSequenceStarted, !isTransitioningOut else { return }
+                guard suggestionSequenceStarted, showInteractiveControls, !isTransitioningOut else { return }
                 startSuggestionRevealSequence()
             }
         }

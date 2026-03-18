@@ -1,21 +1,21 @@
 {
     "m_preonboarding_choose_search_experience_impressions_unique": {
         "description": "Fires during onboarding when the Search Experience view appears",
-        "owners": ["mallexxx"],
+        "owners": ["pikorddg"],
         "triggers": ["other"],
         "suffixes": ["platform", "form_factor"],
         "parameters": ["appVersion"]
     },
     "m_preonboarding_aichat_selected": {
         "description": "Fires when the user selects Search & Duck.ai option",
-        "owners": ["mallexxx"],
+        "owners": ["pikorddg"],
         "triggers": ["other"],
         "suffixes": ["platform", "form_factor"],
         "parameters": ["appVersion"]
     },
     "m_preonboarding_search_only_selected": {
         "description": "Fires when the user selects Search Only option",
-        "owners": ["mallexxx"],
+        "owners": ["pikorddg"],
         "triggers": ["other"],
         "suffixes": ["platform", "form_factor"],
         "parameters": ["appVersion"]

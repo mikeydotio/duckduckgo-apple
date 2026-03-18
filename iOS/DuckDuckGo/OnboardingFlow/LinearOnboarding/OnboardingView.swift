@@ -272,6 +272,7 @@ struct OnboardingView: View {
     private func experimentSearchExperienceSelectionView(defaultExperience: OnboardingIntroStep.DuckAIExperimentDefaultExperience) -> some View {
         DuckAIExperimentSearchContent(
             defaultExperience: defaultExperience,
+            animateTitle: $model.introState.animateIntroText,
             action: model.selectDuckAIQueryExperimentAction(selection:),
             openAIChatAction: model.openAIChatFromOnboarding,
             openSearchAction: model.searchFromOnboarding,
@@ -405,7 +406,6 @@ private enum Metrics {
     static let daxDialogVisibilityDelay: TimeInterval = 0.5
     static let comparisonChartAnimationDuration = 0.25
     static let dialogVerticalOffsetPercentage = MetricBuilder<CGFloat>(default: 0.1).iPhoneSmallScreen(0.01)
-    static let experimentDialogTopOffset: CGFloat = 6
     static let progressBarTrailingPadding: CGFloat = 16.0
     static let progressBarTopPadding: CGFloat = 12.0
 }

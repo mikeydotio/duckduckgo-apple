@@ -187,11 +187,7 @@ final class AIChatUserScriptHandler: AIChatUserScriptHandling {
 
     func responseReceived(params: Any, message: UserScriptMessage) async -> Encodable? {
         let payload = params as? [String: Any]
-        NotificationCenter.default.post(
-            name: .aiChatResponseReceived,
-            object: nil,
-            userInfo: payload
-        )
+        NotificationCenter.default.post(name: .aiChatResponseReceived, object: nil, userInfo: payload)
         return nil
     }
 

@@ -73,6 +73,9 @@ public final class LaunchOptionsHandler {
     }
 
     public var onboardingStatus: OnboardingStatus {
+        // TODO: Temporary override for dev validation; remove when onboarding should no longer launch on every app start.
+        return .overridden(.developer(completed: false))
+
         // Apple Issue affecting persistence storage on iPad 17.7.7
         // See: https://app.asana.com/1/137249556945/project/414709148257752/task/1210267814606214
         if isIpad && systemVersion == "17.7.7" {

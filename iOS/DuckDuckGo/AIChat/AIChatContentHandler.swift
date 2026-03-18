@@ -113,6 +113,7 @@ extension AIChatContentHandlingDelegate {
 }
 
 final class AIChatContentHandler: AIChatContentHandling {
+
     // MARK: - Dependencies
     private let aiChatSettings: AIChatSettingsProvider
     private var payloadHandler: AIChatPayloadHandler

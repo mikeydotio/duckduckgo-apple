@@ -164,17 +164,12 @@ final class OnboardingIntroViewModel: ObservableObject {
         introSteps = onboardingManager.onboardingSteps
         currentIntroStep = currentOnboardingStep
         copy = .default
-        // Dev override disabled by request:
-        // keep normal onboarding flow wiring and rely only on cohort override.
-        /*
-        #if DEBUG || ALPHA
-        if DevOverrides.forceDuckAIQueryExperimentScreenAtAppStart {
-            let forcedExperimentStep: OnboardingIntroStep = .duckAIQueryExperimentSelection(defaultExperience: forcedExperimentDefaultExperience())
-            introSteps = [forcedExperimentStep]
-            currentIntroStep = forcedExperimentStep
-        }
-        #endif
-        */
+
+        // TODO: Temporary override for dev validation; remove when onboarding should no longer launch on every app start.
+        // let forcedExperimentStep: OnboardingIntroStep = .searchExperienceSelection
+        // introSteps = [forcedExperimentStep]
+        // currentIntroStep = forcedExperimentStep
+
     }
 
     func onAppear() {
@@ -298,16 +293,6 @@ final class OnboardingIntroViewModel: ObservableObject {
 // MARK: - Private
 
 private extension OnboardingIntroViewModel {
-    // Dev overrides disabled by request; keep cohort override only.
-    /*
-    #if DEBUG || ALPHA
-    enum DevOverrides {
-        static let forceDuckAIQueryExperimentScreenAtAppStart = true
-        static let forceExperimentDefaultFromCohort = true
-        static let experimentDefaultSelectionIsSearch = true // Fallback only when cohort-driven default is disabled.
-    }
-    #endif
-    */
 
     func makeInitialViewState() {
         setViewState(introStep: currentIntroStep)

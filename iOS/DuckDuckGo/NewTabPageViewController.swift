@@ -302,7 +302,8 @@ extension NewTabPageViewController {
             message: message,
             cta: UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenButton,
             dismissAction: onDismiss,
-            onManualDismiss: onDismiss
+            onManualDismiss: onDismiss,
+            usesExperimentCompletionFormatting: true
         )
 
         let root = AnyView(
