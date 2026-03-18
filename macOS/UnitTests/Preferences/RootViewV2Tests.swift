@@ -51,7 +51,6 @@ final class RootViewV2Tests: XCTestCase {
             vpnGatekeeper: vpnGatekeeper,
             includeDuckPlayer: false,
             includeAIChat: true,
-            includeYouTubeAdBlocking: false,
             subscriptionManager: SubscriptionManagerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             downloadsPreferences: DownloadsPreferences(persistor: DownloadsPreferencesPersistorMock()),

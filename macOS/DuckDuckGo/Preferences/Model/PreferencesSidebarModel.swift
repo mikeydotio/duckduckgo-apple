@@ -20,6 +20,7 @@ import BrowserServicesKit
 import Common
 import Combine
 import DDGSync
+import FeatureFlags
 import SwiftUI
 import Networking
 import Subscription
@@ -170,7 +171,6 @@ final class PreferencesSidebarModel: ObservableObject {
         vpnGatekeeper: VPNFeatureGatekeeper,
         includeDuckPlayer: Bool,
         includeAIChat: Bool,
-        includeYouTubeAdBlocking: Bool,
         userDefaults: UserDefaults = .netP,
         subscriptionManager: any SubscriptionManager,
         defaultBrowserPreferences: DefaultBrowserPreferences,
@@ -191,7 +191,7 @@ final class PreferencesSidebarModel: ObservableObject {
                 includingDuckPlayer: includeDuckPlayer,
                 includingSync: syncService.featureFlags.contains(.userInterface),
                 includingAIChat: includeAIChat,
-                includingYouTubeAdBlocking: includeYouTubeAdBlocking,
+                includingYouTubeAdBlocking: featureFlagger.isFeatureOn(.adBlockingExtension),
                 subscriptionState: currentSubscriptionFeatures
             )
         }
@@ -248,6 +248,20 @@ final class PreferencesSidebarModel: ObservableObject {
                 self?.refreshSections()
             }
             .store(in: &cancellables)
+
+        subscribeToLocalFeatureFlagOverrideChanges()
+    }
+
+    func subscribeToLocalFeatureFlagOverrideChanges() {
+        if let overridesHandler = featureFlagger.localOverrides?.actionHandler as? FeatureFlagOverridesPublishingHandler<FeatureFlag> {
+            overridesHandler.flagDidChangePublisher
+                .filter { flag, _ in flag == .adBlockingExtension }
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.refreshSections()
+                }
+                .store(in: &cancellables)
+        }
     }
 
     private func subscribeToSubscriptionChanges() {

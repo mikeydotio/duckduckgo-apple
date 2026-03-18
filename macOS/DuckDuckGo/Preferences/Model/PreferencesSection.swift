@@ -47,7 +47,7 @@ struct PreferencesSection: Hashable, Identifiable {
                 panes.append(.sync)
             }
 
-            if includingDuckPlayer {
+            if includingDuckPlayer && !includingYouTubeAdBlocking {
                 panes.append(.duckPlayer)
             }
 
