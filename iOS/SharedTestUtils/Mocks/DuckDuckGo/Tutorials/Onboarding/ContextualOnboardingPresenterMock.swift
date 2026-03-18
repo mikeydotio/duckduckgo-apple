@@ -152,9 +152,6 @@ class DummyDaxDialogsManager: DaxDialogsManaging {
     var isAddFavoriteFlow: Bool = false
 
     var isShowingSubscriptionPromotion: Bool = false
-
-
-
     var subscriptionPromotionDialogSeen: Bool = false
 
     var isDismissedPublisher = PassthroughSubject<Bool, Never>()
