@@ -205,9 +205,8 @@ public final class DataBrokerProtectionIOSManager {
     }()
 
     private func hasAttachedContinuedProcessingTask() async -> Bool {
-        if #available(iOS 26.0, *),
-           let coordinator = continuedProcessingCoordinator as? DBPContinuedProcessingCoordinator {
-            return await coordinator.hasAttachedTask()
+        if #available(iOS 26.0, *) {
+            return await continuedProcessingCoordinator.hasAttachedTask()
         }
 
         return false
@@ -472,8 +471,9 @@ extension DataBrokerProtectionIOSManager: JobQueueManagerDelegate {
                     .init(brokerId: context.brokerId, profileQueryId: context.profileQueryId)
                 )
                 Task { [weak self] in
-                    guard let self else { return }
-                    await self.continuedProcessingDelegate?.iosManager(self, didEmit: event)
+                    if let self {
+                        await continuedProcessingDelegate?.iosManager(self, didEmit: event)
+                    }
                 }
             case .optOut:
                 if let extractedProfileId = context.extractedProfileId {
@@ -485,8 +485,9 @@ extension DataBrokerProtectionIOSManager: JobQueueManagerDelegate {
                         )
                     )
                     Task { [weak self] in
-                        guard let self else { return }
-                        await self.continuedProcessingDelegate?.iosManager(self, didEmit: event)
+                        if let self {
+                            await continuedProcessingDelegate?.iosManager(self, didEmit: event)
+                        }
                     }
                 }
             }
@@ -1021,8 +1022,9 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
 
         await performImmediateScanOperations { [weak self] in
             Task { [weak self] in
-                guard let self else { return }
-                await self.continuedProcessingDelegate?.iosManager(self, didEmit: .scanPhaseCompleted)
+                if let self {
+                    await self.continuedProcessingDelegate?.iosManager(self, didEmit: .scanPhaseCompleted)
+                }
             }
             backgroundAssertion.release()
         }
@@ -1036,9 +1038,10 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
             errorHandler: nil
         ) {
             Task { [weak self] in
-                guard let self else { return }
-                Logger.dataBrokerProtection.log("Continued processing: immediate opt-out operations completed")
-                await self.continuedProcessingDelegate?.iosManager(self, didEmit: .optOutPhaseCompleted)
+                if let self {
+                    Logger.dataBrokerProtection.log("Continued processing: immediate opt-out operations completed")
+                    await self.continuedProcessingDelegate?.iosManager(self, didEmit: .optOutPhaseCompleted)
+                }
             }
         }
     }
