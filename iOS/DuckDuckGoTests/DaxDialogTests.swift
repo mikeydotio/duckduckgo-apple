@@ -899,7 +899,7 @@ final class DaxDialog: XCTestCase {
         settings.browsingFinalDialogShown = true
         settings.subscriptionPromotionDialogShown = false
         let mockOnboardingPromotionHelper = MockOnboardingSubscriptionPromotionHelper()
-        mockOnboardingPromotionHelper.isFeatureEnabledValue = true
+        mockOnboardingPromotionHelper.shouldDisplayValue = true
         let sut = makeSUT(settings: settings, onboardingSubscriptionPromotionHelper: mockOnboardingPromotionHelper)
 
         // WHEN
@@ -915,7 +915,7 @@ final class DaxDialog: XCTestCase {
         settings.browsingFinalDialogShown = true
         settings.subscriptionPromotionDialogShown = false
         let mockOnboardingPromotionHelper = MockOnboardingSubscriptionPromotionHelper()
-        mockOnboardingPromotionHelper.isFeatureEnabledValue = false
+        mockOnboardingPromotionHelper.shouldDisplayValue = false
         let sut = makeSUT(settings: settings, onboardingSubscriptionPromotionHelper: mockOnboardingPromotionHelper)
 
         // WHEN
@@ -931,7 +931,7 @@ final class DaxDialog: XCTestCase {
         settings.browsingFinalDialogShown = true
         settings.subscriptionPromotionDialogShown = true
         let mockOnboardingPromotionHelper = MockOnboardingSubscriptionPromotionHelper()
-        mockOnboardingPromotionHelper.isFeatureEnabledValue = true
+        mockOnboardingPromotionHelper.shouldDisplayValue = true
         let sut = makeSUT(settings: settings, onboardingSubscriptionPromotionHelper: mockOnboardingPromotionHelper)
 
         // WHEN
@@ -947,7 +947,7 @@ final class DaxDialog: XCTestCase {
         settings.browsingFinalDialogShown = false
         settings.subscriptionPromotionDialogShown = false
         let mockOnboardingPromotionHelper = MockOnboardingSubscriptionPromotionHelper()
-        mockOnboardingPromotionHelper.isFeatureEnabledValue = true
+        mockOnboardingPromotionHelper.shouldDisplayValue = true
         let sut = makeSUT(settings: settings, onboardingSubscriptionPromotionHelper: mockOnboardingPromotionHelper)
 
         // WHEN
@@ -1041,7 +1041,7 @@ final class DaxDialog: XCTestCase {
         settings.browsingFinalDialogShown = true
         settings.subscriptionPromotionDialogShown = false
         let mockOnboardingPromotionHelper = MockOnboardingSubscriptionPromotionHelper()
-        mockOnboardingPromotionHelper.isFeatureEnabledValue = true
+        mockOnboardingPromotionHelper.shouldDisplayValue = true
         let sut = makeSUT(settings: settings, onboardingSubscriptionPromotionHelper: mockOnboardingPromotionHelper)
 
         // WHEN
@@ -1196,18 +1196,11 @@ final class DaxDialog: XCTestCase {
 
 final class MockOnboardingSubscriptionPromotionHelper: OnboardingSubscriptionPromotionHelping {
 
-    var promoTitle = ""
     var proceedButtonText = ""
-
-    var isFeatureEnabledValue: Bool = false
-
-    var isFeatureEnabled: Bool {
-        isFeatureEnabledValue
-    }
 
     var shouldDisplayValue: Bool = false
 
-    var shouldDisplayForSkippedOnboarding: Bool {
+    var shouldDisplay: Bool {
         shouldDisplayValue
     }
 
