@@ -52,8 +52,8 @@ public struct ContentScopePrivacyConfigurationJSONGenerator: CustomisedPrivacyCo
 
         var features = config.features
 
-        if let dataSource = trackerProtectionDataSource {
-            features = injectTrackerProtectionSettings(into: features, from: dataSource)
+        if trackerProtectionDataSource != nil {
+            features = injectTrackerProtectionSettings(into: features)
         }
 
         let newConfig = PrivacyConfigurationData(features: features, unprotectedTemporary: config.unprotectedTemporary, trackerAllowlist: config.trackerAllowlist, version: config.version)
@@ -65,8 +65,7 @@ public struct ContentScopePrivacyConfigurationJSONGenerator: CustomisedPrivacyCo
         )
     }
 
-    private func injectTrackerProtectionSettings(into features: [String: PrivacyConfigurationData.PrivacyFeature],
-                                                 from _: TrackerProtectionDataSource) -> [String: PrivacyConfigurationData.PrivacyFeature] {
+    private func injectTrackerProtectionSettings(into features: [String: PrivacyConfigurationData.PrivacyFeature]) -> [String: PrivacyConfigurationData.PrivacyFeature] {
         var mutableFeatures = features
 
         let existingFeature = mutableFeatures["trackerProtection"]
@@ -80,7 +79,7 @@ public struct ContentScopePrivacyConfigurationJSONGenerator: CustomisedPrivacyCo
         var allowlistDict: [String: [[String: Any]]] = [:]
         for (domain, entries) in privacyConfig.trackerAllowlist.entries {
             allowlistDict[domain] = entries.map { entry in
-                ["rule": entry.rule.escapedForRegex(), "domains": entry.domains]
+                ["rule": entry.rule, "domains": entry.domains]
             }
         }
         settings["allowlist"] = allowlistDict
@@ -101,24 +100,5 @@ public struct ContentScopePrivacyConfigurationJSONGenerator: CustomisedPrivacyCo
 
         mutableFeatures["trackerProtection"] = trackerProtectionFeature
         return mutableFeatures
-    }
-}
-
-// MARK: - Private Helpers
-
-private extension String {
-    /// Escapes regex special characters for use in JavaScript's String.match().
-    ///
-    /// C-S-S allowlist rules are passed to JavaScript's `.match()` method which treats
-    /// the string as a regex pattern. This function escapes special characters to ensure
-    /// literal matching (e.g., dots match literal dots, not wildcards).
-    func escapedForRegex() -> String {
-        // Regex special characters that need escaping: . \ + * ? [ ] ^ $ ( ) { } = ! < > | : -
-        let specialChars = ["\\", ".", "+", "*", "?", "[", "]", "^", "$", "(", ")", "{", "}", "=", "!", "<", ">", "|", ":", "-"]
-        var escaped = self
-        for char in specialChars {
-            escaped = escaped.replacingOccurrences(of: char, with: "\\\(char)")
-        }
-        return escaped
     }
 }
