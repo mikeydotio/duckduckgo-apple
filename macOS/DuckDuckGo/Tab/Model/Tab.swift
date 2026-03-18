@@ -301,7 +301,6 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                                                  burnerMode: burnerMode,
                                                  privateProcessName: featureFlagger.isFeatureOn(.privateProcessName),
                                                  earlyAccessHandlers: specialPagesUserScript.map { [$0] } ?? [])
-        configuration.mediaTypesRequiringUserActionForPlayback = autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction
         self.webViewConfiguration = configuration
         let userContentController = configuration.userContentController as? UserContentController
         assert(userContentController != nil)
@@ -1367,6 +1366,7 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
 
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
+        preferences.autoplayPolicy = .init(Application.appDelegate.autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction)
         // allow local file navigations
         if navigationAction.url.isFileURL || navigationAction.url == .blankPage { return .allow }
 

@@ -48,3 +48,54 @@ extension WKWebpagePreferences {
 #endif
 
 }
+
+extension WKWebpagePreferences {
+
+    private enum Selector {
+        static let autoplayPolicy = NSSelectorFromString("_autoplayPolicy")
+        static let setAutoplayPolicy = NSSelectorFromString("_setAutoplayPolicy:")
+    }
+
+    @objc dynamic public var autoplayPolicy: UInt /*_WKWebsiteAutoplayPolicy*/ {
+        get {
+            guard self.responds(to: Selector.autoplayPolicy),
+                  let method = class_getInstanceMethod(object_getClass(self), Selector.autoplayPolicy) else {
+                assertionFailure("WKWebView does not respond to selector _autoplayPolicy")
+                return _WKWebsiteAutoplayPolicy.default.rawValue
+            }
+            let imp = method_getImplementation(method)
+            typealias AutoplayPolicyType = @convention(c) (WKWebpagePreferences, ObjectiveC.Selector) -> UInt
+            let autoplayPolicyGetter = unsafeBitCast(imp, to: AutoplayPolicyType.self)
+            let autoplayPolicy = autoplayPolicyGetter(self, Selector.autoplayPolicy)
+            return autoplayPolicy
+        }
+        set {
+            guard self.responds(to: Selector.setAutoplayPolicy),
+                  let method = class_getInstanceMethod(object_getClass(self), Selector.setAutoplayPolicy) else {
+                assertionFailure("WKWebView does not respond to selector _setAutoplayPolicy:")
+                return
+            }
+            let imp = method_getImplementation(method)
+            typealias SetAutoplayPolicyType = @convention(c) (WKWebpagePreferences, ObjectiveC.Selector, UInt) -> Void
+            let setAutoplayPolicyGetter = unsafeBitCast(imp, to: SetAutoplayPolicyType.self)
+            setAutoplayPolicyGetter(self, Selector.setAutoplayPolicy, newValue)
+        }
+    }
+}
+
+public enum _WKWebsiteAutoplayPolicy: UInt {
+    case `default`
+    case allow
+    case allowWithoutSound
+    case deny
+
+    public init(_ mediaTypes: WKAudiovisualMediaTypes) {
+        if mediaTypes == WKAudiovisualMediaTypes.all {
+            self = .deny
+        } else if mediaTypes.contains(.audio) {
+            self = .allowWithoutSound
+        } else {
+            self = .allow
+        }
+    }
+}
