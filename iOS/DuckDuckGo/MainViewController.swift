@@ -4023,6 +4023,10 @@ extension MainViewController: TabDelegate {
     func tabDidRequestFireButtonPulse(tab: TabViewController) {
         showFireButtonPulse()
     }
+
+    func tabDidRequestFireButton(tab: TabViewController) {
+        onFirePressed()
+    }
     
     func tabDidRequestPrivacyDashboardButtonPulse(tab: TabViewController, animated: Bool) {
         if animated {

@@ -85,6 +85,12 @@ final class AIChatContextualSheetCoordinatorTests: XCTestCase {
 
         func aiChatContextualSheetCoordinator(_ coordinator: AIChatContextualSheetCoordinator, didRequestOpenDownloadWithFileName fileName: String) {
         }
+
+        var fireButtonCallCount = 0
+
+        func aiChatContextualSheetCoordinatorDidRequestFireButton(_ coordinator: AIChatContextualSheetCoordinator) {
+            fireButtonCallCount += 1
+        }
     }
 
     private final class MockPresentingViewController: UIViewController {

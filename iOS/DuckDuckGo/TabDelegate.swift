@@ -117,6 +117,8 @@ protocol TabDelegate: AnyObject {
     
     func tabDidRequestFireButtonPulse(tab: TabViewController)
 
+    func tabDidRequestFireButton(tab: TabViewController)
+
     func tabDidRequestPrivacyDashboardButtonPulse(tab: TabViewController, animated: Bool)
 
     func tabDidRequestSearchBarRect(tab: TabViewController) -> CGRect
