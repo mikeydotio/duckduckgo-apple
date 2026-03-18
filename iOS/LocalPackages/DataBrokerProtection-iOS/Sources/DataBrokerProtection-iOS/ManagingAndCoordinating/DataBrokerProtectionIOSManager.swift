@@ -938,19 +938,13 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     }
 
     @MainActor
-    private func saveProfileAndStartImmediateScans(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
-        try await saveProfileAndPrepareForInitialScans(profile)
-        await startImmediateScanOperations()
-    }
-
-    @MainActor
     public func saveProfileAndStartContinuedProcessingInitialRunIfSupported(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
         if shouldUseContinuedProcessingForInitialRun() {
             do {
                 try await saveProfileAndPrepareForInitialScans(profile)
             } catch {
                 Logger.dataBrokerProtection.error("Continued processing preparation failed before task submission, falling back to legacy save. Error: \(error.localizedDescription, privacy: .public)")
-                try await saveProfileAndStartImmediateScans(profile)
+                try await saveProfile(profile)
                 return
             }
 
@@ -972,7 +966,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
                 await startImmediateScanOperations()
             }
         } else {
-            try await saveProfileAndStartImmediateScans(profile)
+            try await saveProfile(profile)
         }
     }
 
