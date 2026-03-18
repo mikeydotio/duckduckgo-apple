@@ -175,7 +175,7 @@ extension SubscriptionManager {
 
 /// Deduplicates concurrent async calls that share the same key, so only one in-flight
 /// request runs at a time per key. Subsequent callers suspend and receive the same result.
-private actor SubscriptionRequestCoalescer {
+actor SubscriptionRequestCoalescer {
     private var inFlightTasks: [Bool: Task<DuckDuckGoSubscription?, Error>] = [:]
 
     /// If a task for `forceRefresh` is already in flight, suspends and returns its result.
@@ -551,7 +551,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     @discardableResult public func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer {
-        Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
+        Logger.subscriptionTokensManagement.debug("Get tokens \(policy.description, privacy: .public)")
 
         do {
             let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
@@ -566,7 +566,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             throw SubscriptionManagerError.noTokenAvailable
         } catch {
             pixelHandler.handle(pixel: SubscriptionPixelType.getTokensError(policy, error))
-            Logger.subscription.error("Getting token \(policy, privacy: .public) failed: \(error, privacy: .public)")
+            Logger.subscriptionTokensManagement.error("Getting token \(policy, privacy: .public) failed: \(error, privacy: .public)")
 
             switch error {
             case OAuthClientError.unknownAccount:
@@ -593,7 +593,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     func attemptTokenRecovery() async throws -> TokenContainer {
 
-        Logger.subscription.log("Attempting token recovery...")
+        Logger.subscriptionTokensManagement.log("Attempting token recovery...")
 
         guard let tokenRecoveryHandler else {
             Logger.subscription.log("Recovery not possible, no handler configured.")
@@ -604,14 +604,14 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
         guard let currentTokenContainer = try oAuthClient.currentTokenContainer(),
               !currentTokenContainer.decodedRefreshToken.isExpired() else {
-            Logger.subscription.log("Recovery failed: the refresh token is missing or still expired after the recovery attempt.")
+            Logger.subscriptionTokensManagement.log("Recovery failed: the refresh token is missing or still expired after the recovery attempt.")
             throw SubscriptionManagerError.noTokenAvailable
         }
         return currentTokenContainer
     }
 
     public func adopt(accessToken: String, refreshToken: String) async throws {
-        Logger.subscription.log("Adopting and decoding token container")
+        Logger.subscriptionTokensManagement.log("Adopting and decoding token container")
         let tokenContainer = try await oAuthClient.decode(accessToken: accessToken, refreshToken: refreshToken, refreshID: nil)
         try await adopt(tokenContainer: tokenContainer)
     }
@@ -627,7 +627,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
 
         do {
-            Logger.subscription.log("Adopting token container")
+            Logger.subscriptionTokensManagement.log("Adopting token container")
 
             try oAuthClient.adopt(tokenContainer: tokenContainer)
 
@@ -659,13 +659,13 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func removeLocalAccount() throws {
-        Logger.subscription.log("Removing local account")
+        Logger.subscriptionTokensManagement.log("Removing local account")
             updateCachedIsUserAuthenticated(false)
         try oAuthClient.removeLocalAccount()
     }
 
     public func signOut(notifyUI: Bool, userInitiated: Bool) async {
-        Logger.subscription.log("SignOut: Removing all traces of the subscription and account. Notify UI: \(notifyUI ? "true" : "false"), User Initiated: \(userInitiated ? "true" : "false")")
+        Logger.subscriptionTokensManagement.log("SignOut: Removing all traces of the subscription and account. Notify UI: \(notifyUI ? "true" : "false"), User Initiated: \(userInitiated ? "true" : "false")")
 
         try? await oAuthClient.logout()
         clearSubscriptionCache()

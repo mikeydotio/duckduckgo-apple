@@ -1284,31 +1284,31 @@ extension SettingsViewModel {
     @MainActor
     private func setupSubscriptionEnvironment() async {
         // 1. Start from cached state or defaults
-        var updatedSubscription = subscriptionStateCache.get() ?? SettingsState.defaults.subscription
+        var updatedSubscriptionState = subscriptionStateCache.get() ?? SettingsState.defaults.subscription
 
         // 2. Set store availability, auth status, and offer eligibility (independent of backend subscription)
-        updatedSubscription.hasAppStoreProductsAvailable = subscriptionManager.hasAppStoreProductsAvailable
-        updatedSubscription.isSignedIn = subscriptionManager.isUserAuthenticated
-        updatedSubscription.isEligibleForTrialOffer = await isUserEligibleForTrialOffer()
-        updatedSubscription.isWinBackEligible = winBackOfferVisibilityManager.isOfferAvailable
+        updatedSubscriptionState.hasAppStoreProductsAvailable = subscriptionManager.hasAppStoreProductsAvailable
+        updatedSubscriptionState.isSignedIn = subscriptionManager.isUserAuthenticated
+        updatedSubscriptionState.isEligibleForTrialOffer = await isUserEligibleForTrialOffer()
+        updatedSubscriptionState.isWinBackEligible = winBackOfferVisibilityManager.isOfferAvailable
 
         do {
             // 3. Fetch subscription from backend (returns nil if no subscription exists)
             guard let subscription = try await subscriptionManager.getSubscription() else {
                 // 3a. No subscription on backend — reset subscription fields and exit early
                 Logger.subscription.debug("No subscription data available")
-                applyNoSubscriptionState(&updatedSubscription)
+                applyNoSubscriptionState(&updatedSubscriptionState)
                 DailyPixel.fireDailyAndCount(pixel: .settingsSubscriptionAccountWithNoSubscriptionFound)
-                state.subscription = updatedSubscription
+                state.subscription = updatedSubscriptionState
                 subscriptionStateCache.set(state.subscription)
                 return
             }
 
             // 4. Populate subscription details from backend response
-            updatedSubscription.platform = subscription.platform
-            updatedSubscription.hasSubscription = true
-            updatedSubscription.hasActiveSubscription = subscription.isActive
-            updatedSubscription.isActiveTrialOffer = subscription.hasActiveTrialOffer
+            updatedSubscriptionState.platform = subscription.platform
+            updatedSubscriptionState.hasSubscription = true
+            updatedSubscriptionState.hasActiveSubscription = subscription.isActive
+            updatedSubscriptionState.isActiveTrialOffer = subscription.hasActiveTrialOffer
 
             // 5. Check which features are enabled for the user (entitlements present in the access token)
             let featuresToCheck: [SubscriptionEntitlement] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration, .identityTheftRestorationGlobal, .paidAIChat]
@@ -1321,20 +1321,20 @@ extension SettingsViewModel {
             }
 
             // 6. Set enabled features and plan-included features
-            updatedSubscription.entitlements = enabledFeatures
-            updatedSubscription.subscriptionFeatures = subscription.features ?? []
+            updatedSubscriptionState.entitlements = enabledFeatures
+            updatedSubscriptionState.subscriptionFeatures = subscription.features ?? []
         } catch SubscriptionManagerError.noTokenAvailable {
             // 3b. User is not authenticated — reset subscription fields (no pixel: user has no account)
             Logger.subscription.debug("No subscription data available - user not authenticated")
-            updatedSubscription.isSignedIn = false
-            applyNoSubscriptionState(&updatedSubscription)
+            updatedSubscriptionState.isSignedIn = false
+            applyNoSubscriptionState(&updatedSubscriptionState)
         } catch {
             // 3c. Transient error — keep cached state as-is
             Logger.subscription.error("Failed to fetch Subscription: \(error, privacy: .public)")
         }
 
         // 7. Persist updated state
-        state.subscription = updatedSubscription
+        state.subscription = updatedSubscriptionState
         subscriptionStateCache.set(state.subscription)
     }
 
