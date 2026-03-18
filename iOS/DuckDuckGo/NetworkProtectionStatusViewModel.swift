@@ -119,6 +119,7 @@ final class NetworkProtectionStatusViewModel: ObservableObject {
         }
     }
     @Published public var shouldShowError: Bool = false
+    private var errorTask: Task<Void, Never>?
 
     // MARK: Header
 
@@ -243,6 +244,7 @@ final class NetworkProtectionStatusViewModel: ObservableObject {
                 switch status {
                 case .connected:
                     self?.isNetPEnabled = true
+                    self?.errorTask?.cancel()
                     self?.error = nil
                 case .connecting:
                     self?.isNetPEnabled = true
@@ -391,8 +393,10 @@ final class NetworkProtectionStatusViewModel: ObservableObject {
                     return
                 }
 
-                Task {
+                self.errorTask?.cancel()
+                self.errorTask = Task {
                     let errorItem = await self.createErrorItem(fallbackMessage: errorMessage)
+                    guard !Task.isCancelled else { return }
                     await MainActor.run {
                         self.error = errorItem
                     }
