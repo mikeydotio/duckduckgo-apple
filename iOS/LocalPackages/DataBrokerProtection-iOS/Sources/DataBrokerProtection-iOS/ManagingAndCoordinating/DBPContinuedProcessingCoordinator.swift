@@ -22,9 +22,8 @@ import DataBrokerProtectionCore
 import Foundation
 import os.log
 
-@MainActor
-protocol DBPContinuedProcessingEventDelegate: AnyObject {
-    func iosManager(_ manager: DataBrokerProtectionIOSManager, didEmit event: DBPContinuedProcessingEvent)
+protocol DBPContinuedProcessingEventDelegate: AnyObject, Sendable {
+    func iosManager(_ manager: DataBrokerProtectionIOSManager, didEmit event: DBPContinuedProcessingEvent) async
 }
 
 enum DBPContinuedProcessingEvent {
@@ -32,15 +31,13 @@ enum DBPContinuedProcessingEvent {
     case optOutPhaseCompleted
 }
 
-@MainActor
-protocol DBPContinuedProcessingCoordinating {
-    var hasAttachedTask: Bool { get }
+protocol DBPContinuedProcessingCoordinating: AnyObject {
+    func hasAttachedTask() async -> Bool
     func startInitialRun(profile: DataBrokerProtectionProfile) async throws
 }
 
 @available(iOS 26.0, *)
-@MainActor
-final class DBPContinuedProcessingCoordinator {
+actor DBPContinuedProcessingCoordinator {
 
     enum Phase {
         case initialScan
@@ -59,8 +56,9 @@ final class DBPContinuedProcessingCoordinator {
     private var runStartedAt: Date?
     private var phase: Phase?
     private var task: BGContinuedProcessingTask?
+    private(set) var isRunActive = false
 
-    var hasAttachedTask: Bool {
+    func hasAttachedTask() -> Bool {
         task != nil
     }
 
@@ -71,6 +69,13 @@ final class DBPContinuedProcessingCoordinator {
     // MARK: - Run Lifecycle
 
     func startInitialRun(profile: DataBrokerProtectionProfile) async throws {
+        guard !isRunActive else {
+            Logger.dataBrokerProtection.error(
+                "Continued processing: startInitialRun called while already active in phase \(String(describing: self.phase), privacy: .public) for run \(self.logRunIdentifier(), privacy: .public), ignoring"
+            )
+            return
+        }
+
         guard let manager else { return }
 
         let hasPendingScans = try await manager.prepareContinuedProcessingInitialRun(profile: profile)
@@ -79,6 +84,7 @@ final class DBPContinuedProcessingCoordinator {
             return
         }
 
+        isRunActive = true
         Logger.dataBrokerProtection.log("Continued processing: prepared initial run")
         runStartedAt = Date()
 
@@ -105,9 +111,7 @@ final class DBPContinuedProcessingCoordinator {
             "Continued processing: attached task for run \(self.logRunIdentifier(), privacy: .public) in phase \(String(describing: self.phase), privacy: .public)"
         )
         task.expirationHandler = { [weak self] in
-            Task { @MainActor in
-                self?.expire()
-            }
+            Task { await self?.expire() }
         }
     }
 
@@ -130,6 +134,7 @@ final class DBPContinuedProcessingCoordinator {
         phase = nil
         taskIdentifier = nil
         runStartedAt = nil
+        isRunActive = false
     }
 
     // MARK: - Phases
@@ -144,8 +149,17 @@ final class DBPContinuedProcessingCoordinator {
     func handleScanPhaseCompleted() async {
         Logger.dataBrokerProtection.log("Continued processing: scan phase completed for run \(self.logRunIdentifier(), privacy: .public)")
 
-        guard let manager,
-              let hasPendingInitialOptOuts = try? manager.hasPendingContinuedProcessingOptOuts() else {
+        guard let manager else {
+            finish(success: false)
+            return
+        }
+
+        let hasPendingInitialOptOuts: Bool
+        do {
+            hasPendingInitialOptOuts = try await MainActor.run {
+                try manager.hasPendingContinuedProcessingOptOuts()
+            }
+        } catch {
             Logger.dataBrokerProtection.log("Continued processing: failed to determine pending opt-outs after scan phase for run \(self.logRunIdentifier(), privacy: .public)")
             finish(success: false)
             return
@@ -158,10 +172,10 @@ final class DBPContinuedProcessingCoordinator {
         }
 
         Logger.dataBrokerProtection.log("Continued processing: initial opt-outs found for run \(self.logRunIdentifier(), privacy: .public)")
-        await startOptOutPhase()
+        startOptOutPhase()
     }
 
-    func startOptOutPhase() async {
+    func startOptOutPhase() {
         guard let manager else { return }
         transition(to: .initialOptOut)
         Logger.dataBrokerProtection.log("Continued processing: starting opt-out phase for run \(self.logRunIdentifier(), privacy: .public)")
@@ -219,9 +233,7 @@ final class DBPContinuedProcessingCoordinator {
                 return
             }
 
-            Task { @MainActor in
-                self?.attach(task: continuedTask)
-            }
+            Task { await self?.attach(task: continuedTask) }
         }
 
         guard didRegister else {
@@ -270,14 +282,14 @@ extension DBPContinuedProcessingCoordinator: DBPContinuedProcessingCoordinating 
 @available(iOS 26.0, *)
 extension DBPContinuedProcessingCoordinator: DBPContinuedProcessingEventDelegate {
     func iosManager(_ manager: DataBrokerProtectionIOSManager, didEmit event: DBPContinuedProcessingEvent) {
+        guard isRunActive else { return }
+
         Logger.dataBrokerProtection.log(
             "Continued processing: received manager event \(String(describing: event), privacy: .public) for run \(self.logRunIdentifier(), privacy: .public)"
         )
         switch event {
         case .scanPhaseCompleted:
-            Task { @MainActor in
-                await handleScanPhaseCompleted()
-            }
+            Task { await handleScanPhaseCompleted() }
         case .optOutPhaseCompleted:
             handleOptOutPhaseCompleted()
         }

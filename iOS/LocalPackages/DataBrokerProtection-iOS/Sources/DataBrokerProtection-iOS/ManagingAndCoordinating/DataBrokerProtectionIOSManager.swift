@@ -192,7 +192,6 @@ public final class DataBrokerProtectionIOSManager {
     private var currentRunIsFreeScan: Bool?
     weak var continuedProcessingDelegate: DBPContinuedProcessingEventDelegate?
 
-    @MainActor
     private lazy var continuedProcessingCoordinator: any DBPContinuedProcessingCoordinating = {
         if let coordinatorForTesting = continuedProcessingTestConfiguration?.coordinator {
             return coordinatorForTesting
@@ -205,10 +204,9 @@ public final class DataBrokerProtectionIOSManager {
         return DBPContinuedProcessingCoordinator(manager: self)
     }()
 
-    @MainActor
-    private var hasAttachedContinuedProcessingTask: Bool {
+    private func hasAttachedContinuedProcessingTask() async -> Bool {
         if #available(iOS 26.0, *) {
-            return continuedProcessingCoordinator.hasAttachedTask
+            return await continuedProcessingCoordinator.hasAttachedTask()
         }
 
         return false
@@ -931,10 +929,10 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
     func startImmediateScanOperationsForContinuedProcessing() async {
         Logger.dataBrokerProtection.log("Continued processing: starting immediate scan operations")
         let backgroundAssertion = QRunInBackgroundAssertion(name: "DataBrokerProtectionIOSManager", application: .shared) {
-            Task { @MainActor [weak self] in
+            Task { [weak self] in
                 guard let self else { return }
 
-                guard !self.hasAttachedContinuedProcessingTask else {
+                guard await !self.hasAttachedContinuedProcessingTask() else {
                     Logger.dataBrokerProtection.log("Ignoring legacy background assertion expiry because continued task is attached")
                     return
                 }
@@ -945,8 +943,10 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
         }
 
         await performImmediateScanOperations { [weak self] in
-            guard let self else { return }
-            self.continuedProcessingDelegate?.iosManager(self, didEmit: .scanPhaseCompleted)
+            Task { [weak self] in
+                guard let self else { return }
+                await self.continuedProcessingDelegate?.iosManager(self, didEmit: .scanPhaseCompleted)
+            }
             backgroundAssertion.release()
         }
     }
@@ -957,11 +957,11 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.ContinuedProcessingDel
             showWebView: false,
             jobDependencies: jobDependencies,
             errorHandler: nil
-        ) { [weak self] in
-            DispatchQueue.main.async {
+        ) {
+            Task { [weak self] in
                 guard let self else { return }
                 Logger.dataBrokerProtection.log("Continued processing: immediate opt-out operations completed")
-                self.continuedProcessingDelegate?.iosManager(self, didEmit: .optOutPhaseCompleted)
+                await self.continuedProcessingDelegate?.iosManager(self, didEmit: .optOutPhaseCompleted)
             }
         }
     }
