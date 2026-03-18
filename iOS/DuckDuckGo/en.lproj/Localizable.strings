@@ -2186,7 +2186,7 @@ https://duckduckgo.com/mac";
 "network.protection.error.subscription.expired" = "Your subscription has ended. Please subscribe again to connect to a VPN server.";
 
 /* Generic fallback error message for VPN failures. ** markers indicate bold text and should be preserved in translations. */
-"network.protection.error.unknown" = "An unexpected error occurred. Please try again.\nIf this issue continues, scroll to **About** and tap **FAQs and Support** for help.";
+"network.protection.error.unknown" = "An unexpected error occurred. Please try again. If this issue continues, scroll to **About** and tap **FAQs and Support** for help.";
 
 /* The body of the notification shown when VPN fails to reconnect */
 "network.protection.failure.notification.body" = "DuckDuckGo VPN failed to connect. Please try again later.";
