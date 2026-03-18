@@ -29,9 +29,11 @@ protocol DataImportUserActivityHandling {
 final class DataImportUserActivityHandler: DataImportUserActivityHandling {
 
     static var browserKitImportActivityType: String {
+#if compiler(>=6.3)
         if #available(iOS 26.4, *) {
             return BEBrowserDataImportManager.userActivityType
         }
+#endif
         return "BEBrowserDataExchangeImportActivity"
     }
 
@@ -68,9 +70,11 @@ final class DataImportUserActivityHandler: DataImportUserActivityHandling {
     }
 
     private static func importToken(from userActivity: NSUserActivity) -> UUID? {
+#if compiler(>=6.3)
         if #available(iOS 26.4, *) {
             return userActivity.userInfo?[BEBrowserDataImportManager.importTokenUserInfoKey] as? UUID
         }
+#endif
         return nil
     }
 }
