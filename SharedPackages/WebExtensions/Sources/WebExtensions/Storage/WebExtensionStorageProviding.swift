@@ -100,7 +100,13 @@ public extension WebExtensionStorageProviding {
             return zipFile
         }
 
-        // If no zip, look for a subfolder containing manifest.json
+        // Check if manifest.json exists directly in the folder (flat zip extraction)
+        let directManifestPath = folderPath.appendingPathComponent("manifest.json")
+        if fileManager.fileExists(atPath: directManifestPath.path) {
+            return folderPath
+        }
+
+        // Look for a subfolder containing manifest.json
         for item in contents {
             var isDirectory: ObjCBool = false
             if fileManager.fileExists(atPath: item.path, isDirectory: &isDirectory),
