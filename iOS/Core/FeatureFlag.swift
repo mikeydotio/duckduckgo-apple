@@ -361,7 +361,7 @@ public enum FeatureFlag: String {
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
-    public var defaultValue: Bool {
+    public var defaultValue: FeatureFlagDefaultValue {
         switch self {
         case .canScanUrlBasedSyncSetupBarcodes,
              .canInterceptSyncSetupUrls,
@@ -389,9 +389,11 @@ extension FeatureFlag: FeatureFlagDescribing {
              .autoplayBlocking,
              .customXSafariRedirectHandling,
              .syncAutoRestore:
-            true
+            .enabled
+        case .crashReportOptInStatusResetting:
+            .internalOnly
         default:
-            false
+            .disabled
         }
     }
 
@@ -615,7 +617,7 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .dbpClickActionDelayReductionOptimization:
             return .remoteReleasable(.subfeature(DBPSubfeature.clickActionDelayReductionOptimization))
         case .crashReportOptInStatusResetting:
-            return .internalOnly()
+            return .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.crashReportOptInStatusResetting))
         case .syncSeamlessAccountSwitching:
             return .remoteReleasable(.subfeature(SyncSubfeature.seamlessAccountSwitching))
         case .maliciousSiteProtection:
