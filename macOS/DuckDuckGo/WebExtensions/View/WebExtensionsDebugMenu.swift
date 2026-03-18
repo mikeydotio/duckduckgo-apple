@@ -56,47 +56,10 @@ final class WebExtensionsDebugMenu: NSMenu {
             for identifier in webExtensionManager.webExtensionIdentifiers {
                 let name = webExtensionManager.extensionName(for: identifier)
                 let version = webExtensionManager.extensionVersion(for: identifier)
-                let extensionType = webExtensionManager.context(for: identifier)?.duckDuckGoWebExtensionType
-
-                let menuItem: NSMenuItem
-                if extensionType == .substitution {
-                    menuItem = WebExtensionMenuItem(
-                        identifier: identifier,
-                        webExtensionName: name,
-                        version: version,
-                        submenu: makeSubstitutionExtensionSubmenu(identifier: identifier)
-                    )
-                } else {
-                    menuItem = WebExtensionMenuItem(
-                        identifier: identifier,
-                        webExtensionName: name,
-                        version: version
-                    )
-                }
+                let menuItem = WebExtensionMenuItem(identifier: identifier, webExtensionName: name, version: version)
                 self.addItem(menuItem)
             }
         }
-    }
-
-    private func makeSubstitutionExtensionSubmenu(identifier: String) -> NSMenu {
-        let submenu = NSMenu()
-
-        let catItem = NSMenuItem(title: "Change to cat", action: #selector(changeSubstitutionToCat))
-        catItem.target = self
-        submenu.addItem(catItem)
-
-        let dogItem = NSMenuItem(title: "Change to dog", action: #selector(changeSubstitutionToDog))
-        dogItem.target = self
-        submenu.addItem(dogItem)
-
-        submenu.addItem(.separator())
-
-        let uninstallItem = NSMenuItem(title: "Remove the extension", action: #selector(uninstallExtension(_:)))
-        uninstallItem.target = self
-        uninstallItem.representedObject = identifier
-        submenu.addItem(uninstallItem)
-
-        return submenu
     }
 
     private func makeInstallSubmenu() -> NSMenu {
@@ -143,50 +106,6 @@ final class WebExtensionsDebugMenu: NSMenu {
     @objc func openExtensionsFolderInFinder() {
         let path = webExtensionManager.extensionsDirectory.path
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
-    }
-
-    @objc func uninstallExtension(_ sender: NSMenuItem) {
-        guard let identifier = sender.representedObject as? String else { return }
-        try? webExtensionManager.uninstallExtension(identifier: identifier)
-    }
-
-    @objc func changeSubstitutionToCat() {
-        swapEmojiMap(to: "emojiMap-cat.js")
-    }
-
-    @objc func changeSubstitutionToDog() {
-        swapEmojiMap(to: "emojiMap-dog.js")
-    }
-
-    private func swapEmojiMap(to sourceFileName: String) {
-        guard let installed = webExtensionManager.installedEmbeddedExtension(for: .substitution) else {
-            Logger.webExtensions.error("Substitution extension not installed")
-            return
-        }
-
-        guard let extensionPath = webExtensionManager.installedExtensionPath(for: .substitution) else {
-            Logger.webExtensions.error("Substitution extension path not found")
-            return
-        }
-
-        let emojiMapsFolder = extensionPath.appendingPathComponent("emoji-maps")
-        let sourceFile = emojiMapsFolder.appendingPathComponent(sourceFileName)
-        let destinationFile = extensionPath.appendingPathComponent("emojiMap.js")
-
-        do {
-            if FileManager.default.fileExists(atPath: destinationFile.path) {
-                try FileManager.default.removeItem(at: destinationFile)
-            }
-            try FileManager.default.copyItem(at: sourceFile, to: destinationFile)
-            Logger.webExtensions.info("Swapped emojiMap.js to \(sourceFileName)")
-
-            Task {
-                try await webExtensionManager.reloadExtension(identifier: installed.uniqueIdentifier)
-                await Application.appDelegate.windowControllersManager.selectedTab?.reload()
-            }
-        } catch {
-            Logger.webExtensions.error("Failed to swap emoji map: \(error.localizedDescription)")
-        }
     }
 }
 

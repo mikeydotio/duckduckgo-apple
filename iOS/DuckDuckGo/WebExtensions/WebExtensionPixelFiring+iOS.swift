@@ -28,7 +28,6 @@ private extension DuckDuckGoWebExtensionType {
         switch self {
         case .embedded: return .webExtensionEmbeddedInstalled
         case .darkReader: return .webExtensionDarkReaderInstalled
-        case .substitution: return .webExtensionEmbeddedInstalled
         }
     }
 
@@ -36,7 +35,6 @@ private extension DuckDuckGoWebExtensionType {
         switch self {
         case .embedded: return .webExtensionEmbeddedUpgraded
         case .darkReader: return .webExtensionDarkReaderUpgraded
-        case .substitution: return .webExtensionEmbeddedInstalled
         }
     }
 
@@ -44,7 +42,6 @@ private extension DuckDuckGoWebExtensionType {
         switch self {
         case .embedded: return .webExtensionEmbeddedInstallError
         case .darkReader: return .webExtensionDarkReaderInstallError
-        case .substitution: return .webExtensionEmbeddedInstalled
         }
     }
 }

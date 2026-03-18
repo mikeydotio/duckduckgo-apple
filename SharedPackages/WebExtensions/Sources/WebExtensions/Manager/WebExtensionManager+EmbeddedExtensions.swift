@@ -115,12 +115,7 @@ extension WebExtensionManager {
         Logger.webExtensions.debug("🔄 Installing embedded extension: \(type.rawValue)")
 
         let identifier = UUID().uuidString
-
-        if type.requiresExtraction {
-            _ = try storageProvider.extractExtension(from: sourceURL, identifier: identifier)
-        } else {
-            _ = try storageProvider.copyExtension(from: sourceURL, identifier: identifier)
-        }
+        _ = try storageProvider.copyExtension(from: sourceURL, identifier: identifier)
 
         do {
             let loadResult = try await loader.loadWebExtension(identifier: identifier, into: controller)

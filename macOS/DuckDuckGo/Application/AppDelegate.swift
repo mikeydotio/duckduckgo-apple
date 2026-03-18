@@ -1796,9 +1796,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if darkReaderFeatureSettings?.isForceDarkModeEnabled == true {
             enabledTypes.insert(.darkReader)
         }
-
-        enabledTypes.insert(.substitution)
-
         await webExtensionManager.syncEmbeddedExtensions(enabledTypes: enabledTypes)
     }
 
