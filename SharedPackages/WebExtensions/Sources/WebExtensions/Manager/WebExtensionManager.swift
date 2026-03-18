@@ -121,9 +121,15 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
     public func installExtension(from sourceURL: URL) async throws {
         Logger.webExtensions.debug("🔄 Installing extension from: \(sourceURL.path)")
 
+        let metadata = try await WKWebExtension.metadata(from: sourceURL)
         let identifier = UUID().uuidString
 
-        _ = try storageProvider.copyExtension(from: sourceURL, identifier: identifier)
+        if metadata.requiresExtraction {
+            _ = try storageProvider.extractExtension(from: sourceURL, identifier: identifier)
+        } else {
+            _ = try storageProvider.copyExtension(from: sourceURL, identifier: identifier)
+        }
+
         Logger.webExtensions.debug("🔄 Extension stored with identifier: \(identifier)")
 
         do {
