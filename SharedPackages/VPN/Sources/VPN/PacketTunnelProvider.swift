@@ -542,29 +542,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         protocolConfiguration as? NETunnelProviderProtocol
     }
 
-    // TODO: Remove this debug code before merging
     private func runDebugSimulations(options: StartupOptions) throws {
-        // Force error on every startup for testing error UI
-        // Cycles through 5 error types, then 1 success case to verify UI clears
-        let errorIndex = UserDefaults.standard.integer(forKey: "vpn.debug.errorIndex")
-        UserDefaults.standard.set((errorIndex + 1) % 6, forKey: "vpn.debug.errorIndex")
-
-        switch errorIndex {
-        case 0:
-            throw TunnelError.startingTunnelWithoutAuthToken(internalError: NSError(domain: "test", code: 0))
-        case 1:
-            throw TunnelError.couldNotGenerateTunnelConfiguration(internalError: NSError(domain: "test", code: 0))
-        case 2:
-            throw TunnelError.settingsMissing
-        case 3:
-            throw TunnelError.tokenReset
-        case 4:
-            throw TunnelError.vpnAccessRevoked(NSError(domain: "test", code: 0))
-        case 5:
-            // No error - allow VPN to connect successfully to test that error UI clears
-            break
-        default:
-            break
+        if options.simulateError {
+            throw TunnelError.simulateTunnelFailureError
         }
 
         if options.simulateCrash {
@@ -1201,78 +1181,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         manager.isOnDemandEnabled = false
         try await manager.saveToPreferences()
         try await manager.loadFromPreferences()
-    }
-
-    // TODO: Remove this debug code before merging
-    private func simulateTunnelFailure(completionHandler: ((Data?) -> Void)? = nil) {
-        Task { @MainActor in
-            Logger.networkProtection.log("Simulating tunnel failure")
-
-            // Cycle through different error types for testing the error UI
-            let errorIndex = UserDefaults.standard.integer(forKey: "vpn.debug.errorIndex")
-            UserDefaults.standard.set((errorIndex + 1) % 5, forKey: "vpn.debug.errorIndex")
-
-            let error: TunnelError
-            switch errorIndex {
-            case 0:
-                error = .startingTunnelWithoutAuthToken(internalError: NSError(domain: "test", code: 0))
-            case 1:
-                error = .couldNotGenerateTunnelConfiguration(internalError: NSError(domain: "test", code: 0))
-            case 2:
-                error = .settingsMissing
-            case 3:
-                error = .tokenReset
-            case 4:
-                error = .vpnAccessRevoked(NSError(domain: "test", code: 0))
-            default:
-                error = .simulateTunnelFailureError
-            }
-
-            Logger.networkProtection.log("Simulating error: \(error.localizedDescription ?? "unknown", privacy: .public)")
-            self.controllerErrorStore.lastErrorMessage = error.localizedDescription
-            self.connectionStatus = .disconnected
-
-            adapter.stop { [weak self] adapterError in
-                if let adapterError {
-                    self?.debugEvents.fire(adapterError.networkProtectionError)
-                    Logger.networkProtection.error("🔴 Failed to stop WireGuard adapter: \(adapterError.localizedDescription, privacy: .public)")
-                }
-
-                completionHandler?(ExtensionMessageString(error.localizedDescription).rawValue)
-            }
-        }
-    }
-
-    private func simulateTunnelFatalError(completionHandler: ((Data?) -> Void)? = nil) {
-        completionHandler?(nil)
-        fatalError("Simulated PacketTunnelProvider crash")
-    }
-
-    private func simulateTunnelMemoryOveruse(completionHandler: ((Data?) -> Void)? = nil) {
-        completionHandler?(nil)
-        var array = [String]()
-        while true {
-            array.append("Crash")
-        }
-    }
-
-    private func simulateConnectionInterruption(completionHandler: ((Data?) -> Void)? = nil) {
-        Task { @MainActor in
-            connectionTester.failNextTest()
-            completionHandler?(nil)
-        }
-    }
-
-    private func getDataVolume(completionHandler: ((Data?) -> Void)? = nil) {
-        Task { @MainActor in
-            guard let (received, sent) = try? await adapter.getBytesTransmitted() else {
-                completionHandler?(nil)
-                return
-            }
-
-            let string = "\(received),\(sent)"
-            completionHandler?(ExtensionMessageString(string).rawValue)
-        }
     }
 
     // MARK: - Adapter start completion handling
