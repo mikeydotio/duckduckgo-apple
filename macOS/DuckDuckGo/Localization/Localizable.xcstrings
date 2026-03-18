@@ -85148,6 +85148,18 @@
         }
       }
     },
+    "preferences.youtube-ad-blocking" : {
+      "comment" : "Title of the option to show the YouTube Ad Blocking preferences",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "YouTube Ad Blocking"
+          }
+        }
+      }
+    },
     "prefrences.sync.bad.request.description" : {
       "comment" : "Description of incorrectly formatted data error when syncing.",
       "extractionState" : "extracted_with_value",

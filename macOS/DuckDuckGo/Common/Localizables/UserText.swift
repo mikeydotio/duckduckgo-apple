@@ -1184,6 +1184,7 @@ struct UserText {
     static let identityTheftRestoration = NSLocalizedString("preferences.identityTheftRestoration", value: "Identity Theft Restoration", comment: "Title of the option to show the Identity Theft Restoration preferences")
     static let subscriptionSettings = NSLocalizedString("preferences.subscriptionSettings", value: "Subscription Settings", comment: "Title of the option to show the Subscription Settings preferences")
     static let duckPlayer = NSLocalizedString("preferences.duck-player", value: "Duck Player", comment: "Title of the option to show the Duck Player browser preferences")
+    static let youTubeAdBlocking = NSLocalizedString("preferences.youtube-ad-blocking", value: "YouTube Ad Blocking", comment: "Title of the option to show the YouTube Ad Blocking preferences")
     static let about = NSLocalizedString("preferences.about", value: "About", comment: "Title of the option to show the About screen")
     static let aiFeatures = NSLocalizedString("preferences.aiFeatures", value: "AI Features", comment: "Title of the option to show AI features in preferences")
     static let duckAIShortcuts = NSLocalizedString("preferences.duck-ai-shortcuts", value: "Duck.ai Shortcuts", comment: "Title of a subsection in preferences containing shortcut preferences")

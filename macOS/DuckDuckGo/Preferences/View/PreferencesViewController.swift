@@ -59,6 +59,7 @@ final class PreferencesViewController: NSViewController {
         aboutPreferences: AboutPreferences,
         accessibilityPreferences: AccessibilityPreferences,
         duckPlayerPreferences: DuckPlayerPreferences,
+        youTubeAdBlockingPreferences: YouTubeAdBlockingPreferences,
         subscriptionManager: any SubscriptionManager,
         winBackOfferVisibilityManager: WinBackOfferVisibilityManaging,
         pinningManager: PinningManager
@@ -74,6 +75,7 @@ final class PreferencesViewController: NSViewController {
                                         vpnGatekeeper: DefaultVPNFeatureGatekeeper(vpnUninstaller: VPNUninstaller(pinningManager: pinningManager), subscriptionManager: subscriptionManager),
                                         includeDuckPlayer: duckPlayer.shouldDisplayPreferencesSideBar,
                                         includeAIChat: aiChatRemoteSettings.isAIChatEnabled,
+                                        includeYouTubeAdBlocking: featureFlagger.isFeatureOn(.adBlockingExtension),
                                         subscriptionManager: subscriptionManager,
                                         defaultBrowserPreferences: defaultBrowserPreferences,
                                         downloadsPreferences: downloadsPreferences,
@@ -85,6 +87,7 @@ final class PreferencesViewController: NSViewController {
                                         aboutPreferences: aboutPreferences,
                                         accessibilityPreferences: accessibilityPreferences,
                                         duckPlayerPreferences: duckPlayerPreferences,
+                                        youTubeAdBlockingPreferences: youTubeAdBlockingPreferences,
                                         winBackOfferVisibilityManager: winBackOfferVisibilityManager)
         super.init(nibName: nil, bundle: nil)
     }

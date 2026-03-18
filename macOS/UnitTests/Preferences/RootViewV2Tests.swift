@@ -51,6 +51,7 @@ final class RootViewV2Tests: XCTestCase {
             vpnGatekeeper: vpnGatekeeper,
             includeDuckPlayer: false,
             includeAIChat: true,
+            includeYouTubeAdBlocking: false,
             subscriptionManager: SubscriptionManagerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             downloadsPreferences: DownloadsPreferences(persistor: DownloadsPreferencesPersistorMock()),
@@ -71,6 +72,7 @@ final class RootViewV2Tests: XCTestCase {
                 privacyConfigurationManager: MockPrivacyConfigurationManaging(),
                 internalUserDecider: featureFlagger.internalUserDecider
             ),
+            youTubeAdBlockingPreferences: YouTubeAdBlockingPreferences(),
             winBackOfferVisibilityManager: mockWinBackOfferVisibilityManager
         )
         subscriptionManager = SubscriptionManagerMock()

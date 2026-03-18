@@ -71,6 +71,7 @@ final class PreferencesSidebarModel: ObservableObject {
     let aboutPreferences: AboutPreferences
     let accessibilityPreferences: AccessibilityPreferences
     let duckPlayerPreferences: DuckPlayerPreferences
+    let youTubeAdBlockingPreferences: YouTubeAdBlockingPreferences
 
     @Published private(set) var currentSubscriptionState: PreferencesSidebarSubscriptionState = .init()
 
@@ -120,6 +121,7 @@ final class PreferencesSidebarModel: ObservableObject {
         aboutPreferences: AboutPreferences,
         accessibilityPreferences: AccessibilityPreferences,
         duckPlayerPreferences: DuckPlayerPreferences,
+        youTubeAdBlockingPreferences: YouTubeAdBlockingPreferences,
         winBackOfferVisibilityManager: WinBackOfferVisibilityManaging
     ) {
         self.loadSections = loadSections
@@ -140,6 +142,7 @@ final class PreferencesSidebarModel: ObservableObject {
         self.aboutPreferences = aboutPreferences
         self.accessibilityPreferences = accessibilityPreferences
         self.duckPlayerPreferences = duckPlayerPreferences
+        self.youTubeAdBlockingPreferences = youTubeAdBlockingPreferences
         self.winBackOfferVisibilityManager = winBackOfferVisibilityManager
 
         self.personalInformationRemovalUpdates = personalInformationRemovalSubject.eraseToAnyPublisher()
@@ -167,6 +170,7 @@ final class PreferencesSidebarModel: ObservableObject {
         vpnGatekeeper: VPNFeatureGatekeeper,
         includeDuckPlayer: Bool,
         includeAIChat: Bool,
+        includeYouTubeAdBlocking: Bool,
         userDefaults: UserDefaults = .netP,
         subscriptionManager: any SubscriptionManager,
         defaultBrowserPreferences: DefaultBrowserPreferences,
@@ -179,6 +183,7 @@ final class PreferencesSidebarModel: ObservableObject {
         aboutPreferences: AboutPreferences,
         accessibilityPreferences: AccessibilityPreferences,
         duckPlayerPreferences: DuckPlayerPreferences,
+        youTubeAdBlockingPreferences: YouTubeAdBlockingPreferences,
         winBackOfferVisibilityManager: WinBackOfferVisibilityManaging
     ) {
         let loadSections = { currentSubscriptionFeatures in
@@ -186,6 +191,7 @@ final class PreferencesSidebarModel: ObservableObject {
                 includingDuckPlayer: includeDuckPlayer,
                 includingSync: syncService.featureFlags.contains(.userInterface),
                 includingAIChat: includeAIChat,
+                includingYouTubeAdBlocking: includeYouTubeAdBlocking,
                 subscriptionState: currentSubscriptionFeatures
             )
         }
@@ -207,6 +213,7 @@ final class PreferencesSidebarModel: ObservableObject {
                   aboutPreferences: aboutPreferences,
                   accessibilityPreferences: accessibilityPreferences,
                   duckPlayerPreferences: duckPlayerPreferences,
+                  youTubeAdBlockingPreferences: youTubeAdBlockingPreferences,
                   winBackOfferVisibilityManager: winBackOfferVisibilityManager
         )
     }
@@ -227,6 +234,7 @@ final class PreferencesSidebarModel: ObservableObject {
                                                privacyConfigurationManager: PrivacyConfigurationManaging) {
         let duckPlayerFeatureFlagDidChange = featureFlagDidChange(with: privacyConfigurationManager, on: .duckPlayer)
         let aiChatFeatureFlagDidChange = featureFlagDidChange(with: privacyConfigurationManager, on: .aiChat)
+        let youTubeAdBlockingFeatureFlagDidChange = featureFlagDidChange(with: privacyConfigurationManager, on: .adBlockingExtension)
 
         let syncFeatureFlagsDidChange = syncService.featureFlagsPublisher.map { $0.contains(.userInterface) }
             .removeDuplicates()
@@ -234,6 +242,7 @@ final class PreferencesSidebarModel: ObservableObject {
 
         Publishers.Merge(duckPlayerFeatureFlagDidChange, syncFeatureFlagsDidChange)
             .merge(with: aiChatFeatureFlagDidChange)
+            .merge(with: youTubeAdBlockingFeatureFlagDidChange)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
                 self?.refreshSections()

@@ -1263,6 +1263,7 @@ final class BrowserTabViewController: NSViewController {
                 aboutPreferences: aboutPreferences,
                 accessibilityPreferences: accessibilityPreferences,
                 duckPlayerPreferences: duckPlayer.preferences,
+                youTubeAdBlockingPreferences: YouTubeAdBlockingPreferences(),
                 subscriptionManager: subscriptionManager,
                 winBackOfferVisibilityManager: winBackOfferVisibilityManager,
                 pinningManager: pinningManager
