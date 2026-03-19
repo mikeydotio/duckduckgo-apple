@@ -157,6 +157,10 @@ final class NewTabPageOmnibarConfigProvider: NewTabPageOmnibarConfigProviding {
         featureFlagger.isFeatureOn(.aiChatNtpRecentChats)
     }
 
+    var isAIChatToolsEnabled: Bool {
+        featureFlagger.isFeatureOn(.aiChatNtpChatTools)
+    }
+
     var showCustomizePopover: Bool {
         get {
             // We no longer present the tooltip

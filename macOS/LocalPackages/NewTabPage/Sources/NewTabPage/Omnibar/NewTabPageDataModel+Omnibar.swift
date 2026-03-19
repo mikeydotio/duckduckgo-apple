@@ -44,6 +44,7 @@ public extension NewTabPageDataModel {
         let showAiSetting: Bool?
         let showCustomizePopover: Bool?
         let enableRecentAiChats: Bool?
+        let enableAiChatTools: Bool?
         let aiModels: [AIModel]?
     }
 

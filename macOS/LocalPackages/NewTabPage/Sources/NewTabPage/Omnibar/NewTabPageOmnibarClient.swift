@@ -87,6 +87,7 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
             showAiSetting: configProvider.isAIChatSettingVisible,
             showCustomizePopover: configProvider.showCustomizePopover,
             enableRecentAiChats: configProvider.isAIChatRecentChatsEnabled,
+            enableAiChatTools: configProvider.isAIChatToolsEnabled,
             aiModels: aiModels
         )
     }
@@ -112,6 +113,7 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
             showAiSetting: configProvider.isAIChatSettingVisible,
             showCustomizePopover: configProvider.showCustomizePopover,
             enableRecentAiChats: configProvider.isAIChatRecentChatsEnabled,
+            enableAiChatTools: configProvider.isAIChatToolsEnabled,
             aiModels: nil
         )
         pushMessage(named: MessageName.onConfigUpdate.rawValue, params: config)
