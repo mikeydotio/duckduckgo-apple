@@ -75,7 +75,7 @@ protocol ContextualOnboardingLogic {
 
     func isStillOnboarding() -> Bool
 
-    func clearHeldURLData()
+    func clearHeldURLData() -> Result<Void, Error>
     func clearedBrowserData()
 
     func nextBrowsingMessageIfShouldShow(for privacyInfo: PrivacyInfo) -> DaxDialogs.BrowsingSpec?
@@ -364,11 +364,12 @@ final class DaxDialogs: NewTabDialogSpecProvider, ContextualOnboardingLogic, Con
     func resumeRegularFlow() {
         nextHomeScreenMessageOverride = nil
     }
-    
-    func clearHeldURLData() {
+
+    func clearHeldURLData() -> Result<Void, Error> {
         lastURLDaxDialogReturnedFor = nil
+        return .success(())
     }
-    
+
     private var fireButtonPulseTimer: Timer?
     private static let timeToFireButtonExpire: TimeInterval = 1 * 60 * 60
     

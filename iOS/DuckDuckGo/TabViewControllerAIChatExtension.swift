@@ -24,7 +24,7 @@ import UIKit
 /// Protocol for tab controllers that support full mode AIChat content loading.
 protocol AITabController {
     /// Loads AIChat with optional query, auto-submit, payload, and RAG tools.
-    func load(_ query: String?, autoSend: Bool, payload: Any?, onboardingFlowType: AIChatOnboardingFlowType, tools: [AIChatRAGTool]?)
+    func load(_ query: String?, autoSend: Bool, payload: Any?, onboardingFlowType: AIChatOnboardingFlowType, tools: [AIChatRAGTool]?, modelId: String?, images: [AIChatNativePrompt.NativePromptImage]?)
 
     /// Submits a start chat action to initiate a new AI Chat conversation.
     func submitStartChatAction()
@@ -47,7 +47,9 @@ extension TabViewController: AITabController {
               autoSend: Bool = false,
               payload: Any? = nil,
               onboardingFlowType: AIChatOnboardingFlowType = .default,
-              tools: [AIChatRAGTool]? = nil) {
+              tools: [AIChatRAGTool]? = nil,
+              modelId: String? = nil,
+              images: [AIChatNativePrompt.NativePromptImage]? = nil) {
 
         aiChatContentHandler.setPayload(payload: payload)
 
