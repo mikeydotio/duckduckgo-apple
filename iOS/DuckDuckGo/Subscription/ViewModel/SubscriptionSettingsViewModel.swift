@@ -236,8 +236,12 @@ final class SubscriptionSettingsViewModel: ObservableObject {
 
         do {
             guard let subscription = try await self.subscriptionManager.getSubscription(forceRefresh: forceRefresh) else {
-                if loadingIndicator {
-                    Task { @MainActor in
+                Logger.subscription.log("No subscription available")
+                Task { @MainActor in
+                    self.state.subscriptionInfo = nil
+                    self.state.subscriptionDetails = ""
+                    self.state.cancelPendingDowngradeDetails = nil
+                    if loadingIndicator {
                         self.displaySubscriptionLoader(false)
                     }
                 }
