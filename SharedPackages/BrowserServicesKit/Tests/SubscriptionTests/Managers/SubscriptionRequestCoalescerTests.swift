@@ -55,17 +55,16 @@ final class SubscriptionRequestCoalescerTests: XCTestCase {
 
     func testCoalesce_SequentialCallsEachRunTheirOwnWork() async throws {
         let coalescer = SubscriptionRequestCoalescer()
-        let counter = Counter()
+        let counter = AtomicCounter()
 
-        _ = try await coalescer.coalesce(forceRefresh: false) { await counter.increment(); return nil }
-        _ = try await coalescer.coalesce(forceRefresh: false) { await counter.increment(); return nil }
+        _ = try await coalescer.coalesce(forceRefresh: false) { counter.increment(); return nil }
+        _ = try await coalescer.coalesce(forceRefresh: false) { counter.increment(); return nil }
 
-        let count = await counter.value
-        XCTAssertEqual(count, 2, "Sequential calls must each invoke work independently")
+        XCTAssertEqual(counter.value, 2, "Sequential calls must each invoke work independently")
     }
 
-    /// Verifies that after a call completes, its Task is removed from inFlightTasks (the `defer`
-    /// cleanup) so the next call runs fresh work and does not return the previous task's cached result.
+    /// Verifies that after a call completes, its Task is removed from inFlightTasks (via `defer`)
+    /// so the next call runs fresh work and does not return the previous task's cached result.
     func testCoalesce_CompletedTaskIsNotReusedBySubsequentCall() async throws {
         let coalescer = SubscriptionRequestCoalescer()
         let first = SubscriptionMockFactory.appleSubscription
@@ -74,75 +73,102 @@ final class SubscriptionRequestCoalescerTests: XCTestCase {
         _ = try await coalescer.coalesce(forceRefresh: false) { first }
         let result = try await coalescer.coalesce(forceRefresh: false) { second }
 
-        XCTAssertEqual(result, second, "Post-completion call must run fresh work and not return the previous task's cached result")
+        XCTAssertEqual(result, second,
+                       "Post-completion call must run fresh work, not return the previous task's cached result")
     }
 
     func testCoalesce_DifferentKeysBothExecuteTheirWork() async throws {
         let coalescer = SubscriptionRequestCoalescer()
-        let counter = Counter()
+        let counter = AtomicCounter()
 
-        async let r1 = coalescer.coalesce(forceRefresh: false) { await counter.increment(); return nil }
-        async let r2 = coalescer.coalesce(forceRefresh: true) { await counter.increment(); return nil }
+        async let r1 = coalescer.coalesce(forceRefresh: false) { counter.increment(); return nil }
+        async let r2 = coalescer.coalesce(forceRefresh: true) { counter.increment(); return nil }
         _ = try await (r1, r2)
 
-        let count = await counter.value
-        XCTAssertEqual(count, 2, "Calls with different forceRefresh values must each invoke their own work")
+        XCTAssertEqual(counter.value, 2, "Calls with different forceRefresh values must each invoke their own work")
     }
 
     // MARK: - Concurrent coalescing
+    //
+    // The tests below use unstructured Tasks + semaphore handshake to guarantee ordering:
+    //   1. `firstTask` is created and we wait for its work to signal `workIsInFlight`,
+    //      confirming inFlightTasks[forceRefresh] is populated.
+    //   2. Only then is `secondTask` created, so it is guaranteed to find the in-flight
+    //      task and join rather than create a new one.
+    //   3. A 1 ms sleep before releasing the gate gives `secondTask` time to call the
+    //      actor and suspend on `existingTask.value`. Actor calls complete in nanoseconds;
+    //      1 ms is ~1000× headroom, making this robust without being flaky.
 
     func testCoalesce_ConcurrentCallsSameKeyShareOneExecution() async throws {
         let coalescer = SubscriptionRequestCoalescer()
         let subscription = SubscriptionMockFactory.appleSubscription
-        let counter = Counter()
+        let counter = AtomicCounter()
+        let workIsInFlight = AsyncSemaphore()
+        let releaseGate = AsyncSemaphore()
 
-        // A semaphore keeps the first call's work blocked until both callers are in flight.
-        let gate = AsyncSemaphore()
-
-        async let first = coalescer.coalesce(forceRefresh: false) {
-            await counter.increment()
-            await gate.wait()    // hold until the second caller has joined
-            return subscription
+        let firstTask = Task {
+            try await coalescer.coalesce(forceRefresh: false) {
+                counter.increment()
+                workIsInFlight.signal()   // inFlightTasks[false] is now set
+                await releaseGate.wait()  // hold until second has joined
+                return subscription
+            }
         }
 
-        async let second = coalescer.coalesce(forceRefresh: false) {
-            await counter.increment()  // must NOT be reached — second caller should join the first task
-            return nil
+        await workIsInFlight.wait()  // first is running; inFlightTasks[false] guaranteed set
+
+        let secondTask = Task {
+            try await coalescer.coalesce(forceRefresh: false) {
+                counter.increment()  // must NOT execute — second joins the first task
+                return nil as DuckDuckGoSubscription?
+            }
         }
 
-        // Let the work complete.
-        gate.signal()
-        let (r1, r2) = try await (first, second)
+        // Allow secondTask to reach the actor and join before work completes.
+        try await Task.sleep(nanoseconds: 1_000_000)
+        releaseGate.signal()
 
-        let count = await counter.value
-        XCTAssertEqual(count, 1, "Only one work closure should run for concurrent same-key calls")
+        let r1 = try await firstTask.value
+        let r2 = try await secondTask.value
+
+        XCTAssertEqual(counter.value, 1, "Only one work closure should run for concurrent same-key calls")
         XCTAssertEqual(r1, subscription)
         XCTAssertEqual(r2, subscription, "Both callers must receive the same result")
     }
 
     func testCoalesce_ConcurrentCallsSameKeyBothReceiveError() async throws {
         let coalescer = SubscriptionRequestCoalescer()
-        struct Sentinel: Error, Equatable {}
-        let gate = AsyncSemaphore()
+        struct Sentinel: Error {}
+        let workIsInFlight = AsyncSemaphore()
+        let releaseGate = AsyncSemaphore()
 
-        async let first: DuckDuckGoSubscription? = coalescer.coalesce(forceRefresh: true) {
-            await gate.wait()
-            throw Sentinel()
-        }
-        async let second: DuckDuckGoSubscription? = coalescer.coalesce(forceRefresh: true) {
-            XCTFail("Second caller's work must not execute")
-            return nil
+        let firstTask = Task<DuckDuckGoSubscription?, Error> {
+            try await coalescer.coalesce(forceRefresh: true) {
+                workIsInFlight.signal()
+                await releaseGate.wait()
+                throw Sentinel()
+            }
         }
 
-        gate.signal()
+        await workIsInFlight.wait()
+
+        let secondTask = Task<DuckDuckGoSubscription?, Error> {
+            try await coalescer.coalesce(forceRefresh: true) {
+                XCTFail("Second caller's work must not execute")
+                return nil
+            }
+        }
+
+        try await Task.sleep(nanoseconds: 1_000_000)
+        releaseGate.signal()
 
         do {
-            _ = try await first
+            _ = try await firstTask.value
             XCTFail("first should throw")
         } catch is Sentinel {}
 
         do {
-            _ = try await second
+            _ = try await secondTask.value
             XCTFail("second should throw")
         } catch is Sentinel {}
     }
@@ -150,10 +176,14 @@ final class SubscriptionRequestCoalescerTests: XCTestCase {
 
 // MARK: - Test Utilities
 
-/// Actor-isolated counter — safe to capture in `@Sendable` closures without data races.
-private actor Counter {
-    private(set) var value = 0
-    func increment() { value += 1 }
+/// Thread-safe counter — `@unchecked Sendable` so it can be captured by `@Sendable` closures
+/// without triggering Swift 6 data-race warnings. Thread safety is guaranteed by the NSLock.
+private final class AtomicCounter: @unchecked Sendable {
+    private var _value = 0
+    private let lock = NSLock()
+
+    var value: Int { lock.withLock { _value } }
+    func increment() { lock.withLock { _value += 1 } }
 }
 
 /// Minimal async semaphore used to synchronise two concurrent tasks in tests.
