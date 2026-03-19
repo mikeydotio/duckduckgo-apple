@@ -139,6 +139,14 @@ enum PopupDecision: Hashable {
 
 }
 
+/// Autoplay decision options for the Permission Center dropdown
+enum AutoplayDecision: Hashable {
+    case useDefault
+    case allowAll
+    case audioMuted
+    case blockAll
+}
+
 /// ViewModel for the Permission Center popover
 final class PermissionCenterViewModel: ObservableObject {
 
@@ -350,6 +358,45 @@ final class PermissionCenterViewModel: ObservableObject {
         }
     }
 
+    /// Updates the autoplay decision for the current domain
+    func setAutoplayDecision(_ decision: AutoplayDecision) {
+        switch decision {
+        case .useDefault:
+            permissionManager.removePermission(forDomain: domain, permissionType: .autoplayPolicy)
+        case .allowAll:
+            permissionManager.setPermission(.allow, forDomain: domain, permissionType: .autoplayPolicy)
+        case .audioMuted:
+            permissionManager.setPermission(.ask, forDomain: domain, permissionType: .autoplayPolicy)
+        case .blockAll:
+            permissionManager.setPermission(.deny, forDomain: domain, permissionType: .autoplayPolicy)
+        }
+
+        // Update the item's decision in the list
+        if let index = permissionItems.firstIndex(where: { $0.permissionType == .autoplayPolicy }) {
+            switch decision {
+            case .useDefault: permissionItems[index].decision = .ask
+            case .allowAll: permissionItems[index].decision = .allow
+            case .audioMuted: permissionItems[index].decision = .ask
+            case .blockAll: permissionItems[index].decision = .deny
+            }
+        }
+
+        markReloadNeeded()
+    }
+
+    /// Returns the current autoplay decision based on whether a per-site override is persisted
+    func currentAutoplayDecision() -> AutoplayDecision {
+        guard permissionManager.hasPermissionPersisted(forDomain: domain, permissionType: .autoplayPolicy) else {
+            return .useDefault
+        }
+        let decision = permissionManager.permission(forDomain: domain, permissionType: .autoplayPolicy)
+        switch decision {
+        case .allow: return .allowAll
+        case .ask: return .audioMuted
+        case .deny: return .blockAll
+        }
+    }
+
     /// Opens a specific blocked popup
     func openBlockedPopup(_ popup: BlockedPopup) {
         openPopup?(popup.query)
@@ -422,6 +469,13 @@ final class PermissionCenterViewModel: ObservableObject {
            !otherPermissions.contains(.popups),
            !removedPermissions.contains(.popups) {
             otherPermissions.append(.popups)
+        }
+
+        // Always include autoplay policy when feature flag is on
+        if featureFlagger.isFeatureOn(.autoplayPolicy),
+           !otherPermissions.contains(.autoplayPolicy),
+           !removedPermissions.contains(.autoplayPolicy) {
+            otherPermissions.append(.autoplayPolicy)
         }
 
         return (externalSchemePermissions, otherPermissions)
