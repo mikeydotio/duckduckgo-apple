@@ -38,6 +38,7 @@ extension UpdateControllerFactory: SparkleUpdateControllerFactory {
                                    notificationPresenter: any UpdateNotificationPresenting,
                                    keyValueStore: any ThrowingKeyValueStoring,
                                    allowCustomUpdateFeed: Bool,
+                                   isAutoUpdatePaused: @escaping () -> Bool,
                                    wideEvent: WideEventManaging,
                                    isOnboardingFinished: @escaping () -> Bool,
                                    openUpdatesPage: @escaping () -> Void) -> any SparkleUpdateControlling {
@@ -47,6 +48,7 @@ extension UpdateControllerFactory: SparkleUpdateControllerFactory {
                                        notificationPresenter: notificationPresenter,
                                        keyValueStore: keyValueStore,
                                        allowCustomUpdateFeed: allowCustomUpdateFeed,
+                                       isAutoUpdatePaused: isAutoUpdatePaused,
                                        wideEvent: wideEvent,
                                        isOnboardingFinished: isOnboardingFinished,
                                        openUpdatesPage: openUpdatesPage)

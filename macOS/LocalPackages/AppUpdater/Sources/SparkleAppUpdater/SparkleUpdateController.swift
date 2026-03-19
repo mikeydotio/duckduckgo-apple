@@ -211,6 +211,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
     private let featureFlagger: FeatureFlagger
     private let allowCustomUpdateFeedOverride: Bool
+    private let isAutoUpdatePaused: () -> Bool
 
     private var allowCustomUpdateFeed: Bool {
         allowCustomUpdateFeedOverride || internalUserDecider.isInternalUser
@@ -221,27 +222,16 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
     /// Computes whether automatic downloads should be enabled.
     /// Static for testability - no controller state needed.
-    public static func resolveAutoDownloadEnabled(allowCustomUpdateFeed: Bool,
-                                                  featureFlagger: FeatureFlagger,
+    public static func resolveAutoDownloadEnabled(isAutoUpdatePaused: Bool,
                                                   userPreference: Bool) -> Bool {
-        // Custom update feed is only allowed in DEBUG/REVIEW builds.
-        guard allowCustomUpdateFeed else {
-            return userPreference
-        }
-
-#if DEBUG
-        let isUnsignedAutoUpdateEnabled = featureFlagger.isFeatureOn(.autoUpdateInDEBUG)
-#else // REVIEW
-        let isUnsignedAutoUpdateEnabled = featureFlagger.isFeatureOn(.autoUpdateInREVIEW)
-#endif
-        return isUnsignedAutoUpdateEnabled && userPreference
+        guard !isAutoUpdatePaused else { return false }
+        return userPreference
     }
 
     /// Instance wrapper for the static method - convenience for non-static contexts.
     private func resolveAutoDownloadEnabled(userPreference: Bool) -> Bool {
         Self.resolveAutoDownloadEnabled(
-            allowCustomUpdateFeed: allowCustomUpdateFeed,
-            featureFlagger: featureFlagger,
+            isAutoUpdatePaused: isAutoUpdatePaused(),
             userPreference: userPreference
         )
     }
@@ -254,6 +244,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
                 notificationPresenter: UpdateNotificationPresenting,
                 keyValueStore: ThrowingKeyValueStoring,
                 allowCustomUpdateFeed: Bool,
+                isAutoUpdatePaused: @escaping () -> Bool = { false },
                 wideEvent: WideEventManaging,
                 isOnboardingFinished: @escaping () -> Bool,
                 openUpdatesPage: @escaping () -> Void = {}) {
@@ -261,6 +252,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
         willRelaunchAppPublisher = willRelaunchAppSubject.eraseToAnyPublisher()
         self.featureFlagger = featureFlagger
         self.allowCustomUpdateFeedOverride = allowCustomUpdateFeed
+        self.isAutoUpdatePaused = isAutoUpdatePaused
         self.internalUserDecider = internalUserDecider
         self.notificationPresenter = notificationPresenter
         self.pixelFiring = pixelFiring
@@ -281,8 +273,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
         // Compute effective auto-download state before super.init() using static method
         let shouldAutoDownload = Self.resolveAutoDownloadEnabled(
-            allowCustomUpdateFeed: allowCustomUpdateFeed,
-            featureFlagger: featureFlagger,
+            isAutoUpdatePaused: isAutoUpdatePaused(),
             userPreference: currentAutomaticUpdatesEnabled
         )
 
