@@ -66,6 +66,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         var aiChatSessionStore: AIChatSessionStoring
         var tabCrashAggregator: TabCrashAggregator
         var tabsPreferences: TabsPreferences
+        var autoplayPreferences: AutoplayPreferences
         var webTrackingProtectionPreferences: WebTrackingProtectionPreferences
     }
 
@@ -352,6 +353,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                                                           aiChatSessionStore: aiChatSessionStore,
                                                           tabCrashAggregator: tabCrashAggregator,
                                                           tabsPreferences: tabsPreferences,
+                                                          autoplayPreferences: autoplayPreferences,
                                                           webTrackingProtectionPreferences: webTrackingProtectionPreferences)
         let tabExtensionsBuilderArguments: TabExtensionsBuilderArguments = (tabIdentifier: instrumentation.currentTabIdentifier,
                                                                             tabID: self.uuid,
@@ -1366,7 +1368,6 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
 
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
-        preferences.autoplayPolicy = .init(Application.appDelegate.autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction)
         // allow local file navigations
         if navigationAction.url.isFileURL || navigationAction.url == .blankPage { return .allow }
 
