@@ -126,6 +126,7 @@ final public class UserContentController: WKUserContentController {
     public func reinstallUserScripts() async {
         guard let assets = contentBlockingAssets else { return }
         let wkUserScripts = await assets.userScripts.loadWKUserScripts()
+        removeInstalledUserScripts()
         installUserScripts(wkUserScripts, handlers: assets.userScripts.userScripts)
     }
 
