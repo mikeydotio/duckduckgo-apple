@@ -54,7 +54,7 @@ extension MainViewController {
         hideAllHighlightsIfNeeded()
 
         // TODO: Temporary override for experiment validation. Remove when onboarding style is controlled by remote config.
-        let shouldForceRebrandedOnboarding = false
+        let shouldForceRebrandedOnboarding = true
         let controller: Onboarding = if shouldForceRebrandedOnboarding || featureFlagger.isFeatureOn(.onboardingRebranding) {
             OnboardingIntroViewController.rebranded(
                 onboardingPixelReporter: contextualOnboardingPixelReporter,
