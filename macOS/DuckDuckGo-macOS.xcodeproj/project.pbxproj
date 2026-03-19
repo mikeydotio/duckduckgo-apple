@@ -4329,6 +4329,7 @@
 		FEE12B412E520E4D00AD9807 /* PromoHistoryRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEE12B412E520E4D00AD9808 /* PromoHistoryRecordTests.swift */; };
 		FEE12B412E520E4D00AD9809 /* PromoHistoryRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEE12B412E520E4D00AD9808 /* PromoHistoryRecordTests.swift */; };
 		AD3EE48E959D44F9BC616CCD /* UserScriptDisabledStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8FF44791C9D4DD799293559 /* UserScriptDisabledStore.swift */; };
+		CD546DD2F7B04FCC82569350 /* UserScriptsDebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68DD3B74277A476780E6E46C /* UserScriptsDebugMenu.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -6658,6 +6659,7 @@
 		FD23FD2C2886A81D007F6985 /* AutoconsentManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoconsentManagement.swift; sourceTree = "<group>"; };
 		FEE12B412E520E4D00AD9808 /* PromoHistoryRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromoHistoryRecordTests.swift; sourceTree = "<group>"; };
 		D8FF44791C9D4DD799293559 /* UserScriptDisabledStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserScriptDisabledStore.swift; sourceTree = "<group>"; };
+		68DD3B74277A476780E6E46C /* UserScriptsDebugMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserScriptsDebugMenu.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -12665,6 +12667,7 @@
 			isa = PBXGroup;
 			children = (
 				D8FF44791C9D4DD799293559 /* UserScriptDisabledStore.swift */,
+				68DD3B74277A476780E6E46C /* UserScriptsDebugMenu.swift */,
 			);
 			path = Debug;
 			sourceTree = "<group>";
@@ -17733,6 +17736,7 @@
 				AA5C1DD1285A154E0089850C /* RecentlyClosedMenu.swift in Sources */,
 				D1EC9FDAACABFE5B574FD557 /* WebViewUserAgentProvider.swift in Sources */,
 				AD3EE48E959D44F9BC616CCD /* UserScriptDisabledStore.swift in Sources */,
+				CD546DD2F7B04FCC82569350 /* UserScriptsDebugMenu.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
