@@ -33,6 +33,7 @@ import WebExtensions
 
 protocol TabManaging {
     var currentTabsModel: TabsModelManaging { get }
+    var currentBrowsingMode: BrowsingMode { get }
     @MainActor func prepareAllTabsExceptCurrentForDataClearing()
     @MainActor func prepareCurrentTabForDataClearing()
     func removeAll() -> Result<Void, Error>
@@ -471,6 +472,9 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
         tabControllerCache.append(controller)
 
         model.insert(tab: tab, placement: .afterCurrentTab, selectNewTab: !inBackground)
+        if !inBackground {
+            tab.viewed = true
+        }
 
         cacheDelegate?.tabManager(self, didCreateController: controller)
 

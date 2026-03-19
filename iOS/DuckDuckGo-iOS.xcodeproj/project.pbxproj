@@ -2055,6 +2055,7 @@
 		CCBA04E82EE2DF4F00A70114 /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = CCBA04E72EE2DF4F00A70114 /* Common */; };
 		CCBA04EA2EE2DF5700A70114 /* Networking in Frameworks */ = {isa = PBXBuildFile; productRef = CCBA04E92EE2DF5700A70114 /* Networking */; };
 		CCC9F3BA2EA66E0F00D442CA /* VPNSubscriptionPromotionHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC9F3B92EA66E0F00D442CA /* VPNSubscriptionPromotionHelperTests.swift */; };
+		CDCF8F1C688CC623A499BC17 /* UnifiedToggleInputOmnibarActivating.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC0B4FE5F5A50C0269AEB448 /* UnifiedToggleInputOmnibarActivating.swift */; };
 		CF65ADDC7C8E902826B7931B /* AIChatTabChatHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA8E5DCD620608EB3A162D3D /* AIChatTabChatHeaderView.swift */; };
 		D2598F08B4814DF6EAB5407D /* IPadTabChatHistoryCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29382A31F7E094527FD807C /* IPadTabChatHistoryCoordinator.swift */; };
 		D4F72864A16A77A0907EBA57 /* RebrandedOnboardingView+Landing.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD503EBD506182525F5E8107 /* RebrandedOnboardingView+Landing.swift */; };
@@ -4715,6 +4716,7 @@
 		D6FEB8B22B74990D00C3615F /* HeadlessWebViewNavCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadlessWebViewNavCoordinator.swift; sourceTree = "<group>"; };
 		D6FEB8B42B74994000C3615F /* HeadlessWebViewCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadlessWebViewCoordinator.swift; sourceTree = "<group>"; };
 		DA0001042F3D000100000002 /* DarkReaderFeatureSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkReaderFeatureSettings.swift; sourceTree = "<group>"; };
+		DC0B4FE5F5A50C0269AEB448 /* UnifiedToggleInputOmnibarActivating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputOmnibarActivating.swift; sourceTree = "<group>"; };
 		DD503EBD506182525F5E8107 /* RebrandedOnboardingView+Landing.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "RebrandedOnboardingView+Landing.swift"; sourceTree = "<group>"; };
 		E0742FD8DD5F46AB8243103F /* NTPAfterIdleInstrumentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NTPAfterIdleInstrumentation.swift; sourceTree = "<group>"; };
 		E29382A31F7E094527FD807C /* IPadTabChatHistoryCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPadTabChatHistoryCoordinator.swift; sourceTree = "<group>"; };
@@ -6677,7 +6679,6 @@
 			isa = PBXGroup;
 			children = (
 				36F619572F68655A00CBF121 /* Statistics */,
-				803F67E72F4810240057BD1A /* FireModeCapability.swift */,
 				80DD30392F2839B3006E1A78 /* Animation */,
 				806DF4082F3B89BD00FBCA3F /* DataClearingCapability.swift */,
 				8065741C2ED917350001497A /* FireExecutor.swift */,
@@ -6697,6 +6698,15 @@
 				80DD303A2F2839D7006E1A78 /* fire-icon.json */,
 			);
 			path = Animation;
+			sourceTree = "<group>";
+		};
+		80F15C0A2F678FBB008B7C99 /* FireMode */ = {
+			isa = PBXGroup;
+			children = (
+				803F67E72F4810240057BD1A /* FireModeCapability.swift */,
+				8074DB762F591DB400C491FE /* FireModeEmptyStateView.swift */,
+			);
+			path = FireMode;
 			sourceTree = "<group>";
 		};
 		830FA79B1F8E81FB00FCE105 /* ContentBlocker */ = {
@@ -6925,6 +6935,7 @@
 				839F119520DBC489007CD8C2 /* Feedback */,
 				85F2FFFE2215C163006BB258 /* FindInPage */,
 				809F9D142EE12CF600943E8A /* Fire */,
+				80F15C0A2F678FBB008B7C99 /* FireMode */,
 				84E341A11E2F7EFB00BDBA6F /* Info.plist */,
 				4B6D43062F0F6988006AB68F /* Info-Experimental.plist */,
 				98B001B1251EABB40090EC07 /* InfoPlist.strings */,
@@ -9950,7 +9961,6 @@
 			isa = PBXGroup;
 			children = (
 				856C5F2D2E0467EB00D64AF1 /* Transitions */,
-				8074DB762F591DB400C491FE /* FireModeEmptyStateView.swift */,
 				80EB2C4A2F56980700C5AE20 /* TabCountBadge.swift */,
 				9872D204247DCAC100CEF398 /* TabPreviewsSource.swift */,
 				85DFEDF824CF3D0E00973FE7 /* TabsBarCell.swift */,

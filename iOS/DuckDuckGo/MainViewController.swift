@@ -798,6 +798,7 @@ class MainViewController: UIViewController {
         controller.keyValueStore = keyValueStore
         controller.tabManager = tabManager
         controller.daxDialogsManager = daxDialogsManager
+        controller.fireModeCapability = FireModeCapability.create(using: featureFlagger)
         viewCoordinator.tabBarContainer.addSubview(controller.view)
         tabsBarController = controller
         controller.didMove(toParent: self)
@@ -1388,11 +1389,16 @@ class MainViewController: UIViewController {
         guard let tabModel = tabManager.currentTabsModel.currentTab else {
             fatalError("No tab model")
         }
+        
+        let shouldSaveTabs = tabModel.viewed == false || tabModel.openedAfterIdle != openedAfterIdle
 
         // Attaching HomeScreen means it's going to be displayed immediately.
         // This value gets updated on didAppear so after we leave this function so **after** `refreshControls` is done already, which leads to dot being visible on tab switcher icon on newly opened tab page.
         tabModel.viewed = true
         tabModel.openedAfterIdle = openedAfterIdle
+        if shouldSaveTabs {
+            tabManager.save()
+        }
 
         let newTabDaxDialogFactory = NewTabDaxDialogsProvider(featureFlagger: featureFlagger, delegate: self, daxDialogsFlowCoordinator: daxDialogsManager, onboardingPixelReporter: contextualOnboardingPixelReporter)
         let narrowLayoutInLandscape = aiChatSettings.isAIChatSearchInputUserSettingsEnabled
@@ -1738,6 +1744,13 @@ class MainViewController: UIViewController {
         previousTab?.tabModel.openedAfterIdle = false
         previousTab?.dismiss()
         hideNotificationBarIfBrokenSitePromptShown()
+
+        let shouldSaveTabs = tab.tabModel.viewed == false
+        tab.tabModel.viewed = true
+        if shouldSaveTabs {
+            tabManager.save()
+        }
+
         if tab.link == nil {
             attachHomeScreen(previousTab: previousTab)
         } else {
@@ -1821,11 +1834,12 @@ class MainViewController: UIViewController {
         assert(tabSwitcherButton != nil)
         tabSwitcherButton?.tabCount = tabManager.currentTabsModel.count
         tabSwitcherButton?.hasUnread = tabManager.currentTabsModel.hasUnread
+        tabSwitcherButton?.isFireMode = tabManager.currentBrowsingMode == .fire
     }
 
     private func refreshOmniBar() {
         updateOmniBarLoadingState()
-        viewCoordinator.omniBar.refreshFireMode(fireMode: currentTab?.tabModel.fireTab ?? false)
+        viewCoordinator.omniBar.refreshFireMode(fireMode: isCurrentTabFireTab())
 
         guard let tab = currentTab, tab.link != nil else {
             viewCoordinator.omniBar.stopBrowsing()
@@ -4072,7 +4086,6 @@ extension MainViewController: TabSwitcherDelegate {
         }
         
         if let tab {
-            tab.viewed = true
             tabManager.select(tab, forcingMode: true, dismissCurrent: false)
         }
 
