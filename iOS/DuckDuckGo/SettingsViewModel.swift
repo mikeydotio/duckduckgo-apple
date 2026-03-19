@@ -1328,8 +1328,12 @@ extension SettingsViewModel {
             Logger.subscription.debug("No subscription data available - user not authenticated")
             updatedSubscriptionState.isSignedIn = false
             applyNoSubscriptionState(&updatedSubscriptionState)
+        } catch SubscriptionManagerError.noLocalSubscription {
+            // 3c. No local subscription cache and remote fetch failed — reset subscription fields
+            Logger.subscription.debug("No subscription data available - cache empty and remote fetch failed")
+            applyNoSubscriptionState(&updatedSubscriptionState)
         } catch {
-            // 3c. Transient error — keep cached state as-is
+            // 3d. Transient error — keep cached state as-is
             Logger.subscription.error("Failed to fetch Subscription: \(error, privacy: .public)")
         }
 
