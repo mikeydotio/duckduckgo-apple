@@ -325,7 +325,7 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
     private let searchAreaAlignmentView = UIView()
     private let searchAreaStackView = UIStackView()
 
-    /// Currently unused - should be removed if unlikely to return
+    /// Used for fire mode
     private let activeOutlineView = UIView()
 
     private let stackView = UIStackView()
@@ -594,11 +594,11 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
 
     private func updateFireModeAppearance() {
         if fireMode {
-            searchAreaContainerView.backgroundColor = UIColor(singleUseColor: .fireModeBackground)
             activeOutlineView.layer.borderColor = UIColor(singleUseColor: .fireModeAccent).cgColor
+            activeOutlineView.alpha = 1
         } else {
-            searchAreaContainerView.backgroundColor = UIColor(designSystemColor: .urlBar)
             activeOutlineView.layer.borderColor = UIColor(designSystemColor: .accent).cgColor
+            activeOutlineView.alpha = 0
         }
         progressView?.updateFireModeAppearance(fireMode: fireMode)
     }
@@ -678,10 +678,7 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
     }
 
     private func setUpInitialState() {
-        // This active outline view needs to be removed in the future.  There is
-        //  some indecision about whether want it or not just now when comparing with
-        //  macOS, the arguments being we should have parity vs it's not need.  So leaving
-        //  it in disabled for now.
+        // Disabled by default, enabled in fire tabs
         activeOutlineView.layer.cornerRadius = Metrics.cornerRadius
         activeOutlineView.alpha = 0
     }

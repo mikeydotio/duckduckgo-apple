@@ -35,6 +35,7 @@ class SwitchBarTextEntryViewController: UIViewController {
     private let textEntryView: SwitchBarTextEntryView
     private let handler: SwitchBarHandling
     private let containerView = CompositeShadowView()
+    private let activeOutlineView = UIView()
 
     private(set) lazy var buttonsContainerView: UIView = {
         handler.isUsingFadeOutAnimation ? SwitchBarTextEntryButtonsContainerView() : UIView()
@@ -96,9 +97,11 @@ class SwitchBarTextEntryViewController: UIViewController {
 
         view.addSubview(containerView)
 
+        containerView.addSubview(activeOutlineView)
         containerView.addSubview(textEntryView)
         containerView.addSubview(buttonsContainerView)
 
+        activeOutlineView.translatesAutoresizingMaskIntoConstraints = false
         containerView.translatesAutoresizingMaskIntoConstraints = false
         textEntryView.translatesAutoresizingMaskIntoConstraints = false
         buttonsContainerView.translatesAutoresizingMaskIntoConstraints = false
@@ -112,10 +115,26 @@ class SwitchBarTextEntryViewController: UIViewController {
         textEntryView.layer.cornerRadius = Metrics.containerCornerRadius
         textEntryView.layer.masksToBounds = true
         
-        containerView.backgroundColor = handler.isFireTab ?
-        UIColor(singleUseColor: .fireModeBackground) :
-        UIColor(designSystemColor: .urlBar)
+        containerView.backgroundColor = UIColor(designSystemColor: .urlBar)
         containerView.applyActiveShadow()
+
+        activeOutlineView.isUserInteractionEnabled = false
+        activeOutlineView.layer.borderWidth = Metrics.activeBorderWidth
+        activeOutlineView.layer.cornerRadius = Metrics.activeBorderRadius
+        activeOutlineView.layer.cornerCurve = .continuous
+        activeOutlineView.backgroundColor = .clear
+
+        updateFireModeAppearance()
+    }
+
+    private func updateFireModeAppearance() {
+        if handler.isFireTab {
+            activeOutlineView.layer.borderColor = UIColor(singleUseColor: .fireModeAccent).cgColor
+            activeOutlineView.alpha = 1
+        } else {
+            activeOutlineView.layer.borderColor = UIColor(designSystemColor: .accent).cgColor
+            activeOutlineView.alpha = 0
+        }
     }
 
     private func setupConstraints() {
@@ -123,6 +142,11 @@ class SwitchBarTextEntryViewController: UIViewController {
         buttonsContainerView.setContentHuggingPriority(.defaultHigh, for: .vertical)
 
         NSLayoutConstraint.activate([
+            activeOutlineView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: -Metrics.activeBorderWidth),
+            activeOutlineView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: Metrics.activeBorderWidth),
+            activeOutlineView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: -Metrics.activeBorderWidth),
+            activeOutlineView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: Metrics.activeBorderWidth),
+
             containerView.topAnchor.constraint(equalTo: view.topAnchor),
             containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -185,5 +209,7 @@ class SwitchBarTextEntryViewController: UIViewController {
 
     private struct Metrics {
         static let containerCornerRadius: CGFloat = 16
+        static let activeBorderWidth: CGFloat = 2
+        static let activeBorderRadius: CGFloat = 18
     }
 }

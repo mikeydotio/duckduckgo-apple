@@ -145,10 +145,6 @@ class SwitchBarTextEntryView: UIView {
     }
 
     private func setupView() {
-        if handler.isFireTab {
-            overrideUserInterfaceStyle = .dark
-        }
-        
         let fontMetrics = UIFontMetrics(forTextStyle: .body)
         let textFont = fontMetrics.scaledFont(for: UIFont.systemFont(ofSize: Constants.fontSize))
         textView.font = textFont
