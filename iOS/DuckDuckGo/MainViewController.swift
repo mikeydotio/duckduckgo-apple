@@ -1769,18 +1769,18 @@ class MainViewController: UIViewController {
         }
     }
     
-    /// Loads content into the current AI Chat tab with optional query, auto-send, payload, consent type, and tools.
+    /// Loads content into the current AI Chat tab with optional query, auto-send, payload, onboarding flow, and tools.
     ///
     /// - Parameters:
     ///   - query: Optional query string to load in AI Chat
     ///   - autoSend: Whether to automatically send the query. Defaults to `false`.
     ///   - payload: Optional payload data for AI Chat. Defaults to `nil`.
-    ///   - onboardingConsentType: Optional consent behavior type to hand off to Duck.ai.
+    ///   - onboardingFlowType: Optional onboarding flow type to hand off to Duck.ai.
     ///   - tools: Optional RAG tools available in AI Chat. Defaults to `nil`.
     private func load(_ query: String? = nil,
                       autoSend: Bool = false,
                       payload: Any? = nil,
-                      onboardingConsentType: AIChatOnboardingConsentType = .default,
+                      onboardingFlowType: AIChatOnboardingFlowType = .default,
                       tools: [AIChatRAGTool]? = nil) {
         guard let currentTab else {
             assertionFailure("load called with no current tab")
@@ -1794,7 +1794,7 @@ class MainViewController: UIViewController {
                 query,
                 autoSend: autoSend,
                 payload: payload,
-                onboardingConsentType: onboardingConsentType,
+                onboardingFlowType: onboardingFlowType,
                 tools: tools
             )
         }
@@ -2990,7 +2990,7 @@ class MainViewController: UIViewController {
     func openAIChat(_ query: String? = nil,
                     autoSend: Bool = false,
                     payload: Any? = nil,
-                    onboardingConsentType: AIChatOnboardingConsentType = .default,
+                    onboardingFlowType: AIChatOnboardingFlowType = .default,
                     tools: [AIChatRAGTool]? = nil) {
 
         if aichatFullModeFeature.isAvailable || aichatIPadTabFeature.isAvailable {
@@ -2998,7 +2998,7 @@ class MainViewController: UIViewController {
                 query,
                 autoSend: autoSend,
                 payload: payload,
-                onboardingConsentType: onboardingConsentType,
+                onboardingFlowType: onboardingFlowType,
                 tools: tools
             )
         } else {
@@ -3006,7 +3006,7 @@ class MainViewController: UIViewController {
                 query,
                 payload: payload,
                 autoSend: autoSend,
-                onboardingConsentType: onboardingConsentType,
+                onboardingFlowType: onboardingFlowType,
                 tools: tools,
                 on: self
             )
@@ -3019,12 +3019,12 @@ class MainViewController: UIViewController {
     ///   - query: Optional initial query to send to AI Chat
     ///   - autoSend: Whether to automatically send the query
     ///   - payload: Optional payload data for AI Chat
-    ///   - onboardingConsentType: Optional consent behavior type to hand off to Duck.ai.
+    ///   - onboardingFlowType: Optional onboarding flow type to hand off to Duck.ai.
     ///   - tools: Optional RAG tools available in AI Chat
     private func openAIChatInTab(_ query: String? = nil,
                                  autoSend: Bool = false,
                                  payload: Any? = nil,
-                                 onboardingConsentType: AIChatOnboardingConsentType = .default,
+                                 onboardingFlowType: AIChatOnboardingFlowType = .default,
                                  tools: [AIChatRAGTool]? = nil) {
         guard tabManager.current(createIfNeeded: true) != nil else {
             assertionFailure("openAIChatInTab: no current tab available")
@@ -3035,7 +3035,7 @@ class MainViewController: UIViewController {
             query,
             autoSend: autoSend,
             payload: payload,
-            onboardingConsentType: onboardingConsentType,
+            onboardingFlowType: onboardingFlowType,
             tools: tools
         )
     }
@@ -4862,8 +4862,10 @@ extension MainViewController: OnboardingDelegate {
         markOnboardingSeen()
         guard experimentDuckAIFireOnboardingFlow.state == .awaitingFirstResponse else {
             controller.modalTransitionStyle = .crossDissolve
-            controller.dismiss(animated: true)
-            newTabPageViewController?.onboardingCompleted()
+            controller.dismiss(animated: true) { [weak self] in
+                self?.showBars()
+                self?.newTabPageViewController?.onboardingCompleted()
+            }
             return
         }
 
@@ -4909,7 +4911,7 @@ extension MainViewController: OnboardingDelegate {
         }
     }
 
-    func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType) {
+    func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingFlowType: AIChatOnboardingFlowType) {
         let shouldArmExperimentFireOnboarding = autoSend && experimentDuckAIFireOnboardingFlow.state != .completed
         experimentDuckAIFireOnboardingFlow.triggerWorkItem?.cancel()
         experimentDuckAIFireOnboardingFlow.triggerWorkItem = nil
@@ -4927,7 +4929,7 @@ extension MainViewController: OnboardingDelegate {
         if shouldArmExperimentFireOnboarding, !aiChatSettings.isAIChatSearchInputUserSettingsEnabled {
             aiChatSettings.enableAIChatSearchInputUserSettings(enable: true)
         }
-        openAIChat(query, autoSend: autoSend, onboardingConsentType: onboardingConsentType)
+        openAIChat(query, autoSend: autoSend, onboardingFlowType: onboardingFlowType)
     }
     
     func markOnboardingSeen() {

@@ -79,8 +79,8 @@ protocol AIChatContentHandling: AnyObject {
     /// Sets the initial payload data for the AIChat session.
     func setPayload(payload: Any?)
 
-    /// Builds a query URL with optional prompt, auto-submit, consent type and RAG tools.
-    func buildQueryURL(query: String?, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType, tools: [AIChatRAGTool]?) -> URL
+    /// Builds a query URL with optional prompt, auto-submit, onboarding flow and RAG tools.
+    func buildQueryURL(query: String?, autoSend: Bool, onboardingFlowType: AIChatOnboardingFlowType, tools: [AIChatRAGTool]?) -> URL
     
     /// Submits a prompt to the AI Chat with optional page context.
     func submitPrompt(_ prompt: String, pageContext: AIChatPageContextData?)
@@ -165,14 +165,9 @@ final class AIChatContentHandler: AIChatContentHandling {
     }
     
     /// Builds a query URL with optional prompt, auto-submit, onboarding flow and RAG tools.
-    func buildQueryURL(query: String?, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType = .default, tools: [AIChatRAGTool]?) -> URL {
+    func buildQueryURL(query: String?, autoSend: Bool, onboardingFlowType: AIChatOnboardingFlowType = .default, tools: [AIChatRAGTool]?) -> URL {
         guard let query, var components = URLComponents(url: aiChatSettings.aiChatURL, resolvingAgainstBaseURL: false) else {
             return aiChatSettings.aiChatURL
-        }
-
-        // TODO: Temporary onboarding demo-host override; remove when onboarding no longer targets demo FE.
-        if case .deferUntilFirstQuery = onboardingConsentType {
-            components.host = AIChatURLParameters.onboardingDemoHost
         }
 
         var queryItems = components.queryItems ?? []
@@ -187,7 +182,7 @@ final class AIChatContentHandler: AIChatContentHandling {
             queryItems.append(URLQueryItem(name: AIChatURLParameters.autoSubmitPromptQueryName, value: AIChatURLParameters.autoSubmitPromptQueryValue))
         }
 
-        if let flowValue = onboardingConsentType.flowQueryValue {
+        if let flowValue = onboardingFlowType.flowQueryValue {
             queryItems.removeAll { $0.name == AIChatURLParameters.flowQueryName }
             queryItems.append(URLQueryItem(name: AIChatURLParameters.flowQueryName, value: flowValue))
         } else {

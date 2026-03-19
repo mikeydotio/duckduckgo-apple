@@ -161,7 +161,7 @@ final class AIChatContentHandlerTests: XCTestCase {
         let query = "hello world"
 
         // When
-        let url = handler.buildQueryURL(query: query, autoSend: false, onboardingConsentType: .default, tools: nil)
+        let url = handler.buildQueryURL(query: query, autoSend: false, onboardingFlowType: .default, tools: nil)
 
         // Then
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
@@ -178,7 +178,7 @@ final class AIChatContentHandlerTests: XCTestCase {
         let autoSend = true
 
         // When
-        let url = handler.buildQueryURL(query: "test", autoSend: autoSend, onboardingConsentType: .default, tools: nil)
+        let url = handler.buildQueryURL(query: "test", autoSend: autoSend, onboardingFlowType: .default, tools: nil)
 
         // Then
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
@@ -192,10 +192,10 @@ final class AIChatContentHandlerTests: XCTestCase {
 
     func testBuildQueryURLWithOnboardingFlow() throws {
         // Given
-        let onboardingConsentType: AIChatOnboardingConsentType = .deferUntilFirstQuery
+        let onboardingFlowType: AIChatOnboardingFlowType = .mobileAppOnboarding
 
         // When
-        let url = handler.buildQueryURL(query: "test", autoSend: false, onboardingConsentType: onboardingConsentType, tools: nil)
+        let url = handler.buildQueryURL(query: "test", autoSend: false, onboardingFlowType: onboardingFlowType, tools: nil)
 
         // Then
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
@@ -204,8 +204,8 @@ final class AIChatContentHandlerTests: XCTestCase {
         }
 
         let flowItem = components.queryItems?.first { $0.name == AIChatURLParameters.flowQueryName }
-        XCTAssertEqual(flowItem?.value, AIChatURLParameters.onboardingFlowQueryValue)
-        XCTAssertEqual(components.host, AIChatURLParameters.onboardingDemoHost)
+        XCTAssertEqual(flowItem?.value, AIChatURLParameters.mobileAppOnboardingFlowQueryValue)
+        XCTAssertEqual(components.host, mockSettings.aiChatURL.host)
     }
 
     func testBuildQueryURLWithTools() throws {
@@ -213,7 +213,7 @@ final class AIChatContentHandlerTests: XCTestCase {
         let tools: [AIChatRAGTool] = [.webSearch, .newsSearch]
 
         // When
-        let url = handler.buildQueryURL(query: "test", autoSend: false, onboardingConsentType: .default, tools: tools)
+        let url = handler.buildQueryURL(query: "test", autoSend: false, onboardingFlowType: .default, tools: tools)
 
         // Then
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
@@ -232,7 +232,7 @@ final class AIChatContentHandlerTests: XCTestCase {
         let emptyQuery = ""
 
         // When
-        let url = handler.buildQueryURL(query: emptyQuery, autoSend: false, onboardingConsentType: .default, tools: nil)
+        let url = handler.buildQueryURL(query: emptyQuery, autoSend: false, onboardingFlowType: .default, tools: nil)
 
         // Then
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
@@ -249,7 +249,7 @@ final class AIChatContentHandlerTests: XCTestCase {
         let nilQuery: String? = nil
 
         // When
-        let url = handler.buildQueryURL(query: nilQuery, autoSend: false, onboardingConsentType: .default, tools: nil)
+        let url = handler.buildQueryURL(query: nilQuery, autoSend: false, onboardingFlowType: .default, tools: nil)
 
         // Then
         XCTAssertEqual(url, mockSettings.aiChatURL)
@@ -261,8 +261,8 @@ final class AIChatContentHandlerTests: XCTestCase {
         let secondQuery = "second"
 
         // When
-        let url1 = handler.buildQueryURL(query: firstQuery, autoSend: false, onboardingConsentType: .default, tools: nil)
-        let url2 = handler.buildQueryURL(query: secondQuery, autoSend: false, onboardingConsentType: .default, tools: nil)
+        let url1 = handler.buildQueryURL(query: firstQuery, autoSend: false, onboardingFlowType: .default, tools: nil)
+        let url2 = handler.buildQueryURL(query: secondQuery, autoSend: false, onboardingFlowType: .default, tools: nil)
 
         // Then - first URL contains first query
         guard let components1 = URLComponents(url: url1, resolvingAgainstBaseURL: false) else {

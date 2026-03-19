@@ -24,7 +24,7 @@ import UIKit
 /// Protocol for tab controllers that support full mode AIChat content loading.
 protocol AITabController {
     /// Loads AIChat with optional query, auto-submit, payload, and RAG tools.
-    func load(_ query: String?, autoSend: Bool, payload: Any?, onboardingConsentType: AIChatOnboardingConsentType, tools: [AIChatRAGTool]?)
+    func load(_ query: String?, autoSend: Bool, payload: Any?, onboardingFlowType: AIChatOnboardingFlowType, tools: [AIChatRAGTool]?)
 
     /// Submits a start chat action to initiate a new AI Chat conversation.
     func submitStartChatAction()
@@ -46,7 +46,7 @@ extension TabViewController: AITabController {
     func load(_ query: String? = nil,
               autoSend: Bool = false,
               payload: Any? = nil,
-              onboardingConsentType: AIChatOnboardingConsentType = .default,
+              onboardingFlowType: AIChatOnboardingFlowType = .default,
               tools: [AIChatRAGTool]? = nil) {
 
         aiChatContentHandler.setPayload(payload: payload)
@@ -54,7 +54,7 @@ extension TabViewController: AITabController {
         let queryURL = aiChatContentHandler.buildQueryURL(
             query: query,
             autoSend: autoSend,
-            onboardingConsentType: onboardingConsentType,
+            onboardingFlowType: onboardingFlowType,
             tools: tools
         )
 
@@ -81,7 +81,7 @@ extension TabViewController: AITabController {
         let newChatURL = aiChatContentHandler.buildQueryURL(
             query: nil,
             autoSend: false,
-            onboardingConsentType: .default,
+            onboardingFlowType: .default,
             tools: nil
         )
         delegate?.tab(self, didRequestNewTabForUrl: newChatURL, openedByPage: false, inheritingAttribution: nil)

@@ -41,7 +41,7 @@ final class OnboardingIntroViewController<Content: View>: UIHostingController<Co
             delegate.openAIChatFromOnboarding(
                 query,
                 autoSend: autoSend,
-                onboardingConsentType: .deferUntilFirstQuery
+                onboardingFlowType: .mobileAppOnboarding
             )
         }
         viewModel.onSearchFromOnboarding = { [weak self] query in

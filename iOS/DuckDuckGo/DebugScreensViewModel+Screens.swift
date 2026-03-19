@@ -230,7 +230,7 @@ extension DebugScreensViewModel {
                         controller.presentingViewController?.dismiss(animated: true)
                     }
 
-                    func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType) {}
+                    func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingFlowType: AIChatOnboardingFlowType) {}
 
                     func searchFromOnboarding(for query: String) {}
                 }

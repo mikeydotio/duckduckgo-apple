@@ -27,26 +27,24 @@ public enum AIChatURLParameters {
     public static let toolChoiceName = "toolChoice"
     /// Flow selector key used for onboarding-specific Duck.ai behavior.
     public static let flowQueryName = "flow"
-    /// Flow selector value for onboarding.
-    public static let onboardingFlowQueryValue = "onboarding"
-    /// TODO: Temporary demo host override for onboarding experiment validation; remove when demo routing is no longer required.
-    public static let onboardingDemoHost = "use-serp-dev-testing15.duck.ai"
+    /// Flow selector value for mobile app onboarding.
+    public static let mobileAppOnboardingFlowQueryValue = "mobile-app-onboarding"
 }
 
-/// Allowed onboarding consent behaviors passed through Duck.ai URL query params.
-public enum AIChatOnboardingConsentType {
-    /// Default behavior: no explicit consent-type parameter is sent.
+/// Allowed onboarding flow types passed through Duck.ai URL query params.
+public enum AIChatOnboardingFlowType {
+    /// Default behavior: no explicit onboarding flow parameter is sent.
     case `default`
-    /// Defers consent collection until the user sends their first real query.
-    case deferUntilFirstQuery
+    /// Uses the mobile-app-onboarding Duck.ai flow.
+    case mobileAppOnboarding
 
     /// Serialized `flow` query value (if any) used by onboarding-specific FE behavior.
     public var flowQueryValue: String? {
         switch self {
         case .default:
             return nil
-        case .deferUntilFirstQuery:
-            return AIChatURLParameters.onboardingFlowQueryValue
+        case .mobileAppOnboarding:
+            return AIChatURLParameters.mobileAppOnboardingFlowQueryValue
         }
     }
 }

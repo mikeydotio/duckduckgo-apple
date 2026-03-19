@@ -125,8 +125,6 @@ extension AIChatWebViewController {
         static let autoSendValue = AIChatURLParameters.autoSubmitPromptQueryValue
         /// Tool selection key (can appear multiple times).
         static let toolChoice = AIChatURLParameters.toolChoiceName
-        /// Flow key used for onboarding-specific Duck.ai behavior.
-        static let flowKey = AIChatURLParameters.flowQueryName
     }
 
     func reload() {
@@ -138,24 +136,19 @@ extension AIChatWebViewController {
         webView.load(request)
     }
 
-    func loadQuery(_ query: String, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType = .default, tools: [AIChatRAGTool]?) {
+    func loadQuery(_ query: String, autoSend: Bool, onboardingFlowType: AIChatOnboardingFlowType = .default, tools: [AIChatRAGTool]?) {
         let url = buildQueryURL(
             query: query,
             autoSend: autoSend,
-            onboardingConsentType: onboardingConsentType,
+            onboardingFlowType: onboardingFlowType,
             tools: tools
         )
         webView.load(URLRequest(url: url))
     }
 
-    private func buildQueryURL(query: String, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType = .default, tools: [AIChatRAGTool]?) -> URL {
+    private func buildQueryURL(query: String, autoSend: Bool, onboardingFlowType: AIChatOnboardingFlowType = .default, tools: [AIChatRAGTool]?) -> URL {
         guard var components = URLComponents(url: chatModel.aiChatURL, resolvingAgainstBaseURL: false) else {
             return chatModel.aiChatURL
-        }
-
-        // TODO: Temporary onboarding demo-host override; remove when onboarding no longer targets demo FE.
-        if case .deferUntilFirstQuery = onboardingConsentType {
-            components.host = AIChatURLParameters.onboardingDemoHost
         }
 
         var queryItems = components.queryItems ?? []
@@ -169,12 +162,11 @@ extension AIChatWebViewController {
             queryItems.removeAll { $0.name == QueryParameters.autoSendKey }
             queryItems.append(URLQueryItem(name: QueryParameters.autoSendKey, value: QueryParameters.autoSendValue))
         }
-
-        if let flowValue = onboardingConsentType.flowQueryValue {
-            queryItems.removeAll { $0.name == QueryParameters.flowKey }
-            queryItems.append(URLQueryItem(name: QueryParameters.flowKey, value: flowValue))
+        if let flowValue = onboardingFlowType.flowQueryValue {
+            queryItems.removeAll { $0.name == AIChatURLParameters.flowQueryName }
+            queryItems.append(URLQueryItem(name: AIChatURLParameters.flowQueryName, value: flowValue))
         } else {
-            queryItems.removeAll { $0.name == QueryParameters.flowKey }
+            queryItems.removeAll { $0.name == AIChatURLParameters.flowQueryName }
         }
 
         if let tools = tools, !tools.isEmpty {

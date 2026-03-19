@@ -41,7 +41,7 @@ protocol OnboardingContent {
 protocol OnboardingDelegate: NSObjectProtocol {
     
     func onboardingCompleted(controller: UIViewController)
-    func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingConsentType: AIChatOnboardingConsentType)
+    func openAIChatFromOnboarding(_ query: String?, autoSend: Bool, onboardingFlowType: AIChatOnboardingFlowType)
     func searchFromOnboarding(for query: String)
     
 }
