@@ -253,6 +253,7 @@ final class AddressBarButtonsViewController: NSViewController {
         didSet {
             if isMouseOverNavigationBar != oldValue {
                 updateBookmarkButtonVisibility()
+                updatePermissionCenterButton()
             }
         }
     }
@@ -843,7 +844,9 @@ final class AddressBarButtonsViewController: NSViewController {
 
         permissionCenterButton.isShown = tabViewModel.shouldShowPermissionCenterButton(
             isTextFieldEditorFirstResponder: isTextFieldEditorFirstResponder,
-            hasAnyPersistedPermissions: hasAnyPersistedPermissions
+            hasAnyPersistedPermissions: hasAnyPersistedPermissions,
+            isMouseOverNavigationBar: isMouseOverNavigationBar,
+            isAutoplayFeatureOn: featureFlagger.isFeatureOn(.autoplayPolicy)
         )
 
         showOrHidePermissionCenterPopoverIfNeeded()
@@ -2856,7 +2859,9 @@ extension TabViewModel {
     @MainActor
     func shouldShowPermissionCenterButton(
         isTextFieldEditorFirstResponder: Bool,
-        hasAnyPersistedPermissions: Bool
+        hasAnyPersistedPermissions: Bool,
+        isMouseOverNavigationBar: Bool = false,
+        isAutoplayFeatureOn: Bool = false
     ) -> Bool {
         // Show permission buttons when there's a requested permission on NTP even if address bar is focused,
         // since NTP has the address bar focused by default
@@ -2867,7 +2872,9 @@ extension TabViewModel {
 
         // Also show when a page-initiated popup was auto-allowed (due to "Always Allow" setting)
         // so user can access permission center to change the decision
-        return (shouldShowWhileFocused || (!isTextFieldEditorFirstResponder && (isAnyPermissionPresent || pageInitiatedPopupOpened || hasAnyPersistedPermissions)))
+        return (shouldShowWhileFocused
+            || (!isTextFieldEditorFirstResponder && (isAnyPermissionPresent || pageInitiatedPopupOpened || hasAnyPersistedPermissions))
+            || (!isTextFieldEditorFirstResponder && isMouseOverNavigationBar && isAutoplayFeatureOn))
         && !isShowingErrorPage
     }
 
