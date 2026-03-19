@@ -842,7 +842,8 @@ final class AddressBarButtonsViewController: NSViewController {
         let domain = tabViewModel.tab.content.urlForWebView?.host ?? ""
         let hasAnyPersistedPermissions = permissionManager.hasAnyPermissionPersisted(forDomain: domain)
 
-        permissionCenterButton.isShown = tabViewModel.shouldShowPermissionCenterButton(
+        let isPermissionCenterPopoverShown = permissionCenterPopover?.isShown == true
+        permissionCenterButton.isShown = isPermissionCenterPopoverShown || tabViewModel.shouldShowPermissionCenterButton(
             isTextFieldEditorFirstResponder: isTextFieldEditorFirstResponder,
             hasAnyPersistedPermissions: hasAnyPersistedPermissions,
             isMouseOverNavigationBar: isMouseOverNavigationBar,
