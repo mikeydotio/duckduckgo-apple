@@ -107,7 +107,7 @@ final public class UserContentController: WKUserContentController {
 
     @MainActor
     private func installContentBlockingAssets(_ contentBlockingAssets: ContentBlockingAssets) {
-        // don‘t install ContentBlockingAssets (especially Message Handlers retaining `self`) after cleanUpBeforeClosing was called
+        // don’t install ContentBlockingAssets (especially Message Handlers retaining `self`) after cleanUpBeforeClosing was called
         guard assetsPublisherCancellables != nil else { return }
         // installation should happen in `contentBlockingAssets.willSet`
         // so the $contentBlockingAssets subscribers receive an update only after everything is set
@@ -117,6 +117,16 @@ final public class UserContentController: WKUserContentController {
                                         didInstallContentRuleLists: contentBlockingAssets.globalRuleLists,
                                         userScripts: contentBlockingAssets.userScripts,
                                         updateEvent: contentBlockingAssets.updateEvent)
+    }
+
+    /// Reinstalls user scripts from the current content blocking assets,
+    /// applying any active per-tab or global disable filters.
+    /// Call this after modifying `UserScripts.perTabDisabled` or `UserScriptDisabledStore`.
+    @MainActor
+    public func reinstallUserScripts() async {
+        guard let assets = contentBlockingAssets else { return }
+        let wkUserScripts = await assets.userScripts.loadWKUserScripts()
+        installUserScripts(wkUserScripts, handlers: assets.userScripts.userScripts)
     }
 
     enum ContentRuleListIdentifier: Hashable {
