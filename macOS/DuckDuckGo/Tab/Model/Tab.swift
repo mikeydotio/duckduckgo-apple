@@ -67,6 +67,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         var tabCrashAggregator: TabCrashAggregator
         var tabsPreferences: TabsPreferences
         var autoplayPreferences: AutoplayPreferences
+        var permissionManager: PermissionManagerProtocol
         var webTrackingProtectionPreferences: WebTrackingProtectionPreferences
     }
 
@@ -354,6 +355,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                                                           tabCrashAggregator: tabCrashAggregator,
                                                           tabsPreferences: tabsPreferences,
                                                           autoplayPreferences: autoplayPreferences,
+                                                          permissionManager: permissionManager,
                                                           webTrackingProtectionPreferences: webTrackingProtectionPreferences)
         let tabExtensionsBuilderArguments: TabExtensionsBuilderArguments = (tabIdentifier: instrumentation.currentTabIdentifier,
                                                                             tabID: self.uuid,

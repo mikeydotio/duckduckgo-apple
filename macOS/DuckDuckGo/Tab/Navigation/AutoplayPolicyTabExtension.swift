@@ -24,10 +24,12 @@ final class AutoplayPolicyTabExtension {
 
     private let autoplayPreferences: AutoplayPreferences
     private let featureFlagger: FeatureFlagger
+    private let permissionManager: PermissionManagerProtocol
 
-    init(autoplayPreferences: AutoplayPreferences, featureFlagger: FeatureFlagger) {
+    init(autoplayPreferences: AutoplayPreferences, featureFlagger: FeatureFlagger, permissionManager: PermissionManagerProtocol) {
         self.autoplayPreferences = autoplayPreferences
         self.featureFlagger = featureFlagger
+        self.permissionManager = permissionManager
     }
 }
 
@@ -36,7 +38,23 @@ extension AutoplayPolicyTabExtension: NavigationResponder {
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
         guard featureFlagger.isFeatureOn(.autoplayPolicy) else { return .next }
-        preferences.autoplayPolicy = .init(autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction)
+
+        let domain = navigationAction.url.host ?? ""
+
+        if permissionManager.hasPermissionPersisted(forDomain: domain, permissionType: .autoplayPolicy) {
+            let decision = permissionManager.permission(forDomain: domain, permissionType: .autoplayPolicy)
+            switch decision {
+            case .allow:
+                preferences.autoplayPolicy = .allow
+            case .ask:
+                preferences.autoplayPolicy = .allowWithoutSound
+            case .deny:
+                preferences.autoplayPolicy = .deny
+            }
+        } else {
+            preferences.autoplayPolicy = .init(autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction)
+        }
+
         return .next
     }
 }

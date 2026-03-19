@@ -89,6 +89,7 @@ protocol TabExtensionDependencies {
     var tabCrashAggregator: TabCrashAggregator { get }
     var tabsPreferences: TabsPreferences { get }
     var autoplayPreferences: AutoplayPreferences { get }
+    var permissionManager: PermissionManagerProtocol { get }
     var webTrackingProtectionPreferences: WebTrackingProtectionPreferences { get }
 }
 
@@ -205,7 +206,11 @@ extension TabExtensionsBuilder {
         }
 
         add {
-            AutoplayPolicyTabExtension(autoplayPreferences: dependencies.autoplayPreferences, featureFlagger: dependencies.featureFlagger)
+            AutoplayPolicyTabExtension(
+                autoplayPreferences: dependencies.autoplayPreferences,
+                featureFlagger: dependencies.featureFlagger,
+                permissionManager: dependencies.permissionManager
+            )
         }
 
         add {
