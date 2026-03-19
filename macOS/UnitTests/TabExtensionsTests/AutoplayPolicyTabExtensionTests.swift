@@ -91,7 +91,7 @@ final class AutoplayPolicyTabExtensionTests: XCTestCase {
 
         let policy = await ext.decidePolicy(for: makeNavigationAction(url: URL(string: "https://example.com")!), preferences: &prefs)
 
-        XCTAssertEqual(policy, .next)
+        XCTAssertNil(policy, "Policy should be .next (nil) to pass to the next responder")
         XCTAssertEqual(prefs.autoplayPolicy, .default, "Preferences should not be modified when feature flag is off")
     }
 
@@ -171,6 +171,6 @@ final class AutoplayPolicyTabExtensionTests: XCTestCase {
 
         let policy = await ext.decidePolicy(for: makeNavigationAction(url: URL(string: "https://example.com")!), preferences: &prefs)
 
-        XCTAssertEqual(policy, .next)
+        XCTAssertNil(policy, "Policy should be .next (nil) to pass to the next responder")
     }
 }

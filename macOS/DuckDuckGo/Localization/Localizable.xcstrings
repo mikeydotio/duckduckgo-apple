@@ -66575,6 +66575,30 @@
         }
       }
     },
+    "permission.autoplay" : {
+      "comment" : "Display name for the autoplay permission type in Permission Center",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Autoplay"
+          }
+        }
+      }
+    },
+    "permission.autoplay.use-default" : {
+      "comment" : "Autoplay permission option: use the global default setting",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Use default"
+          }
+        }
+      }
+    },
     "permission.camera" : {
       "comment" : "Camera input media device name",
       "extractionState" : "extracted_with_value",
