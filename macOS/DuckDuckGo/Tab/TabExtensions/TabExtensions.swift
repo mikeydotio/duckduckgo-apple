@@ -205,7 +205,7 @@ extension TabExtensionsBuilder {
         }
 
         add {
-            AutoplayPolicyTabExtension(autoplayPreferences: dependencies.autoplayPreferences)
+            AutoplayPolicyTabExtension(autoplayPreferences: dependencies.autoplayPreferences, featureFlagger: dependencies.featureFlagger)
         }
 
         add {

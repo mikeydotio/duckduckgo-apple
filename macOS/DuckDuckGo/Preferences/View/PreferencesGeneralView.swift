@@ -301,12 +301,14 @@ extension Preferences {
                 }
 
                 // SECTION: Permissions
-                PreferencePaneSection(UserText.permissionsSection) {
-                    PreferencePaneSubSection {
-                        HStack {
-                            Picker(UserText.autoplayLabel, selection: $autoplayModel.autoplayBlockingMode) {
-                                ForEach(AutoplayBlockingMode.allCases, id: \.self) { mode in
-                                    Text(mode.description).tag(mode)
+                if featureFlagger.isFeatureOn(.autoplayPolicy) {
+                    PreferencePaneSection(UserText.permissionsSection) {
+                        PreferencePaneSubSection {
+                            HStack {
+                                Picker(UserText.autoplayLabel, selection: $autoplayModel.autoplayBlockingMode) {
+                                    ForEach(AutoplayBlockingMode.allCases, id: \.self) { mode in
+                                        Text(mode.description).tag(mode)
+                                    }
                                 }
                             }
                         }

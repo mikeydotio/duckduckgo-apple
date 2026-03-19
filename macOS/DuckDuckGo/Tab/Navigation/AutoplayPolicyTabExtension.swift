@@ -16,14 +16,18 @@
 //  limitations under the License.
 //
 
+import FeatureFlags
 import Navigation
+import PrivacyConfig
 
 final class AutoplayPolicyTabExtension {
 
     private let autoplayPreferences: AutoplayPreferences
+    private let featureFlagger: FeatureFlagger
 
-    init(autoplayPreferences: AutoplayPreferences) {
+    init(autoplayPreferences: AutoplayPreferences, featureFlagger: FeatureFlagger) {
         self.autoplayPreferences = autoplayPreferences
+        self.featureFlagger = featureFlagger
     }
 }
 
@@ -31,6 +35,7 @@ extension AutoplayPolicyTabExtension: NavigationResponder {
 
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
+        guard featureFlagger.isFeatureOn(.autoplayPolicy) else { return .next }
         preferences.autoplayPolicy = .init(autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction)
         return .next
     }
