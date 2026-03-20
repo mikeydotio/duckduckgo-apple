@@ -85160,6 +85160,30 @@
         }
       }
     },
+    "preferences.youtube-ad-blocking.explanation" : {
+      "comment" : "Explanation of the YouTube Ad Blocking feature",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "DuckDuckGo removes video ads on YouTube, so you can watch videos without interruption."
+          }
+        }
+      }
+    },
+    "preferences.youtube-ad-blocking.toggle" : {
+      "comment" : "Toggle label for enabling YouTube ad blocking",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Block ads on YouTube"
+          }
+        }
+      }
+    },
     "prefrences.sync.bad.request.description" : {
       "comment" : "Description of incorrectly formatted data error when syncing.",
       "extractionState" : "extracted_with_value",

@@ -58,6 +58,7 @@ extension UserDefaults {
         case youtubeOverlayButtonsUsed = "preferences.youtube-overlay-user-used-buttons"
         case duckPlayerAutoplay = "preferences.duckplayer.autoplay"
         case duckPlayerOpenInNewTab = "preferences.duckplayer.open-new-tab"
+        case youTubeAdBlockingEnabled = "preferences.youtube-ad-blocking.enabled"
 
         case selectedPasswordManager = "preferences.autofill.selected-password-manager"
 

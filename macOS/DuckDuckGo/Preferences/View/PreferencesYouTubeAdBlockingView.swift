@@ -17,17 +17,152 @@
 //
 
 import PreferencesUI_macOS
+ import PixelKit
 import SwiftUI
+import SwiftUIExtensions
 
 extension Preferences {
 
     struct YouTubeAdBlockingView: View {
         @ObservedObject var model: YouTubeAdBlockingPreferences
+        @State private var hasFiredSettingsDisplayedPixel = false
+
+        var duckPlayerModeBinding: Binding<DuckPlayerMode> {
+            .init {
+                model.duckPlayerMode
+            } set: { newValue in
+                model.duckPlayerMode = newValue
+                switch model.duckPlayerMode {
+                case .enabled:
+                    PixelKit.fire(GeneralPixel.duckPlayerSettingAlwaysSettings)
+                case .alwaysAsk:
+                    PixelKit.fire(GeneralPixel.duckPlayerSettingBackToDefault)
+                case .disabled:
+                    PixelKit.fire(GeneralPixel.duckPlayerSettingNeverSettings)
+                }
+            }
+        }
 
         var body: some View {
             PreferencePane {
+
+                // TITLE
                 TextMenuTitle(UserText.youTubeAdBlocking)
+
+                // YouTube Ad Blocking Section
+                PreferencePaneSection {
+                    TextMenuItemCaption(UserText.youTubeAdBlockingExplanation)
+                    ToggleMenuItem(UserText.youTubeAdBlockingToggle, isOn: $model.youTubeAdBlockingEnabled)
+                }
+
+                // Duck Player Section
+                PreferencePaneSection(UserText.duckPlayer) {
+                    if model.shouldDisplayContingencyMessage {
+                        ContingencyMessageView {
+                            model.openLearnMoreContingencyURL()
+                        }
+                        .frame(width: 512)
+                        .onAppear {
+                            if !hasFiredSettingsDisplayedPixel {
+                                PixelKit.fire(GeneralPixel.duckPlayerContingencySettingsDisplayed, doNotEnforcePrefix: true)
+                                hasFiredSettingsDisplayedPixel = true
+                            }
+                        }
+                    }
+
+                    Picker(selection: duckPlayerModeBinding, content: {
+                        Text(UserText.duckPlayerAlwaysOpenInPlayer)
+                            .padding(.bottom, 4)
+                            .tag(DuckPlayerMode.enabled)
+                            .accessibilityIdentifier("DuckPlayerMode.enabled")
+
+                        Text(UserText.duckPlayerShowPlayerButtons)
+                            .padding(.bottom, 4)
+                            .tag(DuckPlayerMode.alwaysAsk)
+                            .accessibilityIdentifier("DuckPlayerMode.alwaysAsk")
+
+                        Text(UserText.duckPlayerOff)
+                            .padding(.bottom, 4)
+                            .tag(DuckPlayerMode.disabled)
+                            .accessibilityIdentifier("DuckPlayerMode.disabled")
+
+                    }, label: {})
+                    .pickerStyle(.radioGroup)
+                    .offset(x: PreferencesUI_macOS.Const.pickerHorizontalOffset)
+
+                    TextMenuItemCaption(UserText.duckPlayerExplanation)
+                }.disabled(model.shouldDisplayContingencyMessage)
+
+                if model.shouldDisplayAutoPlaySettings || model.isOpenInNewTabSettingsAvailable {
+                    PreferencePaneSection(UserText.duckPlayerVideoPreferencesTitle) {
+
+                        if model.shouldDisplayAutoPlaySettings {
+                            ToggleMenuItem(UserText.duckPlayerAutoplayPreference, isOn: $model.duckPlayerAutoplay)
+                        }
+
+                        if model.isOpenInNewTabSettingsAvailable {
+                            ToggleMenuItem(UserText.duckPlayerNewTabPreference, isOn: $model.duckPlayerOpenInNewTab)
+                                .disabled(!model.isNewTabSettingsAvailable)
+                        }
+                    }.disabled(model.shouldDisplayContingencyMessage)
+                }
+
             }
         }
     }
+}
+
+private struct ContingencyMessageView: View {
+    private enum Copy {
+        static let title: String = UserText.duckPlayerContingencyMessageTitle
+        static let message: String = UserText.duckPlayerContingencyMessageBody
+        static let buttonTitle: String = UserText.duckPlayerContingencyMessageCTA
+    }
+
+    private enum Constants {
+        static let cornerRadius: CGFloat = 8
+        static let imageName: String = "WarningYoutube"
+        static let imageSize: CGSize = CGSize(width: 64, height: 48)
+    }
+
+    let buttonCallback: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 20) {
+            Image(Constants.imageName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: Constants.imageSize.width, height: Constants.imageSize.height)
+
+            VStack (alignment: .leading, spacing: 3) {
+                Text(Copy.title)
+                    .bold()
+                Text(Copy.message)
+                    .foregroundColor(Color(.blackWhite60))
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    buttonCallback()
+                } label: {
+                    Text(Copy.buttonTitle)
+                }.padding(.top, 15)
+            }
+        }
+        .padding()
+          .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                    .stroke(Color(.blackWhite10), lineWidth: 1)
+                RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                    .fill(Color(.blackWhite1))
+            }
+          )
+    }
+}
+
+#Preview {
+    Group {
+        ContingencyMessageView { }
+    }.frame(height: 300)
 }
