@@ -484,6 +484,8 @@ extension DataBrokerProtectionIOSManager: JobQueueManagerDelegate {
                         }
                     }
                 }
+            case nil:
+                break
             }
         }
         // Figure out if we've just finished initial scans, and send the appropriate pixel if necessary
