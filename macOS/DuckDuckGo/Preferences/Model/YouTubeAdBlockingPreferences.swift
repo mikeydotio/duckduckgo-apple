@@ -20,30 +20,25 @@ import AppKit
 import Combine
 import DuckPlayer
 import Foundation
+import Persistence
 import PixelKit
 import PrivacyConfig
 
-protocol YouTubeAdBlockingPreferencesPersistor {
-    var youTubeAdBlockingEnabled: Bool { get set }
-}
-
-struct YouTubeAdBlockingPreferencesUserDefaultsPersistor: YouTubeAdBlockingPreferencesPersistor {
-
-    @UserDefaultsWrapper(key: .youTubeAdBlockingEnabled, defaultValue: true)
-    var youTubeAdBlockingEnabled: Bool
+struct YouTubeAdBlockingSettings: StoringKeys {
+    let youTubeAdBlockingEnabled = StorageKey<Bool>(.youTubeAdBlockingEnabled)
 }
 
 final class YouTubeAdBlockingPreferences: ObservableObject {
     private let internalUserDecider: InternalUserDecider
     private let duckPlayerContingencyHandler: DuckPlayerContingencyHandler
     private let privacyConfigurationManager: PrivacyConfigurationManaging
-    private var youTubeAdBlockingPersistor: YouTubeAdBlockingPreferencesPersistor
+    private var settings: any KeyedStoring<YouTubeAdBlockingSettings>
     private var duckPlayerPersistor: DuckPlayerPreferencesPersistor
 
     @Published
     var youTubeAdBlockingEnabled: Bool {
         didSet {
-            youTubeAdBlockingPersistor.youTubeAdBlockingEnabled = youTubeAdBlockingEnabled
+            settings.youTubeAdBlockingEnabled = youTubeAdBlockingEnabled
         }
     }
 
@@ -121,13 +116,13 @@ final class YouTubeAdBlockingPreferences: ObservableObject {
         Application.appDelegate.windowControllersManager.show(url: url, source: .ui, newTab: true)
     }
 
-    init(youTubeAdBlockingPersistor: YouTubeAdBlockingPreferencesPersistor = YouTubeAdBlockingPreferencesUserDefaultsPersistor(),
+    init(settings: (any KeyedStoring<YouTubeAdBlockingSettings>)? = nil,
          duckPlayerPersistor: DuckPlayerPreferencesPersistor = DuckPlayerPreferencesUserDefaultsPersistor(),
          privacyConfigurationManager: PrivacyConfigurationManaging = NSApp.delegateTyped.privacyFeatures.contentBlocking.privacyConfigurationManager,
          internalUserDecider: InternalUserDecider = NSApp.delegateTyped.internalUserDecider) {
-        self.youTubeAdBlockingPersistor = youTubeAdBlockingPersistor
+        self.settings = if let settings { settings } else { UserDefaults.standard.keyedStoring() }
         self.duckPlayerPersistor = duckPlayerPersistor
-        youTubeAdBlockingEnabled = youTubeAdBlockingPersistor.youTubeAdBlockingEnabled
+        youTubeAdBlockingEnabled = self.settings.youTubeAdBlockingEnabled ?? true
         duckPlayerMode = .init(duckPlayerPersistor.duckPlayerModeBool)
         youtubeOverlayInteracted = duckPlayerPersistor.youtubeOverlayInteracted
         youtubeOverlayAnyButtonPressed = duckPlayerPersistor.youtubeOverlayAnyButtonPressed
