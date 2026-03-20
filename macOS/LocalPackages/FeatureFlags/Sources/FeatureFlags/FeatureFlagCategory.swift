@@ -62,7 +62,8 @@ extension FeatureFlag: FeatureFlagCategorization {
                 .aiChatSidebarResizable,
                 .aiChatSidebarFloating,
                 .aiChatChromeSidebar,
-                .aiChatNtpRecentChats:
+                .aiChatNtpRecentChats,
+                .aiChatNtpChatTools:
             return .duckAI
         case .osSupportForceUnsupportedMessage,
                 .osSupportForceWillSoonDropSupportMessage,
