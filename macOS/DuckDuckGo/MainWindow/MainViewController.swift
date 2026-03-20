@@ -40,10 +40,38 @@ final class MainViewController: NSViewController {
     let browserTabViewController: BrowserTabViewController
     let aiChatMenuConfig: AIChatMenuVisibilityConfigurable
     let aiChatCoordinator: AIChatCoordinating
-    let aiChatSummarizer: AIChatSummarizer
-    let aiChatTranslator: AIChatTranslator
-    let findInPageViewController: FindInPageViewController
-    let fireViewController: FireViewController
+
+    private(set) lazy var aiChatSummarizer = AIChatSummarizer(
+        aiChatMenuConfig: aiChatMenuConfig,
+        aiChatCoordinator: aiChatCoordinator,
+        aiChatTabOpener: aiChatTabOpener,
+        pixelFiring: pixelFiring
+    )
+
+    private(set) lazy var aiChatTranslator = AIChatTranslator(
+        aiChatMenuConfig: aiChatMenuConfig,
+        aiChatCoordinator: aiChatCoordinator,
+        aiChatTabOpener: aiChatTabOpener,
+        pixelFiring: pixelFiring
+    )
+
+    private(set) lazy var findInPageViewController: FindInPageViewController = {
+        let vc = FindInPageViewController.create()
+        vc.delegate = self
+        addAndLayoutChild(vc, into: mainView.findInPageContainerView)
+        return vc
+    }()
+
+    private let visualizeFireAnimationDecider: VisualizeFireSettingsDecider
+    private(set) lazy var fireViewController: FireViewController = {
+        let vc = FireViewController.create(
+            tabCollectionViewModel: tabCollectionViewModel,
+            fireViewModel: fireCoordinator.fireViewModel,
+            visualizeFireAnimationDecider: visualizeFireAnimationDecider
+        )
+        addAndLayoutChild(vc, into: mainView.fireContainerView)
+        return vc
+    }()
     let bookmarksBarViewController: BookmarksBarViewController
     let aiChatOmnibarContainerViewController: AIChatOmnibarContainerViewController
     let aiChatOmnibarTextContainerViewController: AIChatOmnibarTextContainerViewController
@@ -55,6 +83,9 @@ final class MainViewController: NSViewController {
     private let winBackOfferPromptPresenting: WinBackOfferPromptPresenting
     let tabsPreferences: TabsPreferences
     private let duckPlayer: DuckPlayer
+
+    private let pixelFiring: PixelFiring?
+    private let aiChatTabOpener: AIChatTabOpening
 
     let tabCollectionViewModel: TabCollectionViewModel
     let bookmarkManager: BookmarkManager
@@ -160,6 +191,8 @@ final class MainViewController: NSViewController {
         self.duckPlayer = duckPlayer
         self.pinningManager = pinningManager
         self.duckAIChromeButtonsVisibilityManager = duckAIChromeButtonsVisibilityManager
+        self.aiChatTabOpener = aiChatTabOpener
+        self.visualizeFireAnimationDecider = visualizeFireAnimationDecider
 
         tabBarViewController = TabBarViewController.create(
             tabCollectionViewModel: tabCollectionViewModel,
@@ -242,19 +275,6 @@ final class MainViewController: NSViewController {
             featureFlagger: featureFlagger
         )
         tabBarViewController.aiChatCoordinator = aiChatCoordinator
-        aiChatSummarizer = AIChatSummarizer(
-            aiChatMenuConfig: aiChatMenuConfig,
-            aiChatCoordinator: aiChatCoordinator,
-            aiChatTabOpener: aiChatTabOpener,
-            pixelFiring: pixelFiring
-        )
-
-        aiChatTranslator = AIChatTranslator(
-            aiChatMenuConfig: aiChatMenuConfig,
-            aiChatCoordinator: aiChatCoordinator,
-            aiChatTabOpener: aiChatTabOpener,
-            pixelFiring: pixelFiring
-        )
 
         navigationBarViewController = NavigationBarViewController.create(tabCollectionViewModel: tabCollectionViewModel,
                                                                          downloadListCoordinator: downloadListCoordinator,
@@ -282,8 +302,6 @@ final class MainViewController: NSViewController {
                                                                          pinningManager: pinningManager,
                                                                          memoryUsageMonitor: memoryUsageMonitor)
 
-        findInPageViewController = FindInPageViewController.create()
-        fireViewController = FireViewController.create(tabCollectionViewModel: tabCollectionViewModel, fireViewModel: fireCoordinator.fireViewModel, visualizeFireAnimationDecider: visualizeFireAnimationDecider)
         bookmarksBarViewController = BookmarksBarViewController.create(
             tabCollectionViewModel: tabCollectionViewModel,
             bookmarkManager: bookmarkManager,
@@ -312,12 +330,12 @@ final class MainViewController: NSViewController {
         )
         self.vpnUpsellPopoverPresenter = vpnUpsellPopoverPresenter
         self.startupProfiler = startupProfiler
+        self.pixelFiring = pixelFiring
 
         super.init(nibName: nil, bundle: nil)
 
         aiChatOmnibarController.delegate = self
         browserTabViewController.delegate = self
-        findInPageViewController.delegate = self
     }
 
     override func loadView() {
@@ -327,8 +345,6 @@ final class MainViewController: NSViewController {
         addAndLayoutChild(bookmarksBarViewController, into: mainView.bookmarksBarContainerView)
         addAndLayoutChild(navigationBarViewController, into: mainView.navigationBarContainerView)
         addAndLayoutChild(browserTabViewController, into: mainView.webContainerView)
-        addAndLayoutChild(findInPageViewController, into: mainView.findInPageContainerView)
-        addAndLayoutChild(fireViewController, into: mainView.fireContainerView)
         addAndLayoutChild(aiChatOmnibarContainerViewController, into: mainView.aiChatOmnibarContainerView)
         addAndLayoutChild(aiChatOmnibarTextContainerViewController, into: mainView.aiChatOmnibarTextContainerView)
     }
@@ -551,7 +567,7 @@ final class MainViewController: NSViewController {
         let behavior: LinkOpenBehavior = tabCollectionViewModel.selectedTabViewModel?.tab.content == .newtab
             ? .currentTab
             : .newTab(selected: true)
-        NSApp.delegateTyped.aiChatTabOpener.openNewAIChat(in: behavior)
+        aiChatTabOpener.openNewAIChat(in: behavior)
     }
 
     func toggleDuckAISidebar() {
