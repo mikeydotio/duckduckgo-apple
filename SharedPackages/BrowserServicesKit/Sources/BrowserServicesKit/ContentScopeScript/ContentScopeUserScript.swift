@@ -317,6 +317,19 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
     public let injectionTime: WKUserScriptInjectionTime = .atDocumentStart
     public let forMainFrameOnly: Bool = false
     public var requiresRunInPageContentWorld: Bool { !self.scriptContext.isIsolated }
+
+    public var debugName: String {
+        switch scriptContext {
+        case .contentScope:
+            return "ContentScopeUserScript"
+        case .contentScopeIsolated:
+            return "ContentScopeUserScript (Isolated)"
+        case .aiChatDataClearing:
+            return "ContentScopeUserScript (AI Chat Data Clearing)"
+        case .aiChatHistory:
+            return "ContentScopeUserScript (AI Chat History)"
+        }
+    }
 }
 
 @available(macOS 11.0, iOS 14.0, *)

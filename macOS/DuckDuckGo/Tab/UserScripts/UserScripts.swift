@@ -278,7 +278,7 @@ final class UserScripts: UserScriptsProvider, ReleaseNotesUserScriptProvider {
         return await withTaskGroup(of: WKUserScriptBox.self) { @MainActor group in
             var wkUserScripts = [WKUserScript]()
             userScripts
-                .filter { !disabled.contains(String(describing: type(of: $0))) }
+                .filter { !disabled.contains($0.debugName) }
                 .forEach { userScript in
                     group.addTask { @MainActor in
                         await userScript.makeWKUserScript()

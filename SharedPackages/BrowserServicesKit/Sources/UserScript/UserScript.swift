@@ -32,11 +32,19 @@ public protocol UserScript: WKScriptMessageHandler {
 
     var messageNames: [String] { get }
 
+    /// Human-readable name used in debug tooling. Defaults to the class name.
+    /// Override when multiple instances of the same class exist (e.g. isolated vs non-isolated variants).
+    var debugName: String { get }
+
     func makeWKUserScript() async -> WKUserScriptBox
 
 }
 
 extension UserScript {
+
+    public var debugName: String {
+        String(describing: type(of: self))
+    }
 
     static public var requiresRunInPageContentWorld: Bool {
         return false

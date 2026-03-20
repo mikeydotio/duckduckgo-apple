@@ -97,7 +97,7 @@ final class UserScriptsDebugMenu: NSMenu, NSMenuDelegate {
     private func currentTabScriptNames() -> [String] {
         guard let scripts = currentTabUserScripts() else { return [] }
         return scripts.userScripts
-            .map { String(describing: type(of: $0)) }
+            .map { $0.debugName }
             .sorted()
     }
 
