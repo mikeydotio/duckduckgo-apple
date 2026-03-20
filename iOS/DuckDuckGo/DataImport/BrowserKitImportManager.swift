@@ -121,18 +121,9 @@ final class BrowserKitImportManager: BrowserKitImportManaging {
             }
 
             do {
-                Logger.general.debug("Received BrowserKit import request")
+                Logger.bookmarks.debug("Received BrowserKit import request")
 
                 let importedData = try await importSupportedData(token: token)
-                let folderCount = importedData.bookmarks.filter(\.isFolder).count
-                let bookmarkCount = importedData.bookmarks.count - folderCount
-                let nodesWithParentCount = importedData.bookmarks.filter { bookmark in
-                    guard let parentIdentifier = bookmark.parentIdentifier else { return false }
-                    return !parentIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                }.count
-                Logger.general.debug(
-                    "BrowserKit import payload: folders=\(folderCount, privacy: .public), bookmarks=\(bookmarkCount, privacy: .public), with-parent=\(nodesWithParentCount, privacy: .public), reading-list=\(importedData.readingListItems.count, privacy: .public)"
-                )
 
                 let bookmarks = createBookmarksForImport(bookmarks: importedData.bookmarks,
                                                          readingListItems: importedData.readingListItems)
@@ -143,9 +134,9 @@ final class BrowserKitImportManager: BrowserKitImportManaging {
                     self.onImportResult(.success(summary))
                 }
             } catch is CancellationError {
-                Logger.general.debug("BrowserKit import request cancelled")
+                Logger.bookmarks.debug("BrowserKit import request cancelled")
             } catch {
-                Logger.general.error("BrowserKit import failed: \(error.localizedDescription, privacy: .public)")
+                Logger.bookmarks.error("BrowserKit import failed: \(error.localizedDescription, privacy: .public)")
                 await MainActor.run {
                     self.onImportResult(.failure(error))
                 }
@@ -175,22 +166,16 @@ private extension BrowserKitImportManager {
 
     func importSupportedData(token: UUID) async throws -> ImportedData {
         var importedData = ImportedData()
-        var streamItemIndex = 0
 
         for try await browserData in browserDataImportManager.importBrowserData(token: token) {
             switch browserData {
             case .bookmark(let bookmark):
                 importedData.bookmarks.append(bookmark)
-                logRawIncomingBookmark(bookmark, at: streamItemIndex)
             case .readingListItem(let readingListItem):
                 importedData.readingListItems.append(readingListItem)
-                logRawIncomingReadingListItem(readingListItem, at: streamItemIndex)
             case .unsupported(let typeName):
-                Logger.general.debug(
-                    "Skipping unsupported BrowserKit data type: idx=\(streamItemIndex, privacy: .public), type=\(typeName, privacy: .public)"
-                )
+                Logger.bookmarks.debug("Skipping unsupported BrowserKit data type: type=\(typeName, privacy: .public)")
             }
-            streamItemIndex += 1
         }
 
         return importedData
@@ -200,27 +185,5 @@ private extension BrowserKitImportManager {
                                   readingListItems: [BrowserKitReadingListNode]) -> [BookmarkOrFolder] {
         BrowserKitBookmarkTreeBuilder().build(bookmarks: bookmarks,
                                               readingListItems: readingListItems)
-    }
-
-    private func logRawIncomingBookmark(_ bookmark: BrowserKitBookmarkNode, at index: Int) {
-#if DEBUG
-        let parentIdentifier = bookmark.parentIdentifier ?? "nil"
-        let urlString = bookmark.url?.absoluteString ?? "nil"
-        Logger.general.debug(
-            """
-            BrowserKit raw bookmark: idx=\(index, privacy: .public), id=\(bookmark.identifier, privacy: .public), parent=\(parentIdentifier, privacy: .public), is-folder=\(bookmark.isFolder, privacy: .public), title=\(bookmark.title, privacy: .private), url=\(urlString, privacy: .private)
-            """
-        )
-#endif
-    }
-
-    private func logRawIncomingReadingListItem(_ readingListItem: BrowserKitReadingListNode, at index: Int) {
-#if DEBUG
-        Logger.general.debug(
-            """
-            BrowserKit raw reading-list: idx=\(index, privacy: .public), title=\(readingListItem.title, privacy: .private), url=\(readingListItem.url.absoluteString, privacy: .private)
-            """
-        )
-#endif
     }
 }

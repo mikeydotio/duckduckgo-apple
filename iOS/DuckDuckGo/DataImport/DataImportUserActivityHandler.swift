@@ -96,13 +96,13 @@ final class BrowserKitUserActivityHandler: DataImportUserActivityHandling {
         }
 
         guard let importToken = Self.importToken(from: userActivity) else {
-            Logger.general.error("Skipping BrowserKit data import activity without import token")
+            Logger.bookmarks.error("Skipping BrowserKit data import activity without import token")
             return false
         }
         let activityIdentifier = importToken.uuidString
 
         guard shouldHandleActivity(withIdentifier: activityIdentifier) else {
-            Logger.general.debug("Skipping duplicate BrowserKit data import activity")
+            Logger.bookmarks.debug("Skipping duplicate BrowserKit data import activity")
             return true
         }
 

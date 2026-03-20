@@ -20,7 +20,6 @@
 import Foundation
 import BrowserServicesKit
 import Bookmarks
-import os.log
 
 struct BrowserKitBookmarkNode {
     let identifier: String
@@ -74,25 +73,16 @@ struct BrowserKitBookmarkTreeBuilder {
         let isFolder: Bool
     }
 
-    private enum BuildStrategy: String {
-        case streamOrder = "stream-order"
-        case numericFallback = "numeric-fallback"
-    }
-
     private static let readingListFolderTitle = "Reading List"
     private static let rootFolderParentIdentifier = "0"
 
     func build(bookmarks: [BrowserKitBookmarkNode],
                readingListItems: [BrowserKitReadingListNode]) -> [BookmarkOrFolder] {
-        Logger.general.debug(
-            "BrowserKit tree build started: bookmarks=\(bookmarks.count, privacy: .public), readingList=\(readingListItems.count, privacy: .public)"
-        )
         // First pass: build the tree using the original stream order from BrowserKit.
         // This works when items arrive in a parent-before-child sequence.
         let streamRecords = makeBookmarkRecords(from: bookmarks)
         let streamResult = buildTree(records: streamRecords,
-                                     readingListItems: readingListItems,
-                                     strategy: .streamOrder)
+                                     readingListItems: readingListItems)
 
         guard streamResult.signals.suggestsReordering else {
             return streamResult.roots
@@ -105,15 +95,6 @@ struct BrowserKitBookmarkTreeBuilder {
         }
 
         guard canUseNumericFallback else {
-            Logger.general.debug(
-                """
-                BrowserKit tree keeping stream-order despite fallback-signals: \
-                root-children-without-root=\(streamResult.signals.rootFolderChildrenWithoutActiveRoot, privacy: .public), \
-                root-children-preceding-root=\(streamResult.signals.rootFolderChildrenPrecedingActiveRoot, privacy: .public), \
-                unresolved-parent-references=\(streamResult.signals.unresolvedParentReferences, privacy: .public), \
-                reason=non-numeric-identifiers
-                """
-            )
             return streamResult.roots
         }
 
@@ -121,17 +102,8 @@ struct BrowserKitBookmarkTreeBuilder {
         let fallbackRecords = makeBookmarkRecords(from: bookmarks)
         let numericOrderedRecords = makeNumericOrderedRecords(from: fallbackRecords)
         let fallbackResult = buildTree(records: numericOrderedRecords,
-                                       readingListItems: readingListItems,
-                                       strategy: .numericFallback)
+                                       readingListItems: readingListItems)
 
-        Logger.general.debug(
-            """
-            BrowserKit tree fallback applied: stream-fallback-signals \
-            root-children-without-root=\(streamResult.signals.rootFolderChildrenWithoutActiveRoot, privacy: .public), \
-            root-children-preceding-root=\(streamResult.signals.rootFolderChildrenPrecedingActiveRoot, privacy: .public), \
-            unresolved-parent-references=\(streamResult.signals.unresolvedParentReferences, privacy: .public)
-            """
-        )
         return fallbackResult.roots
     }
 
@@ -150,18 +122,13 @@ struct BrowserKitBookmarkTreeBuilder {
     }
 
     private func buildTree(records: [BookmarkRecord],
-                           readingListItems: [BrowserKitReadingListNode],
-                           strategy: BuildStrategy) -> BuildResult {
+                           readingListItems: [BrowserKitReadingListNode]) -> BuildResult {
         var topLevelNodes: [BookmarkOrFolder] = []
         var foldersByIdentifier: [String: BookmarkOrFolder] = [:]
         var currentRootFolder: RootFolder?
         var activeNestedFolder: BookmarkOrFolder?
         var unplacedRecords: [UnplacedRecord] = []
         var signals = TreeBuildSignals()
-
-        Logger.general.debug(
-            "BrowserKit tree processing order: strategy=\(strategy.rawValue, privacy: .public)"
-        )
 
         for record in records {
             guard let parentIdentifier = record.parentIdentifier else {
@@ -263,13 +230,6 @@ struct BrowserKitBookmarkTreeBuilder {
                 signals.unresolvedParentReferences += 1
             }
 
-            Logger.general.debug(
-                """
-                BrowserKit tree resolution pass: strategy=\(strategy.rawValue, privacy: .public), \
-                resolved=\(resolvedCount, privacy: .public), \
-                unresolved-parent-references=\(signals.unresolvedParentReferences, privacy: .public)
-                """
-            )
         }
 
         let readingListBookmarks = makeReadingListBookmarks(from: readingListItems)
@@ -280,21 +240,7 @@ struct BrowserKitBookmarkTreeBuilder {
                                  urlString: nil,
                                  children: readingListBookmarks)
             )
-            Logger.general.debug(
-                """
-                BrowserKit tree reading list appended: strategy=\(strategy.rawValue, privacy: .public), \
-                count=\(readingListBookmarks.count, privacy: .public)
-                """
-            )
         }
-
-        Logger.general.debug(
-            """
-            BrowserKit tree build finished: strategy=\(strategy.rawValue, privacy: .public), \
-            roots=\(topLevelNodes.count, privacy: .public), \
-            suggests-reordering=\(signals.suggestsReordering, privacy: .public)
-            """
-        )
         return BuildResult(roots: topLevelNodes, signals: signals)
     }
 
