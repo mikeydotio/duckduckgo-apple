@@ -19,6 +19,7 @@
 import Foundation
 import WebKit
 import CryptoKit
+import os.log
 private enum JSFileCache {
 
     private static let lock = NSLock()
@@ -134,8 +135,38 @@ extension UserScript {
     }
 
     public static func loadJS(_ jsFile: String, from bundle: Bundle, withReplacements replacements: [String: String] = [:]) throws -> String {
-        let js = try JSFileCache.content(forFile: jsFile, in: bundle)
-        return JSFileCache.applyReplacements(js, replacements)
+        let path = bundle.path(forResource: jsFile, ofType: "js")!
+        var result: String = ""
+        var old, new: CFTimeInterval
+
+        do {
+            let timestamp = CACurrentMediaTime()
+            var js = try String(contentsOfFile: path)
+
+            for (key, value) in replacements {
+                js = js.replacingOccurrences(of: key, with: value, options: .literal)
+            }
+
+            result = js
+            old = CACurrentMediaTime() - timestamp
+
+        } catch {
+            throw UserScriptError.failedToLoadJS(jsFile: jsFile, error: error)
+        }
+
+        do {
+            let timestamp = CACurrentMediaTime()
+            let js = try JSFileCache.content(forFile: jsFile, in: bundle)
+            result = JSFileCache.applyReplacements(js, replacements)
+            new = CACurrentMediaTime() - timestamp
+        } catch {
+            throw UserScriptError.failedToLoadJS(jsFile: jsFile, error: error)
+        }
+
+        Logger.general.info("loadJS \(path.lastPathComponent) \(replacements.keys.count) =========================")
+        Logger.general.info("loadJS old: \(old)")
+        Logger.general.info("loadJS new: \(new)")
+        return result
     }
 
     fileprivate nonisolated static func prepareScriptSource(from source: String) -> String {
