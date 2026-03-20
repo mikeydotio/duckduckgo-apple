@@ -58,8 +58,18 @@ final class SubscriptionPromoPresenter: NSObject, SubscriptionPromoPresenting {
         hostingController.modalTransitionStyle = .coverVertical
 
         configurePresentationStyle(hostingController: hostingController)
+        hostingController.presentationController?.delegate = self
 
         return hostingController
+    }
+}
+
+// MARK: - UIAdaptivePresentationControllerDelegate
+
+extension SubscriptionPromoPresenter: UIAdaptivePresentationControllerDelegate {
+
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        coordinator.handleDismissAction()
     }
 }
 
