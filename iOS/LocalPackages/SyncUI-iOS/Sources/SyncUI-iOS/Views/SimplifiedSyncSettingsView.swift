@@ -36,13 +36,19 @@ public struct SimplifiedSyncSettingsView: View {
 
     public var body: some View {
         List {
+            syncWarningBanners
+            headerSection
+            syncToggleSection
+
             if model.isSyncEnabled {
-                syncEnabledContent
+                syncEnabledSections
             } else {
-                syncDisabledContent
+                syncDisabledSections
             }
         }
         .navigationTitle(UserText.syncTitle)
+        .animation(.easeInOut(duration: 0.3), value: model.isSyncEnabled)
+        .animation(.easeInOut(duration: 0.3), value: model.devices.isEmpty)
         .applyListStyle()
         .environmentObject(model)
         .alert(isPresented: $model.shouldShowPasscodeRequiredAlert) {
@@ -79,10 +85,17 @@ public struct SimplifiedSyncSettingsView: View {
 extension SimplifiedSyncSettingsView {
 
     @ViewBuilder
-    var syncDisabledContent: some View {
-        syncUnavailableViewWhileLoggedOut
-        headerSection
-        syncToggleSection
+    var syncWarningBanners: some View {
+        if model.isSyncEnabled {
+            syncUnavailableViewWhileLoggedIn
+            syncPausedBanners
+        } else {
+            syncUnavailableViewWhileLoggedOut
+        }
+    }
+
+    @ViewBuilder
+    var syncDisabledSections: some View {
         alreadySetUpSection
         getDesktopBrowserSection(source: .notActivated)
     }
@@ -102,13 +115,29 @@ extension SimplifiedSyncSettingsView {
     var headerSection: some View {
         Section {
             VStack(spacing: 20) {
-                Image(model.isSyncEnabled ? "Sync-Pair-96" : "Sync-New-128")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 128, height: 96)
-                    .padding(.top, -16)
+                ZStack {
+                    Image("Sync-New-128")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 128, height: 96)
+                        .opacity(model.isSyncEnabled ? 0 : 1)
 
-                if model.isSyncEnabled {
+                    Image("Sync-Pair-96")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 128, height: 96)
+                        .opacity(model.isSyncEnabled ? 1 : 0)
+                }
+                .padding(.top, -16)
+
+                ZStack {
+                    Text(model.isAIChatSyncEnabled ? UserText.simplifiedSyncHeaderMessage : UserText.simplifiedSyncHeaderMessageBasic)
+                        .daxBodyRegular()
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                        .opacity(model.isSyncEnabled ? 0 : 1)
+                        .accessibilityHidden(model.isSyncEnabled)
+
                     Button(action: model.scanQRCode) {
                         HStack(spacing: 8) {
                             Image(uiImage: DesignSystemImages.Glyphs.Size16.qr)
@@ -118,11 +147,9 @@ extension SimplifiedSyncSettingsView {
                     .buttonStyle(PrimaryButtonStyle(disabled: !model.isConnectingDevicesAvailable, compact: true, fullWidth: false))
                     .disabled(!model.isConnectingDevicesAvailable)
                     .padding(.vertical, 10)
-                } else {
-                    Text(model.isAIChatSyncEnabled ? UserText.simplifiedSyncHeaderMessage : UserText.simplifiedSyncHeaderMessageBasic)
-                        .daxBodyRegular()
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                    .opacity(model.isSyncEnabled ? 1 : 0)
+                    .allowsHitTesting(model.isSyncEnabled)
+                    .accessibilityHidden(!model.isSyncEnabled)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -240,12 +267,11 @@ extension SimplifiedSyncSettingsView {
 extension SimplifiedSyncSettingsView {
 
     @ViewBuilder
-    var syncEnabledContent: some View {
-        syncUnavailableViewWhileLoggedIn
-        syncPausedBanners
-        headerSection
-        syncToggleSection
-        syncedDevicesSection
+    var syncEnabledSections: some View {
+        if model.devices.isEmpty == false {
+            syncedDevicesSection
+        }
+
         getDesktopBrowserSection(source: .activated)
         bookmarksSection
         recoverySection
@@ -344,9 +370,6 @@ extension SimplifiedSyncSettingsView {
     @ViewBuilder
     var syncedDevicesSection: some View {
         Section {
-            if model.devices.isEmpty {
-                ProgressView()
-            }
             devicesList
         } header: {
             HStack {
@@ -381,6 +404,7 @@ extension SimplifiedSyncSettingsView {
                     }
                 }
             }
+            .transition(.opacity)
             .accessibility(identifier: "device")
         }
     }
@@ -416,7 +440,7 @@ extension SimplifiedSyncSettingsView {
         } header: {
             Text(UserText.simplifiedBookmarksSectionHeader)
         } footer: {
-            Text(LocalizedStringKey(String(format: UserText.simplifiedBookmarksSectionFooterFormat, "https://duckduckgo.com/duckduckgo-help-pages/sync-and-backup/syncing-favorites")))
+            Text(LocalizedStringKey(String(format: UserText.simplifiedBookmarksSectionFooterFormat, "ddgQuickLink://duckduckgo.com/duckduckgo-help-pages/sync-and-backup/syncing-favorites")))
                 .tint(Color(designSystemColor: .accent))
         }
         .onAppear {
