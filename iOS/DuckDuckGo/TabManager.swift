@@ -126,6 +126,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
     private let textZoomCoordinatorProvider: TextZoomCoordinatorProviding
     private let autoconsentManagementProvider: AutoconsentManagementProviding
     private let fireproofing: Fireproofing
+    private let favicons: FaviconManaging
     private let websiteDataManager: WebsiteDataManaging
     private let appSettings: AppSettings
     private let autoplaySettings: AutoplaySettings
@@ -172,6 +173,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
          autoconsentManagementProvider: AutoconsentManagementProviding,
          websiteDataManager: WebsiteDataManaging,
          fireproofing: Fireproofing,
+         favicons: FaviconManaging,
          maliciousSiteProtectionManager: MaliciousSiteProtectionManaging,
          maliciousSiteProtectionPreferencesManager: MaliciousSiteProtectionPreferencesManaging,
          featureDiscovery: FeatureDiscovery,
@@ -206,6 +208,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
         self.autoconsentManagementProvider = autoconsentManagementProvider
         self.websiteDataManager = websiteDataManager
         self.fireproofing = fireproofing
+        self.favicons = favicons
         self.maliciousSiteProtectionManager = maliciousSiteProtectionManager
         self.maliciousSiteProtectionPreferencesManager = maliciousSiteProtectionPreferencesManager
         self.featureDiscovery = featureDiscovery
@@ -287,6 +290,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
                                                               autoconsentManagement: autoconsentManagement,
                                                               websiteDataManager: websiteDataManager,
                                                               fireproofing: fireproofing,
+                                                              favicons: favicons,
                                                               tabInteractionStateSource: interactionStateSource,
                                                               specialErrorPageNavigationHandler: specialErrorPageNavigationHandler,
                                                               featureDiscovery: featureDiscovery,
@@ -396,6 +400,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
                                                               autoconsentManagement: autoconsentManagement,
                                                               websiteDataManager: websiteDataManager,
                                                               fireproofing: fireproofing,
+                                                              favicons: favicons,
                                                               tabInteractionStateSource: interactionStateSource,
                                                               specialErrorPageNavigationHandler: specialErrorPageNavigationHandler,
                                                               featureDiscovery: featureDiscovery,
@@ -640,7 +645,7 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
             // filter images that don't have a corresponding tab
             let toDelete = imageDomainURLs.filter { !tabLinksHashed.contains($0) }
             toDelete.forEach {
-                Favicons.shared.removeTabFavicon(forCacheKey: $0)
+                self.favicons.removeTabFavicon(forCacheKey: $0)
             }
 
             self.tabsCacheNeedsCleanup = false
