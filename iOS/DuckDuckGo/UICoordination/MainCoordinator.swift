@@ -640,8 +640,8 @@ extension MainCoordinator: UserActivityHandling {
 
     private func handleDataImportResult(_ result: Result<DataImportSummary, Error>) {
         switch result {
-        case .success:
-            Logger.general.debug("Data import success - present summary screen")
+        case .success(let summary):
+            controller.presentDataImportSummary(summary, importScreen: .bookmarks)
         case .failure(let error):
             Logger.general.error("Data import failed: \(error.localizedDescription, privacy: .public)")
         }

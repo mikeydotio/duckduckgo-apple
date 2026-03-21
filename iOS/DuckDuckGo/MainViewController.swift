@@ -4248,13 +4248,16 @@ extension MainViewController: GestureToolbarButtonDelegate {
 
 extension MainViewController {
 
-    func clearNavigationStack() {
+    func clearNavigationStack(completion: (() -> Void)? = nil) {
         dismissOmniBar()
 
-        if let presented = presentedViewController {
-            presented.dismiss(animated: false) { [weak self] in
-                self?.clearNavigationStack()
-            }
+        guard let presented = presentedViewController else {
+            completion?()
+            return
+        }
+
+        presented.dismiss(animated: false) { [weak self] in
+            self?.clearNavigationStack(completion: completion)
         }
     }
 

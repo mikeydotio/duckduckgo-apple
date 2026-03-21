@@ -396,6 +396,28 @@ extension MainViewController {
         }
     }
 
+    func presentDataImportSummary(_ summary: DataImportSummary,
+                                  importScreen: DataImportViewModel.ImportScreen = .bookmarks) {
+        clearNavigationStack { [weak self] in
+            guard let self else { return }
+
+            let summaryViewController = self.makeDataImportSummaryViewController(summary: summary, importScreen: importScreen)
+            self.present(summaryViewController, animated: true)
+        }
+    }
+
+    private func makeDataImportSummaryViewController(summary: DataImportSummary,
+                                                     importScreen: DataImportViewModel.ImportScreen) -> DataImportSummaryViewController {
+        DataImportSummaryViewController(summary: summary,
+                                        importScreen: importScreen,
+                                        syncService: syncService) { [weak self] source in
+            guard let self else { return }
+            dismissPresentedDataImportSummaryIfNeeded {
+                self.segueToSettingsSync(with: source)
+            }
+        } onCompletion: { }
+    }
+
     func segueToFeedback() {
         Logger.lifecycle.debug(#function)
         hideAllHighlightsIfNeeded()
@@ -542,6 +564,24 @@ extension MainViewController {
         if !daxDialogsManager.shouldShowFireButtonPulse {
             ViewHighlighter.hideAll()
         }
+    }
+
+    private func dismissPresentedDataImportSummaryIfNeeded(completion: @escaping () -> Void) {
+        let topMostViewController = topMostPresentedViewController(startingFrom: self)
+        guard topMostViewController is DataImportSummaryViewController else {
+            completion()
+            return
+        }
+
+        topMostViewController.dismiss(animated: true, completion: completion)
+    }
+
+    private func topMostPresentedViewController(startingFrom rootViewController: UIViewController) -> UIViewController {
+        var currentViewController = rootViewController
+        while let presentedViewController = currentViewController.presentedViewController {
+            currentViewController = presentedViewController
+        }
+        return currentViewController
     }
     
 }
