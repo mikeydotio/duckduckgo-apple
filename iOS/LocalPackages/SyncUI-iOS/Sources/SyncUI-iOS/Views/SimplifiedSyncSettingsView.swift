@@ -77,6 +77,9 @@ public struct SimplifiedSyncSettingsView: View {
                 }
             }
         }
+        .sheet(isPresented: $model.isSyncWithAnotherDevicePromptVisible) {
+            SyncAnotherDevicePromptView(model: model)
+        }
     }
 }
 
@@ -191,7 +194,7 @@ extension SimplifiedSyncSettingsView {
                 Text(UserText.simplifiedSyncToggleTitle)
                     .daxBodyRegular()
                 Spacer()
-                if model.isBusy {
+                if model.isBusy && !model.isSyncEnabled {
                     Text(UserText.simplifiedSyncConnecting)
                         .daxBodyRegular()
                         .foregroundColor(Color(designSystemColor: .textSecondary))

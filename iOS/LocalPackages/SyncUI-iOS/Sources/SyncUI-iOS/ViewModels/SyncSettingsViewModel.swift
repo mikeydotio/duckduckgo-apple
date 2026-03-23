@@ -21,6 +21,32 @@ import Foundation
 import UIKit
 import Combine
 
+/// Used to track the status of whether or not we've shown the Sync Another Device prompt
+/// to the user, whether it's been dismissed, and whether we need to show it again.
+///
+public enum SyncAnotherDevicePromptState: Int {
+    case notYetShown = 0
+    case remindedOnce = 1
+    case dismissed = 2
+
+    public static let storageKey = "sync.simplified.sync-another-device-prompt.state"
+
+    public var shouldShow: Bool { self != .dismissed }
+
+    public var dismissButtonTitle: String {
+        switch self {
+        case .notYetShown:
+            return UserText.simplifiedSyncAnotherDeviceRemind
+        case .remindedOnce, .dismissed:
+            return UserText.simplifiedSyncAnotherDeviceDismiss
+        }
+    }
+
+    public var next: SyncAnotherDevicePromptState {
+        SyncAnotherDevicePromptState(rawValue: rawValue + 1) ?? .dismissed
+    }
+}
+
 public protocol SyncManagementViewModelDelegate: AnyObject {
 
     func authenticateUser() async throws
@@ -51,6 +77,8 @@ public protocol SyncManagementViewModelDelegate: AnyObject {
     // Simplified sync setup experiment
     func simplifiedCreateAccountAndStartSyncing(optionsViewModel: SyncSettingsViewModel)
     func simplifiedConfirmAndDisableSync() async -> Bool
+    func simplifiedSyncAnotherDevicePromptWasDismissed()
+    var simplifiedSyncAnotherDevicePromptState: SyncAnotherDevicePromptState { get }
 
     var syncBookmarksPausedTitle: String? { get }
     var syncCredentialsPausedTitle: String? { get }
@@ -159,6 +187,7 @@ public class SyncSettingsViewModel: ObservableObject {
     @Published public var isAppVersionNotSupported: Bool = false
     @Published public var isSyncWithSetUpSheetVisible: Bool = false
     @Published public var isRecoverSyncedDataSheetVisible: Bool = false
+    @Published public var isSyncWithAnotherDevicePromptVisible: Bool = false
 
     @Published var shouldShowPasscodeRequiredAlert: Bool = false
 
@@ -386,6 +415,22 @@ public class SyncSettingsViewModel: ObservableObject {
                 isSyncEnabled = false
             }
         }
+    }
+
+    public var simplifiedSyncAnotherDevicePromptDismissButtonTitle: String {
+        delegate?.simplifiedSyncAnotherDevicePromptState.dismissButtonTitle ?? UserText.simplifiedSyncAnotherDeviceDismiss
+    }
+
+    public func checkAndShowSyncWithAnotherDevicePrompt() {
+        guard isSyncEnabled else { return }
+        guard devices.count == 1 else { return }
+        guard delegate?.simplifiedSyncAnotherDevicePromptState.shouldShow == true else { return }
+        isSyncWithAnotherDevicePromptVisible = true
+    }
+
+    public func dismissSyncWithAnotherDevicePrompt() {
+        isSyncWithAnotherDevicePromptVisible = false
+        delegate?.simplifiedSyncAnotherDevicePromptWasDismissed()
     }
 
     public func copyCode() {

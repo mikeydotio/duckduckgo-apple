@@ -26,6 +26,7 @@ import AVFoundation
 import os.log
 
 extension SyncSettingsViewController: SyncManagementViewModelDelegate {
+
     var syncBookmarksPausedTitle: String? {
         UserText.syncLimitExceededTitle
     }
@@ -721,6 +722,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
                         AutofillOnboardingExperimentPixelReporter().fireSyncEnabled(false)
                         self?.viewModel.isSyncEnabled = false
                         self?.syncPausedStateManager.syncDidTurnOff()
+                        self?.resetSimplifiedSyncAnotherDevicePromptState()
                         continuation.resume(returning: true)
                     } catch {
                         await self?.handleError(SyncErrorMessage.unableToDeleteData, error: error, event: .syncDeleteAccountError)
@@ -798,6 +800,26 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
         }
     }
 }
+
+// MARK: - Simplified Sync
+
+extension SyncSettingsViewController {
+    var simplifiedSyncAnotherDevicePromptState: SyncAnotherDevicePromptState {
+        let rawValue = syncSettingsStore.object(forKey: SyncAnotherDevicePromptState.storageKey) as? Int ?? 0
+        return SyncAnotherDevicePromptState(rawValue: rawValue) ?? .dismissed
+    }
+
+    func simplifiedSyncAnotherDevicePromptWasDismissed() {
+        let next = simplifiedSyncAnotherDevicePromptState.next
+        syncSettingsStore.set(next.rawValue, forKey: SyncAnotherDevicePromptState.storageKey)
+    }
+
+    private func resetSimplifiedSyncAnotherDevicePromptState() {
+        syncSettingsStore.set(SyncAnotherDevicePromptState.notYetShown.rawValue, forKey: SyncAnotherDevicePromptState.storageKey)
+    }
+}
+
+// MARK: - DismissibleHostingController
 
 private class DismissibleHostingController<Content: View>: UIHostingController<Content> {
 
