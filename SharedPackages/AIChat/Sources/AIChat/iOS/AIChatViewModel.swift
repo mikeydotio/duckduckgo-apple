@@ -59,6 +59,9 @@ final class AIChatViewModel: AIChatViewModeling {
     let requestAuthHandler: AIChatRequestAuthorizationHandling
     let inspectableWebView: Bool
     let downloadsPath: URL
+#if DEBUG
+    private var fetchBridge: DuckAILocalServerFetchBridge?
+#endif
 
     init(webViewConfiguration: WKWebViewConfiguration,
          settings: AIChatSettingsProvider,
@@ -123,6 +126,13 @@ final class AIChatViewModel: AIChatViewModeling {
             forMainFrameOnly: true
         )
         controller.addUserScript(migrationScript)
+
+#if DEBUG
+        let bridge = DuckAILocalServerFetchBridge()
+        self.fetchBridge = bridge
+        controller.addScriptMessageHandler(bridge, contentWorld: .page, name: DuckAILocalServerFetchBridge.handlerName)
+        controller.addUserScript(DuckAILocalServerFetchBridge.fetchOverrideScript)
+#endif
     }
 
     private static func migrationScript(port: UInt16) -> String {
