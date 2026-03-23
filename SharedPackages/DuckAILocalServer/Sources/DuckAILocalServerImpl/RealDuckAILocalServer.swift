@@ -32,6 +32,14 @@ public final class RealDuckAILocalServer: DuckAILocalServer, @unchecked Sendable
         self.handlers = handlers
     }
 
+    public static func makeDefault() -> RealDuckAILocalServer {
+        let store = UserDefaultsDuckAISettingsStore()
+        return RealDuckAILocalServer(handlers: [
+            SettingsHandler(store: store),
+            MigrationHandler(store: store),
+        ])
+    }
+
     public func start() async throws {
         guard server == nil else { return }
 

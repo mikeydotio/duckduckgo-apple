@@ -27,6 +27,8 @@ import WebKit
 import Core
 import SwiftUI
 import Combine
+import DuckAILocalServerAPI
+import os.log
 
 protocol AIChatViewControllerManagerDelegate: AnyObject {
     func aiChatViewControllerManager(_ manager: AIChatViewControllerManager, didRequestToLoad url: URL)
@@ -66,6 +68,9 @@ final class AIChatViewControllerManager {
     private var productSurfaceTelemetry: ProductSurfaceTelemetry
     private let freeTrialConversionService: FreeTrialConversionInstrumentationService
     private let statisticsLoader: StatisticsLoader
+
+    private var localServer: (any DuckAILocalServer)?
+    private var localServerStartTask: Task<(any DuckAILocalServer)?, Never>?
 
     // MARK: - Initialization
 
@@ -194,16 +199,18 @@ final class AIChatViewControllerManager {
             subscriptionAIChatStateHandler.reset()
             Task {
                 await cleanUpSession()
-                self.performSetup(query, payload: payload, autoSend: autoSend, tools: tools,
-                                  presentationMode: presentationMode, containerView: containerView,
-                                  viewController: viewController, completion: completion,
-                                  voiceMode: voiceMode)
+                await self.performSetup(query, payload: payload, autoSend: autoSend, tools: tools,
+                                        presentationMode: presentationMode, containerView: containerView,
+                                        viewController: viewController, completion: completion,
+                                        voiceMode: voiceMode)
             }
         } else {
-            performSetup(query, payload: payload, autoSend: autoSend, tools: tools,
-                         presentationMode: presentationMode, containerView: containerView,
-                         viewController: viewController, completion: completion,
-                         voiceMode: voiceMode)
+            Task {
+                await performSetup(query, payload: payload, autoSend: autoSend, tools: tools,
+                                   presentationMode: presentationMode, containerView: containerView,
+                                   viewController: viewController, completion: completion,
+                                   voiceMode: voiceMode)
+            }
         }
     }
 
@@ -217,17 +224,17 @@ final class AIChatViewControllerManager {
                               containerView: UIView?,
                               viewController: UIViewController?,
                               completion: (() -> Void)?,
-                              voiceMode: Bool = false) {
+                              voiceMode: Bool = false) async {
         switch presentationMode {
         case .modal:
             guard let viewController = viewController else { return }
-            setupAndPresentAIChat(query, payload: payload, autoSend: autoSend,
-                                  tools: tools, on: viewController, voiceMode: voiceMode)
+            await setupAndPresentAIChat(query, payload: payload, autoSend: autoSend,
+                                        tools: tools, on: viewController, voiceMode: voiceMode)
         case .container:
             guard let containerView = containerView, let viewController = viewController else { return }
-            setupAndAddToContainer(query, payload: payload, autoSend: autoSend,
-                                   tools: tools, in: containerView,
-                                   parentViewController: viewController, completion: completion)
+            await setupAndAddToContainer(query, payload: payload, autoSend: autoSend,
+                                         tools: tools, in: containerView,
+                                         parentViewController: viewController, completion: completion)
         }
     }
 
@@ -241,8 +248,8 @@ final class AIChatViewControllerManager {
                                        autoSend: Bool,
                                        tools: [AIChatRAGTool]?,
                                        on viewController: UIViewController,
-                                       voiceMode: Bool = false) {
-        let aiChatViewController = createAIChatViewController(presentationMode: .modal)
+                                       voiceMode: Bool = false) async {
+        let aiChatViewController = await createAIChatViewController(presentationMode: .modal)
         setupChatViewController(aiChatViewController, query: query,
                                 payload: payload,
                                 autoSend: autoSend,
@@ -268,8 +275,8 @@ final class AIChatViewControllerManager {
                                         tools: [AIChatRAGTool]?,
                                         in containerView: UIView,
                                         parentViewController: UIViewController,
-                                        completion: (() -> Void)? = nil) {
-        let aiChatViewController = createAIChatViewController(presentationMode: .container)
+                                        completion: (() -> Void)? = nil) async {
+        let aiChatViewController = await createAIChatViewController(presentationMode: .container)
         setupChatViewController(aiChatViewController, query: query,
                                 payload: payload,
                                 autoSend: autoSend,
@@ -295,6 +302,31 @@ final class AIChatViewControllerManager {
     }
 
     // MARK: - Private Helper Methods
+
+    @MainActor
+    private func getOrStartLocalServer() async -> (any DuckAILocalServer)? {
+        if let localServer, localServer.port > 0 {
+            return localServer
+        }
+
+        if let existingTask = localServerStartTask {
+            return await existingTask.value
+        }
+
+        let task = Task<(any DuckAILocalServer)?, Never> { @MainActor in
+            let server = DuckAILocalServerFactory.makeDefault()
+            do {
+                try await server.start()
+                self.localServer = server
+                return server
+            } catch {
+                Logger.aiChat.error("Failed to start DuckAI local server: \(error.localizedDescription)")
+                return nil
+            }
+        }
+        localServerStartTask = task
+        return await task.value
+    }
 
     private func startSessionTimer() {
         guard isKeepSessionEnabled else { return }
@@ -324,10 +356,13 @@ final class AIChatViewControllerManager {
     }
 
     @MainActor
-    private func createAIChatViewController(presentationMode: AIChatPresentationMode = .modal) -> AIChatViewController {
+    private func createAIChatViewController(presentationMode: AIChatPresentationMode = .modal) async -> AIChatViewController {
         if let chatViewController = chatViewController {
             return chatViewController
         }
+
+        let localServer = await getOrStartLocalServer()
+
         let webViewConfiguration = createWebViewConfiguration()
         let inspectableWebView = isInspectableWebViewEnabled()
 
@@ -338,7 +373,8 @@ final class AIChatViewControllerManager {
             inspectableWebView: inspectableWebView,
             downloadsPath: downloadsDirectoryHandler.downloadsDirectory,
             userAgentManager: userAgentManager,
-            presentationMode: presentationMode
+            presentationMode: presentationMode,
+            localServer: localServer
         )
 
         aiChatViewController.delegate = self
