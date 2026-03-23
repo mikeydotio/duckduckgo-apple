@@ -1055,6 +1055,7 @@ extension MainViewController {
         }
     }
 
+    // swiftlint:disable cyclomatic_complexity
     @objc func closeTab(_ sender: Any?) {
         guard let (tab, index) = getActiveTabAndIndex() else { return }
         makeKeyIfNeeded()
@@ -1117,6 +1118,7 @@ extension MainViewController {
 
         tabCollectionViewModel.remove(at: index)
     }
+    // swiftlint:enable cyclomatic_complexity
 
     @MainActor
     private func showFloatingAIChatShortcutCloseConfirmation(
