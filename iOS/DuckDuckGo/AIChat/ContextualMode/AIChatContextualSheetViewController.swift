@@ -490,6 +490,7 @@ private extension AIChatContextualSheetViewController {
             mode: .contextualChat(onDelete: { [weak self] in
                 self?.handleDeleteChatConfirmed()
             }),
+            browsingMode: .normal,
             onConfirm: { _ in },
             onCancel: { [weak self] in
                 self?.dismissFireConfirmation()
