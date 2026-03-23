@@ -362,7 +362,7 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213433942918287?focus=true
     case duckAIVoiceShortcut
 
-    /// Enables the fire button in the contextual AI chat sheet
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213763338305579?focus=true
     case aiChatContextualFireButton
 }
 
