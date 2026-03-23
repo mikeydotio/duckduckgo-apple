@@ -1,12 +1,13 @@
 {
+  "originHash" : "215493b96c05a55c6993e3639d4680b7ba1186c031b9ebccbe4cf18ac9eaacfb",
   "pins" : [
     {
       "identity" : "content-scope-scripts",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "revision" : "13976e04d81eefac5a9c718d886ce99460a9123b",
-        "version" : "13.29.0"
+        "revision" : "01571a934044bfa5345d77241ea60b00334e9d30",
+        "version" : "13.34.0"
       }
     },
     {
@@ -16,6 +17,15 @@
       "state" : {
         "revision" : "c8ce2e7cdcca4226c96350dcd49323298b941592",
         "version" : "19.0.0"
+      }
+    },
+    {
+      "identity" : "flyingfox",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swhitty/FlyingFox.git",
+      "state" : {
+        "revision" : "de38230104cf63ef4843cb569ba11c13f8165685",
+        "version" : "0.26.2"
       }
     },
     {
@@ -91,5 +101,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

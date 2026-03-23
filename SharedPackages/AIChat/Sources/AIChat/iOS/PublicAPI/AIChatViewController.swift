@@ -21,6 +21,7 @@ import UIKit
 import Combine
 import WebKit
 import SwiftUI
+import DuckAILocalServerAPI
 
 /// Defines how the AI Chat view controller should be presented
 public enum AIChatPresentationMode {
@@ -89,13 +90,15 @@ public final class AIChatViewController: UIViewController {
                             inspectableWebView: Bool,
                             downloadsPath: URL,
                             userAgentManager: AIChatUserAgentProviding,
-                            presentationMode: AIChatPresentationMode = .modal) {
+                            presentationMode: AIChatPresentationMode = .modal,
+                            localServer: (any DuckAILocalServer)? = nil) {
         let chatModel = AIChatViewModel(webViewConfiguration: webViewConfiguration,
                                         settings: settings,
                                         requestAuthHandler: requestAuthHandler,
                                         inspectableWebView: inspectableWebView,
                                         downloadsPath: downloadsPath,
-                                        userAgentManager: userAgentManager)
+                                        userAgentManager: userAgentManager,
+                                        localServer: localServer)
         self.init(chatModel: chatModel, presentationMode: presentationMode)
     }
 
