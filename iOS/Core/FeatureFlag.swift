@@ -390,7 +390,8 @@ extension FeatureFlag: FeatureFlagDescribing {
              .iPadDuckaiOnTab,
              .suppressTrackerAnimationOnColdStart,
              .customXSafariRedirectHandling,
-             .syncAutoRestore:
+             .syncAutoRestore,
+             .aiChatDifferentiatedTabCards:
             .enabled
         case .crashReportOptInStatusResetting:
             .internalOnly

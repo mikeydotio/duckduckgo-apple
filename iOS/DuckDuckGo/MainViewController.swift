@@ -1336,8 +1336,8 @@ class MainViewController: UIViewController {
     private func makeEscapeHatchModel(targetTab: Tab) -> EscapeHatchModel? {
         if targetTab.isAITab {
             return EscapeHatchModel(
-                title: UserText.omnibarFullAIChatModeDisplayTitle,
-                subtitle: "Duck.ai",
+                title: targetTab.aiChatConversationTitle ?? UserText.omnibarFullAIChatModeDisplayTitle,
+                subtitle: UserText.omnibarFullAIChatModeDisplayTitle,
                 isAITab: true,
                 domain: nil,
                 targetTab: targetTab

@@ -108,29 +108,6 @@ final class TabViewCell: UICollectionViewCell {
 
     // Grid view
     @IBOutlet weak var preview: UIImageView?
-    private lazy var aiChatPreviewContainer: UIView = {
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.layer.cornerRadius = Constants.previewCornerRadius
-        container.layer.cornerCurve = .continuous
-        container.layer.masksToBounds = true
-        container.backgroundColor = UIColor(designSystemColor: .surfaceCanvas)
-
-        let label = UILabel()
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = UIFont.daxBodyBold()
-        label.textColor = UIColor(designSystemColor: .textPrimary)
-        container.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-        ])
-        aiChatTitleLabel = label
-        return container
-    }()
-    private weak var aiChatTitleLabel: UILabel!
 
     weak var previewAspectRatio: NSLayoutConstraint?
     @IBOutlet var previewTopConstraint: NSLayoutConstraint?
@@ -148,17 +125,6 @@ final class TabViewCell: UICollectionViewCell {
         preview?.layer.cornerRadius = Constants.previewCornerRadius
         preview?.layer.masksToBounds = true
         preview?.layer.cornerCurve = .continuous
-
-        if let previewSuperview = preview?.superview {
-            previewSuperview.addSubview(aiChatPreviewContainer)
-            NSLayoutConstraint.activate([
-                aiChatPreviewContainer.topAnchor.constraint(equalTo: previewSuperview.topAnchor),
-                aiChatPreviewContainer.leadingAnchor.constraint(equalTo: previewSuperview.leadingAnchor),
-                aiChatPreviewContainer.trailingAnchor.constraint(equalTo: previewSuperview.trailingAnchor),
-                aiChatPreviewContainer.bottomAnchor.constraint(equalTo: previewSuperview.bottomAnchor),
-            ])
-            aiChatPreviewContainer.isHidden = true
-        }
 
         backgroundColor = .clear
 
@@ -437,46 +403,21 @@ final class TabViewCell: UICollectionViewCell {
 
         unread.isHidden = tab.viewed
 
-        if tab.isAITab && isDifferentiatedAITabCards {
+        if tab.isAITab {
             let aiChatTitle = UserText.omnibarFullAIChatModeDisplayTitle
             removeButton.accessibilityLabel = UserText.closeTab(withTitle: aiChatTitle, atAddress: "")
             title.accessibilityLabel = UserText.openTab(withTitle: aiChatTitle, atAddress: "")
             title.text = aiChatTitle
-            favicon.image = DesignSystemImages.Color.Size24.aiChatGradient
+            favicon.image = DesignSystemImages.Color.Size24.duckAI
 
-            if let conversationTitle = tab.aiChatConversationTitle {
+            if isDifferentiatedAITabCards, let conversationTitle = tab.aiChatConversationTitle {
                 link?.isHidden = false
                 link?.text = conversationTitle
-                aiChatTitleLabel?.text = conversationTitle
-                aiChatPreviewContainer.isHidden = self.preview == nil
-                self.preview?.isHidden = true
-                self.preview?.image = nil
             } else {
                 link?.isHidden = true
-                aiChatPreviewContainer.isHidden = true
-                self.preview?.isHidden = false
-                if let preview = preview {
-                    self.updatePreviewToDisplay(image: preview)
-                    self.preview?.contentMode = .scaleAspectFill
-                    self.preview?.image = preview
-                } else {
-                    self.preview?.image = nil
-                }
             }
 
-            removeButton.isHidden = false
-
-        } else if tab.isAITab {
-            aiChatPreviewContainer.isHidden = true
-            let aiChatTitle = UserText.omnibarFullAIChatModeDisplayTitle
-            removeButton.accessibilityLabel = UserText.closeTab(withTitle: aiChatTitle, atAddress: "")
-            title.accessibilityLabel = UserText.openTab(withTitle: aiChatTitle, atAddress: "")
-            title.text = aiChatTitle
-            favicon.image = DesignSystemImages.Color.Size24.aiChatGradient
-
-            link?.isHidden = true
             self.preview?.isHidden = false
-
             if let preview = preview {
                 self.updatePreviewToDisplay(image: preview)
                 self.preview?.contentMode = .scaleAspectFill
@@ -488,7 +429,6 @@ final class TabViewCell: UICollectionViewCell {
             removeButton.isHidden = false
 
         } else if tab.link == nil {
-            aiChatPreviewContainer.isHidden = true
             updatePreviewToDisplayLogo()
             self.preview?.isHidden = !tab.viewed
             self.preview?.image = logoImage
@@ -504,7 +444,6 @@ final class TabViewCell: UICollectionViewCell {
             removeButton.isHidden = !tab.viewed
 
         } else {
-            aiChatPreviewContainer.isHidden = true
             self.preview?.isHidden = false
             link?.isHidden = false
             link?.text = tab.link?.url.absoluteString ?? ""
@@ -559,10 +498,6 @@ final class TabViewCell: UICollectionViewCell {
         background.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
         title.primaryColor = UIColor(designSystemColor: .textPrimary)
         link?.primaryColor = UIColor(designSystemColor: .textSecondary)
-        if preview != nil {
-            aiChatTitleLabel?.textColor = UIColor(designSystemColor: .textPrimary)
-            aiChatPreviewContainer.backgroundColor = UIColor(designSystemColor: .surfaceCanvas)
-        }
 
         background.superview?.backgroundColor = .clear
     }
