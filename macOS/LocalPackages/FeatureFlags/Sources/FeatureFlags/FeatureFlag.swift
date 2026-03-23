@@ -296,6 +296,9 @@ public enum FeatureFlag: String, CaseIterable {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212901927858518?focus=true
     case supportsSyncChatsDeletion
+
+    /// Enables the v4 linear onboarding flow for internal users
+    case onboardingV4Flow
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -423,7 +426,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .nextStepsListAdvancedCardOrdering,
                 .wideEventPostEndpoint,
                 .freeTrialConversionWideEvent,
-                .supportsSyncChatsDeletion:
+                .supportsSyncChatsDeletion,
+                .onboardingV4Flow:
             return true
         case .freemiumDBP,
                 .contextualOnboarding,
@@ -610,6 +614,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(PrivacyProSubfeature.freeTrialConversionWideEvent))
         case .supportsSyncChatsDeletion:
             return .remoteReleasable(.subfeature(AIChatSubfeature.supportsSyncChatsDeletion))
+        case .onboardingV4Flow:
+            return .remoteReleasable(.subfeature(OnboardingSubfeature.v4OnboardingFlow))
         }
     }
 }

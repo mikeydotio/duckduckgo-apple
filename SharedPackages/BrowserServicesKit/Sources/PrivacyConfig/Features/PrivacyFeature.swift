@@ -563,6 +563,9 @@ public enum OnboardingSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .extendedOnboarding }
 
     case showSettingsCompleteSetupSection
+
+    /// Enables the v4 linear onboarding flow
+    case v4OnboardingFlow
 }
 
 public enum ExperimentalThemingSubfeature: String, PrivacySubfeature {

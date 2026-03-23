@@ -104,7 +104,7 @@ final class OnboardingActionsManager: OnboardingActionsManaging {
 
     var configuration: OnboardingConfiguration {
         var systemSettings: SystemSettings
-        let order = "v3"
+        let order = featureFlagger.isFeatureOn(.onboardingV4Flow) ? "v4" : "v3"
         let platform = OnboardingPlatform(name: "macos")
 #if APPSTORE
         systemSettings = SystemSettings(rows: ["import"])
