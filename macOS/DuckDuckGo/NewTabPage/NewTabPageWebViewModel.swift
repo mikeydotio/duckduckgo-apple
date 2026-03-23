@@ -96,7 +96,7 @@ extension NewTabPageWebViewModel: WKUIDelegate {
         let openPanel = NSOpenPanel()
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = parameters.allowsDirectories
-        openPanel.allowsMultipleSelection = false
+        openPanel.allowsMultipleSelection = true
         openPanel.allowedContentTypes = [.jpeg, .png, .webP]
         openPanel.beginSheetModal(for: window) { response in
             completionHandler(response == .OK ? openPanel.urls : nil)
