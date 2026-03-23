@@ -121,6 +121,7 @@ struct BrowserKitBookmarkTreeBuilder {
         parentFolder.children?.append(treeNode)
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     private func buildTree(records: [BookmarkRecord],
                            readingListItems: [BrowserKitReadingListNode]) -> BuildResult {
         var topLevelNodes: [BookmarkOrFolder] = []
@@ -285,8 +286,7 @@ struct BrowserKitBookmarkTreeBuilder {
 
     private func normalizedIdentifier(_ identifier: String?) -> String? {
         guard let identifier else { return nil }
-        let trimmedIdentifier = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmedIdentifier.isEmpty ? nil : trimmedIdentifier
+        return normalizedIdentifier(identifier)
     }
 
     private func normalizedIdentifier(_ identifier: String) -> String {

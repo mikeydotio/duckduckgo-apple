@@ -39,8 +39,11 @@ final class BrowserKitImportManagerTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    @available(iOS 26.4, *)
     func testWhenStreamContainsMultipleNestedLevelsThenImportPersistsExpectedHierarchy() async throws {
+        guard #available(iOS 26.4, *) else {
+            throw XCTSkip("Requires iOS 26.4 runtime")
+        }
+
         let token = UUID()
         let mockImportManager = MockBEBrowserDataImportManager(items: makeMultiLevelFixture())
         let callbackExpectation = expectation(description: "Import callback")
@@ -90,8 +93,11 @@ final class BrowserKitImportManagerTests: XCTestCase {
         XCTAssertNotNil(bookmark(url: "https://example.com/reading-list-item", in: readingList.childrenArray))
     }
 
-    @available(iOS 26.4, *)
     func testWhenStreamThrowsThenImportResultIsFailure() async throws {
+        guard #available(iOS 26.4, *) else {
+            throw XCTSkip("Requires iOS 26.4 runtime")
+        }
+
         let token = UUID()
         let mockImportManager = MockBEBrowserDataImportManager(items: [], completionError: MockBrowserKitImportError.streamFailed)
         let callbackExpectation = expectation(description: "Import callback")
@@ -117,8 +123,11 @@ final class BrowserKitImportManagerTests: XCTestCase {
         XCTAssertEqual(mockImportManager.receivedTokens, [token])
     }
 
-    @available(iOS 26.4, *)
     func testWhenStreamContainsOnlyUnsupportedItemsThenImportReturnsZeroBookmarkSummary() async throws {
+        guard #available(iOS 26.4, *) else {
+            throw XCTSkip("Requires iOS 26.4 runtime")
+        }
+
         let token = UUID()
         let mockImportManager = MockBEBrowserDataImportManager(items: [
             .unsupported(typeName: "UnknownDataType"),

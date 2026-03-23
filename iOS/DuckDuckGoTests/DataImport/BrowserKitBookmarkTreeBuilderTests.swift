@@ -67,6 +67,21 @@ final class BrowserKitBookmarkTreeBuilderTests: XCTestCase {
         XCTAssertEqual(folder.children?.compactMap(\.urlString), ["https://duckduckgo.com/a", "https://duckduckgo.com/b"])
     }
 
+    func testWhenIdentifierAndParentIdentifierAreWhitespaceThenChildAttachesToFolder() throws {
+        let bookmarks = [
+            makeFolder(identifier: "   ", title: "Whitespace Folder"),
+            makeBookmark(identifier: "child", parentIdentifier: "\n\t  ", urlString: "https://duckduckgo.com/child")
+        ]
+
+        let result = treeBuilder.build(bookmarks: bookmarks, readingListItems: [])
+
+        XCTAssertEqual(result.count, 1)
+        let folder = try XCTUnwrap(result.first)
+        XCTAssertEqual(folder.name, "Whitespace Folder")
+        XCTAssertEqual(folder.children?.count, 1)
+        XCTAssertEqual(folder.children?.first?.urlString, "https://duckduckgo.com/child")
+    }
+
     func testWhenBookmarksAreNestedThenFolderHierarchyIsBuilt() throws {
         let bookmarks = [
             makeFolder(identifier: "root-folder"),
