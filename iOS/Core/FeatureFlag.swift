@@ -356,6 +356,9 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213617478454569?focus=true
     case simplifiedSyncSetupExperiment
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213433942918287?focus=true
+    case duckAIVoiceShortcut
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213736349223055?focus=true
     case aiChatDifferentiatedTabCards
 }
@@ -505,6 +508,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .suppressTrackerAnimationOnColdStart,
              .customXSafariRedirectHandling,
              .simplifiedSyncSetupExperiment,
+             .duckAIVoiceShortcut,
              .aiChatDifferentiatedTabCards:
             return true
         case .showSettingsCompleteSetupSection:
@@ -770,6 +774,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.customXSafariRedirectHandling))
         case .simplifiedSyncSetupExperiment:
             return .remoteReleasable(.subfeature(SyncSubfeature.simplifiedSyncSetupExperiment))
+        case .duckAIVoiceShortcut:
+            return .remoteReleasable(.subfeature(AIChatSubfeature.voiceShortcut))
         case .aiChatDifferentiatedTabCards:
             return .remoteReleasable(.subfeature(AIChatSubfeature.differentiatedTabCards))
         }
