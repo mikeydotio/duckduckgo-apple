@@ -551,8 +551,10 @@ final class TabViewCell: UICollectionViewCell {
         background.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
         title.primaryColor = UIColor(designSystemColor: .textPrimary)
         link?.primaryColor = UIColor(designSystemColor: .textSecondary)
-        aiChatTitleLabel?.textColor = UIColor(designSystemColor: .textPrimary)
-        aiChatPreviewContainer.backgroundColor = UIColor(designSystemColor: .surfaceCanvas)
+        if preview != nil {
+            aiChatTitleLabel?.textColor = UIColor(designSystemColor: .textPrimary)
+            aiChatPreviewContainer.backgroundColor = UIColor(designSystemColor: .surfaceCanvas)
+        }
 
         background.superview?.backgroundColor = .clear
     }
