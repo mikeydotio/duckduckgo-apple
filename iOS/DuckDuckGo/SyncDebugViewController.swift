@@ -23,7 +23,6 @@ import Core
 import Persistence
 import Bookmarks
 import DDGSync
-import SyncUI_iOS
 import Combine
 
 class SyncDebugViewController: UITableViewController {
@@ -51,7 +50,6 @@ class SyncDebugViewController: UITableViewController {
         case toggleFavoritesDisplayMode
         case resetFaviconsFetcherOnboardingDialog
         case getRecoveryCode
-        case resetPromptDismissCount
 
     }
 
@@ -136,11 +134,6 @@ class SyncDebugViewController: UITableViewController {
                 cell.textLabel?.text = "Reset Favicons Fetcher onboarding dialog"
             case .some(.getRecoveryCode):
                 cell.textLabel?.text = "Paste and Copy Recovery Code"
-            case .some(.resetPromptDismissCount):
-                let rawValue = (try? keyValueStore.object(forKey: SyncAnotherDevicePromptState.storageKey)) as? Int ?? 0
-                let state = SyncAnotherDevicePromptState(rawValue: rawValue) ?? .dismissed
-                cell.textLabel?.text = "Reset prompt dismiss state"
-                cell.detailTextLabel?.text = "Current: \(state)"
             case .none:
                 break
             }
@@ -254,9 +247,6 @@ class SyncDebugViewController: UITableViewController {
                 udWrapper.wrappedValue = false
             case .getRecoveryCode:
                 showCopyPasteCodeAlert()
-            case .resetPromptDismissCount:
-                try? keyValueStore.set(SyncAnotherDevicePromptState.notYetShown.rawValue, forKey: SyncAnotherDevicePromptState.storageKey)
-                tableView.reloadData()
             default: break
             }
         case .autoRestore:
