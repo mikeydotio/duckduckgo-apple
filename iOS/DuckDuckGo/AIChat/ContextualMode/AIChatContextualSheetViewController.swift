@@ -487,7 +487,7 @@ private extension AIChatContextualSheetViewController {
         let viewModel = ScopedFireConfirmationViewModel(
             tabViewModel: nil,
             source: .browsing,
-            mode: .contextualChat(onDelete: { [weak self] in
+            fireContext: .contextualChat(onDelete: { [weak self] in
                 self?.handleDeleteChatConfirmed()
             }),
             browsingMode: .normal,

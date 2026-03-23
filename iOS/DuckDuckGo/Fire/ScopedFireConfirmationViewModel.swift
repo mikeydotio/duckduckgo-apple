@@ -26,7 +26,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
 
     // MARK: - Types
 
-    enum Mode {
+    enum FireContext {
         /// Standard fire confirmation with "Delete All" and optional "Delete This Tab/Chat" buttons.
         case `default`
         /// Contextual AI chat deletion with a single "Delete Chat" button.
@@ -48,7 +48,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
 
     // MARK: - Private Variables
 
-    private let mode: Mode
+    private let fireContext: FireContext
     private let onConfirm: (FireRequest) -> Void
     private let onCancel: () -> Void
     private let tabViewModel: TabViewModel?
@@ -63,7 +63,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
 
     init(tabViewModel: TabViewModel?,
          source: FireRequest.Source,
-         mode: Mode = .default,
+         fireContext: FireContext = .default,
          downloadManager: DownloadManaging = AppDependencyProvider.shared.downloadManager,
          keyValueStore: KeyValueStoring = UserDefaults.standard,
          appSettings: AppSettings = AppDependencyProvider.shared.appSettings,
@@ -73,7 +73,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
          onCancel: @escaping () -> Void) {
         self.tabViewModel = tabViewModel
         self.source = source
-        self.mode = mode
+        self.fireContext = fireContext
         self.downloadManager = downloadManager
         self.keyValueStore = keyValueStore
         self.appSettings = appSettings
@@ -87,9 +87,9 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     // MARK: - Computed Variables
 
     /// Indicates whether the single tab burn option should be shown.
-    /// Returns `true` when a tab view model is available and mode is default.
+    /// Returns `true` when a tab view model is available and fire context is default.
     var canBurnSingleTab: Bool {
-        if case .contextualChat = mode { return false }
+        if case .contextualChat = fireContext { return false }
         guard let tab = tabViewModel?.tab, tab.supportsTabHistory else {
             return false
         }
@@ -97,7 +97,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     }
 
     var headerTitle: String {
-        if case .contextualChat = mode {
+        if case .contextualChat = fireContext {
             return UserText.contextualChatDeleteConfirmationTitle
         }
         if browsingMode == .fire {
@@ -109,7 +109,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     }
 
     var primaryButtonTitle: String {
-        if case .contextualChat = mode {
+        if case .contextualChat = fireContext {
             return UserText.contextualChatDeleteConfirmationButton
         }
         return UserText.scopedFireConfirmationDeleteAllButton
@@ -125,7 +125,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     // MARK: - Public Functions
 
     func burnAllTabs() {
-        if case .contextualChat(let onDelete) = mode {
+        if case .contextualChat(let onDelete) = fireContext {
             onDelete()
             return
         }
@@ -161,7 +161,7 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     /// 7. For normal web tabs → show sign out warning (up to 2 times)
     /// 8. Otherwise → return nil
     private func computeSubtitle() -> String? {
-        if case .contextualChat = mode {
+        if case .contextualChat = fireContext {
             return UserText.contextualChatDeleteConfirmationSubtitle
         }
 
