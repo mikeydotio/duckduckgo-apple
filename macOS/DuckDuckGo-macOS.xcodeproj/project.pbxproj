@@ -73,6 +73,8 @@
 		1D31FB072F586AB900A69392 /* NewTabPageOmnibarAiChatsProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D31FB052F586AB000A69392 /* NewTabPageOmnibarAiChatsProviderTests.swift */; };
 		1D368E542F1E38F300D3F0EA /* AIChatSuggestionsReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D368E532F1E38EE00D3F0EA /* AIChatSuggestionsReader.swift */; };
 		1D368E552F1E38F300D3F0EA /* AIChatSuggestionsReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D368E532F1E38EE00D3F0EA /* AIChatSuggestionsReader.swift */; };
+		9E7C660B036540D5B1F6BBD1 /* AIChatHistoryMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6AE2603F55A48818B3A1216 /* AIChatHistoryMenuBuilder.swift */; };
+		579C82E22DB74D3EAECA64D8 /* AIChatHistoryMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6AE2603F55A48818B3A1216 /* AIChatHistoryMenuBuilder.swift */; };
 		1D36E658298AA3BA00AA485D /* InternalUserDeciderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D36E657298AA3BA00AA485D /* InternalUserDeciderStore.swift */; };
 		1D36E659298AA3BA00AA485D /* InternalUserDeciderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D36E657298AA3BA00AA485D /* InternalUserDeciderStore.swift */; };
 		1D36E65B298ACD2900AA485D /* AppIconChanger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D36E65A298ACD2900AA485D /* AppIconChanger.swift */; };
@@ -4594,6 +4596,7 @@
 		1D2FA6532E968BBD008C53F8 /* NewTabPageStateProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NewTabPageStateProvider.swift; sourceTree = "<group>"; };
 		1D31FB052F586AB000A69392 /* NewTabPageOmnibarAiChatsProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageOmnibarAiChatsProviderTests.swift; sourceTree = "<group>"; };
 		1D368E532F1E38EE00D3F0EA /* AIChatSuggestionsReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatSuggestionsReader.swift; sourceTree = "<group>"; };
+		C6AE2603F55A48818B3A1216 /* AIChatHistoryMenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistoryMenuBuilder.swift; sourceTree = "<group>"; };
 		1D36E657298AA3BA00AA485D /* InternalUserDeciderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalUserDeciderStore.swift; sourceTree = "<group>"; };
 		1D36E65A298ACD2900AA485D /* AppIconChanger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconChanger.swift; sourceTree = "<group>"; };
 		1D36F4232A3B85C50052B527 /* TabCleanupPreparer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabCleanupPreparer.swift; sourceTree = "<group>"; };
@@ -7259,6 +7262,7 @@
 				1D5C23282F150A630055046E /* AIChatSuggestionsView.swift */,
 				1D368E532F1E38EE00D3F0EA /* AIChatSuggestionsReader.swift */,
 				1D5C232B2F150A6E0055046E /* AIChatSuggestionRowView.swift */,
+				C6AE2603F55A48818B3A1216 /* AIChatHistoryMenuBuilder.swift */,
 			);
 			path = Suggestions;
 			sourceTree = "<group>";
@@ -14319,6 +14323,7 @@
 				BB6EE52F2F33DB6D009420FA /* MemoryUsageThresholdReporter.swift in Sources */,
 				3706FA7F293F65D500E42796 /* TabIndex.swift in Sources */,
 				1D368E552F1E38F300D3F0EA /* AIChatSuggestionsReader.swift in Sources */,
+				579C82E22DB74D3EAECA64D8 /* AIChatHistoryMenuBuilder.swift in Sources */,
 				3706FA80293F65D500E42796 /* TabLazyLoaderDataSource.swift in Sources */,
 				1D5C232C2F150A750055046E /* AIChatSuggestionRowView.swift in Sources */,
 				CC82ABC52F52106400AD9807 /* PromoResult.swift in Sources */,
@@ -17444,6 +17449,7 @@
 				37C7493B2D55FE710065B48B /* HistoryViewActionsHandler.swift in Sources */,
 				4BD18F01283F0BC500058124 /* BookmarksBarViewController.swift in Sources */,
 				1D368E542F1E38F300D3F0EA /* AIChatSuggestionsReader.swift in Sources */,
+				9E7C660B036540D5B1F6BBD1 /* AIChatHistoryMenuBuilder.swift in Sources */,
 				379DE4BD27EA31AC002CC3DE /* PreferencesAutofillView.swift in Sources */,
 				F1476FC02C1359FB00EAE46A /* SubscriptionUIHandler.swift in Sources */,
 				1DCFBC8A29ADF32B00313531 /* BurnerHomePageView.swift in Sources */,

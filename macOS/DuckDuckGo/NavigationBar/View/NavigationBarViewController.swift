@@ -16,11 +16,13 @@
 //  limitations under the License.
 //
 
+import AIChat
 import BrokenSitePrompt
 import BrowserServicesKit
 import Cocoa
 import Combine
 import Common
+import DesignResourcesKitIcons
 import Freemium
 import History
 import NetworkProtectionIPC
@@ -162,6 +164,27 @@ final class NavigationBarViewController: NSViewController {
     private let searchPreferences: SearchPreferences
     private let aiChatMenuConfig: AIChatMenuVisibilityConfigurable
     private let aiChatCoordinator: AIChatCoordinating
+
+    private lazy var aiChatSuggestionsReader: AIChatSuggestionsReading = AIChatSuggestionsReader(
+        suggestionsReader: SuggestionsReader(featureFlagger: featureFlagger,
+                                             privacyConfig: contentBlocking.privacyConfigurationManager),
+        historySettings: AIChatHistorySettings(privacyConfig: contentBlocking.privacyConfigurationManager)
+    )
+
+    private lazy var aiChatHistoryButton: MouseOverButton = {
+        let button = MouseOverButton(frame: .zero)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.image = .aiChat
+        button.imageScaling = .scaleProportionallyDown
+        button.bezelStyle = .shadowlessSquare
+        button.isBordered = false
+        button.sendAction(on: .leftMouseDown)
+        button.target = self
+        button.action = #selector(aiChatHistoryButtonAction(_:))
+        button.setAccessibilityIdentifier("NavigationBarViewController.aiChatHistoryButton")
+        button.toolTip = UserText.aiChatHistoryButtonTooltip
+        return button
+    }()
     private let defaultBrowserPreferences: DefaultBrowserPreferences
     private let downloadsPreferences: DownloadsPreferences
     private let tabsPreferences: TabsPreferences
@@ -1035,6 +1058,8 @@ final class NavigationBarViewController: NSViewController {
         optionsButton.setAccessibilityTitle(UserText.applicationMenuTooltip)
         optionsButton.toolTip = UserText.applicationMenuTooltip
 
+        setupAIChatHistoryButton()
+
         navigationButtons.spacing = theme.navigationToolbarButtonsSpacing
         setupNavigationButtonIcons()
         setupNavigationButtonColors()
@@ -1177,6 +1202,51 @@ final class NavigationBarViewController: NSViewController {
         networkProtectionButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
         optionsButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
         overflowButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
+        aiChatHistoryButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
+    }
+
+    private func setupAIChatHistoryButton() {
+        // Insert the button into menuButtons just before the options button.
+        // On subsequent theme updates, the button is already in the hierarchy — skip re-insertion.
+        if aiChatHistoryButton.superview == nil {
+            let insertIndex = menuButtons.arrangedSubviews.firstIndex(of: optionsButton) ?? menuButtons.arrangedSubviews.count
+            menuButtons.insertArrangedSubview(aiChatHistoryButton, at: insertIndex)
+
+            let size = theme.addressBarStyleProvider.addressBarButtonSize
+            NSLayoutConstraint.activate([
+                aiChatHistoryButton.widthAnchor.constraint(equalToConstant: size),
+                aiChatHistoryButton.heightAnchor.constraint(equalToConstant: size)
+            ])
+        }
+
+        let colorsProvider = theme.colorsProvider
+        aiChatHistoryButton.normalTintColor = colorsProvider.iconsColor
+        aiChatHistoryButton.mouseOverColor = colorsProvider.buttonMouseOverColor
+        aiChatHistoryButton.mouseDownColor = colorsProvider.buttonMouseDownColor
+    }
+
+    @IBAction private func aiChatHistoryButtonAction(_ sender: NSButton) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let suggestions = await aiChatSuggestionsReader.fetchSuggestions(query: nil)
+            let menu = AIChatHistoryMenuBuilder.buildMenu(
+                pinned: suggestions.pinned,
+                recent: suggestions.recent,
+                target: self,
+                action: #selector(didSelectAIChatHistoryItem(_:)),
+                showAllAction: #selector(showAllDuckAIChats)
+            )
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height), in: sender)
+        }
+    }
+
+    @objc private func didSelectAIChatHistoryItem(_ sender: NSMenuItem) {
+        guard let chatId = sender.representedObject as? String else { return }
+        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .existingChat(chatId: chatId), behavior: .currentTab)
+    }
+
+    @objc private func showAllDuckAIChats() {
+        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .url(AIChatRemoteSettings().aiChatURL), behavior: .currentTab)
     }
 
     private func subscribeToSelectedTabViewModel() {

@@ -1700,6 +1700,30 @@
         }
       }
     },
+    "ai.chat.history.no.recent.chats" : {
+      "comment" : "Shown in the Duck.ai history menu when there are no chat sessions to display",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No recent chats"
+          }
+        }
+      }
+    },
+    "ai.chat.history.show.all" : {
+      "comment" : "Menu item at the bottom of the Duck.ai chat history menu that opens duck.ai",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show all Duck.ai chats"
+          }
+        }
+      }
+    },
     "aichat.address-bar.ask-button.title" : {
       "comment" : "Title for button to ask Duck.ai",
       "extractionState" : "extracted_with_value",
@@ -100487,6 +100511,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Добавить в избранное"
+          }
+        }
+      }
+    },
+    "tooltip.ai.chat.history" : {
+      "comment" : "Tooltip for the Duck.ai chat history button in the navigation bar",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Duck.ai Chat History"
           }
         }
       }

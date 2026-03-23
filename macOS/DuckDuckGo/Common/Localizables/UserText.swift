@@ -663,6 +663,7 @@ struct UserText {
     static let aiChatSendButtonTooltip = NSLocalizedString("aichat.send-button.tooltip", value: "Send", comment: "Tooltip for the send button in AI chat omnibar")
     static let aiChatSearchToggleButtonTooltip = NSLocalizedString("aichat.search-toggle-button.tooltip", value: "Search the web", comment: "Tooltip for the search toggle button in AI chat omnibar")
     static let aiChatImageUploadButtonTooltip = NSLocalizedString("aichat.image-upload-button.tooltip", value: "Attach image", comment: "Tooltip for the image upload button in AI chat omnibar")
+    static let aiChatVoiceButtonTooltip = NSLocalizedString("aichat.voice-button.tooltip", value: "Start New Voice Chat", comment: "Tooltip for the voice chat button in the AI chat omnibar")
     static let aiChatModelPickerButtonTooltip = NSLocalizedString("aichat.model-picker-button.tooltip", value: "Choose model", comment: "Tooltip for the model picker button in AI chat omnibar")
     static let aiChatModelPickerAdvancedSectionHeader = NSLocalizedString("aichat.model-picker.advanced-section-header", value: "Advanced Models - DuckDuckGo subscription", comment: "Section header in the model picker menu for premium models that require a subscription")
     static let aiChatModelPickerAdvancedModelsSectionHeader = NSLocalizedString("aichat.model-picker.advanced-models-section-header", value: "Advanced Models", comment: "Section header in the model picker menu for advanced models when user has an active subscription")
@@ -1740,6 +1741,10 @@ struct UserText {
     static let homeButtonTooltip = NSLocalizedString("tooltip.home.button", value: "Home", comment: "Tooltip for the home button")
 
     static let bookmarksShortcutTooltip = NSLocalizedString("tooltip.bookmarks.shortcut", value: "Bookmarks", comment: "Tooltip for the bookmarks shortcut")
+
+    static let aiChatHistoryButtonTooltip = NSLocalizedString("tooltip.ai.chat.history", value: "Duck.ai Chat History", comment: "Tooltip for the Duck.ai chat history button in the navigation bar")
+    static let aiChatHistoryNoRecentChats = NSLocalizedString("ai.chat.history.no.recent.chats", value: "No recent chats", comment: "Shown in the Duck.ai history menu when there are no chat sessions to display")
+    static let aiChatHistoryShowAll = NSLocalizedString("ai.chat.history.show.all", value: "Show all Duck.ai chats", comment: "Menu item at the bottom of the Duck.ai chat history menu that opens duck.ai")
     static let downloadsShortcutTooltip = NSLocalizedString("tooltip.downloads.shortcut", value: "Downloads", comment: "Tooltip for the downloads shortcut")
 
     static let addItemTooltip = NSLocalizedString("tooltip.autofill.add-item", value: "Add item", comment: "Tooltip for the Add Item button")
