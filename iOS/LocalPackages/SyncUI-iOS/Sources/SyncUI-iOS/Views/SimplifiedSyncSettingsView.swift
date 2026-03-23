@@ -77,7 +77,9 @@ public struct SimplifiedSyncSettingsView: View {
                 }
             }
         }
-        .sheet(isPresented: $model.isSyncWithAnotherDevicePromptVisible) {
+        .sheet(isPresented: $model.isSyncWithAnotherDevicePromptVisible, onDismiss: {
+            model.dismissSyncWithAnotherDevicePrompt()
+        }) {
             SyncAnotherDevicePromptView(model: model)
         }
     }

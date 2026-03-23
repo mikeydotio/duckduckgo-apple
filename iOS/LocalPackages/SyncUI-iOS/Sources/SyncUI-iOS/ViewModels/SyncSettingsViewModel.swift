@@ -188,6 +188,7 @@ public class SyncSettingsViewModel: ObservableObject {
     @Published public var isSyncWithSetUpSheetVisible: Bool = false
     @Published public var isRecoverSyncedDataSheetVisible: Bool = false
     @Published public var isSyncWithAnotherDevicePromptVisible: Bool = false
+    private var hasRecordedSyncWithAnotherDevicePromptDismissal = false
 
     @Published var shouldShowPasscodeRequiredAlert: Bool = false
 
@@ -425,11 +426,14 @@ public class SyncSettingsViewModel: ObservableObject {
         guard isSyncEnabled else { return }
         guard devices.count == 1 else { return }
         guard delegate?.simplifiedSyncAnotherDevicePromptState.shouldShow == true else { return }
+        hasRecordedSyncWithAnotherDevicePromptDismissal = false
         isSyncWithAnotherDevicePromptVisible = true
     }
 
     public func dismissSyncWithAnotherDevicePrompt() {
         isSyncWithAnotherDevicePromptVisible = false
+        guard !hasRecordedSyncWithAnotherDevicePromptDismissal else { return }
+        hasRecordedSyncWithAnotherDevicePromptDismissal = true
         delegate?.simplifiedSyncAnotherDevicePromptWasDismissed()
     }
 
