@@ -78,7 +78,7 @@ extension NSView {
 
         mask.frame = layer.bounds
 
-        let startPointX = (mask.bounds.width - (trailingPadding + width)) / mask.bounds.width
+        let startPointX = max(0, (mask.bounds.width - (trailingPadding + width)) / mask.bounds.width)
         let endPointX = (mask.bounds.width - trailingPadding) / mask.bounds.width
 
         mask.startPoint = CGPoint(x: startPointX, y: 0.5)
