@@ -165,11 +165,7 @@ final class NavigationBarViewController: NSViewController {
     private let aiChatMenuConfig: AIChatMenuVisibilityConfigurable
     private let aiChatCoordinator: AIChatCoordinating
 
-    private lazy var aiChatSuggestionsReader: AIChatSuggestionsReading = AIChatSuggestionsReader(
-        suggestionsReader: SuggestionsReader(featureFlagger: featureFlagger,
-                                             privacyConfig: contentBlocking.privacyConfigurationManager),
-        historySettings: AIChatHistorySettings(privacyConfig: contentBlocking.privacyConfigurationManager)
-    )
+    var onAIChatHistoryButtonClicked: (() -> Void)?
 
     private lazy var aiChatHistoryButton: MouseOverButton = {
         let button = MouseOverButton(frame: .zero)
@@ -1206,11 +1202,11 @@ final class NavigationBarViewController: NSViewController {
     }
 
     private func setupAIChatHistoryButton() {
-        // Insert the button into menuButtons just before the options button.
+        // Insert the button into navigationButtons before goBackButton.
         // On subsequent theme updates, the button is already in the hierarchy — skip re-insertion.
         if aiChatHistoryButton.superview == nil {
-            let insertIndex = menuButtons.arrangedSubviews.firstIndex(of: optionsButton) ?? menuButtons.arrangedSubviews.count
-            menuButtons.insertArrangedSubview(aiChatHistoryButton, at: insertIndex)
+            let insertIndex = navigationButtons.arrangedSubviews.firstIndex(of: goBackButton) ?? 0
+            navigationButtons.insertArrangedSubview(aiChatHistoryButton, at: insertIndex)
 
             let size = theme.addressBarStyleProvider.addressBarButtonSize
             NSLayoutConstraint.activate([
@@ -1225,57 +1221,12 @@ final class NavigationBarViewController: NSViewController {
         aiChatHistoryButton.mouseDownColor = colorsProvider.buttonMouseDownColor
     }
 
+    func updateAIChatHistoryButtonState(isActive: Bool) {
+        aiChatHistoryButton.isHighlighted = isActive
+    }
+
     @IBAction private func aiChatHistoryButtonAction(_ sender: NSButton) {
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let suggestions = await aiChatSuggestionsReader.fetchSuggestions(query: nil)
-            let menu = AIChatHistoryMenuBuilder.buildMenu(
-                pinned: suggestions.pinned,
-                recent: suggestions.recent,
-                target: self,
-                chatAction: #selector(didSelectAIChatHistoryItem(_:)),
-                newChatAction: #selector(openNewDuckAIChat),
-                newImageChatAction: #selector(openNewDuckAIImageChat),
-                newVoiceChatAction: #selector(openNewDuckAIVoiceChat),
-                settingsAction: #selector(openDuckAISettingsPane)
-            )
-            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height), in: sender)
-        }
-    }
-
-    @objc private func didSelectAIChatHistoryItem(_ sender: NSMenuItem) {
-        guard let chatId = sender.representedObject as? String else { return }
-        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .existingChat(chatId: chatId), behavior: .currentTab)
-    }
-
-    @objc private func openNewDuckAIChat() {
-        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .newChat, behavior: .currentTab)
-    }
-
-    @objc private func openNewDuckAIImageChat() {
-        let url = buildDuckAIModeURL(mode: AIChatURLParameters.imageModeValue)
-        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .url(url), behavior: .currentTab)
-    }
-
-    @objc private func openNewDuckAIVoiceChat() {
-        let url = buildDuckAIModeURL(mode: AIChatURLParameters.voiceModeValue)
-        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .url(url), behavior: .currentTab)
-    }
-
-    @objc private func openDuckAISettingsPane() {
-        Application.appDelegate.windowControllersManager.showPreferencesTab(withSelectedPane: .aiChat)
-    }
-
-    private func buildDuckAIModeURL(mode: String) -> URL {
-        let settings = AIChatRemoteSettings()
-        guard var components = URLComponents(url: settings.aiChatURL, resolvingAgainstBaseURL: false) else {
-            return settings.aiChatURL
-        }
-        var queryItems = components.queryItems ?? []
-        queryItems.removeAll { $0.name == AIChatURLParameters.modeName }
-        queryItems.append(URLQueryItem(name: AIChatURLParameters.modeName, value: mode))
-        components.queryItems = queryItems
-        return components.url ?? settings.aiChatURL
+        onAIChatHistoryButtonClicked?()
     }
 
     private func subscribeToSelectedTabViewModel() {

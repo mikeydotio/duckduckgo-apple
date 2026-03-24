@@ -73,6 +73,10 @@ final class MainViewController: NSViewController {
     private var bannerPromptObserver: Any?
     private var bannerDismissedCancellable: AnyCancellable?
 
+    // History sidebar
+    var aiChatHistorySidebarCoordinator: AIChatHistorySidebarCoordinator?
+    var historySidebarCancellables = Set<AnyCancellable>()
+
     private var bookmarksBarIsVisible: Bool {
         return bookmarksBarViewController.parent != nil
     }
@@ -347,6 +351,7 @@ final class MainViewController: NSViewController {
         mainView.setupAIChatOmnibarContainerConstraints(addressBarStack: navigationBarViewController.addressBarStack)
 
         wireAIChatOmnibarUpdates()
+        setupAIChatHistorySidebar()
     }
 
     override func viewWillAppear() {

@@ -46,6 +46,9 @@ final class BrowserTabViewController: NSViewController {
 
     private lazy var browserTabView = BrowserTabView(frame: .zero, backgroundColor: .browserTabBackground)
     private(set) lazy var sidebarContainer = ColorView(frame: .zero, backgroundColor: .browserTabBackground, borderWidth: 0)
+    private(set) lazy var historyContainer = ColorView(frame: .zero, backgroundColor: .browserTabBackground, borderWidth: 0)
+    private(set) var historyContainerTrailingConstraint: NSLayoutConstraint?
+    private(set) var historyContainerWidthConstraint: NSLayoutConstraint?
     private lazy var hoverLabel = NSTextField(string: URL.duckDuckGo.absoluteString)
     private lazy var hoverLabelContainer = ColorView(frame: .zero, backgroundColor: .browserTabBackground, borderWidth: 0)
 
@@ -259,6 +262,25 @@ final class BrowserTabViewController: NSViewController {
             sidebarResizeHandle.topAnchor.constraint(equalTo: sidebarContainer.topAnchor),
             sidebarResizeHandle.bottomAnchor.constraint(equalTo: sidebarContainer.bottomAnchor),
             sidebarResizeHandle.widthAnchor.constraint(equalToConstant: 6)
+        ])
+
+        // Left history sidebar container — mirrors the right sidebarContainer pattern.
+        // historyContainer.trailing = view.leading + 0 → hidden off left edge
+        // historyContainer.trailing = view.leading + width → fully on-screen
+        historyContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(historyContainer)
+
+        historyContainerTrailingConstraint = historyContainer.trailingAnchor.constraint(
+            equalTo: view.leadingAnchor,
+            constant: 0
+        )
+        historyContainerWidthConstraint = historyContainer.widthAnchor.constraint(equalToConstant: 260)
+
+        NSLayoutConstraint.activate([
+            historyContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            historyContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            historyContainerTrailingConstraint!,
+            historyContainerWidthConstraint!
         ])
     }
 
@@ -607,7 +629,7 @@ final class BrowserTabViewController: NSViewController {
         containerStackView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            containerStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            containerStackView.leadingAnchor.constraint(equalTo: historyContainer.trailingAnchor),
             containerStackView.topAnchor.constraint(equalTo: view.topAnchor),
             containerStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             containerStackView.trailingAnchor.constraint(equalTo: sidebarContainer.leadingAnchor)

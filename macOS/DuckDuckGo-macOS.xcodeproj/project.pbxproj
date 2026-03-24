@@ -231,6 +231,18 @@
 		1E15F6952DF08E920061395E /* AIChatCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E15F6932DF08E920061395E /* AIChatCoordinator.swift */; };
 		1E15F6972DF08EDD0061395E /* AIChatSidebarHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E15F6962DF08EDD0061395E /* AIChatSidebarHosting.swift */; };
 		1E15F6982DF08EDD0061395E /* AIChatSidebarHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E15F6962DF08EDD0061395E /* AIChatSidebarHosting.swift */; };
+		B35F6A01686D03BA6BDEF78B /* AIChatHistorySidebarCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDDA6DE58AC8A6F17E73A2A /* AIChatHistorySidebarCoordinator.swift */; };
+		D4816BD63557040A9EA87AA2 /* AIChatHistorySidebarCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDDA6DE58AC8A6F17E73A2A /* AIChatHistorySidebarCoordinator.swift */; };
+		104B1A6D3CFBE607F8790610 /* AIChatHistorySidebarHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934B92A314B17CC7144C28BB /* AIChatHistorySidebarHosting.swift */; };
+		CF2338A4DA35A98945ED8A5C /* AIChatHistorySidebarHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934B92A314B17CC7144C28BB /* AIChatHistorySidebarHosting.swift */; };
+		A09B47263A3702644E5D0003 /* AIChatHistorySidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 021FA051B5C7B9BC40D66DDB /* AIChatHistorySidebarView.swift */; };
+		5B9913900526F9709A4ECB0D /* AIChatHistorySidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 021FA051B5C7B9BC40D66DDB /* AIChatHistorySidebarView.swift */; };
+		7EBC5D068ABBA9147EE1615E /* AIChatHistorySidebarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA351B5C1475A1DA3E1A77F /* AIChatHistorySidebarViewController.swift */; };
+		7E78C9BD5C583AC3E7034622 /* AIChatHistorySidebarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA351B5C1475A1DA3E1A77F /* AIChatHistorySidebarViewController.swift */; };
+		B834C3BCB6EF182B1BDB210D /* AIChatHistorySidebarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D1B8CD39AE5F5855D8DC9E /* AIChatHistorySidebarViewModel.swift */; };
+		84DDF37827699583F63EDFF1 /* AIChatHistorySidebarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D1B8CD39AE5F5855D8DC9E /* AIChatHistorySidebarViewModel.swift */; };
+		21F7111AEC433C6907DCDE19 /* MainViewController+AIChatHistorySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACCBD0B6C293F557BF4D5050 /* MainViewController+AIChatHistorySidebar.swift */; };
+		ECC68BAFBB2FF55DC7758737 /* MainViewController+AIChatHistorySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACCBD0B6C293F557BF4D5050 /* MainViewController+AIChatHistorySidebar.swift */; };
 		1E15F69A2DF0D1590061395E /* AIChatState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E15F6992DF0D1590061395E /* AIChatState.swift */; };
 		1E15F69B2DF0D1590061395E /* AIChatState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E15F6992DF0D1590061395E /* AIChatState.swift */; };
 		1E1B24AE2F4729C100D239CE /* WebExtensionAvailability+macOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1B24AD2F4729C100D239CE /* WebExtensionAvailability+macOS.swift */; };
@@ -4669,6 +4681,12 @@
 		1DDD3EBB2B84DCB9004CBF2B /* WebTrackingProtectionPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebTrackingProtectionPreferences.swift; sourceTree = "<group>"; };
 		1DDD3EBF2B84F5D5004CBF2B /* PreferencesCookiePopupProtectionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreferencesCookiePopupProtectionView.swift; sourceTree = "<group>"; };
 		1DDD3EC32B84F96B004CBF2B /* CookiePopupProtectionPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CookiePopupProtectionPreferences.swift; sourceTree = "<group>"; };
+		9EDDA6DE58AC8A6F17E73A2A /* AIChatHistorySidebarCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistorySidebarCoordinator.swift; sourceTree = "<group>"; };
+		934B92A314B17CC7144C28BB /* AIChatHistorySidebarHosting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistorySidebarHosting.swift; sourceTree = "<group>"; };
+		021FA051B5C7B9BC40D66DDB /* AIChatHistorySidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistorySidebarView.swift; sourceTree = "<group>"; };
+		0AA351B5C1475A1DA3E1A77F /* AIChatHistorySidebarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistorySidebarViewController.swift; sourceTree = "<group>"; };
+		12D1B8CD39AE5F5855D8DC9E /* AIChatHistorySidebarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistorySidebarViewModel.swift; sourceTree = "<group>"; };
+		ACCBD0B6C293F557BF4D5050 /* MainViewController+AIChatHistorySidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainViewController+AIChatHistorySidebar.swift"; sourceTree = "<group>"; };
 		1DE28D5D2EEADBCF00C07F15 /* SystemPermissionManagerMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPermissionManagerMock.swift; sourceTree = "<group>"; };
 		1DE28D602EEB4A7E00C07F15 /* NewPermissionViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPermissionViewTests.swift; sourceTree = "<group>"; };
 		1DE906D22F3DBF4500C3B853 /* AIChatImageAttachmentThumbnailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatImageAttachmentThumbnailView.swift; sourceTree = "<group>"; };
@@ -7388,6 +7406,11 @@
 				1E15F6932DF08E920061395E /* AIChatCoordinator.swift */,
 				1E15F6962DF08EDD0061395E /* AIChatSidebarHosting.swift */,
 				1EA1C0032F12000000000002 /* AIChatSidebarResizeHandleView.swift */,
+				9EDDA6DE58AC8A6F17E73A2A /* AIChatHistorySidebarCoordinator.swift */,
+				934B92A314B17CC7144C28BB /* AIChatHistorySidebarHosting.swift */,
+				021FA051B5C7B9BC40D66DDB /* AIChatHistorySidebarView.swift */,
+				0AA351B5C1475A1DA3E1A77F /* AIChatHistorySidebarViewController.swift */,
+				12D1B8CD39AE5F5855D8DC9E /* AIChatHistorySidebarViewModel.swift */,
 			);
 			path = Sidebar;
 			sourceTree = "<group>";
@@ -10506,6 +10529,7 @@
 				B688B4DE27420D290087BEAF /* PDFSearchTextMenuItemHandler.swift */,
 				B68C92C0274E3EF4002AC6B0 /* PopUpWindow.swift */,
 				1D6D041B2D9437ED005BC23F /* FullscreenController.swift */,
+				ACCBD0B6C293F557BF4D5050 /* MainViewController+AIChatHistorySidebar.swift */,
 			);
 			path = MainWindow;
 			sourceTree = "<group>";
@@ -14835,6 +14859,12 @@
 				37598EF12D5A187900720EAF /* HistoryViewErrorHandler.swift in Sources */,
 				3706FB6F293F65D500E42796 /* BookmarkListViewController.swift in Sources */,
 				1E15F6972DF08EDD0061395E /* AIChatSidebarHosting.swift in Sources */,
+				B35F6A01686D03BA6BDEF78B /* AIChatHistorySidebarCoordinator.swift in Sources */,
+				104B1A6D3CFBE607F8790610 /* AIChatHistorySidebarHosting.swift in Sources */,
+				A09B47263A3702644E5D0003 /* AIChatHistorySidebarView.swift in Sources */,
+				7EBC5D068ABBA9147EE1615E /* AIChatHistorySidebarViewController.swift in Sources */,
+				B834C3BCB6EF182B1BDB210D /* AIChatHistorySidebarViewModel.swift in Sources */,
+				21F7111AEC433C6907DCDE19 /* MainViewController+AIChatHistorySidebar.swift in Sources */,
 				1EA1C0042F12000000000002 /* AIChatSidebarResizeHandleView.swift in Sources */,
 				418399D4200F4DC8B3B0ABDB /* AIChatFloatingWindow.swift in Sources */,
 				3713B9E763D3429881172AA2 /* AIChatFloatingWindowController.swift in Sources */,
@@ -16860,6 +16890,12 @@
 				37CBCA9A2A8966E60050218F /* SyncSettingsAdapter.swift in Sources */,
 				BBE013EA2C5BFD660025F2C6 /* BookmarksEmptyStateContent.swift in Sources */,
 				1E15F6982DF08EDD0061395E /* AIChatSidebarHosting.swift in Sources */,
+				D4816BD63557040A9EA87AA2 /* AIChatHistorySidebarCoordinator.swift in Sources */,
+				CF2338A4DA35A98945ED8A5C /* AIChatHistorySidebarHosting.swift in Sources */,
+				5B9913900526F9709A4ECB0D /* AIChatHistorySidebarView.swift in Sources */,
+				7E78C9BD5C583AC3E7034622 /* AIChatHistorySidebarViewController.swift in Sources */,
+				84DDF37827699583F63EDFF1 /* AIChatHistorySidebarViewModel.swift in Sources */,
+				ECC68BAFBB2FF55DC7758737 /* MainViewController+AIChatHistorySidebar.swift in Sources */,
 				1EA1C0052F12000000000002 /* AIChatSidebarResizeHandleView.swift in Sources */,
 				A2386B5C129943ED88670FBE /* AIChatFloatingWindow.swift in Sources */,
 				541B2C4D448B4C109EF580A3 /* AIChatFloatingWindowController.swift in Sources */,
