@@ -59,7 +59,7 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
         )
         .sink { [weak self] _ in
             Task { @MainActor in
-                self?.notifyConfigUpdated()
+                await self?.notifyConfigUpdated()
             }
         }
         .store(in: &cancellables)
@@ -110,7 +110,8 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
     }
 
     @MainActor
-    private func notifyConfigUpdated() {
+    private func notifyConfigUpdated() async {
+        let aiModelSections = await modelsProvider?.fetchAIModelSections()
         let config = NewTabPageDataModel.OmnibarConfig(
             mode: configProvider.mode,
             enableAi: configProvider.isAIChatShortcutEnabled,
@@ -119,7 +120,7 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
             enableRecentAiChats: configProvider.isAIChatRecentChatsEnabled,
             enableAiChatTools: configProvider.isAIChatToolsEnabled,
             selectedModelId: configProvider.selectedModelId,
-            aiModelSections: nil
+            aiModelSections: aiModelSections
         )
         pushMessage(named: MessageName.onConfigUpdate.rawValue, params: config)
     }
