@@ -121,9 +121,6 @@ final class AIChatContextualSheetViewController: UIViewController {
     /// Dimming view added to the presenting view controller's view for contrast
     private var dimmingView: UIView?
 
-    /// Whether the fire confirmation is currently shown
-    private var isShowingFireConfirmation = false
-
     // MARK: - UI Components
 
     private lazy var headerView: UIView = {
@@ -481,7 +478,6 @@ private extension AIChatContextualSheetViewController {
     // MARK: - Fire Confirmation
 
     func showFireConfirmation() {
-        isShowingFireConfirmation = true
         expandToLargeDetent()
 
         let viewModel = ScopedFireConfirmationViewModel(
@@ -524,12 +520,10 @@ private extension AIChatContextualSheetViewController {
     }
 
     func dismissFireConfirmation() {
-        isShowingFireConfirmation = false
         dismiss(animated: true)
     }
 
     func handleDeleteChatConfirmed() {
-        isShowingFireConfirmation = false
         dismiss(animated: true) { [weak self] in
             self?.playFireAnimationAndDismiss()
         }
