@@ -31,7 +31,8 @@ enum AIChatOpenTrigger {
     /// - Parameters:
     ///   - query: The optional query string to pre-fill in the chat. If `nil`, opens an empty chat.
     ///   - shouldAutoSubmit: Whether to automatically submit the query upon opening. Defaults to `true`.
-    case query(String?, shouldAutoSubmit: Bool = true)
+    ///   - prompt: Optional fully-formed prompt payload; when provided it is used as-is.
+    case query(String?, shouldAutoSubmit: Bool = true, prompt: AIChatNativePrompt? = nil)
 
     /// Opens an AI chat using a specific URL.
     /// - Parameter url: The URL to load in the AI chat tab.
@@ -100,8 +101,8 @@ struct AIChatTabOpener: AIChatTabOpening {
         case .newChat:
             openAIChatTab(query: nil, with: behavior, autoSubmit: true)
 
-        case .query(let query, shouldAutoSubmit: let shouldAutoSubmit):
-            openAIChatTab(query: query, with: behavior, autoSubmit: shouldAutoSubmit)
+        case .query(let query, shouldAutoSubmit: let shouldAutoSubmit, prompt: let prompt):
+            openAIChatTab(query: query, prompt: prompt, with: behavior, autoSubmit: shouldAutoSubmit)
 
         case .url(let url):
             aiChatTabManaging.openAIChat(url, with: behavior, hasPrompt: false)
@@ -126,11 +127,13 @@ struct AIChatTabOpener: AIChatTabOpening {
     // MARK: - Private Helpers
 
     @MainActor
-    private func openAIChatTab(query: String?, with linkOpenBehavior: LinkOpenBehavior, autoSubmit: Bool) {
-        if let query = query {
+    private func openAIChatTab(query: String?, prompt: AIChatNativePrompt?, with linkOpenBehavior: LinkOpenBehavior, autoSubmit: Bool) {
+        if let prompt {
+            promptHandler.setData(prompt)
+        } else if let query = query {
             promptHandler.setData(.queryPrompt(query, autoSubmit: autoSubmit))
         }
-        aiChatTabManaging.openAIChat(aiChatRemoteSettings.aiChatURL, with: linkOpenBehavior, hasPrompt: query != nil)
+        aiChatTabManaging.openAIChat(aiChatRemoteSettings.aiChatURL, with: linkOpenBehavior, hasPrompt: prompt != nil || query != nil)
     }
 
     /// Builds a URL to open an existing chat by its ID.

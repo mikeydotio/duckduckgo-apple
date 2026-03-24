@@ -26,7 +26,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let value = AddressBarTextField.Value.text(query, userTyped: false)
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: value)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertEqual(extractedQuery, query)
             XCTAssertTrue(shouldAutoSubmit)
         } else {
@@ -39,7 +39,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let value = AddressBarTextField.Value.url(urlString: url.absoluteString, url: url, userTyped: false)
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: value)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertEqual(extractedQuery, "swift")
             XCTAssertFalse(shouldAutoSubmit) // Should not auto-submit for DuckDuckGo search URLs
         } else {
@@ -52,7 +52,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let value = AddressBarTextField.Value.url(urlString: url.absoluteString, url: url, userTyped: false)
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: value)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertNil(extractedQuery)
             XCTAssertFalse(shouldAutoSubmit) // Should not auto-submit for DuckDuckGo search URLs
         } else {
@@ -65,7 +65,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let value = AddressBarTextField.Value.url(urlString: url.absoluteString, url: url, userTyped: false)
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: value)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertNil(extractedQuery)
             XCTAssertTrue(shouldAutoSubmit) // Should auto-submit for non-DuckDuckGo URLs
         } else {
@@ -78,7 +78,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let suggestion = AddressBarTextField.Value.suggestion(SuggestionViewModel(suggestion: .phrase(phrase: value), userStringValue: value))
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: suggestion)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertEqual(extractedQuery, value)
             XCTAssertTrue(shouldAutoSubmit)
         } else {
@@ -91,7 +91,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let value = AddressBarTextField.Value.text(query, userTyped: false)
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: value)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertEqual(extractedQuery, query)
             XCTAssertTrue(shouldAutoSubmit)
         } else {
@@ -104,7 +104,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let value = AddressBarTextField.Value.url(urlString: url.absoluteString, url: url, userTyped: false)
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: value)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertNil(extractedQuery) // Should be nil for duck.ai URLs
             XCTAssertFalse(shouldAutoSubmit) // Should not auto-submit for DuckDuckGo search URLs
         } else {
@@ -117,7 +117,7 @@ final class AIChatAddressBarPromptExtractorTests: XCTestCase {
         let value = AddressBarTextField.Value.url(urlString: url.absoluteString, url: url, userTyped: false)
         let result = AIChatAddressBarPromptExtractor().extractAIChatQuery(for: value)
 
-        if case let .query(extractedQuery, shouldAutoSubmit) = result {
+        if case let .query(extractedQuery, shouldAutoSubmit, _) = result {
             XCTAssertNil(extractedQuery) // Should be nil for duck.ai URLs
             XCTAssertFalse(shouldAutoSubmit) // Should not auto-submit for DuckDuckGo search URLs
         } else {

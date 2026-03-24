@@ -135,13 +135,9 @@ final class NewTabPageOmnibarActionsHandler: NewTabPageOmnibarActionsHandling {
             behavior = .newTab(selected: isShiftPressed())
         }
 
-        tabOpener.openAIChatTab(with: .query(chat), behavior: behavior)
-
-        // Re-set prompt after tab opener to include images and model selection
-        // (tab opener overwrites with a plain query)
         let nativeImages = images?.map { AIChatNativePrompt.NativePromptImage(data: $0.data, format: $0.format) }
         let nativePrompt = AIChatNativePrompt.queryPrompt(chat, autoSubmit: true, images: nativeImages, modelId: modelId)
-        promptHandler.setData(nativePrompt)
+        tabOpener.openAIChatTab(with: .query(chat, prompt: nativePrompt), behavior: behavior)
     }
 
     @MainActor
