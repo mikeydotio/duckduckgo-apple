@@ -82,7 +82,9 @@ final class HoverTrackingArea: NSTrackingArea {
             owner.observe(\.backgroundInset) { [weak self] _, _ in self?.updateLayer() },
             (owner as? NSControl)?.observe(\.isEnabled) { [weak self] _, _ in self?.updateLayer(animated: false) },
             owner.observe(\.isMouseDown) { [weak self] _, _ in self?.mouseDownDidChange() },
-            owner.observe(\.isMouseOver, options: .new) { [weak self] _, c in self?.updateLayer(animated: !(c.newValue /* isMouseOver */ ?? false)) },
+            owner.observe(\.isMouseOver, options: .new) { [weak self] _, change in
+                self?.processIsMouseOverEvent(isMouseOver: change.newValue ?? false)
+            },
             owner.observe(\.window) { [weak self] _, _ in self?.viewWindowDidChange() },
         ].compactMap { $0 }
     }
@@ -107,7 +109,7 @@ final class HoverTrackingArea: NSTrackingArea {
                 context.allowsImplicitAnimation = true
                 // mousedown/over state should be applied instantly
                 // animation should be also disabled on view reuse
-                if !animated || view.isMouseDown || view.isMouseOver {
+                if !animated || view.isMouseDown || view.isMouseOver && !view.animatesOnMouseOver {
                     layer.removeAllAnimations()
                     context.duration = 0.0
                 }
@@ -193,7 +195,19 @@ final class HoverTrackingArea: NSTrackingArea {
         view.isMouseOver = view.isMouseLocationInsideBounds()
         updateLayer(animated: false)
     }
+}
 
+private extension HoverTrackingArea {
+
+    func processIsMouseOverEvent(isMouseOver: Bool) {
+        let animated = mustAnimateChange(isMouseOver: isMouseOver)
+        updateLayer(animated: animated)
+    }
+
+    func mustAnimateChange(isMouseOver: Bool) -> Bool {
+        let shouldAnimate = view?.animatesOnMouseOver ?? false
+        return !isMouseOver || shouldAnimate
+    }
 }
 
 extension NSTrackingArea {
@@ -227,6 +241,8 @@ extension NSTrackingArea {
     @objc dynamic var isMouseDown: Bool { get }
 
     @objc dynamic var isMouseOver: Bool { get set }
+
+    @objc dynamic var animatesOnMouseOver: Bool { get }
 
 }
 
