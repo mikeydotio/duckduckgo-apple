@@ -414,8 +414,6 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Enables voice chat shortcut in the focused address bar
     case voiceShortcut
-
-    case differentiatedTabCards
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {

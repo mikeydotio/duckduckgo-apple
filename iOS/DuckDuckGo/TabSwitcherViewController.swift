@@ -787,8 +787,7 @@ extension TabSwitcherViewController: UICollectionViewDataSource {
             cell.update(withTab: tab,
                         isSelectionModeEnabled: self.isEditing,
                         preview: previewsSource.preview(for: tab),
-                        isFireModeEnabled: isFireModeEnabled,
-                        isDifferentiatedAITabCards: featureFlagger.isFeatureOn(.aiChatDifferentiatedTabCards))
+                        isFireModeEnabled: isFireModeEnabled)
         }
         
         return cell
@@ -937,8 +936,7 @@ extension TabSwitcherViewController: TabObserver {
         cell.update(withTab: tab,
                     isSelectionModeEnabled: self.isEditing,
                     preview: previewsSource.preview(for: tab),
-                    isFireModeEnabled: isFireModeEnabled,
-                    isDifferentiatedAITabCards: featureFlagger.isFeatureOn(.aiChatDifferentiatedTabCards))
+                    isFireModeEnabled: isFireModeEnabled)
     }
 }
 

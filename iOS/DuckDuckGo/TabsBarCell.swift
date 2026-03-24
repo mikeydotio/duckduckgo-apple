@@ -43,7 +43,6 @@ class TabsBarCell: UICollectionViewCell {
 
     private weak var model: Tab?
     private var isFireModeEnabled = false
-    private var isDifferentiatedAITabCards = false
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -82,7 +81,6 @@ class TabsBarCell: UICollectionViewCell {
                 isCurrent: Bool,
                 isNextCurrent: Bool,
                 isFireModeEnabled: Bool,
-                isDifferentiatedAITabCards: Bool = false,
                 withTheme theme: Theme) {
         
         accessibilityElements = [label as Any, removeButton as Any]
@@ -91,7 +89,6 @@ class TabsBarCell: UICollectionViewCell {
         
         self.model = model
         self.isFireModeEnabled = isFireModeEnabled
-        self.isDifferentiatedAITabCards = isDifferentiatedAITabCards
         model.addObserver(self)
 
         label.primaryColor = theme.barTintColor
@@ -117,7 +114,7 @@ class TabsBarCell: UICollectionViewCell {
             faviconImage.loadFavicon(forDomain: URL.ddg.host, usingCache: .tabs)
             updateEmptyTabLabel(for: model)
             removeButton.accessibilityLabel = closeButtonAccessibilityLabel(for: model)
-        } else if model.isAITab && isDifferentiatedAITabCards {
+        } else if model.isAITab {
             let aiChatTitle = UserText.omnibarFullAIChatModeDisplayTitle
             faviconImage.image = DesignSystemImages.Color.Size24.duckAI
             if let conversationTitle = model.aiChatConversationTitle {
@@ -127,12 +124,6 @@ class TabsBarCell: UICollectionViewCell {
             }
             label.accessibilityLabel = UserText.openTab(withTitle: label.text ?? aiChatTitle, atAddress: "")
             removeButton.accessibilityLabel = UserText.closeTab(withTitle: label.text ?? aiChatTitle, atAddress: "")
-        } else if model.isAITab {
-            let aiChatTitle = UserText.omnibarFullAIChatModeDisplayTitle
-            faviconImage.image = DesignSystemImages.Color.Size24.duckAI
-            label.text = aiChatTitle
-            label.accessibilityLabel = UserText.openTab(withTitle: aiChatTitle, atAddress: "")
-            removeButton.accessibilityLabel = UserText.closeTab(withTitle: aiChatTitle, atAddress: "")
         } else {
             faviconImage.loadFavicon(forDomain: model.link?.url.host, usingCache: .tabs)
             label.text = model.link?.displayTitle ?? model.link?.url.host?.droppingWwwPrefix()

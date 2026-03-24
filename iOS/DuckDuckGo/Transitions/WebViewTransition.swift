@@ -58,14 +58,10 @@ class WebViewTransition: TabSwitcherTransition {
 class FromWebViewTransition: WebViewTransition {
     
     private let mainViewController: MainViewController
-    private let isDifferentiatedAITabCards: Bool
-    
-    init(mainViewController: MainViewController,
-         tabSwitcherViewController: TabSwitcherViewController,
-         isDifferentiatedAITabCards: Bool = false) {
-        self.mainViewController = mainViewController
-        self.isDifferentiatedAITabCards = isDifferentiatedAITabCards
 
+    init(mainViewController: MainViewController,
+         tabSwitcherViewController: TabSwitcherViewController) {
+        self.mainViewController = mainViewController
         super.init(tabSwitcherViewController: tabSwitcherViewController)
     }
     
@@ -95,9 +91,9 @@ class FromWebViewTransition: WebViewTransition {
             return
         }
 
-        let preview = (tab.isAITab && isDifferentiatedAITabCards) ? nil : tabSwitcherViewController.previewsSource.preview(for: tab)
+        let preview = tabSwitcherViewController.previewsSource.preview(for: tab)
 
-        guard preview != nil || (tab.isAITab && isDifferentiatedAITabCards) else {
+        guard preview != nil else {
             tabSwitcherViewController.view.alpha = 1
             transitionContext.completeTransition(true)
             return
@@ -155,11 +151,7 @@ class FromWebViewTransition: WebViewTransition {
 
 class ToWebViewTransition: WebViewTransition {
 
-    private let isDifferentiatedAITabCards: Bool
-
-    init(tabSwitcherViewController: TabSwitcherViewController,
-         isDifferentiatedAITabCards: Bool = false) {
-        self.isDifferentiatedAITabCards = isDifferentiatedAITabCards
+    override init(tabSwitcherViewController: TabSwitcherViewController) {
         super.init(tabSwitcherViewController: tabSwitcherViewController)
     }
 
@@ -188,7 +180,7 @@ class ToWebViewTransition: WebViewTransition {
         imageContainer.frame = tabSwitcherCellFrame(for: layoutAttr)
         imageContainer.layer.cornerRadius = TabViewCell.Constants.cellCornerRadius
         
-        let preview = (tab.isAITab && isDifferentiatedAITabCards) ? nil : tabSwitcherViewController.previewsSource.preview(for: tab)
+        let preview = tabSwitcherViewController.previewsSource.preview(for: tab)
         if let preview {
             imageView.frame = previewFrame(for: imageContainer.bounds.size,
                                            preview: preview)
