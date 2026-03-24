@@ -27,19 +27,45 @@ extension Preferences {
         @ObservedObject var model: YouTubeAdBlockingPreferences
         @State private var hasFiredSettingsDisplayedPixel = false
 
-        var duckPlayerModeBinding: Binding<DuckPlayerMode> {
+        var isDuckPlayerEnabledBinding: Binding<Bool> {
             .init {
-                model.duckPlayerMode
+                model.duckPlayerMode != .disabled
             } set: { newValue in
-                model.duckPlayerMode = newValue
-                switch model.duckPlayerMode {
-                case .enabled:
-                    PixelKit.fire(GeneralPixel.duckPlayerSettingAlwaysSettings)
-                case .alwaysAsk:
-                    PixelKit.fire(GeneralPixel.duckPlayerSettingBackToDefault)
-                case .disabled:
-                    PixelKit.fire(GeneralPixel.duckPlayerSettingNeverSettings)
+                let oldMode = model.duckPlayerMode
+                if newValue {
+                    model.duckPlayerMode = .alwaysAsk
+                } else {
+                    model.duckPlayerMode = .disabled
                 }
+                firePixelIfNeeded(oldMode: oldMode, newMode: model.duckPlayerMode)
+            }
+        }
+
+        var isAlwaysOpenBinding: Binding<Bool> {
+            .init {
+                model.duckPlayerMode == .enabled
+            } set: { newValue in
+                let oldMode = model.duckPlayerMode
+                if newValue {
+                    model.duckPlayerMode = .enabled
+                } else {
+                    model.duckPlayerMode = .alwaysAsk
+                }
+                firePixelIfNeeded(oldMode: oldMode, newMode: model.duckPlayerMode)
+            }
+        }
+
+        private func firePixelIfNeeded(oldMode: DuckPlayerMode, newMode: DuckPlayerMode) {
+            print("firePixelIfNeeded(oldMode: \(oldMode), newMode: \(newMode))")
+            guard oldMode != newMode else { return }
+
+            switch newMode {
+            case .enabled:
+                PixelKit.fire(GeneralPixel.duckPlayerSettingAlwaysSettings)
+            case .alwaysAsk:
+                PixelKit.fire(GeneralPixel.duckPlayerSettingBackToDefault)
+            case .disabled:
+                PixelKit.fire(GeneralPixel.duckPlayerSettingNeverSettings)
             }
         }
 
@@ -57,6 +83,9 @@ extension Preferences {
 
                 // Duck Player Section
                 PreferencePaneSection(UserText.duckPlayer) {
+
+                    TextMenuItemCaption(UserText.duckPlayerExplanation)
+
                     if model.shouldDisplayContingencyMessage {
                         ContingencyMessageView {
                             model.openLearnMoreContingencyURL()
@@ -70,27 +99,16 @@ extension Preferences {
                         }
                     }
 
-                    Picker(selection: duckPlayerModeBinding, content: {
-                        Text(UserText.duckPlayerAlwaysOpenInPlayer)
-                            .padding(.bottom, 4)
-                            .tag(DuckPlayerMode.enabled)
-                            .accessibilityIdentifier("DuckPlayerMode.enabled")
+                    ToggleMenuItem(UserText.duckPlayerEnableToggle, isOn: isDuckPlayerEnabledBinding)
+                        .accessibilityIdentifier("DuckPlayer.enableToggle")
 
-                        Text(UserText.duckPlayerShowPlayerButtons)
-                            .padding(.bottom, 4)
-                            .tag(DuckPlayerMode.alwaysAsk)
-                            .accessibilityIdentifier("DuckPlayerMode.alwaysAsk")
+                    if isDuckPlayerEnabledBinding.wrappedValue {
+                        ToggleMenuItem(UserText.duckPlayerAlwaysOpenToggle, isOn: isAlwaysOpenBinding)
+                            .padding(.leading, 16)
+                            .accessibilityIdentifier("DuckPlayer.alwaysOpenToggle")
+                    }
 
-                        Text(UserText.duckPlayerOff)
-                            .padding(.bottom, 4)
-                            .tag(DuckPlayerMode.disabled)
-                            .accessibilityIdentifier("DuckPlayerMode.disabled")
 
-                    }, label: {})
-                    .pickerStyle(.radioGroup)
-                    .offset(x: PreferencesUI_macOS.Const.pickerHorizontalOffset)
-
-                    TextMenuItemCaption(UserText.duckPlayerExplanation)
                 }.disabled(model.shouldDisplayContingencyMessage)
 
                 if model.shouldDisplayAutoPlaySettings || model.isOpenInNewTabSettingsAvailable {

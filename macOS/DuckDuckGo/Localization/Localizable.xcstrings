@@ -24811,6 +24811,18 @@
         }
       }
     },
+    "duck-player.always-open-toggle" : {
+      "comment" : "Duck Player always open toggle in settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Always open in Duck Player"
+          }
+        }
+      }
+    },
     "duck-player.contingency-title" : {
       "comment" : "Title for message explaining to the user that Duck Player is not available",
       "extractionState" : "extracted_with_value",
@@ -24867,6 +24879,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duck Player недоступен"
+          }
+        }
+      }
+    },
+    "duck-player.enable-toggle" : {
+      "comment" : "Duck Player enable toggle in settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Enable Duck Player"
           }
         }
       }
