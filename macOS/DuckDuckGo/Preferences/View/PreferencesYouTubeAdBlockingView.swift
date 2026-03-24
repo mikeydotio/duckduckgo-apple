@@ -104,27 +104,21 @@ extension Preferences {
 
                     if isDuckPlayerEnabledBinding.wrappedValue {
                         ToggleMenuItem(UserText.duckPlayerAlwaysOpenToggle, isOn: isAlwaysOpenBinding)
-                            .padding(.leading, 16)
+                            .padding(.leading, 19)
                             .accessibilityIdentifier("DuckPlayer.alwaysOpenToggle")
-                    }
-
-
-                }.disabled(model.shouldDisplayContingencyMessage)
-
-                if model.shouldDisplayAutoPlaySettings || model.isOpenInNewTabSettingsAvailable {
-                    PreferencePaneSection(UserText.duckPlayerVideoPreferencesTitle) {
 
                         if model.shouldDisplayAutoPlaySettings {
-                            ToggleMenuItem(UserText.duckPlayerAutoplayPreference, isOn: $model.duckPlayerAutoplay)
+                            ToggleMenuItem(UserText.duckPlayerAutoplayToggle, isOn: $model.duckPlayerAutoplay)
+                            .padding(.leading, 19)
                         }
 
                         if model.isOpenInNewTabSettingsAvailable {
-                            ToggleMenuItem(UserText.duckPlayerNewTabPreference, isOn: $model.duckPlayerOpenInNewTab)
+                            ToggleMenuItem(UserText.duckPlayerNewTabToggle, isOn: $model.duckPlayerOpenInNewTab)
+                                .padding(.leading, 19)
                                 .disabled(!model.isNewTabSettingsAvailable)
                         }
-                    }.disabled(model.shouldDisplayContingencyMessage)
-                }
-
+                    }
+                }.disabled(model.shouldDisplayContingencyMessage)
             }
         }
     }

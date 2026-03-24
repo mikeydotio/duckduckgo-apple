@@ -24823,6 +24823,18 @@
         }
       }
     },
+    "duck-player.autoplay-toggle" : {
+      "comment" : "Duck Player autoplay toggle in YouTube ad blocking settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Autoplay videos in Duck Player"
+          }
+        }
+      }
+    },
     "duck-player.contingency-title" : {
       "comment" : "Title for message explaining to the user that Duck Player is not available",
       "extractionState" : "extracted_with_value",
@@ -25011,6 +25023,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "По возможности открывать Duck Player в новой вкладке"
+          }
+        }
+      }
+    },
+    "duck-player.newtab-toggle" : {
+      "comment" : "Duck Player new tab toggle in YouTube ad blocking settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Duck Player in a new tab when possible"
           }
         }
       }

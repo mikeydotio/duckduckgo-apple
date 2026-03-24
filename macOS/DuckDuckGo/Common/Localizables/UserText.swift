@@ -699,6 +699,8 @@ struct UserText {
     static let duckPlayerSettingsTitle = NSLocalizedString("duck-player.title", value: "Duck Player", comment: "Private YouTube Player settings title")
     static let duckPlayerEnableToggle = NSLocalizedString("duck-player.enable-toggle", value: "Enable Duck Player", comment: "Duck Player enable toggle in settings")
     static let duckPlayerAlwaysOpenToggle = NSLocalizedString("duck-player.always-open-toggle", value: "Always open in Duck Player", comment: "Duck Player always open toggle in settings")
+    static let duckPlayerAutoplayToggle = NSLocalizedString("duck-player.autoplay-toggle", value: "Autoplay videos in Duck Player", comment: "Duck Player autoplay toggle in YouTube ad blocking settings")
+    static let duckPlayerNewTabToggle = NSLocalizedString("duck-player.newtab-toggle", value: "Open Duck Player in a new tab when possible", comment: "Duck Player new tab toggle in YouTube ad blocking settings")
     static let duckPlayerAlwaysOpenInPlayer = NSLocalizedString("duck-player.always-open-in-player", value: "Always open YouTube videos in Duck Player", comment: "Private YouTube Player option")
     static let duckPlayerShowPlayerButtons = NSLocalizedString("duck-player.show-buttons", value: "Show option to use Duck Player over YouTube previews on hover", comment: "Private YouTube Player option")
     static let duckPlayerOff = NSLocalizedString("duck-player.off", value: "Never use Duck Player", comment: "Private YouTube Player option")
