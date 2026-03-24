@@ -19,7 +19,7 @@
 import XCTest
 import AIChat
 import NewTabPage
-import Subscription
+@testable import Subscription
 import SubscriptionTestingUtilities
 @testable import DuckDuckGo_Privacy_Browser
 
