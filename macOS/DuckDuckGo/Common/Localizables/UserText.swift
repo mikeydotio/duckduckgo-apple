@@ -1820,6 +1820,11 @@ struct UserText {
         value: "No past chats yet",
         comment: "Empty state message in the Duck.ai launcher when there are no past chats"
     )
+    static let aiChatLauncherNoResults = NSLocalizedString(
+        "ai.chat.launcher.no.results",
+        value: "No chats found",
+        comment: "Empty state message in the Duck.ai launcher when a search query matches no chats"
+    )
     static let aiChatLauncherRecentHeader = NSLocalizedString(
         "ai.chat.launcher.recent.header",
         value: "Recent",

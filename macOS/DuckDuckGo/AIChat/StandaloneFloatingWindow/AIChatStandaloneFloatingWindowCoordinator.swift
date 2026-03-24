@@ -48,7 +48,7 @@ final class AIChatStandaloneFloatingWindowCoordinator {
         open(url: buildChatURL(chatId: chatId))
     }
 
-    // MARK: - URL Building
+// MARK: - URL Building
 
     private func baseURL() -> URL {
         AIChatRemoteSettings().aiChatURL

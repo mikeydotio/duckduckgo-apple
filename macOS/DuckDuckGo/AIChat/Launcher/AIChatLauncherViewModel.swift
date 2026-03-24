@@ -46,6 +46,7 @@ final class AIChatLauncherViewModel: ObservableObject {
     // MARK: - Action Closures (wired by coordinator)
 
     var onNewChat: (() -> Void)?
+    var onNewChatWithQuery: ((String) -> Void)?
     var onNewVoiceChat: (() -> Void)?
     var onNewImageChat: (() -> Void)?
     var onSettings: (() -> Void)?
@@ -92,5 +93,15 @@ final class AIChatLauncherViewModel: ObservableObject {
         let chats = filteredChats
         guard let index = selectedIndex, index < chats.count else { return }
         onChatSelected?(chats[index].chatId)
+    }
+
+    /// Called when the user presses Return. Opens the selected chat row if one is
+    /// highlighted, otherwise starts a new chat pre-filled with the current query.
+    func submitQuery() {
+        if selectedIndex != nil {
+            activateSelection()
+        } else if !searchText.isEmpty {
+            onNewChatWithQuery?(searchText)
+        }
     }
 }

@@ -32,6 +32,9 @@ final class AIChatLauncherCoordinator: ObservableObject {
     private let floatingWindowCoordinator: AIChatStandaloneFloatingWindowCoordinator
     private let suggestionsReader: AIChatSuggestionsReading
     private let onSettingsRequested: () -> Void
+    private let onNewChatWithQueryRequested: (String) -> Void
+    private let onVoiceChatRequested: () -> Void
+    private let onChatSelectedRequested: (String) -> Void
 
     // MARK: - Private State
 
@@ -48,11 +51,17 @@ final class AIChatLauncherCoordinator: ObservableObject {
     init(
         floatingWindowCoordinator: AIChatStandaloneFloatingWindowCoordinator,
         suggestionsReader: AIChatSuggestionsReading,
-        onSettingsRequested: @escaping () -> Void
+        onSettingsRequested: @escaping () -> Void,
+        onNewChatWithQueryRequested: @escaping (String) -> Void,
+        onVoiceChatRequested: @escaping () -> Void,
+        onChatSelectedRequested: @escaping (String) -> Void
     ) {
         self.floatingWindowCoordinator = floatingWindowCoordinator
         self.suggestionsReader = suggestionsReader
         self.onSettingsRequested = onSettingsRequested
+        self.onNewChatWithQueryRequested = onNewChatWithQueryRequested
+        self.onVoiceChatRequested = onVoiceChatRequested
+        self.onChatSelectedRequested = onChatSelectedRequested
         wireClosures()
     }
 
@@ -121,13 +130,15 @@ final class AIChatLauncherCoordinator: ObservableObject {
     // MARK: - Private: Dim Overlay
 
     private func addDimOverlay(to window: NSWindow) {
-        guard let contentView = window.contentView else { return }
-        let view = NSView(frame: contentView.bounds)
+        // Use the superview of contentView (NSThemeFrame) so the overlay covers the
+        // full window including the tab bar / titlebar area, not just the content area.
+        guard let rootView = window.contentView?.superview ?? window.contentView else { return }
+        let view = NSView(frame: rootView.bounds)
         view.autoresizingMask = [.width, .height]
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.3).cgColor
         view.alphaValue = 0
-        contentView.addSubview(view, positioned: .above, relativeTo: nil)
+        rootView.addSubview(view, positioned: .above, relativeTo: nil)
         dimView = view
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.15
@@ -212,10 +223,16 @@ final class AIChatLauncherCoordinator: ObservableObject {
             floatingWindowCoordinator.openNewChat()
         }
 
+        viewModel.onNewChatWithQuery = { [weak self] query in
+            guard let self else { return }
+            closeLauncher()
+            onNewChatWithQueryRequested(query)
+        }
+
         viewModel.onNewVoiceChat = { [weak self] in
             guard let self else { return }
             closeLauncher()
-            floatingWindowCoordinator.openVoiceChat()
+            onVoiceChatRequested()
         }
 
         viewModel.onNewImageChat = { [weak self] in
@@ -233,7 +250,7 @@ final class AIChatLauncherCoordinator: ObservableObject {
         viewModel.onChatSelected = { [weak self] chatId in
             guard let self else { return }
             closeLauncher()
-            floatingWindowCoordinator.openExistingChat(chatId: chatId)
+            onChatSelectedRequested(chatId)
         }
 
         viewModel.onDismiss = { [weak self] in

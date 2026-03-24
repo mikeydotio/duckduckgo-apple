@@ -40,6 +40,40 @@ extension MainViewController {
             suggestionsReader: suggestionsReader,
             onSettingsRequested: {
                 Application.appDelegate.windowControllersManager.showPreferencesTab(withSelectedPane: .aiChat)
+            },
+            onNewChatWithQueryRequested: { [weak self] query in
+                guard let self else { return }
+                let settings = AIChatRemoteSettings()
+                guard var components = URLComponents(url: settings.aiChatURL, resolvingAgainstBaseURL: false) else { return }
+                var items = components.queryItems ?? []
+                items.removeAll { $0.name == AIChatURLParameters.promptQueryName || $0.name == AIChatURLParameters.autoSubmitPromptQueryName }
+                items.append(URLQueryItem(name: AIChatURLParameters.promptQueryName, value: query))
+                items.append(URLQueryItem(name: AIChatURLParameters.autoSubmitPromptQueryName, value: AIChatURLParameters.autoSubmitPromptQueryValue))
+                components.queryItems = items
+                guard let url = components.url else { return }
+                tabCollectionViewModel.appendNewTab(with: .url(url, source: .ui), selected: true)
+            },
+            onVoiceChatRequested: { [weak self] in
+                guard let self else { return }
+                let settings = AIChatRemoteSettings()
+                guard var components = URLComponents(url: settings.aiChatURL, resolvingAgainstBaseURL: false) else { return }
+                var items = components.queryItems ?? []
+                items.removeAll { $0.name == AIChatURLParameters.modeName || $0.name == "chatID" }
+                items.append(URLQueryItem(name: AIChatURLParameters.modeName, value: AIChatURLParameters.voiceModeValue))
+                components.queryItems = items
+                guard let url = components.url else { return }
+                tabCollectionViewModel.appendNewTab(with: .url(url, source: .ui), selected: true)
+            },
+            onChatSelectedRequested: { [weak self] chatId in
+                guard let self else { return }
+                let settings = AIChatRemoteSettings()
+                guard var components = URLComponents(url: settings.aiChatURL, resolvingAgainstBaseURL: false) else { return }
+                var items = components.queryItems ?? []
+                items.removeAll { $0.name == AIChatURLParameters.modeName || $0.name == "chatID" }
+                items.append(URLQueryItem(name: "chatID", value: chatId))
+                components.queryItems = items
+                guard let url = components.url else { return }
+                tabCollectionViewModel.appendNewTab(with: .url(url, source: .ui), selected: true)
             }
         )
 

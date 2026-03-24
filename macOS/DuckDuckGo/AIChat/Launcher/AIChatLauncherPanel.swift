@@ -31,7 +31,7 @@ final class AIChatLauncherPanel: NSPanel {
     }
 
     private enum Constants {
-        static let panelSize = NSSize(width: 340, height: 420)
+        static let panelSize = NSSize(width: 560, height: 540)
     }
 
     private let hostingController: NSHostingController<AIChatLauncherView>
@@ -44,36 +44,46 @@ final class AIChatLauncherPanel: NSPanel {
         self.hostingController = NSHostingController(rootView: AIChatLauncherView(viewModel: viewModel))
         super.init(
             contentRect: NSRect(origin: .zero, size: Constants.panelSize),
-            styleMask: [.titled, .fullSizeContentView],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: true
         )
-        titlebarAppearsTransparent = true
-        titleVisibility = .hidden
         isMovableByWindowBackground = false
         backgroundColor = .clear
         hasShadow = true
         level = .floating
         isReleasedWhenClosed = false
 
-        contentViewController = hostingController
+        // Use contentView directly instead of contentViewController to prevent
+        // NSHostingController.preferredContentSize from overriding the fixed panel size.
+        let hostedView = hostingController.view
+        hostedView.autoresizingMask = [.width, .height]
+        hostedView.frame = NSRect(origin: .zero, size: Constants.panelSize)
+        hostedView.wantsLayer = true
+        hostedView.layer?.backgroundColor = NSColor.clear.cgColor
+        contentView = hostedView
     }
 
     // MARK: - Keyboard Interception
 
-    override func keyDown(with event: NSEvent) {
+    /// Override sendEvent so arrow/escape/return are intercepted before the text field
+    /// (which is normally first responder) consumes them.
+    override func sendEvent(_ event: NSEvent) {
+        guard event.type == .keyDown else {
+            super.sendEvent(event)
+            return
+        }
         switch event.keyCode {
         case KeyCode.downArrow:
             viewModel.moveSelectionDown()
         case KeyCode.upArrow:
             viewModel.moveSelectionUp()
         case KeyCode.returnKey:
-            // Fires when the text field is not first responder (e.g. a chat row is keyboard-selected)
-            viewModel.activateSelection()
+            viewModel.submitQuery()
         case KeyCode.escape:
             viewModel.onDismiss?()
         default:
-            super.keyDown(with: event)
+            super.sendEvent(event)
         }
     }
 

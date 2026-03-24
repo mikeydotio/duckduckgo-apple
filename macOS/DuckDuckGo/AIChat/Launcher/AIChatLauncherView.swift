@@ -35,7 +35,13 @@ struct AIChatLauncherView: View {
             Divider()
             footerRow
         }
+        .frame(width: 560)
         .background(Color(designSystemColor: .surfacePrimary))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+        )
     }
 
     // MARK: - Search Row
@@ -56,8 +62,8 @@ struct AIChatLauncherView: View {
                 .background(Color.secondary.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 3))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
     }
 
     // MARK: - Quick Actions
@@ -98,7 +104,7 @@ struct AIChatLauncherView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
         } else if viewModel.filteredChats.isEmpty {
-            Text(UserText.aiChatLauncherNoChats)
+            Text(viewModel.searchText.isEmpty ? UserText.aiChatLauncherNoChats : UserText.aiChatLauncherNoResults)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity)
@@ -128,7 +134,7 @@ struct AIChatLauncherView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 240)
+                .frame(maxHeight: 360)
                 .onChange(of: viewModel.selectedIndex) { newIndex in
                     if let idx = newIndex {
                         withAnimation { proxy.scrollTo(idx, anchor: .center) }
