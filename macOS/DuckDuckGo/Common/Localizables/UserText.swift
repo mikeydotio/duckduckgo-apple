@@ -1788,6 +1788,69 @@ struct UserText {
         comment: "Footer button label for opening Duck.ai settings from the history sidebar"
     )
 
+    // MARK: - AI Chat Launcher
+
+    static let aiChatLauncherSearchPlaceholder = NSLocalizedString(
+        "ai.chat.launcher.search.placeholder",
+        value: "Ask something or find a chat…",
+        comment: "Placeholder text in the Duck.ai launcher panel search field"
+    )
+    static let aiChatLauncherNewChat = NSLocalizedString(
+        "ai.chat.launcher.new.chat",
+        value: "New Chat",
+        comment: "Quick action button label for starting a new Duck.ai chat from the launcher"
+    )
+    static let aiChatLauncherVoice = NSLocalizedString(
+        "ai.chat.launcher.voice",
+        value: "Voice",
+        comment: "Quick action button label for starting a new Duck.ai voice chat from the launcher"
+    )
+    static let aiChatLauncherImage = NSLocalizedString(
+        "ai.chat.launcher.image",
+        value: "Image",
+        comment: "Quick action button label for starting a new Duck.ai image chat from the launcher"
+    )
+    static let aiChatLauncherSettings = NSLocalizedString(
+        "ai.chat.launcher.settings",
+        value: "Settings",
+        comment: "Quick action button label for opening Duck.ai settings from the launcher"
+    )
+    static let aiChatLauncherNoChats = NSLocalizedString(
+        "ai.chat.launcher.no.chats",
+        value: "No past chats yet",
+        comment: "Empty state message in the Duck.ai launcher when there are no past chats"
+    )
+    static let aiChatLauncherRecentHeader = NSLocalizedString(
+        "ai.chat.launcher.recent.header",
+        value: "Recent",
+        comment: "Section header above the recent chats list in the Duck.ai launcher panel"
+    )
+    static let aiChatLauncherButtonTooltip = NSLocalizedString(
+        "ai.chat.launcher.button.tooltip",
+        value: "Duck.ai Launcher",
+        comment: "Tooltip for the Duck.ai launcher toolbar button"
+    )
+    static let aiChatLauncherAccessibilityLabel = NSLocalizedString(
+        "ai.chat.launcher.accessibility.label",
+        value: "Duck.ai Launcher",
+        comment: "VoiceOver accessibility label for the Duck.ai launcher toolbar button"
+    )
+    static let aiChatLauncherFooterNavigate = NSLocalizedString(
+        "ai.chat.launcher.footer.navigate",
+        value: "↑↓ navigate",
+        comment: "Footer hint in the Duck.ai launcher showing arrow key navigation shortcut"
+    )
+    static let aiChatLauncherFooterOpen = NSLocalizedString(
+        "ai.chat.launcher.footer.open",
+        value: "↵ open",
+        comment: "Footer hint in the Duck.ai launcher showing the Return key opens a chat"
+    )
+    static let aiChatLauncherFooterDismiss = NSLocalizedString(
+        "ai.chat.launcher.footer.dismiss",
+        value: "esc dismiss",
+        comment: "Footer hint in the Duck.ai launcher showing Escape dismisses the panel"
+    )
+
     static let downloadsShortcutTooltip = NSLocalizedString("tooltip.downloads.shortcut", value: "Downloads", comment: "Tooltip for the downloads shortcut")
 
     static let addItemTooltip = NSLocalizedString("tooltip.autofill.add-item", value: "Add item", comment: "Tooltip for the Add Item button")
