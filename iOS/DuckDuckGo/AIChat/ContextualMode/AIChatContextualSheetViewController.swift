@@ -349,6 +349,7 @@ final class AIChatContextualSheetViewController: UIViewController {
     }
 
     @objc private func fireButtonTapped() {
+        pixelHandler.fireFireButtonTapped()
         showFireConfirmation()
     }
 
@@ -578,6 +579,7 @@ private extension AIChatContextualSheetViewController {
     }
 
     func handleDeleteChatConfirmed() {
+        pixelHandler.fireFireButtonConfirmed()
         isShowingFireConfirmation = false
         dismiss(animated: true) { [weak self] in
             self?.playFireAnimationAndDismiss()
