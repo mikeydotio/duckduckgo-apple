@@ -220,12 +220,12 @@ private extension TabBackgroundView {
         let fadeAnimation: CABasicAnimation = .buildFadeAnimation(duration: duration, fromAlpha: fromAlpha, toAlpha: toAlpha)
 
         let translationAnimation: CABasicAnimation = visible
-            ? .buildTranslationYAnimation(duration: duration, fromValue: Animations.slideOffsetY, toValue: .zero)
-            : .buildTranslationYAnimation(duration: duration, toValue: Animations.slideOffsetY)
+            ? .buildTranslationYAnimation(duration: duration, timingFunction: .bezierCubic, fromValue: Animations.slideOffsetY, toValue: .zero)
+            : .buildTranslationYAnimation(duration: duration, timingFunction: .bezierCubic, toValue: Animations.slideOffsetY)
 
         let scaleAnimation: CABasicAnimation = visible
-            ? .buildScaleAnimation(duration: duration, fromValue: Animations.slideScaleDown, toValue: Animations.slideScaleFull)
-            : .buildScaleAnimation(duration: duration, fromValue: Animations.slideScaleFull, toValue: Animations.slideScaleDown)
+            ? .buildScaleAnimation(duration: duration, timingFunction: .bezierCubic, fromValue: Animations.slideScaleDown, toValue: Animations.slideScaleFull)
+            : .buildScaleAnimation(duration: duration, timingFunction: .bezierCubic, fromValue: Animations.slideScaleFull, toValue: Animations.slideScaleDown)
 
         let group = CAAnimationGroup()
         group.animations = [translationAnimation, fadeAnimation, scaleAnimation]
