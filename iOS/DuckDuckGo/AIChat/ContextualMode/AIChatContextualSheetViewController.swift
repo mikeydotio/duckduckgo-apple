@@ -542,22 +542,30 @@ private extension AIChatContextualSheetViewController {
             return
         }
 
+        guard let window = view.window,
+              let snapshot = window.snapshotView(afterScreenUpdates: false) else {
+            delegate?.aiChatContextualSheetViewControllerDidConfirmDeleteChat(self)
+            return
+        }
+
+        window.addSubview(snapshot)
+
         let animationView = LottieAnimationView(animation: composition)
         animationView.contentMode = .scaleAspectFill
         animationView.animationSpeed = CGFloat(animationType.speed)
-        animationView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(animationView)
+        animationView.frame = window.frame
+        window.addSubview(animationView)
 
-        NSLayoutConstraint.activate([
-            animationView.topAnchor.constraint(equalTo: view.topAnchor),
-            animationView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            animationView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            animationView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
+        let speed = animationType.speed
+        let duration = Double(composition.duration) / speed
+        let delay = duration * animationType.transition
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            snapshot.removeFromSuperview()
+        }
 
-        animationView.play(fromProgress: 0, toProgress: 1) { [weak self] _ in
-            guard let self else { return }
-            self.delegate?.aiChatContextualSheetViewControllerDidConfirmDeleteChat(self)
+        self.delegate?.aiChatContextualSheetViewControllerDidConfirmDeleteChat(self)
+        animationView.play(fromProgress: 0, toProgress: 1) { [weak animationView] _ in
+            animationView?.removeFromSuperview()
         }
     }
 }
