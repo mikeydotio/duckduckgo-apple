@@ -34,11 +34,14 @@ final class AIChatLauncherPanel: NSPanel {
         static let panelSize = NSSize(width: 340, height: 420)
     }
 
-    private var hostingController: NSHostingController<AIChatLauncherView>!
-    let viewModel: AIChatLauncherViewModel
+    private let hostingController: NSHostingController<AIChatLauncherView>
+    private(set) var viewModel: AIChatLauncherViewModel
+
+    override var canBecomeKey: Bool { true }
 
     init(viewModel: AIChatLauncherViewModel) {
         self.viewModel = viewModel
+        self.hostingController = NSHostingController(rootView: AIChatLauncherView(viewModel: viewModel))
         super.init(
             contentRect: NSRect(origin: .zero, size: Constants.panelSize),
             styleMask: [.titled, .fullSizeContentView],
@@ -48,11 +51,11 @@ final class AIChatLauncherPanel: NSPanel {
         titlebarAppearsTransparent = true
         titleVisibility = .hidden
         isMovableByWindowBackground = false
+        backgroundColor = .clear
         hasShadow = true
         level = .floating
         isReleasedWhenClosed = false
 
-        hostingController = NSHostingController(rootView: AIChatLauncherView(viewModel: viewModel))
         contentViewController = hostingController
     }
 
@@ -65,7 +68,7 @@ final class AIChatLauncherPanel: NSPanel {
         case KeyCode.upArrow:
             viewModel.moveSelectionUp()
         case KeyCode.returnKey:
-            // Only fires if SwiftUI's .onSubmit didn't consume the event
+            // Fires when the text field is not first responder (e.g. a chat row is keyboard-selected)
             viewModel.activateSelection()
         case KeyCode.escape:
             viewModel.onDismiss?()
