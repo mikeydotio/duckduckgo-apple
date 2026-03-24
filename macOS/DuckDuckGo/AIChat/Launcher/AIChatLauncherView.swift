@@ -125,6 +125,7 @@ struct AIChatLauncherView: View {
                             LauncherChatRow(
                                 suggestion: chat,
                                 isSelected: viewModel.selectedIndex == index,
+                                isSearchActive: !viewModel.searchText.isEmpty,
                                 onSelected: { viewModel.onChatSelected?(chat.chatId) }
                             )
                             .id(index)
@@ -132,7 +133,7 @@ struct AIChatLauncherView: View {
                     }
                 }
                 .frame(maxHeight: 240)
-                .onChange(of: viewModel.selectedIndex) { newIndex in
+                .onChange(of: viewModel.selectedIndex) { _, newIndex in
                     if let idx = newIndex {
                         withAnimation { proxy.scrollTo(idx, anchor: .center) }
                     }
@@ -145,9 +146,9 @@ struct AIChatLauncherView: View {
 
     private var footerRow: some View {
         HStack(spacing: 12) {
-            Text("↑↓ navigate")
-            Text("↵ open")
-            Text("esc dismiss")
+            Text(UserText.aiChatLauncherFooterNavigate)
+            Text(UserText.aiChatLauncherFooterOpen)
+            Text(UserText.aiChatLauncherFooterDismiss)
         }
         .font(.caption2)
         .foregroundColor(.secondary)
@@ -190,6 +191,7 @@ private struct QuickActionButton: View {
 private struct LauncherChatRow: View {
     let suggestion: AIChatSuggestion
     let isSelected: Bool
+    let isSearchActive: Bool
     let onSelected: () -> Void
     @State private var isHovered = false
 
@@ -201,11 +203,12 @@ private struct LauncherChatRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer()
-                if suggestion.isPinned {
+                if suggestion.isPinned && !isSearchActive {
                     Image(nsImage: DesignSystemImages.Glyphs.Size16.pin)
                         .renderingMode(.template)
                         .foregroundColor(.secondary)
                         .frame(width: 14, height: 14)
+                        .accessibilityLabel("Pinned")
                 }
                 if let timestamp = suggestion.timestamp {
                     Text(timestamp, style: .relative)
@@ -218,7 +221,7 @@ private struct LauncherChatRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(isSelected ? Color.controlsFillPrimary.opacity(1.5) : (isHovered ? Color.controlsFillPrimary : Color.clear))
+        .background(isSelected ? Color.accentColor.opacity(0.15) : (isHovered ? Color.controlsFillPrimary : Color.clear))
         .onHover { isHovered = $0 }
     }
 }
