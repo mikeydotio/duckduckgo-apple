@@ -240,7 +240,11 @@ struct SettingsRootView: View {
         case .restoreFlow:
             emailFlowNavigationDestination()
         case .duckPlayer:
-            SettingsDuckPlayerView().environmentObject(viewModel)
+            if viewModel.featureFlagger.isFeatureOn(.adBlockingExtension) {
+                SettingsYouTubeAdBlockingView().environmentObject(viewModel)
+            } else {
+                SettingsDuckPlayerView().environmentObject(viewModel)
+            }
         case .netP:
             NetworkProtectionRootView()
         case .aiChat:

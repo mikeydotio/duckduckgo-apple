@@ -542,6 +542,16 @@ final class SettingsViewModel: ObservableObject {
         )
     }
 
+    var youTubeAdBlockingEnabled: Binding<Bool> {
+        Binding<Bool>(
+            get: { self.state.youTubeAdBlockingEnabled },
+            set: {
+                self.appSettings.youTubeAdBlockingEnabled = $0
+                self.state.youTubeAdBlockingEnabled = $0
+            }
+        )
+    }
+
       var duckPlayerNativeYoutubeModeBinding: Binding<NativeDuckPlayerYoutubeMode> {
         Binding<NativeDuckPlayerYoutubeMode>(
             get: {
@@ -801,13 +811,15 @@ extension SettingsViewModel {
             subscription: SettingsState.defaults.subscription,
             sync: getSyncState(),
             syncSource: nil,
-            duckPlayerEnabled: featureFlagger.isFeatureOn(.duckPlayer) || shouldDisplayDuckPlayerContingencyMessage,
+            duckPlayerEnabled: !featureFlagger.isFeatureOn(.adBlockingExtension) && (featureFlagger.isFeatureOn(.duckPlayer) || shouldDisplayDuckPlayerContingencyMessage),
             duckPlayerMode: duckPlayerSettings.mode,
             duckPlayerOpenInNewTab: duckPlayerSettings.openInNewTab,
             duckPlayerOpenInNewTabEnabled: featureFlagger.isFeatureOn(.duckPlayerOpenInNewTab),
             duckPlayerAutoplay: duckPlayerSettings.autoplay,
             duckPlayerNativeUISERPEnabled: duckPlayerSettings.nativeUISERPEnabled,
-            duckPlayerNativeYoutubeMode: duckPlayerSettings.nativeUIYoutubeMode
+            duckPlayerNativeYoutubeMode: duckPlayerSettings.nativeUIYoutubeMode,
+            youTubeAdBlockingAvailable: featureFlagger.isFeatureOn(.adBlockingExtension),
+            youTubeAdBlockingEnabled: appSettings.youTubeAdBlockingEnabled
         )
 
         // Subscribe to DuckPlayerSettings updates
