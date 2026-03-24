@@ -19,6 +19,7 @@
 import AIChat
 import AppKit
 import SwiftUI
+import DesignResourcesKitIcons
 
 struct AIChatHistorySidebarView: View {
 
@@ -34,7 +35,7 @@ struct AIChatHistorySidebarView: View {
             Divider()
             footerView
         }
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color(designSystemColor: .surfacePrimary))
     }
 
     // MARK: - Header
