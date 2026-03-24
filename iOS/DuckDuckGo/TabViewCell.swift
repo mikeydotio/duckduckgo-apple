@@ -416,7 +416,6 @@ final class TabViewCell: UICollectionViewCell {
                 link?.isHidden = true
             }
 
-            self.preview?.isHidden = false
             if let preview = preview {
                 self.updatePreviewToDisplay(image: preview)
                 self.preview?.contentMode = .scaleAspectFill
@@ -429,7 +428,6 @@ final class TabViewCell: UICollectionViewCell {
 
         } else if tab.link == nil {
             updatePreviewToDisplayLogo()
-            self.preview?.isHidden = !tab.viewed
             self.preview?.image = logoImage
             self.preview?.contentMode = .center
 
@@ -438,12 +436,12 @@ final class TabViewCell: UICollectionViewCell {
             link?.text = UserText.homeTabSearchAndFavorites
             favicon.image = UIImage(resource: .logo)
             unread.isHidden = true
+            self.preview?.isHidden = !tab.viewed
             title.isHidden = !tab.viewed
             favicon.isHidden = !tab.viewed
             removeButton.isHidden = !tab.viewed
 
         } else {
-            self.preview?.isHidden = false
             link?.isHidden = false
             link?.text = tab.link?.url.absoluteString ?? ""
 
