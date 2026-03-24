@@ -113,7 +113,7 @@ final class HoverTrackingArea: NSTrackingArea {
                 context.allowsImplicitAnimation = true
                 // mousedown/over state should be applied instantly
                 // animation should be also disabled on view reuse
-                if !animated || view.isMouseDown || view.isMouseOver && !view.mustAnimateOnMouseOver {
+                if !animated || view.isMouseDown || (view.isMouseOver && !view.mustAnimateOnMouseOver) {
                     layer.removeAllAnimations()
                     context.duration = 0.0
                 } else {
