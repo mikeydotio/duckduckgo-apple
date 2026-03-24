@@ -94,7 +94,7 @@ final class DataClearingWideEventService {
             eventData?[keyPath: action.statusPath] = .success
         case .failure(let error):
             eventData?[keyPath: action.statusPath] = .failure
-            eventData?[keyPath: action.errorPath] = WideEventErrorData(error: error)
+            eventData?[keyPath: action.errorPath] = WideEventErrorData(error: error, description: (error as? DataClearingWideEventError)?.description)
         }
     }
 
@@ -114,7 +114,7 @@ final class DataClearingWideEventService {
             eventData?[keyPath: action.statusPath] = .success
         case .failure(let error):
             eventData?[keyPath: action.statusPath] = .failure
-            eventData?[keyPath: action.errorPath] = WideEventErrorData(error: error)
+            eventData?[keyPath: action.errorPath] = WideEventErrorData(error: error, description: (error as? DataClearingWideEventError)?.description)
         }
     }
 
