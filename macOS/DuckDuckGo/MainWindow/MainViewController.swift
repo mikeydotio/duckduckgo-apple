@@ -77,6 +77,12 @@ final class MainViewController: NSViewController {
     var aiChatHistorySidebarCoordinator: AIChatHistorySidebarCoordinator?
     var historySidebarCancellables = Set<AnyCancellable>()
 
+    // AI Chat Launcher
+    var aiChatLauncherCoordinator: AIChatLauncherCoordinator?
+    var standaloneFloatingWindowCoordinator: AIChatStandaloneFloatingWindowCoordinator?
+    var launcherCancellables = Set<AnyCancellable>()
+    var launcherKeyMonitor: Any?
+
     private var bookmarksBarIsVisible: Bool {
         return bookmarksBarViewController.parent != nil
     }
@@ -352,6 +358,7 @@ final class MainViewController: NSViewController {
 
         wireAIChatOmnibarUpdates()
         setupAIChatHistorySidebar()
+        setupAIChatLauncher()
     }
 
     override func viewWillAppear() {
