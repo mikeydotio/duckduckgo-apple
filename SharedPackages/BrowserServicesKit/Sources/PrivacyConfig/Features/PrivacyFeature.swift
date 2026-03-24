@@ -390,6 +390,8 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Controls whether automatic page context attachment defaults to enabled
     case autoAttachContextByDefault
 
+    case differentiatedTabCards
+
     /// Signals that the iPad app should display duck.ai chats in a tab instead of a sheet
     case iPadDuckaiOnTab
 

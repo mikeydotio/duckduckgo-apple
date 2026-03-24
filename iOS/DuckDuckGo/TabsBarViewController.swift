@@ -359,10 +359,12 @@ extension TabsBarViewController: UICollectionViewDataSource {
         let isCurrent = indexPath.row == currentIndex
         let isNextCurrent = indexPath.row + 1 == currentIndex
         let isFireModeEnabled = fireModeCapability?.isFireModeEnabled ?? false
+        let isAIChatDifferentiatedTabCardsEnabled = AppDependencyProvider.shared.featureFlagger.isFeatureOn(.aiChatDifferentiatedTabCards)
         cell.update(model: model,
                     isCurrent: isCurrent,
                     isNextCurrent: isNextCurrent,
                     isFireModeEnabled: isFireModeEnabled,
+                    isAIChatDifferentiatedTabCardsEnabled: isAIChatDifferentiatedTabCardsEnabled,
                     withTheme: ThemeManager.shared.currentTheme)
         cell.onRemove = { [weak self, weak model] in
             guard let self = self, let model = model,

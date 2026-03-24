@@ -155,6 +155,8 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866612283363
     case aiChatKeepSession
 
+    case aiChatDifferentiatedTabCards
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866463389447
     case showSettingsCompleteSetupSection
 
@@ -483,6 +485,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .autofillPasswordSearchPrioritizeDomain,
              .appRatingPrompt,
              .contextualDuckAIMode,
+             .aiChatDifferentiatedTabCards,
              .pageContextFeature,
              .aiChatAutoAttachContextByDefault,
              .aiChatSync,
@@ -651,6 +654,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(SyncSubfeature.exchangeKeysToSyncWithAnotherDevice))
         case .aiChatKeepSession:
             return .remoteReleasable(.subfeature(AIChatSubfeature.keepSession))
+        case .aiChatDifferentiatedTabCards:
+            return .remoteReleasable(.subfeature(AIChatSubfeature.differentiatedTabCards))
         case .showSettingsCompleteSetupSection:
             return .remoteReleasable(.subfeature(OnboardingSubfeature.showSettingsCompleteSetupSection))
         case .supportsAlternateStripePaymentFlow:

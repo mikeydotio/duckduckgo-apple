@@ -378,7 +378,8 @@ final class TabViewCell: UICollectionViewCell {
     func update(withTab tab: Tab,
                 isSelectionModeEnabled: Bool,
                 preview: UIImage?,
-                isFireModeEnabled: Bool) {
+                isFireModeEnabled: Bool,
+                shouldShowAIChatConversationTitle: Bool) {
         accessibilityElements = [ title as Any, removeButton as Any ]
 
         self.tab = tab
@@ -409,7 +410,7 @@ final class TabViewCell: UICollectionViewCell {
             title.text = aiChatTitle
             favicon.image = DesignSystemImages.Color.Size24.duckAI
 
-            if let conversationTitle = tab.aiChatConversationTitle {
+            if shouldShowAIChatConversationTitle, let conversationTitle = tab.aiChatConversationTitle {
                 link?.isHidden = false
                 link?.text = conversationTitle
             } else {

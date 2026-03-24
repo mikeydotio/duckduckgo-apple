@@ -93,12 +93,6 @@ class FromWebViewTransition: WebViewTransition {
 
         let preview = tabSwitcherViewController.previewsSource.preview(for: tab)
 
-        guard preview != nil else {
-            tabSwitcherViewController.view.alpha = 1
-            transitionContext.completeTransition(true)
-            return
-        }
-
         let theme = ThemeManager.shared.currentTheme
         let webViewFrame = webView.convert(webView.bounds, to: nil)
         

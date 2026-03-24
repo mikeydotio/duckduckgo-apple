@@ -1336,8 +1336,10 @@ class MainViewController: UIViewController {
     
     private func makeEscapeHatchModel(targetTab: Tab) -> EscapeHatchModel? {
         if targetTab.isAITab {
+            let isDifferentiatedCardsEnabled = featureFlagger.isFeatureOn(.aiChatDifferentiatedTabCards)
+            let title = isDifferentiatedCardsEnabled ? (targetTab.aiChatConversationTitle ?? UserText.omnibarFullAIChatModeDisplayTitle) : UserText.omnibarFullAIChatModeDisplayTitle
             return EscapeHatchModel(
-                title: targetTab.aiChatConversationTitle ?? UserText.omnibarFullAIChatModeDisplayTitle,
+                title: title,
                 subtitle: UserText.omnibarFullAIChatModeDisplayTitle,
                 isAITab: true,
                 domain: nil,

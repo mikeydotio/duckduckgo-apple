@@ -43,6 +43,7 @@ class TabsBarCell: UICollectionViewCell {
 
     private weak var model: Tab?
     private var isFireModeEnabled = false
+    private var isAIChatDifferentiatedTabCardsEnabled = false
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -81,6 +82,7 @@ class TabsBarCell: UICollectionViewCell {
                 isCurrent: Bool,
                 isNextCurrent: Bool,
                 isFireModeEnabled: Bool,
+                isAIChatDifferentiatedTabCardsEnabled: Bool,
                 withTheme theme: Theme) {
         
         accessibilityElements = [label as Any, removeButton as Any]
@@ -89,6 +91,7 @@ class TabsBarCell: UICollectionViewCell {
         
         self.model = model
         self.isFireModeEnabled = isFireModeEnabled
+        self.isAIChatDifferentiatedTabCardsEnabled = isAIChatDifferentiatedTabCardsEnabled
         model.addObserver(self)
 
         label.primaryColor = theme.barTintColor
@@ -117,7 +120,7 @@ class TabsBarCell: UICollectionViewCell {
         } else if model.isAITab {
             let aiChatTitle = UserText.omnibarFullAIChatModeDisplayTitle
             faviconImage.image = DesignSystemImages.Color.Size24.duckAI
-            if let conversationTitle = model.aiChatConversationTitle {
+            if isAIChatDifferentiatedTabCardsEnabled, let conversationTitle = model.aiChatConversationTitle {
                 label.text = "\(aiChatTitle) - \(conversationTitle)"
             } else {
                 label.text = aiChatTitle

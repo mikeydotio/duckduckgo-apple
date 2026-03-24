@@ -784,10 +784,12 @@ extension TabSwitcherViewController: UICollectionViewDataSource {
             tab.removeObserver(self)
             tab.addObserver(self)
             let isFireModeEnabled = fireModeCapability.isFireModeEnabled
+            let shouldShowAIChatConversationTitle = featureFlagger.isFeatureOn(.aiChatDifferentiatedTabCards)
             cell.update(withTab: tab,
                         isSelectionModeEnabled: self.isEditing,
                         preview: previewsSource.preview(for: tab),
-                        isFireModeEnabled: isFireModeEnabled)
+                        isFireModeEnabled: isFireModeEnabled,
+                        shouldShowAIChatConversationTitle: shouldShowAIChatConversationTitle)
         }
         
         return cell
@@ -933,10 +935,12 @@ extension TabSwitcherViewController: TabObserver {
         }
 
         let isFireModeEnabled = fireModeCapability.isFireModeEnabled
+        let shouldShowAIChatConversationTitle = featureFlagger.isFeatureOn(.aiChatDifferentiatedTabCards)
         cell.update(withTab: tab,
                     isSelectionModeEnabled: self.isEditing,
                     preview: previewsSource.preview(for: tab),
-                    isFireModeEnabled: isFireModeEnabled)
+                    isFireModeEnabled: isFireModeEnabled,
+                    shouldShowAIChatConversationTitle: shouldShowAIChatConversationTitle)
     }
 }
 
