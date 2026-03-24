@@ -66,6 +66,15 @@ class JSFileCacheTests: XCTestCase {
         XCTAssertEqual(result, "no tokens here")
     }
 
+    func testUnicodeInTemplateAndReplacements() {
+        let template = "var label = $LABEL$; var emoji = \u{1F600}; var config = $CONFIG$;"
+        let result = JSFileCache.applyReplacements(template, [
+            "$LABEL$": "\"Datenschutz-Einstellungen\"",
+            "$CONFIG$": "{\"emoji\":\"\u{1F525}\",\"cjk\":\"\u{4E16}\u{754C}\"}"
+        ])
+        XCTAssertEqual(result, "var label = \"Datenschutz-Einstellungen\"; var emoji = \u{1F600}; var config = {\"emoji\":\"\u{1F525}\",\"cjk\":\"\u{4E16}\u{754C}\"};")
+    }
+
     // MARK: - content(forFile:in:)
 
     func testContentReturnsFileFromBundle() throws {
