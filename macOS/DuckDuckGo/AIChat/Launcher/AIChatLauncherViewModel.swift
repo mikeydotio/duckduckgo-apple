@@ -54,6 +54,8 @@ final class AIChatLauncherViewModel: ObservableObject {
 
     // MARK: - Updates
 
+    /// Updates the chat list and loading state. Resets keyboard selection
+    /// so stale indices don't point into a new list.
     func update(chats: [AIChatSuggestion], isLoading: Bool) {
         self.allChats = chats
         self.isLoading = isLoading
@@ -62,7 +64,7 @@ final class AIChatLauncherViewModel: ObservableObject {
 
     func reset() {
         searchText = ""
-        selectedIndex = nil
+        // selectedIndex is cleared by searchText.didSet
     }
 
     // MARK: - Keyboard Navigation
@@ -87,8 +89,8 @@ final class AIChatLauncherViewModel: ObservableObject {
     }
 
     func activateSelection() {
-        guard let index = selectedIndex, index < filteredChats.count else { return }
-        let chat = filteredChats[index]
-        onChatSelected?(chat.chatId)
+        let chats = filteredChats
+        guard let index = selectedIndex, index < chats.count else { return }
+        onChatSelected?(chats[index].chatId)
     }
 }
