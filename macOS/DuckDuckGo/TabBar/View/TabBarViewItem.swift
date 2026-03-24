@@ -148,7 +148,6 @@ final class TabBarItemCellView: NSView {
     }
 
     private enum Metrics {
-        static let animationDuration: TimeInterval = 0.15
         static let audioAndCrashButtonSide: CGFloat = 16
         static let closeButtonDimension: CGFloat = 20
         static let faviconImageSide: CGFloat = 20

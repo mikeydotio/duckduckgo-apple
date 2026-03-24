@@ -34,6 +34,10 @@ final class HoverTrackingArea: NSTrackingArea {
         trackingArea.updateLayer(animated: false)
     }
 
+    private enum Animations {
+        static let duration: TimeInterval = 0.15
+    }
+
     // mouseEntered and mouseExited events will be received by the HoverTrackingArea itself
     override var owner: AnyObject? {
         self
@@ -59,7 +63,6 @@ final class HoverTrackingArea: NSTrackingArea {
 
     private var observers: [NSKeyValueObservation]?
     private var lastEventTimestamp: TimeInterval = 0
-    private let defaultAnimationDuration: TimeInterval = 0.15
 
     private static let mouseExitedSelector = NSStringFromSelector(#selector(NSResponder.mouseExited))
     private static let swizzleMouseExitedOnce: Void = {
@@ -114,7 +117,7 @@ final class HoverTrackingArea: NSTrackingArea {
                     layer.removeAllAnimations()
                     context.duration = 0.0
                 } else {
-                    context.duration = defaultAnimationDuration
+                    context.duration = Animations.duration
                 }
 
                 layer.backgroundColor = color.cgColor
