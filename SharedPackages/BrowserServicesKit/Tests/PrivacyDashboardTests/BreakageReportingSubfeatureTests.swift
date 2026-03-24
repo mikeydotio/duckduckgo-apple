@@ -19,6 +19,7 @@
 import XCTest
 @testable import PrivacyDashboard
 import WebKit
+import BrowserServicesKitTestsUtils
 
 final class BreakageReportingSubfeatureTests: XCTestCase {
 
@@ -39,7 +40,7 @@ final class BreakageReportingSubfeatureTests: XCTestCase {
             "breakageData": percentEncodedBreakageData
         ]
 
-        let mockMessage = MockWKScriptMessage(body: payload)
+        let mockMessage = WKScriptMessage.mock(name: "breakageReportResult", body: payload)
         _ = try await subfeature.breakageReportResult(params: payload, original: mockMessage)
 
         // The breakageData should be decoded when passed to completion handler
@@ -78,24 +79,5 @@ final class BreakageReportingSubfeatureTests: XCTestCase {
         // When decoding fails, we should fall back to original
         // Note: removingPercentEncoding returns nil for invalid sequences
         XCTAssertEqual(result, malformedData)
-    }
-}
-
-// MARK: - Mock
-
-private class MockWKScriptMessage: WKScriptMessage {
-    private let mockBody: Any
-
-    init(body: Any) {
-        self.mockBody = body
-        super.init()
-    }
-
-    override var body: Any {
-        return mockBody
-    }
-
-    override var name: String {
-        return "breakageReportResult"
     }
 }
