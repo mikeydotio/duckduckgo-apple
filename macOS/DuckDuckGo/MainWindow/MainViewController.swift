@@ -82,6 +82,7 @@ final class MainViewController: NSViewController {
     var standaloneFloatingWindowCoordinator: AIChatStandaloneFloatingWindowCoordinator?
     var launcherCancellables = Set<AnyCancellable>()
     var launcherKeyMonitor: Any?
+    var launcherWindowCloseObserver: NSObjectProtocol?
 
     private var bookmarksBarIsVisible: Bool {
         return bookmarksBarViewController.parent != nil

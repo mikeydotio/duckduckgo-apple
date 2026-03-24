@@ -72,8 +72,9 @@ extension MainViewController {
         }
 
         // Tear down when the browser window closes to avoid a dangling event monitor
-        // and to release the suggestions reader.
-        NotificationCenter.default.addObserver(
+        // and to release the suggestions reader. The observer token is stored so it
+        // can be removed to avoid leaking the block after the window closes.
+        launcherWindowCloseObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: nil,
             queue: .main
@@ -84,6 +85,10 @@ extension MainViewController {
             if let monitor = launcherKeyMonitor {
                 NSEvent.removeMonitor(monitor)
                 launcherKeyMonitor = nil
+            }
+            if let observer = launcherWindowCloseObserver {
+                NotificationCenter.default.removeObserver(observer)
+                launcherWindowCloseObserver = nil
             }
         }
     }
