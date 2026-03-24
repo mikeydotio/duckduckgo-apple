@@ -425,6 +425,8 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             suggestionsView.onSuggestionDeleted = { [weak self] suggestion in
                 guard let self, let window = self.view.window else { return }
 
+                PixelKit.fire(AIChatPixel.aiChatRecentChatDeleteButtonClicked, frequency: .dailyAndCount, includeAppVersionParameter: true)
+
                 let alert = NSAlert()
                 alert.messageText = UserText.removeRecentChatConfirmationTitle
                 alert.informativeText = String(format: UserText.removeRecentChatConfirmationMessage, suggestion.title)
@@ -434,6 +436,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
                 alert.beginSheetModal(for: window) { [weak self] response in
                     guard let self, response == .OK else { return }
+                    PixelKit.fire(AIChatPixel.aiChatRecentChatDeleteConfirmed, frequency: .dailyAndCount, includeAppVersionParameter: true)
                     self.omnibarController.suggestionsViewModel.removeSuggestion(suggestion)
                     Task { @MainActor in
                         _ = await self.historyCleaner.deleteAIChat(chatID: suggestion.chatId)
