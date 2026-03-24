@@ -3433,6 +3433,8 @@
 		BB3364402EE0B4EA003F50FF /* ReinstallingUserDetecting.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB33643E2EE0B4EA003F50FF /* ReinstallingUserDetecting.swift */; };
 		BB349A4E2E3B8B0E0028AFE1 /* MockDefaultBrowserProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB349A4D2E3B8B0E0028AFE1 /* MockDefaultBrowserProvider.swift */; };
 		BB349A4F2E3B8B0E0028AFE1 /* MockDefaultBrowserProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB349A4D2E3B8B0E0028AFE1 /* MockDefaultBrowserProvider.swift */; };
+		BB35FFD42F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB35FFD32F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift */; };
+		BB35FFD52F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB35FFD32F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift */; };
 		BB3A50B32EE063E700BD4BDD /* HomePageContinueSetUpModelPersistor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3A50B22EE063E700BD4BDD /* HomePageContinueSetUpModelPersistor.swift */; };
 		BB3A50B42EE063E700BD4BDD /* HomePageContinueSetUpModelPersistor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3A50B22EE063E700BD4BDD /* HomePageContinueSetUpModelPersistor.swift */; };
 		BB3A50B62EE06B6800BD4BDD /* MockHomePageContinueSetUpModelPersisting.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3A50B52EE06B6800BD4BDD /* MockHomePageContinueSetUpModelPersisting.swift */; };
@@ -6260,6 +6262,7 @@
 		BB32C59C2DCD416E00775E80 /* ColorsProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorsProviding.swift; sourceTree = "<group>"; };
 		BB33643E2EE0B4EA003F50FF /* ReinstallingUserDetecting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReinstallingUserDetecting.swift; sourceTree = "<group>"; };
 		BB349A4D2E3B8B0E0028AFE1 /* MockDefaultBrowserProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDefaultBrowserProvider.swift; sourceTree = "<group>"; };
+		BB35FFD32F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuitSurveyReturnUserHandlerTests.swift; sourceTree = "<group>"; };
 		BB3A50B22EE063E700BD4BDD /* HomePageContinueSetUpModelPersistor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomePageContinueSetUpModelPersistor.swift; sourceTree = "<group>"; };
 		BB3A50B52EE06B6800BD4BDD /* MockHomePageContinueSetUpModelPersisting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockHomePageContinueSetUpModelPersisting.swift; sourceTree = "<group>"; };
 		BB42A3792F3A828C00598719 /* MemoryUsageIntervalReporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageIntervalReporterTests.swift; sourceTree = "<group>"; };
@@ -12100,6 +12103,7 @@
 			children = (
 				BBE497DB2EDF9AE6000C3DB5 /* QuitSurveyDeciderTests.swift */,
 				BBE497DF2EDF9AE6000C3DB5 /* QuitSurveyViewModelTests.swift */,
+				BB35FFD32F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift */,
 			);
 			path = QuitSurvey;
 			sourceTree = "<group>";
@@ -15586,6 +15590,7 @@
 			files = (
 				20AC3AA2FB956B8B11BCA072 /* DarkReaderFeatureSettingsTests.swift in Sources */,
 				31A80B0E2EE88F06004DF7FA /* AIChatTogglePopoverCoordinatorTests.swift in Sources */,
+				BB35FFD52F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift in Sources */,
 				9F0FFFB92BCCAE9C007C87DD /* AddEditBookmarkDialogViewModelMock.swift in Sources */,
 				3706FDDA293F661700E42796 /* EmbeddedTrackerDataTests.swift in Sources */,
 				37D40D3A2EBBFA9B004895A6 /* RecentlyClosedCoordinatorMock.swift in Sources */,
@@ -17903,6 +17908,7 @@
 				DA0001012F5B000000000001 /* PasswordManagerCoordinatorTests.swift in Sources */,
 				1D77921828FDC54C00BE0210 /* FaviconReferenceCacheTests.swift in Sources */,
 				FD23FD2B28816606007F6985 /* AutoconsentMessageProtocolTests.swift in Sources */,
+				BB35FFD42F742B160090410A /* QuitSurveyReturnUserHandlerTests.swift in Sources */,
 				56A0543B2C20878E007D8FAB /* DuckSchemeHandlerTests.swift in Sources */,
 				1D77921A28FDC79800BE0210 /* FaviconStoringMock.swift in Sources */,
 				37918CF92D6F341A00250F1A /* HistoryViewActionsHandlerTests.swift in Sources */,
