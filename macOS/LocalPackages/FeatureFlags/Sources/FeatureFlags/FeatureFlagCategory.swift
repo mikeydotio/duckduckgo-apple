@@ -64,6 +64,7 @@ extension FeatureFlag: FeatureFlagCategorization {
                 .aiChatChromeSidebar,
                 .aiChatNtpRecentChats,
                 .aiChatNtpChatTools:
+                .aiChatRemoveSuggestion:
             return .duckAI
         case .osSupportForceUnsupportedMessage,
                 .osSupportForceWillSoonDropSupportMessage,
