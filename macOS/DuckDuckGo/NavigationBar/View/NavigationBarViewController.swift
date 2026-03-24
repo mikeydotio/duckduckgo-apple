@@ -1073,6 +1073,7 @@ final class NavigationBarViewController: NSViewController {
 
         setupAIChatHistoryButton()
         setupAIChatLauncherButton()
+        aiChatLauncherButton.setAccessibilityTitle(UserText.aiChatLauncherAccessibilityLabel)
 
         navigationButtons.spacing = theme.navigationToolbarButtonsSpacing
         setupNavigationButtonIcons()
@@ -1217,6 +1218,7 @@ final class NavigationBarViewController: NSViewController {
         optionsButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
         overflowButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
         aiChatHistoryButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
+        aiChatLauncherButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
     }
 
     private func setupAIChatHistoryButton() {
