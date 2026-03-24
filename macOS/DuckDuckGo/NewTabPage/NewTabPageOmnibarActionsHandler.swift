@@ -21,7 +21,6 @@ import NewTabPage
 import AppKit
 import Suggestions
 import Common
-import AIChat
 import os.log
 import PixelKit
 
