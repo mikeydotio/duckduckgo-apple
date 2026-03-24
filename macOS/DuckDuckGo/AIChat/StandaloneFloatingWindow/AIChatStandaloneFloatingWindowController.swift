@@ -39,7 +39,7 @@ final class AIChatStandaloneFloatingWindowController: NSWindowController {
 
     // MARK: - Init
 
-    init(keyValueStore: KeyValueStoring = UserDefaults.standard) {
+    init(keyValueStore: KeyValueStoring) {
         self.keyValueStore = keyValueStore
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
@@ -82,7 +82,7 @@ final class AIChatStandaloneFloatingWindowController: NSWindowController {
     // MARK: - Frame Persistence
 
     private func restoreFrameOrCenter() {
-        if let stored = keyValueStore.object(forKey: Constants.frameUserDefaultsKey) as? String {
+        if let stored = (try? keyValueStore.object(forKey: Constants.frameUserDefaultsKey)) as? String {
             let rect = NSRectFromString(stored)
             if rect != .zero {
                 let screen = NSScreen.main ?? NSScreen.screens.first
@@ -103,7 +103,7 @@ final class AIChatStandaloneFloatingWindowController: NSWindowController {
 
     private func persistFrame() {
         guard let frame = window?.frame else { return }
-        keyValueStore.set(NSStringFromRect(frame), forKey: Constants.frameUserDefaultsKey)
+        try? keyValueStore.set(NSStringFromRect(frame), forKey: Constants.frameUserDefaultsKey)
     }
 }
 
