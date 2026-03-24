@@ -1,12 +1,13 @@
 {
+  "originHash" : "054b8c3e6c303924689ad07775e005504e7551634da3da25ede08fedc4ed4a7b",
   "pins" : [
     {
       "identity" : "content-scope-scripts",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "revision" : "13976e04d81eefac5a9c718d886ce99460a9123b",
-        "version" : "13.29.0"
+        "branch" : "pr-releases/moon0326/ai-tools-to-new-tab-page",
+        "revision" : "c0d5baf44b4fc47b7acb55e6ef021e2c44a27f37"
       }
     },
     {
@@ -91,5 +92,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

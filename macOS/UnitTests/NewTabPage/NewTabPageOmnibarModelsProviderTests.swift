@@ -48,7 +48,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
 
     // MARK: - Mapping Tests
 
-    func testModelFieldsAreMappedCorrectly() async {
+    func testWhenFetchingModelsThenFieldsAreMappedCorrectly() async {
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "gpt-4o-mini", name: "GPT-4o mini", shortName: "4o-mini",
                             supportsImageUpload: true, accessTier: ["free"])
@@ -64,7 +64,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
         XCTAssertTrue(item?.supportsImageUpload == true)
     }
 
-    func testFreeUser_PremiumModelsAreDisabled() async {
+    func testWhenFreeUserThenPremiumModelsAreDisabled() async {
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "free-model", accessTier: ["free"]),
             makeRemoteModel(id: "premium-model", accessTier: ["plus", "pro"]),
@@ -80,7 +80,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
         XCTAssertTrue(premiumItem?.isEnabled == false)
     }
 
-    func testSubscribedUser_AllAccessibleModelsEnabled() async {
+    func testWhenSubscribedUserThenAllAccessibleModelsAreEnabled() async {
         mockSubscriptionManager.resultSubscription = .success(makeSubscription(tier: .plus))
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "free-model", accessTier: ["free", "plus"]),
@@ -93,7 +93,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
         XCTAssertTrue(allItems.allSatisfy(\.isEnabled))
     }
 
-    func testSubscribedPlusUser_ProOnlyModelsHidden() async {
+    func testWhenSubscribedPlusUserThenProOnlyModelsAreHidden() async {
         mockSubscriptionManager.resultSubscription = .success(makeSubscription(tier: .plus))
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "plus-model", accessTier: ["plus", "pro"]),
@@ -111,7 +111,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
 
     // MARK: - Section Structure Tests
 
-    func testFreeUser_TwoSections() async {
+    func testWhenFreeUserThenTwoSectionsReturned() async {
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "free-model", accessTier: ["free"]),
             makeRemoteModel(id: "premium-model", accessTier: ["plus"]),
@@ -124,7 +124,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
         XCTAssertNotNil(sections[1].header)
     }
 
-    func testSubscribedUser_TwoSections() async {
+    func testWhenSubscribedUserThenTwoSectionsReturned() async {
         mockSubscriptionManager.resultSubscription = .success(makeSubscription(tier: .plus))
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "plus-model", accessTier: ["plus"]),
@@ -140,7 +140,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
 
     // MARK: - Error Handling
 
-    func testWhenFetchFails_ReturnsEmptySections() async {
+    func testWhenFetchFailsThenEmptySectionsReturned() async {
         mockModelsService.errorToThrow = NSError(domain: "test", code: -1)
 
         let sections = await provider.fetchAIModelSections()
@@ -148,7 +148,7 @@ final class NewTabPageOmnibarModelsProviderTests: XCTestCase {
         XCTAssertTrue(sections.isEmpty)
     }
 
-    func testWhenSubscriptionFails_DefaultsToFreeUser() async {
+    func testWhenSubscriptionFailsThenDefaultsToFreeUser() async {
         mockSubscriptionManager.resultSubscription = .failure(NSError(domain: "test", code: -1))
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "free-model", accessTier: ["free"]),

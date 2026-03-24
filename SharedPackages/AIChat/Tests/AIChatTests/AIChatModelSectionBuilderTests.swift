@@ -26,7 +26,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
 
     // MARK: - Free User
 
-    func testFreeUser_AccessibleModelsInFirstSection_PremiumInSecond() {
+    func testWhenFreeUserThenAccessibleModelsInFirstSectionAndPremiumInSecond() {
         let models = [
             makeModel(id: "free-1", entityHasAccess: true, accessTier: ["free"]),
             makeModel(id: "free-2", entityHasAccess: true, accessTier: ["free"]),
@@ -51,7 +51,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
         XCTAssertEqual(sections[1].items.map(\.id), ["premium-1"])
     }
 
-    func testFreeUser_NoPremiumModels_SingleSection() {
+    func testWhenFreeUserHasNoPremiumModelsThenSingleSectionReturned() {
         let models = [
             makeModel(id: "free-1", entityHasAccess: true, accessTier: ["free"]),
         ]
@@ -68,7 +68,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
         XCTAssertEqual(sections[0].items.map(\.id), ["free-1"])
     }
 
-    func testFreeUser_OnlyPremiumModels_SingleSectionWithHeader() {
+    func testWhenFreeUserHasOnlyPremiumModelsThenSingleSectionWithHeaderReturned() {
         let models = [
             makeModel(id: "premium-1", entityHasAccess: false, accessTier: ["plus"]),
         ]
@@ -87,7 +87,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
 
     // MARK: - Subscribed User
 
-    func testSubscribedUser_AdvancedFirst_BasicSecond() {
+    func testWhenSubscribedUserThenAdvancedModelsFirstAndBasicSecond() {
         let models = [
             makeModel(id: "basic-1", entityHasAccess: true, accessTier: ["free", "plus"]),
             makeModel(id: "advanced-1", entityHasAccess: true, accessTier: ["plus", "pro"]),
@@ -112,7 +112,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
         XCTAssertEqual(sections[1].items.map(\.id), ["basic-1"])
     }
 
-    func testSubscribedPlusUser_ProOnlyModelsHidden() {
+    func testWhenSubscribedPlusUserThenProOnlyModelsAreHidden() {
         let models = [
             makeModel(id: "basic-1", entityHasAccess: true, accessTier: ["free", "plus"]),
             makeModel(id: "plus-model", entityHasAccess: true, accessTier: ["plus", "pro"]),
@@ -133,7 +133,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
         XCTAssertTrue(allIds.contains("basic-1"))
     }
 
-    func testSubscribedUser_OnlyBasicModels_SingleSectionWithHeader() {
+    func testWhenSubscribedUserHasOnlyBasicModelsThenSingleSectionWithHeaderReturned() {
         let models = [
             makeModel(id: "basic-1", entityHasAccess: true, accessTier: ["free", "plus"]),
         ]
@@ -152,7 +152,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
 
     // MARK: - Edge Cases
 
-    func testEmptyModels_ReturnsEmptySections() {
+    func testWhenModelsAreEmptyThenEmptySectionsReturned() {
         let freeSections = AIChatModelSectionBuilder.buildSections(
             models: [],
             hasActiveSubscription: false,
@@ -170,7 +170,7 @@ final class AIChatModelSectionBuilderTests: XCTestCase {
         XCTAssertTrue(subscribedSections.isEmpty)
     }
 
-    func testModelOrderIsPreserved() {
+    func testWhenBuildingSectionsThenModelOrderIsPreserved() {
         let models = [
             makeModel(id: "z-model", entityHasAccess: true, accessTier: ["free"]),
             makeModel(id: "a-model", entityHasAccess: true, accessTier: ["free"]),
