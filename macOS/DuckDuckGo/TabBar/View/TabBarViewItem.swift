@@ -330,8 +330,7 @@ final class TabBarItemCellView: NSView {
         closeButton.setAccessibilityLabel(UserText.closeTab)
         closeButton.setAccessibilityIdentifier("TabBarViewItem.closeButton")
         closeButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsSelectedCornerRadius
-        closeButton.animatesOnMouseOver = displaysTabsAnimations
-        closeButton.animationDuration = displaysTabsAnimations ? Metrics.animationDuration : nil
+        closeButton.mustAnimateOnMouseOver = displaysTabsAnimations
 
         permissionButton.setAccessibilityIdentifier("TabBarViewItem.permissionButton")
         // Accessibility label and toolTip are updated in `updateUsedPermissions`
