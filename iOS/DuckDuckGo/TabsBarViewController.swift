@@ -359,11 +359,7 @@ extension TabsBarViewController: UICollectionViewDataSource {
         let isCurrent = indexPath.row == currentIndex
         let isNextCurrent = indexPath.row + 1 == currentIndex
         let isFireModeEnabled = fireModeCapability?.isFireModeEnabled ?? false
-        cell.update(model: model,
-                    isCurrent: isCurrent,
-                    isNextCurrent: isNextCurrent,
-                    isFireModeEnabled: isFireModeEnabled,
-                    withTheme: ThemeManager.shared.currentTheme)
+        cell.update(model: model, isCurrent: isCurrent, isNextCurrent: isNextCurrent, isFireModeEnabled: isFireModeEnabled, withTheme: ThemeManager.shared.currentTheme)
         cell.onRemove = { [weak self, weak model] in
             guard let self = self, let model = model,
                 let tabIndex = self.tabsModel?.indexOf(tab: model)
