@@ -429,6 +429,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 alert.messageText = UserText.removeRecentChatConfirmationTitle
                 alert.informativeText = String(format: UserText.removeRecentChatConfirmationMessage, suggestion.title)
                 alert.addButton(withTitle: UserText.removeRecentChatConfirmationButton, response: .OK)
+                alert.buttons.first?.hasDestructiveAction = true
                 alert.addButton(withTitle: UserText.cancel, response: .cancel, keyEquivalent: .escape)
 
                 alert.beginSheetModal(for: window) { [weak self] response in
