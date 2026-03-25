@@ -66,13 +66,8 @@ extension UserScript {
         let path = bundle.path(forResource: jsFile, ofType: "js")!
 
         do {
-            var js = try String(contentsOfFile: path)
-
-            for (key, value) in replacements {
-                js = js.replacingOccurrences(of: key, with: value, options: .literal)
-            }
-
-            return js
+            let js = try String(contentsOfFile: path)
+            return js.applyingReplacements(replacements)
         } catch {
             throw UserScriptError.failedToLoadJS(jsFile: jsFile, error: error)
         }

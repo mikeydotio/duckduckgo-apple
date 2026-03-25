@@ -77,7 +77,7 @@ class UserScriptTests: XCTestCase {
         }
     }
 
-    // MARK: - loadJS replacement tests
+    // MARK: - loadJS replacement integration tests
 
     func testLoadJSWithMultipleReplacements() throws {
         let result = try TestUserScript.loadJS("testLoadJSReplacements", from: .module, withReplacements: [
@@ -86,13 +86,7 @@ class UserScriptTests: XCTestCase {
             "$C$": "3"
         ])
 
-        XCTAssertEqual(result, """
-        var a = 1;
-        var b = 2;
-        var c = 3;
-        var a2 = 1;
-
-        """)
+        XCTAssertEqual(result, "var a = 1;\nvar b = 2;\nvar c = 3;\nvar a2 = 1;\n")
     }
 
     func testLoadJSReplacesAllOccurrencesOfRepeatedKey() throws {
@@ -107,7 +101,6 @@ class UserScriptTests: XCTestCase {
     }
 
     func testLoadJSDoesNotReExpandReplacementValues() throws {
-        // Value of $B$ contains $A$, which should NOT be expanded again
         let result = try TestUserScript.loadJS("testLoadJSReplacements", from: .module, withReplacements: [
             "$A$": "1",
             "$B$": "$A$",
