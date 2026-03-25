@@ -1,0 +1,100 @@
+<h2>Where else could Duck.ai history & actions appear?</h2>
+<p class="subtitle">We already have: toolbar button (left nav), history sidebar, right-click context menu, ⌥⌘N shortcut, File menu, More Options menu, New Tab Page shortcut, Floating window. Here are 4 candidate new surfaces to explore.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="ntp" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f5f7;padding:12px;font-size:11px;font-family:system-ui">
+      <div style="background:#fff;border-radius:8px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.12)">
+        <div style="font-weight:600;margin-bottom:6px;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Recent Duck.ai Chats</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div style="background:#f0f0f5;border-radius:5px;padding:4px 8px;font-size:10px">Plan a trip to Japan</div>
+          <div style="background:#f0f0f5;border-radius:5px;padding:4px 8px;font-size:10px">Explain quantum computing</div>
+          <div style="background:#f0f0f5;border-radius:5px;padding:4px 8px;font-size:10px">Fix my Swift bug</div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <div style="border:1px solid #ddd;border-radius:5px;padding:4px 10px;font-size:10px;background:#fff">+ New Chat</div>
+          <div style="border:1px solid #ddd;border-radius:5px;padding:4px 10px;font-size:10px;background:#fff">🎙 Voice</div>
+          <div style="border:1px solid #ddd;border-radius:5px;padding:4px 10px;font-size:10px;background:#fff">🖼 Image</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — New Tab Page section</h3>
+      <p>A dedicated "Recent Duck.ai Chats" widget on the new tab page, alongside Favorites. Shows the last few chats as chips with quick-action buttons beneath. Persistent, always visible on every new tab.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="palette" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f5f7;padding:12px;font-size:11px;font-family:system-ui">
+      <div style="background:#fff;border-radius:10px;padding:10px;box-shadow:0 4px 20px rgba(0,0,0,.18);max-width:260px;margin:0 auto">
+        <div style="display:flex;align-items:center;gap:6px;border-bottom:1px solid #eee;padding-bottom:8px;margin-bottom:8px">
+          <span style="font-size:13px">🦆</span>
+          <input style="border:none;outline:none;font-size:11px;flex:1;color:#333" placeholder="Ask Duck.ai or find a chat…" readonly>
+          <span style="font-size:9px;color:#aaa;background:#f0f0f0;border-radius:3px;padding:1px 4px">⌘K</span>
+        </div>
+        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Recent</div>
+        <div style="font-size:10px;padding:4px 6px;border-radius:4px;background:#f5f5f7;margin-bottom:3px">Plan a trip to Japan</div>
+        <div style="font-size:10px;padding:4px 6px;border-radius:4px;margin-bottom:3px">Explain quantum computing</div>
+        <div style="border-top:1px solid #eee;padding-top:6px;margin-top:4px;font-size:10px;color:#555">
+          <div style="padding:3px 6px">+ New Chat</div>
+          <div style="padding:3px 6px">🎙 New Voice Chat</div>
+          <div style="padding:3px 6px">🖼 New Image Chat</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Quick launcher (⌘K palette)</h3>
+      <p>A spotlight-style overlay triggered by ⌘K (or a toolbar button). Type to filter past chats or jump straight into a new one. Keyboard-first, fast, no sidebar needed. Dismisses on Escape or selection.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="omnibar" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f5f7;padding:12px;font-size:11px;font-family:system-ui">
+      <div style="background:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 1px 4px rgba(0,0,0,.12)">
+        <div style="display:flex;align-items:center;gap:6px;background:#f2f2f7;border-radius:6px;padding:5px 8px;margin-bottom:8px">
+          <span style="font-size:11px">🔍</span>
+          <span style="font-size:11px;color:#333;flex:1">duck.ai<span style="color:#aaa"> / ask...</span></span>
+        </div>
+        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Duck.ai — Recent chats</div>
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #f0f0f0">
+          <span style="font-size:11px">💬</span>
+          <span style="font-size:10px">Plan a trip to Japan</span>
+          <span style="font-size:9px;color:#aaa;margin-left:auto">2h ago</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 0">
+          <span style="font-size:11px">💬</span>
+          <span style="font-size:10px">Explain quantum computing</span>
+          <span style="font-size:9px;color:#aaa;margin-left:auto">yesterday</span>
+        </div>
+        <div style="margin-top:6px;padding:4px 0;font-size:10px;color:#555;border-top:1px solid #f0f0f0">
+          🦆 Start new Duck.ai chat with "duck.ai / ask..."
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Address bar suggestions</h3>
+      <p>When the address bar is focused, recent Duck.ai chats surface as a distinct group in the suggestions dropdown (alongside bookmarks/history). Typing "duck.ai" or "?" narrows to AI results only. Selecting one resumes the chat.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="selection" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f5f7;padding:12px;font-size:11px;font-family:system-ui">
+      <div style="position:relative;background:#fff;border-radius:8px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.12)">
+        <p style="font-size:10px;line-height:1.5;color:#333;margin:0">The quick brown fox jumps over the lazy dog. <span style="background:#b3d4ff;border-radius:2px">Quantum entanglement is a phenomenon where two particles remain connected regardless of the distance between them.</span> This has implications for...</p>
+        <div style="position:absolute;top:-2px;left:80px;display:flex;gap:2px;background:#222;border-radius:6px;padding:4px 6px;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+          <span style="font-size:9px;color:#fff;padding:2px 5px;border-radius:3px;background:#444">Summarize</span>
+          <span style="font-size:9px;color:#fff;padding:2px 5px;border-radius:3px">Translate</span>
+          <span style="font-size:9px;color:#fff;padding:2px 5px;border-radius:3px">Ask</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>D — Text selection action bar</h3>
+      <p>When text is selected on a page, a compact floating action bar appears near the selection (like iOS text selection but desktop-style). Shows Summarize / Translate / Ask. Faster than a right-click menu.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Click any card(s) that look worth exploring. You can pick multiple.</p>
