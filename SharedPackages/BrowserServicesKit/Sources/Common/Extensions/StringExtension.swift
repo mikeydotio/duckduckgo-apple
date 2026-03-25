@@ -528,9 +528,8 @@ public extension StringProtocol {
 
         guard !pattern.isEmpty else { return String(self) }
 
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return String(self)
-        }
+        // Pattern is built from escaped literals joined by "|", so this cannot fail.
+        let regex = try! NSRegularExpression(pattern: pattern)
 
         let string = String(self)
         let nsRange = NSRange(string.startIndex..., in: string)
