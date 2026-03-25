@@ -43,9 +43,12 @@ struct DebugScreensView: View {
     var body: some View {
         List {
             Section {
-                Label("Shake your device or press \u{2303}\u{2318}Z in the Simulator to open this screen quickly.", systemImage: "info.circle")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Shake your device or press \u{2303}\u{2318}Z in the Simulator to open this screen quickly.", systemImage: "info.circle")
+                    Text("On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**.")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             }
             .listRowBackground(Color(designSystemColor: .surface))
 
