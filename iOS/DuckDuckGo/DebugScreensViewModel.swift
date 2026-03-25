@@ -53,6 +53,10 @@ class DebugScreensViewModel: ObservableObject {
     @Published var filtered: [DebugScreen] = []
     @Published var filteredFeatureFlags: [FeatureFlag] = []
 
+    var isSearching: Bool {
+        !filter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     @UserDefaultsWrapper(key: .debugPinnedScreens, defaultValue: [])
     var pinnedTitles: [String]
 

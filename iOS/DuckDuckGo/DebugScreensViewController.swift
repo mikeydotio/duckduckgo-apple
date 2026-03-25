@@ -42,17 +42,16 @@ struct DebugScreensView: View {
 
     var body: some View {
         List {
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Shake your device or press \u{2303}\u{2318}Z in the Simulator to open this screen quickly.", systemImage: "info.circle")
-                    Text("On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**.")
+            if !model.isSearching {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Shake your device or press \u{2303}\u{2318}Z in the Simulator to open this screen quickly.", systemImage: "info.circle")
+                        Text("On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**.")
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            }
-            .listRowBackground(Color(designSystemColor: .surface))
-
-            if model.filtered.isEmpty && model.filteredFeatureFlags.isEmpty {
+                .listRowBackground(Color(designSystemColor: .surface))
                 DebugTogglesView(model: model)
                     .listRowBackground(Color(designSystemColor: .surface))
 
@@ -69,8 +68,18 @@ struct DebugScreensView: View {
 
                 DebugScreensListView(model: model, sectionTitle: "Screens", screens: model.unpinnedScreens)
                 DebugScreensListView(model: model, sectionTitle: "Actions", screens: model.actions)
+            } else if model.filtered.isEmpty && model.filteredFeatureFlags.isEmpty {
+                if #available(iOS 17.0, *) {
+                    ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No matches for \"\(model.filter)\""))
+                } else {
+                    Label("No results for \"\(model.filter)\"", systemImage: "magnifyingglass")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             } else {
-                DebugScreensListView(model: model, sectionTitle: "Results", screens: model.filtered)
+                if !model.filtered.isEmpty {
+                    DebugScreensListView(model: model, sectionTitle: "Results", screens: model.filtered)
+                }
 
                 if !model.filteredFeatureFlags.isEmpty {
                     Section(header: Text(verbatim: "Feature Flags")) {
