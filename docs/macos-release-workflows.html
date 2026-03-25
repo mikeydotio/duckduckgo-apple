@@ -2085,7 +2085,353 @@
 
     <!-- ── Quick Reference ── -->
     <section id="quick-reference">
-      <h2>Quick Reference</h2>
+      <div class="section-header">
+        <h2>Quick Reference</h2>
+        <button class="toggle-all" onclick="toggleAllPanels('quick-reference', true)">Expand All</button>
+      </div>
+      <p style="color:#475569;margin-bottom:1.5rem;">Consolidated reference tables for branch names, tag formats, concurrency groups, secrets, Asana templates, and configuration files used across the macOS release workflows.</p>
+
+      <!-- 1. Branch Naming -->
+      <div class="panel open">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">&#9658;</span>
+          <strong>1. Branch Naming</strong>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Pattern</th>
+                <th>Example</th>
+                <th>Used By</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>release/macos/&lt;version&gt;</code></td>
+                <td><code>release/macos/7.5.0</code></td>
+                <td>Code Freeze, Internal Release Bump</td>
+              </tr>
+              <tr>
+                <td><code>hotfix/macos/&lt;version&gt;</code></td>
+                <td><code>hotfix/macos/7.5.1</code></td>
+                <td>Hotfix</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2. Tag Format -->
+      <div class="panel open">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">&#9658;</span>
+          <strong>2. Tag Format</strong>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Format</th>
+                <th>Example</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Prerelease (internal)</td>
+                <td><code>&lt;version&gt;-&lt;build&gt;+macos</code></td>
+                <td><code>7.5.0-100+macos</code></td>
+              </tr>
+              <tr>
+                <td>Public release</td>
+                <td><code>&lt;version&gt;+macos</code></td>
+                <td><code>7.5.0+macos</code></td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;">For public releases, a <em>promoted tag</em> (<code>&lt;version&gt;-&lt;build&gt;+macos</code>) is also recorded alongside the public tag. The freeze draft release uses the format <code>&lt;version&gt;+macos</code> (same as the public tag format) and is a draft GitHub release that is never published.</p>
+        </div>
+      </div>
+
+      <!-- 3. Concurrency Groups -->
+      <div class="panel open">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">&#9658;</span>
+          <strong>3. Concurrency Groups</strong>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Cancel-in-progress</th>
+                <th>Used By</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>macos-release</code></td>
+                <td>No (waits)</td>
+                <td>Code Freeze, Internal Release Bump, Hotfix, Tag Release</td>
+              </tr>
+              <tr>
+                <td><code>macos-appstore-build-{destination}</code></td>
+                <td>Yes (cancels older)</td>
+                <td>App Store build jobs</td>
+              </tr>
+              <tr>
+                <td><code>macos-appstore-upload-{destination}</code></td>
+                <td>Yes (cancels older)</td>
+                <td>App Store upload jobs</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;"><code>{destination}</code> is one of <code>appstore</code>, <code>testflight</code>, or <code>alpha</code> depending on the build target.</p>
+        </div>
+      </div>
+
+      <!-- 4. Key Secrets & Environment Variables -->
+      <div class="panel open">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">&#9658;</span>
+          <strong>4. Key Secrets &amp; Environment Variables</strong>
+        </div>
+        <div class="panel-body">
+          <h4 style="margin: 0.75rem 0 0.5rem; font-size: 0.9rem; color: #374151;">GitHub Secrets</h4>
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Secret</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Apple API</td>
+                <td><code>APPLE_API_KEY_BASE64</code></td>
+                <td>App Store Connect API key (base64-encoded)</td>
+              </tr>
+              <tr>
+                <td>Apple API</td>
+                <td><code>APPLE_API_KEY_ID</code></td>
+                <td>API key ID</td>
+              </tr>
+              <tr>
+                <td>Apple API</td>
+                <td><code>APPLE_API_KEY_ISSUER</code></td>
+                <td>API key issuer ID</td>
+              </tr>
+              <tr>
+                <td>Code Signing</td>
+                <td><code>MATCH_PASSWORD</code></td>
+                <td>Fastlane Match encryption password</td>
+              </tr>
+              <tr>
+                <td>Code Signing</td>
+                <td><code>SSH_PRIVATE_KEY_FASTLANE_MATCH</code></td>
+                <td>SSH key for Match certificate repository</td>
+              </tr>
+              <tr>
+                <td>Code Signing</td>
+                <td><code>SSH_PRIVATE_KEY_DUCKSANS_FONT</code></td>
+                <td>SSH key for private font repository</td>
+              </tr>
+              <tr>
+                <td>AWS / S3</td>
+                <td><code>AWS_ACCESS_KEY_ID</code></td>
+                <td>S3 access key for test/debug builds</td>
+              </tr>
+              <tr>
+                <td>AWS / S3</td>
+                <td><code>AWS_SECRET_ACCESS_KEY</code></td>
+                <td>S3 secret key for test/debug builds</td>
+              </tr>
+              <tr>
+                <td>AWS / S3</td>
+                <td><code>AWS_ACCESS_KEY_ID_RELEASE_S3</code></td>
+                <td>S3 access key for release artifacts (DMG, dSYM)</td>
+              </tr>
+              <tr>
+                <td>AWS / S3</td>
+                <td><code>AWS_SECRET_ACCESS_KEY_RELEASE_S3</code></td>
+                <td>S3 secret key for release artifacts (DMG, dSYM)</td>
+              </tr>
+              <tr>
+                <td>Asana</td>
+                <td><code>ASANA_ACCESS_TOKEN</code></td>
+                <td>Asana API authentication token</td>
+              </tr>
+              <tr>
+                <td>Notifications</td>
+                <td><code>MM_WEBHOOK_URL</code></td>
+                <td>Mattermost webhook for build notifications</td>
+              </tr>
+              <tr>
+                <td>Git</td>
+                <td><code>GHA_ELEVATED_PERMISSIONS_TOKEN</code></td>
+                <td>Token for bypassing branch protection rules</td>
+              </tr>
+              <tr>
+                <td>Sparkle</td>
+                <td><code>SPARKLE_PRIVATE_KEY</code></td>
+                <td>Private key for signing Sparkle update feeds</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.9rem; color: #374151;">GitHub Variables (not secrets)</h4>
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Variable</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>MACOS_AUTOMATIC_CODE_FREEZE</code></td>
+                <td>Enable / disable the scheduled code freeze (<code>1</code> = enabled)</td>
+              </tr>
+              <tr>
+                <td><code>MACOS_ALPHA_BUILD_NUMBER</code></td>
+                <td>Tracks the current alpha build number</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. Asana Template Names -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">&#9658;</span>
+          <strong>5. Asana Template Names</strong>
+        </div>
+        <div class="panel-body">
+          <p style="font-size:0.8rem;color:#64748b;margin-bottom:0.75rem;">Templates live under <code>assets/asana_add_comment/templates/</code> (HTML comments) and <code>assets/asana_create_action_item/templates/</code> (YAML action items). Mattermost notification templates are in <code>assets/mattermost_send_message/templates/</code>.</p>
+
+          <h4 style="margin: 0.75rem 0 0.5rem; font-size: 0.9rem; color: #374151;">Asana Comment Templates (<code>asana_log_message</code> / <code>asana_add_comment</code>)</h4>
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Template</th>
+                <th>Purpose</th>
+                <th>When Triggered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>hotfix-branch-ready</code></td><td>Notifies that a hotfix branch has been created</td><td>Phase 1 of hotfix flow</td></tr>
+              <tr><td><code>debug-symbols-uploaded</code></td><td>Confirms dSYM upload to S3</td><td>After successful notarized build</td></tr>
+              <tr><td><code>dmg-uploaded</code></td><td>Confirms DMG artifact upload to S3</td><td>After DMG creation</td></tr>
+              <tr><td><code>internal-release-ready</code></td><td>Signals internal release tagged successfully</td><td>After successful internal tag</td></tr>
+              <tr><td><code>internal-release-ready-merge-failed</code></td><td>Internal release tagged but merge failed</td><td>When tag succeeds but merge fails (internal)</td></tr>
+              <tr><td><code>internal-release-ready-tag-failed</code></td><td>Internal release tag failed</td><td>When tag_release fails for internal</td></tr>
+              <tr><td><code>internal-release-complete</code></td><td>Internal release fully complete</td><td>After internal Sparkle publish</td></tr>
+              <tr><td><code>internal-release-complete-with-tasks</code></td><td>Internal release complete with task summary</td><td>After internal Sparkle publish (with Asana tasks)</td></tr>
+              <tr><td><code>public-release-tagged</code></td><td>Public release tagged</td><td>After successful public tag</td></tr>
+              <tr><td><code>public-release-tagged-delete-branch-failed</code></td><td>Public release tagged but branch deletion failed</td><td>When branch cleanup fails after public tag</td></tr>
+              <tr><td><code>public-release-tag-failed</code></td><td>Public release tag failed</td><td>When tag_release fails for public release</td></tr>
+              <tr><td><code>public-release-complete</code></td><td>Public release published</td><td>After public Sparkle publish</td></tr>
+              <tr><td><code>public-release-merge-failed-untagged-commits</code></td><td>Merge failed with untagged commits</td><td>When public release merge fails (untagged)</td></tr>
+              <tr><td><code>public-release-tag-failed-untagged-commits</code></td><td>Tag failed with untagged commits</td><td>When public release tag fails (untagged)</td></tr>
+              <tr><td><code>validate-check-for-updates-internal</code></td><td>Validation task for internal update check</td><td>After internal Sparkle publish</td></tr>
+              <tr><td><code>validate-check-for-updates-public</code></td><td>Validation task for public update check</td><td>After public Sparkle publish</td></tr>
+              <tr><td><code>appcast-failed-internal</code></td><td>Appcast generation failed (internal)</td><td>When internal appcast update fails</td></tr>
+              <tr><td><code>appcast-failed-public</code></td><td>Appcast generation failed (public)</td><td>When public appcast update fails</td></tr>
+              <tr><td><code>appcast-failed-hotfix</code></td><td>Appcast generation failed (hotfix)</td><td>When hotfix appcast update fails</td></tr>
+              <tr><td><code>hotfix-preventing-release-bump</code></td><td>Active hotfix blocking normal release bump</td><td>When <code>asana_find_release_task</code> detects a hotfix</td></tr>
+              <tr><td><code>workflow-failed</code></td><td>Generic workflow failure notification</td><td>Any workflow failure via <code>asana_report_failed_workflow</code></td></tr>
+            </tbody>
+          </table>
+
+          <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.9rem; color: #374151;">Asana Action Item Templates (<code>asana_create_action_item</code>)</h4>
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Template</th>
+                <th>Purpose</th>
+                <th>When Triggered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>merge-failed</code></td><td>Branch merge failure action item</td><td>When tag_release merge fails (internal)</td></tr>
+              <tr><td><code>delete-branch-failed</code></td><td>Branch deletion failure action item</td><td>When branch cleanup fails</td></tr>
+              <tr><td><code>internal-release-tag-failed</code></td><td>Internal tag/merge failure action item</td><td>When tag_release fails for internal release</td></tr>
+              <tr><td><code>public-release-tag-failed</code></td><td>Public release tag failure action item</td><td>When tag_release fails for public release</td></tr>
+              <tr><td><code>public-release-merge-failed-untagged-commits</code></td><td>Merge failed with untagged commits action item</td><td>When public release merge fails (untagged)</td></tr>
+              <tr><td><code>public-release-tag-failed-untagged-commits</code></td><td>Tag failed with untagged commits action item</td><td>When public release tag fails (untagged)</td></tr>
+              <tr><td><code>run-publish-dmg-release</code></td><td>Action item to manually re-run publish</td><td>When DMG publish fails</td></tr>
+              <tr><td><code>update-asana-for-public-release</code></td><td>Action item for manual Asana sync</td><td>When <code>update_asana_for_release</code> fails</td></tr>
+              <tr><td><code>validate-check-for-updates-internal</code></td><td>Action item: validate internal update check</td><td>After internal Sparkle publish</td></tr>
+              <tr><td><code>validate-check-for-updates-public</code></td><td>Action item: validate public update check</td><td>After public Sparkle publish</td></tr>
+              <tr><td><code>appcast-failed-internal</code></td><td>Appcast failure action item (internal)</td><td>When internal appcast fails</td></tr>
+              <tr><td><code>appcast-failed-public</code></td><td>Appcast failure action item (public)</td><td>When public appcast fails</td></tr>
+              <tr><td><code>appcast-failed-hotfix</code></td><td>Appcast failure action item (hotfix)</td><td>When hotfix appcast fails</td></tr>
+            </tbody>
+          </table>
+
+          <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.9rem; color: #374151;">Mattermost Notification Templates</h4>
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>Template</th>
+                <th>Purpose</th>
+                <th>When Triggered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>notarized-build-complete</code></td><td>Build succeeded notification</td><td>After successful notarized build</td></tr>
+              <tr><td><code>notarized-build-failed</code></td><td>Build failure notification</td><td>After failed notarized build</td></tr>
+              <tr><td><code>public-release-complete</code></td><td>Public release published notification</td><td>After public Sparkle publish</td></tr>
+              <tr><td><code>public-release-failed</code></td><td>Public release failure notification</td><td>When public release fails</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 6. Configuration Files -->
+      <div class="panel open">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">&#9658;</span>
+          <strong>6. Configuration Files</strong>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Key</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>Configuration/Version.xcconfig</code></td>
+                <td><code>MARKETING_VERSION</code></td>
+                <td>App version number (e.g., <code>7.5.0</code>)</td>
+              </tr>
+              <tr>
+                <td><code>Configuration/BuildNumber.xcconfig</code></td>
+                <td><code>CURRENT_PROJECT_VERSION</code></td>
+                <td>Build number (e.g., <code>100</code>)</td>
+              </tr>
+              <tr>
+                <td><code>Configuration/App/Sparkle.xcconfig</code></td>
+                <td><code>SPARKLE_URL_RELEASE</code></td>
+                <td>Appcast URL for public releases: <code>staticcdn.duckduckgo.com/macos-desktop-browser/appcast2.xml</code></td>
+              </tr>
+              <tr>
+                <td><code>Configuration/App/Sparkle.xcconfig</code></td>
+                <td><code>SPARKLE_URL_ALPHA</code></td>
+                <td>Appcast URL for alpha/internal releases: <code>staticcdn.duckduckgo.com/macos-desktop-browser/alpha/appcast-alpha.xml</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
   </main>
