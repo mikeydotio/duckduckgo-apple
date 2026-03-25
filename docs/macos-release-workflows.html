@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>macOS Release Workflows</title>
+  <title>Release Workflows</title>
   <style>
     /* ── Reset & base typography ───────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -149,6 +149,41 @@
     .trigger-badge--manual  { background: #fef9c3; color: #854d0e; }
     .trigger-badge--auto    { background: #dcfce7; color: #166534; }
     .trigger-badge--push    { background: #ede9fe; color: #5b21b6; }
+
+    /* ── Platform badges ─────────────────────────────────────────────────── */
+    .platform-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      vertical-align: middle;
+    }
+    .platform-badge--ios {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .platform-badge--macos {
+      background: #f3e8ff;
+      color: #6b21a8;
+    }
+    .platform-badge--both {
+      background: #e2e8f0;
+      color: #475569;
+    }
+    .platform-note {
+      font-size: 0.85rem;
+      color: var(--color-muted);
+      padding: 0.5rem 0.75rem;
+      background: #f8fafc;
+      border-radius: 6px;
+      margin: 0.5rem 0;
+      border-left: 3px solid #e2e8f0;
+    }
+    .platform-note--ios { border-left-color: #3b82f6; }
+    .platform-note--macos { border-left-color: #a855f7; }
 
     /* ── Page header ─────────────────────────────────────────────────────── */
     .page-header {
@@ -443,9 +478,9 @@
 
     <!-- Page header -->
     <header class="page-header">
-      <h1>macOS Release Workflows</h1>
-      <p>Documentation covering the Code Freeze, Internal Release Bump, and Hotfix GitHub Actions workflows for the macOS app. Use the sidebar to jump to any section.</p>
-      <p class="last-updated">Last updated: March 2025</p>
+      <h1>Release Workflows</h1>
+      <p>Documentation covering the Code Freeze, Internal Release Bump, and Hotfix GitHub Actions workflows for the iOS and macOS apps. Both platforms share the same release automation infrastructure (fastlane plugin, Asana integration) with platform-specific build and distribution pipelines.</p>
+      <p class="last-updated">Last updated: March 2026</p>
     </header>
 
     <!-- ── Overview ── -->
@@ -457,63 +492,59 @@
         <!-- Code Freeze card -->
         <div class="flow-card" onclick="scrollToSection('code-freeze')">
           <h3>Code Freeze</h3>
-          <span class="trigger-badge trigger-badge--auto">Scheduled — Mon 00:00 UTC</span>
+          <span class="trigger-badge trigger-badge--auto">Scheduled — Mon 00:00 UTC (macOS)</span>
+          <span class="trigger-badge trigger-badge--auto">Scheduled — Mon 01:00 UTC (iOS)</span>
 
           <div class="flow-chart">
             <div class="flow-step flow-step--asana">Check Freeze Enabled</div>
             <div class="flow-arrow"></div>
+            <div class="flow-step flow-step--asana">Upload Metadata <span class="platform-badge platform-badge--ios">iOS</span></div>
+            <div class="flow-arrow"></div>
             <div class="flow-step flow-step--asana">Create Release Branch</div>
             <div class="flow-arrow"></div>
-            <div class="flow-parallel">
-              <div class="flow-step flow-step--test">Unit Tests</div>
-              <div class="flow-step flow-step--test">UI Tests</div>
-            </div>
+            <div class="flow-step flow-step--test">Run Tests</div>
             <div class="flow-arrow"></div>
-            <div class="flow-step flow-step--build">Increment Build Number</div>
+            <div class="flow-step flow-step--build">Bump Build Number</div>
             <div class="flow-arrow"></div>
-            <div class="flow-parallel">
-              <div class="flow-step flow-step--build">DMG Build</div>
-              <div class="flow-step flow-step--build">App Store Build</div>
-            </div>
+            <div class="flow-step flow-step--build">Build Release</div>
             <div class="flow-arrow"></div>
             <div class="flow-step flow-step--publish">Tag &amp; Merge</div>
             <div class="flow-arrow"></div>
-            <div class="flow-step flow-step--publish">Publish to Sparkle</div>
+            <div class="flow-step flow-step--publish">Publish to Sparkle <span class="platform-badge platform-badge--macos">macOS</span></div>
           </div>
 
-          <p><strong>Branch:</strong> <code>release/macos/*</code></p>
-          <p><strong>Concurrency:</strong> <code>macos-release</code></p>
+          <p><strong>Branch:</strong> <code>release/ios/*</code> · <code>release/macos/*</code></p>
+          <p><strong>Concurrency:</strong> <code>ios-release</code> · <code>macos-release</code></p>
         </div>
 
         <!-- Internal Bump card -->
         <div class="flow-card" onclick="scrollToSection('internal-bump')">
           <h3>Internal Release Bump</h3>
-          <span class="trigger-badge trigger-badge--push">Push to release/*</span>
+          <span class="trigger-badge trigger-badge--push">Push to release/ios/*</span>
+          <span class="trigger-badge trigger-badge--push">Push to release/macos/*</span>
 
           <div class="flow-chart">
             <div class="flow-step flow-step--asana">Validate Conditions</div>
             <div class="flow-arrow"></div>
-            <div class="flow-step flow-step--test">Unit Tests</div>
+            <div class="flow-step flow-step--test">Run Tests</div>
             <div class="flow-arrow"></div>
-            <div class="flow-step flow-step--build">Increment Build Number</div>
+            <div class="flow-step flow-step--build">Bump Build Number</div>
             <div class="flow-arrow"></div>
-            <div class="flow-parallel">
-              <div class="flow-step flow-step--build">DMG Build</div>
-              <div class="flow-step flow-step--build">App Store Build</div>
-            </div>
+            <div class="flow-step flow-step--build">Build Release</div>
             <div class="flow-arrow"></div>
             <div class="flow-step flow-step--publish">Tag &amp; Merge</div>
             <div class="flow-arrow"></div>
-            <div class="flow-step flow-step--publish">Publish to Sparkle</div>
+            <div class="flow-step flow-step--publish">Publish to Sparkle <span class="platform-badge platform-badge--macos">macOS</span></div>
           </div>
 
-          <p><strong>Branch:</strong> <code>release/macos/*</code></p>
-          <p><strong>Concurrency:</strong> <code>macos-release</code></p>
+          <p><strong>Branch:</strong> <code>release/ios/*</code> · <code>release/macos/*</code></p>
+          <p><strong>Concurrency:</strong> <code>ios-release</code> · <code>macos-release</code></p>
         </div>
 
         <!-- Hotfix card -->
         <div class="flow-card" onclick="scrollToSection('hotfix')">
           <h3>Hotfix</h3>
+          <span class="trigger-badge trigger-badge--manual">Manual Dispatch</span>
           <span class="trigger-badge trigger-badge--manual">Manual Dispatch</span>
 
           <div class="flow-chart">
@@ -525,18 +556,15 @@
             <div class="flow-arrow"></div>
             <div class="flow-step flow-step--asana">Bump &amp; Update Asana</div>
             <div class="flow-arrow"></div>
-            <div class="flow-parallel">
-              <div class="flow-step flow-step--build">DMG Build</div>
-              <div class="flow-step flow-step--build">App Store Build</div>
-            </div>
+            <div class="flow-step flow-step--build">Build Release</div>
             <div class="flow-arrow"></div>
             <div class="flow-step flow-step--publish">Tag &amp; Merge</div>
             <div class="flow-arrow"></div>
-            <div class="flow-step flow-step--conditional">Publish — Manual</div>
+            <div class="flow-step flow-step--conditional flow-step--publish">Publish — Manual (conditional) <span class="platform-badge platform-badge--macos">macOS</span></div>
           </div>
 
-          <p><strong>Branch:</strong> <code>hotfix/macos/*</code></p>
-          <p><strong>Concurrency:</strong> <code>macos-release</code></p>
+          <p><strong>Branch:</strong> <code>hotfix/ios/*</code> · <code>hotfix/macos/*</code></p>
+          <p><strong>Concurrency:</strong> <code>ios-release</code> · <code>macos-release</code></p>
         </div>
 
       </div>
