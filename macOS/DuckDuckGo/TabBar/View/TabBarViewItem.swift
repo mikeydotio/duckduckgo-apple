@@ -91,6 +91,7 @@ protocol TabBarViewItemDelegate: AnyObject {
     @MainActor func tabBarViewItemCloseOtherAction(_: TabBarViewItem)
     @MainActor func tabBarViewItemCloseToTheLeftAction(_: TabBarViewItem)
     @MainActor func tabBarViewItemCloseToTheRightAction(_: TabBarViewItem)
+    @MainActor func tabBarViewItemNewToTheRightAction(_: TabBarViewItem)
     @MainActor func tabBarViewItemDuplicateAction(_: TabBarViewItem)
     @MainActor func tabBarViewItemPinAction(_: TabBarViewItem)
     @MainActor func tabBarViewItemBookmarkThisPageAction(_: TabBarViewItem)
@@ -140,15 +141,19 @@ final class TabBarItemCellView: NSView {
     }
 
     private enum TextFieldMaskGradientSize {
-        static let width: CGFloat = 6
+        static let width: CGFloat = 32
         static let trailingSpace: CGFloat = 0
         static let trailingSpaceWithButton: CGFloat = 20
         static let trailingSpaceWithPermissionAndButton: CGFloat = 40
     }
 
     private enum Metrics {
-        static let closeButtonWidth: CGFloat = 16
-        static let closeButtonHeight: CGFloat = 16
+        static let audioAndCrashButtonSide: CGFloat = 16
+        static let closeButtonDimension: CGFloat = 20
+        static let faviconImageSide: CGFloat = 20
+        static let permissionButtonSideMin: CGFloat = 16
+        static let titleHeight: CGFloat = 16
+        static let titlePaddingOnCompact: CGFloat = 16
     }
 
     let themeManager: ThemeManaging = NSApp.delegateTyped.themeManager
@@ -198,7 +203,7 @@ final class TabBarItemCellView: NSView {
 
     fileprivate lazy var closeButton = {
         let closeButton = MouseOverButton(image: .close, target: nil, action: #selector(TabBarViewItem.closeButtonAction))
-        closeButton.frame.size = NSSize(width: Metrics.closeButtonWidth, height: Metrics.closeButtonHeight)
+        closeButton.frame.size = NSSize(width: Metrics.closeButtonDimension, height: Metrics.closeButtonDimension)
         closeButton.bezelStyle = .shadowlessSquare
         closeButton.normalTintColor = .button
         closeButton.mouseDownColor = .buttonMouseDown
@@ -233,6 +238,7 @@ final class TabBarItemCellView: NSView {
         return view
     }()
 
+    /// Deprecated: Always hidden when `tabAnimations` is enabled
     fileprivate let rightSeparatorView = ColorView(frame: .zero)
 
     /// Deprecated: Replaced by `TabBackgroundView`
@@ -322,21 +328,21 @@ final class TabBarItemCellView: NSView {
         closeButton.toolTip = UserText.closeTab
         closeButton.setAccessibilityLabel(UserText.closeTab)
         closeButton.setAccessibilityIdentifier("TabBarViewItem.closeButton")
-        closeButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsCornerRadius
+        closeButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsSelectedCornerRadius
 
         permissionButton.setAccessibilityIdentifier("TabBarViewItem.permissionButton")
         // Accessibility label and toolTip are updated in `updateUsedPermissions`
-        permissionButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsCornerRadius
+        permissionButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsSelectedCornerRadius
 
         audioButton.setAccessibilityIdentifier("TabBarViewItem.muteButton")
         // Accessibility Title and toolTip are updated in `updateAudioPlayState`
-        audioButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsCornerRadius
+        audioButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsSelectedCornerRadius
 
         crashIndicatorButton.setAccessibilityIdentifier("TabBarViewItem.crashButton")
         crashIndicatorButton.toolTip = UserText.tabCrashPopoverTitle
         crashIndicatorButton.setAccessibilityTitle(UserText.tabCrashPopoverTitle)
         crashIndicatorButton.setAccessibilityLabel(UserText.tabCrashPopoverMessage)
-        crashIndicatorButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsCornerRadius
+        crashIndicatorButton.cornerRadius = theme.tabStyleProvider.tabButtonActionsSelectedCornerRadius
 
         addSubview(faviconView)
         addSubview(crashIndicatorButton)
@@ -344,7 +350,10 @@ final class TabBarItemCellView: NSView {
         addSubview(titleView)
         addSubview(permissionButton)
         addSubview(closeButton)
-        addSubview(rightSeparatorView)
+
+        if theme.tabStyleProvider.shouldShowTabSeparators {
+            addSubview(rightSeparatorView)
+        }
 
         subscribeToThemeChanges()
         applyThemeStyle()
@@ -411,8 +420,10 @@ final class TabBarItemCellView: NSView {
             layoutForPinnedMode()
         }
 
-        let separatorHeight = theme.tabStyleProvider.separatorHeight
-        rightSeparatorView.frame = NSRect(x: bounds.maxX.rounded() - 1, y: bounds.midY - (separatorHeight / 2), width: 1, height: separatorHeight)
+        if theme.tabStyleProvider.shouldShowTabSeparators {
+            let separatorHeight = theme.tabStyleProvider.separatorHeight
+            rightSeparatorView.frame = NSRect(x: bounds.maxX.rounded() - 1, y: bounds.midY - (separatorHeight / 2), width: 1, height: separatorHeight)
+        }
     }
 
     private func layoutForNormalMode() {
@@ -432,7 +443,7 @@ final class TabBarItemCellView: NSView {
         }
         var maxX = bounds.maxX - 9
         if closeButton.isShown {
-            closeButton.frame = NSRect(x: maxX - 16, y: bounds.midY - 8, width: Metrics.closeButtonWidth, height: Metrics.closeButtonHeight)
+            closeButton.frame = NSRect(x: maxX - Metrics.closeButtonDimension, y: bounds.midY - Metrics.closeButtonDimension * 0.5, width: Metrics.closeButtonDimension, height: Metrics.closeButtonDimension)
             maxX = closeButton.frame.minX - 4
         } else {
             maxX = max(maxX - 1 /* 28 title offset with favicon */, 12 /* without favicon */)
@@ -462,42 +473,51 @@ final class TabBarItemCellView: NSView {
     }
 
     private func layoutForCompactMode() {
-        let isFaviconShown = faviconView.isShown
-        let isTitleShown = titleView.isShown
-        let numberOfElements: CGFloat = (isFaviconShown ? 1 : 0) + (crashIndicatorButton.isShown || audioButton.isShown ? 1 : 0) + (permissionButton.isShown ? 1 : 0) + (closeButton.isShown ? 1 : 0) + (isTitleShown ? 1 : 0)
-        let elementWidth: CGFloat = 16
-        var totalWidth = numberOfElements * elementWidth
+        let isAudioOrCrashShown = crashIndicatorButton.isShown || audioButton.isShown
+        let numberOfElements: CGFloat =
+            (faviconView.isShown        ? 1 : 0) +
+            (isAudioOrCrashShown        ? 1 : 0) +
+            (permissionButton.isShown   ? 1 : 0) +
+            (closeButton.isShown        ? 1 : 0)
+
+        var totalWidth =
+            (faviconView.isShown        ? Metrics.faviconImageSide : 0) +
+            (isAudioOrCrashShown        ? Metrics.audioAndCrashButtonSide : 0) +
+            (permissionButton.isShown   ? Metrics.permissionButtonSideMin : 0) +
+            (closeButton.isShown        ? Metrics.closeButtonDimension : 0)
+
         // tighten elements to fit all
         let spacing = min(4, bounds.width - 4 - totalWidth)
         totalWidth += (numberOfElements - 1) * spacing
+
         // shift all shown elements from center
         var x = (bounds.width - totalWidth) / 2
 
         if faviconView.isShown {
             assert(closeButton.isHidden)
-            faviconView.frame = NSRect(x: x.rounded(), y: bounds.midY - 10, width: 20, height: 20)
+            faviconView.frame = NSRect(x: x.rounded(), y: bounds.midY - 10, width: Metrics.faviconImageSide, height: Metrics.faviconImageSide)
             x = faviconView.frame.maxX + spacing
         } else if titleView.isShown {
             assert(closeButton.isHidden)
-            titleView.frame = NSRect(x: 4, y: bounds.midY - 8, width: bounds.maxX - 8, height: 16)
+            titleView.frame = NSRect(x: 4, y: bounds.midY - 8, width: bounds.maxX - 8, height: Metrics.titleHeight)
             updateTitleTextFieldMask()
         }
 
         if crashIndicatorButton.isShown {
-            crashIndicatorButton.frame = NSRect(x: x.rounded(), y: bounds.midY - 8, width: 16, height: 16)
+            crashIndicatorButton.frame = NSRect(x: x.rounded(), y: bounds.midY - 8, width: Metrics.audioAndCrashButtonSide, height: Metrics.audioAndCrashButtonSide)
             x = crashIndicatorButton.frame.maxX + spacing
         } else if audioButton.isShown {
-            audioButton.frame = NSRect(x: x.rounded(), y: bounds.midY - 8, width: 16, height: 16)
+            audioButton.frame = NSRect(x: x.rounded(), y: bounds.midY - 8, width: Metrics.audioAndCrashButtonSide, height: Metrics.audioAndCrashButtonSide)
             x = audioButton.frame.maxX + spacing
         }
         if permissionButton.isShown {
             // make permission button from 16 to 24pt wide depending of available space
-            permissionButton.frame = NSRect(x: x.rounded() - spacing.rounded(), y: bounds.midY - 12, width: 16 + spacing.rounded() * 2, height: 24)
+            permissionButton.frame = NSRect(x: x.rounded() - spacing.rounded(), y: bounds.midY - 12, width: Metrics.permissionButtonSideMin + spacing.rounded() * 2, height: 24)
             x = permissionButton.frame.maxX
         }
         if closeButton.isShown {
             // close button appears in place of favicon in compact mode
-            closeButton.frame = NSRect(x: x.rounded(), y: bounds.midY - 8, width: Metrics.closeButtonWidth, height: Metrics.closeButtonHeight)
+            closeButton.frame = NSRect(x: x.rounded(), y: bounds.midY - Metrics.closeButtonDimension * 0.5, width: Metrics.closeButtonDimension, height: Metrics.closeButtonDimension)
             x = closeButton.frame.maxX + spacing
         }
     }
@@ -569,9 +589,8 @@ extension TabBarItemCellView: ThemeUpdateListening {
             leftRampView.rampColor = colorsProvider.navigationBackgroundColor
             rightRampView.rampColor = colorsProvider.navigationBackgroundColor
             mouseOverView.mouseOverColor = tabStyleProvider.hoverTabColor
+            rightSeparatorView.backgroundColor = tabStyleProvider.separatorColor
         }
-
-        rightSeparatorView.backgroundColor = tabStyleProvider.separatorColor
     }
 }
 // MARK: NSAccessibilityRadioButton
@@ -677,7 +696,7 @@ final class TabBarViewItem: NSCollectionViewItem {
     static let identifier = NSUserInterfaceItemIdentifier(rawValue: "TabBarViewItem")
 
     enum Width {
-        static let minimum: CGFloat = 52
+        static let minimum: CGFloat = 54
         static let minimumSelected: CGFloat = 120
         static let maximum: CGFloat = 240
     }
@@ -842,6 +861,10 @@ final class TabBarViewItem: NSCollectionViewItem {
         }
 
         super.mouseDown(with: event)
+    }
+
+    @objc private func newToTheRightAction(_ sender: NSButton) {
+        delegate?.tabBarViewItemNewToTheRightAction(self)
     }
 
     @objc private func duplicateAction(_ sender: NSButton) {
@@ -1040,10 +1063,13 @@ final class TabBarViewItem: NSCollectionViewItem {
             CATransaction.commit()
         }
 
+        let tabStyleProvider = theme.tabStyleProvider
+
         withoutAnimation {
             if displaysTabsAnimations {
                 cell.mouseOverView.backgroundColor = nil
                 cell.mouseOverView.mouseOverColor = nil
+                cell.closeButton.cornerRadius = isSelected ? tabStyleProvider.tabButtonActionsSelectedCornerRadius : tabStyleProvider.tabButtonActionsHighlightedCornerRadius
 
             } else if isSelected || isDragged {
                 cell.mouseOverView.mouseOverColor = nil
@@ -1224,7 +1250,13 @@ final class TabBarViewItem: NSCollectionViewItem {
     }
 
     private func updateSeparatorView() {
-        let shouldHideForHover = theme.tabStyleProvider.isRoundedBackgroundPresentOnHover && isMouseOver
+        let tabStyleProvider = theme.tabStyleProvider
+        guard tabStyleProvider.shouldShowTabSeparators else {
+            cell.rightSeparatorView.isHidden = true
+            return
+        }
+
+        let shouldHideForHover = tabStyleProvider.isRoundedBackgroundPresentOnHover && isMouseOver
         let rightItemIsHighlighted = delegate?.tabBarViewItemShouldHideSeparator(self) ?? false
 
         let newIsHidden = shouldHideForHover || rightItemIsHighlighted || isSelected || isDragged || isLeftToSelected
@@ -1315,8 +1347,10 @@ extension TabBarViewItem: NSMenuDelegate {
         let areThereOtherTabs = otherItemsState.hasItemsToTheLeft || otherItemsState.hasItemsToTheRight
 
         // Menu Items
-        // Duplicate, Pin, Mute Section
+        // New, Duplicate, Pin, Mute Section
+        addNewToTheRightMenuItem(to: menu)
         addDuplicateMenuItem(to: menu)
+
         if !isBurner {
             addPinMenuItem(to: menu)
         }
@@ -1364,6 +1398,12 @@ extension TabBarViewItem: NSMenuDelegate {
         let crashMenuItem = NSMenuItem(title: Tab.crashTabMenuOptionTitleMultipleTimes, action: #selector(crashMultipleTimesMenuItemAction(_:)), keyEquivalent: "")
         crashMenuItem.target = self
         menu.addItem(crashMenuItem)
+    }
+
+    private func addNewToTheRightMenuItem(to menu: NSMenu) {
+        let newTabMenuItem = NSMenuItem(title: UserText.newTabToTheRight, action: #selector(newToTheRightAction(_:)), keyEquivalent: "")
+        newTabMenuItem.target = self
+        menu.addItem(newTabMenuItem)
     }
 
     private func addDuplicateMenuItem(to menu: NSMenu) {
@@ -1833,6 +1873,7 @@ extension TabBarViewItem {
         func tabBarViewItemCloseOtherAction(_: TabBarViewItem) {}
         func tabBarViewItemCloseToTheLeftAction(_: TabBarViewItem) {}
         func tabBarViewItemCloseToTheRightAction(_: TabBarViewItem) {}
+        func tabBarViewItemNewToTheRightAction(_: TabBarViewItem) {}
         func tabBarViewItemDuplicateAction(_: TabBarViewItem) {}
         func tabBarViewItemPinAction(_: TabBarViewItem) {}
         func tabBarViewItemBookmarkThisPageAction(_: TabBarViewItem) {}

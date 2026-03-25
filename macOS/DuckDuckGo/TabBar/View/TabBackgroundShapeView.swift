@@ -38,9 +38,9 @@ final class TabBackgroundShapeView: NSView {
         }
     }
 
-    var rampSize: NSSize? {
+    var tabRampSize: NSSize? {
         didSet {
-            guard oldValue != rampSize else { return }
+            guard oldValue != tabRampSize else { return }
             refreshShapePath()
         }
     }
@@ -132,15 +132,15 @@ private extension TabBackgroundShapeView {
             CGPath.topRoundedRect(in: bounds, radius: tabCornerRadius) :
             CGPath(roundedRect: bounds, cornerWidth: tabCornerRadius, cornerHeight: tabCornerRadius, transform: nil)
 
-        guard shouldDisplayRamps, let rampSize else {
+        guard shouldDisplayRamps, let tabRampSize else {
             return backgroundPath
         }
 
         let outputPath = CGMutablePath()
 
         outputPath.addPath(backgroundPath)
-        outputPath.addPath(.leadingRamp(size: rampSize), transform: CGAffineTransform(translationX: -rampSize.width, y: 0))
-        outputPath.addPath(.trailingRamp(size: rampSize), transform: CGAffineTransform(translationX: bounds.width, y: 0))
+        outputPath.addPath(.leadingRamp(size: tabRampSize), transform: CGAffineTransform(translationX: -tabRampSize.width, y: 0))
+        outputPath.addPath(.trailingRamp(size: tabRampSize), transform: CGAffineTransform(translationX: bounds.width, y: 0))
 
         return outputPath
     }
