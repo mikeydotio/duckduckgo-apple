@@ -1911,7 +1911,176 @@
         </div>
 
       </div>
-      <!-- Task 7 will add more subsections here (Fastlane plugin actions, Freeze mechanism, Sparkle pipeline) -->
+      <!-- ── Fastlane Plugin Actions ── -->
+      <h3 id="fastlane-plugin-actions" style="margin-top: 2rem;">Fastlane Plugin Actions</h3>
+      <p style="margin: 0.5rem 0 1rem; color: var(--color-muted);">The <code>ddg_apple_automation</code> Fastlane plugin provides all release automation primitives. Actions are invoked from Fastfiles and reusable workflows. Source: <code>fastlane-plugin-ddg_apple_automation</code>.</p>
+
+      <h4 style="margin: 1.5rem 0 0.75rem;">Release Lifecycle</h4>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-build);">
+        <strong><code>start_new_release</code></strong>
+        <p style="margin: 0.25rem 0 0;">Creates a release or hotfix branch, bumps the marketing version in <code>Version.xcconfig</code>, updates embedded files (<code>trackerData.json</code>, privacy config), creates an Asana release task from the platform template, and finds and assigns the release DRI. For hotfixes, creates the hotfix branch off the latest public release tag. Key params: <code>platform</code>, <code>version</code>, <code>is_hotfix</code>, <code>github_handle</code>. Returns: <code>release_task_id</code>, <code>release_branch_name</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-build);">
+        <strong><code>validate_internal_release_bump</code></strong>
+        <p style="margin: 0.25rem 0 0;">Validates conditions before an automatic internal bump. Finds and verifies the release task in the Apple Releases Asana section (5-day window), checks that the branch is not frozen (no draft GitHub release), verifies that code changes exist (ignores <code>.github/</code>, <code>scripts/</code>, <code>fastlane/</code>), and validates that release notes are non-empty. Reports if an active hotfix task blocks the normal bump. Key params: <code>platform</code>, <code>release_task_url</code> (optional), <code>is_scheduled_release</code>. Sets <code>skip_release</code> output flag when bump should be skipped.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-build);">
+        <strong><code>bump_build_number</code></strong>
+        <p style="margin: 0.25rem 0 0;">Fetches the latest build number from both TestFlight and the Sparkle appcast, picks the highest, increments by 1, updates <code>BuildNumber.xcconfig</code>, then commits and pushes the change. Handles CI conflict resolution automatically. Key params: <code>platform</code>, <code>github_token</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-build);">
+        <strong><code>calculate_next_build_number</code></strong>
+        <p style="margin: 0.25rem 0 0;">Like <code>bump_build_number</code> but returns the calculated next build number without committing. Used by alpha builds to pre-calculate the build number before the build starts. Key params: <code>platform</code>, <code>config</code>, <code>bundle_id</code>. macOS-only.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-build);">
+        <strong><code>tag_release</code></strong>
+        <p style="margin: 0.25rem 0 0;">Creates a git tag and GitHub release. For internal (prerelease) builds: tag format <code>&lt;version&gt;-&lt;build&gt;+&lt;platform&gt;</code>, then merges the tag to the base branch. For public builds: unfreezes the branch first, tag format <code>&lt;version&gt;+&lt;platform&gt;</code>, deletes the release branch. Release notes are auto-generated via the GitHub API using the previous public release tag as the base. Reports success or failure status to Asana using template-based comments. Key params: <code>platform</code>, <code>asana_task_url</code>, <code>is_prerelease</code>, <code>base_branch</code>, <code>ignore_untagged_commits</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-build);">
+        <strong><code>freeze_release_branch</code></strong>
+        <p style="margin: 0.25rem 0 0;">Creates a draft GitHub release named <code>&lt;version&gt;+&lt;platform&gt;</code> as a freeze indicator. Idempotent — checks whether a draft release already exists and does nothing if it does. The draft release acts purely as a signal; it is never published. Key params: <code>platform</code>, <code>github_token</code>. See the <a href="#freeze-mechanism">Freeze Mechanism</a> section below.</p>
+      </div>
+
+      <h4 style="margin: 1.5rem 0 0.75rem;">Asana Integration</h4>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_find_release_task</code></strong>
+        <p style="margin: 0.25rem 0 0;">Finds the active release task for the current marketing version by searching the platform-specific Apple Releases Asana section. Only considers tasks created within the last 5 days (prevents picking up stale tasks from prior release cycles). Reports and fails if an active hotfix task is blocking the normal bump flow. Key params: <code>platform</code>, <code>asana_access_token</code>, <code>github_token</code>. Returns: <code>release_task_id</code>, <code>release_task_url</code>, <code>release_branch</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>update_asana_for_release</code></strong>
+        <p style="margin: 0.25rem 0 0;">Processes tasks included in the release. For internal releases: moves tasks to the Validation section and tags them with the release tag. For public releases: moves tasks to Done, completes them (except incidents and objectives), and creates an announcement action item subtask. Key params: <code>release_task_id</code>, <code>release_type</code> (<code>internal</code> or <code>public</code>), <code>target_section_id</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_create_action_item</code></strong>
+        <p style="margin: 0.25rem 0 0;">Creates a subtask under the "Automation" subtask of a release task. Content is driven by ERB/YAML templates stored in <code>assets/asana_create_action_item/templates/</code>. Notable templates: <code>merge-failed</code>, <code>delete-branch-failed</code>, <code>internal-release-tag-failed</code>, <code>run-publish-dmg-release</code>. Key params: <code>task_url</code>, <code>template_name</code>, <code>template_args</code>, <code>due_date</code>. Returns the new subtask GID.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_log_message</code></strong>
+        <p style="margin: 0.25rem 0 0;">Posts a status message comment to the "Automation" subtask of a release task. Adds the workflow actor as a collaborator on that subtask. Uses ERB HTML templates from <code>assets/asana_add_comment/templates/</code>. Key params: <code>task_url</code>, <code>template_name</code>, <code>template_args</code>, <code>github_handle</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_add_comment</code></strong>
+        <p style="margin: 0.25rem 0 0;">Adds a comment (story) to any Asana task. Accepts either direct text or a template name; when a template is used, the result is rendered as HTML. Accepts either <code>task_id</code> or <code>task_url</code> for targeting. Key params: <code>task_id</code> or <code>task_url</code>, <code>comment</code> or <code>template_name</code>, <code>template_args</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_report_failed_workflow</code></strong>
+        <p style="margin: 0.25rem 0 0;">Reports a workflow failure to the release task. Determines the assignee from the task, the commit author, and the workflow actor (in priority order), fetches the commit author from GitHub, adds all relevant users as followers, then posts a <code>workflow-failed</code> template comment. Key params: <code>task_id</code>, <code>workflow_name</code>, <code>workflow_url</code>, <code>commit_sha</code>, <code>platform</code>, <code>github_handle</code>.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_extract_task_id</code></strong>
+        <p style="margin: 0.25rem 0 0;">Parses an Asana task ID from a URL. Supports the v0 format (<code>app.asana.com/0/&lt;project&gt;/&lt;task&gt;</code>), v1 format (<code>app.asana.com/1/&lt;workspace&gt;/task/&lt;task&gt;</code>), and the v1 inbox format. Returns the task ID string.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_get_release_automation_subtask_id</code></strong>
+        <p style="margin: 0.25rem 0 0;">Finds the "Automation" subtask under a release task by fetching all subtasks and returning the oldest one (the system-generated automation subtask). Key param: <code>task_url</code>. Returns the automation subtask GID.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_extract_task_assignee</code></strong>
+        <p style="margin: 0.25rem 0 0;">Fetches the assignee user ID of a given Asana task. Key param: <code>task_id</code>. Returns the assignee GID string, also sets it as a GHA step output.</p>
+      </div>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-asana);">
+        <strong><code>asana_get_user_id_for_github_handle</code></strong>
+        <p style="margin: 0.25rem 0 0;">Maps a GitHub username to an Asana user ID using a YAML mapping file bundled with the plugin (<code>assets/github-asana-user-id-mapping.yml</code>). Returns the Asana user ID, or <code>nil</code> if the handle is not in the mapping. Key param: <code>github_handle</code>.</p>
+      </div>
+
+      <h4 style="margin: 1.5rem 0 0.75rem;">Notifications</h4>
+
+      <div class="action-entry" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--color-publish);">
+        <strong><code>mattermost_send_message</code></strong>
+        <p style="margin: 0.25rem 0 0;">Sends a direct message to a team member via a Mattermost webhook. Maps the GitHub handle to a Mattermost username using a YAML file (<code>assets/mattermost_send_message/github-mattermost-user-id-mapping.yml</code>), processes the message body with an ERB text template, and posts the result to the webhook URL. Silently skips if the handle is not in the mapping. Key params: <code>mattermost_webhook_url</code>, <code>github_handle</code>, <code>template_name</code>, <code>template_args</code>.</p>
+      </div>
+
+      <!-- ── Release Branch Freeze Mechanism ── -->
+      <h3 id="freeze-mechanism" style="margin-top: 2.5rem;">Release Branch Freeze Mechanism</h3>
+      <p style="margin: 0.5rem 0 1.25rem; color: var(--color-muted);">The freeze mechanism prevents further internal releases once a version is ready for public release. Without it, any push to the release branch would trigger another internal bump, potentially overwriting the build that QA has already validated.</p>
+
+      <div style="background: #f8fafc; border-radius: 8px; padding: 1.25rem 1.5rem; border: 1px solid #e2e8f0;">
+        <ol style="margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Freezing.</strong>
+            Triggered automatically by <code>macos_promote_testflight.yml</code> when <code>freeze-release</code> is <code>true</code> (the default). After promoting a TestFlight build to the App Store, the action <code>freeze_release_branch</code> runs and creates a <strong>draft GitHub release</strong> named <code>&lt;version&gt;+&lt;platform&gt;</code> (e.g., <code>7.5.0+macos</code>). This draft release is never published — it exists purely as a machine-readable signal.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Blocking.</strong>
+            When <code>validate_internal_release_bump</code> runs on a push to the release branch, it calls <code>GitHelper.assert_release_branch_is_not_frozen</code>, which checks for the presence of that draft release. If found, it sets the <code>skip_release</code> GHA output to <code>true</code> and the workflow exits without building a new internal release.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Unfreezing (automatic).</strong>
+            When <code>tag_release</code> runs for a public release (<code>is_prerelease: false</code>), it calls <code>GitHelper.unfreeze_release_branch</code> before creating the real public tag. This deletes the draft release, unfreezing the branch as part of the normal public release flow.
+          </li>
+          <li>
+            <strong>Unfreezing (manual).</strong>
+            If you need to allow internal bumps again — for example, because the public release was delayed — go to <strong>GitHub &rarr; Releases</strong> and delete the draft release named <code>&lt;version&gt;+&lt;platform&gt;</code> manually.
+          </li>
+        </ol>
+
+        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: var(--color-muted);">
+          <strong>Flow summary:</strong>
+          <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.8125rem;">
+            <span style="background: var(--color-build); color: #fff; border-radius: 4px; padding: 0.25rem 0.625rem;">Promote to App Store</span>
+            <span style="color: #94a3b8;">&#8594;</span>
+            <span style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.25rem 0.625rem;">Draft release created (<em>frozen</em>)</span>
+            <span style="color: #94a3b8;">&#8594;</span>
+            <span style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px; padding: 0.25rem 0.625rem;">Push to release branch <em>skipped</em></span>
+            <span style="color: #94a3b8;">&#8594;</span>
+            <span style="background: var(--color-publish); color: #fff; border-radius: 4px; padding: 0.25rem 0.625rem;">Public release tags &rarr; draft deleted (<em>unfrozen</em>)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Sparkle / Appcast Pipeline ── -->
+      <h3 id="sparkle-pipeline" style="margin-top: 2.5rem;">Sparkle / Appcast Pipeline</h3>
+      <p style="margin: 0.5rem 0 1.25rem; color: var(--color-muted);">macOS uses the <a href="https://sparkle-project.org" target="_blank">Sparkle framework</a> for over-the-air updates. The pipeline generates and publishes an appcast XML file to S3 so that existing installs can discover new builds.</p>
+
+      <div style="background: #f8fafc; border-radius: 8px; padding: 1.25rem 1.5rem; border: 1px solid #e2e8f0;">
+
+        <h4 style="margin: 0 0 0.5rem;">Sparkle Tools</h4>
+        <p style="margin: 0 0 1rem; font-size: 0.9rem;">The <code>sign_update</code> and <code>generate_appcast</code> command-line tools are downloaded at build time from the <code>sparkle-project/Sparkle</code> GitHub releases. They are used for signing DMG entries with the EdDSA private key and regenerating the appcast XML.</p>
+
+        <h4 style="margin: 1rem 0 0.5rem;"><code>appcastManager.swift</code></h4>
+        <p style="margin: 0 0 0.75rem; font-size: 0.9rem;">A Swift script at <code>macOS/scripts/appcast_manager/appcastManager.swift</code> that manages appcast XML generation. It has three operating modes:</p>
+        <ul style="margin: 0 0 1rem 1.5rem; font-size: 0.9rem; line-height: 1.7;">
+          <li><code>--release-to-internal-channel</code> — used by the code freeze and internal bump flows. Adds the new DMG to the internal Sparkle channel (appcast URL for the internal config).</li>
+          <li><code>--release-to-public-channel</code> — used for public releases. Promotes the already-published internal entry to the public appcast URL.</li>
+          <li><code>--release-hotfix-to-public-channel</code> — used for hotfix releases. Publishes a new DMG entry directly to the public channel, bypassing the internal channel.</li>
+        </ul>
+
+        <h4 style="margin: 1rem 0 0.5rem;">Publishing Flow</h4>
+        <ol style="margin: 0 0 1rem 1.5rem; font-size: 0.9rem; line-height: 1.9;">
+          <li>Fetch the current appcast XML from S3.</li>
+          <li>Back up the existing appcast (uploaded as a workflow artifact for rollback).</li>
+          <li>Download the DMG from S3.</li>
+          <li>Extract release notes from the Asana release task body using the <code>fetch_release_notes</code> helper. Notes must not be empty or placeholder — the publish step validates this before proceeding.</li>
+          <li>Run <code>appcastManager.swift</code> with the appropriate mode to sign the DMG entry and generate the updated appcast XML.</li>
+          <li>Upload the new appcast to S3, replacing the previous version.</li>
+        </ol>
+
+        <h4 style="margin: 1rem 0 0.5rem;">Post-publish Validation</h4>
+        <p style="margin: 0 0 1rem; font-size: 0.9rem;">After a successful publish, an Asana action-item subtask is created using the <code>validate-check-for-updates-internal</code> or <code>validate-check-for-updates-public</code> template. The appcast diff and release notes are attached to the task for manual verification before the release is considered complete.</p>
+
+        <h4 style="margin: 1rem 0 0.5rem;">Appcast URLs</h4>
+        <p style="margin: 0; font-size: 0.9rem;">Appcast feed URLs are stored in <code>macOS/Configuration/App/Sparkle.xcconfig</code> under the pattern <code>SPARKLE_URL_&lt;CONFIG&gt;</code>. Release automation reads these values to determine the correct S3 target for each build configuration:</p>
+        <ul style="margin: 0.5rem 0 0 1.5rem; font-size: 0.875rem; line-height: 1.7;">
+          <li><code>SPARKLE_URL_RELEASE</code> — public appcast: <code>staticcdn.duckduckgo.com/macos-desktop-browser/appcast2.xml</code></li>
+          <li><code>SPARKLE_URL_ALPHA</code> — alpha appcast: <code>staticcdn.duckduckgo.com/macos-desktop-browser/alpha/appcast-alpha.xml</code></li>
+        </ul>
+      </div>
     </section>
 
     <!-- ── Quick Reference ── -->
