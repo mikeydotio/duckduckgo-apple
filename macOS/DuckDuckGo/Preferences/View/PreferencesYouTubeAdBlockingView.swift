@@ -26,6 +26,7 @@ extension Preferences {
     struct YouTubeAdBlockingView: View {
         @ObservedObject var model: YouTubeAdBlockingPreferences
         @State private var hasFiredSettingsDisplayedPixel = false
+        @State private var previousDuckPlayerMode: DuckPlayerMode = .alwaysAsk
 
         var isDuckPlayerEnabledBinding: Binding<Bool> {
             .init {
@@ -33,8 +34,11 @@ extension Preferences {
             } set: { newValue in
                 let oldMode = model.duckPlayerMode
                 if newValue {
-                    model.duckPlayerMode = .alwaysAsk
+                    model.duckPlayerMode = previousDuckPlayerMode
                 } else {
+                    if oldMode != .disabled {
+                        previousDuckPlayerMode = oldMode
+                    }
                     model.duckPlayerMode = .disabled
                 }
                 firePixelIfNeeded(oldMode: oldMode, newMode: model.duckPlayerMode)

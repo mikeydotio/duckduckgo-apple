@@ -135,6 +135,8 @@ final class SettingsViewModel: ObservableObject {
 
     // View State
     @Published private(set) var state: SettingsState
+    @Published private var lastEnabledDuckPlayerMode: DuckPlayerMode = .alwaysAsk
+    @Published private var lastEnabledNativeYoutubeMode: NativeDuckPlayerYoutubeMode = .ask
 
     // MARK: Cell Visibility
     enum Features {
@@ -503,19 +505,29 @@ final class SettingsViewModel: ObservableObject {
             },
             set: { newValue in
                 let oldMode = self.state.duckPlayerMode ?? .alwaysAsk
-                let newMode: DuckPlayerMode = newValue ? .alwaysAsk : .disabled
 
-                self.appSettings.duckPlayerMode = newMode
-                self.state.duckPlayerMode = newMode
+                if !newValue {
+                    if oldMode != .disabled {
+                        self.lastEnabledDuckPlayerMode = oldMode
+                    }
+                    self.appSettings.duckPlayerMode = .disabled
+                    self.state.duckPlayerMode = .disabled
+                } else {
+                    let restoredMode = self.lastEnabledDuckPlayerMode
+                    self.appSettings.duckPlayerMode = restoredMode
+                    self.state.duckPlayerMode = restoredMode
+                }
 
-                if oldMode != newMode {
-                    switch newMode {
+                if oldMode != self.state.duckPlayerMode {
+                    switch self.state.duckPlayerMode {
                     case .enabled:
                         Pixel.fire(pixel: .duckPlayerSettingAlwaysSettings)
                     case .alwaysAsk:
                         Pixel.fire(pixel: .duckPlayerSettingBackToDefault)
                     case .disabled:
                         Pixel.fire(pixel: .duckPlayerSettingNeverSettings)
+                    case .none:
+                        break
                     }
                 }
             }
@@ -632,13 +644,21 @@ final class SettingsViewModel: ObservableObject {
             },
             set: { newValue in
                 let oldMode = self.state.duckPlayerNativeYoutubeMode
-                let newMode: NativeDuckPlayerYoutubeMode = newValue ? .ask : .never
 
-                self.appSettings.duckPlayerNativeYoutubeMode = newMode
-                self.state.duckPlayerNativeYoutubeMode = newMode
+                if !newValue {
+                    if oldMode != .never {
+                        self.lastEnabledNativeYoutubeMode = oldMode
+                    }
+                    self.appSettings.duckPlayerNativeYoutubeMode = .never
+                    self.state.duckPlayerNativeYoutubeMode = .never
+                } else {
+                    let restoredMode = self.lastEnabledNativeYoutubeMode
+                    self.appSettings.duckPlayerNativeYoutubeMode = restoredMode
+                    self.state.duckPlayerNativeYoutubeMode = restoredMode
+                }
 
-                if oldMode != newMode {
-                    switch newMode {
+                if oldMode != self.state.duckPlayerNativeYoutubeMode {
+                    switch self.state.duckPlayerNativeYoutubeMode {
                     case .auto:
                         self.duckPlayerPixelHandler.fire(.duckPlayerNativeSettingsYoutubeAutomatic)
                     case .ask:
