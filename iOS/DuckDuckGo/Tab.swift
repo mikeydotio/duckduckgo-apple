@@ -95,8 +95,9 @@ public class Tab: NSObject, NSCoding {
     /// Returns `nil` for non-AI tabs or when the page title hasn't loaded yet.
     /// The `" at DuckDuckGo"` suffix is stripped automatically by `Link.displayTitle`.
     var aiChatConversationTitle: String? {
-        guard isAITab, let title = link?.title, !title.isEmpty else { return nil }
-        return link?.displayTitle
+        guard isAITab, let link, let title = link.title, !title.isEmpty else { return nil }
+        let displayTitle = link.displayTitle
+        return displayTitle.isEmpty ? nil : displayTitle
     }
 
     /// URL of the Dax Easter Egg logo for this tab, displayed in the privacy icon and used for full-screen presentation.

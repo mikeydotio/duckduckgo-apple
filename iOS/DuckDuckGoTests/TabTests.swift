@@ -363,6 +363,13 @@ class TabTests: XCTestCase {
         XCTAssertEqual(tab.aiChatConversationTitle, "My Chat")
     }
 
+    func testWhenAITabDisplayTitleBecomesEmptyThenConversationTitleReturnsNil() {
+        let aiURL = URL(string: "https://duckduckgo.com/?ia=chat")!
+        let tab = Tab(link: Link(title: " at DuckDuckGo", url: aiURL))
+
+        XCTAssertNil(tab.aiChatConversationTitle)
+    }
+
     func testWhenAITabHasEmptyTitleThenConversationTitleReturnsNil() {
         let aiURL = URL(string: "https://duck.ai/chat")!
         let tab = Tab(link: Link(title: "", url: aiURL))
