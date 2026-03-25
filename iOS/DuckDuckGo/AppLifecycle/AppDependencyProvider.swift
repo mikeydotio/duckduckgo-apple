@@ -111,7 +111,7 @@ final class AppDependencyProvider: DependencyProvider {
         // Configuring PixelKit
         let isPhone = UIDevice.current.userInterfaceIdiom == .phone
         let source = isPhone ? PixelKit.Source.iOS : PixelKit.Source.iPadOS
-        PixelKit.setUp(dryRun: PixelKitConfig.isDryRun(isProductionBuild: BuildFlags.isProductionBuild),
+        PixelKit.setUp(dryRun: false,
                        appVersion: AppVersion.shared.versionNumber,
                        source: source.rawValue,
                        defaultHeaders: [:],

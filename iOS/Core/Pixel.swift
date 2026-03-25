@@ -330,7 +330,6 @@ public class Pixel {
 
         let request = APIRequest(configuration: configuration, urlSession: .session(useMainThreadCallbackQueue: true))
         request.fetch { _, error in
-            Logger.pixels.debug("Pixel fired \(pixelName, privacy: .public) \(params, privacy: .public)")
             onComplete(error)
         }
     }
