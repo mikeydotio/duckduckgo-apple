@@ -97,6 +97,7 @@ final class QuitSurveyReturnUserHandler {
     private func fireReturnUserPixel(reasons: String) {
         pixelFiring?.fire(QuitSurveyPixels.quitSurveyReturnUser(reasons: reasons))
         persistor.pendingReturnUserReasons = nil
+        persistor.hasSelectedThumbsUp = nil
     }
 
     private func fireReturnUserThumbsUpPixel() {
