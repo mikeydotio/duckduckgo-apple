@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>macOS Release Workflows</title>
+  <style>
+    /* ── Reset & base typography ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #1e293b;
+      background: #ffffff;
+    }
+
+    /* ── CSS custom properties ─────────────────────────────────────────── */
+    :root {
+      --color-build:   #3b82f6;
+      --color-test:    #22c55e;
+      --color-asana:   #f97316;
+      --color-publish: #a855f7;
+      --color-trouble: #ef4444;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      width: 220px;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      z-index: 100;
+      padding: 1.25rem 0 2rem;
+    }
+
+    .sidebar-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      padding: 0 1rem 0.5rem;
+    }
+
+    .sidebar-group {
+      margin-bottom: 1rem;
+    }
+
+    .sidebar-group-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      padding: 0.5rem 1rem 0.25rem;
+    }
+
+    .sidebar nav a {
+      display: block;
+      padding: 0.35rem 1rem;
+      font-size: 0.875rem;
+      color: #475569;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .sidebar nav a:hover {
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+
+    .sidebar nav a.active {
+      color: #2563eb;
+      border-left-color: #2563eb;
+      background: #eff6ff;
+      font-weight: 500;
+    }
+
+    .main-content {
+      margin-left: 240px;
+      max-width: 1100px;
+      padding: 2rem;
+    }
+
+    /* ── Hamburger (hidden on desktop) ─────────────────────────────────── */
+    .hamburger {
+      display: none;
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 200;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      cursor: pointer;
+      font-size: 1.25rem;
+      line-height: 1;
+      color: #475569;
+    }
+
+    /* ── Sections ───────────────────────────────────────────────────────── */
+    section[id] {
+      scroll-margin-top: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    section[id] h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .trigger-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .trigger-badge--manual  { background: #fef9c3; color: #854d0e; }
+    .trigger-badge--auto    { background: #dcfce7; color: #166534; }
+    .trigger-badge--push    { background: #ede9fe; color: #5b21b6; }
+
+    /* ── Page header ─────────────────────────────────────────────────────── */
+    .page-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+      color: #475569;
+      max-width: 680px;
+    }
+
+    .last-updated {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Overview cards ──────────────────────────────────────────────────── */
+    .overview-cards {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .flow-card {
+      flex: 1 1 200px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.25rem 1rem;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+      background: #ffffff;
+    }
+
+    .flow-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .flow-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+
+    .flow-card p {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    /* ── Flowchart ───────────────────────────────────────────────────────── */
+    .flow-chart {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 1rem 0;
+    }
+
+    .flow-step {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border-left: 4px solid;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      font-size: 0.85rem;
+      position: relative;
+      min-width: 140px;
+    }
+
+    .flow-parallel {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .flow-arrow {
+      width: 2px;
+      height: 20px;
+      background: #94a3b8;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .flow-arrow::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid #94a3b8;
+    }
+
+    .flow-step--build       { border-left-color: var(--color-build); }
+    .flow-step--test        { border-left-color: var(--color-test); }
+    .flow-step--asana       { border-left-color: var(--color-asana); }
+    .flow-step--publish     { border-left-color: var(--color-publish); }
+    .flow-step--conditional {
+      border-left-style: dashed;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    /* ── Collapsible panels ──────────────────────────────────────────────── */
+    .panel {
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 0;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .panel-header:hover {
+      background: #f8fafc;
+    }
+
+    .panel-header .chevron {
+      transition: transform 0.2s;
+      margin-right: 0.5rem;
+      font-size: 0.75rem;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+
+    .panel.open .chevron {
+      transform: rotate(90deg);
+    }
+
+    .panel-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .panel.open .panel-body {
+      max-height: none;
+      overflow: visible;
+      padding-bottom: 1rem;
+    }
+
+    /* ── Tables ──────────────────────────────────────────────────────────── */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin: 0.75rem 0;
+    }
+
+    .info-table th {
+      background: #f8fafc;
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e2e8f0;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .info-table td {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    .info-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* ── Troubleshooting block ───────────────────────────────────────────── */
+    .troubleshoot {
+      border-left: 4px solid var(--color-trouble);
+      background: #fef2f2;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .troubleshoot h4 {
+      color: #b91c1c;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── Code & badges ───────────────────────────────────────────────────── */
+    code {
+      background: #f1f5f9;
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      font-size: 0.85em;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .fastlane-badge {
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 0.125rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.8em;
+      font-family: monospace;
+    }
+
+    .link-icon::after {
+      content: " \1F517";
+      font-size: 0.75em;
+      opacity: 0.6;
+    }
+
+    /* ── Toggle all button ───────────────────────────────────────────────── */
+    .toggle-all {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .toggle-all:hover {
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .hamburger {
+        display: block;
+      }
+
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 1rem;
+        padding-top: 3.5rem;
+      }
+
+      .overview-cards {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hamburger toggle (mobile only) -->
+  <button class="hamburger" aria-label="Open navigation">&#9776;</button>
+
+  <!-- Sidebar navigation -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-title">Release Workflows</div>
+
+    <div class="sidebar-group">
+      <a href="#overview"           onclick="scrollToSection('overview')">Overview</a>
+      <a href="#code-freeze"        onclick="scrollToSection('code-freeze')">Code Freeze</a>
+      <a href="#internal-bump"      onclick="scrollToSection('internal-bump')">Internal Release Bump</a>
+      <a href="#hotfix"             onclick="scrollToSection('hotfix')">Hotfix</a>
+      <a href="#common-components"  onclick="scrollToSection('common-components')">Common Components</a>
+      <a href="#quick-reference"    onclick="scrollToSection('quick-reference')">Quick Reference</a>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+
+    <!-- Page header -->
+    <header class="page-header">
+      <h1>macOS Release Workflows</h1>
+      <p>Documentation covering the Code Freeze, Internal Release Bump, and Hotfix GitHub Actions workflows for the macOS app. Use the sidebar to jump to any section.</p>
+      <p class="last-updated">Last updated: March 2025</p>
+    </header>
+
+    <!-- ── Overview ── -->
+    <section id="overview">
+      <h2>Overview</h2>
+    </section>
+
+    <!-- ── Code Freeze ── -->
+    <section id="code-freeze">
+      <h2>Code Freeze</h2>
+    </section>
+
+    <!-- ── Internal Release Bump ── -->
+    <section id="internal-bump">
+      <h2>Internal Release Bump</h2>
+    </section>
+
+    <!-- ── Hotfix ── -->
+    <section id="hotfix">
+      <h2>Hotfix</h2>
+    </section>
+
+    <!-- ── Common Components ── -->
+    <section id="common-components">
+      <h2>Common Components</h2>
+    </section>
+
+    <!-- ── Quick Reference ── -->
+    <section id="quick-reference">
+      <h2>Quick Reference</h2>
+    </section>
+
+  </main>
+
+  <script>
+    /* ── Collapsible panels ─────────────────────────────────────────────── */
+    function togglePanel(el) {
+      const panel = el.closest('.panel');
+      if (!panel) return;
+      panel.classList.toggle('open');
+    }
+
+    /* ── Expand / collapse all panels in a section ──────────────────────── */
+    function toggleAllPanels(sectionId, expand) {
+      const section = document.getElementById(sectionId);
+      if (!section) return;
+      const panels = section.querySelectorAll('.panel');
+      panels.forEach(p => {
+        if (expand) {
+          p.classList.add('open');
+        } else {
+          p.classList.remove('open');
+        }
+      });
+
+      // Update the toggle button text
+      const btn = section.querySelector('.toggle-all');
+      if (btn) {
+        if (expand) {
+          btn.textContent = 'Collapse All';
+          btn.setAttribute('onclick', `toggleAllPanels('${sectionId}', false)`);
+        } else {
+          btn.textContent = 'Expand All';
+          btn.setAttribute('onclick', `toggleAllPanels('${sectionId}', true)`);
+        }
+      }
+    }
+
+    /* ── Smooth-scroll to section & close mobile sidebar ────────────────── */
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth' });
+
+      // Close mobile sidebar if open
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.remove('open');
+    }
+
+    /* ── Scroll-spy via IntersectionObserver ────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const sections = document.querySelectorAll('section[id]');
+      const navLinks = document.querySelectorAll('.sidebar nav a');
+
+      const observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const id = entry.target.getAttribute('id');
+              navLinks.forEach(link => {
+                if (link.getAttribute('href') === '#' + id) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+            }
+          });
+        },
+        {
+          threshold: 0,
+          rootMargin: '-20% 0px -80% 0px',
+        }
+      );
+
+      sections.forEach(s => observer.observe(s));
+
+      /* ── Mobile hamburger ─────────────────────────────────────────────── */
+      const hamburger = document.querySelector('.hamburger');
+      const sidebar   = document.getElementById('sidebar');
+
+      hamburger.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+      });
+
+      // Also close sidebar when any nav link is clicked on mobile
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 768) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>
