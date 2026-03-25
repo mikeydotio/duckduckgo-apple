@@ -514,38 +514,53 @@ public extension StringProtocol {
 
     /// Replaces all occurrences of the given keys with their values in a single pass.
     ///
-    /// Unlike calling `replacingOccurrences(of:with:)` in a loop, this performs all
-    /// substitutions in one traversal so replacement values are never re-expanded.
+    /// Scans the string's UTF-8 bytes once, matching replacement keys at each position
+    /// and copying non-matching regions in bulk. Replacement values are never re-expanded.
     /// Longer keys are matched first to avoid partial matches.
     func applyingReplacements(_ replacements: [String: String]) -> String {
         guard !replacements.isEmpty else { return String(self) }
 
-        let pattern = replacements.keys
-            .filter { !$0.isEmpty }
-            .sorted { $0.count > $1.count }
-            .map { NSRegularExpression.escapedPattern(for: $0) }
-            .joined(separator: "|")
+        let templateUTF8 = Array(String(self).utf8)
+        let keys = replacements
+            .filter { !$0.key.isEmpty }
+            .map { (utf8: Array($0.key.utf8), value: Array($0.value.utf8)) }
+            .sorted { $0.utf8.count > $1.utf8.count }
 
-        guard !pattern.isEmpty else { return String(self) }
+        guard !keys.isEmpty else { return String(self) }
 
-        // Pattern is built from escaped literals joined by "|", so this cannot fail.
-        // swiftlint:disable:next force_try
-        let regex = try! NSRegularExpression(pattern: pattern)
+        let firstBytes = Set(keys.map { $0.utf8[0] })
 
-        let string = String(self)
-        let nsRange = NSRange(string.startIndex..., in: string)
-        var result = ""
-        var lastEnd = string.startIndex
+        var result = [UInt8]()
+        result.reserveCapacity(templateUTF8.count)
 
-        regex.enumerateMatches(in: string, range: nsRange) { match, _, _ in
-            guard let match = match, let matchRange = Range(match.range, in: string) else { return }
-            result += string[lastEnd..<matchRange.lowerBound]
-            result += replacements[String(string[matchRange])]!
-            lastEnd = matchRange.upperBound
+        var i = 0
+        while i < templateUTF8.count {
+            if firstBytes.contains(templateUTF8[i]) {
+                var matched = false
+                for entry in keys {
+                    let end = i + entry.utf8.count
+                    if end <= templateUTF8.count,
+                       templateUTF8[i..<end].elementsEqual(entry.utf8) {
+                        result.append(contentsOf: entry.value)
+                        i = end
+                        matched = true
+                        break
+                    }
+                }
+                if !matched {
+                    result.append(templateUTF8[i])
+                    i += 1
+                }
+            } else {
+                let start = i
+                while i < templateUTF8.count && !firstBytes.contains(templateUTF8[i]) {
+                    i += 1
+                }
+                result.append(contentsOf: templateUTF8[start..<i])
+            }
         }
 
-        result += string[lastEnd...]
-        return result
+        return String(decoding: result, as: UTF8.self)
     }
 
     // MARK: Prefix/Suffix
