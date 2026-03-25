@@ -49,7 +49,7 @@ extension APIRequest {
             self.cachePolicy = cachePolicy
         }
 
-        public var request: URLRequest {
+        var request: URLRequest {
             let url = url.appendingParameters(queryParameters, allowedReservedCharacters: allowedQueryReservedCharacters)
             var request = URLRequest(url: url, timeoutInterval: timeoutInterval)
             request.allHTTPHeaderFields = headers

@@ -1858,8 +1858,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let url = URL.pixelUrl(forPixelNamed: pixelName)
             let apiHeaders = APIRequest.Headers(userAgent: userAgent, additionalHeaders: headers)
             let configuration = APIRequest.Configuration(url: url, method: .get, queryParameters: parameters, headers: apiHeaders)
-            Logger.general.debug("Pixel request URL: \(configuration.request.url?.absoluteString ?? "", privacy: .public)")
-
             let request = APIRequest(configuration: configuration)
 
             request.fetch { _, error in

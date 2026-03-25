@@ -326,10 +326,9 @@ public class Pixel {
                                                      queryParameters: newParams,
                                                      allowedQueryReservedCharacters: allowedQueryReservedCharacters,
                                                      headers: headers)
-        Logger.pixels.debug("Pixel request URL: \(configuration.request.url?.absoluteString ?? "", privacy: .public)")
-
         let request = APIRequest(configuration: configuration, urlSession: .session(useMainThreadCallbackQueue: true))
         request.fetch { _, error in
+            Logger.pixels.debug("Pixel fired \(pixelName, privacy: .public) \(params, privacy: .public)")
             onComplete(error)
         }
     }
