@@ -33,7 +33,7 @@
 
     "m_settings_fire_button_selector_pressed": {
         "description": "Fires when the user selects a fire animation type in settings",
-        "owners": ["brindy, alessandroboron"],
+        "owners": ["brindy", "alessandroboron"],
         "triggers": ["other"],
         "suffixes": ["platform", "form_factor"],
         "parameters": [
