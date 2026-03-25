@@ -291,7 +291,10 @@ extension TabExtensionsBuilder {
         add {
             AIChatTabExtension(scriptsPublisher: userScripts.compactMap { $0 },
                                webViewPublisher: args.webViewFuture,
-                               isLoadedInSidebar: args.isTabLoadedInSidebar)
+                               isLoadedInSidebar: args.isTabLoadedInSidebar,
+                               localServerProvider: { [weak sessionStore = dependencies.aiChatSessionStore as? AIChatSessionStore] in
+                                   sessionStore?.localServer
+                               })
         }
 
         add {

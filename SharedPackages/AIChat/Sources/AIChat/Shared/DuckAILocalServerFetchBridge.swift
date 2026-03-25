@@ -17,7 +17,7 @@
 //
 //
 
-#if DEBUG && os(iOS)
+#if DEBUG
 import WebKit
 
 final class DuckAILocalServerFetchBridge: NSObject, WKScriptMessageHandlerWithReply {
@@ -105,7 +105,9 @@ final class DuckAILocalServerFetchBridge: NSObject, WKScriptMessageHandlerWithRe
                 const result = await window.webkit.messageHandlers.\(handlerName).postMessage(
                     { url: url, method: method, headers: headerObj, body: bodyText }
                 );
-                return new Response(result.body, {
+                const nullBodyStatuses = [101, 204, 205, 304];
+                const responseBody = nullBodyStatuses.includes(result.status) ? null : result.body;
+                return new Response(responseBody, {
                     status: result.status,
                     headers: result.headers
                 });

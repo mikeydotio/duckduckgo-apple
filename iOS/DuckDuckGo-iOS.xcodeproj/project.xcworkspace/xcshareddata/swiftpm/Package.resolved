@@ -1,5 +1,5 @@
 {
-  "originHash" : "286e584e6b40ee4f24c461d35548062d6678144226cb7eb20e5cae4ac9485d88",
+  "originHash" : "e7a7c507e20ca7d2d470395ecb1051dc1bd9d7366fb28f267553cdea7a752dbf",
   "pins" : [
     {
       "identity" : "apple-toolbox",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "c8ce2e7cdcca4226c96350dcd49323298b941592",
         "version" : "19.0.0"
+      }
+    },
+    {
+      "identity" : "flyingfox",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swhitty/FlyingFox.git",
+      "state" : {
+        "revision" : "de38230104cf63ef4843cb569ba11c13f8165685",
+        "version" : "0.26.2"
       }
     },
     {

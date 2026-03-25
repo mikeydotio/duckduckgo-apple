@@ -59,9 +59,7 @@ final class AIChatViewModel: AIChatViewModeling {
     let requestAuthHandler: AIChatRequestAuthorizationHandling
     let inspectableWebView: Bool
     let downloadsPath: URL
-#if DEBUG
-    private var fetchBridge: DuckAILocalServerFetchBridge?
-#endif
+    private var fetchBridgeRetainer: AnyObject?
 
     init(webViewConfiguration: WKWebViewConfiguration,
          settings: AIChatSettingsProvider,
@@ -79,7 +77,7 @@ final class AIChatViewModel: AIChatViewModeling {
         self.localServer = localServer
 
         if let localServer, localServer.port > 0 {
-            installLocalServerUserScripts(
+            fetchBridgeRetainer = DuckAILocalServerScriptInstaller.install(
                 on: webViewConfiguration.userContentController,
                 port: localServer.port
             )
@@ -101,85 +99,6 @@ final class AIChatViewModel: AIChatViewModeling {
 
     var localServerPort: UInt16 {
         localServer?.port ?? 0
-    }
-
-    private func installLocalServerUserScripts(on controller: WKUserContentController, port: UInt16) {
-        let portInjectionJS = """
-        (function() {
-            const host = location.hostname;
-            if (host !== 'duckduckgo.com' && host !== 'duck.ai') return;
-            window.__duckAiNativeServer = { port: \(port) };
-        })();
-        """
-
-        let portScript = WKUserScript(
-            source: portInjectionJS,
-            injectionTime: .atDocumentEnd,
-            forMainFrameOnly: true
-        )
-        controller.addUserScript(portScript)
-
-        let migrationJS = Self.migrationScript(port: port)
-        let migrationScript = WKUserScript(
-            source: migrationJS,
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: true
-        )
-        controller.addUserScript(migrationScript)
-
-#if DEBUG
-        let bridge = DuckAILocalServerFetchBridge()
-        self.fetchBridge = bridge
-        controller.addScriptMessageHandler(bridge, contentWorld: .page, name: DuckAILocalServerFetchBridge.handlerName)
-        controller.addUserScript(DuckAILocalServerFetchBridge.fetchOverrideScript)
-#endif
-    }
-
-    private static func migrationScript(port: UInt16) -> String {
-        """
-        (async function() {
-            try {
-                const host = location.hostname;
-                if (host !== 'duckduckgo.com' && host !== 'duck.ai') return;
-
-                const base = 'http://127.0.0.1:\(port)';
-                const origin = location.origin;
-
-                const migResp = await fetch(base + '/migration', {
-                    headers: { 'Origin': origin }
-                });
-                if (!migResp.ok) return;
-                const migData = await migResp.json();
-                if (migData.done) return;
-
-                const settings = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    settings[key] = localStorage.getItem(key);
-                }
-
-                const putResp = await fetch(base + '/settings', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Origin': origin
-                    },
-                    body: JSON.stringify(settings)
-                });
-                if (!putResp.ok) return;
-
-                const doneResp = await fetch(base + '/migration', {
-                    method: 'POST',
-                    headers: { 'Origin': origin }
-                });
-                if (!doneResp.ok) {
-                    console.error('DuckAI migration: failed to mark done');
-                }
-            } catch(e) {
-                console.error('DuckAI migration failed:', e);
-            }
-        })();
-        """
     }
 }
 #endif

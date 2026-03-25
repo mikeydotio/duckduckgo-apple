@@ -18,6 +18,7 @@
 
 import AIChat
 import AppKitExtensions
+import DuckAILocalServerAPI
 import AppUpdaterShared
 import AttributedMetric
 import AutoconsentStats
@@ -214,6 +215,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     let aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable
     let aiChatSessionStore: AIChatSessionStoring
+    private var localServerStartTask: Task<Void, Never>?
     let aiChatPreferences: AIChatPreferences
 
     let privacyStats: PrivacyStatsCollecting
@@ -594,7 +596,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             featureFlagProvider: WideEventFeatureFlagAdapter(featureFlagger: featureFlagger)
         )
 
-        aiChatSessionStore = AIChatSessionStore(featureFlagger: featureFlagger)
+        let sessionStore = AIChatSessionStore(featureFlagger: featureFlagger)
+        aiChatSessionStore = sessionStore
+        localServerStartTask = Task { @MainActor in
+            print("[HTTPSVR] AppDelegate: starting local server...")
+            let server = DuckAILocalServerFactory.makeDefault()
+            do {
+                try await server.start()
+                print("[HTTPSVR] AppDelegate: server started on port \(server.port)")
+                sessionStore.localServer = server
+                print("[HTTPSVR] AppDelegate: assigned server to sessionStore")
+            } catch {
+                print("[HTTPSVR] AppDelegate: server start FAILED: \(error)")
+                Logger.general.error("Failed to start DuckAI local server: \(error.localizedDescription)")
+            }
+        }
         aiChatMenuConfiguration = AIChatMenuConfiguration(
             storage: DefaultAIChatPreferencesStorage(),
             remoteSettings: AIChatRemoteSettings(

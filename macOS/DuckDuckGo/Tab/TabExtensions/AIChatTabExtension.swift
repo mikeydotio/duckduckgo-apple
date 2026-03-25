@@ -22,6 +22,7 @@ import Combine
 import WebKit
 import AIChat
 import BrowserServicesKit
+import DuckAILocalServerAPI
 
 protocol AIChatUserScriptProvider {
     var aiChatUserScript: AIChatUserScript? { get }
@@ -35,6 +36,10 @@ final class AIChatTabExtension {
     private let isLoadedInSidebar: Bool
     private weak var webView: WKWebView?
     private let featureDiscovery: FeatureDiscovery
+    private let localServerProvider: () -> (any DuckAILocalServer)?
+    private var migrationDone = false
+    private var fetchBridgeRetainer: AnyObject?
+    private var fetchBridgeJavaScript: String?
 
     private(set) weak var aiChatUserScript: AIChatUserScript? {
         didSet {
@@ -45,9 +50,11 @@ final class AIChatTabExtension {
     init(scriptsPublisher: some Publisher<some AIChatUserScriptProvider, Never>,
          webViewPublisher: some Publisher<WKWebView, Never>,
          isLoadedInSidebar: Bool,
-         featureDiscovery: FeatureDiscovery = DefaultFeatureDiscovery()) {
+         featureDiscovery: FeatureDiscovery = DefaultFeatureDiscovery(),
+         localServerProvider: @escaping () -> (any DuckAILocalServer)? = { nil }) {
         self.isLoadedInSidebar = isLoadedInSidebar
         self.featureDiscovery = featureDiscovery
+        self.localServerProvider = localServerProvider
         pageContextRequestedPublisher = pageContextRequestedSubject.eraseToAnyPublisher()
         pageContextConsumedPublisher = pageContextConsumedSubject.eraseToAnyPublisher()
         pageContextRemovedPublisher = pageContextRemovedSubject.eraseToAnyPublisher()
@@ -56,6 +63,7 @@ final class AIChatTabExtension {
         webViewPublisher.sink { [weak self] webView in
             self?.webView = webView
             self?.aiChatUserScript?.webView = webView
+            self?.registerFetchBridgeIfNeeded(on: webView)
         }.store(in: &cancellables)
 
         scriptsPublisher.sink { [weak self] scripts in
@@ -221,6 +229,47 @@ extension AIChatTabExtension: NavigationResponder {
     func navigationDidFinish(_ navigation: Navigation) {
         if navigation.url.isDuckAIURL {
             featureDiscovery.setWasUsedBefore(.aiChat)
+            injectLocalServerScriptsIfNeeded()
+        }
+    }
+
+    private func registerFetchBridgeIfNeeded(on webView: WKWebView) {
+        guard fetchBridgeRetainer == nil else { return }
+        let (retainer, js) = DuckAILocalServerScriptInstaller.installFetchBridge(on: webView)
+        fetchBridgeRetainer = retainer
+        fetchBridgeJavaScript = js
+        print("[HTTPSVR] TabExtension.registerFetchBridge: registered=\(retainer != nil)")
+    }
+
+    private func injectLocalServerScriptsIfNeeded() {
+        guard let webView,
+              let server = localServerProvider(),
+              server.port > 0 else {
+            print("[HTTPSVR] TabExtension.inject: skipped (webView=\(webView != nil), server=\(localServerProvider() != nil), port=\(localServerProvider()?.port ?? 0))")
+            return
+        }
+
+        let port = server.port
+        print("[HTTPSVR] TabExtension.inject: injecting port=\(port) into \(webView.url?.absoluteString ?? "nil")")
+
+        // Inject the fetch bridge override (must run before port injection so fetch works)
+        if let fetchJS = fetchBridgeJavaScript {
+            webView.evaluateJavaScript(fetchJS)
+        }
+
+        let portJS = DuckAILocalServerScriptInstaller.portInjectionJavaScript(port: port)
+        webView.evaluateJavaScript(portJS) { result, error in
+            if let error {
+                print("[HTTPSVR] TabExtension.inject: portJS FAILED: \(error)")
+            } else {
+                print("[HTTPSVR] TabExtension.inject: portJS succeeded")
+            }
+        }
+
+        if !migrationDone {
+            migrationDone = true
+            let migrationJS = DuckAILocalServerScriptInstaller.migrationJavaScript(port: port)
+            webView.evaluateJavaScript(migrationJS)
         }
     }
 }

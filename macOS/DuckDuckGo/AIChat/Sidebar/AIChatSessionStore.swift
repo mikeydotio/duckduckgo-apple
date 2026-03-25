@@ -18,6 +18,7 @@
 
 import AIChat
 import Combine
+import DuckAILocalServerAPI
 import Foundation
 import FeatureFlags
 import PrivacyConfig
@@ -63,6 +64,7 @@ protocol AIChatSessionStoring: AnyObject {
 final class AIChatSessionStore: AIChatSessionStoring {
 
     private let featureFlagger: FeatureFlagger
+    var localServer: (any DuckAILocalServer)?
 
     @Published private(set) var sessions: AIChatSessionsByTab
 
