@@ -62,7 +62,7 @@
       padding: 0.5rem 1rem 0.25rem;
     }
 
-    .sidebar nav a {
+    .sidebar a {
       display: block;
       padding: 0.35rem 1rem;
       font-size: 0.875rem;
@@ -72,18 +72,18 @@
       transition: color 0.15s, background 0.15s;
     }
 
-    .sidebar nav a.sub-link {
+    .sidebar a.sub-link {
       padding-left: 1.75rem;
       font-size: 0.8rem;
       color: #64748b;
     }
 
-    .sidebar nav a:hover {
+    .sidebar a:hover {
       color: #1e293b;
       background: #f1f5f9;
     }
 
-    .sidebar nav a.active {
+    .sidebar a.active {
       color: #2563eb;
       border-left-color: #2563eb;
       background: #eff6ff;
@@ -1924,7 +1924,7 @@
       </div>
       <!-- ── Fastlane Plugin Actions ── -->
       <h3 id="fastlane-plugin-actions" style="margin-top: 2rem;">Fastlane Plugin Actions</h3>
-      <p style="margin: 0.5rem 0 1rem; color: var(--color-muted);">The <code>ddg_apple_automation</code> Fastlane plugin provides all release automation primitives. Actions are invoked from Fastfiles and reusable workflows. Source: <code>fastlane-plugin-ddg_apple_automation</code>.</p>
+      <p style="margin: 0.5rem 0 1rem; color: var(--color-muted);">The <code>ddg_apple_automation</code> Fastlane plugin provides all release automation primitives. Actions are invoked from Fastfiles and reusable workflows. Source: <a href="https://github.com/duckduckgo/fastlane-plugin-ddg_apple_automation" target="_blank" rel="noopener"><code>fastlane-plugin-ddg_apple_automation</code></a>.</p>
 
       <h4 style="margin: 1.5rem 0 0.75rem;">Release Lifecycle</h4>
 
@@ -2497,7 +2497,7 @@
     /* ── Scroll-spy via IntersectionObserver ────────────────────────────── */
     document.addEventListener('DOMContentLoaded', () => {
       const sections = document.querySelectorAll('section[id]');
-      const navLinks = document.querySelectorAll('.sidebar nav a');
+      const navLinks = document.querySelectorAll('.sidebar a');
 
       const observer = new IntersectionObserver(
         entries => {
