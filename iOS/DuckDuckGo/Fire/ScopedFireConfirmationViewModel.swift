@@ -158,6 +158,9 @@ final class ScopedFireConfirmationViewModel: ObservableObject {
     /// 7. Otherwise → return nil
     private func computeSubtitle() -> String? {
         // Contextual chat mode has no subtitle
+        if case .contextualChat = fireContext {
+            return nil
+        }
 
         // Skip all subtitles if in onboarding
         if case .default(let daxDialogsManager) = fireContext,
