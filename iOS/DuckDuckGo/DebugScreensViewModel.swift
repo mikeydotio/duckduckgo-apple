@@ -112,10 +112,10 @@ class DebugScreensViewModel: ObservableObject {
             self.filteredFeatureFlags = []
         } else {
             self.filtered = screens.filter {
-                $0.title.lowercased().contains(filter.lowercased())
+                $0.title.lowercased().contains(trimmedFilter.lowercased())
             }.sorted(by: sorter)
             self.filteredFeatureFlags = isInternalUser ? FeatureFlag.allCases.filter {
-                $0.supportsLocalOverriding && $0.rawValue.localizedCaseInsensitiveContains(trimmedFilter)
+                $0.supportsLocalOverriding && $0.cohortType == nil && $0.rawValue.localizedCaseInsensitiveContains(trimmedFilter)
             }.sorted(by: { $0.rawValue < $1.rawValue }) : []
         }
     }
