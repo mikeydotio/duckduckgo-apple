@@ -576,20 +576,25 @@
         <h2>Code Freeze</h2>
         <button class="toggle-all" onclick="toggleAllPanels('code-freeze', true)">Expand All</button>
       </div>
-      <p style="color:#475569;margin-bottom:1rem;">Weekly scheduled release — creates a release branch, runs tests, builds DMG and App Store packages, tags the release, and publishes to Sparkle.</p>
+      <p style="color:#475569;margin-bottom:1rem;">Weekly scheduled release — creates a release branch, runs tests, builds packages, tags the release, and distributes to users. Covers both macOS and iOS platforms; the pipelines are structurally identical with a few platform-specific steps.</p>
 
       <p style="margin-bottom:0.5rem;">
-        <span class="trigger-badge trigger-badge--auto">Scheduled — cron <code>0 0 * * 1</code> (Monday 00:00 UTC)</span>
+        <span class="trigger-badge trigger-badge--auto">Scheduled — <span class="platform-badge platform-badge--macos">macOS</span> cron <code>0 0 * * 1</code> (Monday 00:00 UTC)</span>
+        <span class="trigger-badge trigger-badge--auto">Scheduled — <span class="platform-badge platform-badge--ios">iOS</span> cron <code>0 1 * * 1</code> (Monday 01:00 UTC)</span>
         <span class="trigger-badge trigger-badge--manual">Manual — workflow_dispatch</span>
       </p>
-      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>File:</strong> <code>macos_code_freeze.yml</code></p>
-      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Gate:</strong> Scheduled runs only proceed when <code>MACOS_AUTOMATIC_CODE_FREEZE == '1'</code>; manual dispatch always runs.</p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Files:</strong> <span class="platform-badge platform-badge--macos">macOS</span> <code>macos_code_freeze.yml</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_code_freeze.yml</code></p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Gate:</strong> Scheduled runs only proceed when the platform gate variable is <code>'1'</code>; manual dispatch always runs. <span class="platform-badge platform-badge--macos">macOS</span> <code>MACOS_AUTOMATIC_CODE_FREEZE</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>IOS_AUTOMATIC_CODE_FREEZE</code></p>
       <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Dispatch inputs:</strong> <code>version</code> (optional string — new release version, calculated automatically if omitted)</p>
-      <p style="font-size:0.875rem;color:#475569;margin-bottom:1.5rem;"><strong>Concurrency:</strong> <code>macos-release</code> (cancel-in-progress: false)</p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:1.5rem;"><strong>Concurrency:</strong> <span class="platform-badge platform-badge--macos">macOS</span> <code>macos-release</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios-release</code> (cancel-in-progress: false)</p>
 
       <!-- Flowchart -->
       <div class="flow-chart">
         <div class="flow-step flow-step--asana">check_automatic_freeze</div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step flow-step--asana">
+          upload_current_metadata <span class="platform-badge platform-badge--ios">iOS</span>
+        </div>
         <div class="flow-arrow"></div>
         <div class="flow-step flow-step--asana">
           create_release_branch
@@ -602,7 +607,7 @@
             <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
           </div>
           <div class="flow-step flow-step--test">
-            ui_tests
+            ui_tests <span class="platform-badge platform-badge--macos">macOS</span>
             <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
           </div>
         </div>
@@ -615,7 +620,7 @@
         </div>
         <div class="flow-arrow"></div>
         <div class="flow-parallel">
-          <div class="flow-step flow-step--build">DMG Build</div>
+          <div class="flow-step flow-step--build">DMG Build <span class="platform-badge platform-badge--macos">macOS</span></div>
           <div class="flow-step flow-step--build">App Store Build</div>
         </div>
         <div class="flow-arrow"></div>
@@ -625,7 +630,7 @@
         </div>
         <div class="flow-arrow"></div>
         <div class="flow-step flow-step--publish">
-          publish_release
+          publish_release <span class="platform-badge platform-badge--macos">macOS</span>
           <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
         </div>
         <div class="flow-arrow"></div>
@@ -647,7 +652,14 @@
         <div class="panel-body">
           <table class="info-table">
             <tr><td><strong>Runner</strong></td><td><code>ubuntu-latest</code></td></tr>
-            <tr><td><strong>Condition</strong></td><td><code>workflow_dispatch</code> OR <code>MACOS_AUTOMATIC_CODE_FREEZE == '1'</code></td></tr>
+            <tr>
+              <td><strong>Condition</strong></td>
+              <td>
+                <code>workflow_dispatch</code> OR gate variable is <code>'1'</code><br>
+                <span class="platform-badge platform-badge--macos">macOS</span> <code>MACOS_AUTOMATIC_CODE_FREEZE == '1'</code><br>
+                <span class="platform-badge platform-badge--ios">iOS</span> <code>IOS_AUTOMATIC_CODE_FREEZE == '1'</code>
+              </td>
+            </tr>
           </table>
           <h4>Purpose</h4>
           <p>Gate step that prevents the rest of the workflow from running on scheduled triggers when automatic code freeze is disabled. For manual <code>workflow_dispatch</code> triggers, this step always passes. No fastlane actions are invoked.</p>
@@ -655,6 +667,32 @@
           <ol>
             <li>Prints a confirmation message: <em>"Automatic code freeze is enabled or workflow was triggered manually"</em></li>
           </ol>
+        </div>
+      </div>
+
+      <!-- upload_current_metadata (iOS only) -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>upload_current_metadata</strong>
+          <span class="platform-badge platform-badge--ios">iOS only</span>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Calls</strong></td><td><code>ios_upload_version_metadata.yml</code></td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>check_automatic_freeze</code></td></tr>
+            <tr><td><strong>Runs in parallel with</strong></td><td><code>create_release_branch</code></td></tr>
+          </table>
+          <h4>Purpose</h4>
+          <p>Uploads the current App Store version metadata (release notes, keywords, screenshots, etc.) to the CDN <em>before</em> the release branch is created. This ensures the existing published metadata is preserved and available for the upcoming release cycle.</p>
+          <h4>What <code>ios_upload_version_metadata.yml</code> does</h4>
+          <ol>
+            <li>Runs <code>fastlane upload_appstore_version_metadata</code> to fetch the current metadata from App Store Connect</li>
+            <li>Uploads the fetched metadata to the release S3 bucket via the configured AWS credentials</li>
+          </ol>
+          <div class="platform-note platform-note--macos">
+            <strong>macOS:</strong> This step does not exist in the macOS code freeze workflow. macOS metadata is managed separately and does not require a pre-freeze upload step.
+          </div>
         </div>
       </div>
 
@@ -676,22 +714,28 @@
             <li>Checks out repo with full history (<code>fetch-depth: 0</code>) and all submodules</li>
             <li>Asserts that the workflow is running on the <code>main</code> branch</li>
             <li>Sets up Ruby and Bundler dependencies</li>
-            <li>Runs <span class="fastlane-badge">start_new_release</span> with <code>platform:macos</code>, optional <code>version</code> input, <code>github_handle</code>, and <code>target_section_id</code></li>
+            <li>Runs <span class="fastlane-badge">start_new_release</span> with optional <code>version</code> input, <code>github_handle</code>, and <code>target_section_id</code></li>
           </ol>
+          <div class="platform-note platform-note--macos">
+            <strong>macOS:</strong> Passes <code>platform:macos</code> — creates branch <code>release/macos/&lt;version&gt;</code>.
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Passes <code>platform:ios</code> — creates branch <code>release/ios/&lt;version&gt;</code>.
+          </div>
           <h4>What <code>start_new_release</code> does</h4>
           <ol>
             <li>Determines the new version: bumps the minor version number, or uses the provided <code>version</code> input</li>
-            <li>Creates <code>release/macos/&lt;version&gt;</code> branch from <code>main</code> and pushes it</li>
+            <li>Creates the platform release branch from <code>main</code> and pushes it</li>
             <li>Updates embedded files (e.g. privacy config) on the branch</li>
-            <li>Updates <code>Configuration/Version.xcconfig</code> with the new version</li>
+            <li>Updates the version xcconfig file with the new version</li>
             <li>Calls <code>find_release_dri</code> to determine the Asana user to assign the task to</li>
-            <li>Creates a new Asana release task from template (ID: <code>1206127427850447</code>), assigned to the release DRI</li>
+            <li>Creates a new Asana release task from template, assigned to the release DRI</li>
             <li>Updates the Asana release task with the commit log since the last public release (tasks included in this release)</li>
           </ol>
           <h4>Outputs</h4>
           <table class="info-table">
             <tr><th>Output</th><th>Description</th></tr>
-            <tr><td><code>release_branch_name</code></td><td>Name of the newly created branch, e.g. <code>release/macos/1.2.3</code></td></tr>
+            <tr><td><code>release_branch_name</code></td><td>Name of the newly created branch, e.g. <code>release/macos/1.2.3</code> or <code>release/ios/1.2.3</code></td></tr>
             <tr><td><code>asana_task_id</code></td><td>Asana task ID of the newly created release task</td></tr>
             <tr><td><code>asana_task_url</code></td><td>Full URL of the Asana release task</td></tr>
           </table>
@@ -701,7 +745,7 @@
       <div class="troubleshoot">
         <h4>⚠️ Branch Creation Failures</h4>
         <p><strong>What can go wrong:</strong> The release branch already exists (from a previous failed run), or there is a version conflict.</p>
-        <p><strong>Recovery:</strong> Check whether <code>release/macos/&lt;version&gt;</code> exists in GitHub. If it is stale, delete it. Then re-run the workflow.</p>
+        <p><strong>Recovery:</strong> Check whether the platform release branch (e.g. <code>release/macos/&lt;version&gt;</code> or <code>release/ios/&lt;version&gt;</code>) exists in GitHub. If it is stale, delete it. Then re-run the workflow.</p>
       </div>
 
       <!-- run_tests -->
@@ -712,12 +756,15 @@
         </div>
         <div class="panel-body">
           <table class="info-table">
-            <tr><td><strong>Calls</strong></td><td><code>macos_pr_checks.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
             <tr><td><strong>Needs</strong></td><td><code>create_release_branch</code></td></tr>
             <tr><td><strong>Branch</strong></td><td>From <code>create_release_branch.outputs.release_branch_name</code></td></tr>
           </table>
-          <h4>Purpose</h4>
-          <p>Runs unit tests and static analysis checks on the release branch, including ShellCheck and BATS shell script tests. Both <code>run_tests</code> and <code>ui_tests</code> run in parallel after the release branch is created.</p>
+          <div class="platform-note platform-note--macos">
+            <strong>macOS:</strong> Calls <code>macos_pr_checks.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a>. Runs unit tests and static analysis checks on the release branch, including ShellCheck and BATS shell script tests. Runs in parallel with <code>ui_tests</code>.
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Calls <code>ios_pr_checks.yml</code> with <code>skip-release: true</code>. Runs unit tests and static analysis on the release branch. iOS does not have a separate UI test job in the code freeze pipeline.
+          </div>
         </div>
       </div>
 
@@ -726,6 +773,7 @@
         <div class="panel-header" onclick="togglePanel(this)">
           <span class="chevron">▶</span>
           <strong>ui_tests</strong>
+          <span class="platform-badge platform-badge--macos">macOS only</span>
         </div>
         <div class="panel-body">
           <table class="info-table">
@@ -735,6 +783,9 @@
           </table>
           <h4>Purpose</h4>
           <p>Runs UI automation tests on the release branch. Runs in parallel with <code>run_tests</code>. Uses a matrix strategy to run tests across macOS versions.</p>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> This step does not exist in the iOS code freeze workflow. iOS runs only <code>ios_pr_checks.yml</code> (with <code>skip-release: true</code>) in the <code>run_tests</code> job.
+          </div>
         </div>
       </div>
 
@@ -755,14 +806,20 @@
           <ol>
             <li>Checks out the release branch (by name from <code>create_release_branch</code> outputs)</li>
             <li>Sets up Ruby and Bundler dependencies</li>
-            <li>Runs <span class="fastlane-badge">bump_build_number</span> with <code>platform:macos</code></li>
+            <li>Runs <span class="fastlane-badge">bump_build_number</span> with the appropriate <code>platform</code> parameter</li>
           </ol>
+          <div class="platform-note platform-note--macos">
+            <strong>macOS:</strong> Passes <code>platform:macos</code>.
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Passes <code>platform:ios</code>.
+          </div>
           <h4>What <code>bump_build_number</code> does</h4>
           <ol>
             <li>Fetches the latest build number from TestFlight via the App Store Connect API</li>
-            <li>Fetches the latest build number from the Sparkle appcast XML</li>
+            <li>Fetches the latest build number from the Sparkle appcast XML (macOS) or equivalent store source (iOS)</li>
             <li>Picks the highest of the two, then increments it by 1</li>
-            <li>Updates <code>Configuration/BuildNumber.xcconfig</code> (<code>CURRENT_PROJECT_VERSION</code>) with the new value</li>
+            <li>Updates the build number xcconfig file (<code>CURRENT_PROJECT_VERSION</code>) with the new value</li>
             <li>Pushes the commit to the release branch on the remote</li>
           </ol>
           <h4>Outputs</h4>
@@ -781,18 +838,20 @@
         </div>
         <div class="panel-body">
           <table class="info-table">
-            <tr><td><strong>Calls</strong></td><td><code>macos_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
             <tr><td><strong>Needs</strong></td><td><code>create_release_branch</code>, <code>increment_build_number</code></td></tr>
             <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code> (from <code>create_release_branch</code>), <code>branch</code>, <code>commit-sha</code> (from <code>increment_build_number</code>)</td></tr>
           </table>
-          <h4>Purpose</h4>
-          <p>Orchestrates the full build phase by calling the reusable <code>macos_release.yml</code> workflow, which fans out to two parallel builds:</p>
-          <ul style="margin:0.5rem 0 0.5rem 1.5rem;">
-            <li><strong>DMG Build</strong> — calls <code>macos_build_notarized.yml</code> with <code>release-type: release</code> and <code>create-dmg: true</code>. Archives, notarizes, and uploads the DMG to S3.</li>
-            <li><strong>App Store Build</strong> — calls <code>macos_build_appstore.yml</code> with <code>destination: testflight</code>. Builds and submits to TestFlight.</li>
-          </ul>
-          <h4>Asana Actions</h4>
-          <p><span class="fastlane-badge">asana_log_message</span> — logs build status (debug symbols uploaded, DMG uploaded) to the Asana release task with template <code>debug-symbols-uploaded</code> and <code>dmg-uploaded</code>.</p>
+          <div class="platform-note platform-note--macos">
+            <strong>macOS:</strong> Calls <code>macos_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a>. Fans out to two parallel builds:
+            <ul style="margin:0.4rem 0 0 1.2rem;">
+              <li><strong>DMG Build</strong> — calls <code>macos_build_notarized.yml</code> with <code>release-type: release</code> and <code>create-dmg: true</code>. Archives, notarizes, and uploads the DMG to S3.</li>
+              <li><strong>App Store Build</strong> — calls <code>macos_build_appstore.yml</code> with <code>destination: testflight</code>. Builds and submits to TestFlight.</li>
+            </ul>
+            <span class="fastlane-badge">asana_log_message</span> logs build status (debug symbols uploaded, DMG uploaded) to the Asana release task with templates <code>debug-symbols-uploaded</code> and <code>dmg-uploaded</code>.
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Calls <code>ios_release.yml</code> with <code>measure-app-size: true</code>. Single build targeting TestFlight — there is no separate DMG equivalent. TestFlight upload is the distribution mechanism for the internal release, so there is no separate <code>publish_release</code> step afterward.
+          </div>
         </div>
       </div>
 
@@ -812,20 +871,20 @@
         </div>
         <div class="panel-body">
           <table class="info-table">
-            <tr><td><strong>Calls</strong></td><td><code>macos_tag_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
-            <tr><td><strong>Needs</strong></td><td><code>create_release_branch</code>, <code>increment_build_number</code>, <code>prepare_release</code></td></tr>
-            <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>branch</code>, <code>commit-sha</code>, <code>base-branch</code> (default: <code>main</code>), <code>prerelease: true</code></td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>create_release_branch</code>, <code>prepare_release</code></td></tr>
+            <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>branch</code>, <code>commit-sha</code>, <code>base-branch</code> (default: <code>main</code>), <code>release-type: internal</code></td></tr>
           </table>
-          <h4>Steps</h4>
+          <div class="platform-note platform-note--macos">
+            <strong>macOS:</strong> Calls <code>macos_tag_release.yml</code> directly — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a>. Also passes <code>prerelease: true</code>. Creates a prerelease tag in format <code>&lt;version&gt;-&lt;build&gt;+macos</code> (e.g. <code>1.2.3-456+macos</code>).
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Calls <code>ios_tag_release_update_asana.yml</code> — a wrapper workflow that calls <code>ios_tag_release.yml</code> and then updates the Asana release task with release annotations and completion status. This combines tagging and Asana bookkeeping into one step.
+          </div>
+          <h4>What tagging does (both platforms)</h4>
           <ol>
             <li>Validates that the workflow is running on a release branch</li>
             <li>Validates the commit SHA belongs to the release branch</li>
-            <li>Runs <span class="fastlane-badge">tag_release</span> with <code>platform:macos</code>, <code>is_prerelease:true</code>, and <code>is_scheduled_release</code></li>
-          </ol>
-          <h4>What <code>tag_release</code> does</h4>
-          <ol>
-            <li>Creates a prerelease tag in format <code>&lt;version&gt;-&lt;build&gt;+macos</code> (e.g. <code>1.2.3-456+macos</code>)</li>
-            <li>Creates a GitHub Release with the tag and auto-generated release notes</li>
+            <li>Creates a prerelease tag and a GitHub Release with auto-generated release notes</li>
             <li>Merges the release branch back into <code>main</code></li>
             <li>Stores the tag name as an artifact for downstream use</li>
           </ol>
@@ -841,7 +900,8 @@
         <h4>⚠️ Tag &amp; Merge Failures</h4>
         <p><strong>What can go wrong:</strong> Merge conflicts between the release branch and <code>main</code>, or the tag already exists from a previous run.</p>
         <p><strong>Auto:</strong> <span class="fastlane-badge">asana_create_action_item</span> with template <code>internal-release-tag-failed</code> — creates a subtask assigned to the release DRI with manual merge instructions. (Only fires on internal-release-bump context; not on code freeze.)</p>
-        <p><strong>Recovery:</strong> Resolve conflicts locally on the release branch and push. Then manually trigger <code>macos_tag_release.yml</code> with the release branch name and the Asana task URL as inputs.</p>
+        <p><strong>Recovery (macOS):</strong> Resolve conflicts locally on the release branch and push. Then manually trigger <code>macos_tag_release.yml</code> with the release branch name and the Asana task URL as inputs.</p>
+        <p><strong>Recovery (iOS):</strong> Resolve conflicts locally on the release branch and push. Then manually trigger <code>ios_tag_release_update_asana.yml</code> with the release branch name and the Asana task URL as inputs.</p>
       </div>
 
       <!-- publish_release -->
@@ -849,6 +909,7 @@
         <div class="panel-header" onclick="togglePanel(this)">
           <span class="chevron">▶</span>
           <strong>publish_release</strong>
+          <span class="platform-badge platform-badge--macos">macOS only</span>
         </div>
         <div class="panel-body">
           <table class="info-table">
@@ -870,14 +931,23 @@
           </ol>
           <h4>Asana Actions</h4>
           <p>On success: creates a subtask with template <code>validate-check-for-updates-internal</code> (prompts DRI to verify the internal update channel). Uploads the appcast diff patch and old appcast XML as task attachments.</p>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> This step does not exist in the iOS code freeze workflow. The TestFlight upload performed in <code>prepare_release</code> is the distribution mechanism — there is no separate Sparkle/appcast publish step required.
+          </div>
         </div>
       </div>
 
       <div class="troubleshoot">
-        <h4>⚠️ Publish &amp; Appcast Failures</h4>
+        <h4>⚠️ Publish &amp; Appcast Failures <span class="platform-badge platform-badge--macos">macOS</span></h4>
         <p><strong>What can go wrong:</strong> Appcast generation failure (malformed XML, missing DMG), S3 upload failure, or Asana update failure.</p>
         <p><strong>Auto:</strong> <span class="fastlane-badge">asana_create_action_item</span> with template <code>appcast-failed-internal</code> — notifies the DRI that the appcast step failed and includes recovery instructions.</p>
         <p><strong>Recovery:</strong> Verify S3 credentials (<code>AWS_ACCESS_KEY_ID_RELEASE_S3</code>, <code>AWS_SECRET_ACCESS_KEY_RELEASE_S3</code>). Check appcast XML format. Manually trigger <code>macos_publish_dmg_release.yml</code> with inputs: <code>asana-task-url</code>, <code>tag</code> (from the <code>tag_and_merge</code> step), <code>release-type: internal</code>.</p>
+      </div>
+
+      <div class="troubleshoot">
+        <h4>⚠️ Metadata Upload Failures <span class="platform-badge platform-badge--ios">iOS</span></h4>
+        <p><strong>What can go wrong:</strong> App Store Connect API authentication failure, network timeout, or S3 upload error during <code>upload_current_metadata</code>.</p>
+        <p><strong>Recovery:</strong> Verify that <code>APPLE_API_KEY_ID</code>, <code>APPLE_API_KEY_ISSUER</code>, and <code>APPLE_API_KEY_BASE64</code> secrets are current. Verify AWS credentials (<code>AWS_ACCESS_KEY_ID_RELEASE_S3</code>, <code>AWS_SECRET_ACCESS_KEY_RELEASE_S3</code>). The metadata upload runs in parallel with <code>create_release_branch</code>, so a failure here does not block branch creation — manually trigger <code>ios_upload_version_metadata.yml</code> to retry.</p>
       </div>
 
       <!-- report_failure -->
@@ -890,12 +960,19 @@
         <div class="panel-body">
           <table class="info-table">
             <tr><td><strong>Calls</strong></td><td><code>report_failed_release_workflow.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
-            <tr><td><strong>Condition</strong></td><td><code>if: always()</code> AND any of <code>run_tests</code>, <code>increment_build_number</code>, <code>prepare_release</code>, <code>tag_and_merge</code>, or <code>publish_release</code> resulted in <code>failure</code></td></tr>
-            <tr><td><strong>Needs</strong></td><td><code>create_release_branch</code>, <code>run_tests</code>, <code>increment_build_number</code>, <code>prepare_release</code>, <code>tag_and_merge</code>, <code>publish_release</code></td></tr>
-            <tr><td><strong>Inputs</strong></td><td><code>platform: macos</code>, <code>workflow-name: "code freeze"</code>, <code>asana-task-id</code>, <code>branch</code>, <code>commit-sha</code></td></tr>
+            <tr><td><strong>Condition</strong></td><td><code>if: always()</code> AND any of <code>run_tests</code>, <code>prepare_release</code>, or <code>tag_and_merge</code> resulted in <code>failure</code></td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>create_release_branch</code>, <code>run_tests</code>, <code>prepare_release</code>, <code>tag_and_merge</code></td></tr>
+            <tr>
+              <td><strong>Inputs</strong></td>
+              <td>
+                <code>workflow-name: "code freeze"</code>, <code>asana-task-id</code>, <code>branch</code>, <code>commit-sha</code><br>
+                <span class="platform-badge platform-badge--macos">macOS</span> <code>platform: macos</code><br>
+                <span class="platform-badge platform-badge--ios">iOS</span> <code>platform: ios</code>
+              </td>
+            </tr>
           </table>
           <h4>Purpose</h4>
-          <p>Always-running cleanup job that reports workflow failures back to Asana. Uses <span class="fastlane-badge">asana_report_failed_workflow</span> to add a failure comment to the release task and notify relevant users.</p>
+          <p>Always-running cleanup job that reports workflow failures back to Asana. Uses <span class="fastlane-badge">asana_report_failed_workflow</span> to add a failure comment to the release task and notify relevant users. Behaviour is identical for both platforms.</p>
         </div>
       </div>
 
