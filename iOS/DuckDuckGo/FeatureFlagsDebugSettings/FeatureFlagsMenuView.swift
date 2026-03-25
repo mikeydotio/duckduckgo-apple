@@ -54,6 +54,12 @@ struct FeatureFlagsMenuView: View {
     // MARK: - Feature Flags Section
     private func featureFlagsSection() -> some View {
         Section(header: Text(verbatim: "Feature Flags")) {
+            Picker("", selection: $viewModel.stateFilter) {
+                ForEach(FeatureFlagsSettingViewModel.StateFilter.allCases, id: \.self) { filter in
+                    Text(verbatim: filter.rawValue).tag(filter)
+                }
+            }
+            .pickerStyle(.segmented)
             ForEach(viewModel.filteredFeatureFlags, id: \.self) { flag in
                 featureFlagRow(flag: flag)
             }

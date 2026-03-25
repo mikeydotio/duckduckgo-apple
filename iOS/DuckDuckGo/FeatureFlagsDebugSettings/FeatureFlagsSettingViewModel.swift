@@ -24,17 +24,32 @@ import Core
 import ContentScopeScripts
 
 class FeatureFlagsSettingViewModel: ObservableObject {
+
+    enum StateFilter: String, CaseIterable {
+        case all = "All"
+        case enabled = "Enabled"
+        case disabled = "Disabled"
+    }
+
     private let featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger
 
     @Published var featureFlags: [FeatureFlag] = []
     @Published var experiments: [FeatureFlag] = []
     @Published var searchText: String = ""
+    @Published var stateFilter: StateFilter = .all
 
     var filteredFeatureFlags: [FeatureFlag] {
-        if searchText.isEmpty {
-            return featureFlags
-        } else {
-            return featureFlags.filter { $0.rawValue.localizedCaseInsensitiveContains(searchText) }
+        var flags = featureFlags
+        if !searchText.isEmpty {
+            flags = flags.filter { $0.rawValue.localizedCaseInsensitiveContains(searchText) }
+        }
+        switch stateFilter {
+        case .all:
+            return flags
+        case .enabled:
+            return flags.filter { isFeatureEnabled($0) }
+        case .disabled:
+            return flags.filter { !isFeatureEnabled($0) }
         }
     }
 
