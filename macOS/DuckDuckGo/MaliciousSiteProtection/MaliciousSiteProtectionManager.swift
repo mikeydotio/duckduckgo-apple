@@ -134,7 +134,8 @@ public class MaliciousSiteProtectionManager: MaliciousSiteDetecting {
         configManager: PrivacyConfigurationManaging? = nil,
         updateIntervalProvider: UpdateManager.UpdateIntervalProvider? = nil
     ) {
-        self.featureFlags = featureFlagger.maliciousSiteProtectionFeatureFlags(configManager: privacyConfigurationManager)
+        let featureFlags = featureFlagger.maliciousSiteProtectionFeatureFlags(configManager: privacyConfigurationManager)
+        self.featureFlags = featureFlags
 
         let embeddedDataProvider = embeddedDataProvider ?? EmbeddedDataProvider()
         let dataManager = dataManager ?? {
@@ -143,14 +144,18 @@ public class MaliciousSiteProtectionManager: MaliciousSiteDetecting {
             return MaliciousSiteProtection.DataManager(fileStore: fileStore, embeddedDataProvider: embeddedDataProvider, fileNameProvider: Self.fileName(for:))
         }()
 
-        Task.detached {
-            await dataManager.preloadData(for: ThreatKind.allCases)
-        }
-
         let supportedThreatsProvider = {
             let isScamProtectionEnabled = featureFlagger.isFeatureOn(.scamSiteProtection)
             return isScamProtectionEnabled ? ThreatKind.allCases : ThreatKind.allCases.filter { $0 != .scam }
         }
+
+        if featureFlags.isMaliciousSiteProtectionEnabled, detectionPreferences.isEnabled {
+            let preloadThreatKinds = supportedThreatsProvider()
+            Task.detached {
+                await dataManager.preloadData(for: preloadThreatKinds)
+            }
+        }
+
         let apiEnvironment = apiEnvironment ?? MaliciousSiteDetector.APIEnvironment.production
         self.detector = detector ?? MaliciousSiteDetector(apiEnvironment: apiEnvironment, service: apiService, dataManager: dataManager, eventMapping: Self.debugEvents, supportedThreatsProvider: supportedThreatsProvider)
         self.updateManager = MaliciousSiteProtection.UpdateManager(apiEnvironment: apiEnvironment, service: apiService, dataManager: dataManager, eventMapping: Self.debugEvents, updateIntervalProvider: updateIntervalProvider ?? Self.updateInterval, supportedThreatsProvider: supportedThreatsProvider)
