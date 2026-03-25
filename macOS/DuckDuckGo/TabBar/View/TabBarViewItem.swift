@@ -582,7 +582,21 @@ final class TabBarItemCellView: NSView {
         }
 
         backgroundView.refreshStateIfNeeded(isSelected: isSelected, isDragged: isDragged, isMouseOver: isMouseOver)
-        closeButton.animator().isHidden = isMouseOver && (widthStage.isCloseButtonHidden && NSApp.isCommandPressed)
+        refreshCloseButton(isSelected: isSelected, isMouseOver: isMouseOver, animated: true)
+    }
+
+    private func refreshCloseButton(isSelected: Bool, isMouseOver: Bool, animated: Bool) {
+        let isHidden = (!isMouseOver || (widthStage.isCloseButtonHidden && !NSApp.isCommandPressed)) && !isSelected
+        guard closeButton.isHidden != isHidden else {
+            return
+        }
+
+        guard animated else {
+            closeButton.isHidden = isHidden
+            return
+        }
+
+        closeButton.animator().isHidden = isHidden
     }
 }
 
@@ -854,7 +868,7 @@ final class TabBarViewItem: NSCollectionViewItem {
 
             updateSubviews()
 
-            cell.backgroundView.refreshStateIfNeeded(isSelected: isSelected, isDragged: isDragged, isMouseOver: isMouseOver)
+            cell.refreshStateIfNeeded(isSelected: isSelected, isDragged: isDragged, isMouseOver: isMouseOver)
             updateUsedPermissions()
         }
     }
