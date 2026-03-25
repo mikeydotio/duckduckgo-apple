@@ -529,6 +529,7 @@ public extension StringProtocol {
         guard !pattern.isEmpty else { return String(self) }
 
         // Pattern is built from escaped literals joined by "|", so this cannot fail.
+        // swiftlint:disable:next force_try
         let regex = try! NSRegularExpression(pattern: pattern)
 
         let string = String(self)
