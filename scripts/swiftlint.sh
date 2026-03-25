@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 # SwiftLint build phase script
 # Shared between iOS and macOS projects
 # Runs SwiftLint from repo root using .swiftlint.yml
