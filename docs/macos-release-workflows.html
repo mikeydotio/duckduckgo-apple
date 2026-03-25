@@ -864,7 +864,253 @@
 
     <!-- ── Internal Release Bump ── -->
     <section id="internal-bump">
-      <h2>Internal Release Bump</h2>
+      <div class="section-header">
+        <h2>Internal Release Bump</h2>
+        <button class="toggle-all" onclick="toggleAllPanels('internal-bump', true)">Expand All</button>
+      </div>
+      <p style="color:#475569;margin-bottom:1rem;">Triggered automatically when code is pushed to a release branch. Validates conditions, runs tests, bumps build number, builds release, tags, and publishes to Sparkle.</p>
+
+      <p style="margin-bottom:0.5rem;">
+        <span class="trigger-badge trigger-badge--push">Push to <code>release/macos/**</code> — paths: <code>SharedPackages/</code>, <code>macOS/</code> (excluding <code>macOS/fastlane/</code>)</span>
+        <span class="trigger-badge trigger-badge--manual">Manual — workflow_dispatch</span>
+      </p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>File:</strong> <code>macos_bump_internal_release.yml</code></p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Dispatch inputs:</strong> <code>asana-task-url</code> (optional string), <code>base-branch</code> (optional, default: <code>main</code>), <code>skip-appstore</code> (boolean, default: false)</p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:1.5rem;"><strong>Concurrency:</strong> <code>macos-release</code> (cancel-in-progress: false)</p>
+
+      <!-- Flowchart -->
+      <div class="flow-chart">
+        <div class="flow-step flow-step--asana">validate_input_conditions</div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step flow-step--test flow-step--conditional" style="border-left-style:dashed;">
+          run_tests
+          <span style="font-size:0.75em;color:#64748b;margin-left:0.3em;">(if skip-release != 'true')</span>
+          <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step flow-step--build">increment_build_number</div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step flow-step--build">
+          prepare_release
+          <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-parallel">
+          <div class="flow-step flow-step--build">DMG Build</div>
+          <div class="flow-step flow-step--build flow-step--conditional" style="border-left-style:dashed;">
+            App Store Build
+            <span style="font-size:0.75em;color:#64748b;display:block;">(if skip-appstore != true)</span>
+          </div>
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step flow-step--publish">
+          tag_and_merge
+          <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step flow-step--publish">
+          publish_release
+          <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step flow-step--conditional flow-step--asana" style="border-left-style:dashed;">
+          report_failure
+          <span style="font-size:0.75em;color:#64748b;margin-left:0.3em;">(if any prior job failed)</span>
+          <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
+        </div>
+      </div>
+
+      <!-- Job Detail Panels -->
+
+      <!-- validate_input_conditions -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>validate_input_conditions</strong>
+          <span class="fastlane-badge">validate_internal_release_bump</span>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Runner</strong></td><td><code>macos-26</code></td></tr>
+            <tr><td><strong>Timeout</strong></td><td>10 minutes</td></tr>
+          </table>
+          <h4>Steps</h4>
+          <ol>
+            <li>Asserts the workflow is running on a release branch (or <code>main</code>)</li>
+            <li>Finds or verifies the release task in Asana — searches the Apple Releases section (macOS) for a task matching the current marketing version; only considers tasks created in the last 5 days</li>
+            <li>Checks the branch is NOT frozen — errors if a draft GitHub release named <code>&lt;version&gt;+macos</code> already exists (draft public release is the freeze indicator)</li>
+            <li>Verifies code changes exist since the last tag — ignores changes under <code>.github/</code>, <code>scripts/</code>, <code>fastlane/</code> directories; sets <code>skip_release=true</code> if no relevant changes are found</li>
+            <li>Validates release notes are not empty and don't contain only placeholder text (<code>&lt;-- Add release notes here --&gt;</code>)</li>
+            <li>Reports if an active hotfix task exists in the Apple Releases section — blocks normal bump and adds the release task assignee as a collaborator on the hotfix task</li>
+          </ol>
+          <h4>Outputs</h4>
+          <table class="info-table">
+            <tr><th>Output</th><th>Description</th></tr>
+            <tr><td><code>skip-release</code></td><td><code>true</code> if no relevant code changes were found since the last tag; downstream jobs that depend on <code>run_tests</code> are skipped</td></tr>
+            <tr><td><code>asana-task-id</code></td><td>Asana task GID of the current release task</td></tr>
+            <tr><td><code>asana-task-url</code></td><td>Full URL of the Asana release task</td></tr>
+            <tr><td><code>release-branch</code></td><td>Name of the release branch, e.g. <code>release/macos/1.2.3</code></td></tr>
+            <tr><td><code>skip-appstore</code></td><td>Forwarded from dispatch input or determined automatically</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="troubleshoot">
+        <h4>⚠️ Validation Failures</h4>
+        <p><strong>Frozen branch:</strong> <code>validate_internal_release_bump</code> errors if a draft GitHub release named <code>&lt;version&gt;+macos</code> already exists. This means a public release has been decided. No further internal bumps are allowed until the public release is tagged (which removes the draft and unfreezes the branch).</p>
+        <p><strong>Empty release notes:</strong> The bump is blocked. Someone must fill in release notes in the Asana release task before the internal bump can proceed.</p>
+        <p><strong>No code changes:</strong> <code>skip-release</code> is set to <code>true</code> and the workflow exits gracefully — this is NOT an error; it's expected when only non-code files changed (e.g. workflow configs, scripts, fastlane files).</p>
+        <p><strong>Active hotfix:</strong> If an active hotfix task is found in the Asana Apple Releases section, the normal internal bump is blocked to prevent conflicts with the in-progress hotfix. The release task assignee is automatically added as a collaborator on the hotfix task.</p>
+      </div>
+
+      <!-- run_tests -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>run_tests</strong>
+          <span style="font-size:0.8em;color:#64748b;margin-left:0.5em;">conditional — skipped when skip-release is 'true'</span>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Calls</strong></td><td><code>macos_pr_checks.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>validate_input_conditions</code></td></tr>
+            <tr><td><strong>Condition</strong></td><td><code>needs.validate_input_conditions.outputs.skip-release != 'true'</code></td></tr>
+            <tr><td><strong>Branch</strong></td><td>From <code>validate_input_conditions.outputs.release-branch</code></td></tr>
+          </table>
+          <h4>Purpose</h4>
+          <p>Runs unit tests and static analysis checks on the release branch. Skipped entirely when no relevant code changes have been detected (i.e. when <code>skip-release</code> is <code>true</code>).</p>
+        </div>
+      </div>
+
+      <!-- increment_build_number -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>increment_build_number</strong>
+          <span class="fastlane-badge">bump_build_number</span>
+          <span class="fastlane-badge">update_asana_for_release</span>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Runner</strong></td><td><code>macos-26</code></td></tr>
+            <tr><td><strong>Timeout</strong></td><td>10 minutes</td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>validate_input_conditions</code>, <code>run_tests</code></td></tr>
+          </table>
+          <h4>Steps</h4>
+          <ol>
+            <li>Checks out the release branch (from <code>validate_input_conditions</code> outputs) with full history and all submodules</li>
+            <li>Sets up Ruby and Bundler dependencies</li>
+            <li>Selects the correct Xcode version</li>
+            <li>Runs <span class="fastlane-badge">bump_build_number</span> with <code>platform:macos</code></li>
+            <li>Runs <span class="fastlane-badge">update_asana_for_release</span> with <code>release_type:internal</code> and <code>target_section_id: MACOS_APP_BOARD_VALIDATION_SECTION_ID</code></li>
+          </ol>
+          <h4>What <code>bump_build_number</code> does</h4>
+          <ol>
+            <li>Fetches the latest build number from TestFlight via the App Store Connect API</li>
+            <li>Fetches the latest build number from the Sparkle appcast XML</li>
+            <li>Picks the highest of the two, then increments it by 1</li>
+            <li>Updates <code>Configuration/BuildNumber.xcconfig</code> (<code>CURRENT_PROJECT_VERSION</code>) with the new value</li>
+            <li>Pushes the commit to the release branch on the remote</li>
+          </ol>
+          <h4>What <code>update_asana_for_release</code> does (internal)</h4>
+          <ol>
+            <li>Reads the current marketing version from the repository</li>
+            <li>Moves tasks included in this release to the Validation section on the macOS App Board (<code>MACOS_APP_BOARD_VALIDATION_SECTION_ID</code>)</li>
+            <li>Updates the Asana release task description with the list of tasks included in this release</li>
+          </ol>
+          <h4>Outputs</h4>
+          <table class="info-table">
+            <tr><th>Output</th><th>Description</th></tr>
+            <tr><td><code>commit_sha</code></td><td>SHA of the commit that bumped the build number — used by downstream jobs to check out the exact build</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- prepare_release -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>prepare_release</strong>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Calls</strong></td><td><code>macos_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>validate_input_conditions</code>, <code>increment_build_number</code></td></tr>
+            <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>branch</code>, <code>commit-sha</code> (from <code>increment_build_number</code>), <code>skip-appstore</code> (from <code>validate_input_conditions</code>)</td></tr>
+          </table>
+          <h4>Purpose</h4>
+          <p>Orchestrates the build phase by calling the reusable <code>macos_release.yml</code> workflow, which fans out to two parallel builds:</p>
+          <ul style="margin:0.5rem 0 0.5rem 1.5rem;">
+            <li><strong>DMG Build</strong> — always runs; archives, notarizes, and uploads the DMG to S3.</li>
+            <li><strong>App Store Build</strong> — only runs when <code>skip-appstore</code> is not set; builds and submits to TestFlight.</li>
+          </ul>
+          <p>The <code>skip-appstore</code> value originates from the dispatch input or from <code>validate_input_conditions</code>. This allows DMG-only bumps when needed.</p>
+        </div>
+      </div>
+
+      <!-- tag_and_merge -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>tag_and_merge</strong>
+          <span class="fastlane-badge">tag_release</span>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Calls</strong></td><td><code>macos_tag_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>validate_input_conditions</code>, <code>increment_build_number</code>, <code>prepare_release</code></td></tr>
+            <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>branch</code>, <code>commit-sha</code>, <code>base-branch</code> (default: <code>main</code>), <code>prerelease: true</code>, <code>internal-release-bump: true</code></td></tr>
+          </table>
+          <h4>Key difference from Code Freeze</h4>
+          <p>This job passes <code>internal-release-bump: true</code> to <code>macos_tag_release.yml</code>. This flag enables automatic action item creation on tag or merge failure — an Asana subtask is created using the <code>internal-release-tag-failed</code> or <code>merge-failed</code> template to notify the release DRI with manual recovery instructions.</p>
+        </div>
+      </div>
+
+      <div class="troubleshoot">
+        <h4>⚠️ Tag &amp; Merge Failures</h4>
+        <p><strong>Auto:</strong> Because <code>internal-release-bump: true</code> is passed to <code>tag_release</code>, failures automatically trigger <span class="fastlane-badge">asana_create_action_item</span>:</p>
+        <ul style="margin:0.25rem 0 0.5rem 1.5rem;">
+          <li>Tag failure → action item with template <code>internal-release-tag-failed</code></li>
+          <li>Merge to main failure → action item with template <code>merge-failed</code></li>
+        </ul>
+        <p><strong>Recovery:</strong> Resolve any conflicts locally on the release branch and push. Then manually trigger <code>macos_tag_release.yml</code> with the release branch name and the Asana task URL as inputs.</p>
+      </div>
+
+      <!-- publish_release -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>publish_release</strong>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Calls</strong></td><td><code>macos_publish_dmg_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Needs</strong></td><td><code>validate_input_conditions</code>, <code>tag_and_merge</code></td></tr>
+            <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>branch</code></td></tr>
+          </table>
+          <h4>Purpose</h4>
+          <p>Publishes the build to Sparkle's internal channel. Identical to the Code Freeze <code>publish_release</code> step — see <a href="#" onclick="scrollToSection('common-components');return false;">Common Components ↗</a> for full details.</p>
+        </div>
+      </div>
+
+      <!-- report_failure -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="chevron">▶</span>
+          <strong>report_failure</strong>
+          <span style="font-size:0.8em;color:#64748b;margin-left:0.5em;">conditional — runs if any prior job failed</span>
+        </div>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr><td><strong>Calls</strong></td><td><code>report_failed_release_workflow.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Condition</strong></td><td><code>if: always()</code> AND Asana task ID and release branch are known AND any of <code>validate_input_conditions</code>, <code>run_tests</code>, <code>increment_build_number</code>, <code>prepare_release</code>, <code>tag_and_merge</code>, or <code>publish_release</code> resulted in <code>failure</code></td></tr>
+            <tr><td><strong>Inputs</strong></td><td><code>platform: macos</code>, <code>workflow-name: "bump internal release"</code>, <code>asana-task-id</code>, <code>branch</code>, <code>commit-sha</code></td></tr>
+          </table>
+          <h4>Purpose</h4>
+          <p>Always-running cleanup job that reports workflow failures back to Asana. Uses <span class="fastlane-badge">asana_report_failed_workflow</span> to add a failure comment to the release task and notify relevant users. Only fires when the Asana task ID and release branch have been successfully resolved (i.e. not when validation fails before finding the task).</p>
+        </div>
+      </div>
+
     </section>
 
     <!-- ── Hotfix ── -->
