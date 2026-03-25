@@ -1242,30 +1242,30 @@
         <h2>Hotfix Release</h2>
         <button class="toggle-all" onclick="toggleAllPanels('hotfix', true)">Expand All</button>
       </div>
-      <p style="color:#475569;margin-bottom:1rem;">Two-phase manual process. Phase 1 creates a hotfix branch from the latest public release tag. Phase 2 builds, tags, and prepares the hotfix for release. Publishing to Sparkle is a separate manual step.</p>
+      <p style="color:#475569;margin-bottom:1rem;">Two-phase manual process covering both platforms. Phase 1 creates a hotfix branch from the latest public release tag. Phase 2 builds, tags, and prepares the hotfix for release. macOS requires an additional manual Sparkle publish step; iOS publishes to the App Store automatically during Phase 2.</p>
 
       <p style="margin-bottom:0.5rem;">
         <strong style="font-size:0.875rem;">Phase 1:</strong>
         <span class="trigger-badge trigger-badge--manual">Manual — workflow_dispatch</span>
         <span style="font-size:0.8rem;color:#475569;">— must be run from <code>main</code> branch</span>
       </p>
-      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>File:</strong> <code>macos_hotfix.yml</code></p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Files:</strong> <span class="platform-badge platform-badge--macos">macOS</span> <code>macos_hotfix.yml</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_hotfix.yml</code></p>
       <p style="font-size:0.875rem;color:#475569;margin-bottom:0.75rem;"><strong>Concurrency:</strong> <code>${{ github.workflow }}</code> (cancel-in-progress: false) — prevents concurrent Phase 1 runs</p>
 
       <p style="margin-bottom:0.5rem;">
         <strong style="font-size:0.875rem;">Phase 2:</strong>
         <span class="trigger-badge trigger-badge--manual">Manual — workflow_dispatch</span>
       </p>
-      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>File:</strong> <code>macos_build_hotfix_release.yml</code></p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Files:</strong> <span class="platform-badge platform-badge--macos">macOS</span> <code>macos_build_hotfix_release.yml</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_build_hotfix_release.yml</code></p>
       <p style="font-size:0.875rem;color:#475569;margin-bottom:0.25rem;"><strong>Dispatch inputs:</strong>
         <code>asana-task-url</code> (required), <code>base-branch</code> (optional, default: <code>main</code>),
         <code>current-internal-release-branch</code> (optional — if provided, hotfix merges there instead of <code>main</code>)
       </p>
-      <p style="font-size:0.875rem;color:#475569;margin-bottom:1.5rem;"><strong>Concurrency:</strong> <code>macos-release</code> (cancel-in-progress: false)</p>
+      <p style="font-size:0.875rem;color:#475569;margin-bottom:1.5rem;"><strong>Concurrency:</strong> <span class="platform-badge platform-badge--macos">macOS</span> <code>macos-release</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios-release</code> (cancel-in-progress: false)</p>
 
       <!-- Phase 1 Flowchart -->
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Phase 1 — macos_hotfix.yml</span>
+        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Phase 1 — <span class="platform-badge platform-badge--macos">macOS</span> macos_hotfix.yml &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> ios_hotfix.yml</span>
       </div>
 
       <div class="flow-chart">
@@ -1281,13 +1281,13 @@
         <span style="font-size:1.25rem;">⚠️</span>
         <div>
           <strong style="color:#854d0e;">Manual Trigger Required</strong>
-          <p style="font-size:0.8rem;color:#92400e;margin:0.1rem 0 0;">Phase 1 creates the hotfix branch. After applying your fixes to the branch, manually dispatch <code>macos_build_hotfix_release.yml</code> from the hotfix branch to proceed.</p>
+          <p style="font-size:0.8rem;color:#92400e;margin:0.1rem 0 0;">Phase 1 creates the hotfix branch. After applying your fixes to the branch, manually dispatch the Phase 2 workflow (<span class="platform-badge platform-badge--macos">macOS</span> <code>macos_build_hotfix_release.yml</code> / <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_build_hotfix_release.yml</code>) from the hotfix branch to proceed.</p>
         </div>
       </div>
 
       <!-- Phase 2 Flowchart -->
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Phase 2 — macos_build_hotfix_release.yml</span>
+        <span style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Phase 2 — <span class="platform-badge platform-badge--macos">macOS</span> macos_build_hotfix_release.yml &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> ios_build_hotfix_release.yml</span>
       </div>
 
       <div class="flow-chart">
@@ -1298,23 +1298,23 @@
           <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
         </div>
         <div class="flow-arrow"></div>
-        <div class="flow-step flow-step--asana">update_asana<br><span style="font-size:0.75em;color:#64748b;">(bump_build_number + update_asana_for_release)</span></div>
+        <div class="flow-step flow-step--asana">update_asana<br><span style="font-size:0.75em;color:#64748b;">(update_asana_for_release)</span></div>
         <div class="flow-arrow"></div>
         <div class="flow-step flow-step--build">
           prepare_release
           <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
-          <span style="font-size:0.75em;color:#64748b;display:block;">(destination: appstore — both DMG &amp; App Store always built)</span>
+          <span style="font-size:0.75em;color:#64748b;display:block;"><span class="platform-badge platform-badge--macos">macOS</span> macos_release.yml (DMG + App Store) &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> ios_release.yml (destination: appstore)</span>
         </div>
         <div class="flow-arrow"></div>
         <div class="flow-parallel">
-          <div class="flow-step flow-step--build">DMG Build</div>
+          <div class="flow-step flow-step--build">DMG Build <span class="platform-badge platform-badge--macos">macOS</span></div>
           <div class="flow-step flow-step--build">App Store Build</div>
         </div>
         <div class="flow-arrow"></div>
         <div class="flow-step flow-step--publish">
           tag_and_merge
           <a href="#" onclick="scrollToSection('common-components');return false;" style="font-size:0.75em;margin-left:0.4em;text-decoration:none;" title="See Common Components">↗</a>
-          <span style="font-size:0.75em;color:#64748b;display:block;">(prerelease: true — merges to current-internal-release-branch or main)</span>
+          <span style="font-size:0.75em;color:#64748b;display:block;"><span class="platform-badge platform-badge--macos">macOS</span> macos_tag_release.yml &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> ios_tag_release_update_asana.yml (release-type: internal)</span>
         </div>
         <div class="flow-arrow"></div>
         <div class="flow-step flow-step--conditional flow-step--asana" style="border-left-style:dashed;">
@@ -1324,8 +1324,8 @@
         </div>
         <div style="width:2px;height:20px;border-left:2px dashed #94a3b8;margin:0 auto;"></div>
         <div class="flow-step flow-step--conditional" style="border-left-color:var(--color-publish);border-left-style:dashed;background:rgba(168,85,247,0.05);">
-          Publish to Sparkle — Manual
-          <span style="font-size:0.75em;color:#64748b;display:block;">(separate workflow_dispatch of macos_publish_dmg_release.yml)</span>
+          Publish to Sparkle — Manual <span class="platform-badge platform-badge--macos">macOS</span>
+          <span style="font-size:0.75em;color:#64748b;display:block;">(separate workflow_dispatch of macos_publish_dmg_release.yml — iOS has no equivalent step)</span>
         </div>
       </div>
 
@@ -1341,6 +1341,7 @@
         </div>
         <div class="panel-body">
           <table class="info-table">
+            <tr><td><strong>Workflow</strong></td><td><span class="platform-badge platform-badge--macos">macOS</span> <code>macos_hotfix.yml</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_hotfix.yml</code></td></tr>
             <tr><td><strong>Runner</strong></td><td><code>macos-26-xlarge</code></td></tr>
             <tr><td><strong>Timeout</strong></td><td>10 minutes</td></tr>
           </table>
@@ -1349,24 +1350,24 @@
             <li>Checks out repo with full history (<code>fetch-depth: 0</code>) and all submodules</li>
             <li>Asserts the workflow is running on the <code>main</code> branch</li>
             <li>Sets up Ruby and Bundler dependencies (first time)</li>
-            <li>Runs <span class="fastlane-badge">start_new_release</span> with <code>platform:macos</code>, <code>is_hotfix:true</code>, and <code>github_handle</code></li>
+            <li>Runs <span class="fastlane-badge">start_new_release</span> with <code>is_hotfix:true</code>, <code>github_handle</code>, and <span class="platform-badge platform-badge--macos">macOS</span> <code>platform:macos</code> / <span class="platform-badge platform-badge--ios">iOS</span> <code>platform:ios</code></li>
             <li>Sets up Ruby and Bundler dependencies again (after branch checkout, because the plugin version may differ on the hotfix branch)</li>
             <li>Adds an Asana comment using template <code>hotfix-branch-ready</code> to notify that the branch is ready for fixes</li>
           </ol>
           <h4>What <code>start_new_release</code> does (hotfix)</h4>
           <ol>
-            <li>Calls the GitHub API to find the latest public release tag (e.g. <code>1.105.0+macos</code>)</li>
+            <li>Calls the GitHub API to find the latest public release tag</li>
             <li>Bumps the patch version (e.g. <code>7.5.0</code> → <code>7.5.1</code>)</li>
-            <li>Creates a <code>hotfix/macos/&lt;version&gt;</code> branch from that release tag and pushes it</li>
-            <li>Updates <code>Configuration/Version.xcconfig</code> with the bumped patch version</li>
-            <li>Creates a new Asana hotfix task from template (ID: <code>1206724592377782</code>), assigned to the release DRI</li>
+            <li>Creates a <span class="platform-badge platform-badge--macos">macOS</span> <code>hotfix/macos/&lt;version&gt;</code> / <span class="platform-badge platform-badge--ios">iOS</span> <code>hotfix/ios/&lt;version&gt;</code> branch from that release tag and pushes it</li>
+            <li>Updates the version xcconfig file with the bumped patch version</li>
+            <li>Creates a new Asana hotfix task from template, assigned to the release DRI</li>
           </ol>
           <h4>Note: Double Ruby Setup</h4>
           <p>Ruby dependencies are installed <strong>twice</strong>: before the fastlane run (to be able to invoke it) and again after it (because <code>start_new_release</code> checks out the new hotfix branch, which may have a different version of the plugin in its <code>Gemfile.lock</code>).</p>
           <h4>Outputs</h4>
           <table class="info-table">
             <tr><th>Output</th><th>Description</th></tr>
-            <tr><td><code>release_branch_name</code></td><td>Name of the newly created branch, e.g. <code>hotfix/macos/1.2.1</code></td></tr>
+            <tr><td><code>release_branch_name</code></td><td>Name of the newly created branch, e.g. <code>hotfix/macos/1.2.1</code> or <code>hotfix/ios/1.2.1</code></td></tr>
             <tr><td><code>asana_task_url</code></td><td>Full URL of the Asana hotfix release task</td></tr>
             <tr><td><code>last_release</code></td><td>Tag of the public release this hotfix is based on</td></tr>
           </table>
@@ -1417,7 +1418,7 @@
         </div>
         <div class="panel-body">
           <table class="info-table">
-            <tr><td><strong>Calls</strong></td><td><code>macos_pr_checks.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Calls</strong></td><td><span class="platform-badge platform-badge--macos">macOS</span> <code>macos_pr_checks.yml</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_pr_checks.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
             <tr><td><strong>Needs</strong></td><td><code>assert_release_branch</code></td></tr>
             <tr><td><strong>Branch</strong></td><td>Current hotfix branch</td></tr>
           </table>
@@ -1431,12 +1432,11 @@
         <div class="panel-header" onclick="togglePanel(this)">
           <span class="chevron">▶</span>
           <strong>update_asana</strong>
-          <span class="fastlane-badge">bump_build_number</span>
           <span class="fastlane-badge">update_asana_for_release</span>
         </div>
         <div class="panel-body">
           <table class="info-table">
-            <tr><td><strong>Runner</strong></td><td><code>macos-26</code></td></tr>
+            <tr><td><strong>Runner</strong></td><td><code>macos-26-xlarge</code></td></tr>
             <tr><td><strong>Timeout</strong></td><td>10 minutes</td></tr>
             <tr><td><strong>Needs</strong></td><td><code>assert_release_branch</code>, <code>run_tests</code></td></tr>
           </table>
@@ -1444,16 +1444,20 @@
           <ol>
             <li>Checks out the hotfix branch with full history and all submodules</li>
             <li>Sets up Ruby and Bundler dependencies</li>
-            <li>Runs <span class="fastlane-badge">bump_build_number</span> with <code>platform:macos</code></li>
-            <li>Runs <span class="fastlane-badge">update_asana_for_release</span> with <code>release_type:internal</code> and <code>target_section_id: MACOS_APP_BOARD_VALIDATION_SECTION_ID</code></li>
+            <li>Runs <span class="fastlane-badge">update_asana_for_release</span> with <code>release_type:internal</code> and the platform-specific validation section ID</li>
           </ol>
-          <h4>What these actions do</h4>
-          <p><span class="fastlane-badge">bump_build_number</span> fetches the latest build number from TestFlight and Sparkle appcast, picks the highest, increments it by 1, updates <code>Configuration/BuildNumber.xcconfig</code>, and pushes the commit.</p>
-          <p><span class="fastlane-badge">update_asana_for_release</span> moves tasks included in this release to the Validation section on the macOS App Board and updates the Asana release task description.</p>
+          <h4>Platform note</h4>
+          <div class="platform-note platform-note--macos" style="margin-bottom:0.5rem;">
+            <strong>macOS:</strong> Also runs <span class="fastlane-badge">bump_build_number</span> with <code>platform:macos</code> before the Asana update. <span class="fastlane-badge">bump_build_number</span> fetches the latest build number from TestFlight and Sparkle appcast, picks the highest, increments it by 1, updates <code>Configuration/BuildNumber.xcconfig</code>, and pushes the commit.
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Does not call <span class="fastlane-badge">bump_build_number</span> separately — build number bumping is handled inside <code>ios_release.yml</code> during the prepare_release job.
+          </div>
+          <p style="margin-top:0.5rem;"><span class="fastlane-badge">update_asana_for_release</span> moves tasks included in this release to the Validation section on the platform App Board and updates the Asana release task description.</p>
           <h4>Outputs</h4>
           <table class="info-table">
             <tr><th>Output</th><th>Description</th></tr>
-            <tr><td><code>commit_sha</code></td><td>SHA of the build-number bump commit — used by <code>prepare_release</code> and <code>tag_and_merge</code> to check out the exact build</td></tr>
+            <tr><td><code>commit_sha</code></td><td>SHA of the HEAD commit — used by <code>prepare_release</code> and <code>tag_and_merge</code> to check out the exact build</td></tr>
           </table>
         </div>
       </div>
@@ -1466,16 +1470,22 @@
         </div>
         <div class="panel-body">
           <table class="info-table">
-            <tr><td><strong>Calls</strong></td><td><code>macos_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Calls</strong></td><td><span class="platform-badge platform-badge--macos">macOS</span> <code>macos_release.yml</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
             <tr><td><strong>Needs</strong></td><td><code>run_tests</code>, <code>update_asana</code></td></tr>
             <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>commit-sha</code> (from <code>update_asana</code>), <code>destination: appstore</code></td></tr>
           </table>
           <h4>Key difference from Internal Bump</h4>
-          <p>For hotfixes, <code>destination</code> is always <code>appstore</code>. The <code>skip-appstore</code> flag is <strong>not</strong> used — both the DMG and App Store builds always run. Hotfixes must always go through App Store review.</p>
-          <ul style="margin:0.5rem 0 0.5rem 1.5rem;">
-            <li><strong>DMG Build</strong> — archives, notarizes, and uploads the DMG to S3.</li>
-            <li><strong>App Store Build</strong> — always runs; builds and submits to TestFlight.</li>
-          </ul>
+          <p>For hotfixes, <code>destination</code> is always <code>appstore</code>. Hotfixes must always go through App Store review.</p>
+          <div class="platform-note platform-note--macos" style="margin-top:0.5rem;margin-bottom:0.5rem;">
+            <strong>macOS:</strong> Calls <code>macos_release.yml</code>. The <code>skip-appstore</code> flag is not used — both the DMG and App Store builds always run.
+            <ul style="margin:0.4rem 0 0 1.5rem;">
+              <li><strong>DMG Build</strong> — archives, notarizes, and uploads the DMG to S3.</li>
+              <li><strong>App Store Build</strong> — always runs; builds and submits to TestFlight.</li>
+            </ul>
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Calls <code>ios_release.yml</code> with <code>destination: appstore</code>, which builds and uploads directly to the App Store (not TestFlight).
+          </div>
         </div>
       </div>
 
@@ -1488,9 +1498,9 @@
         </div>
         <div class="panel-body">
           <table class="info-table">
-            <tr><td><strong>Calls</strong></td><td><code>macos_tag_release.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
+            <tr><td><strong>Calls</strong></td><td><span class="platform-badge platform-badge--macos">macOS</span> <code>macos_tag_release.yml</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>ios_tag_release_update_asana.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
             <tr><td><strong>Needs</strong></td><td><code>prepare_release</code>, <code>update_asana</code></td></tr>
-            <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>branch</code> (hotfix branch), <code>commit-sha</code>, <code>prerelease: true</code>, <code>base-branch</code>: <code>current-internal-release-branch</code> if provided, otherwise <code>main</code></td></tr>
+            <tr><td><strong>Inputs</strong></td><td><code>asana-task-url</code>, <code>branch</code> (hotfix branch), <code>commit-sha</code>, <code>base-branch</code>: <code>current-internal-release-branch</code> if provided, otherwise <code>main</code></td></tr>
           </table>
           <h4>Key detail: merge target</h4>
           <p>The <code>base-branch</code> input controls where the hotfix is merged after tagging:</p>
@@ -1498,14 +1508,21 @@
             <li>If <code>current-internal-release-branch</code> is provided, the hotfix merges <strong>there</strong> — so the ongoing internal release picks up the fix automatically.</li>
             <li>If not provided, the hotfix merges to <code>main</code>.</li>
           </ul>
-          <p>The tag is created as a prerelease (<code>prerelease: true</code>). The actual public release is promoted during the manual Publish step.</p>
+          <h4>Platform differences</h4>
+          <div class="platform-note platform-note--macos" style="margin-bottom:0.5rem;">
+            <strong>macOS:</strong> Calls <code>macos_tag_release.yml</code> with <code>prerelease: true</code>. The tag is a prerelease — the actual public release is promoted during the manual Sparkle publish step.
+          </div>
+          <div class="platform-note platform-note--ios">
+            <strong>iOS:</strong> Calls <code>ios_tag_release_update_asana.yml</code> with <code>release-type: internal</code>. This is a pre-release tag; after the App Store submission is approved, the workflow is run again manually with <code>release-type: hotfix</code> to complete the release.
+          </div>
         </div>
       </div>
 
       <div class="troubleshoot">
         <h4>⚠️ Merge Target Complexity</h4>
         <p><strong>What to be aware of:</strong> If <code>current-internal-release-branch</code> is provided, the hotfix merges there — not <code>main</code>. This is intentional: it ensures the in-progress internal release incorporates the fix.</p>
-        <p><strong>If merge fails:</strong> A <code>merge-failed</code> action item is created in Asana. Resolve the conflicts manually on the target branch, push, then manually trigger <code>macos_tag_release.yml</code> with the hotfix branch and Asana task URL as inputs.</p>
+        <p><strong>If merge fails (macOS):</strong> A <code>merge-failed</code> action item is created in Asana. Resolve the conflicts manually on the target branch, push, then manually trigger <code>macos_tag_release.yml</code> with the hotfix branch and Asana task URL as inputs.</p>
+        <p><strong>If merge fails (iOS):</strong> Resolve conflicts manually on the target branch, push, then manually trigger <code>ios_tag_release_update_asana.yml</code> with the appropriate inputs.</p>
       </div>
 
       <!-- report_failure (Phase 2) -->
@@ -1520,7 +1537,7 @@
             <tr><td><strong>Calls</strong></td><td><code>report_failed_release_workflow.yml</code> — <a href="#" onclick="scrollToSection('common-components');return false;">see Common Components ↗</a></td></tr>
             <tr><td><strong>Condition</strong></td><td><code>if: always()</code> AND any of <code>run_tests</code>, <code>update_asana</code>, <code>prepare_release</code>, or <code>tag_and_merge</code> resulted in <code>failure</code></td></tr>
             <tr><td><strong>Needs</strong></td><td><code>assert_release_branch</code>, <code>run_tests</code>, <code>update_asana</code>, <code>prepare_release</code>, <code>tag_and_merge</code></td></tr>
-            <tr><td><strong>Inputs</strong></td><td><code>platform: macos</code>, <code>workflow-name: "build hotfix release"</code>, <code>asana-task-id</code>, <code>branch</code>, <code>commit-sha</code></td></tr>
+            <tr><td><strong>Inputs</strong></td><td><span class="platform-badge platform-badge--macos">macOS</span> <code>platform: macos</code> &nbsp; <span class="platform-badge platform-badge--ios">iOS</span> <code>platform: ios</code>, plus <code>workflow-name: "build hotfix release"</code>, <code>asana-task-id</code>, <code>branch</code>, <code>commit-sha</code></td></tr>
           </table>
           <h4>Purpose</h4>
           <p>Always-running cleanup job that reports Phase 2 failures back to Asana. Uses <span class="fastlane-badge">asana_report_failed_workflow</span> to add a failure comment to the hotfix release task and notify relevant users.</p>
@@ -1528,10 +1545,10 @@
       </div>
 
       <!-- Manual Publish -->
-      <h3 style="font-size:1rem;font-weight:700;color:#374151;margin:1.5rem 0 0.75rem;padding-bottom:0.25rem;border-bottom:1px solid #e2e8f0;">Publishing the Hotfix (Manual Step)</h3>
+      <h3 style="font-size:1rem;font-weight:700;color:#374151;margin:1.5rem 0 0.75rem;padding-bottom:0.25rem;border-bottom:1px solid #e2e8f0;">Publishing the Hotfix (Manual Step) <span class="platform-badge platform-badge--macos">macOS only</span></h3>
 
       <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:6px;padding:1rem;margin-bottom:1rem;">
-        <p style="font-size:0.875rem;color:#4c1d95;margin-bottom:0.5rem;"><strong>After Phase 2 completes</strong>, the hotfix is tagged as a prerelease but NOT yet published to Sparkle. To publish:</p>
+        <p style="font-size:0.875rem;color:#4c1d95;margin-bottom:0.5rem;"><strong>macOS only.</strong> After Phase 2 completes, the hotfix is tagged as a prerelease but NOT yet published to Sparkle. To publish:</p>
         <ol style="margin:0.5rem 0 0.5rem 1.5rem;font-size:0.875rem;color:#4c1d95;">
           <li>Go to GitHub Actions and manually dispatch <code>macos_publish_dmg_release.yml</code></li>
           <li>Set <code>asana-task-url</code> to the hotfix task URL</li>
@@ -1539,10 +1556,11 @@
           <li>Set <code>release-type</code> to <code>hotfix</code></li>
         </ol>
         <p style="font-size:0.875rem;color:#4c1d95;">This triggers <code>appcastManager.swift --release-hotfix-to-public-channel</code>, publishes the DMG to the public Sparkle channel, and creates an Asana validation task. Variant creation runs automatically after publish.</p>
+        <p style="font-size:0.875rem;color:#4c1d95;margin-top:0.5rem;"><strong>iOS:</strong> No equivalent publish step — the App Store upload happens automatically inside <code>ios_release.yml</code> during Phase 2.</p>
       </div>
 
       <div class="troubleshoot">
-        <h4>⚠️ Publishing the Hotfix</h4>
+        <h4>⚠️ Publishing the Hotfix <span class="platform-badge platform-badge--macos">macOS only</span></h4>
         <p><strong>The publish step is NOT automatic</strong> — you must manually trigger <code>macos_publish_dmg_release.yml</code> after Phase 2 completes.</p>
         <p><strong>Required inputs:</strong></p>
         <ul style="margin:0.25rem 0 0.5rem 1.5rem;">
