@@ -28,6 +28,7 @@ import TrackerRadarKit
 /// These are separate datasets per the dataset contract (see ContentBlockerRulesManager.Rules).
 public protocol TrackerProtectionDataSource {
     var trackerData: TrackerData? { get }
+    var surrogateFilteredTrackerData: TrackerData? { get }
     var encodedTrackerData: String? { get }
 }
 
@@ -50,6 +51,13 @@ public struct DefaultTrackerProtectionDataSource: TrackerProtectionDataSource {
 
     public var trackerData: TrackerData? {
         mergedTrackerData()
+    }
+
+    /// Returns surrogate-filtered TrackerData for ContentScopeProperties injection.
+    /// Only includes trackers with surrogate rules per the dataset contract.
+    public var surrogateFilteredTrackerData: TrackerData? {
+        guard let data = mergedTrackerData() else { return nil }
+        return ContentBlockerRulesManager.extractSurrogates(from: data)
     }
 
     /// Returns JSON-encoded surrogate-filtered tracker data for C-S-S surrogate injection.

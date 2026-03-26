@@ -104,7 +104,7 @@ final class UserScripts: UserScriptsProvider, ReleaseNotesUserScriptProvider {
                                            featureToggles: ContentScopeFeatureToggles.supportedFeaturesOnMacOS(privacyConfig),
                                            currentCohorts: currentCohorts,
                                            themeVariant: themeVariant,
-                                           trackerData: sourceProvider.trackerProtectionDataSource?.trackerData)
+                                           trackerData: sourceProvider.trackerProtectionDataSource?.surrogateFilteredTrackerData)
         do {
             let ctlEnabled = privacyConfig.isEnabled(featureKey: .clickToLoad)
             contentScopeUserScript = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager, properties: prefs, scriptContext: .contentScope, allowedNonisolatedFeatures: [PageContextUserScript.featureName, "webCompat", TrackerProtectionSubfeature.featureNameValue], privacyConfigurationJSONGenerator: ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: sourceProvider.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager, trackerProtectionDataSource: sourceProvider.trackerProtectionDataSource, ctlEnabled: ctlEnabled))
