@@ -16,12 +16,129 @@
 //  limitations under the License.
 //
 
-// Processing tests have moved to the SuggestionProcessing package
-// (SharedPackages/SuggestionProcessing/Tests/SuggestionProcessingTests).
-// This file retains only shared test fixtures used by other test files.
+import XCTest
 
-import Foundation
 @testable import Suggestions
+
+final class SwiftSuggestionProcessingTests: XCTestCase {
+
+    // MARK: - Basic Suggestion Tests
+
+    func testWhenOnlyHistoryMatches_ThenHistoryInTopHits() {
+        let processing = SwiftSuggestionProcessing(platform: .mobile)
+        let result = processing.result(for: "Duck",
+                                       from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
+                                       bookmarks: [],
+                                       internalPages: [],
+                                       openTabs: [],
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertTrue(result?.topHits.contains(where: { $0.title == "DuckMail" }) ?? false)
+        XCTAssertEqual(2, result?.topHits.count)
+        XCTAssertEqual(0, result?.localSuggestions.count)
+    }
+
+    // MARK: - Platform-specific Tests
+
+    func testWhenOnMobile_ThenBookmarksAlwaysInTopHits() {
+        let processing = SwiftSuggestionProcessing(platform: .mobile)
+        let result = processing.result(for: "Duck",
+                                       from: [],
+                                       bookmarks: BookmarkMock.someBookmarks,
+                                       internalPages: [],
+                                       openTabs: [],
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertTrue(result?.topHits.contains(where: { $0.title == "DuckDuckGo" }) ?? false)
+    }
+
+    // MARK: - Deduplication Tests
+
+    func testWhenDuplicatesAreInSourceArrays_ThenTheOneWithTheBiggestInformationValueIsUsed() {
+        func runAssertion(_ platform: Platform) {
+            let processing = SwiftSuggestionProcessing(platform: platform)
+            let result = processing.result(for: "DuckDuckGo",
+                                           from: HistoryEntryMock.aHistory,
+                                           bookmarks: BookmarkMock.someBookmarks,
+                                           internalPages: InternalPage.someInternalPages,
+                                           openTabs: [],
+                                           apiResult: APIResult.anAPIResult)
+
+            XCTAssertEqual(result!.topHits.count, 1)
+            XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
+        }
+
+        runAssertion(.desktop)
+        runAssertion(.mobile)
+    }
+
+    // MARK: - Navigation Suggestion Tests
+
+    func testWhenBuildingTopHits_ThenOnlyWebsiteSuggestionsAreUsedForNavigationalSuggestions() {
+        func runAssertion(_ platform: Platform) {
+            let processing = SwiftSuggestionProcessing(platform: platform)
+
+            let result = processing.result(for: "DuckDuckGo",
+                                           from: HistoryEntryMock.aHistory,
+                                           bookmarks: BookmarkMock.someBookmarks,
+                                           internalPages: InternalPage.someInternalPages,
+                                           openTabs: [],
+                                           apiResult: APIResult.anAPIResultWithNav)
+
+            XCTAssertEqual(result!.topHits.count, 2)
+            XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
+            XCTAssertEqual(result!.topHits.last!.url?.absoluteString, "http://www.example.com")
+        }
+
+        runAssertion(.desktop)
+        runAssertion(.mobile)
+    }
+
+    func testWhenWebsiteInTopHits_ThenWebsiteRemovedFromSuggestions() {
+        func runAssertion(_ platform: Platform) {
+            let processing = SwiftSuggestionProcessing(platform: platform)
+
+            guard let result = processing.result(for: "DuckDuckGo",
+                                                 from: [],
+                                                 bookmarks: [],
+                                                 internalPages: [],
+                                                 openTabs: [],
+                                                 apiResult: APIResult.anAPIResultWithNav) else {
+                XCTFail("Expected result")
+                return
+            }
+
+            XCTAssertEqual(result.topHits.count, 1)
+            XCTAssertEqual(result.topHits[0].url?.absoluteString, "http://www.example.com")
+
+            XCTAssertFalse(
+                result.duckduckgoSuggestions.contains(where: {
+                    if case .website(let url) = $0, url.absoluteString.hasSuffix("://www.example.com") {
+                        return true
+                    }
+                    return false
+                })
+            )
+        }
+        runAssertion(.desktop)
+        runAssertion(.mobile)
+    }
+
+    // MARK: - SuggestionProcessingHandler conformance
+
+    func testSwiftProcessorMatchesHandlerSignature() throws {
+        let result = try SwiftSuggestionProcessing.process(
+            query: "Duck",
+            platform: .desktop,
+            bookmarks: BookmarkMock.someBookmarks,
+            history: HistoryEntryMock.aHistory,
+            openTabs: [],
+            internalPages: [],
+            apiResult: APIResult.anAPIResult
+        )
+        XCTAssertNotNil(result)
+    }
+}
 
 // MARK: - Test Fixtures
 
