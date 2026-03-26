@@ -313,6 +313,9 @@ public enum FeatureFlag: String, CaseIterable {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213813585476250?focus=true
     case screenTimeCleaning
+
+    /// Enables the Rust-based unified suggestions engine, replacing the Swift implementation
+    case unifiedSuggestionsEngine
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -456,7 +459,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .lazyMenuRebuild,
                 .websitesHistoryFirstTimeQuitSurvey,
                 .addToDockAppStore,
-                .screenTimeCleaning:
+                .screenTimeCleaning,
+                .unifiedSuggestionsEngine:
             return true
         case .freemiumDBP,
                 .contextualOnboarding,
@@ -652,6 +656,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(AIChatSubfeature.removeSuggestion))
         case .screenTimeCleaning:
             return .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.screenTimeCleaning))
+        case .unifiedSuggestionsEngine:
+            return .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.unifiedSuggestionsEngine))
         }
     }
 }

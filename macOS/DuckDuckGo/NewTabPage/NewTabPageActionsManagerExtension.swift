@@ -23,6 +23,7 @@ import BrowserServicesKit
 import Common
 import DDGSync
 import History
+import Suggestions
 import SuggestionProcessing
 import NewTabPage
 import Persistence
@@ -107,7 +108,7 @@ extension NewTabPageActionsManager {
             historyProvider: historyCoordinator,
             bookmarkProvider: SuggestionsBookmarkProvider(bookmarkManager: bookmarkManager),
             burnerMode: .regular,
-            processSuggestions: Processor.process
+            processSuggestions: featureFlagger.isFeatureOn(.unifiedSuggestionsEngine) ? Processor.process : SwiftSuggestionProcessing.process
         )
         let suggestionsProvider = NewTabPageOmnibarSuggestionsProvider(suggestionContainer: suggestionContainer)
         let omnibarActionHandler = NewTabPageOmnibarActionsHandler(

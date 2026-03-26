@@ -194,6 +194,8 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
     case addToDockAppStore
 
     case screenTimeCleaning
+
+    case unifiedSuggestionsEngine
 }
 
 public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
@@ -259,6 +261,8 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
     case screenTimeCleaning
 
     case minimalChromeInLandscape
+
+    case unifiedSuggestionsEngine
 }
 
 public enum TabManagerSubfeature: String, PrivacySubfeature {

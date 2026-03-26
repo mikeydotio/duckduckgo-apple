@@ -367,6 +367,9 @@ public enum FeatureFlag: String {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213809475913723?focus=true
     case minimalChromeInLandscape
+
+    /// Enables the Rust-based unified suggestions engine, replacing the Swift implementation
+    case unifiedSuggestionsEngine
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -518,7 +521,8 @@ extension FeatureFlag: FeatureFlagDescribing {
              .duckAIVoiceShortcut,
              .screenTimeCleaning,
              .aiChatContextualFireButton,
-             .minimalChromeInLandscape:
+             .minimalChromeInLandscape,
+             .unifiedSuggestionsEngine:
             return true
         case .showSettingsCompleteSetupSection:
             if #available(iOS 18.2, *) {
@@ -791,6 +795,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(AIChatSubfeature.contextualFireButton))
         case .minimalChromeInLandscape:
             return .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.minimalChromeInLandscape))
+        case .unifiedSuggestionsEngine:
+            return .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.unifiedSuggestionsEngine))
         }
     }
 }

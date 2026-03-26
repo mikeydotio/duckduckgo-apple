@@ -23,6 +23,7 @@ import Common
 import AIChat
 import UIComponents
 import PixelKit
+import Suggestions
 import SuggestionProcessing
 import PrivacyConfig
 
@@ -224,7 +225,7 @@ final class AddressBarViewController: NSViewController {
                 historyProvider: historyCoordinator,
                 bookmarkProvider: SuggestionsBookmarkProvider(bookmarkManager: bookmarkManager),
                 burnerMode: burnerMode,
-                processSuggestions: Processor.process
+                processSuggestions: featureFlagger.isFeatureOn(.unifiedSuggestionsEngine) ? Processor.process : SwiftSuggestionProcessing.process
             ),
             searchPreferences: searchPreferences,
             themeManager: themeManager,

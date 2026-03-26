@@ -228,7 +228,7 @@ class AutocompleteViewController: UIHostingController<AutocompleteView> {
                 return false
             }
             return true
-        }, processSuggestions: Processor.process)
+        }, processSuggestions: featureFlagger.isFeatureOn(.unifiedSuggestionsEngine) ? Processor.process : SwiftSuggestionProcessing.process)
 
         loader?.getSuggestions(query: query, usingDataSource: dataSource) { [weak self] result, error in
             guard let self, error == nil else { return }
