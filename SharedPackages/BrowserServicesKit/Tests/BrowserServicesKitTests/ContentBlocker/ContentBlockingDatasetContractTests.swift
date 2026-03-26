@@ -101,7 +101,7 @@ class ContentBlockingDatasetContractTests: XCTestCase {
         let surrogateTracker = KnownTracker(
             domain: "surrogatetracker.com",
             defaultAction: .block,
-            owner: KnownTracker.Owner(name: "SurrogateOwner", displayName: "Surrogate Owner"),
+            owner: KnownTracker.Owner(name: "SurrogateOwner", displayName: "Surrogate Owner", ownedBy: nil),
             prevalence: 0.1,
             subdomains: nil,
             categories: nil,
@@ -116,7 +116,7 @@ class ContentBlockingDatasetContractTests: XCTestCase {
         let nonSurrogateTracker = KnownTracker(
             domain: "nonsurrogate.com",
             defaultAction: .block,
-            owner: KnownTracker.Owner(name: "NonSurrogateOwner", displayName: "Non Surrogate Owner"),
+            owner: KnownTracker.Owner(name: "NonSurrogateOwner", displayName: "Non Surrogate Owner", ownedBy: nil),
             prevalence: 0.05,
             subdomains: nil,
             categories: nil,

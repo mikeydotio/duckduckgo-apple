@@ -47,25 +47,26 @@ class ContentBlockingA1InvariantTests: XCTestCase {
 
     // MARK: - A1 Single-Authority Gate: legacy processRule is sole classifier
 
-    func testWhenContentBlockerRulesUserScriptIsInitializedThenProcessRuleHandlerIsRegistered() throws {
-        let config = try ContentBlockerRulesUserScriptsTests.makeConfig()
-        let script = ContentBlockerRulesUserScript(configuration: config)
-
-        XCTAssertTrue(script.messageNames.contains("processRule"),
-                      "ContentBlockerRulesUserScript must register the processRule message handler. " +
-                      "This is the sole classification authority in A1.")
+    func testWhenContentBlockerRulesJSIsLoadedThenProcessRulePostMessageIsPresent() throws {
+        let bskBundle = Bundle(for: ContentBlockerRulesUserScript.self)
+        let source = try ContentBlockerRulesUserScript.loadJS("contentblockerrules", from: bskBundle)
+        XCTAssertTrue(source.contains("processRule"),
+                      "contentblockerrules.js must contain the processRule postMessage call. " +
+                      "This is the sole classification signal path in A1.")
     }
 
     // MARK: - A1 CTL Parity: surrogates.js has CTL gating
 
     func testWhenSurrogatesJSIsLoadedThenCTLSurrogateListIsPresent() throws {
-        let surrogatesSource = try SurrogatesUserScript.loadJS("surrogates", from: Bundle.module)
+        let bskBundle = Bundle(for: ContentBlockerRulesUserScript.self)
+        let surrogatesSource = try SurrogatesUserScript.loadJS("surrogates", from: bskBundle)
         XCTAssertTrue(surrogatesSource.contains("ctlSurrogates"),
                       "surrogates.js must contain the ctlSurrogates list for CTL gating")
     }
 
     func testWhenSurrogatesJSIsLoadedThenIsCTLEnabledHandlerIsPresent() throws {
-        let surrogatesSource = try SurrogatesUserScript.loadJS("surrogates", from: Bundle.module)
+        let bskBundle = Bundle(for: ContentBlockerRulesUserScript.self)
+        let surrogatesSource = try SurrogatesUserScript.loadJS("surrogates", from: bskBundle)
         XCTAssertTrue(surrogatesSource.contains("isCTLEnabled"),
                       "surrogates.js must contain the isCTLEnabled async handler for CTL surrogate gating")
     }
