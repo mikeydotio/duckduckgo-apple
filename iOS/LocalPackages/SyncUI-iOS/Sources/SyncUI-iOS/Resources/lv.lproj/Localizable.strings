@@ -1,39 +1,3 @@
-/* Auto-Restore - Description */
-"auto.restore.description" = "Automātiski atjauno datus šajā ierīcē, ja atkārtoti instalē lietotni.";
-
-/* Auto-Restore Ready Sheet - Description */
-"auto.restore.ready.description" = "Atsāc Sync & Backup sesiju, lai atjaunotu grāmatzīmes, paroles un citus datus, vai turpini ar jaunu iestatīšanu.";
-
-/* Auto-Restore Ready Sheet - Restore Button */
-"auto.restore.ready.restore.button" = "Atsākt Sync & Backup";
-
-/* Auto-Restore Ready Sheet - Scan Code Link */
-"auto.restore.ready.scan.code.link" = "Turpināt iestatīšanu";
-
-/* Auto-Restore Ready Sheet - Title */
-"auto.restore.ready.title" = "Tava iepriekšējā Sync & Backup sesija ir gatava.";
-
-/* Auto-Restore Screen - Description */
-"auto.restore.screen.description" = "Ja atkārtoti instalēsi lietotni DuckDuckGo, mēs jautāsim, vai vēlies atjaunot datus šajā ierīcē.";
-
-/* Auto-Restore Screen - Title */
-"auto.restore.screen.title" = "Atjaunot, atkārtoti instalējot lietotni";
-
-/* Auto-Restore Settings Row - Label */
-"auto.restore.settings.row.label" = "Atjaunot, atkārtoti instalējot lietotni";
-
-/* Auto-Restore Settings Row - Off */
-"auto.restore.settings.row.off" = "Izslēgts";
-
-/* Auto-Restore Settings Row - On */
-"auto.restore.settings.row.on" = "Ieslēgts";
-
-/* Auto-restore section - Footer */
-"auto.restore.toggle.footer" = "Atjauno datus, ja atkārtoti instalē lietotni. Sync & Backup datus nevar atgūt pēc 18 mēnešu neaktivitātes.";
-
-/* Auto-Restore - Toggle Label */
-"auto.restore.toggle.label" = "Atjauno, atkārtoti instalējot lietotni";
-
 /* Standard Buttons - Back Button */
 "back.button" = "Atpakaļ";
 
@@ -187,24 +151,6 @@
 /* Link label for recovering synced data */
 "recover.synced.data.link" = "Sinhronizēto datu atgūšana";
 
-/* Recover Synced Data Sheet - Button */
-"recover.synced.data.sheet.button" = "Sinhronizēto datu atgūšana";
-
-/* Recover Synced Data Sheet - Description */
-"recover.synced.data.sheet.description" = "Tev būs nepieciešams atkopšanas kods, ko saņēmi, iestatot Sync & Backup. Iespējams, esi saglabājis to PDF formātā izmantotajā ierīcē.";
-
-/* Recover Synced Data Sheet - Title */
-"recover.synced.data.sheet.title" = "Sinhronizēto datu atgūšana";
-
-/* Recovering Data Sheet - Description */
-"recovering.data.description" = "Notiek atkārtota savienojuma izveide, lai sinhronizētu tavas grāmatzīmes, saglabātos pieteikšanās datus un citas ierīces.";
-
-/* Recovering Data Sheet - Status */
-"recovering.data.status" = "Savieno...";
-
-/* Recovering Data Sheet - Title */
-"recovering.data.title" = "Datu atgūšana";
-
 /* Remove Device View - Button */
 "remove.device.button" = "Noņemt ierīci";
 
@@ -214,32 +160,17 @@
 /* Remove Device View - Title */
 "remove.device.title" = "Noņemt ierīci?";
 
-/* Save Recovery Code Sheet - Card Title */
-"save.recovery.code.card.title" = "Atkopšanas kods";
-
 /* Save Recovery Code Sheet - Copy Code Toast */
 "save.recovery.code.code.copied.button" = "Atgūšanas kods ir nokopēts starpliktuvē";
 
 /* Save Recovery Code Sheet - Copy Code Button */
 "save.recovery.code.copy.code.button" = "Kopēt kodu";
 
-/* Save Recovery Code Sheet - Save as PDF Button */
-"save.recovery.code.save.as.pdf.button" = "Lejupielādēt PDF formātā";
-
 /* Save Recovery Code Sheet - Footer */
 "save.recovery.code.sheet.footer" = "Sinhronizētajiem datiem var piekļūt ikviens, kam ir šis kods, tāpēc glabā to drošā vietā.";
 
-/* Recovery Code Sheet - Description */
-"save.recovery.key.body" = "Saglabā šo kodu, lai varētu atgūt datus, ja zaudēsi piekļuvi šai ierīcei — glabā to drošībā.";
-
-/* Recovery Code Sheet - Title */
-"save.recovery.key.title" = "Viegli atjauno datus";
-
 /* Save RecoveryPDF - Button */
 "save.recovery.pdf.button" = "Saglabāt atgūšanas PDF";
-
-/* Save RecoveryPDF - Footer + Learn More, with markdown link */
-"save.recovery.pdf.footer" = "Izmanto šo kodu, lai atjaunotu datus, ja esi zaudējis piekļuvi šai ierīcei. Sync & Backup datus nevar atgūt pēc 18 mēnešu neaktivitātes. [Uzzini vairāk](ddgQuickLink://duckduckgo.com/duckduckgo-help-pages/sync-and-backup/recovery-codes-and-troubleshooting)";
 
 /* Scan Or Enter Code To Recover Synced Data View - Enter Code Link */
 "scan.code.to.recover.synced.data.enter.code.link" = "Ievadīt teksta kodu manuāli";
@@ -312,18 +243,6 @@
 
 /* Sync Menu Path */
 "sync.menu.path" = "Iestatījumi > Sinhronizācija un dublēšana > Sinhronizācija ar citu ierīci";
-
-/* Sync passcode required alert - button */
-"sync.passcode.required.alert.go.to.settings.button" = "Doties uz Iestatījumiem";
-
-/* Sync passcode required alert - message */
-"sync.passcode.required.alert.message" = "Lai izmantotu Sync & Backup, nepieciešama ierīces parole.";
-
-/* Sync passcode required alert - title */
-"sync.passcode.required.alert.title" = "Aizsargā savu ierīci, lai izmantotu Sync & Backup";
-
-/* Sync Settings - Recovery section header */
-"sync.settings.recovery.section.header" = "Atgūšana";
 
 /* Sync & Backup Title */
 "sync.title" = "Sinhronizācija un dublēšana";

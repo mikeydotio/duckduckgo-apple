@@ -202,12 +202,6 @@
 /* Settings screen title for AI features */
 "ai-features.settings.title" = "AI funktsioonid";
 
-/* Action sheet option to choose a photo from the photo library for attaching to an AI chat message */
-"aichat.attachment.option.choose.photo" = "Vali foto";
-
-/* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
-"aichat.attachment.option.take.photo" = "Tee foto";
-
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Olemasolevaid järjehoidjaid ei dubleerita.";
 
@@ -934,6 +928,15 @@
 /* Title displayed on modal asking for the user to update the username */
 "autofill.update-usernamr.title" = "Kas värskendada kasutajanime?";
 
+/* Settings option for allowing all media to autoplay */
+"autoplay.mode.allowAll" = "Luba heli ja video";
+
+/* Settings option for blocking all media autoplay */
+"autoplay.mode.blockAll" = "Blokeeri heli ja video";
+
+/* Settings option for blocking audio autoplay while allowing muted video */
+"autoplay.mode.blockAudio" = "Blokeeri heli";
+
 /* No comment provided by engineer. */
 "Available Products" = "Saadaolevad tooted";
 
@@ -1573,8 +1576,8 @@
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Duck Playeris avatud videote taasesitus algab automaatselt. Lülitage see välja, kui soovite Duck Playeris avatud videote taasesitust käsitsi alustada.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Videote automaatne esitamine";
+/* Label for the autoplay toggle in Duck Player settings */
+"duckplayer.settings.autoplay.label" = "Automaatne videote esitamine";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Eksperimentaalne";
@@ -1767,18 +1770,6 @@
 
 /* Generic error message on a dialog for when the cause is not known. */
 "error.unknown.try.again" = "Tekkis tundmatu tõrge";
-
-/* Accessibility hint for the escape hatch card */
-"escapeHatch.accessibility.hint" = "Lülitub sellele vahekaardile";
-
-/* Accessibility label for escape hatch card; %@ is the tab title */
-"escapeHatch.returnTo.accessibility.label" = "Tagasi %@ juurde";
-
-/* Label shown on the escape hatch card above the tab title */
-"escapeHatch.returnTo.label" = "Tagasi…";
-
-/* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
-"escapeHatch.returnTo.withSubtitle.accessibility.label" = "Tagasi %1$@, %2$@ juurde";
 
 /* No comment provided by engineer. */
 "Experiment:" = "Experiment:";
@@ -2362,18 +2353,6 @@
 /* The body of the notification when Privacy Pro subscription expired */
 "network.protection.entitlement.expired.notification.body" = "VPN-ühendus katkestati aegunud tellimuse tõttu. DuckDuckGo VPN-i taasühendamiseks telli DuckDuckGo.";
 
-/* Error shown when VPN cannot authenticate the user */
-"network.protection.error.authentication.failed" = "Autentimine ei ole võimalik. Kontrollige, kas teie tellimus on aktiivne, ja proovige uuesti.";
-
-/* Error shown when VPN fails to connect to a server */
-"network.protection.error.connection.failed" = "Ei saa VPN-serveriga ühendust luua. Proovi hiljem uuesti.";
-
-/* Error shown when the user's subscription has expired */
-"network.protection.error.subscription.expired" = "Sinu tellimus on lõppenud. Tellige uuesti, et luua ühendus VPN-serveriga.";
-
-/* Generic fallback error message for VPN failures. ** markers indicate bold text and should be preserved in translations. */
-"network.protection.error.unknown" = "Ilmnes ootamatu viga. Proovi uuesti. Kui probleem püsib, kerige abi saamiseks jaotiseni **Teave** ja klõpsake suvandil **KKK-d ja tugi**.";
-
 /* The body of the notification shown when VPN fails to reconnect */
 "network.protection.failure.notification.body" = "DuckDuckGo VPN-i ühendamine ebaõnnestus. Proovige hiljem uuesti.";
 
@@ -2469,9 +2448,6 @@
 
 /* Custom DNS label shown in NetworkProtection's status view. */
 "network.protection.status.view.custom.dns" = "DNS server";
-
-/* Connection failed error title shown in NetworkProtection's status view. */
-"network.protection.status.view.error.connection.failed.title" = "Ühendus ebaõnnestus";
 
 /* IP Address label shown in NetworkProtection's status view. */
 "network.protection.status.view.ip.address" = "IP-aadress";
@@ -2722,41 +2698,11 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Loe edasi";
 
-/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
-"onboarding.privacypro.promo.buttons.rebranding.skip" = "Ei aitäh";
-
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Jäta vahele";
 
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Ja enne kui ma unustan...";
-
-/* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.message" = "Privaatne. Kiire. Vähem reklaame.";
-
-/* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.title" = "See on DuckDuckGo Search!";
-
-/* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Kas oled valmis kasutama kiiremat brauserit, mis hoiab sind kaitstud?";
-
-/* The title of the onboarding intro */
-"onboarding.rebranding.intro.title" = "Tere!";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "Kas teadsid?";
-
-/* Body copy for the returning-user restore prompt */
-"onboarding.restore.prompt.body" = "Kas tahad taastada oma järjehoidjad, paroolid ja muu eelmisest DuckDuckGo sünkroonimisest?";
-
-/* Primary CTA to start restoring data on returning-user restore prompt */
-"onboarding.restore.prompt.restore.cta" = "Taasta minu andmed";
-
-/* Secondary CTA to skip restore on returning-user restore prompt */
-"onboarding.restore.prompt.skip.cta" = "Jäta vahele";
-
-/* Title for the returning-user restore prompt */
-"onboarding.restore.prompt.title" = "Jätkame sealt, kus pooleli jäid";
 
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Alusta sirvimist";
@@ -3028,27 +2974,6 @@
 /* Alert title */
 "prompt.custom.url.scheme.title" = "Avada teises rakenduses?";
 
-/* Button to go back to the previous page after redirect loop */
-"prompt.x-safari-https.go-back" = "Mine tagasi";
-
-/* Alert message when a redirect loop is detected */
-"prompt.x-safari-https.loop.message" = "Kas soovid selle lehe Safaris avada?";
-
-/* Alert title when a redirect loop is detected after staying in DuckDuckGo */
-"prompt.x-safari-https.loop.title" = "Kahjuks ei õnnestunud lehte laadida.";
-
-/* Button to open the page in Safari */
-"prompt.x-safari-https.open-in-safari" = "Avatud Safaris";
-
-/* Button to stay in DuckDuckGo instead of opening Safari */
-"prompt.x-safari-https.stay" = "Jää DuckDuckGo juurde";
-
-/* Alert message when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.message" = "Mõned veebisaidi funktsioonid ei pruugi selle brauseriga ühilduda.";
-
-/* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.title" = "See sait soovib avaneda Safaris.";
-
 /* No comment provided by engineer. */
 "REBRANDED" = "ÜMBER BRÄNDITUD";
 
@@ -3177,36 +3102,6 @@
 
 /* Settings screen cell title for toggling tracker blocking animation in address bar */
 "settings.address.trackers.animation" = "Näita aadressiribal";
-
-/* Section footer; %@ is the idle interval (e.g. 5 minutes) */
-"settings.afterInactivity.footer.format" = "Vali, mida näed, kui naased pärast %@ tegevusetuse perioodi möödumist.";
-
-/* Idle interval 1 hour for settings footer */
-"settings.afterInactivity.idle.interval.hour" = "1 tund";
-
-/* Idle interval in hours for settings footer (plural) */
-"settings.afterInactivity.idle.interval.hours" = "%d tundi";
-
-/* Idle interval 1 minute for settings footer */
-"settings.afterInactivity.idle.interval.minute" = "1 minut";
-
-/* Idle interval in minutes for settings footer (plural) */
-"settings.afterInactivity.idle.interval.minutes" = "%d minutit";
-
-/* Idle interval 1 second for settings footer */
-"settings.afterInactivity.idle.interval.second" = "1 sekund";
-
-/* Idle interval in seconds for settings footer (plural) */
-"settings.afterInactivity.idle.interval.seconds" = "%d sekundit";
-
-/* Settings picker label for what to show when returning after inactivity */
-"settings.afterInactivity.label" = "Pärast tegevusetust";
-
-/* Option: show last used tab when returning after inactivity */
-"settings.afterInactivity.option.lastUsedTab" = "Viimati kasutatud vahekaart";
-
-/* Option: show New Tab when returning after inactivity */
-"settings.afterInactivity.option.newTab" = "Uus vaheleht";
 
 /* Title for the 'Search & Duck.ai' option in the AI experimental picker */
 "settings.ai.experimental.picker.search_and_duckai" = "Otsi ja Duck.ai";
@@ -3342,6 +3237,15 @@
 
 /* Settings screen cell text for automatic data deletion option */
 "settings.automatically.delete.data" = "Andmete automaatne kustutamine";
+
+/* Settings label for the autoplay settings screen */
+"settings.autoplay" = "Automaatne esitamine";
+
+/* Link text in the autoplay settings footer that navigates to Duck Player settings */
+"settings.autoplay.duck.player.link" = "Duck Playeri seaded";
+
+/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs, followed by a link to Duck Player Settings */
+"settings.autoplay.footer" = "Automaatse esitamise seaded kehtivad ainult äsjaavatud vahelehtedele. Muudatusi ei saa olemasolevatele vahekaartidele rakendada enne rakenduse taaskäivitamist. Duck Playeris automaatse esitamise haldamiseks valige suvand ";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Brauseri tagasiside";
@@ -3480,6 +3384,9 @@
 
 /* Label of a button managing email protection account */
 "settings.manage.account" = "Halda kontot";
+
+/* Header for the media section in general settings */
+"settings.media.section" = "Meedia";
 
 /* Settings title for the 'More' section */
 "settings.more" = "Veel DuckDuckGo'lt";

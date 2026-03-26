@@ -202,12 +202,6 @@
 /* Settings screen title for AI features */
 "ai-features.settings.title" = "Функции с изкуствен интелект";
 
-/* Action sheet option to choose a photo from the photo library for attaching to an AI chat message */
-"aichat.attachment.option.choose.photo" = "Изберете снимка";
-
-/* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
-"aichat.attachment.option.take.photo" = "Направете снимка";
-
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Съществуващите отметки няма да бъдат дублирани.";
 
@@ -934,6 +928,15 @@
 /* Title displayed on modal asking for the user to update the username */
 "autofill.update-usernamr.title" = "Актуализиране на потребителското име?";
 
+/* Settings option for allowing all media to autoplay */
+"autoplay.mode.allowAll" = "Разрешаване на аудио и видео";
+
+/* Settings option for blocking all media autoplay */
+"autoplay.mode.blockAll" = "Блокиране аудио и видео";
+
+/* Settings option for blocking audio autoplay while allowing muted video */
+"autoplay.mode.blockAudio" = "Блокиране на аудио";
+
 /* No comment provided by engineer. */
 "Available Products" = "Налични продукти";
 
@@ -1573,8 +1576,8 @@
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Видеата, отворени в Duck Player, ще започнат да се възпроизвеждат автоматично. Изключете това, ако искате ръчно да стартирате възпроизвеждането на видеата, отворени в Duck Player.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Автоматично пускане на видеа";
+/* Label for the autoplay toggle in Duck Player settings */
+"duckplayer.settings.autoplay.label" = "Автоматично възпроизвеждане на видео";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Експериментално";
@@ -1767,18 +1770,6 @@
 
 /* Generic error message on a dialog for when the cause is not known. */
 "error.unknown.try.again" = "Възникна неизвестна грешка";
-
-/* Accessibility hint for the escape hatch card */
-"escapeHatch.accessibility.hint" = "Превключва към този раздел";
-
-/* Accessibility label for escape hatch card; %@ is the tab title */
-"escapeHatch.returnTo.accessibility.label" = "Връщане към %@";
-
-/* Label shown on the escape hatch card above the tab title */
-"escapeHatch.returnTo.label" = "Връщане към…";
-
-/* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
-"escapeHatch.returnTo.withSubtitle.accessibility.label" = "Връщане към %1$@, %2$@";
 
 /* No comment provided by engineer. */
 "Experiment:" = "Experiment:";
@@ -2362,18 +2353,6 @@
 /* The body of the notification when Privacy Pro subscription expired */
 "network.protection.entitlement.expired.notification.body" = "VPN връзката е прекъсната поради изтекъл абонамент. Абонирайте се за DuckDuckGo, за да можете отново ползвате VPN услугата.";
 
-/* Error shown when VPN cannot authenticate the user */
-"network.protection.error.authentication.failed" = "Не е възможно удостоверяване. Проверете дали абонаментът е активен и опитайте отново.";
-
-/* Error shown when VPN fails to connect to a server */
-"network.protection.error.connection.failed" = "Не може да се осъществи връзка с VPN сървър. Моля, опитайте отново по-късно.";
-
-/* Error shown when the user's subscription has expired */
-"network.protection.error.subscription.expired" = "Абонаментът Ви е приключил. Абонирайте се отново, за да се свържете с VPN сървър.";
-
-/* Generic fallback error message for VPN failures. ** markers indicate bold text and should be preserved in translations. */
-"network.protection.error.unknown" = "Възникна неочаквана грешка. Моля, опитайте отново. Ако този проблем продължава, превъртете до **За нас** и изберете **Често задавани въпроси и поддръжка** за помощ.";
-
 /* The body of the notification shown when VPN fails to reconnect */
 "network.protection.failure.notification.body" = "DuckDuckGo VPN не можа да се свърже. Моля, опитайте отново по-късно.";
 
@@ -2469,9 +2448,6 @@
 
 /* Custom DNS label shown in NetworkProtection's status view. */
 "network.protection.status.view.custom.dns" = "DNS сървър";
-
-/* Connection failed error title shown in NetworkProtection's status view. */
-"network.protection.status.view.error.connection.failed.title" = "Неуспешно свързване";
 
 /* IP Address label shown in NetworkProtection's status view. */
 "network.protection.status.view.ip.address" = "IP адрес";
@@ -2722,41 +2698,11 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Научете повече";
 
-/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
-"onboarding.privacypro.promo.buttons.rebranding.skip" = "Не, благодаря";
-
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Пропускане";
 
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "О, преди да забравя…";
-
-/* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.message" = "Поверителен. Бърз. По-малко реклами.";
-
-/* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.title" = "Това е DuckDuckGo Search!";
-
-/* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Готови ли сте за по-бърз браузър, който осигурява защита?";
-
-/* The title of the onboarding intro */
-"onboarding.rebranding.intro.title" = "Здравейте.";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "Знаете ли, че?";
-
-/* Body copy for the returning-user restore prompt */
-"onboarding.restore.prompt.body" = "Искате да възстановите отметки, пароли и други данни от предишната синхронизация с DuckDuckGo?";
-
-/* Primary CTA to start restoring data on returning-user restore prompt */
-"onboarding.restore.prompt.restore.cta" = "Възстановяване на моите неща";
-
-/* Secondary CTA to skip restore on returning-user restore prompt */
-"onboarding.restore.prompt.skip.cta" = "Пропускане";
-
-/* Title for the returning-user restore prompt */
-"onboarding.restore.prompt.title" = "Да продължим оттам, откъдето спряхте";
 
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Стартиране на сърфирането";
@@ -3028,27 +2974,6 @@
 /* Alert title */
 "prompt.custom.url.scheme.title" = "Отваряне в друго приложение?";
 
-/* Button to go back to the previous page after redirect loop */
-"prompt.x-safari-https.go-back" = "Назад";
-
-/* Alert message when a redirect loop is detected */
-"prompt.x-safari-https.loop.message" = "Искате ли да отворите тази страница в Safari?";
-
-/* Alert title when a redirect loop is detected after staying in DuckDuckGo */
-"prompt.x-safari-https.loop.title" = "За съжаление, страницата не можа да се зареди.";
-
-/* Button to open the page in Safari */
-"prompt.x-safari-https.open-in-safari" = "Отваряне в Safari";
-
-/* Button to stay in DuckDuckGo instead of opening Safari */
-"prompt.x-safari-https.stay" = "Остани в DuckDuckGo";
-
-/* Alert message when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.message" = "Някои функции на уебсайта може да не са съвместими с този браузър.";
-
-/* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.title" = "Този сайт иска да се отвори в Safari.";
-
 /* No comment provided by engineer. */
 "REBRANDED" = "РЕБРАНДИРАН";
 
@@ -3177,36 +3102,6 @@
 
 /* Settings screen cell title for toggling tracker blocking animation in address bar */
 "settings.address.trackers.animation" = "Показване в адресната лента";
-
-/* Section footer; %@ is the idle interval (e.g. 5 minutes) */
-"settings.afterInactivity.footer.format" = "Изберете какво да виждате, когато се върнете след %@ неактивност.";
-
-/* Idle interval 1 hour for settings footer */
-"settings.afterInactivity.idle.interval.hour" = "1 час";
-
-/* Idle interval in hours for settings footer (plural) */
-"settings.afterInactivity.idle.interval.hours" = "%d часа";
-
-/* Idle interval 1 minute for settings footer */
-"settings.afterInactivity.idle.interval.minute" = "1 минута";
-
-/* Idle interval in minutes for settings footer (plural) */
-"settings.afterInactivity.idle.interval.minutes" = "%d минути";
-
-/* Idle interval 1 second for settings footer */
-"settings.afterInactivity.idle.interval.second" = "1 секунда";
-
-/* Idle interval in seconds for settings footer (plural) */
-"settings.afterInactivity.idle.interval.seconds" = "%d секунди";
-
-/* Settings picker label for what to show when returning after inactivity */
-"settings.afterInactivity.label" = "След неактивност";
-
-/* Option: show last used tab when returning after inactivity */
-"settings.afterInactivity.option.lastUsedTab" = "Последно използван раздел";
-
-/* Option: show New Tab when returning after inactivity */
-"settings.afterInactivity.option.newTab" = "Нов раздел";
 
 /* Title for the 'Search & Duck.ai' option in the AI experimental picker */
 "settings.ai.experimental.picker.search_and_duckai" = "Търсене и Duck.ai";
@@ -3342,6 +3237,15 @@
 
 /* Settings screen cell text for automatic data deletion option */
 "settings.automatically.delete.data" = "Автоматично изтриване на данни";
+
+/* Settings label for the autoplay settings screen */
+"settings.autoplay" = "Автоматично възпроизвеждане";
+
+/* Link text in the autoplay settings footer that navigates to Duck Player settings */
+"settings.autoplay.duck.player.link" = "Настройки на Duck Player";
+
+/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs, followed by a link to Duck Player Settings */
+"settings.autoplay.footer" = "Настройките за автоматично възпроизвеждане ще се прилагат само за новоотворени раздели. Промените не могат да бъдат приложени към съществуващи раздели, освен ако приложението не бъде рестартирано. За да управлявате автоматичното възпроизвеждане в Duck Player, отидете на ";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Отзив за браузъра";
@@ -3480,6 +3384,9 @@
 
 /* Label of a button managing email protection account */
 "settings.manage.account" = "Управление на акаунта";
+
+/* Header for the media section in general settings */
+"settings.media.section" = "Медии";
 
 /* Settings title for the 'More' section */
 "settings.more" = "Още от DuckDuckGo";

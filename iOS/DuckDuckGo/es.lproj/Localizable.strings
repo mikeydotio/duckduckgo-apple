@@ -202,12 +202,6 @@
 /* Settings screen title for AI features */
 "ai-features.settings.title" = "Características de la IA";
 
-/* Action sheet option to choose a photo from the photo library for attaching to an AI chat message */
-"aichat.attachment.option.choose.photo" = "Elige foto";
-
-/* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
-"aichat.attachment.option.take.photo" = "Hacer una foto";
-
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Los marcadores existentes no se duplicarán.";
 
@@ -934,6 +928,15 @@
 /* Title displayed on modal asking for the user to update the username */
 "autofill.update-usernamr.title" = "¿Actualizar nombre de usuario?";
 
+/* Settings option for allowing all media to autoplay */
+"autoplay.mode.allowAll" = "Permitir audio y vídeo";
+
+/* Settings option for blocking all media autoplay */
+"autoplay.mode.blockAll" = "Bloquear audio y vídeo";
+
+/* Settings option for blocking audio autoplay while allowing muted video */
+"autoplay.mode.blockAudio" = "Bloquear audio";
+
 /* No comment provided by engineer. */
 "Available Products" = "Productos disponibles";
 
@@ -1573,8 +1576,8 @@
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Los vídeos que se abran en Duck Player comenzarán a reproducirse automáticamente. Desactiva esta opción si quieres iniciar manualmente la reproducción de los vídeos abiertos en Duck Player.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Vídeos con reproducción automática";
+/* Label for the autoplay toggle in Duck Player settings */
+"duckplayer.settings.autoplay.label" = "Vídeos de reproducción automática";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Experimental";
@@ -1767,18 +1770,6 @@
 
 /* Generic error message on a dialog for when the cause is not known. */
 "error.unknown.try.again" = "Se ha producido un error desconocido";
-
-/* Accessibility hint for the escape hatch card */
-"escapeHatch.accessibility.hint" = "Cambia a esta pestaña";
-
-/* Accessibility label for escape hatch card; %@ is the tab title */
-"escapeHatch.returnTo.accessibility.label" = "Volver a %@";
-
-/* Label shown on the escape hatch card above the tab title */
-"escapeHatch.returnTo.label" = "Volver a…";
-
-/* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
-"escapeHatch.returnTo.withSubtitle.accessibility.label" = "Volver a %1$@, %2$@";
 
 /* No comment provided by engineer. */
 "Experiment:" = "Experiment:";
@@ -2362,18 +2353,6 @@
 /* The body of the notification when Privacy Pro subscription expired */
 "network.protection.entitlement.expired.notification.body" = "VPN desconectada por suscripción caducada. Suscríbete a DuckDuckGo para volver a conectar la VPN.";
 
-/* Error shown when VPN cannot authenticate the user */
-"network.protection.error.authentication.failed" = "No se ha podido autenticar. Comprueba que tu suscripción esté activa e inténtalo de nuevo.";
-
-/* Error shown when VPN fails to connect to a server */
-"network.protection.error.connection.failed" = "No te puedes conectar a un servidor VPN. Inténtalo de nuevo más tarde.";
-
-/* Error shown when the user's subscription has expired */
-"network.protection.error.subscription.expired" = "Tu suscripción ha finalizado. Vuelve a suscribirte para conectarte a un servidor VPN.";
-
-/* Generic fallback error message for VPN failures. ** markers indicate bold text and should be preserved in translations. */
-"network.protection.error.unknown" = "Se ha producido un error inesperado. Inténtalo de nuevo. Si este problema continúa, desplázate hasta **Acerca de** y pulsa **Preguntas frecuentes y soporte** para obtener ayuda.";
-
 /* The body of the notification shown when VPN fails to reconnect */
 "network.protection.failure.notification.body" = "No se ha podido conectar la VPN de DuckDuckGo. Inténtalo de nuevo más tarde.";
 
@@ -2469,9 +2448,6 @@
 
 /* Custom DNS label shown in NetworkProtection's status view. */
 "network.protection.status.view.custom.dns" = "Servidor DNS";
-
-/* Connection failed error title shown in NetworkProtection's status view. */
-"network.protection.status.view.error.connection.failed.title" = "Error de conexión";
 
 /* IP Address label shown in NetworkProtection's status view. */
 "network.protection.status.view.ip.address" = "Dirección IP";
@@ -2722,41 +2698,11 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Más información";
 
-/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
-"onboarding.privacypro.promo.buttons.rebranding.skip" = "No, gracias";
-
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Omitir";
 
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Oh, antes de que se me olvide...";
-
-/* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.message" = "Privado. Rápido. Menos anuncios.";
-
-/* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.title" = "¡Eso es DuckDuckGo Search!";
-
-/* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "¿Todo listo para un navegador más rápido que mantiene tu protección?";
-
-/* The title of the onboarding intro */
-"onboarding.rebranding.intro.title" = "Hola.";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "¿Sabías?";
-
-/* Body copy for the returning-user restore prompt */
-"onboarding.restore.prompt.body" = "¿Quieres restaurar tus marcadores, contraseñas y más de tu sincronización anterior con DuckDuckGo?";
-
-/* Primary CTA to start restoring data on returning-user restore prompt */
-"onboarding.restore.prompt.restore.cta" = "Restaura mis cosas";
-
-/* Secondary CTA to skip restore on returning-user restore prompt */
-"onboarding.restore.prompt.skip.cta" = "Omitir";
-
-/* Title for the returning-user restore prompt */
-"onboarding.restore.prompt.title" = "Vamos a retomar donde lo dejaste";
 
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Empezar a navegar";
@@ -3028,27 +2974,6 @@
 /* Alert title */
 "prompt.custom.url.scheme.title" = "¿Abrir en otra aplicación?";
 
-/* Button to go back to the previous page after redirect loop */
-"prompt.x-safari-https.go-back" = "Volver atrás";
-
-/* Alert message when a redirect loop is detected */
-"prompt.x-safari-https.loop.message" = "¿Quieres abrir esta página en Safari?";
-
-/* Alert title when a redirect loop is detected after staying in DuckDuckGo */
-"prompt.x-safari-https.loop.title" = "Lamentablemente, la página no se ha podido cargar.";
-
-/* Button to open the page in Safari */
-"prompt.x-safari-https.open-in-safari" = "Abrir en Safari";
-
-/* Button to stay in DuckDuckGo instead of opening Safari */
-"prompt.x-safari-https.stay" = "Quedarse en DuckDuckGo";
-
-/* Alert message when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.message" = "Algunas funciones del sitio web pueden no ser compatibles con este navegador.";
-
-/* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.title" = "Este sitio quiere abrirse en Safari.";
-
 /* No comment provided by engineer. */
 "REBRANDED" = "CAMBIO DE NOMBRE";
 
@@ -3177,36 +3102,6 @@
 
 /* Settings screen cell title for toggling tracker blocking animation in address bar */
 "settings.address.trackers.animation" = "Mostrar en la barra de direcciones";
-
-/* Section footer; %@ is the idle interval (e.g. 5 minutes) */
-"settings.afterInactivity.footer.format" = "Elige lo que ves cuando vuelves después de %@ de inactividad.";
-
-/* Idle interval 1 hour for settings footer */
-"settings.afterInactivity.idle.interval.hour" = "1 hora";
-
-/* Idle interval in hours for settings footer (plural) */
-"settings.afterInactivity.idle.interval.hours" = "%d horas";
-
-/* Idle interval 1 minute for settings footer */
-"settings.afterInactivity.idle.interval.minute" = "1 minuto";
-
-/* Idle interval in minutes for settings footer (plural) */
-"settings.afterInactivity.idle.interval.minutes" = "%d minutos";
-
-/* Idle interval 1 second for settings footer */
-"settings.afterInactivity.idle.interval.second" = "1 segundo";
-
-/* Idle interval in seconds for settings footer (plural) */
-"settings.afterInactivity.idle.interval.seconds" = "%d segundos";
-
-/* Settings picker label for what to show when returning after inactivity */
-"settings.afterInactivity.label" = "Después de inactividad";
-
-/* Option: show last used tab when returning after inactivity */
-"settings.afterInactivity.option.lastUsedTab" = "Última pestaña utilizada";
-
-/* Option: show New Tab when returning after inactivity */
-"settings.afterInactivity.option.newTab" = "Nueva pestaña";
 
 /* Title for the 'Search & Duck.ai' option in the AI experimental picker */
 "settings.ai.experimental.picker.search_and_duckai" = "Búsqueda y Duck.ai";
@@ -3342,6 +3237,15 @@
 
 /* Settings screen cell text for automatic data deletion option */
 "settings.automatically.delete.data" = "Eliminar automáticamente los datos";
+
+/* Settings label for the autoplay settings screen */
+"settings.autoplay" = "Reproducción automática";
+
+/* Link text in the autoplay settings footer that navigates to Duck Player settings */
+"settings.autoplay.duck.player.link" = "Configuración de Duck Player";
+
+/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs, followed by a link to Duck Player Settings */
+"settings.autoplay.footer" = "La configuración de reproducción automática solo se aplicará a las pestañas recién abiertas. No se pueden aplicar cambios a las pestañas existentes a menos que se reinicie la aplicación. Para gestionar la reproducción automática en Duck Player, ve a ";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Comentarios sobre el navegador";
@@ -3480,6 +3384,9 @@
 
 /* Label of a button managing email protection account */
 "settings.manage.account" = "Gestionar cuenta";
+
+/* Header for the media section in general settings */
+"settings.media.section" = "Medios de comunicación";
 
 /* Settings title for the 'More' section */
 "settings.more" = "Más sobre DuckDuckGo";
