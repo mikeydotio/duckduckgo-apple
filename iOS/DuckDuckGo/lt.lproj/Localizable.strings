@@ -202,12 +202,6 @@
 /* Settings screen title for AI features */
 "ai-features.settings.title" = "DI funkcijos";
 
-/* Action sheet option to choose a photo from the photo library for attaching to an AI chat message */
-"aichat.attachment.option.choose.photo" = "Pasirinkti nuotrauką";
-
-/* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
-"aichat.attachment.option.take.photo" = "Fotografuoti";
-
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Esamos žymės nebus kopijuojamos.";
 
@@ -934,6 +928,15 @@
 /* Title displayed on modal asking for the user to update the username */
 "autofill.update-usernamr.title" = "Atnaujinti naudotojo vardą?";
 
+/* Settings option for allowing all media to autoplay */
+"autoplay.mode.allowAll" = "Leisti garsą ir vaizdą";
+
+/* Settings option for blocking all media autoplay */
+"autoplay.mode.blockAll" = "Blokuoti garsą ir vaizdą";
+
+/* Settings option for blocking audio autoplay while allowing muted video */
+"autoplay.mode.blockAudio" = "Blokuoti garsą";
+
 /* No comment provided by engineer. */
 "Available Products" = "Prieinami produktai";
 
@@ -1573,8 +1576,8 @@
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Vaizdo įrašai, atidaryti „Duck Player“, bus automatiškai paleidžiami. Išjunk šią funkciją, jei nori rankiniu būdu paleisti „Duck Player“ atidarytų vaizdo įrašų atkūrimą.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Automatiškai paleidžiami vaizdo įrašai";
+/* Label for the autoplay toggle in Duck Player settings */
+"duckplayer.settings.autoplay.label" = "Automatiškai paleisti vaizdo įrašus";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Eksperimentinis";
@@ -1767,18 +1770,6 @@
 
 /* Generic error message on a dialog for when the cause is not known. */
 "error.unknown.try.again" = "Atsirado nežinoma klaida";
-
-/* Accessibility hint for the escape hatch card */
-"escapeHatch.accessibility.hint" = "Perjungia į šį skirtuką";
-
-/* Accessibility label for escape hatch card; %@ is the tab title */
-"escapeHatch.returnTo.accessibility.label" = "Grįžti į %@";
-
-/* Label shown on the escape hatch card above the tab title */
-"escapeHatch.returnTo.label" = "Grįžti į...";
-
-/* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
-"escapeHatch.returnTo.withSubtitle.accessibility.label" = "Grįžti į %1$@, %2$@";
 
 /* No comment provided by engineer. */
 "Experiment:" = "Experiment:";
@@ -2362,18 +2353,6 @@
 /* The body of the notification when Privacy Pro subscription expired */
 "network.protection.entitlement.expired.notification.body" = "VPN atjungtas dėl pasibaigusios prenumeratos. Prenumeruokite „DuckDuckGo“, kad iš naujo prisijungtumėte prie VPN.";
 
-/* Error shown when VPN cannot authenticate the user */
-"network.protection.error.authentication.failed" = "Nepavyko autentifikuoti. Patikrink, ar prenumerata galioja, ir bandyk dar kartą.";
-
-/* Error shown when VPN fails to connect to a server */
-"network.protection.error.connection.failed" = "Nepavyko prisijungti prie VPN serverio. Bandyk vėliau.";
-
-/* Error shown when the user's subscription has expired */
-"network.protection.error.subscription.expired" = "Tavo prenumerata baigėsi. Norint prisijungti prie VPN serverio, reikia vėl užsiprenumeruoti.";
-
-/* Generic fallback error message for VPN failures. ** markers indicate bold text and should be preserved in translations. */
-"network.protection.error.unknown" = "Įvyko netikėta klaida. Bandyk dar kartą. Jei problema išlieka, slink žemyn iki **Apie** ir paliesk **DUK ir palaikymas**, kad gautum pagalbos.";
-
 /* The body of the notification shown when VPN fails to reconnect */
 "network.protection.failure.notification.body" = "„DuckDuckGo“ VPN nepavyko prisijungti. Bandykite dar kartą vėliau.";
 
@@ -2469,9 +2448,6 @@
 
 /* Custom DNS label shown in NetworkProtection's status view. */
 "network.protection.status.view.custom.dns" = "DNS serveris";
-
-/* Connection failed error title shown in NetworkProtection's status view. */
-"network.protection.status.view.error.connection.failed.title" = "Nepavyko prisijungti";
 
 /* IP Address label shown in NetworkProtection's status view. */
 "network.protection.status.view.ip.address" = "IP adresas";
@@ -2722,41 +2698,11 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Sužinoti daugiau";
 
-/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
-"onboarding.privacypro.promo.buttons.rebranding.skip" = "Ne, dėkoju";
-
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Praleisti";
 
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Oi, kol nepamiršau...";
-
-/* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.message" = "Privati. Sparti. Mažiau reklamų.";
-
-/* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.title" = "Tai – „DuckDuckGo Search“!";
-
-/* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Pasiruošę greitesnei naršyklei, kuri jus apsaugo?";
-
-/* The title of the onboarding intro */
-"onboarding.rebranding.intro.title" = "Sveiki.";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "Ar žinojai?";
-
-/* Body copy for the returning-user restore prompt */
-"onboarding.restore.prompt.body" = "Ar nori atkurti žymes, slaptažodžius ir kt. iš ankstesnės „DuckDuckGo“ sinchronizacijos?";
-
-/* Primary CTA to start restoring data on returning-user restore prompt */
-"onboarding.restore.prompt.restore.cta" = "Atkurti mano duomenis";
-
-/* Secondary CTA to skip restore on returning-user restore prompt */
-"onboarding.restore.prompt.skip.cta" = "Praleisti";
-
-/* Title for the returning-user restore prompt */
-"onboarding.restore.prompt.title" = "Pradėkime nuo ten, kur baigei";
 
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Pradėti naršyti";
@@ -3028,27 +2974,6 @@
 /* Alert title */
 "prompt.custom.url.scheme.title" = "Atidaryti kitoje programoje?";
 
-/* Button to go back to the previous page after redirect loop */
-"prompt.x-safari-https.go-back" = "Grįžti atgal";
-
-/* Alert message when a redirect loop is detected */
-"prompt.x-safari-https.loop.message" = "Ar nori atverti šį puslapį „Safari“?";
-
-/* Alert title when a redirect loop is detected after staying in DuckDuckGo */
-"prompt.x-safari-https.loop.title" = "Deja, puslapio nepavyko įkelti.";
-
-/* Button to open the page in Safari */
-"prompt.x-safari-https.open-in-safari" = "Atverti „Safari“ naršyklėje";
-
-/* Button to stay in DuckDuckGo instead of opening Safari */
-"prompt.x-safari-https.stay" = "Likti DuckDuckGo";
-
-/* Alert message when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.message" = "Kai kurios interneto svetainės funkcijos šioje naršyklėje gali būti nesuderinamos.";
-
-/* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.title" = "Ši svetainė nori atsidaryti naršyklėje „Safari“.";
-
 /* No comment provided by engineer. */
 "REBRANDED" = "PERVADINTAS";
 
@@ -3177,36 +3102,6 @@
 
 /* Settings screen cell title for toggling tracker blocking animation in address bar */
 "settings.address.trackers.animation" = "Rodyti adreso juostoje";
-
-/* Section footer; %@ is the idle interval (e.g. 5 minutes) */
-"settings.afterInactivity.footer.format" = "Pasirinkite, ką matysite grįžę po %@ neaktyvumo.";
-
-/* Idle interval 1 hour for settings footer */
-"settings.afterInactivity.idle.interval.hour" = "1 val.";
-
-/* Idle interval in hours for settings footer (plural) */
-"settings.afterInactivity.idle.interval.hours" = "%d val.";
-
-/* Idle interval 1 minute for settings footer */
-"settings.afterInactivity.idle.interval.minute" = "1 min.";
-
-/* Idle interval in minutes for settings footer (plural) */
-"settings.afterInactivity.idle.interval.minutes" = "%d min.";
-
-/* Idle interval 1 second for settings footer */
-"settings.afterInactivity.idle.interval.second" = "1 sek.";
-
-/* Idle interval in seconds for settings footer (plural) */
-"settings.afterInactivity.idle.interval.seconds" = "%d sek.";
-
-/* Settings picker label for what to show when returning after inactivity */
-"settings.afterInactivity.label" = "Po neaktyvumo";
-
-/* Option: show last used tab when returning after inactivity */
-"settings.afterInactivity.option.lastUsedTab" = "Paskutinį kartą naudotas skirtukas";
-
-/* Option: show New Tab when returning after inactivity */
-"settings.afterInactivity.option.newTab" = "Nauja kortelė";
 
 /* Title for the 'Search & Duck.ai' option in the AI experimental picker */
 "settings.ai.experimental.picker.search_and_duckai" = "Paieška ir „Duck.ai“";
@@ -3342,6 +3237,15 @@
 
 /* Settings screen cell text for automatic data deletion option */
 "settings.automatically.delete.data" = "Automatiškai ištrinti duomenis";
+
+/* Settings label for the autoplay settings screen */
+"settings.autoplay" = "Automatinis paleidimas";
+
+/* Link text in the autoplay settings footer that navigates to Duck Player settings */
+"settings.autoplay.duck.player.link" = "„Duck Player“ nuostatos";
+
+/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs, followed by a link to Duck Player Settings */
+"settings.autoplay.footer" = "Automatinio paleidimo nuostatos galios tik naujai atvertoms kortelėms. Pakeitimų negalima pritaikyti esamoms kortelėms iš naujo nepaleidus programos. Jei nori valdyti automatinį paleidimą „Duck Player“ programoje, eik į ";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Naršyklės atsiliepimai";
@@ -3480,6 +3384,9 @@
 
 /* Label of a button managing email protection account */
 "settings.manage.account" = "Tvarkyti paskyrą";
+
+/* Header for the media section in general settings */
+"settings.media.section" = "Medija";
 
 /* Settings title for the 'More' section */
 "settings.more" = "Daugiau iš „DuckDuckGo“";

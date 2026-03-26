@@ -202,12 +202,6 @@
 /* Settings screen title for AI features */
 "ai-features.settings.title" = "AI-funktioner";
 
-/* Action sheet option to choose a photo from the photo library for attaching to an AI chat message */
-"aichat.attachment.option.choose.photo" = "Välj foto";
-
-/* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
-"aichat.attachment.option.take.photo" = "Ta ett foto";
-
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Befintliga bokmärken kommer inte att kopieras.";
 
@@ -934,6 +928,15 @@
 /* Title displayed on modal asking for the user to update the username */
 "autofill.update-usernamr.title" = "Uppdatera användarnamn?";
 
+/* Settings option for allowing all media to autoplay */
+"autoplay.mode.allowAll" = "Tillåt ljud och video";
+
+/* Settings option for blocking all media autoplay */
+"autoplay.mode.blockAll" = "Blockera ljud och video";
+
+/* Settings option for blocking audio autoplay while allowing muted video */
+"autoplay.mode.blockAudio" = "Blockera ljud";
+
 /* No comment provided by engineer. */
 "Available Products" = "Tillgängliga produkter";
 
@@ -1573,8 +1576,8 @@
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Videor som öppnas i Duck Player spelas upp automatiskt. Inaktivera det här om du vill starta uppspelningen av videor i Duck Player manuellt.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Spela upp videor automatiskt";
+/* Label for the autoplay toggle in Duck Player settings */
+"duckplayer.settings.autoplay.label" = "Videor med automatisk uppspelning";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Experimentell";
@@ -1767,18 +1770,6 @@
 
 /* Generic error message on a dialog for when the cause is not known. */
 "error.unknown.try.again" = "Ett okänt fel har inträffat";
-
-/* Accessibility hint for the escape hatch card */
-"escapeHatch.accessibility.hint" = "Växlar till denna flik";
-
-/* Accessibility label for escape hatch card; %@ is the tab title */
-"escapeHatch.returnTo.accessibility.label" = "Gå tillbaka till %@";
-
-/* Label shown on the escape hatch card above the tab title */
-"escapeHatch.returnTo.label" = "Återgå till…";
-
-/* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
-"escapeHatch.returnTo.withSubtitle.accessibility.label" = "Gå tillbaka till %1$@, %2$@";
 
 /* No comment provided by engineer. */
 "Experiment:" = "Experiment:";
@@ -2362,18 +2353,6 @@
 /* The body of the notification when Privacy Pro subscription expired */
 "network.protection.entitlement.expired.notification.body" = "VPN har kopplats från på grund av att abonnemanget har gått ut. Prenumerera på DuckDuckGo för att återansluta VPN-tjänsten.";
 
-/* Error shown when VPN cannot authenticate the user */
-"network.protection.error.authentication.failed" = "Det gick inte att autentisera. Kontrollera att ditt abonnemang är aktivt och försök igen.";
-
-/* Error shown when VPN fails to connect to a server */
-"network.protection.error.connection.failed" = "Det gick inte att ansluta till en VPN-server. Försök igen senare.";
-
-/* Error shown when the user's subscription has expired */
-"network.protection.error.subscription.expired" = "Ditt abonnemang har gått ut. Abonnera igen för att ansluta till en VPN-server.";
-
-/* Generic fallback error message for VPN failures. ** markers indicate bold text and should be preserved in translations. */
-"network.protection.error.unknown" = "Ett oväntat fel uppstod. Försök igen. Om problemet kvarstår kan du bläddra till **Om** och trycka på **Vanliga frågor och support** för hjälp.";
-
 /* The body of the notification shown when VPN fails to reconnect */
 "network.protection.failure.notification.body" = "DuckDuckGo VPN kunde inte ansluta. Försök igen senare.";
 
@@ -2469,9 +2448,6 @@
 
 /* Custom DNS label shown in NetworkProtection's status view. */
 "network.protection.status.view.custom.dns" = "DNS-server";
-
-/* Connection failed error title shown in NetworkProtection's status view. */
-"network.protection.status.view.error.connection.failed.title" = "Det gick inte att ansluta.";
 
 /* IP Address label shown in NetworkProtection's status view. */
 "network.protection.status.view.ip.address" = "IP-adress";
@@ -2722,41 +2698,11 @@
 /* Button on the Privacy Pro promotion onboarding step. Tapping the button navigates to the Privacy Pro paywall. */
 "onboarding.privacypro.promo.buttons.learnMore" = "Läs mer";
 
-/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
-"onboarding.privacypro.promo.buttons.rebranding.skip" = "Nej tack";
-
 /* Button to continue the onboarding process. */
 "onboarding.privacypro.promo.buttons.skip" = "Hoppa över";
 
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Innan jag glömmer ...";
-
-/* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.message" = "Privat. Snabbt. Färre annonser.";
-
-/* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
-"onboarding.rebranding.first-search-done.title" = "Det är DuckDuckGo Search!";
-
-/* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Är du redo för en snabbare webbläsare som också skyddar dig?";
-
-/* The title of the onboarding intro */
-"onboarding.rebranding.intro.title" = "Hej!";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "Visste du det?";
-
-/* Body copy for the returning-user restore prompt */
-"onboarding.restore.prompt.body" = "Vill du återställa dina bokmärken, lösenord med mera från din tidigare DuckDuckGo-synkronisering?";
-
-/* Primary CTA to start restoring data on returning-user restore prompt */
-"onboarding.restore.prompt.restore.cta" = "Återställ mitt innehåll";
-
-/* Secondary CTA to skip restore on returning-user restore prompt */
-"onboarding.restore.prompt.skip.cta" = "Hoppa över";
-
-/* Title for the returning-user restore prompt */
-"onboarding.restore.prompt.title" = "Vi fortsätter där du slutade";
 
 /* The title of the button to skip the onboarding and start browsing. */
 "onboarding.skip.cta.confirmSkip" = "Börja bläddra";
@@ -3028,27 +2974,6 @@
 /* Alert title */
 "prompt.custom.url.scheme.title" = "Öppna i annan app?";
 
-/* Button to go back to the previous page after redirect loop */
-"prompt.x-safari-https.go-back" = "Gå tillbaka";
-
-/* Alert message when a redirect loop is detected */
-"prompt.x-safari-https.loop.message" = "Vill du öppna den här sidan i Safari?";
-
-/* Alert title when a redirect loop is detected after staying in DuckDuckGo */
-"prompt.x-safari-https.loop.title" = "Det gick tyvärr inte att läsa in sidan.";
-
-/* Button to open the page in Safari */
-"prompt.x-safari-https.open-in-safari" = "Öppna i Safari";
-
-/* Button to stay in DuckDuckGo instead of opening Safari */
-"prompt.x-safari-https.stay" = "Stanna kvar på DuckDuckGo";
-
-/* Alert message when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.message" = "Vissa webbplatsfunktioner kanske inte är kompatibla med den här webbläsaren.";
-
-/* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
-"prompt.x-safari-https.try-open.title" = "Webbplatsen vill öppnas i Safari.";
-
 /* No comment provided by engineer. */
 "REBRANDED" = "MED ETT NYTT NAMN";
 
@@ -3177,36 +3102,6 @@
 
 /* Settings screen cell title for toggling tracker blocking animation in address bar */
 "settings.address.trackers.animation" = "Visa i adressfältet";
-
-/* Section footer; %@ is the idle interval (e.g. 5 minutes) */
-"settings.afterInactivity.footer.format" = "Välj vad du ser när du återgår efter %@ av inaktivitet.";
-
-/* Idle interval 1 hour for settings footer */
-"settings.afterInactivity.idle.interval.hour" = "1 timme";
-
-/* Idle interval in hours for settings footer (plural) */
-"settings.afterInactivity.idle.interval.hours" = "%d timmar";
-
-/* Idle interval 1 minute for settings footer */
-"settings.afterInactivity.idle.interval.minute" = "1 minut";
-
-/* Idle interval in minutes for settings footer (plural) */
-"settings.afterInactivity.idle.interval.minutes" = "%d minuter";
-
-/* Idle interval 1 second for settings footer */
-"settings.afterInactivity.idle.interval.second" = "1 sekund";
-
-/* Idle interval in seconds for settings footer (plural) */
-"settings.afterInactivity.idle.interval.seconds" = "%d sekunder";
-
-/* Settings picker label for what to show when returning after inactivity */
-"settings.afterInactivity.label" = "Efter inaktivitet";
-
-/* Option: show last used tab when returning after inactivity */
-"settings.afterInactivity.option.lastUsedTab" = "Senast använda flik";
-
-/* Option: show New Tab when returning after inactivity */
-"settings.afterInactivity.option.newTab" = "Ny flik";
 
 /* Title for the 'Search & Duck.ai' option in the AI experimental picker */
 "settings.ai.experimental.picker.search_and_duckai" = "Sök & Duck.ai";
@@ -3342,6 +3237,15 @@
 
 /* Settings screen cell text for automatic data deletion option */
 "settings.automatically.delete.data" = "Radera data automatiskt";
+
+/* Settings label for the autoplay settings screen */
+"settings.autoplay" = "Autouppspelning";
+
+/* Link text in the autoplay settings footer that navigates to Duck Player settings */
+"settings.autoplay.duck.player.link" = "Inställningar för Duck Player";
+
+/* Footer text in the autoplay settings screen explaining that changes only take effect in new tabs, followed by a link to Duck Player Settings */
+"settings.autoplay.footer" = "Inställningarna för automatisk uppspelning gäller bara för nyöppnade flikar. Ändringar kan inte tillämpas på befintliga flikar om inte programmet startas om. Hantera automatisk uppspelning i Duck Player genom att gå till ";
 
 /* Settings cell for Browser Feedback */
 "settings.browser.feedback" = "Webbläsarfeedback";
@@ -3480,6 +3384,9 @@
 
 /* Label of a button managing email protection account */
 "settings.manage.account" = "Hantera konto";
+
+/* Header for the media section in general settings */
+"settings.media.section" = "Media";
 
 /* Settings title for the 'More' section */
 "settings.more" = "Mer från DuckDuckGo";
