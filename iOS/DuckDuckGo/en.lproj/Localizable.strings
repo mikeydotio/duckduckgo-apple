@@ -3988,6 +3988,9 @@ Take back control of your personal information with the browser designed for dat
 /* Message for success when running the intent to disable the DuckDuckGo VPN */
 "vpn.control-widget.disable.vpn.intent.success" = "DuckDuckGo VPN is disconnected";
 
+/* Message for when intent is run but VPN must be enabled from app first */
+"intent.vpn.needs.to.be.enabled.from.app" = "You need to enable the VPN from the DuckDuckGo App.";
+
 /* No comment provided by engineer. */
 "vpn.control-widget.education.screen.description" = "Siri Shortcuts let you connect to your VPN with a quick voice command, like “Siri, turn on DuckDuckGo VPN”. It’s a fast, hands-free way to use your VPN.";
 
