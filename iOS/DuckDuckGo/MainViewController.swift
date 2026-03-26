@@ -499,6 +499,7 @@ class MainViewController: UIViewController {
             remoteMessagingImageLoader: remoteMessagingImageLoader,
             remoteMessagingPixelReporter: remoteMessagingPixelReporter,
             appSettings: appSettings,
+            subscriptionManager: subscriptionManager,
             internalUserCommands: internalUserCommands)
     }()
 
@@ -1336,8 +1337,8 @@ class MainViewController: UIViewController {
     private func makeEscapeHatchModel(targetTab: Tab) -> EscapeHatchModel? {
         if targetTab.isAITab {
             return EscapeHatchModel(
-                title: UserText.omnibarFullAIChatModeDisplayTitle,
-                subtitle: "Duck.ai",
+                title: targetTab.aiChatConversationTitle ?? UserText.omnibarFullAIChatModeDisplayTitle,
+                subtitle: UserText.omnibarFullAIChatModeDisplayTitle,
                 isAITab: true,
                 domain: nil,
                 targetTab: targetTab
@@ -1423,6 +1424,7 @@ class MainViewController: UIViewController {
                                                   remoteMessagingPixelReporter: remoteMessagingPixelReporter,
                                                   appSettings: appSettings,
                                                   faviconsCache: favicons,
+                                                  subscriptionManager: subscriptionManager,
                                                   internalUserCommands: internalUserCommands,
                                                   narrowLayoutInLandscape: narrowLayoutInLandscape
         )
@@ -2767,6 +2769,7 @@ class MainViewController: UIViewController {
     }
 
     func onDuckAIVoiceModeRequested() {
+        Pixel.fire(pixel: .voiceEntryPointTapped, withAdditionalParameters: [PixelParameters.source: VoiceEntryPointSource.ntp.rawValue])
         openAIChatInVoiceMode()
     }
 
@@ -3362,6 +3365,20 @@ extension MainViewController: OmniBarDelegate {
         } else {
             segueToSettings()
         }
+    }
+
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake, featureFlagger.internalUserDecider.isInternalUser || isDebugBuild {
+            var topVC: UIViewController = self
+            while let presented = topVC.presentedViewController {
+                topVC = presented
+            }
+            if !(topVC is DebugScreensViewController),
+               !((topVC as? UINavigationController)?.viewControllers.first is DebugScreensViewController) {
+                segueToDebugSettings()
+            }
+        }
+        super.motionEnded(motion, with: event)
     }
 
     func performCancel() {
@@ -4019,6 +4036,14 @@ extension MainViewController: TabDelegate {
     
     func tabDidRequestFireButtonPulse(tab: TabViewController) {
         showFireButtonPulse()
+    }
+
+    func tabDidRequestDeleteContextualChat(tab: TabViewController, chatID: String) {
+        let cleaner = HistoryCleaner(featureFlagger: featureFlagger,
+                                     privacyConfig: privacyConfigurationManager)
+        Task { @MainActor in
+            await cleaner.deleteAIChat(chatID: chatID)
+        }
     }
     
     func tabDidRequestPrivacyDashboardButtonPulse(tab: TabViewController, animated: Bool) {
@@ -5120,6 +5145,10 @@ extension MainViewController {
         case .downloads:
             self.segueToDownloads()
 
+        case .duckAIVoice:
+            Pixel.fire(pixel: .voiceEntryPointTapped, withAdditionalParameters: [PixelParameters.source: VoiceEntryPointSource.toolbar.rawValue])
+            self.openAIChatInVoiceMode()
+
         default:
             assertionFailure("Unexpected case \(button)")
         }
@@ -5167,6 +5196,10 @@ extension MainViewController {
 
         case .zoom:
             showTextZoomEditorIfPossible()
+
+        case .duckAIVoice:
+            Pixel.fire(pixel: .voiceEntryPointTapped, withAdditionalParameters: [PixelParameters.source: VoiceEntryPointSource.addressBar.rawValue])
+            openAIChatInVoiceMode()
 
         default:
             assertionFailure("Unexpected case: \(button)")

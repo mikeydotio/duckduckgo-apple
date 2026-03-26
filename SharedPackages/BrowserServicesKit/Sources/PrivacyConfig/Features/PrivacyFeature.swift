@@ -188,7 +188,12 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
 
     case tabAnimations
 
+    /// Enables lazy reload for the more options menu
+    case lazyMenuRebuild
+
     case addToDockAppStore
+
+    case screenTimeCleaning
 }
 
 public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
@@ -256,6 +261,10 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
     case customXSafariRedirectHandling
 
     case crashReportOptInStatusResetting
+
+    case screenTimeCleaning
+
+    case minimalChromeInLandscape
 }
 
 public enum TabManagerSubfeature: String, PrivacySubfeature {
@@ -417,6 +426,12 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Enables voice chat shortcut in the focused address bar
     case voiceShortcut
+
+    /// Enables removing individual AI chat suggestions
+    case removeSuggestion
+
+    /// Enables the fire button in the contextual AI chat sheet
+    case contextualFireButton
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
@@ -512,6 +527,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case blackFridayCampaign
     case allowProTierPurchase
     case freeTrialConversionWideEvent
+    case subscriptionPromoForReinstallers
 }
 
 public enum DuckPlayerSubfeature: String, PrivacySubfeature {
