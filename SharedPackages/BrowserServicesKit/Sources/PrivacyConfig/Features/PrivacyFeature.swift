@@ -75,6 +75,7 @@ public enum PrivacyFeature: String {
     // Demonstrative case for default value. Remove once a real-world feature is added
     case intentionallyLocalOnlyFeatureForTests
     case delayedWebviewPresentation
+    case deferredTabWebViewCreation
     case disableFireAnimation
     case htmlNewTabPage
     case daxEasterEggLogos

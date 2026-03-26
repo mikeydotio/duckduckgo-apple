@@ -374,6 +374,10 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         super.init()
         tabGetter = { [weak self] in self }
 
+        if !featureFlagger.isFeatureOn(.deferredTabWebViewCreation) {
+            _ = self.webView // trigger eager creation
+        }
+
         faviconCancellable = extensions.favicons?.faviconPublisher.assign(to: \.favicon, onWeaklyHeld: self)
         if favicon == nil {
             extensions.favicons?.loadCachedFavicon(oldValue: nil, isBurner: burnerMode.isBurner, error: error)
@@ -625,13 +629,13 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
 
     @PublishedAfter private(set) var content: TabContent {
         didSet {
-            if !content.displaysContentInWebView && oldValue.displaysContentInWebView {
+            if isWebViewCreated && !content.displaysContentInWebView && oldValue.displaysContentInWebView {
                 webView.stopAllMedia(shouldStopLoading: false)
             }
             Task { @MainActor in
                 extensions.favicons?.loadCachedFavicon(oldValue: oldValue, isBurner: burnerMode.isBurner, error: error)
             }
-            if navigationDelegate.currentNavigation == nil {
+            if isWebViewCreated && navigationDelegate.currentNavigation == nil {
                 updateCanGoBackForward(withCurrentNavigation: nil)
             }
             if #available(macOS 15.4, *), let webExtensionManager = NSApp.delegateTyped.webExtensionManager {
