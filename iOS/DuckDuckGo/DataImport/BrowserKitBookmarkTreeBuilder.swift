@@ -137,8 +137,6 @@ struct BrowserKitBookmarkTreeBuilder {
                 if record.isFolder {
                     currentRootFolder = RootFolder(identifier: record.identifier, treeNode: record.treeNode)
                     foldersByIdentifier[record.identifier] = record.treeNode
-                } else {
-                    currentRootFolder = nil
                 }
                 activeNestedFolder = nil
                 continue
@@ -225,7 +223,6 @@ struct BrowserKitBookmarkTreeBuilder {
                 insert(remainingRecord.treeNode, into: nil, topLevelNodes: &topLevelNodes)
                 signals.unresolvedParentReferences += 1
             }
-
         }
 
         let readingListBookmarks = makeReadingListBookmarks(from: readingListItems)
@@ -242,9 +239,11 @@ struct BrowserKitBookmarkTreeBuilder {
 
     private func makeBookmarkRecords(from bookmarks: [BrowserKitBookmarkNode]) -> [BookmarkRecord] {
         bookmarks.enumerated().map { bookmarkIndex, bookmark in
+            // Node and parent identifiers intentionally use different normalization semantics.
+            // For parent identifiers, blank means "no parent".
             BookmarkRecord(streamIndex: bookmarkIndex,
-                           identifier: normalizedIdentifier(bookmark.identifier),
-                           parentIdentifier: normalizedIdentifier(bookmark.parentIdentifier),
+                           identifier: normalizeNodeIdentifier(bookmark.identifier),
+                           parentIdentifier: normalizeParentIdentifier(bookmark.parentIdentifier),
                            treeNode: makeBookmark(from: bookmark),
                            isFolder: bookmark.isFolder)
         }
@@ -284,12 +283,16 @@ struct BrowserKitBookmarkTreeBuilder {
         }
     }
 
-    private func normalizedIdentifier(_ identifier: String?) -> String? {
+    /// Parent identifiers treat blank values as missing to avoid attaching children to a synthetic empty parent key.
+    private func normalizeParentIdentifier(_ identifier: String?) -> String? {
         guard let identifier else { return nil }
-        return normalizedIdentifier(identifier)
+        let normalized = normalizeNodeIdentifier(identifier)
+        return normalized.isEmpty ? nil : normalized
     }
 
-    private func normalizedIdentifier(_ identifier: String) -> String {
+    /// Node identifiers are normalized by trimming whitespace only.
+    /// Empty string is preserved as a stable key for node identity.
+    private func normalizeNodeIdentifier(_ identifier: String) -> String {
         identifier.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

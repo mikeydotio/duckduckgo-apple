@@ -67,19 +67,42 @@ final class BrowserKitBookmarkTreeBuilderTests: XCTestCase {
         XCTAssertEqual(folder.children?.compactMap(\.urlString), ["https://duckduckgo.com/a", "https://duckduckgo.com/b"])
     }
 
-    func testWhenIdentifierAndParentIdentifierAreWhitespaceThenChildAttachesToFolder() throws {
+    func testWhenParentIdentifierIsWhitespaceThenBookmarkStaysTopLevelEvenIfWhitespaceFolderIdentifierExists() throws {
         let bookmarks = [
             makeFolder(identifier: "   ", title: "Whitespace Folder"),
-            makeBookmark(identifier: "child", parentIdentifier: "\n\t  ", urlString: "https://duckduckgo.com/child")
+            makeBookmark(identifier: "child-whitespace",
+                         parentIdentifier: "\n\t  ",
+                         urlString: "https://duckduckgo.com/whitespace-parent")
         ]
 
         let result = treeBuilder.build(bookmarks: bookmarks, readingListItems: [])
 
-        XCTAssertEqual(result.count, 1)
-        let folder = try XCTUnwrap(result.first)
-        XCTAssertEqual(folder.name, "Whitespace Folder")
-        XCTAssertEqual(folder.children?.count, 1)
-        XCTAssertEqual(folder.children?.first?.urlString, "https://duckduckgo.com/child")
+        XCTAssertEqual(result.count, 2)
+        let whitespaceFolder = try XCTUnwrap(result.first(where: { $0.name == "Whitespace Folder" }))
+        XCTAssertEqual(whitespaceFolder.children?.count ?? 0, 0)
+
+        let childBookmark = result.first(where: { $0.urlString == "https://duckduckgo.com/whitespace-parent" })
+        XCTAssertNotNil(childBookmark)
+        XCTAssertNil(whitespaceFolder.children?.first(where: { $0.urlString == "https://duckduckgo.com/whitespace-parent" }))
+    }
+
+    func testWhenParentIdentifierIsEmptyThenBookmarkStaysTopLevelEvenIfEmptyFolderIdentifierExists() throws {
+        let bookmarks = [
+            makeFolder(identifier: "", title: "Empty Identifier Folder"),
+            makeBookmark(identifier: "child-empty",
+                         parentIdentifier: "",
+                         urlString: "https://duckduckgo.com/empty-parent")
+        ]
+
+        let result = treeBuilder.build(bookmarks: bookmarks, readingListItems: [])
+
+        XCTAssertEqual(result.count, 2)
+        let emptyIdentifierFolder = try XCTUnwrap(result.first(where: { $0.name == "Empty Identifier Folder" }))
+        XCTAssertEqual(emptyIdentifierFolder.children?.count ?? 0, 0)
+
+        let childBookmark = result.first(where: { $0.urlString == "https://duckduckgo.com/empty-parent" })
+        XCTAssertNotNil(childBookmark)
+        XCTAssertNil(emptyIdentifierFolder.children?.first(where: { $0.urlString == "https://duckduckgo.com/empty-parent" }))
     }
 
     func testWhenBookmarksAreNestedThenFolderHierarchyIsBuilt() throws {
@@ -176,6 +199,26 @@ final class BrowserKitBookmarkTreeBuilderTests: XCTestCase {
         XCTAssertNotNil(workspaceRoot.children?.first(where: { $0.urlString == "https://duckduckgo.com/back" }))
         XCTAssertNil(reportsFolder.children?.first(where: { $0.urlString == "https://duckduckgo.com/intermediate" }))
         XCTAssertNil(reportsFolder.children?.first(where: { $0.urlString == "https://duckduckgo.com/back" }))
+    }
+
+    func testWhenTopLevelBookmarkAppearsBetweenRootSentinelChildrenThenRootContextIsPreserved() throws {
+        let bookmarks = [
+            makeFolder(identifier: "1", title: "Favourites"),
+            makeBookmark(identifier: "4", parentIdentifier: "0", urlString: "https://www.apple.com/uk/", title: "Apple"),
+            makeBookmark(identifier: "3", parentIdentifier: nil, urlString: "https://support.apple.com/guide/iphone/", title: "iPhone User Guide"),
+            makeBookmark(identifier: "11", parentIdentifier: "0", urlString: "https://www.bbc.co.uk/", title: "BBC")
+        ]
+
+        let result = treeBuilder.build(bookmarks: bookmarks, readingListItems: [])
+
+        XCTAssertEqual(result.count, 2)
+        let favourites = try XCTUnwrap(result.first(where: { $0.name == "Favourites" }))
+        XCTAssertEqual(favourites.children?.count, 2)
+        XCTAssertNotNil(favourites.children?.first(where: { $0.urlString == "https://www.apple.com/uk/" }))
+        XCTAssertNotNil(favourites.children?.first(where: { $0.urlString == "https://www.bbc.co.uk/" }))
+
+        XCTAssertNotNil(result.first(where: { $0.urlString == "https://support.apple.com/guide/iphone/" }))
+        XCTAssertNil(result.first(where: { $0.urlString == "https://www.bbc.co.uk/" }))
     }
 
     func testWhenRootFolderMarkerAppearsWithoutCurrentRootFolderThenItemStaysAtTopLevel() {
