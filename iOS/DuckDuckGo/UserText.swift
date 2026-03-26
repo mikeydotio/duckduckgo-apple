@@ -2278,16 +2278,6 @@ public struct UserText {
                 value: "all mighty ducks movies",
                 comment: "Second suggestion chip label in onboarding Duck.ai query experiment screen."
             )
-            public static let searchSuggestionOption1 = NotLocalizedString(
-                "onboarding.highlights.duckAIQueryExperiment.suggestion.search.option1",
-                value: "how to say \"duck\" in spanish",
-                comment: "First suggestion chip label in onboarding Duck.ai query experiment screen when Search mode is active."
-            )
-            public static let searchSuggestionOption2 = NotLocalizedString(
-                "onboarding.highlights.duckAIQueryExperiment.suggestion.search.option2",
-                value: "mighty ducks cast",
-                comment: "Second suggestion chip label in onboarding Duck.ai query experiment screen when Search mode is active."
-            )
             public static let suggestionSurpriseMe = NotLocalizedString(
                 "onboarding.highlights.duckAIQueryExperiment.suggestion.surprise-me",
                 value: "Surprise me!",
