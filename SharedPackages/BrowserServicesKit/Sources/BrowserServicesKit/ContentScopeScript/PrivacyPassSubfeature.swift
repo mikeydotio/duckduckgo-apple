@@ -183,6 +183,9 @@ public final class PrivacyPassChallengeHandler {
 
         let spendProofData = try await tokenManager.spendRaw(for: challenge.issuerURL)
 
+        // Token struct per RFC 9577:
+        //   token_type (2) | nonce (32) | challenge_digest (32) | token_key_id[Nid] | authenticator
+        // For ACT token type 0xDA15, Nid=0 so token_key_id is empty.
         var tokenStruct = Data()
         var tokenTypeBE = challenge.tokenType.bigEndian
         tokenStruct.append(Data(bytes: &tokenTypeBE, count: 2))
@@ -191,11 +194,10 @@ public final class PrivacyPassChallengeHandler {
         nonce.withUnsafeMutableBytes { _ = SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
         tokenStruct.append(nonce)
 
-        var challengeDigest = Data(count: 32)
-        let rawChallenge = challenge.rawTokenChallenge
-        challengeDigest = sha256(rawChallenge)
+        let challengeDigest = sha256(challenge.rawTokenChallenge)
         tokenStruct.append(challengeDigest)
 
+        // token_key_id is empty for ACT (Nid=0)
         tokenStruct.append(spendProofData)
 
         let tokenB64URL = Self.base64urlEncode(tokenStruct)

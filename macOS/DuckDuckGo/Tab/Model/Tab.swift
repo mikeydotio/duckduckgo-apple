@@ -1427,6 +1427,7 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
     func decidePolicy(for navigationResponse: NavigationResponse) async -> NavigationResponsePolicy? {
         // TODO: Gate on privacyPass remote config feature flag (PrivacyConfigurationManaging.isFeature(.privacyPass, enabledForDomain:))
         if let httpResponse = navigationResponse.httpResponse,
+           navigationResponse.mainFrameNavigation?.navigationAction.request.httpMethod == "GET",
            privacyPassChallengeHandler.isPrivacyPassChallenge(httpResponse),
            let originalURL = navigationResponse.url as URL? {
             Task { @MainActor [weak self] in

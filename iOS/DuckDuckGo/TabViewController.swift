@@ -94,6 +94,7 @@ class TabViewController: UIViewController {
 
     private let instrumentation = TabInstrumentation()
     private let privacyPassChallengeHandler = PrivacyPassChallengeHandler(tokenManager: PrivacyPassTokenManager())
+    private var lastMainFrameRequestHTTPMethod: String?
     let tabInteractionStateSource: TabInteractionStateSource?
 
     var isLinkPreview = false
@@ -1661,6 +1662,7 @@ extension TabViewController: WKNavigationDelegate {
         let httpResponse = navigationResponse.response as? HTTPURLResponse
 
         if let httpResponse,
+           lastMainFrameRequestHTTPMethod == "GET",
            privacyPassChallengeHandler.isPrivacyPassChallenge(httpResponse),
            let originalURL = navigationResponse.response.url {
             Task { @MainActor [weak self] in
@@ -2192,6 +2194,10 @@ extension TabViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView,
                  decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+
+        if navigationAction.targetFrame?.isMainFrame == true {
+            lastMainFrameRequestHTTPMethod = navigationAction.request.httpMethod
+        }
 
         if let url = navigationAction.request.url {
             if !tabURLInterceptor.allowsNavigatingTo(url: url) {
