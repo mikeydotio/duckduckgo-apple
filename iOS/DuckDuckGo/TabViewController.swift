@@ -93,6 +93,7 @@ class TabViewController: UIViewController {
     @IBOutlet var showBarsTapGestureRecogniser: UITapGestureRecognizer!
 
     private let instrumentation = TabInstrumentation()
+    private let privacyPassChallengeHandler = PrivacyPassChallengeHandler(tokenManager: PrivacyPassTokenManager())
     let tabInteractionStateSource: TabInteractionStateSource?
 
     var isLinkPreview = false
@@ -1658,6 +1659,24 @@ extension TabViewController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse) async -> WKNavigationResponsePolicy {
         let httpResponse = navigationResponse.response as? HTTPURLResponse
+
+        if let httpResponse,
+           privacyPassChallengeHandler.isPrivacyPassChallenge(httpResponse),
+           let originalURL = navigationResponse.response.url {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                do {
+                    try await self.privacyPassChallengeHandler.handleChallengeAndRetry(
+                        response: httpResponse,
+                        originalURL: originalURL,
+                        webView: webView)
+                } catch {
+                    Logger.privacyPass.error("Privacy Pass challenge handling failed: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+            return .cancel
+        }
+
         let didMarkAsInternal = internalUserDecider.markUserAsInternalIfNeeded(forUrl: webView.url, response: httpResponse)
         if didMarkAsInternal {
             Pixel.fire(pixel: .featureFlaggingInternalUserAuthenticated)

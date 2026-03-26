@@ -773,6 +773,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
     }
 
     private let instrumentation = TabInstrumentation()
+    private let privacyPassChallengeHandler = PrivacyPassChallengeHandler(tokenManager: PrivacyPassTokenManager())
 
     private let _id: String?
     var id: String {
@@ -1424,6 +1425,23 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
 
     @MainActor
     func decidePolicy(for navigationResponse: NavigationResponse) async -> NavigationResponsePolicy? {
+        if let httpResponse = navigationResponse.httpResponse,
+           privacyPassChallengeHandler.isPrivacyPassChallenge(httpResponse),
+           let originalURL = navigationResponse.url as URL? {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                do {
+                    try await privacyPassChallengeHandler.handleChallengeAndRetry(
+                        response: httpResponse,
+                        originalURL: originalURL,
+                        webView: webView)
+                } catch {
+                    Logger.privacyPass.error("Privacy Pass challenge handling failed: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+            return .cancel
+        }
+
         internalUserDecider?.markUserAsInternalIfNeeded(forUrl: webView.url,
                                                         response: navigationResponse.response as? HTTPURLResponse)
 
