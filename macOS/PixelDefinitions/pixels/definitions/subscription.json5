@@ -158,16 +158,8 @@
                 "type": "string",
                 "description": "Error Code: 12700, 12701, 12702, 12703, 12704, 12705, 12706"
             },
-            {
-                "keyPattern": "^ud[0-9]?$",
-                "type": "string",
-                "description": "Underlying error domain at any depth"
-            },
-            {
-                "keyPattern": "^ue[0-9]?$",
-                "type": "string",
-                "description": "Underlying error code at any depth"
-            }
+            "underlyingErrorDomain",
+            "underlyingErrorCode"
         ]
     },
     "m_mac_direct_subscription_tier-options_unexpected-pro-tier": {
@@ -211,16 +203,8 @@
                 "type": "string",
                 "description": "Error Code: 12700, 12701, 12702, 12703, 12704, 12705, 12706"
             },
-            {
-                "keyPattern": "^ud[0-9]?$",
-                "type": "string",
-                "description": "Underlying error domain at any depth"
-            },
-            {
-                "keyPattern": "^ue[0-9]?$",
-                "type": "string",
-                "description": "Underlying error code at any depth"
-            }
+            "underlyingErrorDomain",
+            "underlyingErrorCode"
         ]
     },
     "m_mac_store_subscription_tier-options_unexpected-pro-tier": {
