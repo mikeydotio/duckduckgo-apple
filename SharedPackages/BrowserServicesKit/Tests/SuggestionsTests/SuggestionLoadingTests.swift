@@ -189,7 +189,12 @@ fileprivate extension Data {
 fileprivate extension SuggestionLoader {
 
     convenience init() {
-        self.init(shouldLoadSuggestionsForUserInput: { _ in return true }, isUrlIgnored: { _ in false })
+        self.init(
+            shouldLoadSuggestionsForUserInput: { _ in return true },
+            processSuggestions: { query, platform, bookmarks, history, openTabs, internalPages, apiResult in
+                return .empty
+            }
+        )
     }
 
 }

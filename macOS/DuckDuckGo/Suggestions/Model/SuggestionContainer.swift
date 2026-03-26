@@ -96,7 +96,7 @@ final class SuggestionContainer: SuggestionContainerProtocol {
         startupPreferences: StartupPreferences? = nil,
         featureFlagger: FeatureFlagger? = nil,
         burnerMode: BurnerMode,
-        isUrlIgnored: @escaping (URL) -> Bool,
+        processSuggestions: @escaping SuggestionProcessingHandler,
         windowControllersManager: WindowControllersManagerProtocol? = nil
     ) {
         let windowControllersManager = windowControllersManager ?? NSApp.delegateTyped.windowControllersManager
@@ -109,7 +109,7 @@ final class SuggestionContainer: SuggestionContainerProtocol {
         let suggestionLoadingDecider = SuggestionLoadingDecider(featureFlagger: effectiveFeatureFlagger)
         self.loading = suggestionLoading ?? SuggestionLoader(
             shouldLoadSuggestionsForUserInput: suggestionLoadingDecider.shouldLoadSuggestions(for:),
-            isUrlIgnored: isUrlIgnored
+            processSuggestions: processSuggestions
         )
         self.urlSession = urlSession ?? URLSession(configuration: .ephemeral)
         self.burnerMode = burnerMode

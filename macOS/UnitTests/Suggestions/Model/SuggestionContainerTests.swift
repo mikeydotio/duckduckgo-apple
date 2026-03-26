@@ -26,6 +26,7 @@ import PrivacyConfig
 import PrivacyConfigTestsUtils
 import SharedTestUtilities
 import Suggestions
+import SuggestionProcessing
 import WebKit
 import XCTest
 
@@ -48,7 +49,7 @@ final class SuggestionContainerTests: XCTestCase {
                                                       bookmarkProvider: bookmarkProviderMock,
                                                       featureFlagger: MockFeatureFlagger(),
                                                       burnerMode: .regular,
-                                                      isUrlIgnored: { _ in false })
+                                                      processSuggestions: Processor.process)
 
         let e = expectation(description: "Suggestions updated")
         let cancellable = suggestionContainer.$result.sink {
@@ -79,7 +80,7 @@ final class SuggestionContainerTests: XCTestCase {
                                                       bookmarkProvider: bookmarkProviderMock,
                                                       featureFlagger: MockFeatureFlagger(),
                                                       burnerMode: .regular,
-                                                      isUrlIgnored: { _ in false })
+                                                      processSuggestions: Processor.process)
 
         suggestionContainer.getSuggestions(for: "test")
         suggestionContainer.stopGettingSuggestions()
@@ -100,7 +101,7 @@ final class SuggestionContainerTests: XCTestCase {
                                                       bookmarkProvider: bookmarkProviderMock,
                                                       featureFlagger: MockFeatureFlagger(),
                                                       burnerMode: .regular,
-                                                      isUrlIgnored: { _ in false })
+                                                      processSuggestions: Processor.process)
 
         XCTAssertNil(suggestionContainer.suggestionDataCache)
         let e = expectation(description: "Suggestions updated")
@@ -214,7 +215,7 @@ final class SuggestionContainerTests: XCTestCase {
                                                       bookmarkProvider: BookmarkProviderMock(bookmarks: input.bookmarks),
                                                       featureFlagger: mockFeatureFlagger,
                                                       burnerMode: tabCollectionViewModels[selectedWindow].burnerMode,
-                                                      isUrlIgnored: testScenario.input.isURLIgnored,
+                                                      processSuggestions: Processor.process,
                                                       windowControllersManager: windowControllersManagerMock)
 
         // Mock API Suggestions response

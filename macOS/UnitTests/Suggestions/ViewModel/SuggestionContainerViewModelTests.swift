@@ -20,6 +20,7 @@ import Combine
 import PrivacyConfig
 import SharedTestUtilities
 import Suggestions
+import SuggestionProcessing
 import XCTest
 
 @testable import DuckDuckGo_Privacy_Browser
@@ -50,7 +51,7 @@ final class SuggestionContainerViewModelTests: XCTestCase {
                                                   bookmarkProvider: bookmarkProviderMock,
                                                   featureFlagger: featureFlagger,
                                                   burnerMode: .regular,
-                                                  isUrlIgnored: { _ in false })
+                                                  processSuggestions: Processor.process)
         suggestionContainerViewModel = SuggestionContainerViewModel(
             suggestionContainer: suggestionContainer,
             searchPreferences: SearchPreferences(
@@ -87,7 +88,7 @@ final class SuggestionContainerViewModelTests: XCTestCase {
             bookmarkProvider: SuggestionsBookmarkProvider(bookmarkManager: MockBookmarkManager()),
             featureFlagger: featureFlagger,
             burnerMode: .regular,
-            isUrlIgnored: { _ in false }
+            processSuggestions: Processor.process
         )
         let suggestionContainerViewModel = SuggestionContainerViewModel(
             suggestionContainer: suggestionContainer,
@@ -129,7 +130,7 @@ final class SuggestionContainerViewModelTests: XCTestCase {
             bookmarkProvider: SuggestionsBookmarkProvider(bookmarkManager: MockBookmarkManager()),
             featureFlagger: featureFlagger,
             burnerMode: .regular,
-            isUrlIgnored: { _ in false }
+            processSuggestions: Processor.process
         )
         let suggestionListViewModel = SuggestionContainerViewModel(
             suggestionContainer: suggestionContainer,
@@ -367,7 +368,7 @@ final class SuggestionContainerViewModelTests: XCTestCase {
                                                   bookmarkProvider: bookmarkProviderMock,
                                                   featureFlagger: featureFlagger,
                                                   burnerMode: .regular,
-                                                  isUrlIgnored: { _ in false })
+                                                  processSuggestions: Processor.process)
         suggestionContainerViewModel = SuggestionContainerViewModel(
             suggestionContainer: suggestionContainer,
             searchPreferences: SearchPreferences(persistor: MockSearchPreferencesPersistor(), windowControllersManager: WindowControllersManagerMock())

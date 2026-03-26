@@ -23,6 +23,7 @@ import UIKit
 import Core
 import DesignResourcesKit
 import Suggestions
+import SuggestionProcessing
 import Networking
 import CoreData
 import Persistence
@@ -227,7 +228,7 @@ class AutocompleteViewController: UIHostingController<AutocompleteView> {
                 return false
             }
             return true
-        }, isUrlIgnored: { _ in false })
+        }, processSuggestions: Processor.process)
 
         loader?.getSuggestions(query: query, usingDataSource: dataSource) { [weak self] result, error in
             guard let self, error == nil else { return }

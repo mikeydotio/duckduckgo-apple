@@ -23,6 +23,7 @@ import Common
 import AIChat
 import UIComponents
 import PixelKit
+import SuggestionProcessing
 import PrivacyConfig
 
 protocol AddressBarViewControllerDelegate: AnyObject {
@@ -223,7 +224,7 @@ final class AddressBarViewController: NSViewController {
                 historyProvider: historyCoordinator,
                 bookmarkProvider: SuggestionsBookmarkProvider(bookmarkManager: bookmarkManager),
                 burnerMode: burnerMode,
-                isUrlIgnored: { _ in false }
+                processSuggestions: Processor.process
             ),
             searchPreferences: searchPreferences,
             themeManager: themeManager,

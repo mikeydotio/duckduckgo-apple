@@ -28,6 +28,7 @@ import os.log
 import Persistence
 import PixelKit
 import Suggestions
+import SuggestionProcessing
 import XCTest
 
 @testable import DuckDuckGo
@@ -137,7 +138,7 @@ final class SuggestionJsonScenarioTests: XCTestCase {
         let sortedDataSource = SortingDataSourceWrapper(wrapping: dataSource)
 
         // Create a suggestion loader
-        let suggestionLoader = SuggestionLoader(shouldLoadSuggestionsForUserInput: { _ in return true }, isUrlIgnored: testScenario.input.isURLIgnored)
+        let suggestionLoader = SuggestionLoader(shouldLoadSuggestionsForUserInput: { _ in return true }, processSuggestions: Processor.process)
         var actualResults: SuggestionResult?
         var loadingError: Error?
 

@@ -24,6 +24,7 @@ import Navigation
 import PrivacyConfig
 import PrivacyConfigTestsUtils
 import SharedTestUtilities
+import SuggestionProcessing
 import XCTest
 
 @testable import DuckDuckGo_Privacy_Browser
@@ -244,7 +245,7 @@ final class SearchNonexistentDomainTests: XCTestCase {
                                                       historyProvider: NSApp.delegateTyped.historyCoordinator,
                                                       bookmarkProvider: bookmarkProviderMock,
                                                       burnerMode: .regular,
-                                                      isUrlIgnored: { _ in false })
+                                                      processSuggestions: Processor.process)
         addressBar.suggestionContainerViewModel = SuggestionContainerViewModel(
             isHomePage: true,
             isBurner: false,

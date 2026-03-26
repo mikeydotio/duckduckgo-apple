@@ -27,6 +27,18 @@ public protocol SuggestionLoading: AnyObject {
 
 }
 
+/// A closure that processes suggestion inputs and returns a `SuggestionResult`.
+/// The `SuggestionProcessing` package provides `Processor.process` which matches this signature.
+public typealias SuggestionProcessingHandler = (
+    _ query: String,
+    _ platform: Platform,
+    _ bookmarks: [Bookmark],
+    _ history: [HistorySuggestion],
+    _ openTabs: [BrowserTab],
+    _ internalPages: [InternalPage],
+    _ apiResult: APIResult?
+) throws -> SuggestionResult
+
 public class SuggestionLoader: SuggestionLoading {
 
     static let remoteSuggestionsUrl = URL(string: "https://duckduckgo.com/ac/")!
@@ -40,11 +52,12 @@ public class SuggestionLoader: SuggestionLoading {
     }
 
     private let shouldLoadSuggestionsForUserInput: (String) -> Bool
-    private let isUrlIgnored: (URL) -> Bool
+    private let processSuggestions: SuggestionProcessingHandler
 
-    public init(shouldLoadSuggestionsForUserInput: @escaping (String) -> Bool, isUrlIgnored: @escaping (URL) -> Bool) {
+    public init(shouldLoadSuggestionsForUserInput: @escaping (String) -> Bool,
+                processSuggestions: @escaping SuggestionProcessingHandler) {
         self.shouldLoadSuggestionsForUserInput = shouldLoadSuggestionsForUserInput
-        self.isUrlIgnored = isUrlIgnored
+        self.processSuggestions = processSuggestions
     }
 
     @MainActor
@@ -93,17 +106,21 @@ public class SuggestionLoader: SuggestionLoading {
         // 2) Processing it
         group.notify(queue: .global(qos: .userInitiated)) { [weak self] in
             guard let self else { return }
-            let processor = SuggestionProcessing(platform: dataSource.platform, isUrlIgnored: isUrlIgnored)
-            let result = processor.result(for: query,
-                                          from: history,
-                                          bookmarks: bookmarks,
-                                          internalPages: internalPages,
-                                          openTabs: openTabs,
-                                          apiResult: apiResult)
-            DispatchQueue.main.async {
-                if let result = result {
+            do {
+                let result = try self.processSuggestions(
+                    query,
+                    dataSource.platform,
+                    bookmarks,
+                    history,
+                    openTabs,
+                    internalPages,
+                    apiResult
+                )
+                DispatchQueue.main.async {
                     completion(result, apiError)
-                } else {
+                }
+            } catch {
+                DispatchQueue.main.async {
                     completion(nil, SuggestionLoaderError.failedToProcessData)
                 }
             }
