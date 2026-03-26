@@ -16,59 +16,88 @@
 //  limitations under the License.
 //
 
-import BrowserServicesKit
-import ContentScopeScripts
+@testable import BrowserServicesKit
+import PrivacyConfig
 import TrackerRadarKit
 import XCTest
 
 /// A1 invariant tests enforcing single-authority and hard-disable gates.
 ///
 /// These tests verify:
-/// 1. trackerProtection is absent from the Apple C-S-S bundle platform feature list (build-time gate).
-/// 2. ContentScopeUserScript generated source does not contain trackerDetected message handler references (runtime gate).
-/// 3. CTL surrogate gating parity for both macOS (enabled) and iOS (disabled).
-/// 4. Legacy processRule path is the sole classification authority.
+/// 1. ContentScopeProperties does not carry trackerData (C-S-S trackerProtection hard-disabled).
+/// 2. ContentScope generated source does not contain trackerDetected references (no C-S-S classification path).
+/// 3. CTL surrogate gating exists in legacy surrogates path (via source generation).
+/// 4. Legacy processRule path is the sole classification authority (via source generation).
+/// 5. Dataset contract: Rules.encodedTrackerData uses extractSurrogates.
 class ContentBlockingA1InvariantTests: XCTestCase {
 
-    // MARK: - A1 Hard Gate: trackerProtection absent from Apple bundle
+    // MARK: - A1 Hard Gate: no trackerData in ContentScopeProperties
 
-    func testWhenAppleBundleIsLoadedThenTrackerProtectionFeatureIsAbsent() throws {
-        let contentScopeSource = try Self.loadContentScopeBundle(fileName: "contentScope")
-        XCTAssertFalse(contentScopeSource.contains("\"trackerProtection\""),
-                       "trackerProtection must not be present in the Apple contentScope bundle. " +
-                       "A1 requires it to be removed from features.js platformSupport.apple.")
+    func testWhenContentScopePropertiesIsCreatedThenTrackerDataIsAbsent() throws {
+        let properties = ContentScopeProperties(
+            gpcEnabled: false,
+            sessionKey: "test",
+            messageSecret: "test",
+            featureToggles: ContentScopeFeatureToggles.allTogglesOn)
+
+        let encoded = try JSONEncoder().encode(properties)
+        let json = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+
+        XCTAssertNil(json?["trackerData"],
+                     "ContentScopeProperties must not contain trackerData in A1. " +
+                     "C-S-S trackerProtection is hard-disabled on Apple.")
     }
 
-    func testWhenAppleIsolatedBundleIsLoadedThenTrackerProtectionFeatureIsAbsent() throws {
-        let isolatedSource = try Self.loadContentScopeBundle(fileName: "contentScopeIsolated")
-        XCTAssertFalse(isolatedSource.contains("\"trackerProtection\""),
-                       "trackerProtection must not be present in the Apple contentScopeIsolated bundle.")
+    // MARK: - A1 Hard Gate: generated ContentScope source has no tracker classification
+
+    func testWhenContentScopeSourceIsGeneratedThenNoTrackerDetectedNotifyExists() throws {
+        let mockConfig = MockPrivacyConfigurationManager()
+        let properties = ContentScopeProperties(
+            gpcEnabled: false,
+            sessionKey: "test",
+            messageSecret: "test",
+            featureToggles: ContentScopeFeatureToggles.allTogglesOn)
+
+        let source = try ContentScopeUserScript.generateSource(
+            mockConfig,
+            properties: properties,
+            scriptContext: .contentScope,
+            config: WebkitMessagingConfig(hasModernWebkitAPI: true, secret: "test",
+                                          webkitMessageHandlerNames: [], methodName: "test"),
+            privacyConfigurationJSONGenerator: nil)
+
+        XCTAssertFalse(source.contains("trackerDetected"),
+                       "Generated contentScope source must not contain trackerDetected notification path. " +
+                       "C-S-S trackerProtection is removed from Apple platform support in A1.")
     }
 
-    // MARK: - A1 Single-Authority Gate: legacy processRule is sole classifier
+    // MARK: - A1 Single-Authority Gate: legacy processRule path exists
 
-    func testWhenContentBlockerRulesJSIsLoadedThenProcessRulePostMessageIsPresent() throws {
-        let bskBundle = Bundle(for: ContentBlockerRulesUserScript.self)
-        let source = try ContentBlockerRulesUserScript.loadJS("contentblockerrules", from: bskBundle)
+    func testWhenContentBlockerRulesSourceIsGeneratedThenProcessRuleIsPresent() throws {
+        let mockConfig = MockPrivacyConfiguration(isFeatureKeyEnabled: { _, _ in true },
+                                                  trackerAllowlist: .init(entries: [:]))
+        let source = try ContentBlockerRulesUserScript.generateSource(privacyConfiguration: mockConfig)
+
         XCTAssertTrue(source.contains("processRule"),
-                      "contentblockerrules.js must contain the processRule postMessage call. " +
+                      "contentblockerrules.js generated source must contain processRule. " +
                       "This is the sole classification signal path in A1.")
     }
 
-    // MARK: - A1 CTL Parity: surrogates.js has CTL gating
+    // MARK: - A1 CTL Parity: surrogates source has CTL gating
 
-    func testWhenSurrogatesJSIsLoadedThenCTLSurrogateListIsPresent() throws {
-        let bskBundle = Bundle(for: ContentBlockerRulesUserScript.self)
-        let surrogatesSource = try SurrogatesUserScript.loadJS("surrogates", from: bskBundle)
-        XCTAssertTrue(surrogatesSource.contains("ctlSurrogates"),
-                      "surrogates.js must contain the ctlSurrogates list for CTL gating")
-    }
+    func testWhenSurrogatesSourceIsGeneratedThenCTLSurrogatesListIsPresent() throws {
+        let mockConfig = MockPrivacyConfiguration(isFeatureKeyEnabled: { _, _ in true },
+                                                  trackerAllowlist: .init(entries: [:]))
+        let source = try SurrogatesUserScript.generateSource(
+            privacyConfiguration: mockConfig,
+            surrogates: "",
+            encodedSurrogateTrackerData: nil,
+            isDebugBuild: false)
 
-    func testWhenSurrogatesJSIsLoadedThenIsCTLEnabledHandlerIsPresent() throws {
-        let bskBundle = Bundle(for: ContentBlockerRulesUserScript.self)
-        let surrogatesSource = try SurrogatesUserScript.loadJS("surrogates", from: bskBundle)
-        XCTAssertTrue(surrogatesSource.contains("isCTLEnabled"),
-                      "surrogates.js must contain the isCTLEnabled async handler for CTL surrogate gating")
+        XCTAssertTrue(source.contains("ctlSurrogates"),
+                      "surrogates.js generated source must contain ctlSurrogates list for CTL gating")
+        XCTAssertTrue(source.contains("isCTLEnabled"),
+                      "surrogates.js generated source must contain isCTLEnabled handler for CTL surrogate gating")
     }
 
     // MARK: - Dataset contract: Rules.encodedTrackerData uses extractSurrogates
@@ -86,15 +115,5 @@ class ContentBlockingA1InvariantTests: XCTestCase {
         }
         XCTAssertTrue(decoded.trackers.count < tds.trackers.count,
                       "Decoded surrogate TDS must have fewer trackers than the full TDS")
-    }
-
-    // MARK: - Helpers
-
-    private static func loadContentScopeBundle(fileName: String) throws -> String {
-        guard let url = ContentScopeScripts.Bundle.url(forResource: fileName, withExtension: "js"),
-              let source = try? String(contentsOf: url) else {
-            throw CocoaError(.fileReadNoSuchFile)
-        }
-        return source
     }
 }
