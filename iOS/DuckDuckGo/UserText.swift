@@ -2290,7 +2290,7 @@ public struct UserText {
             )
             public static let suggestionSurpriseMe = NotLocalizedString(
                 "onboarding.highlights.duckAIQueryExperiment.suggestion.surprise-me",
-                value: "surprise me!",
+                value: "Surprise me!",
                 comment: "Surprise me suggestion chip label in onboarding Duck.ai query experiment screen."
             )
             public static let fireOnboardingTitle = NotLocalizedString(
