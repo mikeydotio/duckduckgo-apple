@@ -647,6 +647,11 @@ private struct OnboardingQueryField: UIViewRepresentable {
             textView.text = text
         }
 
+        // Update Placeholder when switching between 'Search' and 'Duck.ai' toggle
+        if context.coordinator.placeholderLabel.text != placeholder {
+            context.coordinator.placeholderLabel.text = placeholder
+        }
+
         if context.coordinator.isSingleLine != isSingleLine {
             context.coordinator.isSingleLine = isSingleLine
             applyModeConfiguration(to: textView, isSingleLine: isSingleLine, context: context)
