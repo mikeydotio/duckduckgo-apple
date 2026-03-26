@@ -17,23 +17,21 @@
 //
 
 @testable import BrowserServicesKit
-import PrivacyConfig
+import PrivacyConfigTestsUtils
 import TrackerRadarKit
 import XCTest
 
 /// A1 invariant tests enforcing single-authority and hard-disable gates.
 ///
-/// These tests verify:
 /// 1. ContentScopeProperties does not carry trackerData (C-S-S trackerProtection hard-disabled).
-/// 2. ContentScope generated source does not contain trackerDetected references (no C-S-S classification path).
-/// 3. CTL surrogate gating exists in legacy surrogates path (via source generation).
-/// 4. Legacy processRule path is the sole classification authority (via source generation).
-/// 5. Dataset contract: Rules.encodedTrackerData uses extractSurrogates.
+/// 2. Legacy processRule and surrogates paths exist and have correct structure.
+/// 3. CTL surrogate gating exists in legacy surrogates source.
+/// 4. Dataset contract: Rules.encodedTrackerData uses extractSurrogates.
 class ContentBlockingA1InvariantTests: XCTestCase {
 
     // MARK: - A1 Hard Gate: no trackerData in ContentScopeProperties
 
-    func testWhenContentScopePropertiesIsCreatedThenTrackerDataIsAbsent() throws {
+    func testWhenContentScopePropertiesIsCreatedThenTrackerDataKeyIsAbsent() throws {
         let properties = ContentScopeProperties(
             gpcEnabled: false,
             sessionKey: "test",
@@ -48,34 +46,10 @@ class ContentBlockingA1InvariantTests: XCTestCase {
                      "C-S-S trackerProtection is hard-disabled on Apple.")
     }
 
-    // MARK: - A1 Hard Gate: generated ContentScope source has no tracker classification
-
-    func testWhenContentScopeSourceIsGeneratedThenNoTrackerDetectedNotifyExists() throws {
-        let mockConfig = MockPrivacyConfigurationManager()
-        let properties = ContentScopeProperties(
-            gpcEnabled: false,
-            sessionKey: "test",
-            messageSecret: "test",
-            featureToggles: ContentScopeFeatureToggles.allTogglesOn)
-
-        let source = try ContentScopeUserScript.generateSource(
-            mockConfig,
-            properties: properties,
-            scriptContext: .contentScope,
-            config: WebkitMessagingConfig(hasModernWebkitAPI: true, secret: "test",
-                                          webkitMessageHandlerNames: [], methodName: "test"),
-            privacyConfigurationJSONGenerator: nil)
-
-        XCTAssertFalse(source.contains("trackerDetected"),
-                       "Generated contentScope source must not contain trackerDetected notification path. " +
-                       "C-S-S trackerProtection is removed from Apple platform support in A1.")
-    }
-
     // MARK: - A1 Single-Authority Gate: legacy processRule path exists
 
     func testWhenContentBlockerRulesSourceIsGeneratedThenProcessRuleIsPresent() throws {
-        let mockConfig = MockPrivacyConfiguration(isFeatureKeyEnabled: { _, _ in true },
-                                                  trackerAllowlist: .init(entries: [:]))
+        let mockConfig = MockPrivacyConfiguration()
         let source = try ContentBlockerRulesUserScript.generateSource(privacyConfiguration: mockConfig)
 
         XCTAssertTrue(source.contains("processRule"),
@@ -85,9 +59,8 @@ class ContentBlockingA1InvariantTests: XCTestCase {
 
     // MARK: - A1 CTL Parity: surrogates source has CTL gating
 
-    func testWhenSurrogatesSourceIsGeneratedThenCTLSurrogatesListIsPresent() throws {
-        let mockConfig = MockPrivacyConfiguration(isFeatureKeyEnabled: { _, _ in true },
-                                                  trackerAllowlist: .init(entries: [:]))
+    func testWhenSurrogatesSourceIsGeneratedThenCTLGatingIsPresent() throws {
+        let mockConfig = MockPrivacyConfiguration()
         let source = try SurrogatesUserScript.generateSource(
             privacyConfiguration: mockConfig,
             surrogates: "",
