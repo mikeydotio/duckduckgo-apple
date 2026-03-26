@@ -4465,3 +4465,116 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Mitä haluat tuoda?";
 
+/* Action sheet option to choose a photo from the photo library for attaching to an AI chat message */
+"aichat.attachment.option.choose.photo" = "Valitse kuva";
+
+/* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
+"aichat.attachment.option.take.photo" = "Ota kuva";
+
+/* Accessibility hint for the escape hatch card */
+"escapeHatch.accessibility.hint" = "Siirtyy tälle välilehdelle";
+
+/* Accessibility label for escape hatch card; %@ is the tab title */
+"escapeHatch.returnTo.accessibility.label" = "Palaa välilehdelle %@";
+
+/* Label shown on the escape hatch card above the tab title */
+"escapeHatch.returnTo.label" = "Palaa kohtaan…";
+
+/* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
+"escapeHatch.returnTo.withSubtitle.accessibility.label" = "Palaa kohtaan %1$@, %2$@";
+
+/* Error shown when VPN cannot authenticate the user */
+"network.protection.error.authentication.failed" = "Todentaminen ei onnistu. Tarkista, että tilauksesi on aktiivinen, ja yritä uudelleen.";
+
+/* Error shown when VPN fails to connect to a server */
+"network.protection.error.connection.failed" = "VPN-palvelimeen ei saada yhteyttä. Yritä myöhemmin uudelleen.";
+
+/* Error shown when the user's subscription has expired */
+"network.protection.error.subscription.expired" = "Tilauksesi on päättynyt. Tilaa uudelleen, jotta voit muodostaa yhteyden VPN-palvelimeen.";
+
+/* Generic fallback error message for VPN failures. ** markers indicate bold text and should be preserved in translations. */
+"network.protection.error.unknown" = "Tapahtui odottamaton virhe. Yritä uudelleen. Jos ongelma jatkuu, vieritä **Tietoja**-kohtaan ja avaa **Usein kysytyt kysymykset ja tuki**, niin saat apua.";
+
+/* Connection failed error title shown in NetworkProtection's status view. */
+"network.protection.status.view.error.connection.failed.title" = "Yhteyden muodostaminen epäonnistui";
+
+/* Button to decline and dismiss the subscription promotion and continue the onboarding process. */
+"onboarding.privacypro.promo.buttons.rebranding.skip" = "Ei kiitos";
+
+/* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
+"onboarding.rebranding.first-search-done.message" = "Yksityinen. Nopea. Vähemmän mainoksia.";
+
+/* After the user performs their first search using the browser, this dialog title explains the advantages of using DuckDuckGo */
+"onboarding.rebranding.first-search-done.title" = "Tämä on DuckDuckGo Search!";
+
+/* The message of the onboarding dialog popup */
+"onboarding.rebranding.intro.message" = "Oletko valmis käyttämään nopeampaa selainta, joka pitää sinut suojattuna?";
+
+/* The title of the onboarding intro */
+"onboarding.rebranding.intro.title" = "Hei!";
+
+/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
+"onboarding.privacypro.promo.title.delayed" = "Tiesitkö?";
+
+/* Body copy for the returning-user restore prompt */
+"onboarding.restore.prompt.body" = "Haluatko palauttaa kirjanmerkit, salasanat ja muita tietoja edellisestä DuckDuckGo-synkronoinnistasi?";
+
+/* Primary CTA to start restoring data on returning-user restore prompt */
+"onboarding.restore.prompt.restore.cta" = "Palauta tiedot";
+
+/* Secondary CTA to skip restore on returning-user restore prompt */
+"onboarding.restore.prompt.skip.cta" = "Ohita";
+
+/* Title for the returning-user restore prompt */
+"onboarding.restore.prompt.title" = "Jatketaan siitä, mihin jäit";
+
+/* Button to go back to the previous page after redirect loop */
+"prompt.x-safari-https.go-back" = "Edellinen";
+
+/* Alert message when a redirect loop is detected */
+"prompt.x-safari-https.loop.message" = "Haluatko avata tämän sivun Safarissa?";
+
+/* Alert title when a redirect loop is detected after staying in DuckDuckGo */
+"prompt.x-safari-https.loop.title" = "Valitettavasti sivu ei latautunut.";
+
+/* Button to open the page in Safari */
+"prompt.x-safari-https.open-in-safari" = "Avaa Safarissa";
+
+/* Button to stay in DuckDuckGo instead of opening Safari */
+"prompt.x-safari-https.stay" = "Pysy DuckDuckGossa";
+
+/* Alert message when a site tries to redirect to Safari via x-safari-https scheme */
+"prompt.x-safari-https.try-open.message" = "Jotkin verkkosivuston ominaisuudet eivät välttämättä ole yhteensopivia tämän selaimen kanssa.";
+
+/* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
+"prompt.x-safari-https.try-open.title" = "Tämä sivusto haluaa avata Safarin.";
+
+/* Section footer; %@ is the idle interval (e.g. 5 minutes) */
+"settings.afterInactivity.footer.format" = "Valitse, mitä näet, kun palaat %@ käyttämättömyyden jälkeen.";
+
+/* Idle interval 1 hour for settings footer */
+"settings.afterInactivity.idle.interval.hour" = "1 tunti";
+
+/* Idle interval in hours for settings footer (plural) */
+"settings.afterInactivity.idle.interval.hours" = "%d tuntia";
+
+/* Idle interval 1 minute for settings footer */
+"settings.afterInactivity.idle.interval.minute" = "1 minuutti";
+
+/* Idle interval in minutes for settings footer (plural) */
+"settings.afterInactivity.idle.interval.minutes" = "%d minuuttia";
+
+/* Idle interval 1 second for settings footer */
+"settings.afterInactivity.idle.interval.second" = "1 sekunti";
+
+/* Idle interval in seconds for settings footer (plural) */
+"settings.afterInactivity.idle.interval.seconds" = "%d sekuntia";
+
+/* Settings picker label for what to show when returning after inactivity */
+"settings.afterInactivity.label" = "Toimettomuuden jälkeen";
+
+/* Option: show last used tab when returning after inactivity */
+"settings.afterInactivity.option.lastUsedTab" = "Viimeksi käytetty välilehti";
+
+/* Option: show New Tab when returning after inactivity */
+"settings.afterInactivity.option.newTab" = "Uusi välilehti";
