@@ -1,5 +1,5 @@
 //
-//  ProcessorTests.swift
+//  SuggestionProcessingTests.swift
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -147,7 +147,7 @@ final class ProcessorTests: XCTestCase {
             apiResult: apiResult)
 
         XCTAssertEqual(result.topHits.count, 2)
-        XCTAssertEqual(result.duckduckgoSuggestions.count, 12)
+        XCTAssertEqual(result.duckduckgoSuggestions.count, 12) // Rust MAX_DDG_MOBILE
     }
 
     func testWhenOnDesktop_ThenDuckDuckGoAPISuggestionsAreLimitedByMaxSuggestions() throws {
@@ -166,7 +166,7 @@ final class ProcessorTests: XCTestCase {
             apiResult: apiResult)
 
         XCTAssertEqual(result.topHits.count, 0)
-        XCTAssertEqual(result.duckduckgoSuggestions.count, 12)
+        XCTAssertEqual(result.duckduckgoSuggestions.count, 12) // Rust MAX_SUGGESTIONS
     }
 
     // MARK: - Combined Source Tests
