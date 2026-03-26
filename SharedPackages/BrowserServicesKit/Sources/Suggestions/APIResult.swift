@@ -23,14 +23,19 @@ public struct APIResult: Decodable {
 
     public struct SuggestionResult: Codable {
 
-        let phrase: String?
-        let isNav: Bool?
+        public let phrase: String?
+        public let isNav: Bool?
+
+        public init(phrase: String?, isNav: Bool?) {
+            self.phrase = phrase
+            self.isNav = isNav
+        }
 
     }
 
     public var items = [SuggestionResult]()
 
-    init() {}
+    public init() {}
 
     public init(from decoder: Decoder) throws {
         items = try .init(from: decoder)

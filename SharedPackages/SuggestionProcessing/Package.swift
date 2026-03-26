@@ -5,7 +5,7 @@ let package = Package(
     name: "SuggestionProcessing",
     platforms: [
         .iOS(.v15),
-        .macOS(.v11),
+        .macOS("11.4"),
     ],
     products: [
         .library(name: "SuggestionProcessing", targets: ["SuggestionProcessing"]),

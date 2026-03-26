@@ -42,7 +42,7 @@ public enum Suggestion: Equatable {
         }
     }
 
-    var title: String? {
+    public var title: String? {
         switch self {
         case .historyEntry(title: let title, url: _, _):
             return title
