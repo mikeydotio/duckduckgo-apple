@@ -1198,6 +1198,9 @@
 		379858142D730EFB008773F6 /* DefaultHistoryViewDialogPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379858122D730EFA008773F6 /* DefaultHistoryViewDialogPresenter.swift */; };
 		379C3E4C2E7238D800058C52 /* URLPredictor in Frameworks */ = {isa = PBXBuildFile; productRef = 379C3E4B2E7238D800058C52 /* URLPredictor */; };
 		379C3E4E2E7238E100058C52 /* URLPredictor in Frameworks */ = {isa = PBXBuildFile; productRef = 379C3E4D2E7238E100058C52 /* URLPredictor */; };
+		C10000022E84000000000002 /* SuggestionProcessing in Frameworks */ = {isa = PBXBuildFile; productRef = C10000042E84000000000004 /* SuggestionProcessing */; };
+		C10000032E84000000000003 /* SuggestionProcessing in Frameworks */ = {isa = PBXBuildFile; productRef = C10000052E84000000000005 /* SuggestionProcessing */; };
+		C10000062E84000000000006 /* SuggestionProcessing in Frameworks */ = {isa = PBXBuildFile; productRef = C10000072E84000000000007 /* SuggestionProcessing */; };
 		379DE4BD27EA31AC002CC3DE /* PreferencesAutofillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379DE4BC27EA31AC002CC3DE /* PreferencesAutofillView.swift */; };
 		379E4D602D4383D200A901B1 /* NewTabPageCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379E4D5F2D4383CE00A901B1 /* NewTabPageCoordinator.swift */; };
 		379E4D612D4383D200A901B1 /* NewTabPageCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379E4D5F2D4383CE00A901B1 /* NewTabPageCoordinator.swift */; };
@@ -6731,6 +6734,7 @@
 				4B9EE3462D76C94800DDC75C /* Common in Frameworks */,
 				7BECF1AB2D4905E000C1D691 /* PreferencesUI-macOS in Frameworks */,
 				379C3E4C2E7238D800058C52 /* URLPredictor in Frameworks */,
+				C10000022E84000000000002 /* SuggestionProcessing in Frameworks */,
 				F198C7202BD18D92000BF24D /* SwiftLintTool in Frameworks */,
 				4BCBE4582BA7E17800FC75A1 /* SubscriptionUI in Frameworks */,
 				4B9EE3422D76C93300DDC75C /* Bookmarks in Frameworks */,
@@ -7098,6 +7102,7 @@
 				842211672F2B85080051A0E8 /* SparkleAppUpdater in Frameworks */,
 				A1A1A1A12F50000400A0A0A0 /* CrashReporting in Frameworks */,
 				379C3E4E2E7238E100058C52 /* URLPredictor in Frameworks */,
+				C10000032E84000000000003 /* SuggestionProcessing in Frameworks */,
 				37EE81412D00DBC40068034A /* WebKitExtensions in Frameworks */,
 				4B9EE33E2D76C90600DDC75C /* PrivacyDashboard in Frameworks */,
 				F198C71E2BD18D88000BF24D /* SwiftLintTool in Frameworks */,
@@ -7153,6 +7158,7 @@
 				9F0F46A02E865AFE00A9FC4D /* RemoteMessagingTestsUtils in Frameworks */,
 				B6DA44192616C13800DD1EC2 /* OHHTTPStubsSwift in Frameworks */,
 				37EACB0B2EF53969002C06F9 /* PrivacyConfigTestsUtils in Frameworks */,
+				C10000062E84000000000006 /* SuggestionProcessing in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -12780,6 +12786,7 @@
 				7BC26CA92DFC11D800E52480 /* VPN */,
 				D65D0FA02E7239730075A784 /* NetworkQualityMonitor */,
 				379C3E4B2E7238D800058C52 /* URLPredictor */,
+				C10000042E84000000000004 /* SuggestionProcessing */,
 				D66840172E82BDED007DAAB2 /* PerformanceTest */,
 				9F50032A2E8D1B7F002F98D1 /* FoundationExtensions */,
 				F1E720B42E9D586700654B4E /* AttributedMetric */,
@@ -13361,6 +13368,7 @@
 				846F4CDE2E048A0500266DB7 /* BWIntegration */,
 				D65D0F9E2E7239680075A784 /* NetworkQualityMonitor */,
 				379C3E4D2E7238E100058C52 /* URLPredictor */,
+				C10000052E84000000000005 /* SuggestionProcessing */,
 				D65D0FA42E7239750075A784 /* PerformanceTest */,
 				9F5003282E8D1B73002F98D1 /* FoundationExtensions */,
 				F1E720B22E9D585E00654B4E /* AttributedMetric */,
@@ -13419,6 +13427,7 @@
 				CC55B2332E82BD0D0032E8BD /* BrowserServicesKitTestsUtils */,
 				9F0F469F2E865AFE00A9FC4D /* RemoteMessagingTestsUtils */,
 				37EACB0A2EF53969002C06F9 /* PrivacyConfigTestsUtils */,
+				C10000072E84000000000007 /* SuggestionProcessing */,
 			);
 			productName = DuckDuckGoTests;
 			productReference = AA585D90248FD31400E9A3E2 /* Unit Tests.xctest */;
@@ -13572,6 +13581,7 @@
 				7B11B30C2EF304B6005F0687 /* XCLocalSwiftPackageReference "../SharedPackages/AutomationServer" */,
 				CCF78AD42F34996900263097 /* XCRemoteSwiftPackageReference "combine-schedulers" */,
 				A1A1A1A12F50000600A0A0A0 /* XCLocalSwiftPackageReference "LocalPackages/CrashReporting" */,
+				C10000082E84000000000008 /* XCLocalSwiftPackageReference "../SharedPackages/SuggestionProcessing" */,
 			);
 			productRefGroup = AA585D7F248FD31100E9A3E2 /* Products */;
 			projectDirPath = "";
@@ -19521,6 +19531,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = LocalPackages/BWIntegration;
 		};
+		C10000082E84000000000008 /* XCLocalSwiftPackageReference "../SharedPackages/SuggestionProcessing" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../SharedPackages/SuggestionProcessing;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -19781,6 +19795,21 @@
 		379C3E4D2E7238E100058C52 /* URLPredictor */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = URLPredictor;
+		};
+		C10000042E84000000000004 /* SuggestionProcessing */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10000082E84000000000008 /* XCLocalSwiftPackageReference "../SharedPackages/SuggestionProcessing" */;
+			productName = SuggestionProcessing;
+		};
+		C10000052E84000000000005 /* SuggestionProcessing */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10000082E84000000000008 /* XCLocalSwiftPackageReference "../SharedPackages/SuggestionProcessing" */;
+			productName = SuggestionProcessing;
+		};
+		C10000072E84000000000007 /* SuggestionProcessing */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10000082E84000000000008 /* XCLocalSwiftPackageReference "../SharedPackages/SuggestionProcessing" */;
+			productName = SuggestionProcessing;
 		};
 		37C320B92F1E80A1008F4604 /* SnapshotTesting */ = {
 			isa = XCSwiftPackageProductDependency;
