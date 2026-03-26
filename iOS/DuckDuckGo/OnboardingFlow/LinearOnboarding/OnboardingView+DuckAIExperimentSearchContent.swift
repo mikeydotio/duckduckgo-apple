@@ -706,12 +706,25 @@ private struct OnboardingQueryField: UIViewRepresentable {
 
 // MARK: - Suggestion View Model
 
+private struct OnboardingDuckAIExperimentSearchSuggestionsProvider: OnboardingSuggestionsItemsProviding {
+    var list: [ContextualOnboardingListItem] {
+        [
+            .search(title: UserText.Onboarding.DuckAIQueryExperiment.searchSuggestionOption1),
+            .search(title: UserText.Onboarding.DuckAIQueryExperiment.searchSuggestionOption2),
+            .surprise(
+                title: UserText.Onboarding.DuckAIQueryExperiment.suggestionSurpriseMe,
+                visibleTitle: UserText.Onboarding.DuckAIQueryExperiment.suggestionSurpriseMe
+            )
+        ]
+    }
+}
+
 struct OnboardingDuckAIExperimentSuggestionsViewModel {
     private let searchSuggestionsProvider: OnboardingSuggestionsItemsProviding
     private let duckAISuggestionsProvider: OnboardingSuggestionsItemsProviding
 
     init(
-        searchSuggestionsProvider: OnboardingSuggestionsItemsProviding = OnboardingSuggestedSearchesProvider(),
+        searchSuggestionsProvider: OnboardingSuggestionsItemsProviding = OnboardingDuckAIExperimentSearchSuggestionsProvider(),
         duckAISuggestionsProvider: OnboardingSuggestionsItemsProviding = OnboardingDuckAISuggestionsProvider()
     ) {
         self.searchSuggestionsProvider = searchSuggestionsProvider
