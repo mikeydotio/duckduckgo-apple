@@ -178,9 +178,7 @@ final class OnboardingIntroViewModel: ObservableObject {
 
     func confirmSkipOnboardingAction() {
         pixelReporter.measureConfirmSkipOnboardingCTAAction()
-        onboardingSearchExperienceProvider.storeAIChatSearchInputDuringOnboardingChoice(enable: true)
-        tutorialSettings.hasSkippedOnboarding = true
-        contextualDaxDialogs.disableContextualDaxDialogs()
+        applySkipOnboardingSettings()
         onCompletingOnboardingIntro?()
     }
 
@@ -248,9 +246,7 @@ final class OnboardingIntroViewModel: ObservableObject {
 
 #if DEBUG || ALPHA
     public func overrideOnboardingCompleted() {
-        onboardingSearchExperienceProvider.storeAIChatSearchInputDuringOnboardingChoice(enable: true)
-        tutorialSettings.hasSkippedOnboarding = true
-        contextualDaxDialogs.disableContextualDaxDialogs()
+        applySkipOnboardingSettings()
         LaunchOptionsHandler().overrideOnboardingCompleted()
         onCompletingOnboardingIntro?()
     }
@@ -260,6 +256,12 @@ final class OnboardingIntroViewModel: ObservableObject {
 // MARK: - Private
 
 private extension OnboardingIntroViewModel {
+
+    func applySkipOnboardingSettings() {
+        onboardingSearchExperienceProvider.storeAIChatSearchInputDuringOnboardingChoice(enable: true)
+        tutorialSettings.hasSkippedOnboarding = true
+        contextualDaxDialogs.disableContextualDaxDialogs()
+    }
 
     func makeInitialViewState() {
         setViewState(introStep: currentIntroStep)
