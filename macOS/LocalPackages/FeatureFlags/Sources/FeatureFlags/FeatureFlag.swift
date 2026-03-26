@@ -303,6 +303,26 @@ public enum FeatureFlag: String, CaseIterable {
     /// Enables the "Add to dock" onboarding step and setting for App Store builds
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213725466401987?focus=true
     case addToDockAppStore
+
+    // MARK: - Duck.ai Recent Chats PoC feature flags (all disabled by default)
+
+    /// PoC: Duck.ai recent chats submenu in the More Options (hamburger) menu
+    case recentChatsMoreOptionsMenu
+
+    /// PoC: Duck.ai top-level menu item in the main menu bar
+    case recentChatsMainMenu
+
+    /// PoC: Duck.ai toolbar button with a recent chats dropdown
+    case recentChatsToolbar
+
+    /// PoC: Duck.ai chat history left-side sidebar panel
+    case recentChatsSidebar
+
+    /// PoC: Duck.ai floating launcher panel (⌘K)
+    case recentChatsFloating
+
+    /// PoC: "View all chats" footer row in the address bar suggestions panel
+    case recentChatsAddressBar
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -440,7 +460,13 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .semaphoreAlwaysVisible,
                 .websitesHistoryFirstTimeQuitSurvey,
                 .tabAnimations,
-                .addToDockAppStore:
+                .addToDockAppStore,
+                .recentChatsMoreOptionsMenu,
+                .recentChatsMainMenu,
+                .recentChatsToolbar,
+                .recentChatsSidebar,
+                .recentChatsFloating,
+                .recentChatsAddressBar:
             return true
         case .freemiumDBP,
                 .contextualOnboarding,
@@ -630,6 +656,13 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.tabAnimations))
         case .addToDockAppStore:
             return .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.addToDockAppStore))
+        case .recentChatsMoreOptionsMenu,
+             .recentChatsMainMenu,
+             .recentChatsToolbar,
+             .recentChatsSidebar,
+             .recentChatsFloating,
+             .recentChatsAddressBar:
+            return .disabled
         }
     }
 }

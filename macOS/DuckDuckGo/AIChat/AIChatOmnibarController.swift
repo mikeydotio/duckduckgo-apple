@@ -316,12 +316,41 @@ final class AIChatOmnibarController {
 
     /// Clears the current suggestion selection.
     func clearSuggestionSelection() {
+        isFooterRowSelected = false
         suggestionsViewModel.clearSelection()
     }
 
     /// Whether a suggestion is currently selected.
     var hasSuggestionSelected: Bool {
-        suggestionsViewModel.selectedIndex != nil
+        suggestionsViewModel.selectedIndex != nil || isFooterRowSelected
+    }
+
+    // MARK: - Footer Row Navigation
+
+    /// Set to `true` when the "View all chats" footer row should be included in keyboard navigation.
+    var isFooterRowEnabled: Bool = false
+
+    /// Whether the "View all chats" footer row is currently selected via keyboard navigation.
+    private(set) var isFooterRowSelected: Bool = false {
+        didSet { onFooterRowSelectionChanged?(isFooterRowSelected) }
+    }
+
+    /// Called whenever `isFooterRowSelected` changes. Use this to update the view's visual state.
+    var onFooterRowSelectionChanged: ((Bool) -> Void)?
+
+    /// Called when the user activates (Enter) the "View all chats" footer row.
+    var onFooterRowActivated: (() -> Void)?
+
+    func selectFooterRow() {
+        guard isFooterRowEnabled else { return }
+        suggestionsViewModel.clearSelection(keepMouseSuppressed: true)
+        isFooterRowSelected = true
+    }
+
+    func activateFooterRow() {
+        guard isFooterRowSelected else { return }
+        isFooterRowSelected = false
+        onFooterRowActivated?()
     }
 
     // MARK: - Private Methods

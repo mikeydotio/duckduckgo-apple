@@ -387,26 +387,58 @@ extension AIChatOmnibarTextContainerViewController: FocusableTextViewNavigationD
     func textViewDidRequestMoveToSuggestions() -> Bool {
         let viewModel = omnibarController.suggestionsViewModel
 
-        // If already at last suggestion, clear selection (cycle back to text field)
+        // If footer is currently selected, wrap back to text field
+        if omnibarController.isFooterRowSelected {
+            omnibarController.clearSuggestionSelection()
+            return true
+        }
+
+        // If at last suggestion and footer is enabled, move to footer
+        if let currentIndex = viewModel.selectedIndex,
+           currentIndex >= viewModel.filteredSuggestions.count - 1,
+           omnibarController.isFooterRowEnabled {
+            omnibarController.selectFooterRow()
+            return true
+        }
+
+        // If at last suggestion with no footer, cycle back to text field
         if let currentIndex = viewModel.selectedIndex,
            currentIndex >= viewModel.filteredSuggestions.count - 1 {
             viewModel.clearSelection(keepMouseSuppressed: true)
             return true
         }
 
-        // Try to select next suggestion
+        // Move down: if footer is enabled and no suggestions, go directly to footer
+        if viewModel.filteredSuggestions.isEmpty && omnibarController.isFooterRowEnabled {
+            omnibarController.selectFooterRow()
+            return true
+        }
+
         return viewModel.selectNext()
     }
 
     func textViewDidRequestMoveFromSuggestions() -> Bool {
         let viewModel = omnibarController.suggestionsViewModel
-        // selectPrevious handles both cases:
-        // - No selection: selects last item
-        // - Has selection: moves up or clears selection at top
+
+        // If footer is selected, move back to last suggestion (or clear if none)
+        if omnibarController.isFooterRowSelected {
+            omnibarController.clearSuggestionSelection()
+            if !viewModel.filteredSuggestions.isEmpty {
+                _ = viewModel.selectPrevious() // selects last item
+            }
+            return true
+        }
+
         return viewModel.selectPrevious()
     }
 
     func textViewDidRequestSelectCurrentSuggestion() -> Bool {
+        // Activate footer row if selected
+        if omnibarController.isFooterRowSelected {
+            omnibarController.activateFooterRow()
+            return true
+        }
+
         guard let suggestion = omnibarController.suggestionsViewModel.selectedSuggestion else {
             return false
         }

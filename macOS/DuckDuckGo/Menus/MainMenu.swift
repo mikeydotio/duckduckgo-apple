@@ -196,6 +196,9 @@ final class MainMenu: NSMenu {
             buildEditMenu()
             buildViewMenu()
             buildHistoryMenu()
+            if featureFlagger.isFeatureOn(.recentChatsMainMenu) {
+                buildDuckAIHistoryTopMenu()
+            }
             buildBookmarksMenu()
             buildWindowMenu()
             buildDebugMenu(featureFlagger: featureFlagger, historyCoordinator: historyCoordinator)
@@ -395,6 +398,12 @@ final class MainMenu: NSMenu {
     func buildHistoryMenu() -> NSMenuItem {
         NSMenuItem(title: UserText.mainMenuHistory)
             .submenu(historyMenu)
+    }
+
+    @MainActor
+    func buildDuckAIHistoryTopMenu() -> NSMenuItem {
+        NSMenuItem(title: UserText.aiChatRecentChatsMenuTitle)
+            .submenu(NSApp.delegateTyped.aiChatRecentChatsMenuCoordinator.makeMenu())
     }
 
     func buildBookmarksMenu() -> NSMenuItem {

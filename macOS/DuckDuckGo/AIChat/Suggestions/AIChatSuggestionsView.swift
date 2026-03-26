@@ -54,6 +54,27 @@ final class AIChatSuggestionsView: NSView {
         return stack
     }()
 
+    /// Separator between chat rows and the "View all chats" footer.
+    /// Anchored directly to self (same as top separatorView) for identical insets.
+    private let viewAllChatsSeparatorView: NSView = {
+        let view = NSView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.wantsLayer = true
+        view.isHidden = true
+        return view
+    }()
+
+    private lazy var viewAllChatsRow: AIChatViewAllChatsRowView = {
+        let row = AIChatViewAllChatsRowView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.isHidden = true
+        row.onClick = { [weak self] in self?.onViewAllChatsClicked?() }
+        row.onHoverChanged = { [weak self] isHovered in
+            if isHovered { self?.boundViewModel?.clearSelection() }
+        }
+        return row
+    }()
+
     // MARK: - Properties
 
     private var rowViews: [AIChatSuggestionRowView] = []
@@ -63,6 +84,18 @@ final class AIChatSuggestionsView: NSView {
     private var viewTrackingArea: NSTrackingArea?
 
     var onSuggestionClicked: ((AIChatSuggestion) -> Void)?
+    var onViewAllChatsClicked: (() -> Void)?
+
+    /// When `true`, a "View all chats" footer row is shown below the suggestion rows.
+    var showViewAllChats: Bool = false {
+        didSet {
+            guard oldValue != showViewAllChats else { return }
+            let hasSuggestions = !rowViews.isEmpty
+            separatorView.isHidden = !(hasSuggestions || showViewAllChats)
+            viewAllChatsRow.isHidden = !showViewAllChats
+            viewAllChatsSeparatorView.isHidden = !showViewAllChats || !hasSuggestions
+        }
+    }
 
     // MARK: - Initialization
 
@@ -84,24 +117,40 @@ final class AIChatSuggestionsView: NSView {
 
         addSubview(separatorView)
         addSubview(stackView)
+        addSubview(viewAllChatsSeparatorView)
+        addSubview(viewAllChatsRow)
 
         NSLayoutConstraint.activate([
+            // Top separator — same 12pt inset used throughout the suggestions panel
             separatorView.topAnchor.constraint(equalTo: topAnchor, constant: Constants.separatorTopPadding),
             separatorView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.separatorHorizontalInset),
             separatorView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.separatorHorizontalInset),
             separatorView.heightAnchor.constraint(equalToConstant: Constants.separatorHeight),
 
+            // Chat rows stack
             stackView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: Constants.separatorBottomPadding),
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.rowsHorizontalPadding),
-            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.rowsHorizontalPadding)
+            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.rowsHorizontalPadding),
+
+            // Footer separator — anchored to self with the same 12pt inset as the top separator
+            viewAllChatsSeparatorView.topAnchor.constraint(equalTo: stackView.bottomAnchor),
+            viewAllChatsSeparatorView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.separatorHorizontalInset),
+            viewAllChatsSeparatorView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.separatorHorizontalInset),
+            viewAllChatsSeparatorView.heightAnchor.constraint(equalToConstant: Constants.separatorHeight),
+
+            // Footer row — same horizontal padding as chat rows so icon/text aligns
+            viewAllChatsRow.topAnchor.constraint(equalTo: viewAllChatsSeparatorView.bottomAnchor),
+            viewAllChatsRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.rowsHorizontalPadding),
+            viewAllChatsRow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.rowsHorizontalPadding)
         ])
 
-        updateSeparatorColor()
+        updateSeparatorColors()
     }
 
-    private func updateSeparatorColor() {
+    private func updateSeparatorColors() {
         NSAppearance.withAppAppearance {
             separatorView.layer?.backgroundColor = NSColor(designSystemColor: .lines).cgColor
+            viewAllChatsSeparatorView.layer?.backgroundColor = NSColor.addressBarSeparator.cgColor
         }
     }
 
@@ -126,31 +175,28 @@ final class AIChatSuggestionsView: NSView {
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
-        // Clear selection when mouse leaves the suggestions view entirely
         boundViewModel?.clearSelection()
+        viewAllChatsRow.isHovered = false
     }
 
     // MARK: - Static Height Calculation
 
     /// Calculates the required height for a given number of suggestions.
-    /// This is a static calculation that doesn't depend on view state.
-    static func calculateHeight(forSuggestionCount count: Int) -> CGFloat {
-        guard count > 0 else { return 0 }
+    static func calculateHeight(forSuggestionCount count: Int, showViewAllChats: Bool = false) -> CGFloat {
+        guard count > 0 || showViewAllChats else { return 0 }
         let separatorTotalHeight = Constants.separatorHeight + Constants.separatorTopPadding + Constants.separatorBottomPadding
         let rowsHeight = CGFloat(count) * Constants.rowHeight
-        return separatorTotalHeight + rowsHeight + Constants.bottomPadding
+        // Footer separator only shown when there are chat rows above it (something to separate from)
+        let footerHeight: CGFloat = showViewAllChats ? (count > 0 ? Constants.separatorHeight : 0) + Constants.rowHeight : 0
+        return separatorTotalHeight + rowsHeight + footerHeight + Constants.bottomPadding
     }
 
-    // MARK: - Public Methods
+    // MARK: - Private Methods
 
-    /// Rebuilds the suggestion row views. Only call when the suggestions list changes.
-    /// - Parameter suggestions: The list of suggestions to display.
     private func rebuildRows(with suggestions: [AIChatSuggestion]) {
-        // Remove existing row views
         rowViews.forEach { $0.removeFromSuperview() }
         rowViews.removeAll()
 
-        // Create new row views
         for (index, suggestion) in suggestions.enumerated() {
             let rowView = AIChatSuggestionRowView(suggestion: suggestion)
             rowView.translatesAutoresizingMaskIntoConstraints = false
@@ -166,46 +212,53 @@ final class AIChatSuggestionsView: NSView {
             rowView.onHoverChanged = { [weak self] isHovered in
                 if isHovered {
                     self?.boundViewModel?.select(at: index)
+                    self?.viewAllChatsRow.isHovered = false
                 }
             }
 
             stackView.addArrangedSubview(rowView)
             rowViews.append(rowView)
 
-            // Pin row width to stack view
             rowView.widthAnchor.constraint(equalTo: stackView.widthAnchor).isActive = true
         }
 
-        // Update visibility
         let hasSuggestions = !suggestions.isEmpty
-        separatorView.isHidden = !hasSuggestions
+
+        // Top separator visible whenever the view shows any content
+        separatorView.isHidden = !(hasSuggestions || showViewAllChats)
+
+        // Footer row always visible when enabled (regardless of chat row count)
+        viewAllChatsRow.isHidden = !showViewAllChats
+        // Footer separator only shown when there are chat rows above it
+        viewAllChatsSeparatorView.isHidden = !showViewAllChats || !hasSuggestions
     }
 
-    /// Updates only the selection state without rebuilding the entire view.
-    /// - Parameters:
-    ///   - selectedIndex: The index of the currently selected suggestion.
-    ///   - isKeyboardNavigating: Whether keyboard navigation is currently active.
     private func updateSelection(_ selectedIndex: Int?, isKeyboardNavigating: Bool) {
         for (index, rowView) in rowViews.enumerated() {
             rowView.isSelected = (index == selectedIndex)
             rowView.isKeyboardNavigating = isKeyboardNavigating
-            // Clear hover state when keyboard navigating
             if isKeyboardNavigating {
                 rowView.isHovered = false
             }
         }
     }
 
-    /// Binds the view to a view model for automatic updates.
-    /// - Parameters:
-    ///   - viewModel: The view model to bind to.
-    ///   - onHeightChange: Called when the number of suggestions changes, requiring a height update.
+    // MARK: - Public Methods
+
+    func setFooterRowKeyboardSelected(_ selected: Bool) {
+        viewAllChatsRow.isSelected = selected
+        if selected {
+            rowViews.forEach { $0.isHovered = false }
+        }
+    }
+
     func bind(to viewModel: AIChatSuggestionsViewModel, onHeightChange: @escaping (CGFloat) -> Void) {
         cancellables.removeAll()
 
         boundViewModel = viewModel
+        // Reset so the first emission always reports height (handles count=0 with showViewAllChats=true)
+        previousSuggestionCount = -1
 
-        // Rebuild rows only when suggestions list changes
         viewModel.$filteredSuggestions
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
@@ -216,18 +269,15 @@ final class AIChatSuggestionsView: NSView {
                 self.previousSuggestionCount = suggestions.count
 
                 self.rebuildRows(with: suggestions)
-
-                // Apply current selection state to new rows
                 self.updateSelection(viewModel.selectedIndex, isKeyboardNavigating: viewModel.isKeyboardNavigating)
 
                 if countChanged {
-                    let newHeight = AIChatSuggestionsView.calculateHeight(forSuggestionCount: suggestions.count)
+                    let newHeight = AIChatSuggestionsView.calculateHeight(forSuggestionCount: suggestions.count, showViewAllChats: self.showViewAllChats)
                     onHeightChange(newHeight)
                 }
             }
             .store(in: &cancellables)
 
-        // Update selection without rebuilding when only selection changes
         viewModel.$selectedIndex
             .combineLatest(viewModel.$isKeyboardNavigating)
             .receive(on: DispatchQueue.main)
@@ -241,6 +291,6 @@ final class AIChatSuggestionsView: NSView {
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
-        updateSeparatorColor()
+        updateSeparatorColors()
     }
 }

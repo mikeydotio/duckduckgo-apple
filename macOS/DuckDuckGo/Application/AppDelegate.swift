@@ -210,6 +210,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         promptHandler: AIChatPromptHandler.shared,
         aiChatTabManaging: windowControllersManager
     )
+
+    lazy var aiChatRecentChatsMenuCoordinator: AIChatRecentChatsMenuCoordinator = MainActor.assumeIsolated {
+        let privacyConfig = privacyFeatures.contentBlocking.privacyConfigurationManager
+        let reader = AIChatSuggestionsReader(
+            suggestionsReader: SuggestionsReader(featureFlagger: featureFlagger, privacyConfig: privacyConfig),
+            historySettings: AIChatHistorySettings(privacyConfig: privacyConfig)
+        )
+        return AIChatRecentChatsMenuCoordinator(suggestionsReader: reader)
+    }
+
     let aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable
     let aiChatSessionStore: AIChatSessionStoring
     let aiChatPreferences: AIChatPreferences

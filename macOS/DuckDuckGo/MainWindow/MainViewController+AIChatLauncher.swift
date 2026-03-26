@@ -23,6 +23,24 @@ import Foundation
 
 extension MainViewController {
 
+    /// Tears down the Duck.ai launcher: cancels subscriptions, removes the key monitor,
+    /// and releases the coordinator. Safe to call when already torn down.
+    func tearDownAIChatLauncher() {
+        aiChatLauncherCoordinator?.tearDown()
+        aiChatLauncherCoordinator = nil
+        standaloneFloatingWindowCoordinator = nil
+        launcherCancellables.removeAll()
+        if let monitor = launcherKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            launcherKeyMonitor = nil
+        }
+        if let observer = launcherWindowCloseObserver {
+            NotificationCenter.default.removeObserver(observer)
+            launcherWindowCloseObserver = nil
+        }
+        navigationBarViewController.onAIChatLauncherButtonClicked = nil
+    }
+
     /// Creates the Duck.ai launcher and standalone floating window and wires them up.
     /// Call once from viewDidLoad, after setupAIChatHistorySidebar().
     func setupAIChatLauncher() {
@@ -97,6 +115,7 @@ extension MainViewController {
             guard let self else { return event }
             guard event.charactersIgnoringModifiers == "k",
                   event.modifierFlags.contains(.command) else { return event }
+            guard NSApp.delegateTyped.featureFlagger.isFeatureOn(.recentChatsFloating) else { return event }
             // Only open if launcher is closed and this browser window is key
             guard view.window?.isKeyWindow == true,
                   aiChatLauncherCoordinator?.isLauncherOpen == false else { return event }

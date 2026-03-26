@@ -1856,6 +1856,20 @@ struct UserText {
         comment: "Footer hint in the Duck.ai launcher showing Escape dismisses the panel"
     )
 
+    // MARK: - AI Chat Recent Chats Menu (PoC)
+
+    static let aiChatRecentChatsMenuTitle = NSLocalizedString("ai.chat.recent.chats.menu.title", value: "Duck.ai", comment: "Title for the Duck.ai recent chats menu item")
+    static let aiChatRecentChatsOpenDuckAI = NSLocalizedString("ai.chat.recent.chats.open.duck.ai", value: "Open Duck.ai", comment: "Menu item to open Duck.ai in a new tab")
+    static let aiChatRecentChatsCreateImage = NSLocalizedString("ai.chat.recent.chats.create.image", value: "Create Image", comment: "Menu item to start a Duck.ai image generation chat")
+    static let aiChatRecentChatsDeleteAll = NSLocalizedString("ai.chat.recent.chats.delete.all", value: "Delete All Chats\u{2026}", comment: "Menu item to delete all Duck.ai chat history")
+    static let aiChatRecentChatsLoading = NSLocalizedString("ai.chat.recent.chats.loading", value: "Loading\u{2026}", comment: "Placeholder shown while Duck.ai chat history is being fetched")
+    static let aiChatRecentChatsDeleteAllConfirmTitle = NSLocalizedString("ai.chat.recent.chats.delete.all.confirm.title", value: "Delete All Duck.ai Chats?", comment: "Title of the confirmation alert before deleting all Duck.ai chats")
+    static let aiChatRecentChatsDeleteAllConfirmMessage = NSLocalizedString("ai.chat.recent.chats.delete.all.confirm.message", value: "This action cannot be undone.", comment: "Informative text of the confirmation alert before deleting all Duck.ai chats")
+    static let aiChatRecentChatsDeleteAllConfirmButton = NSLocalizedString("ai.chat.recent.chats.delete.all.confirm.button", value: "Delete All", comment: "Confirmation button label to proceed with deleting all Duck.ai chats")
+    static let aiChatRecentChatsToolbarButtonTooltip = NSLocalizedString("ai.chat.recent.chats.toolbar.button.tooltip", value: "Duck.ai", comment: "Tooltip for the Duck.ai recent chats toolbar button")
+    static let aiChatViewAllChatsTitle = NSLocalizedString("ai.chat.view.all.chats.title", value: "View all chats", comment: "Label for the 'View all chats' footer row in the address bar suggestions panel")
+    static let aiChatViewAllChatsOpenDuckAI = NSLocalizedString("ai.chat.view.all.chats.open.duck.ai", value: "Open Duck.ai →", comment: "Right-side label on the 'View all chats' footer row, indicating it opens Duck.ai")
+
     static let downloadsShortcutTooltip = NSLocalizedString("tooltip.downloads.shortcut", value: "Downloads", comment: "Tooltip for the downloads shortcut")
 
     static let addItemTooltip = NSLocalizedString("tooltip.autofill.add-item", value: "Add item", comment: "Tooltip for the Add Item button")

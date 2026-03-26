@@ -23,6 +23,13 @@ import AppKit
 
 extension MainViewController {
 
+    /// Tears down the history sidebar coordinator. Safe to call when already torn down.
+    func tearDownAIChatHistorySidebar() {
+        aiChatHistorySidebarCoordinator = nil
+        historySidebarCancellables.removeAll()
+        navigationBarViewController.onAIChatHistoryButtonClicked = nil
+    }
+
     /// Creates the history sidebar coordinator and wires it up.
     /// Call once from viewDidLoad, after aiChatCoordinator and browserTabViewController are ready.
     func setupAIChatHistorySidebar() {

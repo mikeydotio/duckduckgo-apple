@@ -171,7 +171,7 @@ final class NavigationBarViewController: NSViewController {
     private lazy var aiChatHistoryButton: MouseOverButton = {
         let button = MouseOverButton(frame: .zero)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.image = .aiChat
+        button.image = DesignSystemImages.Glyphs.Size16.sidebar
         button.imageScaling = .scaleProportionallyDown
         button.bezelStyle = .shadowlessSquare
         button.isBordered = false
@@ -186,7 +186,7 @@ final class NavigationBarViewController: NSViewController {
     private lazy var aiChatLauncherButton: MouseOverButton = {
         let button = MouseOverButton(frame: .zero)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.image = .aiChat
+        button.image = DesignSystemImages.Glyphs.Size16.formAutofill
         button.imageScaling = .scaleProportionallyDown
         button.bezelStyle = .shadowlessSquare
         button.isBordered = false
@@ -195,6 +195,21 @@ final class NavigationBarViewController: NSViewController {
         button.action = #selector(aiChatLauncherButtonAction(_:))
         button.setAccessibilityIdentifier("NavigationBarViewController.aiChatLauncherButton")
         button.toolTip = UserText.aiChatLauncherButtonTooltip
+        return button
+    }()
+
+    private lazy var aiChatRecentChatsButton: MouseOverButton = {
+        let button = MouseOverButton(frame: .zero)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.image = .aiChat
+        button.imageScaling = .scaleProportionallyDown
+        button.bezelStyle = .shadowlessSquare
+        button.isBordered = false
+        button.sendAction(on: .leftMouseDown)
+        button.target = self
+        button.action = #selector(aiChatRecentChatsButtonAction(_:))
+        button.setAccessibilityIdentifier("NavigationBarViewController.aiChatRecentChatsButton")
+        button.toolTip = UserText.aiChatRecentChatsToolbarButtonTooltip
         return button
     }()
 
@@ -1071,9 +1086,37 @@ final class NavigationBarViewController: NSViewController {
         optionsButton.setAccessibilityTitle(UserText.applicationMenuTooltip)
         optionsButton.toolTip = UserText.applicationMenuTooltip
 
-        setupAIChatHistoryButton()
-        setupAIChatLauncherButton()
-        aiChatLauncherButton.setAccessibilityTitle(UserText.aiChatLauncherAccessibilityLabel)
+        let featureFlagger = NSApp.delegateTyped.featureFlagger
+        featureFlagger.updatesPublisher
+            .prepend(())
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                let ff = NSApp.delegateTyped.featureFlagger
+
+                if ff.isFeatureOn(.recentChatsSidebar) {
+                    self.setupAIChatHistoryButton()
+                    self.aiChatHistoryButton.isHidden = false
+                } else {
+                    self.aiChatHistoryButton.isHidden = true
+                }
+
+                if ff.isFeatureOn(.recentChatsFloating) {
+                    self.setupAIChatLauncherButton()
+                    self.aiChatLauncherButton.setAccessibilityTitle(UserText.aiChatLauncherAccessibilityLabel)
+                    self.aiChatLauncherButton.isHidden = false
+                } else {
+                    self.aiChatLauncherButton.isHidden = true
+                }
+
+                if ff.isFeatureOn(.recentChatsToolbar) {
+                    self.setupAIChatRecentChatsButton()
+                    self.aiChatRecentChatsButton.isHidden = false
+                } else {
+                    self.aiChatRecentChatsButton.isHidden = true
+                }
+            }
+            .store(in: &cancellables)
 
         navigationButtons.spacing = theme.navigationToolbarButtonsSpacing
         setupNavigationButtonIcons()
@@ -1219,6 +1262,7 @@ final class NavigationBarViewController: NSViewController {
         overflowButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
         aiChatHistoryButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
         aiChatLauncherButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
+        aiChatRecentChatsButton.setCornerRadius(theme.toolbarButtonsCornerRadius)
     }
 
     private func setupAIChatHistoryButton() {
@@ -1278,6 +1322,30 @@ final class NavigationBarViewController: NSViewController {
 
     @IBAction private func aiChatHistoryButtonAction(_ sender: NSButton) {
         onAIChatHistoryButtonClicked?()
+    }
+
+    private func setupAIChatRecentChatsButton() {
+        if aiChatRecentChatsButton.superview == nil {
+            let insertIndex = menuButtons.arrangedSubviews.firstIndex(of: optionsButton) ?? menuButtons.arrangedSubviews.count
+            menuButtons.insertArrangedSubview(aiChatRecentChatsButton, at: insertIndex)
+
+            let size = theme.addressBarStyleProvider.addressBarButtonSize
+            NSLayoutConstraint.activate([
+                aiChatRecentChatsButton.widthAnchor.constraint(equalToConstant: size),
+                aiChatRecentChatsButton.heightAnchor.constraint(equalToConstant: size)
+            ])
+        }
+
+        let colorsProvider = theme.colorsProvider
+        aiChatRecentChatsButton.normalTintColor = colorsProvider.iconsColor
+        aiChatRecentChatsButton.mouseOverColor = colorsProvider.buttonMouseOverColor
+        aiChatRecentChatsButton.mouseDownColor = colorsProvider.buttonMouseDownColor
+    }
+
+    @IBAction private func aiChatRecentChatsButtonAction(_ sender: NSButton) {
+        let menu = NSApp.delegateTyped.aiChatRecentChatsMenuCoordinator.makeMenu()
+        let location = NSPoint(x: 0, y: sender.bounds.height + 4)
+        menu.popUp(positioning: nil, at: location, in: sender)
     }
 
     private func subscribeToSelectedTabViewModel() {

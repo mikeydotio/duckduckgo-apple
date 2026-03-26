@@ -76,11 +76,13 @@ final class MainViewController: NSViewController {
     // History sidebar
     var aiChatHistorySidebarCoordinator: AIChatHistorySidebarCoordinator?
     var historySidebarCancellables = Set<AnyCancellable>()
+    var historySidebarFlagCancellable: AnyCancellable?
 
     // AI Chat Launcher
     var aiChatLauncherCoordinator: AIChatLauncherCoordinator?
     var standaloneFloatingWindowCoordinator: AIChatStandaloneFloatingWindowCoordinator?
     var launcherCancellables = Set<AnyCancellable>()
+    var launcherFlagCancellable: AnyCancellable?
     var launcherKeyMonitor: Any?
     var launcherWindowCloseObserver: NSObjectProtocol?
 
@@ -358,8 +360,32 @@ final class MainViewController: NSViewController {
         mainView.setupAIChatOmnibarContainerConstraints(addressBarStack: navigationBarViewController.addressBarStack)
 
         wireAIChatOmnibarUpdates()
-        setupAIChatHistorySidebar()
-        setupAIChatLauncher()
+        historySidebarFlagCancellable = featureFlagger.updatesPublisher
+            .prepend(())
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                if self.featureFlagger.isFeatureOn(.recentChatsSidebar) {
+                    if self.aiChatHistorySidebarCoordinator == nil {
+                        self.setupAIChatHistorySidebar()
+                    }
+                } else {
+                    self.tearDownAIChatHistorySidebar()
+                }
+            }
+        launcherFlagCancellable = featureFlagger.updatesPublisher
+            .prepend(())
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                if self.featureFlagger.isFeatureOn(.recentChatsFloating) {
+                    if self.aiChatLauncherCoordinator == nil {
+                        self.setupAIChatLauncher()
+                    }
+                } else {
+                    self.tearDownAIChatLauncher()
+                }
+            }
     }
 
     override func viewWillAppear() {

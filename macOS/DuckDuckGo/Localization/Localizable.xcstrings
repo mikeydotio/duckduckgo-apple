@@ -1919,6 +1919,138 @@
         }
       }
     },
+    "ai.chat.recent.chats.create.image" : {
+      "comment" : "Menu item to start a Duck.ai image generation chat",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Create Image"
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.delete.all" : {
+      "comment" : "Menu item to delete all Duck.ai chat history",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Delete All Chats\u2026"
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.delete.all.confirm.button" : {
+      "comment" : "Confirmation button label to proceed with deleting all Duck.ai chats",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Delete All"
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.delete.all.confirm.message" : {
+      "comment" : "Informative text of the confirmation alert before deleting all Duck.ai chats",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This action cannot be undone."
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.delete.all.confirm.title" : {
+      "comment" : "Title of the confirmation alert before deleting all Duck.ai chats",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Delete All Duck.ai Chats?"
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.loading" : {
+      "comment" : "Placeholder shown while Duck.ai chat history is being fetched",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Loading\u2026"
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.menu.title" : {
+      "comment" : "Title for the Duck.ai recent chats menu item",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Duck.ai"
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.open.duck.ai" : {
+      "comment" : "Menu item to open Duck.ai in a new tab",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Duck.ai"
+          }
+        }
+      }
+    },
+    "ai.chat.recent.chats.toolbar.button.tooltip" : {
+      "comment" : "Tooltip for the Duck.ai recent chats toolbar button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Duck.ai"
+          }
+        }
+      }
+    },
+    "ai.chat.view.all.chats.title" : {
+      "comment" : "Label for the 'View all chats' footer row in the address bar suggestions panel",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "View all chats"
+          }
+        }
+      }
+    },
+    "ai.chat.view.all.chats.open.duck.ai" : {
+      "comment" : "Right-side label on the 'View all chats' footer row, indicating it opens Duck.ai",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Duck.ai →"
+          }
+        }
+      }
+    },
     "ai.chat.launcher.image" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -95,6 +95,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     private var modelsCancellable: AnyCancellable?
     private var windowFrameObserver: AnyCancellable?
     private var viewBoundsObserver: AnyCancellable?
+    private var footerFlagCancellable: AnyCancellable?
 
     /// Current suggestions height - cached to avoid recalculation
     private(set) var suggestionsHeight: CGFloat = 0
@@ -411,6 +412,32 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 didSelectSuggestion: suggestion
             )
         }
+
+        // Wire "View all chats" footer callbacks unconditionally (footer is a no-op when disabled)
+        let openAllChats: () -> Void = { [weak self] in
+            guard let self else { return }
+            self.omnibarController.delegate?.aiChatOmnibarControllerDidSubmit(self.omnibarController)
+            NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .newChat, behavior: .currentTab)
+        }
+        suggestionsView.onViewAllChatsClicked = openAllChats
+        omnibarController.onFooterRowSelectionChanged = { [weak self] isSelected in
+            self?.suggestionsView.setFooterRowKeyboardSelected(isSelected)
+        }
+        omnibarController.onFooterRowActivated = openAllChats
+
+        // Reactively enable/disable the footer when the feature flag changes
+        footerFlagCancellable = NSApp.delegateTyped.featureFlagger.updatesPublisher
+            .prepend(())
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                let isEnabled = NSApp.delegateTyped.featureFlagger.isFeatureOn(.recentChatsAddressBar)
+                self.suggestionsView.showViewAllChats = isEnabled
+                self.omnibarController.isFooterRowEnabled = isEnabled
+                let count = self.omnibarController.suggestionsViewModel.filteredSuggestions.count
+                let newHeight = AIChatSuggestionsView.calculateHeight(forSuggestionCount: count, showViewAllChats: isEnabled)
+                self.updateSuggestionsHeight(newHeight)
+            }
 
         // Bind to view model with height change callback
         suggestionsView.bind(to: omnibarController.suggestionsViewModel) { [weak self] newHeight in

@@ -239,6 +239,12 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
         addItem(NSMenuItem.separator())
 
+        if featureFlagger.isFeatureOn(.recentChatsMoreOptionsMenu) {
+            addItem(withTitle: UserText.aiChatRecentChatsMenuTitle, action: nil, keyEquivalent: "")
+                .withImage(moreOptionsMenuIconsProvider.newAIChatIcon)
+                .withSubmenu(NSApp.delegateTyped.aiChatRecentChatsMenuCoordinator.makeMenu())
+        }
+
         addUtilityItems()
 
         addItem(withTitle: UserText.emailOptionsMenuItem, action: nil, keyEquivalent: "")
