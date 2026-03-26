@@ -60,6 +60,7 @@ final class ContextualOnboardingLogicMock: ContextualOnboardingLogic, Subscripti
     var isShowingSubscriptionPromotion: Bool = false
     var shouldShowFireButtonPulse: Bool = false
     var isAddFavoriteFlow: Bool = false
+    var isShowingFinalDialog: Bool = false
     var isDismissedPublisher = PassthroughSubject<Bool, Never>()
 
     func setTryAnonymousSearchMessageSeen() {
@@ -136,6 +137,8 @@ final class ContextualOnboardingLogicMock: ContextualOnboardingLogic, Subscripti
 
 // Use to fill parameter list in injection.
 class DummyDaxDialogsManager: DaxDialogsManaging {
+    var isShowingFinalDialog: Bool = false
+
     var hasSeenOnboarding: Bool = false
 
     var isShowingFireDialog: Bool = false
