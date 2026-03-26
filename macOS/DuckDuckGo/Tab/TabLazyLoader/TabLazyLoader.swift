@@ -71,6 +71,7 @@ final class TabLazyLoader<DataSource: TabLazyLoaderDataSource> {
             return
         }
 
+        Logger.tabLazyLoading.debug("🔷 [LazyLoader] scheduleLazyLoading selectedTab=\(String(describing: currentTab.url)) isUrl=\(currentTab.isUrl) totalTabs=\(self.dataSource.tabs.count) pinnedTabs=\(self.dataSource.pinnedTabs.count)")
         trackUserSwitchingTabs()
         delayLazyLoadingUntilCurrentTabFinishesLoading(currentTab)
     }
@@ -103,18 +104,22 @@ final class TabLazyLoader<DataSource: TabLazyLoaderDataSource> {
 
     private func delayLazyLoadingUntilCurrentTabFinishesLoading(_ tab: DataSource.Tab) {
         guard tab.isUrl else {
+            Logger.tabLazyLoading.debug("🔷 [LazyLoader] selected tab is not URL, starting immediately")
             startLazyLoadingRecentlySelectedTabs()
             return
         }
 
+        Logger.tabLazyLoading.debug("🔷 [LazyLoader] waiting for selected tab to finish loading url=\(String(describing: tab.url))")
         tab.loadingFinishedPublisher
             .sink { [weak self] _ in
+                Logger.tabLazyLoading.debug("🔷 [LazyLoader] selected tab finished loading, starting lazy loading")
                 self?.startLazyLoadingRecentlySelectedTabs()
             }
             .store(in: &cancellables)
     }
 
     private func startLazyLoadingRecentlySelectedTabs() {
+        Logger.tabLazyLoading.debug("🔷 [LazyLoader] startLazyLoadingRecentlySelectedTabs hasTabsToLoad=\(self.hasAnyTabsToLoad()) tabsRemaining=\(self.numberOfTabsRemaining)")
         guard hasAnyTabsToLoad() else {
             Logger.tabLazyLoading.debug("No tabs to load")
             let loadedAnyTab = numberOfTabsRemaining < Const.maxNumberOfLazyLoadedTabs
@@ -169,6 +174,7 @@ final class TabLazyLoader<DataSource: TabLazyLoaderDataSource> {
     }
 
     private func findAndReloadNextTab() {
+        Logger.tabLazyLoading.debug("🔷 [LazyLoader] findAndReloadNextTab tabsRemaining=\(self.numberOfTabsRemaining) inProgress=\(self.numberOfTabsInProgress.value)")
         guard numberOfTabsRemaining > 0 else {
             Logger.tabLazyLoading.debug("Maximum allowed tabs loaded (\(Const.maxNumberOfLazyLoadedTabs), skipping")
             return
@@ -178,11 +184,13 @@ final class TabLazyLoader<DataSource: TabLazyLoaderDataSource> {
 
         switch (tabToLoad, numberOfTabsInProgress.value) {
         case (.none, 0):
-            Logger.tabLazyLoading.debug("No more tabs suitable for lazy loading")
+            Logger.tabLazyLoading.debug("🔷 [LazyLoader] No more tabs suitable for lazy loading")
             lazyLoadingDidFinishSubject.send(true)
         case (.none, _):
+            Logger.tabLazyLoading.debug("🔷 [LazyLoader] No tab found but \(self.numberOfTabsInProgress.value) still in progress")
             break
         case (let .some(tab), _):
+            Logger.tabLazyLoading.debug("🔷 [LazyLoader] found tab to load url=\(String(describing: tab.url))")
             lazyLoadTab(tab)
         }
     }
@@ -248,7 +256,7 @@ final class TabLazyLoader<DataSource: TabLazyLoaderDataSource> {
     }
 
     private func lazyLoadTab(_ tab: DataSource.Tab) {
-        Logger.tabLazyLoading.debug("Reloading \(String(reflecting: tab.url))")
+        Logger.tabLazyLoading.debug("🔷 [LazyLoader] lazyLoadTab url=\(String(describing: tab.url)) remaining=\(self.numberOfTabsRemaining) inProgress=\(self.numberOfTabsInProgress.value)")
 
         subscribeToTabLoadingFinished(tab)
         idsOfTabsSelectedOrReloadedInThisSession.insert(tab.id)
@@ -266,6 +274,7 @@ final class TabLazyLoader<DataSource: TabLazyLoaderDataSource> {
     private func subscribeToTabLoadingFinished(_ tab: DataSource.Tab) {
         tab.loadingFinishedPublisher
             .sink(receiveValue: { [weak self] tab in
+                Logger.tabLazyLoading.debug("🔷 [LazyLoader] tab finished loading url=\(String(describing: tab.url))")
                 tab.isLazyLoadingInProgress = false
                 self?.tabDidLoadSubject.send(tab)
             })

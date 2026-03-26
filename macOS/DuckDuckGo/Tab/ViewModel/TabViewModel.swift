@@ -77,7 +77,9 @@ final class TabViewModel: NSObject {
     let zoomLevelSubject = PassthroughSubject<DefaultZoomValue, Never>()
     private(set) var zoomLevel: DefaultZoomValue = .percent100 {
         didSet {
-            self.tab.webView.zoomLevel = zoomLevel
+            if tab.isWebViewCreated {
+                self.tab.webView.zoomLevel = zoomLevel
+            }
             if oldValue != zoomLevel {
                 zoomLevelSubject.send(zoomLevel)
             }
