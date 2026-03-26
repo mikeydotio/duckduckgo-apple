@@ -386,6 +386,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Verify locale list
+        run: python3 scripts/translation-pr-checks/verify_locale_list.py --platform iOS
+
       - name: Verify string extraction to strings files
         env:
           CHANGED_FILES: ${{ needs.release-build.outputs.changed_files }}
@@ -405,6 +408,9 @@ jobs:
 
       - name: Check translations
         run: python3 scripts/translation-pr-checks/check_new_string_translations.py --platform iOS
+
+      - name: Check for orphaned translations
+        run: python3 scripts/translation-pr-checks/check_deleted_string_translations.py --platform iOS
 
   create-asana-task:
     name: Create Asana Task
