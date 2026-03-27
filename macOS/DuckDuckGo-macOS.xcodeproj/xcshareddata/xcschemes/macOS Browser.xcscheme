@@ -21,6 +21,20 @@
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
+            buildForTesting = "NO"
+            buildForRunning = "YES"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DC3B11BCF6C7F6F38277F25F"
+               BuildableName = "dbp-mcp-server"
+               BlueprintName = "DBPMCPServer"
+               ReferencedContainer = "container:DuckDuckGo-macOS.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "NO"
             buildForProfiling = "NO"
