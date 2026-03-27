@@ -153,4 +153,14 @@ extension DefaultDataBrokerProtectionLoginItemInterface: DataBrokerProtectionLog
     func getAuthStatus() async -> Data? {
         return await ipcClient.getAuthStatus()
     }
+
+    // MARK: - MCP Debug Server Support (Actions)
+
+    func forceBrokerUpdate() async -> Data? {
+        return await ipcClient.forceBrokerUpdate()
+    }
+
+    func setAPIEndpoint(environment: String, serviceRoot: String) async -> Data? {
+        return await ipcClient.setAPIEndpoint(environment: environment, serviceRoot: serviceRoot)
+    }
 }

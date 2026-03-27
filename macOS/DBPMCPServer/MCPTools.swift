@@ -148,6 +148,22 @@ final class MCPTools {
                     required: ["first_name", "last_name", "city", "state", "birth_year"]
                 )
             ),
+            toolDef(
+                name: "force_broker_update",
+                description: "Force an immediate broker JSON update from the remote server, bypassing the hourly rate limiter. Resets delivery data (ETag, timestamp) so the next check fetches fresh data.",
+                inputSchema: emptySchema()
+            ),
+            toolDef(
+                name: "set_api_endpoint",
+                description: "Switch the DBP API environment between production and staging, with an optional service root path for staging branch deploys.",
+                inputSchema: schemaWith(
+                    properties: [
+                        "environment": ["type": "string", "description": "API environment: 'production' or 'staging'"],
+                        "service_root": ["type": "string", "description": "Optional path appended to staging URL for branch deploys (e.g., '/branch-name'). Ignored for production. Pass empty string to reset."]
+                    ],
+                    required: ["environment"]
+                )
+            ),
         ]
     }
 
@@ -198,6 +214,10 @@ final class MCPTools {
             getProfileQueries(completion: completion)
         case "run_scan":
             runScan(arguments: arguments, completion: completion)
+        case "force_broker_update":
+            forceBrokerUpdate(completion: completion)
+        case "set_api_endpoint":
+            setAPIEndpoint(arguments: arguments, completion: completion)
         default:
             completion(.failure(ToolError.unknownTool(name)))
         }
@@ -451,6 +471,34 @@ final class MCPTools {
         agent.getAuthStatus { data in
             guard let data else {
                 completion(.failure(ToolError.xpcError("Failed to fetch auth status. Is the agent running?")))
+                return
+            }
+            self.prettyPrintJSON(data, completion: completion)
+        }
+    }
+
+    // MARK: - Action Tools
+
+    private func forceBrokerUpdate(completion: @escaping (Result<String, Error>) -> Void) {
+        agent.forceBrokerUpdate { data in
+            guard let data else {
+                completion(.failure(ToolError.xpcError("Failed to force broker update. Is the agent running?")))
+                return
+            }
+            self.prettyPrintJSON(data, completion: completion)
+        }
+    }
+
+    private func setAPIEndpoint(arguments: [String: Any], completion: @escaping (Result<String, Error>) -> Void) {
+        guard let environment = arguments["environment"] as? String else {
+            completion(.failure(ToolError.missingArgument("environment")))
+            return
+        }
+        let serviceRoot = arguments["service_root"] as? String ?? ""
+
+        agent.setAPIEndpoint(environment: environment, serviceRoot: serviceRoot) { data in
+            guard let data else {
+                completion(.failure(ToolError.xpcError("Failed to set API endpoint. Is the agent running?")))
                 return
             }
             self.prettyPrintJSON(data, completion: completion)

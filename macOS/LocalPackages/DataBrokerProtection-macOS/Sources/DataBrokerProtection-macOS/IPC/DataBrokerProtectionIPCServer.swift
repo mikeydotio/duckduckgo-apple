@@ -127,6 +127,11 @@ protocol XPCServerInterface {
     func getScanHistory(brokerId: Int64, profileQueryId: Int64, completion: @escaping (Data?) -> Void)
     func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64, completion: @escaping (Data?) -> Void)
     func getAuthStatus(completion: @escaping (Data?) -> Void)
+
+    // MARK: - MCP Debug Server Support (Actions)
+
+    func forceBrokerUpdate(completion: @escaping (Data?) -> Void)
+    func setAPIEndpoint(environment: String, serviceRoot: String, completion: @escaping (Data?) -> Void)
 }
 
 protocol DataBrokerProtectionIPCServer: IPCClientInterface, XPCServerInterface {
@@ -267,6 +272,22 @@ extension DefaultDataBrokerProtectionIPCServer: XPCServerInterface {
     func getAuthStatus(completion: @escaping (Data?) -> Void) {
         Task {
             let data = await serverDelegate?.getAuthStatus()
+            completion(data)
+        }
+    }
+
+    // MARK: - MCP Debug Server Support (Actions)
+
+    func forceBrokerUpdate(completion: @escaping (Data?) -> Void) {
+        Task {
+            let data = await serverDelegate?.forceBrokerUpdate()
+            completion(data)
+        }
+    }
+
+    func setAPIEndpoint(environment: String, serviceRoot: String, completion: @escaping (Data?) -> Void) {
+        Task {
+            let data = await serverDelegate?.setAPIEndpoint(environment: environment, serviceRoot: serviceRoot)
             completion(data)
         }
     }

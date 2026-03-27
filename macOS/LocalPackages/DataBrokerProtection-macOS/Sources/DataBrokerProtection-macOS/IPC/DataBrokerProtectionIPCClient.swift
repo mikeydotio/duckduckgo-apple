@@ -258,6 +258,34 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
             })
         }
     }
+
+    // MARK: - MCP Debug Server Support (Actions)
+
+    public func forceBrokerUpdate() async -> Data? {
+        await withCheckedContinuation { continuation in
+            xpc.execute(call: { server in
+                server.forceBrokerUpdate { data in
+                    continuation.resume(returning: data)
+                }
+            }, xpcReplyErrorHandler: { error in
+                Logger.dataBrokerProtection.error("Error forcing broker update: \(error.localizedDescription)")
+                continuation.resume(returning: nil)
+            })
+        }
+    }
+
+    public func setAPIEndpoint(environment: String, serviceRoot: String) async -> Data? {
+        await withCheckedContinuation { continuation in
+            xpc.execute(call: { server in
+                server.setAPIEndpoint(environment: environment, serviceRoot: serviceRoot) { data in
+                    continuation.resume(returning: data)
+                }
+            }, xpcReplyErrorHandler: { error in
+                Logger.dataBrokerProtection.error("Error setting API endpoint: \(error.localizedDescription)")
+                continuation.resume(returning: nil)
+            })
+        }
+    }
 }
 
 // MARK: - Incoming communication from the server

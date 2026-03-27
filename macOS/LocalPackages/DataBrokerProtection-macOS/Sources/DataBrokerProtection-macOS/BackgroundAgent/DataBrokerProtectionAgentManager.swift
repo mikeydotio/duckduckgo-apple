@@ -863,6 +863,52 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
 
         return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
     }
+
+    // MARK: - MCP Debug Server Support (Actions)
+
+    public func forceBrokerUpdate() async -> Data? {
+        let settings = DataBrokerProtectionSettings(defaults: .dbp)
+        settings.resetBrokerDeliveryData()
+
+        do {
+            try await brokerUpdater.checkForUpdates(skipsLimiter: true)
+            let result: [String: Any] = [
+                "success": true,
+                "message": "Broker JSON update completed. Rate limiter bypassed, delivery data reset.",
+            ]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        } catch {
+            let result: [String: Any] = [
+                "success": false,
+                "error": error.localizedDescription,
+            ]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
+    }
+
+    public func setAPIEndpoint(environment: String, serviceRoot: String) async -> Data? {
+        let settings = DataBrokerProtectionSettings(defaults: .dbp)
+
+        if let env = DataBrokerProtectionSettings.SelectedEnvironment(rawValue: environment) {
+            settings.selectedEnvironment = env
+        } else {
+            let result: [String: Any] = [
+                "success": false,
+                "error": "Invalid environment '\(environment)'. Must be 'production' or 'staging'.",
+            ]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
+
+        settings.serviceRoot = serviceRoot
+
+        let result: [String: Any] = [
+            "success": true,
+            "environment": settings.selectedEnvironment.rawValue,
+            "serviceRoot": settings.serviceRoot,
+            "endpointURL": settings.endpointURL.absoluteString,
+        ]
+        return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+    }
 }
 
 extension DataBrokerProtectionAgentManager: DataBrokerProtectionAppToAgentInterface {

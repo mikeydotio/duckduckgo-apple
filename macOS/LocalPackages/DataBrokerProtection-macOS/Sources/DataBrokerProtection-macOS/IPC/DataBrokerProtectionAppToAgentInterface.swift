@@ -52,6 +52,13 @@ public protocol DataBrokerProtectionAgentDebugCommands {
     func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64) async -> Data?
     /// Returns auth/subscription status info.
     func getAuthStatus() async -> Data?
+
+    // MARK: - MCP Debug Server Support (Actions)
+
+    /// Forces broker JSON update, bypassing the hourly rate limiter.
+    func forceBrokerUpdate() async -> Data?
+    /// Sets the API environment and optional service root path.
+    func setAPIEndpoint(environment: String, serviceRoot: String) async -> Data?
 }
 
 public protocol DataBrokerProtectionAppToAgentInterface: AnyObject, DataBrokerProtectionAgentAppEvents, DataBrokerProtectionAgentDebugCommands {
