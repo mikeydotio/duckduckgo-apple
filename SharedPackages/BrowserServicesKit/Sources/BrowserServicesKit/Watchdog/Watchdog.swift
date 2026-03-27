@@ -201,7 +201,6 @@ private extension Watchdog {
     }
 }
 
-
 // MARK: - Monitoring
 
 private extension Watchdog {
