@@ -351,6 +351,7 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .lazyMenuRebuild,
                 .websitesHistoryFirstTimeQuitSurvey,
                 .screenTimeCleaning,
+                .unifiedSuggestionsEngine,
                 .tabAnimations:
             .enabled
         case .autofillPasswordsStatusBar,
