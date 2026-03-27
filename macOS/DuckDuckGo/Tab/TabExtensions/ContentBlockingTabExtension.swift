@@ -73,7 +73,8 @@ final class ContentBlockingTabExtension: NSObject {
          cbaTimeReporter: ContentBlockingAssetsCompilationTimeReporter?,
          privacyConfigurationManager: PrivacyConfigurationManaging,
          contentBlockerRulesUserScriptPublisher: some Publisher<ContentBlockerRulesUserScript?, Never>,
-         surrogatesUserScriptPublisher: some Publisher<SurrogatesUserScript?, Never>) {
+         surrogatesUserScriptPublisher: some Publisher<SurrogatesUserScript?, Never>,
+         trackerProtectionSubfeaturePublisher: some Publisher<TrackerProtectionSubfeature?, Never>) {
 
         self.cbaTimeReporter = cbaTimeReporter
         self.fbBlockingEnabledProvider = fbBlockingEnabledProvider
@@ -88,6 +89,9 @@ final class ContentBlockingTabExtension: NSObject {
         }.store(in: &cancellables)
         surrogatesUserScriptPublisher.sink { [weak self] surrogatesUserScript in
             surrogatesUserScript?.delegate = self
+        }.store(in: &cancellables)
+        trackerProtectionSubfeaturePublisher.sink { [weak self] trackerProtectionSubfeature in
+            trackerProtectionSubfeature?.delegate = self
         }.store(in: &cancellables)
     }
 
@@ -173,6 +177,23 @@ extension ContentBlockingTabExtension: SurrogatesUserScriptDelegate {
 
     func surrogatesUserScript(_ script: SurrogatesUserScript, detectedTracker tracker: DetectedRequest, withSurrogate host: String) {
         trackersSubject.send(DetectedTracker(request: tracker, type: .trackerWithSurrogate(host: host)))
+    }
+}
+
+extension ContentBlockingTabExtension: TrackerProtectionSubfeatureDelegate {
+
+    func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool {
+        return true
+    }
+
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
+        Logger.contentBlocking.debug("Shadow: C-S-S observed \(observation.url) potentiallyBlocked=\(observation.potentiallyBlocked)")
+    }
+
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
+        Logger.contentBlocking.debug("Shadow: C-S-S surrogate injected for \(surrogate.url)")
     }
 }
 

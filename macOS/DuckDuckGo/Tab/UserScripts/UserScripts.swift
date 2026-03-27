@@ -57,6 +57,7 @@ final class UserScripts: UserScriptsProvider, ReleaseNotesUserScriptProvider {
     let subscriptionUserScript: SubscriptionUserScript?
     let historyViewUserScript: HistoryViewUserScript
     let serpSettingsUserScript: SERPSettingsUserScript?
+    let trackerProtectionSubfeature = TrackerProtectionSubfeature()
     let faviconScript = FaviconUserScript()
 
     private let contentScopePreferences: ContentScopePreferences
@@ -183,6 +184,8 @@ final class UserScripts: UserScriptsProvider, ReleaseNotesUserScriptProvider {
         if let pageContextUserScript {
             contentScopeUserScript.registerSubfeature(delegate: pageContextUserScript)
         }
+
+        contentScopeUserScript.registerSubfeature(delegate: trackerProtectionSubfeature)
 
         if let subscriptionUserScript {
             contentScopeUserScriptIsolated.registerSubfeature(delegate: subscriptionUserScript)

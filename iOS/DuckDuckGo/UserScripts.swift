@@ -59,6 +59,7 @@ final class UserScripts: UserScriptsProvider {
     private(set) var findInPageScript = FindInPageUserScript()
     private(set) var fullScreenVideoScript = FullScreenVideoUserScript()
     private(set) var printingSubfeature = PrintingSubfeature()
+    private(set) var trackerProtectionSubfeature = TrackerProtectionSubfeature()
     private(set) var debugScript = DebugUserScript()
 
     private let isAutoconsentExtensionAvailable: Bool
@@ -123,6 +124,8 @@ final class UserScripts: UserScriptsProvider {
         contentScopeUserScriptIsolated.registerSubfeature(delegate: serpSettingsUserScript)
         contentScopeUserScript.registerSubfeature(delegate: printingSubfeature)
         contentScopeUserScript.registerSubfeature(delegate: pageContextUserScript)
+        contentScopeUserScript.registerSubfeature(delegate: trackerProtectionSubfeature)
+
         // Special pages - Such as Duck Player
         specialPages = SpecialPagesUserScript()
         if let specialPages {

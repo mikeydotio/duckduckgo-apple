@@ -3128,6 +3128,7 @@ extension TabViewController: UserContentControllerDelegate {
         userScripts.debugScript.instrumentation = instrumentation
         userScripts.surrogatesScript.delegate = self
         userScripts.contentBlockerUserScript.delegate = self
+        userScripts.trackerProtectionSubfeature.delegate = self
         userScripts.autofillUserScript.emailDelegate = emailManager
         userScripts.autofillUserScript.vaultDelegate = vaultManager
         userScripts.autofillUserScript.passwordImportDelegate = credentialsImportManager
@@ -3249,6 +3250,22 @@ extension TabViewController: SurrogatesUserScriptDelegate {
         userScriptDetectedTracker(tracker)
     }
 
+}
+
+// MARK: - TrackerProtectionSubfeatureDelegate (shadow)
+extension TabViewController: TrackerProtectionSubfeatureDelegate {
+
+    func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool {
+        return privacyInfo?.isFor(self.url) ?? false
+    }
+
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
+    }
+
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
+    }
 }
 
 // MARK: - PrintingSubfeatureDelegate
