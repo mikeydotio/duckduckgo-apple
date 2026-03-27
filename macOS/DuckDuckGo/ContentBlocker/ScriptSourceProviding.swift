@@ -223,7 +223,6 @@ struct ScriptSourceProvider: ScriptSourceProviding {
         }
     }
 
-    @MainActor
     private func buildContentBlockerRulesConfig() -> ContentBlockerUserScriptConfig {
 
         let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
