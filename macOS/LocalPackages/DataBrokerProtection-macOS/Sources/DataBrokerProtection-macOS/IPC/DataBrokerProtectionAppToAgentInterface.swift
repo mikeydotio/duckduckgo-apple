@@ -46,6 +46,12 @@ public protocol DataBrokerProtectionAgentDebugCommands {
     func getBrokerJSON(brokerURL: String) async -> Data?
     /// Returns detailed per-profile-query data for a specific broker.
     func getBrokerDetails(brokerName: String) async -> Data?
+    /// Returns scan history events for a broker + profile query.
+    func getScanHistory(brokerId: Int64, profileQueryId: Int64) async -> Data?
+    /// Returns opt-out history events for a broker + profile query + extracted profile.
+    func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64) async -> Data?
+    /// Returns auth/subscription status info.
+    func getAuthStatus() async -> Data?
 }
 
 public protocol DataBrokerProtectionAppToAgentInterface: AnyObject, DataBrokerProtectionAgentAppEvents, DataBrokerProtectionAgentDebugCommands {

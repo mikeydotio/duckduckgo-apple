@@ -99,6 +99,34 @@ final class MCPTools {
                 )
             ),
             toolDef(
+                name: "get_scan_history",
+                description: "Get scan history events for a specific broker and profile query. Shows the timeline of scan attempts, results, and errors.",
+                inputSchema: schemaWith(
+                    properties: [
+                        "broker_id": ["type": "integer", "description": "The broker ID (from list_brokers or get_broker_details)"],
+                        "profile_query_id": ["type": "integer", "description": "The profile query ID (from get_broker_details)"]
+                    ],
+                    required: ["broker_id", "profile_query_id"]
+                )
+            ),
+            toolDef(
+                name: "get_optout_history",
+                description: "Get opt-out history events for a specific broker, profile query, and extracted profile. Shows the timeline of opt-out attempts, status progression, and errors.",
+                inputSchema: schemaWith(
+                    properties: [
+                        "broker_id": ["type": "integer", "description": "The broker ID"],
+                        "profile_query_id": ["type": "integer", "description": "The profile query ID"],
+                        "extracted_profile_id": ["type": "integer", "description": "The extracted profile ID (from get_broker_details optOuts)"]
+                    ],
+                    required: ["broker_id", "profile_query_id", "extracted_profile_id"]
+                )
+            ),
+            toolDef(
+                name: "get_auth_status",
+                description: "Get auth/subscription status: whether the user is authenticated, has a valid access token and entitlement, which environment is active (production/staging), and the current API endpoint URL.",
+                inputSchema: emptySchema()
+            ),
+            toolDef(
                 name: "get_profile_queries",
                 description: "Get the configured profile queries being scanned. Shows the name, address, birth year combinations used for scanning.",
                 inputSchema: emptySchema()
@@ -149,6 +177,23 @@ final class MCPTools {
                 return
             }
             getBrokerDetails(brokerName: brokerName, completion: completion)
+        case "get_scan_history":
+            guard let brokerId = arguments["broker_id"] as? Int64 ?? (arguments["broker_id"] as? Int).map(Int64.init),
+                  let profileQueryId = arguments["profile_query_id"] as? Int64 ?? (arguments["profile_query_id"] as? Int).map(Int64.init) else {
+                completion(.failure(ToolError.missingArgument("broker_id and profile_query_id")))
+                return
+            }
+            getScanHistory(brokerId: brokerId, profileQueryId: profileQueryId, completion: completion)
+        case "get_optout_history":
+            guard let brokerId = arguments["broker_id"] as? Int64 ?? (arguments["broker_id"] as? Int).map(Int64.init),
+                  let profileQueryId = arguments["profile_query_id"] as? Int64 ?? (arguments["profile_query_id"] as? Int).map(Int64.init),
+                  let extractedProfileId = arguments["extracted_profile_id"] as? Int64 ?? (arguments["extracted_profile_id"] as? Int).map(Int64.init) else {
+                completion(.failure(ToolError.missingArgument("broker_id, profile_query_id, and extracted_profile_id")))
+                return
+            }
+            getOptOutHistory(brokerId: brokerId, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, completion: completion)
+        case "get_auth_status":
+            getAuthStatus(completion: completion)
         case "get_profile_queries":
             getProfileQueries(completion: completion)
         case "run_scan":
@@ -380,6 +425,36 @@ final class MCPTools {
             return
         }
         prettyPrintJSON(data, completion: completion)
+    }
+
+    private func getScanHistory(brokerId: Int64, profileQueryId: Int64, completion: @escaping (Result<String, Error>) -> Void) {
+        agent.getScanHistory(brokerId: brokerId, profileQueryId: profileQueryId) { data in
+            guard let data else {
+                completion(.failure(ToolError.xpcError("Failed to fetch scan history. Is the agent running?")))
+                return
+            }
+            self.prettyPrintJSON(data, completion: completion)
+        }
+    }
+
+    private func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64, completion: @escaping (Result<String, Error>) -> Void) {
+        agent.getOptOutHistory(brokerId: brokerId, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId) { data in
+            guard let data else {
+                completion(.failure(ToolError.xpcError("Failed to fetch opt-out history. Is the agent running?")))
+                return
+            }
+            self.prettyPrintJSON(data, completion: completion)
+        }
+    }
+
+    private func getAuthStatus(completion: @escaping (Result<String, Error>) -> Void) {
+        agent.getAuthStatus { data in
+            guard let data else {
+                completion(.failure(ToolError.xpcError("Failed to fetch auth status. Is the agent running?")))
+                return
+            }
+            self.prettyPrintJSON(data, completion: completion)
+        }
     }
 
     // MARK: - Helpers

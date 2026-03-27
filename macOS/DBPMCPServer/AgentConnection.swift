@@ -29,6 +29,9 @@ import Foundation
     func getBrokerProfileData(completion: @escaping (Data?) -> Void)
     func getBrokerJSON(brokerURL: String, completion: @escaping (Data?) -> Void)
     func getBrokerDetails(brokerName: String, completion: @escaping (Data?) -> Void)
+    func getScanHistory(brokerId: Int64, profileQueryId: Int64, completion: @escaping (Data?) -> Void)
+    func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64, completion: @escaping (Data?) -> Void)
+    func getAuthStatus(completion: @escaping (Data?) -> Void)
     func runCustomScan(brokerJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool, completion: @escaping (Data?) -> Void)
 }
 
@@ -187,6 +190,39 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
             return
         }
         proxy.getBrokerDetails(brokerName: brokerName, completion: completion)
+    }
+
+    func getScanHistory(brokerId: Int64, profileQueryId: Int64, completion: @escaping (Data?) -> Void) {
+        guard let proxy = serverProxy(errorHandler: { error in
+            log("XPC error (getScanHistory): \(error)")
+            completion(nil)
+        }) else {
+            completion(nil)
+            return
+        }
+        proxy.getScanHistory(brokerId: brokerId, profileQueryId: profileQueryId, completion: completion)
+    }
+
+    func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64, completion: @escaping (Data?) -> Void) {
+        guard let proxy = serverProxy(errorHandler: { error in
+            log("XPC error (getOptOutHistory): \(error)")
+            completion(nil)
+        }) else {
+            completion(nil)
+            return
+        }
+        proxy.getOptOutHistory(brokerId: brokerId, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, completion: completion)
+    }
+
+    func getAuthStatus(completion: @escaping (Data?) -> Void) {
+        guard let proxy = serverProxy(errorHandler: { error in
+            log("XPC error (getAuthStatus): \(error)")
+            completion(nil)
+        }) else {
+            completion(nil)
+            return
+        }
+        proxy.getAuthStatus(completion: completion)
     }
 
     func runCustomScan(brokerJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool, completion: @escaping (Data?) -> Void) {

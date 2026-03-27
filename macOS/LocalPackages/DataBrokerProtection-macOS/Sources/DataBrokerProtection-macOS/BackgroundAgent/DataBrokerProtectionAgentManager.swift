@@ -769,6 +769,100 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             return nil
         }
     }
+    public func getScanHistory(brokerId: Int64, profileQueryId: Int64) async -> Data? {
+        do {
+            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let item = allData.first(where: {
+                $0.dataBroker.id == brokerId && $0.profileQuery.id == profileQueryId
+            })
+
+            guard let item else { return nil }
+
+            let events = item.scanJobData.historyEvents.sorted { $0.date < $1.date }
+            return try serializeHistoryEvents(events)
+        } catch {
+            Logger.dataBrokerProtection.error("Failed to fetch scan history: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    public func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64) async -> Data? {
+        do {
+            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let item = allData.first(where: {
+                $0.dataBroker.id == brokerId && $0.profileQuery.id == profileQueryId
+            })
+
+            guard let item else { return nil }
+
+            let optOut = item.optOutJobData.first(where: {
+                $0.extractedProfile.id == extractedProfileId
+            })
+
+            guard let optOut else { return nil }
+
+            let events = optOut.historyEvents.sorted { $0.date < $1.date }
+            return try serializeHistoryEvents(events)
+        } catch {
+            Logger.dataBrokerProtection.error("Failed to fetch opt-out history: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private func serializeHistoryEvents(_ events: [HistoryEvent]) throws -> Data {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let eventDicts: [[String: Any]] = events.map { event in
+            var dict: [String: Any] = [
+                "date": formatter.string(from: event.date),
+                "brokerId": event.brokerId,
+                "profileQueryId": event.profileQueryId,
+            ]
+            if let extractedProfileId = event.extractedProfileId {
+                dict["extractedProfileId"] = extractedProfileId
+            }
+            switch event.type {
+            case .scanStarted: dict["type"] = "scanStarted"
+            case .noMatchFound: dict["type"] = "noMatchFound"
+            case .matchesFound(let count):
+                dict["type"] = "matchesFound"
+                dict["matchCount"] = count
+            case .optOutStarted: dict["type"] = "optOutStarted"
+            case .optOutRequested: dict["type"] = "optOutRequested"
+            case .optOutConfirmed: dict["type"] = "optOutConfirmed"
+            case .optOutSubmittedAndAwaitingEmailConfirmation: dict["type"] = "awaitingEmailConfirmation"
+            case .error:
+                dict["type"] = "error"
+                if let error = event.error { dict["error"] = error }
+            case .reAppearence: dict["type"] = "reAppearance"
+            case .matchRemovedByUser: dict["type"] = "matchRemovedByUser"
+            }
+            return dict
+        }
+
+        return try JSONSerialization.data(withJSONObject: eventDicts, options: [.prettyPrinted, .sortedKeys])
+    }
+
+    public func getAuthStatus() async -> Data? {
+        let settings = DataBrokerProtectionSettings(defaults: .dbp)
+        let isAuthenticated = await authenticationManager.isUserAuthenticated
+        let hasToken = await authenticationManager.accessToken() != nil
+        var hasEntitlement = false
+        do {
+            hasEntitlement = try await authenticationManager.hasValidEntitlement()
+        } catch {}
+
+        let result: [String: Any] = [
+            "isAuthenticated": isAuthenticated,
+            "hasAccessToken": hasToken,
+            "hasValidEntitlement": hasEntitlement,
+            "environment": settings.selectedEnvironment.rawValue,
+            "endpointURL": settings.endpointURL.absoluteString,
+        ]
+
+        return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+    }
 }
 
 extension DataBrokerProtectionAgentManager: DataBrokerProtectionAppToAgentInterface {
