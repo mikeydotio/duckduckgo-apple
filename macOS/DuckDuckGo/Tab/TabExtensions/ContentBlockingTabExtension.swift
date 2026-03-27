@@ -53,34 +53,9 @@ final class ContentBlockingTabExtension: NSObject {
     private let cbaTimeReporter: ContentBlockingAssetsCompilationTimeReporter?
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let fbBlockingEnabledProvider: FbBlockingEnabledProvider
-    private let tld: TLD
     private var trackersSubject = PassthroughSubject<DetectedTracker, Never>()
 
-    private struct SurrogateDedupKey: Hashable {
-            let pageUrl: String
-            let requestUrl: String
-        }
-
-        // Dedup only surrogate-injected events to prevent accidental double emission
-        // for the same request on the same page; keep normal tracker path unchanged.
-        private static let surrogateDedupWindow: TimeInterval = 1.0
-        private var recentSurrogateEvents: [SurrogateDedupKey: Date] = [:]
-
     private var cancellables = Set<AnyCancellable>()
-
-        @MainActor
-        private func shouldEmitSurrogate(for surrogate: TrackerProtectionSubfeature.SurrogateInjection) -> Bool {
-                    let now = Date()
-                    recentSurrogateEvents = recentSurrogateEvents.filter { now.timeIntervalSince($0.value) < Self.surrogateDedupWindow }
-
-                    let key = SurrogateDedupKey(pageUrl: surrogate.pageUrl, requestUrl: surrogate.url)
-                    if let seenAt = recentSurrogateEvents[key], now.timeIntervalSince(seenAt) < Self.surrogateDedupWindow {
-                        return false
-                    }
-
-                    recentSurrogateEvents[key] = now
-                    return true
-                }
 
 #if DEBUG
     /// set this to true when Navigation-related decision making is expected to take significant time to avoid assertions
@@ -97,20 +72,22 @@ final class ContentBlockingTabExtension: NSObject {
          userContentControllerFuture: some Publisher<some ContentBlockingAssetsInstalling, Never>,
          cbaTimeReporter: ContentBlockingAssetsCompilationTimeReporter?,
          privacyConfigurationManager: PrivacyConfigurationManaging,
-         tld: TLD,
-         trackerProtectionSubfeaturePublisher: some Publisher<TrackerProtectionSubfeature?, Never>) {
+         contentBlockerRulesUserScriptPublisher: some Publisher<ContentBlockerRulesUserScript?, Never>,
+         surrogatesUserScriptPublisher: some Publisher<SurrogatesUserScript?, Never>) {
 
         self.cbaTimeReporter = cbaTimeReporter
         self.fbBlockingEnabledProvider = fbBlockingEnabledProvider
         self.privacyConfigurationManager = privacyConfigurationManager
-        self.tld = tld
         super.init()
 
         userContentControllerFuture.sink { [weak self] userContentController in
             self?.userContentController = userContentController
         }.store(in: &cancellables)
-        trackerProtectionSubfeaturePublisher.sink { [weak self] trackerProtectionSubfeature in
-            trackerProtectionSubfeature?.delegate = self
+        contentBlockerRulesUserScriptPublisher.sink { [weak self] contentBlockerRulesUserScript in
+            contentBlockerRulesUserScript?.delegate = self
+        }.store(in: &cancellables)
+        surrogatesUserScriptPublisher.sink { [weak self] surrogatesUserScript in
+            surrogatesUserScript?.delegate = self
         }.store(in: &cancellables)
     }
 
@@ -161,24 +138,41 @@ extension ContentBlockingTabExtension: NavigationResponder {
 
 }
 
-extension ContentBlockingTabExtension: TrackerProtectionSubfeatureDelegate {
+extension ContentBlockingTabExtension: ContentBlockerRulesUserScriptDelegate {
 
-    func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool {
+    func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
         return true
     }
 
-    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
-                           didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
-        // Shadow phase: C-S-S observations are logged for parity comparison only.
-        // Legacy processRule path remains dashboard-authoritative.
-        Logger.contentBlocking.debug("Shadow: C-S-S observed \(observation.url) potentiallyBlocked=\(observation.potentiallyBlocked)")
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
+        return fbBlockingEnabledProvider.fbBlockingEnabled
     }
 
-    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
-                           didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
-        // Shadow phase: C-S-S surrogate injection is gated off (surrogateInjectionEnabled=false).
-        // Legacy surrogates.js handles injection. Log for parity comparison only.
-        Logger.contentBlocking.debug("Shadow: C-S-S surrogate injected for \(surrogate.url)")
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript, detectedTracker tracker: DetectedRequest) {
+        trackersSubject.send(DetectedTracker(request: tracker, type: .tracker))
+        if tracker.state == BlockingState.blocked && tracker.ownerName == fbBlockingEnabledProvider.fbEntity {
+            fbBlockingEnabledProvider.trackerDetected()
+        }
+    }
+
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript, detectedThirdPartyRequest request: DetectedRequest) {
+        trackersSubject.send(DetectedTracker(request: request, type: .thirdPartyRequest))
+    }
+
+}
+
+extension ContentBlockingTabExtension: SurrogatesUserScriptDelegate {
+
+    func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool {
+        return true
+    }
+
+    func surrogatesUserScriptShouldProcessCTLTrackers(_ script: SurrogatesUserScript) -> Bool {
+        fbBlockingEnabledProvider.fbBlockingEnabled
+    }
+
+    func surrogatesUserScript(_ script: SurrogatesUserScript, detectedTracker tracker: DetectedRequest, withSurrogate host: String) {
+        trackersSubject.send(DetectedTracker(request: tracker, type: .trackerWithSurrogate(host: host)))
     }
 }
 

@@ -3112,6 +3112,9 @@ extension TabViewController: UserContentControllerDelegate {
     private var findInPageScript: FindInPageUserScript? {
         userScripts?.findInPageScript
     }
+    private var contentBlockerUserScript: ContentBlockerRulesUserScript? {
+        userScripts?.contentBlockerUserScript
+    }
     private var autofillUserScript: AutofillUserScript? {
         userScripts?.autofillUserScript
     }
@@ -3123,7 +3126,8 @@ extension TabViewController: UserContentControllerDelegate {
         guard let userScripts = userScripts as? UserScripts else { fatalError("Unexpected UserScripts") }
 
         userScripts.debugScript.instrumentation = instrumentation
-        userScripts.trackerProtectionSubfeature.delegate = self
+        userScripts.surrogatesScript.delegate = self
+        userScripts.contentBlockerUserScript.delegate = self
         userScripts.autofillUserScript.emailDelegate = emailManager
         userScripts.autofillUserScript.vaultDelegate = vaultManager
         userScripts.autofillUserScript.passwordImportDelegate = credentialsImportManager
@@ -3180,24 +3184,71 @@ extension TabViewController: UserContentControllerDelegate {
 
 }
 
-// MARK: - TrackerProtectionSubfeatureDelegate
-extension TabViewController: TrackerProtectionSubfeatureDelegate {
+// MARK: - ContentBlockerRulesUserScriptDelegate
+extension TabViewController: ContentBlockerRulesUserScriptDelegate {
 
-    func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool {
+    func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
         return privacyInfo?.isFor(self.url) ?? false
     }
 
-    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
-                           didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
-        // Shadow phase: C-S-S observations logged for parity comparison only.
-        // Legacy processRule path remains dashboard-authoritative.
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
+        return false
     }
 
-    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
-                           didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
-        // Shadow phase: C-S-S surrogate injection is gated off (surrogateInjectionEnabled=false).
-        // Legacy surrogates.js handles injection.
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
+                                       detectedTracker tracker: DetectedRequest) {
+        userScriptDetectedTracker(tracker)
     }
+
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
+                                       detectedThirdPartyRequest request: DetectedRequest) {
+        privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: request)
+    }
+
+    fileprivate func userScriptDetectedTracker(_ tracker: DetectedRequest) {
+        guard let url = url else { return }
+
+        adClickAttributionLogic.onRequestDetected(request: tracker)
+
+        if tracker.isBlocked && fireWoFollowUp {
+            fireWoFollowUp = false
+            Pixel.fire(pixel: .daxDialogsWithoutTrackersFollowUp)
+        }
+
+        privacyInfo?.trackerInfo.addDetectedTracker(tracker, onPageWithURL: url)
+
+        guard tracker.isBlocked,
+              let host = tracker.url.url?.host,
+              let entityName = ContentBlocking.shared.trackerDataManager.trackerData.findParentEntityOrFallback(forHost: host)?.displayName else {
+            return
+        }
+
+        Task {
+            await privacyStats.recordBlockedTracker(entityName)
+        }
+    }
+}
+
+// MARK: - SurrogatesUserScriptDelegate
+extension TabViewController: SurrogatesUserScriptDelegate {
+
+    func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool {
+        return privacyInfo?.isFor(self.url) ?? false
+    }
+
+    func surrogatesUserScriptShouldProcessCTLTrackers(_ script: SurrogatesUserScript) -> Bool {
+        false
+    }
+
+    func surrogatesUserScript(_ script: SurrogatesUserScript,
+                              detectedTracker tracker: DetectedRequest,
+                              withSurrogate host: String) {
+        guard let url = url else { return }
+
+        privacyInfo?.trackerInfo.addInstalledSurrogateHost(host, for: tracker, onPageWithURL: url)
+        userScriptDetectedTracker(tracker)
+    }
+
 }
 
 // MARK: - PrintingSubfeatureDelegate
@@ -3243,18 +3294,15 @@ extension TabViewController: AdClickAttributionLogicDelegate {
                           didRequestRuleApplication rules: ContentBlockerRulesManager.Rules?,
                           forVendor vendor: String?) {
         let attributedTempListName = AdClickAttributionRulesProvider.Constants.attributedTempRuleListName
-        userScripts?.trackerProtectionSubfeature.currentAdClickAttributionVendor = vendor
-        userScripts?.trackerProtectionSubfeature.currentAdClickAttributionAllowlistHosts = vendor != nil
-            ? ContentBlocking.shared.adClickAttribution.allowlist.map(\.host)
-            : []
-
         guard privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking)
         else {
             userContentController.removeLocalContentRuleList(withIdentifier: attributedTempListName)
-            userScripts?.trackerProtectionSubfeature.currentAdClickAttributionVendor = nil
-            userScripts?.trackerProtectionSubfeature.currentAdClickAttributionAllowlistHosts = []
+            contentBlockerUserScript?.currentAdClickAttributionVendor = nil
+            contentBlockerUserScript?.supplementaryTrackerData = []
             return
         }
+
+        contentBlockerUserScript?.currentAdClickAttributionVendor = vendor
 
         if let rules = rules {
 
