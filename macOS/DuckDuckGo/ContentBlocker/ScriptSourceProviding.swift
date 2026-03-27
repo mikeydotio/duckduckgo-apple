@@ -34,6 +34,8 @@ import WebExtensions
 protocol ScriptSourceProviding {
 
     var featureFlagger: FeatureFlagger { get }
+    var contentBlockerRulesConfig: ContentBlockerUserScriptConfig? { get }
+    var surrogatesConfig: SurrogatesUserScriptConfig? { get }
     var privacyConfigurationManager: PrivacyConfigurationManaging { get }
     var autofillSourceProvider: AutofillUserScriptSourceProvider? { get }
     var autoconsentManagement: AutoconsentManagement { get }
@@ -89,6 +91,8 @@ protocol ScriptSourceProviding {
 }
 
 struct ScriptSourceProvider: ScriptSourceProviding {
+    private(set) var contentBlockerRulesConfig: ContentBlockerUserScriptConfig?
+    private(set) var surrogatesConfig: SurrogatesUserScriptConfig?
     private(set) var onboardingActionsManager: OnboardingActionsManaging?
     private(set) var historyViewActionsManager: HistoryViewActionsManager?
     private(set) var autofillSourceProvider: AutofillUserScriptSourceProvider?
@@ -173,7 +177,6 @@ struct ScriptSourceProvider: ScriptSourceProviding {
             ]
         )
 
-        self.newTabPageActionsManager = newTabPageActionsManager
         self.appearancePreferences = appearancePreferences
         self.dockCustomization = dockCustomization
 
@@ -295,6 +298,43 @@ struct ScriptSourceProvider: ScriptSourceProviding {
         }
 
         return data
+    }
+
+    private func mergeTrackerDataSets(rules: [ContentBlockerRulesManager.Rules]) -> (trackerData: TrackerData, encodedTrackerData: String) {
+        var combinedTrackers: [String: KnownTracker] = [:]
+        var combinedEntities: [String: Entity] = [:]
+        var combinedDomains: [String: String] = [:]
+        var cnames: [TrackerData.CnameDomain: TrackerData.TrackerDomain]? = [:]
+
+        let setsToCombine = [ DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName, DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName ]
+
+        for setName in setsToCombine {
+            if let ruleSetIndex = contentBlockingManager.currentRules.firstIndex(where: { $0.name == setName }) {
+                let ruleSet = rules[ruleSetIndex]
+
+                combinedTrackers = combinedTrackers.merging(ruleSet.trackerData.trackers) { (_, new) in new }
+                combinedEntities = combinedEntities.merging(ruleSet.trackerData.entities) { (_, new) in new }
+                combinedDomains = combinedDomains.merging(ruleSet.trackerData.domains) { (_, new) in new }
+                if setName == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
+                    cnames = ruleSet.trackerData.cnames
+                }
+            }
+        }
+
+        let combinedTrackerData = TrackerData(trackers: combinedTrackers,
+                            entities: combinedEntities,
+                            domains: combinedDomains,
+                            cnames: cnames)
+
+        let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: combinedTrackerData)
+        let encodedTrackerData = encodeTrackerData(surrogateTDS)
+
+        return (trackerData: combinedTrackerData, encodedTrackerData: encodedTrackerData)
+    }
+
+    private func encodeTrackerData(_ trackerData: TrackerData) -> String {
+        let encodedData = try? JSONEncoder().encode(trackerData)
+        return String(data: encodedData!, encoding: .utf8)!
     }
 
     private func generateCurrentCohorts() -> [ContentScopeExperimentData] {
