@@ -59,6 +59,13 @@ public final class TrackerProtectionSubfeature: NSObject, Subfeature {
         public let resourceType: String
         public let potentiallyBlocked: Bool
         public let pageUrl: String
+
+        public init(url: String, resourceType: String, potentiallyBlocked: Bool, pageUrl: String) {
+            self.url = url
+            self.resourceType = resourceType
+            self.potentiallyBlocked = potentiallyBlocked
+            self.pageUrl = pageUrl
+        }
     }
 
     /// Surrogate injection notification from C-S-S (new minimal schema).
@@ -66,6 +73,12 @@ public final class TrackerProtectionSubfeature: NSObject, Subfeature {
         public let url: String
         public let pageUrl: String
         public let surrogateName: String?
+
+        public init(url: String, pageUrl: String, surrogateName: String?) {
+            self.url = url
+            self.pageUrl = pageUrl
+            self.surrogateName = surrogateName
+        }
 
         // Migration: accept legacy fields if present
         private enum CodingKeys: String, CodingKey {

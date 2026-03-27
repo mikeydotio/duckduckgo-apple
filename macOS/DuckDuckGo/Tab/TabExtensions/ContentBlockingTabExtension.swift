@@ -163,50 +163,22 @@ extension ContentBlockingTabExtension: NavigationResponder {
 
 extension ContentBlockingTabExtension: TrackerProtectionSubfeatureDelegate {
 
-    private var trackerProtectionMapper: TrackerProtectionEventMapper {
-        TrackerProtectionEventMapper(tld: tld)
-    }
-
     func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool {
         return true
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
-                           didDetectTracker tracker: TrackerProtectionSubfeature.TrackerDetection) {
-        if trackerProtectionMapper.isSameSiteDetection(tracker) {
-            return
-        }
-
-        let mappedRequest = trackerProtectionMapper.detectedRequest(from: tracker)
-        let detectedRequest = trackerProtectionMapper.applyAdAttributionOverrideIfNeeded(
-            mappedRequest,
-            tracker: tracker,
-            vendor: subfeature.currentAdClickAttributionVendor,
-            allowlistHosts: subfeature.currentAdClickAttributionAllowlistHosts
-        )
-
-        if TrackerProtectionEventMapper.isThirdPartyRequest(tracker) {
-            trackersSubject.send(DetectedTracker(request: detectedRequest, type: .thirdPartyRequest))
-            return
-        }
-
-        trackersSubject.send(DetectedTracker(request: detectedRequest, type: .tracker))
-
-        if tracker.ownerName == fbBlockingEnabledProvider.fbEntity && fbBlockingEnabledProvider.fbBlockingEnabled {
-            fbBlockingEnabledProvider.trackerDetected()
-        }
+                           didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
+        // Shadow phase: C-S-S observations are logged for parity comparison only.
+        // Legacy processRule path remains dashboard-authoritative.
+        Logger.contentBlocking.debug("Shadow: C-S-S observed \(observation.url) potentiallyBlocked=\(observation.potentiallyBlocked)")
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
-        guard shouldEmitSurrogate(for: surrogate) else {
-                    return
-                }
-        guard let surrogateHost = trackerProtectionMapper.surrogateHost(from: surrogate), !surrogateHost.isEmpty else {
-            return
-        }
-        let detectedRequest = trackerProtectionMapper.detectedRequest(from: surrogate)
-        trackersSubject.send(DetectedTracker(request: detectedRequest, type: .trackerWithSurrogate(host: surrogateHost)))
+        // Shadow phase: C-S-S surrogate injection is gated off (surrogateInjectionEnabled=false).
+        // Legacy surrogates.js handles injection. Log for parity comparison only.
+        Logger.contentBlocking.debug("Shadow: C-S-S surrogate injected for \(surrogate.url)")
     }
 }
 

@@ -3154,61 +3154,20 @@ extension TabViewController: UserContentControllerDelegate {
 // MARK: - TrackerProtectionSubfeatureDelegate
 extension TabViewController: TrackerProtectionSubfeatureDelegate {
 
-    private static let trackerProtectionMapper = TrackerProtectionEventMapper(tld: tld)
-
     func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool {
         return privacyInfo?.isFor(self.url) ?? false
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
-                           didDetectTracker tracker: TrackerProtectionSubfeature.TrackerDetection) {
-        guard let url = url else { return }
-
-        if Self.trackerProtectionMapper.isSameSiteDetection(tracker) {
-            return
-        }
-
-        let mappedRequest = Self.trackerProtectionMapper.detectedRequest(from: tracker)
-        let detectedRequest = Self.trackerProtectionMapper.applyAdAttributionOverrideIfNeeded(
-            mappedRequest,
-            tracker: tracker,
-            vendor: subfeature.currentAdClickAttributionVendor,
-            allowlistHosts: subfeature.currentAdClickAttributionAllowlistHosts
-        )
-
-        if TrackerProtectionEventMapper.isThirdPartyRequest(tracker) {
-            privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: detectedRequest)
-            return
-        }
-
-        adClickAttributionLogic.onRequestDetected(request: detectedRequest)
-
-        if detectedRequest.isBlocked && fireWoFollowUp {
-            fireWoFollowUp = false
-            Pixel.fire(pixel: .daxDialogsWithoutTrackersFollowUp)
-        }
-
-        privacyInfo?.trackerInfo.addDetectedTracker(detectedRequest, onPageWithURL: url)
-
-        guard detectedRequest.isBlocked,
-              let host = detectedRequest.url.url?.host,
-              let entityName = ContentBlocking.shared.trackerDataManager.trackerData.findParentEntityOrFallback(forHost: host)?.displayName else {
-            return
-        }
-
-        Task {
-            await privacyStats.recordBlockedTracker(entityName)
-        }
+                           didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
+        // Shadow phase: C-S-S observations logged for parity comparison only.
+        // Legacy processRule path remains dashboard-authoritative.
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
-        guard let url = url,
-              let surrogateHost = Self.trackerProtectionMapper.surrogateHost(from: surrogate),
-              !surrogateHost.isEmpty else { return }
-
-        let detectedRequest = Self.trackerProtectionMapper.detectedRequest(from: surrogate)
-        privacyInfo?.trackerInfo.addInstalledSurrogateHost(surrogateHost, for: detectedRequest, onPageWithURL: url)
+        // Shadow phase: C-S-S surrogate injection is gated off (surrogateInjectionEnabled=false).
+        // Legacy surrogates.js handles injection.
     }
 }
 
