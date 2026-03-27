@@ -104,6 +104,7 @@ struct AddToDockTutorialView: View {
         let heightRatio = videoPlayerWidth * (Self.videoSize.height / Self.videoSize.width)
         return PlayerView(coordinator: videoPlayerModel)
             .frame(width: videoPlayerWidth, height: heightRatio)
+            .clipShape(BottomRoundedCorners(radius: 42))
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
                 videoPlayerModel.pause()
 
@@ -113,6 +114,14 @@ struct AddToDockTutorialView: View {
             }
     }
 
+}
+
+private struct BottomRoundedCorners: Shape {
+    var radius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        Path(UIBezierPath(roundedRect: rect, byRoundingCorners: [.bottomLeft, .bottomRight], cornerRadii: CGSize(width: radius, height: radius)).cgPath)
+    }
 }
 
 // MARK: - Preview
