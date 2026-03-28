@@ -1441,7 +1441,7 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
                     Logger.privacyPass.error("Privacy Pass challenge handling failed: \(error.localizedDescription, privacy: .public)")
                 }
             }
-            return .allow
+            return .cancel
         }
 
         internalUserDecider?.markUserAsInternalIfNeeded(forUrl: webView.url,

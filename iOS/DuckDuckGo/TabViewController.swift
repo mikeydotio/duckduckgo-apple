@@ -1662,6 +1662,7 @@ extension TabViewController: WKNavigationDelegate {
         let httpResponse = navigationResponse.response as? HTTPURLResponse
 
         if let httpResponse,
+           privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .privacyPass),
            lastMainFrameRequestHTTPMethod == "GET",
            privacyPassChallengeHandler.isPrivacyPassChallenge(httpResponse),
            let originalURL = navigationResponse.response.url {
