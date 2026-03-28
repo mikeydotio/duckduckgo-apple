@@ -552,6 +552,21 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
     let webViewDidReceiveRedirectPublisher = PassthroughSubject<Void, Never>()
     let webViewDidFailNavigationPublisher = PassthroughSubject<Void, Never>()
     let webViewRenderingProgressDidChangePublisher = PassthroughSubject<Void, Never>()
+    let firstMeaningfulPaintPublisher = PassthroughSubject<Void, Never>()
+
+    // MARK: - Stalled Resource Detection
+
+    private let resourceLoadTracker = ResourceLoadTracker()
+
+    /// Fires when all pending resources are stalled (sent request but no response within timeout).
+    var stalledResourcePublisher: AnyPublisher<Void, Never> {
+        resourceLoadTracker.allResourcesStalledPublisher
+    }
+
+    /// True when all pending resources have been waiting for a response longer than the stalled timeout.
+    var hasOnlyStalledResources: Bool {
+        resourceLoadTracker.hasOnlyStalledResources
+    }
 
     // MARK: - Properties
 
@@ -1169,6 +1184,10 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         webView.uiDelegate = self
         webView.inspectorDelegate = self
         webView.contextMenuDelegate = self.contextMenuManager
+        let setResourceLoadDelegate = NSSelectorFromString("_setResourceLoadDelegate:")
+        if webView.responds(to: setResourceLoadDelegate) {
+            webView.perform(setResourceLoadDelegate, with: self)
+        }
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsMagnification = true
 
@@ -1441,6 +1460,7 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
 
     @MainActor
     func didStart(_ navigation: Navigation) {
+        resourceLoadTracker.reset()
         delegate?.tabDidStartNavigation(self)
         permissions.tabDidStartNavigation()
         userInteractionDialog = nil
@@ -1534,11 +1554,37 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
     }
 
     func renderingProgressDidChange(progressEvents: UInt) {
-        // Emit only after first paint event, when the white background content is not visible anymore
         // https://github.com/WebKit/WebKit/blob/407a96d094af6d48100f4524d964667336d962b4/Source/WebKit/Shared/API/Cocoa/_WKRenderingProgressEvents.h
-        if progressEvents & 2 != 0 {
+        if progressEvents & 2 != 0 { // firstVisuallyNonEmptyLayout
             webViewRenderingProgressDidChangePublisher.send()
         }
+        if progressEvents & 256 != 0 { // firstMeaningfulPaint
+            firstMeaningfulPaintPublisher.send()
+        }
+    }
+
+    // MARK: - _WKResourceLoadDelegate
+
+    private func resourceURL(_ resourceLoadInfo: Any) -> URL? {
+        (resourceLoadInfo as? NSObject)?.value(forKey: "originalURL") as? URL
+    }
+
+    @objc(webView:resourceLoad:didSendRequest:)
+    func webView(_ webView: WKWebView, resourceLoad resourceLoadInfo: Any, didSendRequest request: URLRequest) {
+        guard let url = resourceURL(resourceLoadInfo) else { return }
+        resourceLoadTracker.didSendRequest(for: url)
+    }
+
+    @objc(webView:resourceLoad:didReceiveResponse:)
+    func webView(_ webView: WKWebView, resourceLoad resourceLoadInfo: Any, didReceiveResponse response: URLResponse) {
+        guard let url = resourceURL(resourceLoadInfo) else { return }
+        resourceLoadTracker.didReceiveResponse(for: url)
+    }
+
+    @objc(webView:resourceLoad:didCompleteWithError:response:)
+    func webView(_ webView: WKWebView, resourceLoad resourceLoadInfo: Any, didCompleteWithError error: Error?, response: URLResponse?) {
+        guard let url = resourceURL(resourceLoadInfo) else { return }
+        resourceLoadTracker.didComplete(for: url)
     }
 
     /// Factory method to create a child Tab
