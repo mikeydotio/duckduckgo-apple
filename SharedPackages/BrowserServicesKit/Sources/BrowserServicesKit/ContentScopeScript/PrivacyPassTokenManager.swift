@@ -363,9 +363,29 @@ public final class PrivacyPassTokenManager: PrivacyPassTokenManaging {
         return cacheDir.appendingPathComponent(credentialDirectoryName)
     }
 
-    private func sanitizedIssuer(_ issuer: String) -> String {
-        issuer.replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: ":", with: "_")
+    private func issuerStorageKey(_ issuer: String) -> String {
+        Data(issuer.utf8)
+            .base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "="))
+    }
+
+    private func issuer(fromStorageKey storageKey: String) -> String? {
+        var base64 = storageKey
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let remainder = base64.count % 4
+        if remainder > 0 {
+            base64.append(contentsOf: String(repeating: "=", count: 4 - remainder))
+        }
+
+        guard let data = Data(base64Encoded: base64),
+              let issuer = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        return issuer
     }
 
     private func persistCredential(_ tokenCBOR: Data, publicKey: Data?, for issuer: String) {
@@ -373,10 +393,10 @@ public final class PrivacyPassTokenManager: PrivacyPassTokenManaging {
 
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let sanitized = sanitizedIssuer(issuer)
-            try tokenCBOR.write(to: dir.appendingPathComponent("\(sanitized).token.cbor"))
+            let storageKey = issuerStorageKey(issuer)
+            try tokenCBOR.write(to: dir.appendingPathComponent("\(storageKey).token.cbor"))
             if let pk = publicKey {
-                try pk.write(to: dir.appendingPathComponent("\(sanitized).pubkey.cbor"))
+                try pk.write(to: dir.appendingPathComponent("\(storageKey).pubkey.cbor"))
             }
         } catch {
             Logger.privacyPass.error("Failed to persist credential for \(issuer, privacy: .public): \(error.localizedDescription, privacy: .public)")
@@ -405,8 +425,9 @@ public final class PrivacyPassTokenManager: PrivacyPassTokenManaging {
                     continue
                 }
 
-                let issuer = baseName.replacingOccurrences(of: "_", with: "/")
-                    .replacingOccurrences(of: "/_", with: ":")
+                guard let issuer = issuer(fromStorageKey: baseName) else {
+                    continue
+                }
                 credentialCBOR[issuer] = tokenData
                 publicKeyCBOR[issuer] = pkData
             }
