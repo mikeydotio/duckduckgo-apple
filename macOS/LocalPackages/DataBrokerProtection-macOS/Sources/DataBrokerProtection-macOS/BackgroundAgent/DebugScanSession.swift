@@ -29,6 +29,9 @@ public final class DebugScanSession {
     /// In-memory email confirmation store for debug scans (mirrors DebugEmailConfirmationStore in debug VM).
     let debugEmailConfirmationStore = DebugEmailConfirmationStore()
 
+    /// Reference to the active WebViewHandler — kept alive on error for inspection.
+    var activeWebViewHandler: WebViewHandler?
+
     // MARK: - Live State
 
     struct State {
@@ -59,9 +62,17 @@ public final class DebugScanSession {
         lock.unlock()
     }
 
+    /// Cleans up the previous WebView if one is still alive from a prior run.
+    func cleanUpPreviousWebView() async {
+        if let handler = activeWebViewHandler {
+            await handler.finish()
+            activeWebViewHandler = nil
+        }
+    }
+
     // MARK: - Serialization
 
-    func serializeState() -> Data? {
+    func serializeState() async -> Data? {
         let s = state
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -76,6 +87,16 @@ public final class DebugScanSession {
         }
         if let error = s.lastError {
             result["lastError"] = error
+        }
+
+        // Live WebView state
+        if let handler = activeWebViewHandler {
+            if let url = await handler.currentURL {
+                result["currentURL"] = url.absoluteString
+            }
+            if let html = await handler.getPageHTML() {
+                result["pageHTML"] = html
+            }
         }
 
         let recentEvents = s.debugEvents.suffix(20).map { event -> [String: Any] in

@@ -338,6 +338,19 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
             })
         }
     }
+
+    public func executeJavaScript(code: String) async -> Data? {
+        await withCheckedContinuation { continuation in
+            xpc.execute(call: { server in
+                server.executeJavaScript(code: code) { data in
+                    continuation.resume(returning: data)
+                }
+            }, xpcReplyErrorHandler: { error in
+                Logger.dataBrokerProtection.error("Error executing JavaScript: \(error.localizedDescription)")
+                continuation.resume(returning: nil)
+            })
+        }
+    }
 }
 
 // MARK: - Incoming communication from the server

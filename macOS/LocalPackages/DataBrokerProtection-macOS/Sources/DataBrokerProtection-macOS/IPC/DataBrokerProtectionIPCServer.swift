@@ -136,6 +136,7 @@ protocol XPCServerInterface {
     func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool, completion: @escaping (Data?) -> Void)
     func getWebViewState(completion: @escaping (Data?) -> Void)
     func reauthenticate(completion: @escaping (Data?) -> Void)
+    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void)
 }
 
 protocol DataBrokerProtectionIPCServer: IPCClientInterface, XPCServerInterface {
@@ -320,6 +321,13 @@ extension DefaultDataBrokerProtectionIPCServer: XPCServerInterface {
     func reauthenticate(completion: @escaping (Data?) -> Void) {
         Task {
             let data = await serverDelegate?.reauthenticate()
+            completion(data)
+        }
+    }
+
+    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void) {
+        Task {
+            let data = await serverDelegate?.executeJavaScript(code: code)
             completion(data)
         }
     }

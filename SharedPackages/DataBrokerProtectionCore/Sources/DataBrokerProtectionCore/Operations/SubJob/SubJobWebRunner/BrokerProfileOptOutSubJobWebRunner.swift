@@ -85,6 +85,7 @@ public final class BrokerProfileOptOutSubJobWebRunner: SubJobWebRunning, BrokerP
     private let actionsHandlerMode: ActionsHandlerMode
 
     public var retriesCountOnError: Int = 0
+    public var keepWebViewAlive: Bool = false
 
     public init(privacyConfig: PrivacyConfigurationManaging,
                 prefs: ContentScopeProperties,

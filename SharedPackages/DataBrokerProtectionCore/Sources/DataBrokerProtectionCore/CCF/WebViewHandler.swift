@@ -34,6 +34,10 @@ public protocol WebViewHandler: NSObject {
     func execute(action: Action, ofType stepType: StepType?, data: CCFRequestData) async
     func evaluateJavaScript(_ javaScript: String) async throws
     func setCookies(_ cookies: [HTTPCookie]) async
+    var currentURL: URL? { get async }
+    func getPageHTML() async -> String?
+    /// Evaluates JavaScript and returns the result as Any.
+    func evaluateJavaScriptReturningResult(_ javaScript: String) async throws -> Any?
 }
 
 @MainActor
@@ -147,6 +151,18 @@ final class DataBrokerProtectionWebViewHandler: NSObject, WebViewHandler {
         for cookie in cookies {
             await webView?.configuration.websiteDataStore.httpCookieStore.setCookie(cookie)
         }
+    }
+
+    var currentURL: URL? {
+        webView?.url
+    }
+
+    func getPageHTML() async -> String? {
+        try? await webView?.evaluateJavaScript("document.body.innerHTML") as? String
+    }
+
+    func evaluateJavaScriptReturningResult(_ javaScript: String) async throws -> Any? {
+        try await webView?.evaluateJavaScript(javaScript)
     }
 
     func finish() {

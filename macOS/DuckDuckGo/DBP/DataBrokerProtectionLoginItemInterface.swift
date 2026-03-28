@@ -179,4 +179,8 @@ extension DefaultDataBrokerProtectionLoginItemInterface: DataBrokerProtectionLog
     func reauthenticate() async -> Data? {
         return await ipcClient.reauthenticate()
     }
+
+    func executeJavaScript(code: String) async -> Data? {
+        return await ipcClient.executeJavaScript(code: code)
+    }
 }

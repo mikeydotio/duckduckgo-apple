@@ -68,6 +68,8 @@ public protocol DataBrokerProtectionAgentDebugCommands {
     func getWebViewState() async -> Data?
     /// Signs out of subscription and opens the activation flow for the user to re-auth.
     func reauthenticate() async -> Data?
+    /// Evaluates JavaScript on the paused debug WebView.
+    func executeJavaScript(code: String) async -> Data?
 }
 
 public protocol DataBrokerProtectionAppToAgentInterface: AnyObject, DataBrokerProtectionAgentAppEvents, DataBrokerProtectionAgentDebugCommands {

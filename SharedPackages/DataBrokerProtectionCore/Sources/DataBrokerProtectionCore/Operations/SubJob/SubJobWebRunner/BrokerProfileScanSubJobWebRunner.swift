@@ -48,6 +48,7 @@ public final class BrokerProfileScanSubJobWebRunner: SubJobWebRunning, BrokerPro
     private let operationAwaitTime: TimeInterval
     public let shouldRunNextStep: () -> Bool
     public var retriesCountOnError: Int = 0
+    public var keepWebViewAlive: Bool = false
     public lazy var clickAwaitTime: TimeInterval = {
         executionConfig.clickAwaitTimeForScan
     }()

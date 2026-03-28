@@ -38,6 +38,7 @@ import Foundation
     func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool, completion: @escaping (Data?) -> Void)
     func getWebViewState(completion: @escaping (Data?) -> Void)
     func reauthenticate(completion: @escaping (Data?) -> Void)
+    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void)
 }
 
 /// Mirror of the agent's XPC client interface (currently unused by MCP server).
@@ -294,5 +295,16 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
             return
         }
         proxy.reauthenticate(completion: completion)
+    }
+
+    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void) {
+        guard let proxy = serverProxy(errorHandler: { error in
+            log("XPC error (executeJavaScript): \(error)")
+            completion(nil)
+        }) else {
+            completion(nil)
+            return
+        }
+        proxy.executeJavaScript(code: code, completion: completion)
     }
 }

@@ -192,6 +192,16 @@ final class MCPTools {
                 description: "Sign out of subscription (clears stale auth token) and open the activation flow in the browser for the user to re-authenticate. Use this after switching environments or when get_auth_status shows auth issues. After calling, wait for the user to complete sign-in, then use get_auth_status to verify.",
                 inputSchema: emptySchema()
             ),
+            toolDef(
+                name: "execute_js",
+                description: "Execute JavaScript on the live debug WebView. Only works when a WebView is alive (paused on error after run_scan/run_optout). Use to inspect the page DOM, test CSS/XPath selectors, check element text, or verify fixes before updating broker JSON. The WebView stays alive until the next run_scan/run_optout call.",
+                inputSchema: schemaWith(
+                    properties: [
+                        "javascript": ["type": "string", "description": "JavaScript expression to evaluate in the WebView. Returns the expression result."]
+                    ],
+                    required: ["javascript"]
+                )
+            ),
         ]
     }
 
@@ -252,6 +262,8 @@ final class MCPTools {
             getWebViewState(completion: completion)
         case "reauthenticate":
             reauthenticate(completion: completion)
+        case "execute_js":
+            executeJS(arguments: arguments, completion: completion)
         default:
             completion(.failure(ToolError.unknownTool(name)))
         }
@@ -612,6 +624,20 @@ final class MCPTools {
         }
 
         completion(.success("Activation flow opened in browser. Please sign in, then use get_auth_status to verify."))
+    }
+
+    private func executeJS(arguments: [String: Any], completion: @escaping (Result<String, Error>) -> Void) {
+        guard let javascript = arguments["javascript"] as? String else {
+            completion(.failure(ToolError.missingArgument("javascript")))
+            return
+        }
+        agent.executeJavaScript(code: javascript) { data in
+            guard let data else {
+                completion(.failure(ToolError.xpcError("Failed to execute JavaScript. Is the agent running and is a WebView alive?")))
+                return
+            }
+            self.prettyPrintJSON(data, completion: completion)
+        }
     }
 
     // MARK: - Helpers

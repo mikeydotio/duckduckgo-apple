@@ -53,6 +53,8 @@ public protocol SubJobWebRunning: CCFCommunicationDelegate {
     var retriesCountOnError: Int { get set }
     var clickAwaitTime: TimeInterval { get }
     var postLoadingSiteStartTime: Date? { get set }
+    /// When true, the WebView is kept alive on terminal error instead of being torn down.
+    var keepWebViewAlive: Bool { get set }
 
     func run(inputValue: InputValue,
              webViewHandler: WebViewHandler?,
@@ -444,7 +446,9 @@ public extension SubJobWebRunning {
         if retriesCountOnError > 0 {
             await executeCurrentAction()
         } else {
-            await webViewHandler?.finish()
+            if !keepWebViewAlive {
+                await webViewHandler?.finish()
+            }
             failed(with: error)
         }
     }

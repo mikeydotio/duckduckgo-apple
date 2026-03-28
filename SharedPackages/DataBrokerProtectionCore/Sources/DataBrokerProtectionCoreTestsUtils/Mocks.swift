@@ -3096,6 +3096,12 @@ public final class MockWebViewHandler: NSObject, WebViewHandler {
 
     public func setCookies(_ cookies: [HTTPCookie]) async {
     }
+
+    public var currentURL: URL? { nil }
+
+    public func getPageHTML() async -> String? { nil }
+
+    public func evaluateJavaScriptReturningResult(_ javaScript: String) async throws -> Any? { nil }
 }
 
 // swiftlint:enable force_try

@@ -945,6 +945,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
     // MARK: - Debug Scan/OptOut/WebView State
 
     public func runCustomScan(brokerJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool) async -> Data? {
+        await debugScanSession.cleanUpPreviousWebView()
         debugScanSession.updateState { s in
             s.isRunning = true
             s.currentStep = "scan"
@@ -997,19 +998,29 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                     executionConfig: .init(),
                     shouldRunNextStep: { true }
                 )
+                runner.keepWebViewAlive = true
 
-                let profiles = try await runner.scan(queryData, showWebView: showWebView) { true }
+                do {
+                    let profiles = try await runner.scan(queryData, showWebView: showWebView) { true }
 
-                // Store in debug email confirmation store (mirrors debug VM flow)
-                let assignedProfiles: [ExtractedProfile] = profiles.map { profile in
-                    debugScanSession.debugEmailConfirmationStore.storeExtractedProfile(
-                        profile,
-                        brokerId: brokerId,
-                        profileQueryId: profileQueryId,
-                        stableId: DebugHelper.stableId(for: profile)
-                    )
+                    // Store in debug email confirmation store (mirrors debug VM flow)
+                    let assignedProfiles: [ExtractedProfile] = profiles.map { profile in
+                        debugScanSession.debugEmailConfirmationStore.storeExtractedProfile(
+                            profile,
+                            brokerId: brokerId,
+                            profileQueryId: profileQueryId,
+                            stableId: DebugHelper.stableId(for: profile)
+                        )
+                    }
+                    allExtracted.append(contentsOf: assignedProfiles)
+
+                    // Success — clean up WebView
+                    await runner.webViewHandler?.finish()
+                } catch {
+                    // Error — keep WebView alive for inspection
+                    debugScanSession.activeWebViewHandler = runner.webViewHandler
+                    throw error
                 }
-                allExtracted.append(contentsOf: assignedProfiles)
             }
 
             debugScanSession.updateState { s in
@@ -1033,18 +1044,20 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             Logger.dataBrokerProtection.error("Debug scan failed: \(error.localizedDescription, privacy: .public)")
             debugScanSession.updateState { s in
                 s.isRunning = false
-                s.currentStep = "idle"
+                s.currentStep = "paused"
                 s.lastError = error.localizedDescription
             }
             let result: [String: Any] = [
                 "success": false,
                 "error": error.localizedDescription,
+                "webViewAlive": debugScanSession.activeWebViewHandler != nil,
             ]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         }
     }
 
     public func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool) async -> Data? {
+        await debugScanSession.cleanUpPreviousWebView()
         debugScanSession.updateState { s in
             s.isRunning = true
             s.currentStep = "optOut"
@@ -1096,12 +1109,22 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                 actionsHandlerMode: .optOut,
                 shouldRunNextStep: { true }
             )
+            runner.keepWebViewAlive = true
 
-            try await runner.optOut(
-                profileQuery: queryData,
-                extractedProfile: extractedProfile,
-                showWebView: showWebView
-            ) { true }
+            do {
+                try await runner.optOut(
+                    profileQuery: queryData,
+                    extractedProfile: extractedProfile,
+                    showWebView: showWebView
+                ) { true }
+
+                // Success — clean up WebView
+                await runner.webViewHandler?.finish()
+            } catch {
+                // Error — keep WebView alive for inspection
+                debugScanSession.activeWebViewHandler = runner.webViewHandler
+                throw error
+            }
 
             debugScanSession.updateState { s in
                 s.isRunning = false
@@ -1115,22 +1138,57 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
 
         } catch {
+            // Keep WebView alive for inspection
             Logger.dataBrokerProtection.error("Debug opt-out failed: \(error.localizedDescription, privacy: .public)")
             debugScanSession.updateState { s in
                 s.isRunning = false
-                s.currentStep = "idle"
+                s.currentStep = "paused"
                 s.lastError = error.localizedDescription
             }
             let result: [String: Any] = [
                 "success": false,
                 "error": error.localizedDescription,
+                "webViewAlive": debugScanSession.activeWebViewHandler != nil,
             ]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         }
     }
 
     public func getWebViewState() async -> Data? {
-        return debugScanSession.serializeState()
+        return await debugScanSession.serializeState()
+    }
+
+    public func executeJavaScript(code: String) async -> Data? {
+        guard let handler = debugScanSession.activeWebViewHandler else {
+            let result: [String: Any] = [
+                "success": false,
+                "error": "No active WebView. Run a scan or optout first (WebView is kept alive on error).",
+            ]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
+
+        do {
+            let jsResult = try await handler.evaluateJavaScriptReturningResult(code)
+            var result: [String: Any] = ["success": true]
+            if let stringResult = jsResult as? String {
+                result["result"] = stringResult
+            } else if let numResult = jsResult as? NSNumber {
+                result["result"] = numResult
+            } else if let boolResult = jsResult as? Bool {
+                result["result"] = boolResult
+            } else if jsResult == nil || jsResult is NSNull {
+                result["result"] = NSNull()
+            } else {
+                result["result"] = String(describing: jsResult)
+            }
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        } catch {
+            let result: [String: Any] = [
+                "success": false,
+                "error": error.localizedDescription,
+            ]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
     }
 
     public func reauthenticate() async -> Data? {
