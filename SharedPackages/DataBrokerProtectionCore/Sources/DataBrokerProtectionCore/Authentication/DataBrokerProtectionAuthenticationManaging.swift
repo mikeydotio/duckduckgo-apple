@@ -32,6 +32,7 @@ public protocol DataBrokerProtectionAuthenticationManaging {
     func accessToken() async -> String?
     func hasValidEntitlement() async throws -> Bool
     func getAuthHeader() async -> String?
+    func signOut() async
 }
 
 public final class DataBrokerProtectionAuthenticationManager: DataBrokerProtectionAuthenticationManaging {
@@ -64,5 +65,9 @@ public final class DataBrokerProtectionAuthenticationManager: DataBrokerProtecti
     public func getAuthHeader() async -> String? {
         let token = await accessToken()
         return ServicesAuthHeaderBuilder().getAuthHeader(token)
+    }
+
+    public func signOut() async {
+        await subscriptionManager.signOut()
     }
 }

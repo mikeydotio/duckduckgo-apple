@@ -175,4 +175,8 @@ extension DefaultDataBrokerProtectionLoginItemInterface: DataBrokerProtectionLog
     func getWebViewState() async -> Data? {
         return await ipcClient.getWebViewState()
     }
+
+    func reauthenticate() async -> Data? {
+        return await ipcClient.reauthenticate()
+    }
 }

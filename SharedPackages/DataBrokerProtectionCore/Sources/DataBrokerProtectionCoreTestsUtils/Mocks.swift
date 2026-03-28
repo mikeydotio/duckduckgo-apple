@@ -2204,6 +2204,8 @@ public final class MockAuthenticationManager: DataBrokerProtectionAuthentication
 
     public func getAuthHeader() -> String? { authHeaderValue }
 
+    public func signOut() async {}
+
     public func reset() {
         isUserAuthenticatedValue = false
         accessTokenValue = "fake token"

@@ -325,6 +325,19 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
             })
         }
     }
+
+    public func reauthenticate() async -> Data? {
+        await withCheckedContinuation { continuation in
+            xpc.execute(call: { server in
+                server.reauthenticate { data in
+                    continuation.resume(returning: data)
+                }
+            }, xpcReplyErrorHandler: { error in
+                Logger.dataBrokerProtection.error("Error reauthenticating: \(error.localizedDescription)")
+                continuation.resume(returning: nil)
+            })
+        }
+    }
 }
 
 // MARK: - Incoming communication from the server

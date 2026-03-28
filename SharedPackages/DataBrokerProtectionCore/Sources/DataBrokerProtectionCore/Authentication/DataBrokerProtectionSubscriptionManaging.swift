@@ -27,6 +27,8 @@ public protocol DataBrokerProtectionSubscriptionManaging {
     /// Returns whether the user is eligible for a free trial
     /// - Returns: `true` if the user is eligible for a free trial, `false` otherwise
     func isUserEligibleForFreeTrial() -> Bool
+    /// Signs out and removes subscription data from this device.
+    func signOut() async
 }
 
 public final class DataBrokerProtectionSubscriptionManager: DataBrokerProtectionSubscriptionManaging {
@@ -72,6 +74,10 @@ public final class DataBrokerProtectionSubscriptionManager: DataBrokerProtection
         } else {
             return try await subscriptionManager.isFeatureEnabled(.dataBrokerProtection)
         }
+    }
+
+    public func signOut() async {
+        await subscriptionManager.signOut(notifyUI: true, userInitiated: true)
     }
 }
 

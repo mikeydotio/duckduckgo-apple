@@ -187,6 +187,11 @@ final class MCPTools {
                 description: "Get the current state of the debug WebView during an active scan or opt-out. Shows whether a scan/optout is running, the current action being executed, recent debug events, and any errors.",
                 inputSchema: emptySchema()
             ),
+            toolDef(
+                name: "reauthenticate",
+                description: "Sign out of subscription (clears stale auth token) and open the activation flow in the browser for the user to re-authenticate. Use this after switching environments or when get_auth_status shows auth issues. After calling, wait for the user to complete sign-in, then use get_auth_status to verify.",
+                inputSchema: emptySchema()
+            ),
         ]
     }
 
@@ -245,6 +250,8 @@ final class MCPTools {
             runOptOut(arguments: arguments, completion: completion)
         case "get_webview_state":
             getWebViewState(completion: completion)
+        case "reauthenticate":
+            reauthenticate(completion: completion)
         default:
             completion(.failure(ToolError.unknownTool(name)))
         }
@@ -582,6 +589,29 @@ final class MCPTools {
             }
             self.prettyPrintJSON(data, completion: completion)
         }
+    }
+
+    private func reauthenticate(completion: @escaping (Result<String, Error>) -> Void) {
+        // Sign out via XPC if agent is available (best-effort)
+        agent.reauthenticate { _ in }
+
+        // Open activation flow directly from MCP server — no XPC needed.
+        let activationURLString = "https://duckduckgo.com/subscriptions/activation-flow"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-b", "com.duckduckgo.macos.browser.debug", activationURLString]
+        try? process.run()
+        process.waitUntilExit()
+
+        // Fallback if debug browser not found
+        if process.terminationStatus != 0 {
+            let fallback = Process()
+            fallback.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            fallback.arguments = [activationURLString]
+            try? fallback.run()
+        }
+
+        completion(.success("Activation flow opened in browser. Please sign in, then use get_auth_status to verify."))
     }
 
     // MARK: - Helpers

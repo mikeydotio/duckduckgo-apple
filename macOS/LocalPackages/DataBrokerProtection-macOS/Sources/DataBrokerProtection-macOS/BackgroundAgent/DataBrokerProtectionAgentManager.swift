@@ -1132,6 +1132,27 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
     public func getWebViewState() async -> Data? {
         return debugScanSession.serializeState()
     }
+
+    public func reauthenticate() async -> Data? {
+        // Sign out to clear stale auth
+        await authenticationManager.signOut()
+
+        // Open the activation flow URL in the DuckDuckGo browser for the user to re-auth.
+        // Derive the browser bundle ID from the agent's own bundle ID.
+        let activationURLString = "https://duckduckgo.com/subscriptions/activation-flow"
+        let browserBundleID = Bundle.main.bundleIdentifier?
+            .replacingOccurrences(of: ".DBP.backgroundAgent", with: "") ?? "com.duckduckgo.macos.browser.debug"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-b", browserBundleID, activationURLString]
+        try? process.run()
+
+        let result: [String: Any] = [
+            "success": true,
+            "message": "Signed out. Activation flow opened in browser — please sign in to get a fresh auth token. Use get_auth_status to verify when done.",
+        ]
+        return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+    }
 }
 
 extension DataBrokerProtectionAgentManager: DataBrokerProtectionAppToAgentInterface {

@@ -151,4 +151,6 @@ final class MockDataBrokerProtectionSubscriptionManaging: DataBrokerProtectionSu
     func isUserEligibleForFreeTrial() -> Bool {
         isUserEligibleForFreeTrialValue
     }
+
+    func signOut() async {}
 }

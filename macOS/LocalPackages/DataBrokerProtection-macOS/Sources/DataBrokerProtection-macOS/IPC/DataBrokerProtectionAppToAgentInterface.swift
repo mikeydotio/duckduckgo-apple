@@ -66,6 +66,8 @@ public protocol DataBrokerProtectionAgentDebugCommands {
     func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool) async -> Data?
     /// Returns the current debug WebView state (action progress, errors, etc.)
     func getWebViewState() async -> Data?
+    /// Signs out of subscription and opens the activation flow for the user to re-auth.
+    func reauthenticate() async -> Data?
 }
 
 public protocol DataBrokerProtectionAppToAgentInterface: AnyObject, DataBrokerProtectionAgentAppEvents, DataBrokerProtectionAgentDebugCommands {
