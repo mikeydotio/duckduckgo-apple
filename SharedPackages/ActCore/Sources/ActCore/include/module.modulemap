@@ -1,0 +1,5 @@
+module ActCore [system] {
+    header "act_core.h"
+    link "act_core"
+    export *
+}

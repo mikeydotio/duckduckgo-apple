@@ -1,2 +1,2 @@
-// Shim to satisfy SPM requirement for at least one source file in a C target.
+// Shim for SPM C target requirement
 #include "act_core.h"
