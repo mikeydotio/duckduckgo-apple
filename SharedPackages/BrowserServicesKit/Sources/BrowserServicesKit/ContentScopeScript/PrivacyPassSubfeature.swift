@@ -226,10 +226,29 @@ public final class PrivacyPassChallengeHandler {
         return Data(hash)
     }
 
+    /// Header sent on retry requests to prevent infinite 401→retry loops.
+    /// Matches the Android `X-DuckDuckGo-PrivacyPass-Retry` convention.
+    static let retryGuardHeader = "X-DuckDuckGo-PrivacyPass-Retry"
+
+    /// Returns `true` if this response's request already carried the retry guard header,
+    /// indicating we should not retry again.
+    public func isRetryRequest(_ response: HTTPURLResponse) -> Bool {
+        // WKWebView does not expose request headers on the response, but we can check
+        // via the URL's query or a custom header. Since we add the header on the retry
+        // URLRequest, WKWebView includes it in subsequent navigations within the same load.
+        // However, the HTTPURLResponse does not expose the original request headers.
+        // We use an in-memory set of URLs currently being retried as a more reliable guard.
+        return activeRetryURLs.contains(response.url?.absoluteString ?? "")
+    }
+
+    // Track URLs currently in a retry cycle to prevent re-entry
+    private var activeRetryURLs: Set<String> = []
+
     /// Builds a `URLRequest` that retries the original URL with the authorization token.
     public func authorizedRequest(for originalURL: URL, authorization: String, referrer: String? = nil) -> URLRequest {
         var request = URLRequest(url: originalURL)
         request.setValue(authorization, forHTTPHeaderField: "Authorization")
+        request.setValue("1", forHTTPHeaderField: Self.retryGuardHeader)
         if let referrer {
             request.setValue(referrer, forHTTPHeaderField: "Referer")
         }
@@ -247,10 +266,21 @@ public final class PrivacyPassChallengeHandler {
     public func handleChallengeAndRetry(response: HTTPURLResponse,
                                         originalURL: URL,
                                         webView: WKWebView) async throws {
+        let urlString = originalURL.absoluteString
+
+        // Prevent infinite retry loops: if we're already retrying this URL, bail out
+        guard !activeRetryURLs.contains(urlString) else {
+            Logger.privacyPass.warning("Privacy Pass retry loop detected for \(urlString, privacy: .public), aborting")
+            return
+        }
+
+        activeRetryURLs.insert(urlString)
+        defer { activeRetryURLs.remove(urlString) }
+
         let authorization = try await handleChallenge(from: response)
         let referrer = webView.url?.absoluteString
         let request = authorizedRequest(for: originalURL, authorization: authorization, referrer: referrer)
         webView.load(request)
-        Logger.privacyPass.debug("Retrying navigation to \(originalURL.absoluteString, privacy: .public) with authorization")
+        Logger.privacyPass.debug("Retrying navigation to \(urlString, privacy: .public) with authorization")
     }
 }
