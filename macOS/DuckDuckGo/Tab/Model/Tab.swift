@@ -277,6 +277,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         self.statisticsLoader = statisticsLoader
         self.internalUserDecider = internalUserDecider
         self.privacyFeatures = privacyFeatures
+        self.privacyPassChallengeHandler = NSApp.delegateTyped.privacyPassChallengeHandler
         self.title = title
         self.favicon = favicon
         self.parentTab = parentTab
@@ -773,7 +774,8 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
     }
 
     private let instrumentation = TabInstrumentation()
-    private let privacyPassChallengeHandler = PrivacyPassChallengeHandler(tokenManager: PrivacyPassTokenManager())
+    // Shared across all tabs — sourced from AppDelegate for credential persistence
+    private let privacyPassChallengeHandler: PrivacyPassChallengeHandler
 
     private let _id: String?
     var id: String {

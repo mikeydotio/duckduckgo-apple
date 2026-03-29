@@ -63,6 +63,7 @@ protocol DependencyProvider {
     var tokenHandlerProvider: any SubscriptionTokenHandling { get }
     var dbpSettings: DataBrokerProtectionSettings { get }
     var syncAutoRestoreDecisionManager: SyncAutoRestoreDecisionManaging { get }
+    var privacyPassChallengeHandler: PrivacyPassChallengeHandler { get }
 }
 
 /// Provides dependencies for objects that are not directly instantiated
@@ -105,6 +106,9 @@ final class AppDependencyProvider: DependencyProvider {
     let wideEvent: WideEventManaging
     let freeTrialConversionService: FreeTrialConversionInstrumentationService
     lazy var syncAutoRestoreDecisionManager: SyncAutoRestoreDecisionManaging = SyncAutoRestoreDecisionManager(featureFlagger: featureFlagger)
+
+    // Shared across all tabs so Privacy Pass credentials persist across navigations
+    lazy var privacyPassChallengeHandler = PrivacyPassChallengeHandler(tokenManager: PrivacyPassTokenManager())
 
     private init() {
 

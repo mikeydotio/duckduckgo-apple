@@ -151,6 +151,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let webCacheManager: WebCacheManager
     let tld = TLD()
     let privacyFeatures: AnyPrivacyFeatures
+    // Shared across all tabs so Privacy Pass credentials persist across navigations
+    lazy var privacyPassChallengeHandler = PrivacyPassChallengeHandler(tokenManager: PrivacyPassTokenManager())
     let brokenSitePromptLimiter: BrokenSitePromptLimiter
     let fireCoordinator: FireCoordinator
     let permissionManager: PermissionManager

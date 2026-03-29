@@ -93,7 +93,8 @@ class TabViewController: UIViewController {
     @IBOutlet var showBarsTapGestureRecogniser: UITapGestureRecognizer!
 
     private let instrumentation = TabInstrumentation()
-    private let privacyPassChallengeHandler = PrivacyPassChallengeHandler(tokenManager: PrivacyPassTokenManager())
+    // Shared across all tabs so credentials persist across navigations
+    private let privacyPassChallengeHandler: PrivacyPassChallengeHandler
     private var lastMainFrameRequestHTTPMethod: String?
     let tabInteractionStateSource: TabInteractionStateSource?
 
@@ -576,6 +577,7 @@ class TabViewController: UIViewController {
 
         self.tabModel = tabModel
         self.viewModel = TabViewModel(tab: tabModel, historyManager: historyManager)
+        self.privacyPassChallengeHandler = AppDependencyProvider.shared.privacyPassChallengeHandler
         self.privacyConfigurationManager = privacyConfigurationManager
         self.appSettings = appSettings
         self.bookmarksDatabase = bookmarksDatabase
