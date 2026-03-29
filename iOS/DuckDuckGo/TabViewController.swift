@@ -3112,6 +3112,9 @@ extension TabViewController: UserContentControllerDelegate {
     private var findInPageScript: FindInPageUserScript? {
         userScripts?.findInPageScript
     }
+    private var contentBlockerUserScript: ContentBlockerRulesUserScript? {
+        userScripts?.contentBlockerUserScript
+    }
     private var autofillUserScript: AutofillUserScript? {
         userScripts?.autofillUserScript
     }
@@ -3123,6 +3126,8 @@ extension TabViewController: UserContentControllerDelegate {
         guard let userScripts = userScripts as? UserScripts else { fatalError("Unexpected UserScripts") }
 
         userScripts.debugScript.instrumentation = instrumentation
+        userScripts.surrogatesScript.delegate = self
+        userScripts.contentBlockerUserScript.delegate = self
         userScripts.trackerProtectionSubfeature.delegate = self
         userScripts.autofillUserScript.emailDelegate = emailManager
         userScripts.autofillUserScript.vaultDelegate = vaultManager
@@ -3180,7 +3185,74 @@ extension TabViewController: UserContentControllerDelegate {
 
 }
 
-// MARK: - TrackerProtectionSubfeatureDelegate
+// MARK: - ContentBlockerRulesUserScriptDelegate
+extension TabViewController: ContentBlockerRulesUserScriptDelegate {
+
+    func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
+        return privacyInfo?.isFor(self.url) ?? false
+    }
+
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
+        return false
+    }
+
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
+                                       detectedTracker tracker: DetectedRequest) {
+        userScriptDetectedTracker(tracker)
+    }
+
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
+                                       detectedThirdPartyRequest request: DetectedRequest) {
+        privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: request)
+    }
+
+    fileprivate func userScriptDetectedTracker(_ tracker: DetectedRequest) {
+        guard let url = url else { return }
+
+        adClickAttributionLogic.onRequestDetected(request: tracker)
+
+        if tracker.isBlocked && fireWoFollowUp {
+            fireWoFollowUp = false
+            Pixel.fire(pixel: .daxDialogsWithoutTrackersFollowUp)
+        }
+
+        privacyInfo?.trackerInfo.addDetectedTracker(tracker, onPageWithURL: url)
+
+        guard tracker.isBlocked,
+              let host = tracker.url.url?.host,
+              let entityName = ContentBlocking.shared.trackerDataManager.trackerData.findParentEntityOrFallback(forHost: host)?.displayName else {
+            return
+        }
+
+        Task {
+            await privacyStats.recordBlockedTracker(entityName)
+        }
+    }
+}
+
+// MARK: - SurrogatesUserScriptDelegate
+extension TabViewController: SurrogatesUserScriptDelegate {
+
+    func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool {
+        return privacyInfo?.isFor(self.url) ?? false
+    }
+
+    func surrogatesUserScriptShouldProcessCTLTrackers(_ script: SurrogatesUserScript) -> Bool {
+        false
+    }
+
+    func surrogatesUserScript(_ script: SurrogatesUserScript,
+                              detectedTracker tracker: DetectedRequest,
+                              withSurrogate host: String) {
+        guard let url = url else { return }
+
+        privacyInfo?.trackerInfo.addInstalledSurrogateHost(host, for: tracker, onPageWithURL: url)
+        userScriptDetectedTracker(tracker)
+    }
+
+}
+
+// MARK: - TrackerProtectionSubfeatureDelegate (shadow)
 extension TabViewController: TrackerProtectionSubfeatureDelegate {
 
     func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool {
@@ -3200,47 +3272,10 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
-        guard let mapper = makeMapper(),
-              let detected = mapper.classifyResource(observation) else { return }
-
-        if detected.state == .blocked {
-            userScriptDetectedTracker(detected)
-        } else if !mapper.isSameSiteObservation(observation) {
-            privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: detected)
-        }
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
-        guard let url = url,
-              let mapper = makeMapper(),
-              let detected = mapper.classifySurrogate(surrogate),
-              let host = mapper.surrogateHost(from: surrogate) else { return }
-
-        privacyInfo?.trackerInfo.addInstalledSurrogateHost(host, for: detected, onPageWithURL: url)
-        userScriptDetectedTracker(detected)
-    }
-
-    fileprivate func userScriptDetectedTracker(_ tracker: DetectedRequest) {
-        guard let url = url else { return }
-
-        adClickAttributionLogic.onRequestDetected(request: tracker)
-
-        if tracker.isBlocked && fireWoFollowUp {
-            fireWoFollowUp = false
-            Pixel.fire(pixel: .daxDialogsWithoutTrackersFollowUp)
-        }
-
-        privacyInfo?.trackerInfo.addDetectedTracker(tracker, onPageWithURL: url)
-
-        guard tracker.isBlocked,
-              let entityName = tracker.entityName else {
-            return
-        }
-
-        Task {
-            await privacyStats.recordBlockedTracker(entityName)
-        }
     }
 }
 
@@ -3290,15 +3325,12 @@ extension TabViewController: AdClickAttributionLogicDelegate {
         guard privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking)
         else {
             userContentController.removeLocalContentRuleList(withIdentifier: attributedTempListName)
-            userScripts?.trackerProtectionSubfeature.currentAdClickAttributionVendor = nil
-            userScripts?.trackerProtectionSubfeature.currentAdClickAttributionAllowlistHosts = []
+            contentBlockerUserScript?.currentAdClickAttributionVendor = nil
+            contentBlockerUserScript?.supplementaryTrackerData = []
             return
         }
 
-        userScripts?.trackerProtectionSubfeature.currentAdClickAttributionVendor = vendor
-        userScripts?.trackerProtectionSubfeature.currentAdClickAttributionAllowlistHosts = vendor != nil
-            ? ContentBlocking.shared.adClickAttribution.allowlist.map(\.host)
-            : []
+        contentBlockerUserScript?.currentAdClickAttributionVendor = vendor
 
         if let rules = rules {
 

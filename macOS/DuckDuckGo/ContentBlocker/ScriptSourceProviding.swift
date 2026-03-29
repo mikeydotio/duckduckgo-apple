@@ -34,6 +34,8 @@ import WebExtensions
 protocol ScriptSourceProviding {
 
     var featureFlagger: FeatureFlagger { get }
+    var contentBlockerRulesConfig: ContentBlockerUserScriptConfig? { get }
+    var surrogatesConfig: SurrogatesUserScriptConfig? { get }
     var privacyConfigurationManager: PrivacyConfigurationManaging { get }
     var autofillSourceProvider: AutofillUserScriptSourceProvider? { get }
     var autoconsentManagement: AutoconsentManagement { get }
@@ -89,6 +91,8 @@ protocol ScriptSourceProviding {
 }
 
 struct ScriptSourceProvider: ScriptSourceProviding {
+    private(set) var contentBlockerRulesConfig: ContentBlockerUserScriptConfig?
+    private(set) var surrogatesConfig: SurrogatesUserScriptConfig?
     private(set) var onboardingActionsManager: OnboardingActionsManaging?
     private(set) var historyViewActionsManager: HistoryViewActionsManager?
     private(set) var autofillSourceProvider: AutofillUserScriptSourceProvider?
@@ -176,6 +180,8 @@ struct ScriptSourceProvider: ScriptSourceProviding {
         self.appearancePreferences = appearancePreferences
         self.dockCustomization = dockCustomization
 
+        self.contentBlockerRulesConfig = buildContentBlockerRulesConfig()
+        self.surrogatesConfig = buildSurrogatesConfig()
         self.sessionKey = generateSessionKey()
         self.messageSecret = generateSessionKey()
         self.autofillSourceProvider = buildAutofillSource()
@@ -217,6 +223,56 @@ struct ScriptSourceProvider: ScriptSourceProviding {
         }
     }
 
+    private func buildContentBlockerRulesConfig() -> ContentBlockerUserScriptConfig {
+
+        let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
+        let trackerData = contentBlockingManager.currentRules.first(where: { $0.name == tdsName })?.trackerData
+
+        let ctlTrackerData = (contentBlockingManager.currentRules.first(where: {
+            $0.name == DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName
+        })?.trackerData)
+
+        do {
+            return try DefaultContentBlockerUserScriptConfig(privacyConfiguration: privacyConfigurationManager.privacyConfig,
+                                                             trackerData: trackerData,
+                                                             ctlTrackerData: ctlTrackerData,
+                                                             tld: tld,
+                                                             trackerDataManager: trackerDataManager)
+        } catch {
+            if let error = error as? UserScriptError {
+                error.fireLoadJSFailedPixelIfNeeded()
+            }
+            fatalError("Failed to initialize DefaultContentBlockerUserScriptConfig: \(error.localizedDescription)")
+        }
+    }
+
+    private func buildSurrogatesConfig() -> SurrogatesUserScriptConfig {
+
+        let isDebugBuild: Bool
+#if DEBUG
+        isDebugBuild = true
+#else
+        isDebugBuild = false
+#endif
+
+        let surrogates = configStorage.loadData(for: .surrogates)?.utf8String() ?? ""
+        let allTrackers = mergeTrackerDataSets(rules: contentBlockingManager.currentRules)
+        do {
+            return try DefaultSurrogatesUserScriptConfig(privacyConfig: privacyConfigurationManager.privacyConfig,
+                                                         surrogates: surrogates,
+                                                         trackerData: allTrackers.trackerData,
+                                                         encodedSurrogateTrackerData: allTrackers.encodedTrackerData,
+                                                         trackerDataManager: trackerDataManager,
+                                                         tld: tld,
+                                                         isDebugBuild: isDebugBuild)
+        } catch {
+            if let error = error as? UserScriptError {
+                error.fireLoadJSFailedPixelIfNeeded()
+            }
+            fatalError("Failed to initialize DefaultSurrogatesUserScriptConfig: \(error.localizedDescription)")
+        }
+    }
+
     private func buildOnboardingActionsManager(_ navigationDelegate: OnboardingNavigating, _ appearancePreferences: AppearancePreferences, _ startupPreferences: StartupPreferences) -> OnboardingActionsManaging {
         return OnboardingActionsManager(
             navigationDelegate: navigationDelegate,
@@ -241,6 +297,43 @@ struct ScriptSourceProvider: ScriptSourceProviding {
         }
 
         return data
+    }
+
+    private func mergeTrackerDataSets(rules: [ContentBlockerRulesManager.Rules]) -> (trackerData: TrackerData, encodedTrackerData: String) {
+        var combinedTrackers: [String: KnownTracker] = [:]
+        var combinedEntities: [String: Entity] = [:]
+        var combinedDomains: [String: String] = [:]
+        var cnames: [TrackerData.CnameDomain: TrackerData.TrackerDomain]? = [:]
+
+        let setsToCombine = [ DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName, DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName ]
+
+        for setName in setsToCombine {
+            if let ruleSetIndex = contentBlockingManager.currentRules.firstIndex(where: { $0.name == setName }) {
+                let ruleSet = rules[ruleSetIndex]
+
+                combinedTrackers = combinedTrackers.merging(ruleSet.trackerData.trackers) { (_, new) in new }
+                combinedEntities = combinedEntities.merging(ruleSet.trackerData.entities) { (_, new) in new }
+                combinedDomains = combinedDomains.merging(ruleSet.trackerData.domains) { (_, new) in new }
+                if setName == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
+                    cnames = ruleSet.trackerData.cnames
+                }
+            }
+        }
+
+        let combinedTrackerData = TrackerData(trackers: combinedTrackers,
+                            entities: combinedEntities,
+                            domains: combinedDomains,
+                            cnames: cnames)
+
+        let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: combinedTrackerData)
+        let encodedTrackerData = encodeTrackerData(surrogateTDS)
+
+        return (trackerData: combinedTrackerData, encodedTrackerData: encodedTrackerData)
+    }
+
+    private func encodeTrackerData(_ trackerData: TrackerData) -> String {
+        let encodedData = try? JSONEncoder().encode(trackerData)
+        return String(data: encodedData!, encoding: .utf8)!
     }
 
     private func generateCurrentCohorts() -> [ContentScopeExperimentData] {
