@@ -3200,14 +3200,17 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
-        guard let mapper = makeMapper(),
-              let detected = mapper.classifyResource(observation,
-                                                     adClickAttributionVendor: subfeature.currentAdClickAttributionVendor) else { return }
+        guard let mapper = makeMapper() else { return }
 
-        if detected.state == .blocked {
-            userScriptDetectedTracker(detected)
-        } else if !mapper.isSameSiteObservation(observation) {
-            privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: detected)
+        if let detected = mapper.classifyResource(observation,
+                                                   adClickAttributionVendor: subfeature.currentAdClickAttributionVendor) {
+            if detected.state == .blocked {
+                userScriptDetectedTracker(detected)
+            } else if !mapper.isSameSiteObservation(observation) {
+                privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: detected)
+            }
+        } else if let thirdParty = mapper.makeThirdPartyRequest(from: observation) {
+            privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: thirdParty)
         }
     }
 

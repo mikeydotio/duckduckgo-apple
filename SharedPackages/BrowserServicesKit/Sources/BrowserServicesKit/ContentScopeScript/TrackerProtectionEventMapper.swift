@@ -83,6 +83,22 @@ public struct TrackerProtectionEventMapper {
         return requestETLDplus1 == pageETLDplus1
     }
 
+    /// Build a DetectedRequest for a non-TDS cross-site resource (third-party request).
+    public func makeThirdPartyRequest(from observation: TrackerProtectionSubfeature.ResourceObservation) -> DetectedRequest? {
+        guard !isSameSiteObservation(observation) else { return nil }
+        let requestETLDp1 = tld.eTLDplus1(forStringURL: observation.url) ?? observation.url
+        let tds = trackerResolver.tds
+        let entity = tds.findEntity(forHost: requestETLDp1) ?? Entity(displayName: requestETLDp1, domains: nil, prevalence: nil)
+        let isAffiliated = trackerResolver.isPageAffiliatedWithTrackerEntity(pageUrlString: observation.pageUrl, trackerEntity: entity)
+        guard !isAffiliated else { return nil }
+        return DetectedRequest(url: observation.url,
+                               eTLDplus1: requestETLDp1,
+                               knownTracker: nil,
+                               entity: entity,
+                               state: .allowed(reason: .otherThirdPartyRequest),
+                               pageUrl: observation.pageUrl)
+    }
+
     // MARK: - Private
 
     private func resolverWithVendor(_ vendor: String?) -> TrackerResolver {
