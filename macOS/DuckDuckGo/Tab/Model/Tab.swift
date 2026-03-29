@@ -1427,24 +1427,7 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
 
     @MainActor
     func decidePolicy(for navigationResponse: NavigationResponse) async -> NavigationResponsePolicy? {
-        if privacyFeatures.contentBlocking.privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .privacyPass),
-           let httpResponse = navigationResponse.httpResponse,
-           navigationResponse.mainFrameNavigation?.navigationAction.request.httpMethod == "GET",
-           privacyPassChallengeHandler.isPrivacyPassChallenge(httpResponse),
-           let originalURL = navigationResponse.url as URL? {
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                do {
-                    try await privacyPassChallengeHandler.handleChallengeAndRetry(
-                        response: httpResponse,
-                        originalURL: originalURL,
-                        webView: webView)
-                } catch {
-                    Logger.privacyPass.error("Privacy Pass challenge handling failed: \(error.localizedDescription, privacy: .public)")
-                }
-            }
-            return .cancel
-        }
+        // Privacy Pass 401 challenge handling is now in PrivacyPassNavigationResponder
 
         internalUserDecider?.markUserAsInternalIfNeeded(forUrl: webView.url,
                                                         response: navigationResponse.response as? HTTPURLResponse)

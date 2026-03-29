@@ -67,6 +67,12 @@ extension Tab: NavigationResponder {
             // add extra headers to SERP requests
             .struct(SerpHeadersNavigationResponder()),
 
+            // Privacy Pass 401 challenge handling
+            .strong(PrivacyPassNavigationResponder(
+                challengeHandler: privacyPassChallengeHandler,
+                privacyConfigurationManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
+                webViewFuture: args.webViewFuture)),
+
             .struct(redirectNavigationResponder),
 
             // ensure Content Blocking Rules are applied before navigation
