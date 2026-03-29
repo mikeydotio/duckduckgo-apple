@@ -53,7 +53,17 @@ final class ContentBlockingTabExtension: NSObject {
     private let cbaTimeReporter: ContentBlockingAssetsCompilationTimeReporter?
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let fbBlockingEnabledProvider: FbBlockingEnabledProvider
-    private let trackerProtectionMapper: TrackerProtectionEventMapper?
+    private let tld: TLD
+    private let contentBlockingManager: ContentBlockerRulesManagerProtocol
+    private lazy var trackerProtectionMapper: TrackerProtectionEventMapper? = {
+        guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else { return nil }
+        let privacyConfig = privacyConfigurationManager.privacyConfig
+        let resolver = TrackerResolver(tds: trackerData,
+                                       unprotectedSites: privacyConfig.userUnprotectedDomains,
+                                       tempList: privacyConfig.tempUnprotectedDomains,
+                                       tld: tld)
+        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver)
+    }()
     private var trackersSubject = PassthroughSubject<DetectedTracker, Never>()
 
     private var cancellables = Set<AnyCancellable>()
@@ -82,17 +92,8 @@ final class ContentBlockingTabExtension: NSObject {
         self.cbaTimeReporter = cbaTimeReporter
         self.fbBlockingEnabledProvider = fbBlockingEnabledProvider
         self.privacyConfigurationManager = privacyConfigurationManager
-
-        if let trackerData = contentBlockingManager.currentMainRules?.trackerData {
-            let privacyConfig = privacyConfigurationManager.privacyConfig
-            let resolver = TrackerResolver(tds: trackerData,
-                                           unprotectedSites: privacyConfig.userUnprotectedDomains,
-                                           tempList: privacyConfig.tempUnprotectedDomains,
-                                           tld: tld)
-            self.trackerProtectionMapper = TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver)
-        } else {
-            self.trackerProtectionMapper = nil
-        }
+        self.tld = tld
+        self.contentBlockingManager = contentBlockingManager
         super.init()
 
         userContentControllerFuture.sink { [weak self] userContentController in
