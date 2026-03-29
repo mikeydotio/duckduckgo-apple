@@ -62,7 +62,7 @@ final class ContentBlockingTabExtension: NSObject {
                                        unprotectedSites: privacyConfig.userUnprotectedDomains,
                                        tempList: privacyConfig.tempUnprotectedDomains,
                                        tld: tld)
-        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver)
+        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver, privacyConfig: privacyConfig)
     }()
     private var trackersSubject = PassthroughSubject<DetectedTracker, Never>()
 

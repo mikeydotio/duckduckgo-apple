@@ -3267,7 +3267,7 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
                                        unprotectedSites: privacyConfig.userUnprotectedDomains,
                                        tempList: privacyConfig.tempUnprotectedDomains,
                                        tld: tld)
-        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver)
+        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver, privacyConfig: privacyConfig)
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
