@@ -16,14 +16,16 @@
 //  limitations under the License.
 //
 
-import BrowserServicesKit
+@testable import BrowserServicesKit
+import PrivacyConfigTestsUtils
 import TrackerRadarKit
 import XCTest
 
-/// A1 structural assertions enforcing the dataset contract:
+/// Structural assertions enforcing the content-blocking dataset contract:
 /// - Full TDS is used exclusively for native classification (Rules.trackerData).
 /// - Surrogate-filtered TDS is the only tracker data passed to JavaScript (Rules.encodedTrackerData).
 /// - These are separate datasets with separate consumers and must never be collapsed.
+/// - Legacy JS source paths (processRule, CTL gating) exist while the legacy pipeline is active.
 class ContentBlockingDatasetContractTests: XCTestCase {
 
     // MARK: - Dataset split contract
@@ -93,6 +95,45 @@ class ContentBlockingDatasetContractTests: XCTestCase {
 
         XCTAssertNil(dict?["trackerData"],
                      "ContentScopeProperties must not contain trackerData on A1 baseline (no C-S-S trackerProtection)")
+    }
+
+    // MARK: - Legacy JS source structure
+
+    func testWhenContentBlockerRulesSourceIsGeneratedThenProcessRuleIsPresent() throws {
+        let mockConfig = MockPrivacyConfiguration()
+        let source = try ContentBlockerRulesUserScript.generateSource(privacyConfiguration: mockConfig)
+
+        XCTAssertTrue(source.contains("processRule"),
+                      "contentblockerrules.js generated source must contain processRule")
+    }
+
+    func testWhenSurrogatesSourceIsGeneratedThenCTLGatingIsPresent() throws {
+        let mockConfig = MockPrivacyConfiguration()
+        let source = try SurrogatesUserScript.generateSource(
+            privacyConfiguration: mockConfig,
+            surrogates: "",
+            encodedSurrogateTrackerData: nil,
+            isDebugBuild: false)
+
+        XCTAssertTrue(source.contains("ctlSurrogates"),
+                      "surrogates.js generated source must contain ctlSurrogates list for CTL gating")
+        XCTAssertTrue(source.contains("isCTLEnabled"),
+                      "surrogates.js generated source must contain isCTLEnabled handler for CTL surrogate gating")
+    }
+
+    func testWhenRulesEncodedTrackerDataIsDecodedThenItContainsOnlySurrogateTrackers() throws {
+        let tds = Self.tdsWithMixedTrackers
+        let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: tds)
+        let encoded = try JSONEncoder().encode(surrogateTDS)
+        let decoded = try JSONDecoder().decode(TrackerData.self, from: encoded)
+
+        for (_, tracker) in decoded.trackers {
+            let hasSurrogate = tracker.rules?.contains(where: { $0.surrogate != nil }) ?? false
+            XCTAssertTrue(hasSurrogate,
+                          "Decoded surrogate TDS must only contain trackers with surrogate rules")
+        }
+        XCTAssertTrue(decoded.trackers.count < tds.trackers.count,
+                      "Decoded surrogate TDS must have fewer trackers than the full TDS")
     }
 
     // MARK: - Fixtures
