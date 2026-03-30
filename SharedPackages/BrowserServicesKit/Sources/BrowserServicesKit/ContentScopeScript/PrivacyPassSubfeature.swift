@@ -49,6 +49,7 @@ public struct PrivacyPassChallenge {
 ///
 /// Both iOS (`TabViewController`) and macOS (navigation responder chain) call
 /// into this handler when they observe an eligible 401 response.
+@MainActor
 public final class PrivacyPassChallengeHandler {
 
     private let tokenManager: PrivacyPassTokenManaging
@@ -261,12 +262,19 @@ public final class PrivacyPassChallengeHandler {
         }
 
         activeRetryURLs.insert(urlString)
-        defer { activeRetryURLs.remove(urlString) }
 
         let authorization = try await handleChallenge(from: response)
         let referrer = webView.url?.absoluteString
         let request = authorizedRequest(for: originalURL, authorization: authorization, referrer: referrer)
         webView.load(request)
         Logger.privacyPass.debug("Retrying navigation to \(urlString, privacy: .public) with authorization")
+
+        // Keep the guard active for 10 seconds after the retry is issued.
+        // This prevents re-entry if the retry itself returns 401 (invalid token).
+        // The guard is removed after the timeout to allow future legitimate retries.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            self?.activeRetryURLs.remove(urlString)
+        }
     }
 }

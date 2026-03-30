@@ -15,6 +15,11 @@ let package = Package(
         .target(
             name: "ActCore",
             path: "Sources/ActCore",
+            exclude: [
+                "lib-macos/libact_core.a",
+                "lib-ios/libact_core.a",
+                "lib-ios-simulator/libact_core.a",
+            ],
             publicHeadersPath: "include",
             linkerSettings: [
                 .unsafeFlags(["-Xlinker", "-no_compact_unwind"]),
