@@ -89,6 +89,8 @@ class TabViewController: UIViewController {
         }
     }
     private var savedViewSettings: ViewSettings?
+    private var cachedMapper: TrackerProtectionEventMapper?
+    private var cachedMapperVendor: String?
 
     @IBOutlet var showBarsTapGestureRecogniser: UITapGestureRecognizer!
 
@@ -3187,7 +3189,11 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
         return privacyInfo?.isFor(self.url) ?? false
     }
 
-    private func makeMapper(attributionTrackerData: TrackerData?) -> TrackerProtectionEventMapper? {
+    private func makeMapper(attributionTrackerData: TrackerData?, vendor: String?) -> TrackerProtectionEventMapper? {
+        if let cachedMapper, cachedMapperVendor == vendor {
+            return cachedMapper
+        }
+
         let rules = ContentBlocking.shared.contentBlockingManager.currentRules
         let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
         let attrListName = AdClickAttributionRulesSplitter.blockingAttributionRuleListName(forListNamed: tdsName)
@@ -3207,17 +3213,21 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
 
         let tld = AppDependencyProvider.shared.storageCache.tld
         let privacyConfig = ContentBlocking.shared.privacyConfigurationManager.privacyConfig
-        return TrackerProtectionEventMapper(tld: tld,
-                                            mainTrackerData: mainTrackerData,
-                                            supplementaryTrackerData: supplementary,
-                                            unprotectedSites: privacyConfig.userUnprotectedDomains,
-                                            tempList: privacyConfig.tempUnprotectedDomains,
-                                            contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking))
+        let mapper = TrackerProtectionEventMapper(tld: tld,
+                                                  mainTrackerData: mainTrackerData,
+                                                  supplementaryTrackerData: supplementary,
+                                                  unprotectedSites: privacyConfig.userUnprotectedDomains,
+                                                  tempList: privacyConfig.tempUnprotectedDomains,
+                                                  contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking))
+        cachedMapper = mapper
+        cachedMapperVendor = vendor
+        return mapper
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
-        guard let mapper = makeMapper(attributionTrackerData: subfeature.currentAttributionTrackerData) else { return }
+        guard let mapper = makeMapper(attributionTrackerData: subfeature.currentAttributionTrackerData,
+                                      vendor: subfeature.currentAdClickAttributionVendor) else { return }
 
         if let detected = mapper.classifyResource(observation,
                                                    adClickAttributionVendor: subfeature.currentAdClickAttributionVendor) {
@@ -3234,7 +3244,8 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
         guard let url = url,
-              let mapper = makeMapper(attributionTrackerData: subfeature.currentAttributionTrackerData),
+              let mapper = makeMapper(attributionTrackerData: subfeature.currentAttributionTrackerData,
+                                      vendor: subfeature.currentAdClickAttributionVendor),
               let detected = mapper.classifySurrogate(surrogate,
                                                       adClickAttributionVendor: subfeature.currentAdClickAttributionVendor),
               let host = mapper.surrogateHost(from: surrogate) else { return }
