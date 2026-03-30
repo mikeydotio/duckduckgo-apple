@@ -171,9 +171,11 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         let resolver = TrackerResolver(tds: currentTrackerData,
                                        unprotectedSites: privacyConfiguration.userUnprotectedDomains,
                                        tempList: temporaryUnprotectedDomains,
-                                       tld: configuration.tld)
+                                       tld: configuration.tld,
+                                       adClickAttributionVendor: currentAdClickAttributionVendor)
 
-        if let tracker = resolver.trackerFromUrl(trackerUrlString,
+        if detectedTracker == nil,
+           let tracker = resolver.trackerFromUrl(trackerUrlString,
                                                  pageUrlString: pageUrlStr,
                                                  resourceType: resourceType,
                                                  potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
