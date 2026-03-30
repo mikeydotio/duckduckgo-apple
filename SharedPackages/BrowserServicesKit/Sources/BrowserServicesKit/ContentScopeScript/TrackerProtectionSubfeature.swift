@@ -19,6 +19,7 @@
 import Common
 import Foundation
 import os.log
+import TrackerRadarKit
 import UserScript
 import WebKit
 
