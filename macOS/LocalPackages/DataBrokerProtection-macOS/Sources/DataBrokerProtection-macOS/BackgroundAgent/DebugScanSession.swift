@@ -98,7 +98,10 @@ public final class DebugScanSession {
                 result["currentURL"] = url.absoluteString
             }
             if let html = await handler.getPageHTML() {
-                result["pageHTML"] = html
+                let tmpPath = NSTemporaryDirectory() + "dbp-mcp-webview-\(UUID().uuidString.prefix(8)).html"
+                try? html.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+                result["pageHTMLPath"] = tmpPath
+                result["pageHTMLLength"] = html.count
             }
         }
 

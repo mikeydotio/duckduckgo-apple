@@ -127,6 +127,19 @@ final class MCPTools {
                 )
             ),
             toolDef(
+                name: "get_broker_scheduler_state",
+                description: "Get raw scheduler state for a broker: preferredRunDate, lastRunDate, attemptCount for scan and each opt-out job, plus full history events. Use this to debug why jobs run too often or not at all.",
+                inputSchema: schemaWith(
+                    properties: [
+                        "broker_name": ["type": "string", "description": "The broker name or URL"],
+                        "profile_query_id": ["type": "integer", "description": "Optional: filter to a specific profile query ID. Pass 0 or omit for all."],
+                        "extracted_profile_id": ["type": "integer", "description": "Optional: filter opt-outs to a specific extracted profile ID. Pass 0 or omit for all."],
+                        "include_history": ["type": "boolean", "description": "Include full history events (default: true). Set false for compact output."]
+                    ],
+                    required: ["broker_name"]
+                )
+            ),
+            toolDef(
                 name: "get_auth_status",
                 description: "Get auth/subscription status: whether the user is authenticated, has a valid access token and entitlement, which environment is active (production/staging), and the current API endpoint URL.",
                 inputSchema: emptySchema()
@@ -149,7 +162,7 @@ final class MCPTools {
                         "state": ["type": "string", "description": "State (2-letter abbreviation)"],
                         "birth_year": ["type": "integer", "description": "Birth year (e.g., 1980)"],
                         "show_web_view": ["type": "boolean", "description": "Show the web view during scan (default: true)"],
-                        "pause_on_error": ["type": "boolean", "description": "Keep WebView alive on failure for inspection with get_webview_state and execute_js (default: false). Set true for debugging."]
+                        "pause_on_error": ["type": "boolean", "description": "Keep WebView alive on failure for inspection with get_webview_state and execute_js (default: true). Set false for batch audits."]
                     ],
                     required: ["first_name", "last_name", "city", "state", "birth_year"]
                 )
@@ -217,7 +230,7 @@ final class MCPTools {
                         "state": ["type": "string", "description": "State"],
                         "birth_year": ["type": "integer", "description": "Birth year"],
                         "show_web_view": ["type": "boolean", "description": "Show web view (default: true)"],
-                        "pause_on_error": ["type": "boolean", "description": "Keep WebView alive on failure (default: false)."]
+                        "pause_on_error": ["type": "boolean", "description": "Keep WebView alive on failure (default: true). Set false for batch audits."]
                     ],
                     required: ["extracted_profile", "first_name", "last_name", "city", "state", "birth_year"]
                 )
@@ -278,6 +291,15 @@ final class MCPTools {
                 return
             }
             getOptOutHistory(brokerId: brokerId, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, completion: completion)
+        case "get_broker_scheduler_state":
+            guard let brokerName = arguments["broker_name"] as? String else {
+                completion(.failure(ToolError.missingArgument("broker_name")))
+                return
+            }
+            let profileQueryId = arguments["profile_query_id"] as? Int64 ?? (arguments["profile_query_id"] as? Int).map(Int64.init) ?? 0
+            let extractedProfileId = arguments["extracted_profile_id"] as? Int64 ?? (arguments["extracted_profile_id"] as? Int).map(Int64.init) ?? 0
+            let includeHistory = arguments["include_history"] as? Bool ?? true
+            getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, includeHistory: includeHistory, completion: completion)
         case "get_auth_status":
             getAuthStatus(completion: completion)
         case "get_profile_queries":
@@ -418,11 +440,47 @@ final class MCPTools {
 
     private func listBrokers(completion: @escaping (Result<String, Error>) -> Void) {
         agent.getBrokerProfileData { data in
-            guard let data, let jsonString = String(data: data, encoding: .utf8) else {
+            guard let data else {
                 completion(.failure(ToolError.xpcError("Failed to fetch broker data from agent. Is the agent running?")))
                 return
             }
-            completion(.success(jsonString))
+
+            let tmpPath = NSTemporaryDirectory() + "dbp-mcp-list-brokers.json"
+            if let prettyData = try? JSONSerialization.data(withJSONObject: (try? JSONSerialization.jsonObject(with: data)) as Any, options: [.prettyPrinted, .sortedKeys]) {
+                try? prettyData.write(to: URL(fileURLWithPath: tmpPath))
+            } else {
+                try? data.write(to: URL(fileURLWithPath: tmpPath))
+            }
+
+            // Build compact summary for inline response
+            guard let brokers = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+                completion(.success("Results written to: \(tmpPath)"))
+                return
+            }
+
+            let summary: [[String: Any]] = brokers.map { broker in
+                var entry: [String: Any] = [
+                    "name": broker["name"] ?? "",
+                    "errors": broker["errorCount"] ?? 0,
+                    "matches": broker["totalMatches"] ?? 0,
+                ]
+                if let parent = broker["parent"] as? String { entry["parent"] = parent }
+                if let lastScan = broker["lastScanDate"] as? String { entry["lastScanDate"] = lastScan }
+                return entry
+            }
+
+            let result: [String: Any] = [
+                "count": brokers.count,
+                "fullDataPath": tmpPath,
+                "brokers": summary,
+            ]
+
+            if let resultData = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]),
+               let resultString = String(data: resultData, encoding: .utf8) {
+                completion(.success(resultString))
+            } else {
+                completion(.success("Results written to: \(tmpPath)"))
+            }
         }
     }
 
@@ -494,7 +552,7 @@ final class MCPTools {
         }
 
         let showWebView = arguments["show_web_view"] as? Bool ?? true
-        let pauseOnError = arguments["pause_on_error"] as? Bool ?? false
+        let pauseOnError = arguments["pause_on_error"] as? Bool ?? true
 
         resolveBrokerJSON(arguments: arguments) { [weak self] result in
             guard let self else { return }
@@ -531,6 +589,16 @@ final class MCPTools {
         agent.getOptOutHistory(brokerId: brokerId, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId) { data in
             guard let data else {
                 completion(.failure(ToolError.xpcError("Failed to fetch opt-out history. Is the agent running?")))
+                return
+            }
+            self.prettyPrintJSON(data, completion: completion)
+        }
+    }
+
+    private func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, includeHistory: Bool, completion: @escaping (Result<String, Error>) -> Void) {
+        agent.getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, includeHistory: includeHistory) { data in
+            guard let data else {
+                completion(.failure(ToolError.xpcError("Failed to fetch scheduler state. Is the agent running?")))
                 return
             }
             self.prettyPrintJSON(data, completion: completion)
@@ -575,7 +643,7 @@ final class MCPTools {
         }
 
         let showWebView = arguments["show_web_view"] as? Bool ?? true
-        let pauseOnError = arguments["pause_on_error"] as? Bool ?? false
+        let pauseOnError = arguments["pause_on_error"] as? Bool ?? true
 
         // Resolve broker JSON
         resolveBrokerJSON(arguments: arguments) { [weak self] result in
@@ -689,7 +757,7 @@ final class MCPTools {
         }
 
         let showWebView = arguments["show_web_view"] as? Bool ?? true
-        let pauseOnError = arguments["pause_on_error"] as? Bool ?? false
+        let pauseOnError = arguments["pause_on_error"] as? Bool ?? true
 
         resolveBrokerJSON(arguments: arguments) { [weak self] result in
             guard let self else { return }
@@ -779,7 +847,7 @@ final class MCPTools {
 
         ## Workflows
 
-        ### Audit a broker (pause_on_error=false)
+        ### Audit a broker (quick, no inspection)
         Quick check whether a broker's scan/optout works. No WebView inspection needed.
         1. run_scan(broker_name: "example.com", ..., pause_on_error: false)
         2. Success → broker works. Failure → note the error for investigation.

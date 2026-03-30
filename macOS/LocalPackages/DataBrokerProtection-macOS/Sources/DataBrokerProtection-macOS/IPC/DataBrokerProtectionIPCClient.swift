@@ -233,6 +233,19 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
         }
     }
 
+    public func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, includeHistory: Bool) async -> Data? {
+        await withCheckedContinuation { continuation in
+            xpc.execute(call: { server in
+                server.getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, includeHistory: includeHistory) { data in
+                    continuation.resume(returning: data)
+                }
+            }, xpcReplyErrorHandler: { error in
+                Logger.dataBrokerProtection.error("Error fetching scheduler state: \(error.localizedDescription)")
+                continuation.resume(returning: nil)
+            })
+        }
+    }
+
     public func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64) async -> Data? {
         await withCheckedContinuation { continuation in
             xpc.execute(call: { server in

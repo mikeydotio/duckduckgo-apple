@@ -708,7 +708,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                     scanInfo["lastRunDate"] = formatter.string(from: lastRun)
                 }
                 if let preferredRun = scan.preferredRunDate {
-                    scanInfo["nextScheduledDate"] = formatter.string(from: preferredRun)
+                    scanInfo["preferredRunDate"] = formatter.string(from: preferredRun)
                 }
 
                 let scanEvents = scan.historyEvents.sorted { $0.date > $1.date }
@@ -746,6 +746,9 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                     }
                     if let lastRun = optOut.lastRunDate {
                         optOutInfo["lastRunDate"] = formatter.string(from: lastRun)
+                    }
+                    if let preferredRun = optOut.preferredRunDate {
+                        optOutInfo["preferredRunDate"] = formatter.string(from: preferredRun)
                     }
                     if let submitted = optOut.submittedSuccessfullyDate {
                         optOutInfo["submittedDate"] = formatter.string(from: submitted)
@@ -841,6 +844,123 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             Logger.dataBrokerProtection.error("Failed to fetch opt-out history: \(error.localizedDescription)")
             return nil
         }
+    }
+
+    public func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, includeHistory: Bool) async -> Data? {
+        do {
+            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+            let brokerItems = allData.filter {
+                $0.dataBroker.name.lowercased() == brokerName.lowercased() ||
+                $0.dataBroker.url.lowercased() == brokerName.lowercased()
+            }
+
+            // Filter by profileQueryId if specified (non-zero)
+            let filteredItems = profileQueryId > 0
+                ? brokerItems.filter { $0.profileQuery.id == profileQueryId }
+                : brokerItems
+
+            guard !filteredItems.isEmpty else { return nil }
+
+            let broker = filteredItems.first!.dataBroker
+            var queryResults = [[String: Any]]()
+
+            for item in filteredItems {
+                let scan = item.scanJobData
+
+                var scanRow: [String: Any] = [
+                    "brokerId": broker.id ?? -1,
+                    "profileQueryId": item.profileQuery.id ?? -1,
+                ]
+                if let date = scan.preferredRunDate { scanRow["preferredRunDate"] = formatter.string(from: date) }
+                if let date = scan.lastRunDate { scanRow["lastRunDate"] = formatter.string(from: date) }
+
+                var scanHistory: [[String: Any]]?
+                if includeHistory {
+                    scanHistory = scan.historyEvents.sorted { $0.date < $1.date }.map { serializeHistoryEvent($0, formatter: formatter) }
+                }
+
+                // Filter opt-outs by extractedProfileId if specified (non-zero)
+                let optOuts = extractedProfileId > 0
+                    ? item.optOutJobData.filter { $0.extractedProfile.id == extractedProfileId }
+                    : item.optOutJobData
+
+                var optOutRows = [[String: Any]]()
+                var optOutHistories = [String: [[String: Any]]]()
+
+                for optOut in optOuts {
+                    let epId = optOut.extractedProfile.id ?? -1
+                    var row: [String: Any] = [
+                        "extractedProfileId": epId,
+                        "extractedProfileName": optOut.extractedProfile.fullName ?? optOut.extractedProfile.name ?? "unknown",
+                        "attemptCount": optOut.attemptCount,
+                    ]
+                    if let date = optOut.preferredRunDate { row["preferredRunDate"] = formatter.string(from: date) }
+                    if let date = optOut.lastRunDate { row["lastRunDate"] = formatter.string(from: date) }
+                    if let date = optOut.submittedSuccessfullyDate { row["submittedSuccessfullyDate"] = formatter.string(from: date) }
+                    optOutRows.append(row)
+
+                    if includeHistory {
+                        let events = optOut.historyEvents.sorted { $0.date < $1.date }.map { serializeHistoryEvent($0, formatter: formatter) }
+                        optOutHistories["\(epId)"] = events
+                    }
+                }
+
+                var queryResult: [String: Any] = [
+                    "scanRow": scanRow,
+                    "optOutRows": optOutRows,
+                ]
+                if let scanHistory { queryResult["scanHistory"] = scanHistory }
+                if includeHistory { queryResult["optOutHistory"] = optOutHistories }
+
+                // Include scheduling config for reproducing calculations
+                if let configData = try? JSONEncoder().encode(broker.schedulingConfig),
+                   let configDict = try? JSONSerialization.jsonObject(with: configData) as? [String: Any] {
+                    queryResult["schedulingConfig"] = configDict
+                }
+
+                queryResults.append(queryResult)
+            }
+
+            let result: [String: Any] = [
+                "brokerName": broker.name,
+                "brokerURL": broker.url,
+                "profileQueries": queryResults,
+            ]
+
+            return try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        } catch {
+            Logger.dataBrokerProtection.error("Failed to fetch scheduler state: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private func serializeHistoryEvent(_ event: HistoryEvent, formatter: ISO8601DateFormatter) -> [String: Any] {
+        var dict: [String: Any] = [
+            "date": formatter.string(from: event.date),
+        ]
+        if let extractedProfileId = event.extractedProfileId {
+            dict["extractedProfileId"] = extractedProfileId
+        }
+        switch event.type {
+        case .scanStarted: dict["type"] = "scanStarted"
+        case .noMatchFound: dict["type"] = "noMatchFound"
+        case .matchesFound(let count):
+            dict["type"] = "matchesFound"
+            dict["matchCount"] = count
+        case .optOutStarted: dict["type"] = "optOutStarted"
+        case .optOutRequested: dict["type"] = "optOutRequested"
+        case .optOutConfirmed: dict["type"] = "optOutConfirmed"
+        case .optOutSubmittedAndAwaitingEmailConfirmation: dict["type"] = "awaitingEmailConfirmation"
+        case .error:
+            dict["type"] = "error"
+            if let error = event.error { dict["error"] = error }
+        case .reAppearence: dict["type"] = "reAppearance"
+        case .matchRemovedByUser: dict["type"] = "matchRemovedByUser"
+        }
+        return dict
     }
 
     private func serializeHistoryEvents(_ events: [HistoryEvent]) throws -> Data {
