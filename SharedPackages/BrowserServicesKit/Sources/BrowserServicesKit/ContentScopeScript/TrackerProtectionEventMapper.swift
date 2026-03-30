@@ -128,12 +128,15 @@ public struct TrackerProtectionEventMapper {
     // MARK: - Private
 
     /// Multi-TDS classification mirroring the legacy ContentBlockerRulesUserScript loop.
+    ///
+    /// Supplementary TDS (CTL, ad-attribution) are authoritative when they match:
+    /// blocked results return immediately, allowed results (e.g. vendor exceptions)
+    /// are preserved without falling through to the main TDS. Main TDS is only
+    /// consulted when no supplementary TDS matched.
     private func classifyUrl(_ urlString: String,
                              pageUrlString: String,
                              resourceType: String,
                              adClickAttributionVendor: String?) -> DetectedRequest? {
-        var candidate: DetectedRequest?
-
         for trackerData in supplementaryTrackerData {
             let resolver = TrackerResolver(tds: trackerData,
                                            unprotectedSites: unprotectedSites,
@@ -144,10 +147,7 @@ public struct TrackerProtectionEventMapper {
                                                      pageUrlString: pageUrlString,
                                                      resourceType: resourceType,
                                                      potentiallyBlocked: contentBlockingEnabled) {
-                if tracker.isBlocked {
-                    return tracker
-                }
-                candidate = tracker
+                return tracker
             }
         }
 
@@ -155,13 +155,9 @@ public struct TrackerProtectionEventMapper {
                                            unprotectedSites: unprotectedSites,
                                            tempList: tempList,
                                            tld: tld)
-        if let tracker = mainResolver.trackerFromUrl(urlString,
-                                                     pageUrlString: pageUrlString,
-                                                     resourceType: resourceType,
-                                                     potentiallyBlocked: contentBlockingEnabled) {
-            candidate = tracker
-        }
-
-        return candidate
+        return mainResolver.trackerFromUrl(urlString,
+                                           pageUrlString: pageUrlString,
+                                           resourceType: resourceType,
+                                           potentiallyBlocked: contentBlockingEnabled)
     }
 }

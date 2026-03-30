@@ -73,14 +73,23 @@ final class UserScripts: UserScriptsProvider {
         autofillUserScript.sessionKey = sourceProvider.contentScopeProperties.sessionKey
 
         loginFormDetectionScript = sourceProvider.loginDetectionEnabled ? LoginFormDetectionUserScript() : nil
+        let baseProps = sourceProvider.contentScopeProperties
+        let propsWithTrackerData = ContentScopeProperties(gpcEnabled: baseProps.globalPrivacyControlValue,
+                                                          sessionKey: baseProps.sessionKey,
+                                                          messageSecret: baseProps.messageSecret,
+                                                          isInternalUser: featureFlagger.internalUserDecider.isInternalUser,
+                                                          debug: baseProps.debug,
+                                                          featureToggles: ContentScopeFeatureToggles.supportedFeaturesOniOS,
+                                                          currentCohorts: baseProps.currentCohorts,
+                                                          trackerData: sourceProvider.trackerProtectionDataSource?.surrogateFilteredTrackerData)
         do {
             contentScopeUserScript = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
-                                                                properties: sourceProvider.contentScopeProperties,
+                                                                properties: propsWithTrackerData,
                                                                 scriptContext: .contentScope,
                                                                 allowedNonisolatedFeatures: [PageContextUserScript.featureName, PrintingSubfeature.featureNameValue, TrackerProtectionSubfeature.featureNameValue],
                                                                 privacyConfigurationJSONGenerator: ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: AppDependencyProvider.shared.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager, trackerProtectionDataSource: sourceProvider.trackerProtectionDataSource, ctlEnabled: false))
             contentScopeUserScriptIsolated = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
-                                                                        properties: sourceProvider.contentScopeProperties,
+                                                                        properties: propsWithTrackerData,
                                                                         scriptContext: .contentScopeIsolated,
                                                                         privacyConfigurationJSONGenerator: ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: AppDependencyProvider.shared.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager))
         } catch {
