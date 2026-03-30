@@ -78,7 +78,6 @@ let package = Package(
             url: "https://github.com/duckduckgo/GRDB.swift/releases/download/2.4.2/GRDB.xcframework.zip",
             checksum: "5380265b0e70f0ed28eb1e12640eb6cde5e4bfd39893c86b31f8d17126887174"
         ),
-        // ActCore is now a separate package at SharedPackages/ActCore
         .target(
             name: "BrowserServicesKit",
             dependencies: [
