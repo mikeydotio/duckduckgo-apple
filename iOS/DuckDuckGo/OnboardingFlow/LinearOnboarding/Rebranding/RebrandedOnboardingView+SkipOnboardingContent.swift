@@ -50,13 +50,13 @@ extension OnboardingRebranding.OnboardingView {
                 message: AnyView(
                     Text(Self.styledMessage())
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearBodyTextAlignment)
                         .font(onboardingTheme.typography.body)
                 ),
                 title: {
                     Text(UserText.Onboarding.Skip.title)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
                         .font(onboardingTheme.typography.title)
                 },
                 actions: {

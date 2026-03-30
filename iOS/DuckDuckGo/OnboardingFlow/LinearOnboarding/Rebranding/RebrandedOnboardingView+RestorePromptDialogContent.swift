@@ -68,13 +68,13 @@ extension OnboardingRebranding.OnboardingView {
                         Text(Copy.body)
                             .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                             .font(onboardingTheme.typography.body)
-                            .multilineTextAlignment(.center)
+                            .multilineTextAlignment(onboardingTheme.linearBodyTextAlignment)
                 ),
                 title: {
                     Text(Copy.title)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.title)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
                 },
                 actions: {
                     VStack(spacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing) {

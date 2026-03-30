@@ -39,6 +39,8 @@ public struct OnboardingTheme: Equatable {
     public let linearTitleTextAlignment: TextAlignment
     /// Text alignment for linear flow body copy.
     public let linearBodyTextAlignment: TextAlignment
+    /// Container alignment for linear flow content.
+    public let linearContainerAlignment: Alignment
     /// Style used by the primary onboarding button.
     public let primaryButtonStyle: OnboardingButtonStyle
     /// Style used by the secondary onboarding button.
@@ -55,6 +57,7 @@ public struct OnboardingTheme: Equatable {
     ///   - dismissButtonMetrics: Dismiss button layout and positioning metrics.
     ///   - linearTitleTextAlignment: Title alignment for linear flows.
     ///   - linearBodyTextAlignment: Body alignment for linear flows.
+    ///   - linearContainerAlignment: Container alignment for linear flows.
     ///   - contextualTitleTextAlignment: Title alignment for contextual flows.
     ///   - contextualBodyTextAlignment: Body alignment for contextual flows.
     ///   - primaryButtonStyle: Primary button style.
@@ -70,6 +73,7 @@ public struct OnboardingTheme: Equatable {
         linearOnboardingMetrics: LinearOnboardingMetrics,
         linearTitleTextAlignment: TextAlignment,
         linearBodyTextAlignment: TextAlignment,
+        linearContainerAlignment: Alignment,
         primaryButtonStyle: OnboardingButtonStyle,
         secondaryButtonStyle: OnboardingButtonStyle,
         dismissButtonStyle: OnboardingButtonStyle,
@@ -83,6 +87,7 @@ public struct OnboardingTheme: Equatable {
         self.linearOnboardingMetrics = linearOnboardingMetrics
         self.linearTitleTextAlignment = linearTitleTextAlignment
         self.linearBodyTextAlignment = linearBodyTextAlignment
+        self.linearContainerAlignment = linearContainerAlignment
         self.primaryButtonStyle = primaryButtonStyle
         self.secondaryButtonStyle = secondaryButtonStyle
         self.dismissButtonStyle = dismissButtonStyle
@@ -99,6 +104,7 @@ public struct OnboardingTheme: Equatable {
         linearOnboardingMetrics: LinearOnboardingMetrics,
         linearTitleTextAlignment: TextAlignment,
         linearBodyTextAlignment: TextAlignment,
+        linearContainerAlignment: Alignment,
         primaryButtonStyle: OnboardingButtonStyle,
         dismissButtonStyle: OnboardingButtonStyle,
     ){
@@ -112,6 +118,7 @@ public struct OnboardingTheme: Equatable {
             linearOnboardingMetrics: linearOnboardingMetrics,
             linearTitleTextAlignment: linearTitleTextAlignment,
             linearBodyTextAlignment: linearBodyTextAlignment,
+            linearContainerAlignment: linearContainerAlignment,
             primaryButtonStyle: primaryButtonStyle,
             secondaryButtonStyle: primaryButtonStyle,
             dismissButtonStyle: dismissButtonStyle

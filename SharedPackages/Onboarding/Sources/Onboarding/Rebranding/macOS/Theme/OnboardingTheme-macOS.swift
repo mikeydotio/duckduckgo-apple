@@ -110,6 +110,7 @@ public extension OnboardingTheme {
             ),
             linearTitleTextAlignment: .center,
             linearBodyTextAlignment: .center,
+            linearContainerAlignment: .center,
             primaryButtonStyle: OnboardingButtonStyle(
                 id: .primary,
                 style: AnyButtonStyle(OnboardingPrimaryButtonStyle())

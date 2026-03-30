@@ -124,15 +124,18 @@ extension OnboardingRebranding.OnboardingView {
             self.actions = actions()
         }
 
+        @Environment(\.onboardingTheme) private var onboardingTheme
+
         var body: some View {
             VStack(spacing: metrics.outerSpacing) {
-                VStack(spacing: metrics.textSpacing) {
+                VStack(alignment: onboardingTheme.linearContainerAlignment.horizontal, spacing: metrics.textSpacing) {
                     title
 
                     if let message {
                         message
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: onboardingTheme.linearContainerAlignment)
 
                 VStack(spacing: metrics.contentSpacing) {
                     if let content {

@@ -47,7 +47,7 @@ extension OnboardingRebranding.OnboardingView {
                     Text(UserText.Onboarding.AppIconSelection.message)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.body)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearBodyTextAlignment)
                 ),
                 content: AnyView(
                     RebrandedOnboardingView.AppIconPicker()
@@ -56,7 +56,7 @@ extension OnboardingRebranding.OnboardingView {
                     Text(UserText.Onboarding.AppIconSelection.title)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.title)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
                 },
                 actions: {
                     Button(action: action) {

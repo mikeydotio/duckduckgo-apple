@@ -129,8 +129,9 @@ public extension OnboardingTheme {
                 maxContainerWidth: 590
             ),
             linearOnboardingMetrics: linearOnboardingMetrics,
-            linearTitleTextAlignment: .center,
-            linearBodyTextAlignment: .center,
+            linearTitleTextAlignment: .leading,
+            linearBodyTextAlignment: .leading,
+            linearContainerAlignment: .leading,
             primaryButtonStyle: OnboardingButtonStyle(
                 id: .primary,
                 style: AnyButtonStyle(OnboardingPrimaryButtonStyle(

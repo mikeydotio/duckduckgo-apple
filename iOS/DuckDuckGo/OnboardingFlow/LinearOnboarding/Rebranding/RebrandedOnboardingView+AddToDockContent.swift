@@ -68,7 +68,7 @@ extension OnboardingRebranding.OnboardingView {
                     Text(UserText.AddToDockOnboarding.Promo.introMessage)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.body)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearBodyTextAlignment)
                 ),
                 content: AnyView(
                     addToDockPromoView
@@ -77,7 +77,7 @@ extension OnboardingRebranding.OnboardingView {
                     Text(UserText.AddToDockOnboarding.Promo.title)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.title)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
                 },
                 actions: {
                     VStack(spacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing) {

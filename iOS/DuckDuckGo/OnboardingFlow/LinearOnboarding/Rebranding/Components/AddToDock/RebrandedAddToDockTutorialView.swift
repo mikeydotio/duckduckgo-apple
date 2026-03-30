@@ -63,7 +63,7 @@ extension OnboardingRebranding.OnboardingView {
                     Text(message)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.body)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearBodyTextAlignment)
                 ),
                 content: AnyView(
                     videoContent
@@ -72,7 +72,7 @@ extension OnboardingRebranding.OnboardingView {
                     Text(title)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.title)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
                 },
                 actions: {
                     Button(action: action) {

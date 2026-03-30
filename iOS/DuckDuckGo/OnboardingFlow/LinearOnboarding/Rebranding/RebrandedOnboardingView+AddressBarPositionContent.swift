@@ -33,21 +33,29 @@ extension OnboardingRebranding.OnboardingView {
         }
 
         var body: some View {
-            VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
-                Text(UserText.Onboarding.AddressBarPosition.title)
-                    .foregroundColor(onboardingTheme.colorPalette.textPrimary)
-                    .font(onboardingTheme.typography.title)
-                    .multilineTextAlignment(.center)
-
-                VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
+            LinearDialogContentContainer(
+                metrics: .init(
+                    outerSpacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing,
+                    textSpacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing,
+                    contentSpacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing,
+                    actionsSpacing: onboardingTheme.linearOnboardingMetrics.actionsSpacing
+                ),
+                content: AnyView(
                     RebrandedOnboardingView.OnboardingAddressBarPositionPicker()
-
+                ),
+                title: {
+                    Text(UserText.Onboarding.AddressBarPosition.title)
+                        .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                        .font(onboardingTheme.typography.title)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
+                },
+                actions: {
                     Button(action: action) {
                         Text(verbatim: UserText.Onboarding.AddressBarPosition.cta)
                     }
                     .buttonStyle(onboardingTheme.primaryButtonStyle.style)
                 }
-            }
+            )
         }
     }
 

@@ -44,15 +44,23 @@ extension OnboardingRebranding.OnboardingView {
         }
 
         var body: some View {
-            VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
-                Text(title)
-                    .foregroundColor(onboardingTheme.colorPalette.textPrimary)
-                    .font(onboardingTheme.typography.title)
-                    .multilineTextAlignment(.center)
-
-                VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
+            LinearDialogContentContainer(
+                metrics: .init(
+                    outerSpacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing,
+                    textSpacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing,
+                    contentSpacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing,
+                    actionsSpacing: onboardingTheme.linearOnboardingMetrics.actionsSpacing
+                ),
+                content: AnyView(
                     RebrandedBrowsersComparisonTable(availableFeatureAnimation: .animated(startAnimation: showContent))
-
+                ),
+                title: {
+                    Text(title)
+                        .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                        .font(onboardingTheme.typography.title)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
+                },
+                actions: {
                     VStack(spacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing) {
                         Button(action: setAsDefaultBrowserAction) {
                             Text(UserText.Onboarding.BrowsersComparison.cta)
@@ -65,7 +73,7 @@ extension OnboardingRebranding.OnboardingView {
                         .buttonStyle(onboardingTheme.secondaryButtonStyle.style)
                     }
                 }
-            }
+            )
         }
 
     }

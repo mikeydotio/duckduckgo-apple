@@ -34,20 +34,31 @@ extension OnboardingRebranding.OnboardingView {
         }
 
         var body: some View {
-            VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentOuterSpacing) {
-                Text(UserText.Onboarding.SearchExperience.title)
-                    .foregroundColor(onboardingTheme.colorPalette.textPrimary)
-                    .font(onboardingTheme.typography.title)
-                    .multilineTextAlignment(.center)
+            LinearDialogContentContainer(
+                metrics: .init(
+                    outerSpacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing,
+                    textSpacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing,
+                    contentSpacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing,
+                    actionsSpacing: onboardingTheme.linearOnboardingMetrics.actionsSpacing
+                ),
+                content: AnyView(
+                    VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
+                        RebrandedOnboardingView.OnboardingSearchExperiencePicker(viewModel: viewModel)
+                        
+                        Text(AttributedString(UserText.Onboarding.SearchExperience.footerAttributed()))
+                            .foregroundColor(onboardingTheme.colorPalette.textSecondary)
+                            .font(onboardingTheme.typography.small)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                ),
+                title: {
+                    Text(UserText.Onboarding.SearchExperience.title)
+                        .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                        .font(onboardingTheme.typography.title)
+                        .multilineTextAlignment(onboardingTheme.linearTitleTextAlignment)
 
-                VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
-                    RebrandedOnboardingView.OnboardingSearchExperiencePicker(viewModel: viewModel)
-
-                    Text(AttributedString(UserText.Onboarding.SearchExperience.footerAttributed()))
-                        .foregroundColor(onboardingTheme.colorPalette.textSecondary)
-                        .font(onboardingTheme.typography.small)
-                        .fixedSize(horizontal: false, vertical: true)
-
+                },
+                actions: {
                     Button(action: {
                         viewModel.confirmChoice()
                         action()
@@ -56,7 +67,7 @@ extension OnboardingRebranding.OnboardingView {
                     }
                     .buttonStyle(onboardingTheme.primaryButtonStyle.style)
                 }
-            }
+            )
         }
     }
 
