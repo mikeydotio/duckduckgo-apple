@@ -3189,27 +3189,17 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
 
     private func makeMapper() -> TrackerProtectionEventMapper? {
         let rules = ContentBlocking.shared.contentBlockingManager.currentRules
-        guard !rules.isEmpty else { return nil }
-        var trackers: [String: KnownTracker] = [:]
-        var entities: [String: Entity] = [:]
-        var domains: [String: String] = [:]
-        var cnames: [TrackerData.CnameDomain: TrackerData.TrackerDomain]?
-        for rule in rules {
-            trackers.merge(rule.trackerData.trackers) { (_, new) in new }
-            entities.merge(rule.trackerData.entities) { (_, new) in new }
-            domains.merge(rule.trackerData.domains) { (_, new) in new }
-            if rule.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
-                cnames = rule.trackerData.cnames
-            }
-        }
-        let mergedTrackerData = TrackerData(trackers: trackers, entities: entities, domains: domains, cnames: cnames)
+        let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
+        guard let mainTrackerData = rules.first(where: { $0.name == tdsName })?.trackerData else { return nil }
+        let supplementary = rules.filter { $0.name != tdsName }.map(\.trackerData)
         let tld = AppDependencyProvider.shared.storageCache.tld
         let privacyConfig = ContentBlocking.shared.privacyConfigurationManager.privacyConfig
-        let resolver = TrackerResolver(tds: mergedTrackerData,
-                                       unprotectedSites: privacyConfig.userUnprotectedDomains,
-                                       tempList: privacyConfig.tempUnprotectedDomains,
-                                       tld: tld)
-        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver, privacyConfig: privacyConfig)
+        return TrackerProtectionEventMapper(tld: tld,
+                                            mainTrackerData: mainTrackerData,
+                                            supplementaryTrackerData: supplementary,
+                                            unprotectedSites: privacyConfig.userUnprotectedDomains,
+                                            tempList: privacyConfig.tempUnprotectedDomains,
+                                            contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking))
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,

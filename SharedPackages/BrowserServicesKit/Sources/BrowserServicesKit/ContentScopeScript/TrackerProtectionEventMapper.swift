@@ -28,30 +28,54 @@ import TrackerRadarKit
 /// `potentiallyBlocked` reflects JS-side heuristics, not the definitive WKContentRuleList verdict.
 /// This mapper computes a native blocked candidate from privacy config state and passes it to
 /// TrackerResolver instead, mirroring the legacy contentblockerrules.js semantics.
+///
+/// Classification mirrors the legacy ContentBlockerRulesUserScript multi-TDS loop:
+/// 1. Try each supplementary TDS (CTL, ad-attribution) with the ad-click vendor —
+///    if any returns blocked, use it immediately.
+/// 2. Fall back to the main TDS without vendor.
+/// 3. If no tracker found, synthesize a third-party request when cross-site.
 public struct TrackerProtectionEventMapper {
 
     private let tld: TLD
-    private let trackerResolver: TrackerResolver
+    private let mainTrackerData: TrackerData
+    private let supplementaryTrackerData: [TrackerData]
+    private let unprotectedSites: [String]
+    private let tempList: [String]
     private let contentBlockingEnabled: Bool
 
+    public init(tld: TLD,
+                mainTrackerData: TrackerData,
+                supplementaryTrackerData: [TrackerData] = [],
+                unprotectedSites: [String],
+                tempList: [String],
+                contentBlockingEnabled: Bool) {
+        self.tld = tld
+        self.mainTrackerData = mainTrackerData
+        self.supplementaryTrackerData = supplementaryTrackerData
+        self.unprotectedSites = unprotectedSites
+        self.tempList = tempList
+        self.contentBlockingEnabled = contentBlockingEnabled
+    }
+
+    /// Convenience init matching the old single-resolver API.
     public init(tld: TLD, trackerResolver: TrackerResolver, privacyConfig: PrivacyConfiguration) {
         self.tld = tld
-        self.trackerResolver = trackerResolver
+        self.mainTrackerData = trackerResolver.tds
+        self.supplementaryTrackerData = []
+        self.unprotectedSites = trackerResolver.unprotectedSites
+        self.tempList = trackerResolver.tempList
         self.contentBlockingEnabled = privacyConfig.isEnabled(featureKey: .contentBlocking)
     }
 
     // MARK: - ResourceObservation classification
 
-    /// Classify a raw resource observation from C-S-S using native TrackerResolver.
-    /// Returns nil if the URL is not a known tracker.
+    /// Classify a raw resource observation using the multi-TDS loop that mirrors the legacy pipeline.
     public func classifyResource(_ observation: TrackerProtectionSubfeature.ResourceObservation,
                                  adClickAttributionVendor: String? = nil) -> DetectedRequest? {
-        let resolver = resolverWithVendor(adClickAttributionVendor)
-        return resolver.trackerFromUrl(
-            observation.url,
-            pageUrlString: observation.pageUrl,
-            resourceType: observation.resourceType,
-            potentiallyBlocked: contentBlockingEnabled)
+        return classifyUrl(observation.url,
+                           pageUrlString: observation.pageUrl,
+                           resourceType: observation.resourceType,
+                           adClickAttributionVendor: adClickAttributionVendor)
     }
 
     // MARK: - SurrogateInjection mapping
@@ -59,12 +83,10 @@ public struct TrackerProtectionEventMapper {
     /// Map a surrogate injection signal to a DetectedRequest.
     public func classifySurrogate(_ surrogate: TrackerProtectionSubfeature.SurrogateInjection,
                                   adClickAttributionVendor: String? = nil) -> DetectedRequest? {
-        let resolver = resolverWithVendor(adClickAttributionVendor)
-        return resolver.trackerFromUrl(
-            surrogate.url,
-            pageUrlString: surrogate.pageUrl,
-            resourceType: "script",
-            potentiallyBlocked: contentBlockingEnabled)
+        return classifyUrl(surrogate.url,
+                           pageUrlString: surrogate.pageUrl,
+                           resourceType: "script",
+                           adClickAttributionVendor: adClickAttributionVendor)
     }
 
     /// Extract the surrogate host from the injection URL.
@@ -78,7 +100,6 @@ public struct TrackerProtectionEventMapper {
     public func isSameSiteObservation(_ observation: TrackerProtectionSubfeature.ResourceObservation) -> Bool {
         let requestETLDplus1 = tld.eTLDplus1(forStringURL: observation.url)
         let pageETLDplus1 = tld.eTLDplus1(forStringURL: observation.pageUrl)
-
         guard let requestETLDplus1, let pageETLDplus1 else { return false }
         return requestETLDplus1 == pageETLDplus1
     }
@@ -87,9 +108,14 @@ public struct TrackerProtectionEventMapper {
     public func makeThirdPartyRequest(from observation: TrackerProtectionSubfeature.ResourceObservation) -> DetectedRequest? {
         guard !isSameSiteObservation(observation) else { return nil }
         let requestETLDp1 = tld.eTLDplus1(forStringURL: observation.url) ?? observation.url
-        let tds = trackerResolver.tds
-        let entity = tds.findEntity(forHost: requestETLDp1) ?? Entity(displayName: requestETLDp1, domains: nil, prevalence: nil)
-        let isAffiliated = trackerResolver.isPageAffiliatedWithTrackerEntity(pageUrlString: observation.pageUrl, trackerEntity: entity)
+        let entity = mainTrackerData.findEntity(forHost: requestETLDp1)
+            ?? Entity(displayName: requestETLDp1, domains: nil, prevalence: nil)
+        let mainResolver = TrackerResolver(tds: mainTrackerData,
+                                           unprotectedSites: unprotectedSites,
+                                           tempList: tempList,
+                                           tld: tld)
+        let isAffiliated = mainResolver.isPageAffiliatedWithTrackerEntity(
+            pageUrlString: observation.pageUrl, trackerEntity: entity)
         guard !isAffiliated else { return nil }
         return DetectedRequest(url: observation.url,
                                eTLDplus1: requestETLDp1,
@@ -101,12 +127,41 @@ public struct TrackerProtectionEventMapper {
 
     // MARK: - Private
 
-    private func resolverWithVendor(_ vendor: String?) -> TrackerResolver {
-        guard let vendor else { return trackerResolver }
-        return TrackerResolver(tds: trackerResolver.tds,
-                               unprotectedSites: trackerResolver.unprotectedSites,
-                               tempList: trackerResolver.tempList,
-                               tld: tld,
-                               adClickAttributionVendor: vendor)
+    /// Multi-TDS classification mirroring the legacy ContentBlockerRulesUserScript loop.
+    private func classifyUrl(_ urlString: String,
+                             pageUrlString: String,
+                             resourceType: String,
+                             adClickAttributionVendor: String?) -> DetectedRequest? {
+        var candidate: DetectedRequest?
+
+        for trackerData in supplementaryTrackerData {
+            let resolver = TrackerResolver(tds: trackerData,
+                                           unprotectedSites: unprotectedSites,
+                                           tempList: tempList,
+                                           tld: tld,
+                                           adClickAttributionVendor: adClickAttributionVendor)
+            if let tracker = resolver.trackerFromUrl(urlString,
+                                                     pageUrlString: pageUrlString,
+                                                     resourceType: resourceType,
+                                                     potentiallyBlocked: contentBlockingEnabled) {
+                if tracker.isBlocked {
+                    return tracker
+                }
+                candidate = tracker
+            }
+        }
+
+        let mainResolver = TrackerResolver(tds: mainTrackerData,
+                                           unprotectedSites: unprotectedSites,
+                                           tempList: tempList,
+                                           tld: tld)
+        if let tracker = mainResolver.trackerFromUrl(urlString,
+                                                     pageUrlString: pageUrlString,
+                                                     resourceType: resourceType,
+                                                     potentiallyBlocked: contentBlockingEnabled) {
+            candidate = tracker
+        }
+
+        return candidate
     }
 }

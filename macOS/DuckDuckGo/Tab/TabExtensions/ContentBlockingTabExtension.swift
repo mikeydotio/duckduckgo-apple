@@ -24,7 +24,6 @@ import Foundation
 import Navigation
 import PrivacyConfig
 import Subscription
-import TrackerRadarKit
 import os.log
 
 struct DetectedTracker {
@@ -57,32 +56,20 @@ final class ContentBlockingTabExtension: NSObject {
     private let tld: TLD
     private let contentBlockingManager: ContentBlockerRulesManagerProtocol
     private lazy var trackerProtectionMapper: TrackerProtectionEventMapper? = {
-        let mergedTrackerData = Self.mergeTrackerData(from: contentBlockingManager.currentRules)
-        guard let trackerData = mergedTrackerData else { return nil }
+        let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
+        guard let mainTrackerData = contentBlockingManager.currentRules
+            .first(where: { $0.name == tdsName })?.trackerData else { return nil }
+        let supplementary = contentBlockingManager.currentRules
+            .filter { $0.name != tdsName }
+            .map(\.trackerData)
         let privacyConfig = privacyConfigurationManager.privacyConfig
-        let resolver = TrackerResolver(tds: trackerData,
-                                       unprotectedSites: privacyConfig.userUnprotectedDomains,
-                                       tempList: privacyConfig.tempUnprotectedDomains,
-                                       tld: tld)
-        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver, privacyConfig: privacyConfig)
+        return TrackerProtectionEventMapper(tld: tld,
+                                            mainTrackerData: mainTrackerData,
+                                            supplementaryTrackerData: supplementary,
+                                            unprotectedSites: privacyConfig.userUnprotectedDomains,
+                                            tempList: privacyConfig.tempUnprotectedDomains,
+                                            contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking))
     }()
-
-    private static func mergeTrackerData(from rules: [ContentBlockerRulesManager.Rules]) -> TrackerData? {
-        guard !rules.isEmpty else { return nil }
-        var trackers: [String: KnownTracker] = [:]
-        var entities: [String: Entity] = [:]
-        var domains: [String: String] = [:]
-        var cnames: [TrackerData.CnameDomain: TrackerData.TrackerDomain]?
-        for rule in rules {
-            trackers.merge(rule.trackerData.trackers) { (_, new) in new }
-            entities.merge(rule.trackerData.entities) { (_, new) in new }
-            domains.merge(rule.trackerData.domains) { (_, new) in new }
-            if rule.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
-                cnames = rule.trackerData.cnames
-            }
-        }
-        return TrackerData(trackers: trackers, entities: entities, domains: domains, cnames: cnames)
-    }
     private var trackersSubject = PassthroughSubject<DetectedTracker, Never>()
 
     private var cancellables = Set<AnyCancellable>()
