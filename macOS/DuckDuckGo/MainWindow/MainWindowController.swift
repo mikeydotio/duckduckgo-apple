@@ -236,6 +236,7 @@ final class MainWindowController: NSWindowController {
         for button in semaphoreButtons {
             button
                 .publisher(for: \.alphaValue)
+                .receive(on: DispatchQueue.main)
                 .sink { [weak button] alphaValue in
                     if let button, alphaValue != .activeViewAlpha {
                         button.alphaValue = .activeViewAlpha
