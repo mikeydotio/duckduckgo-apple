@@ -162,6 +162,15 @@ final class NewTabPageOmnibarActionsHandler: NewTabPageOmnibarActionsHandling {
         tabOpener.openAIChatTab(with: .existingChat(chatId: chatId), behavior: behavior)
     }
 
+    func viewAllAiChats(target: NewTabPage.NewTabPageDataModel.OpenTarget) {
+        let tabOpener = AIChatTabOpener(
+            promptHandler: promptHandler,
+            aiChatTabManaging: windowControllersManager
+        )
+
+        tabOpener.openNewAIChat(in: .newTab(selected: true))
+    }
+
     private func linkOpenBehavior(for target: NewTabPageDataModel.OpenTarget, using tabsPreferences: TabsPreferences) -> LinkOpenBehavior {
         switch target {
         case .sameTab:

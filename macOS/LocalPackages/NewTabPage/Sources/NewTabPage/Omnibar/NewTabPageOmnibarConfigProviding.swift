@@ -33,4 +33,7 @@ public protocol NewTabPageOmnibarConfigProviding: AnyObject {
     var showCustomizePopover: Bool { get set }
 
     var isAIChatRecentChatsEnabled: Bool { get }
+
+    var showViewAllAiChats: Bool { get }
+    var showViewAllAiChatsPublisher: AnyPublisher<Bool, Never> { get }
 }

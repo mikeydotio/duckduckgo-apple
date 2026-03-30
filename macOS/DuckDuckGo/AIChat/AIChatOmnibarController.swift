@@ -204,7 +204,7 @@ final class AIChatOmnibarController {
         currentFetchTask = Task { [weak self] in
             guard let self else { return }
 
-            let suggestions = await reader.fetchSuggestions(query: query.isEmpty ? nil : query)
+            let suggestions = await reader.fetchSuggestions(query: query.isEmpty ? nil : query, maxChats: reader.maxHistoryCount)
 
             // Check if task was cancelled
             guard !Task.isCancelled else { return }
