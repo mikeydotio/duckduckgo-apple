@@ -14,15 +14,12 @@ let package = Package(
     targets: [
         .target(
             name: "ActCore",
-            dependencies: ["ActCoreBinary"],
+            path: "Sources/ActCore",
             publicHeadersPath: "include",
             linkerSettings: [
-                .unsafeFlags(["-Xlinker", "-no_compact_unwind"])
+                .unsafeFlags(["-Xlinker", "-no_compact_unwind"]),
+                .linkedLibrary("act_core"),
             ]
-        ),
-        .binaryTarget(
-            name: "ActCoreBinary",
-            path: "Sources/ActCoreBinary/ActCore.xcframework"
         ),
     ]
 )
