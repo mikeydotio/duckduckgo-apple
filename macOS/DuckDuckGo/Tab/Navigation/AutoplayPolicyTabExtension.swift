@@ -37,25 +37,34 @@ extension AutoplayPolicyTabExtension: NavigationResponder {
 
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
-        guard featureFlagger.isFeatureOn(.autoplayPolicy) else { return .next }
+        let isAutoplayPolicyEnabled = featureFlagger.isFeatureOn(.autoplayPolicy)
+        preferences.mustApplyAutoplayPolicy = isAutoplayPolicyEnabled
 
-        let domain = navigationAction.url.host ?? ""
-
-        if permissionManager.hasPermissionPersisted(forDomain: domain, permissionType: .autoplayPolicy) {
-            let decision = permissionManager.permission(forDomain: domain, permissionType: .autoplayPolicy)
-            switch decision {
-            case .allow:
-                preferences.autoplayPolicy = .allow
-            case .ask:
-                preferences.autoplayPolicy = .allowWithoutSound
-            case .deny:
-                preferences.autoplayPolicy = .deny
-            }
-        } else {
-            preferences.autoplayPolicy = .init(autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction)
+        if isAutoplayPolicyEnabled {
+            let domain = navigationAction.url.host ?? ""
+            preferences.autoplayPolicy = loadAutoplayPolicy(forDomain: domain)
         }
 
         return .next
+    }
+}
+
+private extension AutoplayPolicyTabExtension {
+
+    func loadAutoplayPolicy(forDomain domain: String) -> _WKWebsiteAutoplayPolicy {
+        guard permissionManager.hasPermissionPersisted(forDomain: domain, permissionType: .autoplayPolicy) else {
+            return .init(autoplayPreferences.autoplayBlockingMode.mediaTypesRequiringUserAction)
+        }
+
+        let decision = permissionManager.permission(forDomain: domain, permissionType: .autoplayPolicy)
+        switch decision {
+        case .allow:
+            return .allow
+        case .ask:
+            return .allowWithoutSound
+        case .deny:
+            return .deny
+        }
     }
 }
 
