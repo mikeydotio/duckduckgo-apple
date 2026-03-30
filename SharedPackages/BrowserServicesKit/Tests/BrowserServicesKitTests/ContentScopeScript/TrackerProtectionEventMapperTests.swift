@@ -46,12 +46,11 @@ final class TrackerProtectionEventMapperTests: XCTestCase {
     }
 
     private func makeMapper() -> TrackerProtectionEventMapper {
-        let resolver = TrackerResolver(
-            tds: makeTestTDS(),
-            unprotectedSites: [],
-            tempList: [],
-            tld: tld)
-        return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver)
+        TrackerProtectionEventMapper(tld: tld,
+                                     mainTrackerData: makeTestTDS(),
+                                     unprotectedSites: [],
+                                     tempList: [],
+                                     contentBlockingEnabled: true)
     }
 
     // MARK: - ResourceObservation Classification
