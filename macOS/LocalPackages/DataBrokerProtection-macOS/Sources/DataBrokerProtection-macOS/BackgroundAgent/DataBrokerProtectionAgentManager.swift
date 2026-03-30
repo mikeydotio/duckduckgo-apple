@@ -736,6 +736,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                 var optOuts = [[String: Any]]()
                 for optOut in item.optOutJobData {
                     var optOutInfo: [String: Any] = [
+                        "extractedProfileId": optOut.extractedProfile.id ?? -1,
                         "extractedProfileName": optOut.extractedProfile.fullName ?? optOut.extractedProfile.name ?? "unknown",
                         "attemptCount": optOut.attemptCount,
                     ]
@@ -787,6 +788,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             }
 
             let result: [String: Any] = [
+                "brokerId": broker.id ?? -1,
                 "brokerName": broker.name,
                 "brokerURL": broker.url,
                 "version": broker.version,
