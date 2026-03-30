@@ -3188,10 +3188,24 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
     }
 
     private func makeMapper() -> TrackerProtectionEventMapper? {
-        guard let trackerData = ContentBlocking.shared.contentBlockingManager.currentMainRules?.trackerData else { return nil }
+        let rules = ContentBlocking.shared.contentBlockingManager.currentRules
+        guard !rules.isEmpty else { return nil }
+        var trackers: [String: KnownTracker] = [:]
+        var entities: [String: Entity] = [:]
+        var domains: [String: String] = [:]
+        var cnames: [TrackerData.CnameDomain: TrackerData.TrackerDomain]?
+        for rule in rules {
+            trackers.merge(rule.trackerData.trackers) { (_, new) in new }
+            entities.merge(rule.trackerData.entities) { (_, new) in new }
+            domains.merge(rule.trackerData.domains) { (_, new) in new }
+            if rule.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
+                cnames = rule.trackerData.cnames
+            }
+        }
+        let mergedTrackerData = TrackerData(trackers: trackers, entities: entities, domains: domains, cnames: cnames)
         let tld = AppDependencyProvider.shared.storageCache.tld
         let privacyConfig = ContentBlocking.shared.privacyConfigurationManager.privacyConfig
-        let resolver = TrackerResolver(tds: trackerData,
+        let resolver = TrackerResolver(tds: mergedTrackerData,
                                        unprotectedSites: privacyConfig.userUnprotectedDomains,
                                        tempList: privacyConfig.tempUnprotectedDomains,
                                        tld: tld)

@@ -56,7 +56,8 @@ final class ContentBlockingTabExtension: NSObject {
     private let tld: TLD
     private let contentBlockingManager: ContentBlockerRulesManagerProtocol
     private lazy var trackerProtectionMapper: TrackerProtectionEventMapper? = {
-        guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else { return nil }
+        let mergedTrackerData = Self.mergeTrackerData(from: contentBlockingManager.currentRules)
+        guard let trackerData = mergedTrackerData else { return nil }
         let privacyConfig = privacyConfigurationManager.privacyConfig
         let resolver = TrackerResolver(tds: trackerData,
                                        unprotectedSites: privacyConfig.userUnprotectedDomains,
@@ -64,6 +65,23 @@ final class ContentBlockingTabExtension: NSObject {
                                        tld: tld)
         return TrackerProtectionEventMapper(tld: tld, trackerResolver: resolver, privacyConfig: privacyConfig)
     }()
+
+    private static func mergeTrackerData(from rules: [ContentBlockerRulesManager.Rules]) -> TrackerData? {
+        guard !rules.isEmpty else { return nil }
+        var trackers: [String: KnownTracker] = [:]
+        var entities: [String: Entity] = [:]
+        var domains: [String: String] = [:]
+        var cnames: [TrackerData.CnameDomain: TrackerData.TrackerDomain]?
+        for rule in rules {
+            trackers.merge(rule.trackerData.trackers) { (_, new) in new }
+            entities.merge(rule.trackerData.entities) { (_, new) in new }
+            domains.merge(rule.trackerData.domains) { (_, new) in new }
+            if rule.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
+                cnames = rule.trackerData.cnames
+            }
+        }
+        return TrackerData(trackers: trackers, entities: entities, domains: domains, cnames: cnames)
+    }
     private var trackersSubject = PassthroughSubject<DetectedTracker, Never>()
 
     private var cancellables = Set<AnyCancellable>()
