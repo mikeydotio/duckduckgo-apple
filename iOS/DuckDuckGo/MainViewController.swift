@@ -127,6 +127,7 @@ class MainViewController: UIViewController {
     let tabManager: TabManager
     let previewsSource: TabPreviewsSource
     let appSettings: AppSettings
+    let toggleModeStorage: ToggleModeStoring
     var fireExecutor: FireExecuting
     private var launchTabObserver: LaunchTabNotification.Observer?
     var isNewTabPageVisible: Bool {
@@ -378,7 +379,8 @@ class MainViewController: UIViewController {
         privacyStats: PrivacyStatsProviding,
         aiChatContextualModeFeature: AIChatContextualModeFeatureProviding = AIChatContextualModeFeature(),
         whatsNewRepository: WhatsNewMessageRepository,
-        darkReaderFeatureSettings: DarkReaderFeatureSettings
+        darkReaderFeatureSettings: DarkReaderFeatureSettings,
+        toggleModeStorage: ToggleModeStoring = ToggleModeStorage()
     ) {
         self.remoteMessagingActionHandler = remoteMessagingActionHandler
         self.remoteMessagingImageLoader = remoteMessagingImageLoader
@@ -439,6 +441,7 @@ class MainViewController: UIViewController {
         self.aiChatContextualModeFeature = aiChatContextualModeFeature
         self.whatsNewRepository = whatsNewRepository
         self.darkReaderFeatureSettings = darkReaderFeatureSettings
+        self.toggleModeStorage = toggleModeStorage
 
         super.init(nibName: nil, bundle: nil)
         
@@ -1891,6 +1894,9 @@ class MainViewController: UIViewController {
             viewCoordinator.omniBar.stopBrowsing()
             // Clear Dax Easter Egg logo when no tab is active
             viewCoordinator.omniBar.setDaxEasterEggLogoURL(nil)
+            if let tabModel = tabManager.currentTabsModel.currentTab {
+                viewCoordinator.omniBar.setSelectedTextEntryMode(tabModel.preferredTextEntryMode)
+            }
             updateBrowsingMenuHeaderDataSource()
             if let tab = currentTab {
                 refreshUnifiedToggleInput(for: tab)
@@ -1917,11 +1923,13 @@ class MainViewController: UIViewController {
         viewCoordinator.omniBar.setDaxEasterEggLogoURL(logoURL)
 
         if tab.isAITab && (aichatFullModeFeature.isAvailable || aichatIPadTabFeature.isAvailable) {
+            // AI tabs use branding UI — skip setSelectedTextEntryMode to avoid
+            // flashing the "ask privately" placeholder before branding covers the text field.
             viewCoordinator.omniBar.enterAIChatMode()
         } else {
             viewCoordinator.omniBar.startBrowsing()
+            viewCoordinator.omniBar.setSelectedTextEntryMode(tab.tabModel.preferredTextEntryMode)
         }
-
         refreshUnifiedToggleInput(for: tab)
         updateBrowsingMenuHeaderDataSource()
     }
@@ -1957,14 +1965,15 @@ class MainViewController: UIViewController {
     func dismissOmniBar() {
         hideSuggestionTray()
         viewCoordinator.omniBar.endEditing()
-
-        if aiChatAddressBarExperience.shouldShowModeToggle,
-           let omniBarVC = viewCoordinator.omniBar as? OmniBarViewController,
-           omniBarVC.selectedTextEntryMode == .aiChat {
-            omniBarVC.setSelectedTextEntryMode(.search)
-        }
-
         refreshOmniBar()
+    }
+
+    private var isModeToggleInAIChatMode: Bool {
+        guard aiChatAddressBarExperience.shouldShowModeToggle,
+              let omniBarVC = viewCoordinator.omniBar as? OmniBarViewController else {
+            return false
+        }
+        return omniBarVC.selectedTextEntryMode == .aiChat
     }
 
     private func hideNotificationBarIfBrokenSitePromptShown(afterRefresh: Bool = false) {
@@ -2365,7 +2374,8 @@ class MainViewController: UIViewController {
             ViewHighlighter.hideAll()
         }
         daxDialogsManager.fireButtonPulseCancelled()
-        hideSuggestionTray()
+        // Reset omnibar editing state before creating a new tab.
+        dismissOmniBar()
         hideNotificationBarIfBrokenSitePromptShown()
         currentTab?.aiChatContextualSheetCoordinator.dismissSheet()
         currentTab?.dismiss()
@@ -3133,6 +3143,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onPromptSubmitted(_ query: String, tools: [AIChatRAGTool]?) {
+        commitToggleStateToCurrentTab()
         openAIChat(query, autoSend: true, tools: tools)
     }
 
@@ -3166,6 +3177,13 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onOmniQueryUpdated(_ updatedQuery: String) {
+        // During iPad mode toggle transitions, text can be copied to the textField
+        // which triggers this method even in duck.ai mode — suppress suggestions.
+        if isModeToggleInAIChatMode {
+            hideSuggestionTray()
+            return
+        }
+
         if updatedQuery.isEmpty {
             if newTabPageViewController != nil || !omniBar.isTextFieldEditing {
                 hideSuggestionTray()
@@ -3182,6 +3200,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onOmniQuerySubmitted(_ query: String) {
+        commitToggleStateToCurrentTab()
         if !daxDialogsManager.shouldShowFireButtonPulse {
             ViewHighlighter.hideAll()
         }
@@ -3532,7 +3551,8 @@ extension MainViewController: OmniBarDelegate {
         }
 
         guard newTabPageViewController == nil else { return }
-        
+        guard !isModeToggleInAIChatMode else { return }
+
         if !skipSERPFlow, isSERPPresented, let query = omniBar.text {
             tryToShowSuggestionTray(.autocomplete(query: query))
         } else {
@@ -3656,7 +3676,14 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onDidBeginEditing() { }
-    func onDidEndEditing() { }
+    func onDidEndEditing() {
+        // Restore the tab's committed mode — the user may have toggled without submitting.
+        // Safe on iPhone: the experimental editing state prevents textFieldDidEndEditing from
+        // firing (text field never becomes first responder during that flow).
+        if let tabMode = tabManager.currentTabsModel.currentTab?.preferredTextEntryMode {
+            viewCoordinator.omniBar.setSelectedTextEntryMode(tabMode)
+        }
+    }
 
     // MARK: - iPad Expanded Omnibar
 
@@ -3763,6 +3790,27 @@ extension MainViewController: OmniBarDelegate {
         if let tab = tabManager.currentTabsModel.currentTab, tab.link == nil {
             ntpAfterIdleInstrumentation.toggleUsedFromNTP(afterIdle: tab.openedAfterIdle)
         }
+    }
+
+    func onTextEntryModeDidChange(_ mode: TextEntryMode) {
+        onToggleModeSwitched()
+    }
+
+    func preferredTextEntryModeForCurrentTab() -> TextEntryMode? {
+        tabManager.currentTabsModel.currentTab?.preferredTextEntryMode
+    }
+
+    /// Saves the current omnibar toggle state to the tab on submission,
+    /// and persists it globally so "Last Used" mode picks it up for new tabs.
+    private func commitToggleStateToCurrentTab() {
+        guard let omniBarVC = viewCoordinator.omniBar as? OmniBarViewController else { return }
+        commitToggleMode(omniBarVC.selectedTextEntryMode)
+    }
+
+    /// Shared commit logic for all toggle paths (iPad, iPhone editing state, unified toggle input).
+    func commitToggleMode(_ mode: TextEntryMode) {
+        tabManager.currentTabsModel.currentTab?.preferredTextEntryMode = mode
+        toggleModeStorage.save(mode)
     }
     
     func isCurrentTabFireTab() -> Bool {
