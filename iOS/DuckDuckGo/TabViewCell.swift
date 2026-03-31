@@ -31,7 +31,7 @@ protocol TabViewCellDelegate: AnyObject {
     
 }
 
-final class TabViewCell: UICollectionViewCell {
+class TabViewCell: UICollectionViewCell {
 
     struct Constants {
 
@@ -70,11 +70,8 @@ final class TabViewCell: UICollectionViewCell {
         tab?.fireTab ?? false
     }
 
-    static let gridReuseIdentifier = "TabViewGridCell"
-    static let listReuseIdentifier = "TabViewListCell"
-
-    @IBOutlet weak var background: UIView!
-    @IBOutlet weak var border: UIView!
+    var background: UIView!
+    var border: UIView!
 
     override func dragStateDidChange(_ dragState: UICollectionViewCell.DragState) {
         super.dragStateDidChange(dragState)
@@ -97,24 +94,25 @@ final class TabViewCell: UICollectionViewCell {
         setNeedsDisplay()
     }
 
-    @IBOutlet weak var favicon: UIImageView!
-    @IBOutlet weak var title: FadeOutLabel!
-    @IBOutlet weak var removeButton: BrowserChromeButton!
-    @IBOutlet weak var unread: UIImageView!
-    @IBOutlet weak var selectionIndicator: UIImageView!
+    var favicon: UIImageView!
+    var title: FadeOutLabel!
+    var removeButton: BrowserChromeButton!
+    var unread: UIImageView!
+    var selectionIndicator: UIImageView!
 
     // List view
-    @IBOutlet weak var link: FadeOutLabel?
+    var link: FadeOutLabel?
 
     // Grid view
-    @IBOutlet weak var preview: UIImageView?
+    var preview: UIImageView?
 
     weak var previewAspectRatio: NSLayoutConstraint?
-    @IBOutlet var previewTopConstraint: NSLayoutConstraint?
-    @IBOutlet var previewBottomConstraint: NSLayoutConstraint?
-    @IBOutlet var previewTrailingConstraint: NSLayoutConstraint?
+    var previewTopConstraint: NSLayoutConstraint?
+    var previewBottomConstraint: NSLayoutConstraint?
+    var previewTrailingConstraint: NSLayoutConstraint?
 
-    @IBOutlet weak var textButtonSpacing: NSLayoutConstraint?
+    var buttonContainer: UIView!
+    var textButtonSpacing: NSLayoutConstraint?
 
     /// Note that `backgroundView` and `selectedBackgroundView` are provided by UICollectionViewCell and we don't use them for legacy and design reasons, so ignore them.
     func setupSubviews() {
@@ -128,7 +126,6 @@ final class TabViewCell: UICollectionViewCell {
 
         backgroundColor = .clear
 
-        background?.layer.cornerRadius = Constants.cellCornerRadius
         background?.layer.cornerCurve = .continuous
         background?.backgroundColor = .clear
 
@@ -143,8 +140,6 @@ final class TabViewCell: UICollectionViewCell {
         favicon.layer.masksToBounds = true
         favicon.image = DesignSystemImages.Glyphs.Size24.globe
 
-        removeButton.type = .tabSwitcher
-        removeButton.setImage(DesignSystemImages.Glyphs.Size16.close)
         removeButton.addTarget(self, action: #selector(removeButtonValueChange), for: .allTouchEvents)
     }
 
@@ -249,12 +244,94 @@ final class TabViewCell: UICollectionViewCell {
         Self.logoImage(for: tab)
     }
 
-    override func awakeFromNib() {
-        super.awakeFromNib()
+    // MARK: - Programmatic Layout
+
+    /// Creates all shared views and constrains background+border to contentView.
+    /// Subclasses override, call super, then arrange the pre-created views
+    /// (favicon, title, unread, selectionIndicator, removeButton) into their specific layout.
+    func setupLayout() {
+        let bg = RoundedRectangleView()
+        bg.translatesAutoresizingMaskIntoConstraints = false
+        bg.cornerRadius = Constants.cellCornerRadius
+        bg.borderWidth = 2
+        bg.borderColor = .clear
+        contentView.addSubview(bg)
+        background = bg
+
+        let borderView = UIView()
+        borderView.translatesAutoresizingMaskIntoConstraints = false
+        borderView.isUserInteractionEnabled = false
+        contentView.addSubview(borderView)
+        border = borderView
+
+        NSLayoutConstraint.activate([
+            bg.topAnchor.constraint(equalTo: contentView.topAnchor),
+            bg.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            bg.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            bg.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+
+            borderView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            borderView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            borderView.widthAnchor.constraint(equalTo: contentView.widthAnchor, constant: 4),
+            borderView.heightAnchor.constraint(equalTo: contentView.heightAnchor, constant: 4),
+        ])
+
+        let faviconView = UIImageView()
+        faviconView.translatesAutoresizingMaskIntoConstraints = false
+        faviconView.contentMode = .scaleAspectFit
+        favicon = faviconView
+
+        let titleLabel = FadeOutLabel()
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.lineBreakMode = .byClipping
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.isAccessibilityElement = true
+        titleLabel.accessibilityTraits = [.button, .staticText]
+        title = titleLabel
+
+        let unreadView = UIImageView()
+        unreadView.translatesAutoresizingMaskIntoConstraints = false
+        unreadView.contentMode = .scaleToFill
+        unreadView.image = UIImage(resource: .tabUnread)
+        unreadView.isUserInteractionEnabled = false
+        unreadView.accessibilityLabel = UserText.tabCellUnreadAccessibility
+        unreadView.isAccessibilityElement = false
+        unread = unreadView
+
+        let indicatorView = UIImageView()
+        indicatorView.translatesAutoresizingMaskIntoConstraints = false
+        indicatorView.contentMode = .center
+        indicatorView.clipsToBounds = true
+        selectionIndicator = indicatorView
+
+        let closeButton = BrowserChromeButton(.tabSwitcher)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        closeButton.accessibilityLabel = UserText.tabCellCloseButtonAccessibility
+        closeButton.setImage(DesignSystemImages.Glyphs.Size16.close, for: .normal)
+        closeButton.addTarget(self, action: #selector(deleteTab), for: .touchUpInside)
+        removeButton = closeButton
+
+        let btnContainer = UIView()
+        btnContainer.translatesAutoresizingMaskIntoConstraints = false
+        btnContainer.setContentHuggingPriority(.defaultHigh + 250, for: .horizontal)
+        btnContainer.setContentCompressionResistancePriority(.required, for: .horizontal)
+        btnContainer.setContentCompressionResistancePriority(.required, for: .vertical)
+        btnContainer.addSubview(indicatorView)
+        btnContainer.addSubview(closeButton)
+        buttonContainer = btnContainer
+
+        NSLayoutConstraint.activate([
+            indicatorView.widthAnchor.constraint(equalToConstant: 24),
+            indicatorView.heightAnchor.constraint(equalToConstant: 24),
+            indicatorView.centerXAnchor.constraint(equalTo: btnContainer.centerXAnchor),
+            indicatorView.centerYAnchor.constraint(equalTo: btnContainer.centerYAnchor),
+        ])
+    }
+
+    func finalizeSetup() {
         let recognizer = UIPanGestureRecognizer(target: self, action: #selector(handleSwipe(recognizer:)))
         recognizer.delegate = self
         addGestureRecognizer(recognizer)
-
         setupSubviews()
     }
 
@@ -341,7 +418,7 @@ final class TabViewCell: UICollectionViewCell {
         self.delegate?.deleteTab(tab: tab)
     }
 
-    @IBAction func deleteTab() {
+    @objc func deleteTab() {
         Pixel.fire(pixel: .tabSwitcherClickCloseTab)
         closeTab()
     }
@@ -527,6 +604,8 @@ extension TabViewCell: UIGestureRecognizerDelegate {
     }
 
 }
+
+// MARK: - HitTestStackView
 
 final class HitTestStackView: UIStackView {
 
