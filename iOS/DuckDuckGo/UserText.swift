@@ -2022,9 +2022,9 @@ public struct UserText {
 
     public static let settingsEnableAiChatSubtitle = NSLocalizedString("settings.enable.aichat.subtitle", value: "Chat privately with popular 3rd-party AI models", comment: "A description of what the AI Chat toggle does")
 
-    public static let settingsAutomaticPageContextTitle = NSLocalizedString("settings.aifeatures.automatic.context.title", value: "Automatically Send Content", comment: "Settings screen cell title for enabling automatic page content attachment")
+    public static let settingsAutomaticPageContextTitle = NSLocalizedString("settings.aifeatures.automatic.context.title", value: "Auto-attach Page Content", comment: "Settings screen cell title for enabling automatic page content attachment")
 
-    public static let settingsAutomaticPageContextSubtitle = NSLocalizedString("settings.aifeatures.automatic.context.subtitle", value: "Automatically send page content to Duck.ai", comment: "Settings screen cell subtitle for enabling automatic page content attachment")
+    public static let settingsAutomaticPageContextSubtitle = NSLocalizedString("settings.aifeatures.automatic.context.subtitle", value: "Automatically attach web page content when opening Duck.ai in a browsing tab, and after navigating to other pages in that tab.", comment: "Settings screen cell subtitle for enabling automatic page content attachment")
 
     public static let settingsChatSuggestionsTitle = NSLocalizedString("settings.aifeatures.chat.suggestions.title", value: "Chat Suggestions", comment: "Settings screen cell title for enabling chat suggestions")
 

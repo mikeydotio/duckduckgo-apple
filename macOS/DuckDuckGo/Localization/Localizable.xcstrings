@@ -25484,7 +25484,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Automatically send page content to the sidebar"
+            "value" : "Auto-attach page content in the sidebar"
           }
         },
         "es" : {

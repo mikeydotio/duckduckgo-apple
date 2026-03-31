@@ -2993,10 +2993,10 @@ Take back control of your personal information with the browser designed for dat
 "settings.aifeatures.assist" = "Search Assist Settings";
 
 /* Settings screen cell subtitle for enabling automatic page content attachment */
-"settings.aifeatures.automatic.context.subtitle" = "Automatically send page content to Duck.ai";
+"settings.aifeatures.automatic.context.subtitle" = "Automatically attach web page content when opening Duck.ai in a browsing tab, and after navigating to other pages in that tab.";
 
 /* Settings screen cell title for enabling automatic page content attachment */
-"settings.aifeatures.automatic.context.title" = "Automatically Send Content";
+"settings.aifeatures.automatic.context.title" = "Auto-attach Page Content";
 
 /* Settings screen cell title for enabling chat suggestions */
 "settings.aifeatures.chat.suggestions.title" = "Chat Suggestions";
