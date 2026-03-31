@@ -48,9 +48,9 @@ final class PermissionCenterViewModelTests: XCTestCase {
     func testNotificationPermissionsAppearInUI() {
         // Create permissions including notification
         var usedPermissions = Permissions()
-        usedPermissions[.camera] = .active(query: nil)
-        usedPermissions[.notification] = .active(query: nil)
-        usedPermissions[.microphone] = .active(query: nil)
+        usedPermissions[.camera] = .active
+        usedPermissions[.notification] = .active
+        usedPermissions[.microphone] = .active
 
         let viewModel = PermissionCenterViewModel(
             domain: "example.com",
@@ -72,9 +72,9 @@ final class PermissionCenterViewModelTests: XCTestCase {
     /// Tests that notification permissions work alongside other permissions.
     func testNotificationPermissionsWorkAlongsideOtherPermissions() {
         var usedPermissions = Permissions()
-        usedPermissions[.camera] = .active(query: nil)
-        usedPermissions[.notification] = .active(query: nil)
-        usedPermissions[.geolocation] = .active(query: nil)
+        usedPermissions[.camera] = .active
+        usedPermissions[.notification] = .active
+        usedPermissions[.geolocation] = .active
 
         let viewModel = PermissionCenterViewModel(
             domain: "example.com",
@@ -98,7 +98,7 @@ final class PermissionCenterViewModelTests: XCTestCase {
     /// Verifies requestSystemPermission calls the system permission manager with correct permission type.
     func testWhenRequestSystemPermissionCalledThenSystemManagerRequestsAuthorization() {
         var usedPermissions = Permissions()
-        usedPermissions[.notification] = .active(query: nil)
+        usedPermissions[.notification] = .active
 
         let viewModel = PermissionCenterViewModel(
             domain: "example.com",
@@ -121,7 +121,7 @@ final class PermissionCenterViewModelTests: XCTestCase {
         mockSystemPermissionManager.authorizationStateToReturn = .notDetermined
 
         var usedPermissions = Permissions()
-        usedPermissions[.notification] = .active(query: nil)
+        usedPermissions[.notification] = .active
 
         let viewModel = PermissionCenterViewModel(
             domain: "example.com",
@@ -183,7 +183,7 @@ final class PermissionCenterViewModelTests: XCTestCase {
 
     // MARK: - currentAutoplayDecision Tests
 
-    func testWhenNoAutoplayPermissionPersistedThenCurrentDecisionIsUseDefault() {
+    func testWhenNoAutoplayPermissionPersistedThenCurrentDecisionIsAudioMuted() {
         mockFeatureFlagger.featuresStub[FeatureFlag.autoplayPolicy.rawValue] = true
 
         let viewModel = PermissionCenterViewModel(
@@ -196,7 +196,7 @@ final class PermissionCenterViewModelTests: XCTestCase {
             systemPermissionManager: mockSystemPermissionManager
         )
 
-        XCTAssertEqual(viewModel.currentAutoplayDecision(), .useDefault)
+        XCTAssertEqual(viewModel.currentAutoplayDecision(), .audioMuted)
     }
 
     func testWhenAutoplayAllowPersistedThenCurrentDecisionIsAllowAll() {
@@ -235,30 +235,10 @@ final class PermissionCenterViewModelTests: XCTestCase {
 
     // Note: Testing .audioMuted (which maps to .ask persisted) is not possible with the current
     // PermissionManagerMock because setPermission(.ask, ...) removes the entry from storage,
-    // causing hasPermissionPersisted to return false and currentAutoplayDecision to return .useDefault.
+    // causing hasPermissionPersisted to return false and currentAutoplayDecision to return .audioMuted.
     // In production, .ask is stored as a distinct persisted value.
 
     // MARK: - setAutoplayDecision Tests
-
-    func testWhenSetAutoplayDecisionUseDefaultThenPermissionIsRemoved() {
-        mockFeatureFlagger.featuresStub[FeatureFlag.autoplayPolicy.rawValue] = true
-        mockPermissionManager.setPermission(.allow, forDomain: "example.com", permissionType: .autoplayPolicy)
-
-        let viewModel = PermissionCenterViewModel(
-            domain: "example.com",
-            usedPermissions: Permissions(),
-            permissionManager: mockPermissionManager,
-            featureFlagger: mockFeatureFlagger,
-            removePermission: { _ in },
-            dismissPopover: { },
-            systemPermissionManager: mockSystemPermissionManager
-        )
-
-        viewModel.setAutoplayDecision(.useDefault)
-
-        XCTAssertFalse(mockPermissionManager.hasPermissionPersisted(forDomain: "example.com", permissionType: .autoplayPolicy),
-                       "Permission should be removed when set to useDefault")
-    }
 
     func testWhenSetAutoplayDecisionAllowAllThenAllowPermissionIsStored() {
         mockFeatureFlagger.featuresStub[FeatureFlag.autoplayPolicy.rawValue] = true
@@ -346,6 +326,10 @@ final class MockSystemPermissionManager: SystemPermissionManagerProtocol {
     private(set) var lastRequestedPermissionType: PermissionType?
 
     func authorizationState(for permissionType: PermissionType) async -> SystemPermissionAuthorizationState {
+        return authorizationStateToReturn
+    }
+
+    func cachedAuthorizationState(for permissionType: PermissionType) -> SystemPermissionAuthorizationState {
         return authorizationStateToReturn
     }
 
