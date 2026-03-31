@@ -25,7 +25,6 @@ import XCTest
 /// - Full TDS is used exclusively for native classification (Rules.trackerData).
 /// - Surrogate-filtered TDS is the only tracker data passed to JavaScript (Rules.encodedTrackerData).
 /// - These are separate datasets with separate consumers and must never be collapsed.
-/// - Legacy JS source paths (processRule, CTL gating) exist while the legacy pipeline is active.
 class ContentBlockingDatasetContractTests: XCTestCase {
 
     // MARK: - Dataset split contract
@@ -97,7 +96,7 @@ class ContentBlockingDatasetContractTests: XCTestCase {
                      "ContentScopeProperties must not contain trackerData on A1 baseline (no C-S-S trackerProtection)")
     }
 
-    // MARK: - Legacy JS source structure
+    // MARK: - JS source structure (ContentBlockerRulesUserScript / SurrogatesUserScript)
 
     func testWhenContentBlockerRulesSourceIsGeneratedThenProcessRuleIsPresent() throws {
         let mockConfig = MockPrivacyConfiguration()

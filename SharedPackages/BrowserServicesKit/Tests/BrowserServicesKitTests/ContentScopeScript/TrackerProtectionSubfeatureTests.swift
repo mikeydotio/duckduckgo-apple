@@ -36,11 +36,6 @@ final class TrackerProtectionSubfeatureTests: XCTestCase {
         XCTAssertNotNil(subfeature.handler(forMethodNamed: "resourceObserved"))
     }
 
-    func testWhenTrackerDetectedMethodIsRequestedThenLegacyHandlerIsReturned() {
-        let subfeature = TrackerProtectionSubfeature()
-        XCTAssertNotNil(subfeature.handler(forMethodNamed: "trackerDetected"))
-    }
-
     func testWhenSurrogateInjectedMethodIsRequestedThenHandlerIsReturned() {
         let subfeature = TrackerProtectionSubfeature()
         XCTAssertNotNil(subfeature.handler(forMethodNamed: "surrogateInjected"))

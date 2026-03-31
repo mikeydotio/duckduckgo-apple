@@ -27,9 +27,9 @@ import TrackerRadarKit
 /// C-S-S sends pre-block `{url, resourceType, potentiallyBlocked, pageUrl}` signals.
 /// `potentiallyBlocked` reflects JS-side heuristics, not the definitive WKContentRuleList verdict.
 /// This mapper computes a native blocked candidate from privacy config state and passes it to
-/// TrackerResolver instead, mirroring the legacy contentblockerrules.js semantics.
+/// TrackerResolver instead, matching WKContentRuleList blocking semantics.
 ///
-/// Classification mirrors the legacy ContentBlockerRulesUserScript multi-TDS loop:
+/// Classification uses a multi-TDS loop:
 /// 1. Try each supplementary TDS (CTL, ad-attribution) with the ad-click vendor —
 ///    if any returns blocked, use it immediately.
 /// 2. Fall back to the main TDS without vendor.
@@ -69,7 +69,7 @@ public struct TrackerProtectionEventMapper {
 
     // MARK: - ResourceObservation classification
 
-    /// Classify a raw resource observation using the multi-TDS loop that mirrors the legacy pipeline.
+    /// Classify a raw resource observation using the multi-TDS loop.
     public func classifyResource(_ observation: TrackerProtectionSubfeature.ResourceObservation,
                                  adClickAttributionVendor: String? = nil) -> DetectedRequest? {
         return classifyUrl(observation.url,
@@ -127,12 +127,12 @@ public struct TrackerProtectionEventMapper {
 
     // MARK: - Private
 
-    /// Multi-TDS classification mirroring the legacy ContentBlockerRulesUserScript loop.
+    /// Multi-TDS classification loop.
     ///
     /// 1. Try each supplementary TDS (CTL, ad-attribution) with ad-click vendor.
     ///    If any returns blocked, use it immediately.
     /// 2. Fall back to the main TDS without vendor.
-    /// 3. Main result overwrites non-blocked supplementary candidates (matching legacy behavior).
+    /// 3. Main result overwrites non-blocked supplementary candidates (by design).
     ///    This is correct because the splitter removes attribution trackers from main TDS,
     ///    so main returns nil for those URLs and the supplementary candidate survives.
     private func classifyUrl(_ urlString: String,
