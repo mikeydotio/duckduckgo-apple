@@ -292,6 +292,7 @@ final class MainCoordinator {
         guard #available(iOS 18.4, *) else { return }
 
         let webExtensionsPublisher = featureFlagger.updatesPublisher
+            .receive(on: DispatchQueue.main)
             .compactMap { [weak featureFlagger] in
                 featureFlagger?.isFeatureOn(.webExtensions)
             }
@@ -299,6 +300,7 @@ final class MainCoordinator {
             .eraseToAnyPublisher()
 
         let embeddedExtensionPublisher = featureFlagger.updatesPublisher
+            .receive(on: DispatchQueue.main)
             .compactMap { [weak featureFlagger] in
                 featureFlagger?.isFeatureOn(.embeddedExtension)
             }
