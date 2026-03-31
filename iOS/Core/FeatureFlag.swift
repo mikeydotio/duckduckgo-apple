@@ -518,7 +518,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .webExtensions,
              .embeddedExtension,
              .forceDarkModeOnWebsites,
-             .adBlockingExtension
+             .adBlockingExtension,
              .autofillOnboardingExperiment,
              .supportsSyncChatsDeletion,
              .fireMode,
