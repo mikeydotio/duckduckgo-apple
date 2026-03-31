@@ -176,6 +176,7 @@ final class PermissionCenterViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var removedPermissions = Set<PermissionType>()
     private(set) var hasTemporaryPopupAllowance: Bool
+    private let defaultAutoplayDecision: AutoplayDecision
 
     /// Whether "Only allow pop-ups for this visit" option should be shown (based on feature flags)
     var showAllowPopupsForThisVisitOption: Bool {
@@ -206,7 +207,8 @@ final class PermissionCenterViewModel: ObservableObject {
         hasTemporaryPopupAllowance: Bool = false,
         pageInitiatedPopupOpened: Bool = false,
         permissionsNeedReload: Bool = false,
-        systemPermissionManager: SystemPermissionManagerProtocol = SystemPermissionManager()
+        systemPermissionManager: SystemPermissionManagerProtocol = SystemPermissionManager(),
+        defaultAutoplayDecision: AutoplayDecision = .audioMuted
     ) {
         self.domain = domain
         self.usedPermissions = usedPermissions
@@ -226,6 +228,7 @@ final class PermissionCenterViewModel: ObservableObject {
         self.hasTemporaryPopupAllowance = hasTemporaryPopupAllowance
         self.pageInitiatedPopupOpened = pageInitiatedPopupOpened
         self.systemPermissionManager = systemPermissionManager
+        self.defaultAutoplayDecision = defaultAutoplayDecision
         self.showReloadBanner = permissionsNeedReload
 
         loadPermissions()
@@ -383,7 +386,7 @@ final class PermissionCenterViewModel: ObservableObject {
     /// Returns the current autoplay decision based on whether a per-site override is persisted
     func currentAutoplayDecision() -> AutoplayDecision {
         guard permissionManager.hasPermissionPersisted(forDomain: domain, permissionType: .autoplayPolicy) else {
-            return .audioMuted
+            return defaultAutoplayDecision
         }
         let decision = permissionManager.permission(forDomain: domain, permissionType: .autoplayPolicy)
         switch decision {

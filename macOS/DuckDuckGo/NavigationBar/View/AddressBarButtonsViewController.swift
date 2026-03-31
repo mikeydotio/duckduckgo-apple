@@ -1930,6 +1930,16 @@ final class AddressBarButtonsViewController: NSViewController {
 
         let url = tabViewModel.tab.content.urlForWebView ?? .empty
         let domain = (url.isFileURL ? .localhost : (url.host ?? "")).droppingWwwPrefix()
+        let defaultAutoplayDecision: AutoplayDecision = {
+            switch NSApp.delegateTyped.autoplayPreferences.autoplayBlockingMode {
+            case .allowAll:
+                return .allowAll
+            case .blockAudio:
+                return .audioMuted
+            case .blockAll:
+                return .blockAll
+            }
+        }()
 
         // Get popup queries for the Permission Center
         let popupQueries = tabViewModel.tab.permissions.authorizationQueries.filter { $0.permissions.contains(.popups) }
@@ -1974,7 +1984,8 @@ final class AddressBarButtonsViewController: NSViewController {
             },
             hasTemporaryPopupAllowance: tabViewModel.tab.popupHandling?.popupsTemporarilyAllowedForCurrentPage ?? false,
             pageInitiatedPopupOpened: tabViewModel.tab.popupHandling?.pageInitiatedPopupOpened ?? false,
-            permissionsNeedReload: tabViewModel.permissionsNeedReload
+            permissionsNeedReload: tabViewModel.permissionsNeedReload,
+            defaultAutoplayDecision: defaultAutoplayDecision
         )
 
         let popover = PermissionCenterPopover(viewModel: viewModel)
