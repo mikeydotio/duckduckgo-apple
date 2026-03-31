@@ -295,7 +295,7 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         let expectedKeys: Set<String> = [
             "allowlist", "tempUnprotectedDomains",
             "userUnprotectedDomains", "contentBlockingExceptions",
-            "blockingEnabled", "ctlEnabled"
+            "blockingEnabled", "ctlEnabled", "surrogateInjectionEnabled"
         ]
 
         guard let settings = trackerProtectionSettings(from: generator) else {

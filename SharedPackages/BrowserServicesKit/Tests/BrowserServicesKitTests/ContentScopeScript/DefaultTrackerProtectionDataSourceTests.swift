@@ -29,13 +29,16 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
     // MARK: - Tracker data fixtures
 
     private func mainTDS() -> TrackerData {
+        let surrogateRule = KnownTracker.Rule(rule: "tracker\\.com/analytics\\.js",
+                                              surrogate: "tracker-surrogate.js",
+                                              action: .block, options: nil, exceptions: nil)
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
                                    owner: KnownTracker.Owner(name: "Tracker Inc", displayName: "Tracker Inc", ownedBy: nil),
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
-                                   rules: nil)
+                                   rules: [surrogateRule])
         let entity = Entity(displayName: "Tracker Inc", domains: ["tracker.com"], prevalence: 0.1)
         return TrackerData(trackers: ["tracker.com": tracker],
                            entities: ["Tracker Inc": entity],
@@ -44,7 +47,7 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
     }
 
     private func ctlTDS() -> TrackerData {
-        let ctlRule = KnownTracker.Rule(rule: "facebook\\.net/.*sdk\\.js", surrogate: nil, action: .blockCTLFB, options: nil, exceptions: nil)
+        let ctlRule = KnownTracker.Rule(rule: "facebook\\.net/.*sdk\\.js", surrogate: "fb-sdk-surrogate.js", action: .blockCTLFB, options: nil, exceptions: nil)
         let fbTracker = KnownTracker(domain: "facebook.net",
                                      defaultAction: .ignore,
                                      owner: KnownTracker.Owner(name: "Facebook Inc", displayName: "Facebook", ownedBy: nil),
