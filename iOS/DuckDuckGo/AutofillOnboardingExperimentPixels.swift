@@ -28,10 +28,12 @@ import PrivacyConfig
 
 enum AutofillOnboardingExperimentStorageKeys: String, StorageKeyDescribing {
     case onboardingImpressionCount = "com-duckduckgo-autofill-onboarding-experiment-impression_count"
+    case onboardingDismissExperimentImpressionCount = "com-duckduckgo-autofill-onboarding-dismiss-experiment-impression_count"
 }
 
 struct AutofillOnboardingExperimentKeys: StoringKeys {
     let onboardingImpressionCount = StorageKey<Int>(AutofillOnboardingExperimentStorageKeys.onboardingImpressionCount)
+    let onboardingDismissExperimentImpressionCount = StorageKey<Int>(AutofillOnboardingExperimentStorageKeys.onboardingDismissExperimentImpressionCount)
 }
 
 // MARK: - Instrumentation Facade
@@ -41,6 +43,7 @@ struct AutofillOnboardingExperimentKeys: StoringKeys {
 /// Callers inject this protocol for testability; the default implementation
 /// fires experiment pixels via `PixelKit` directly.
 protocol AutofillOnboardingExperimentPixelFiring {
+    var subfeatureIDs: [SubfeatureID] { get }
 
     // MARK: - Primary Metrics
 
@@ -73,17 +76,23 @@ protocol AutofillOnboardingExperimentPixelFiring {
 
     // MARK: - Diagnostic Metrics
 
-    /// Reports the bucketed number of onboarding prompt impressions at conversion time.
-    func fireImpressionCount(_ count: Int)
+    /// Reports the bucketed number of onboarding prompt impressions for a specific experiment.
+    func fireImpressionCount(_ count: Int, for subfeatureID: SubfeatureID)
 
-    /// Reports the bucketed number of days between enrollment and save.
-    func fireDaysToConversion(_ days: Int)
+    /// Reports the bucketed number of days between enrollment and save for a specific experiment.
+    func fireDaysToConversion(_ days: Int, for subfeatureID: SubfeatureID)
+}
+
+// MARK: - Impression Counting
+
+protocol ImpressionCounting {
+    var impressionCount: Int { get }
 }
 
 // MARK: - Impression Tracker
 
 /// Tracks the number of onboarding prompt impressions for the experiment's `impression_count` diagnostic metric.
-final class AutofillOnboardingExperimentImpressionTracker {
+final class AutofillOnboardingExperimentImpressionTracker: ImpressionCounting {
 
     private let storage: any KeyedStoring<AutofillOnboardingExperimentKeys>
 
@@ -102,11 +111,40 @@ final class AutofillOnboardingExperimentImpressionTracker {
     }
 }
 
+// MARK: - Dismiss Experiment Impression Tracker
+
+/// Tracks onboarding prompt impressions for the dismiss button experiment.
+final class AutofillOnboardingDismissExperimentImpressionTracker: ImpressionCounting {
+
+    private let storage: any KeyedStoring<AutofillOnboardingExperimentKeys>
+
+    init(storage: (any KeyedStoring<AutofillOnboardingExperimentKeys>)? = nil) {
+        self.storage = if let storage { storage } else { UserDefaults.standard.keyedStoring() }
+    }
+
+    /// The current impression count.
+    var impressionCount: Int {
+        storage.onboardingDismissExperimentImpressionCount ?? 0
+    }
+
+    /// Call each time the onboarding save-password prompt is displayed.
+    func recordImpression() {
+        storage.onboardingDismissExperimentImpressionCount = impressionCount + 1
+    }
+}
+
 // MARK: - Default Implementation
 
 final class AutofillOnboardingExperimentPixelReporter: AutofillOnboardingExperimentPixelFiring {
 
-    private let subfeatureID: SubfeatureID = AutofillSubfeature.onboardingExperiment.rawValue
+    let subfeatureIDs: [SubfeatureID]
+
+    init(subfeatureIDs: [SubfeatureID] = [
+        AutofillSubfeature.onboardingExperiment.rawValue,
+        AutofillSubfeature.onboardingDismissExperiment.rawValue
+    ]) {
+        self.subfeatureIDs = subfeatureIDs
+    }
 
     // MARK: Metric Names
 
@@ -141,33 +179,39 @@ final class AutofillOnboardingExperimentPixelReporter: AutofillOnboardingExperim
     // MARK: - Primary Metrics
 
     func fireSaveTap() {
-        for window in Window.primary {
-            PixelKit.fireExperimentPixel(
-                for: subfeatureID,
-                metric: Metric.saveTap,
-                conversionWindowDays: window,
-                value: "1")
+        for subfeatureID in subfeatureIDs {
+            for window in Window.primary {
+                PixelKit.fireExperimentPixel(
+                    for: subfeatureID,
+                    metric: Metric.saveTap,
+                    conversionWindowDays: window,
+                    value: "1")
+            }
         }
     }
 
     func fireDismissTap() {
-        for window in Window.primary {
-            PixelKit.fireExperimentPixel(
-                for: subfeatureID,
-                metric: Metric.dismissTap,
-                conversionWindowDays: window,
-                value: "1")
+        for subfeatureID in subfeatureIDs {
+            for window in Window.primary {
+                PixelKit.fireExperimentPixel(
+                    for: subfeatureID,
+                    metric: Metric.dismissTap,
+                    conversionWindowDays: window,
+                    value: "1")
+            }
         }
     }
 
     func fireNeverAskTap() {
-        for window in Window.primary {
-            for threshold in neverAskThresholds {
-                PixelKit.fireExperimentPixelIfThresholdReached(
-                    for: subfeatureID,
-                    metric: Metric.neverAskTap,
-                    conversionWindowDays: window,
-                    threshold: threshold)
+        for subfeatureID in subfeatureIDs {
+            for window in Window.primary {
+                for threshold in neverAskThresholds {
+                    PixelKit.fireExperimentPixelIfThresholdReached(
+                        for: subfeatureID,
+                        metric: Metric.neverAskTap,
+                        conversionWindowDays: window,
+                        threshold: threshold)
+                }
             }
         }
     }
@@ -179,58 +223,68 @@ final class AutofillOnboardingExperimentPixelReporter: AutofillOnboardingExperim
               let count = try? vault.accountsCount() else { return }
 
         let bucket = AutofillPixelReporter.accountsBucketNameFrom(count: count)
-        for window in Window.secondary {
-            PixelKit.fireExperimentPixel(
-                for: subfeatureID,
-                metric: Metric.passwordsSaved,
-                conversionWindowDays: window,
-                value: bucket)
+        for subfeatureID in subfeatureIDs {
+            for window in Window.secondary {
+                PixelKit.fireExperimentPixel(
+                    for: subfeatureID,
+                    metric: Metric.passwordsSaved,
+                    conversionWindowDays: window,
+                    value: bucket)
+            }
         }
     }
 
     func fireImportCompleted() {
-        for window in Window.secondary {
-            PixelKit.fireExperimentPixel(
-                for: subfeatureID,
-                metric: Metric.importCompleted,
-                conversionWindowDays: window,
-                value: "1")
+        for subfeatureID in subfeatureIDs {
+            for window in Window.secondary {
+                PixelKit.fireExperimentPixel(
+                    for: subfeatureID,
+                    metric: Metric.importCompleted,
+                    conversionWindowDays: window,
+                    value: "1")
+            }
         }
     }
 
     func fireAutofillEnabled(_ enabled: Bool) {
-        for window in Window.secondary {
-            PixelKit.fireExperimentPixel(
-                for: subfeatureID,
-                metric: Metric.autofillEnabled,
-                conversionWindowDays: window,
-                value: String(enabled))
+        for subfeatureID in subfeatureIDs {
+            for window in Window.secondary {
+                PixelKit.fireExperimentPixel(
+                    for: subfeatureID,
+                    metric: Metric.autofillEnabled,
+                    conversionWindowDays: window,
+                    value: String(enabled))
+            }
         }
     }
 
     func fireSyncEnabled(_ enabled: Bool) {
-        for window in Window.secondary {
-            PixelKit.fireExperimentPixel(
-                for: subfeatureID,
-                metric: Metric.syncEnabled,
-                conversionWindowDays: window,
-                value: String(enabled))
+        for subfeatureID in subfeatureIDs {
+            for window in Window.secondary {
+                PixelKit.fireExperimentPixel(
+                    for: subfeatureID,
+                    metric: Metric.syncEnabled,
+                    conversionWindowDays: window,
+                    value: String(enabled))
+            }
         }
     }
 
     func fireAutofillInOtherAppsEnabled(_ enabled: Bool) {
-        for window in Window.secondary {
-            PixelKit.fireExperimentPixel(
-                for: subfeatureID,
-                metric: Metric.autofillOtherAppsEnabled,
-                conversionWindowDays: window,
-                value: String(enabled))
+        for subfeatureID in subfeatureIDs {
+            for window in Window.secondary {
+                PixelKit.fireExperimentPixel(
+                    for: subfeatureID,
+                    metric: Metric.autofillOtherAppsEnabled,
+                    conversionWindowDays: window,
+                    value: String(enabled))
+            }
         }
     }
 
     // MARK: - Diagnostic Metrics
 
-    func fireImpressionCount(_ count: Int) {
+    func fireImpressionCount(_ count: Int, for subfeatureID: SubfeatureID) {
         let bucket = impressionCountBucket(for: count)
         for window in Window.primary {
             PixelKit.fireExperimentPixel(
@@ -241,7 +295,7 @@ final class AutofillOnboardingExperimentPixelReporter: AutofillOnboardingExperim
         }
     }
 
-    func fireDaysToConversion(_ days: Int) {
+    func fireDaysToConversion(_ days: Int, for subfeatureID: SubfeatureID) {
         let bucket = daysToConversionBucket(for: days)
         for window in Window.primary {
             PixelKit.fireExperimentPixel(

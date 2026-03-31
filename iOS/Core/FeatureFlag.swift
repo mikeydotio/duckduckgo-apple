@@ -344,6 +344,9 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/72649045549333/task/1208707884599795?focus=true
     case autofillOnboardingExperiment
 
+    /// https://app.asana.com/1/137249556945/project/1201621853593513/task/1213833424979917?focus=true
+    case autofillOnboardingDismissExperiment
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212980785692854?focus=true
     case supportsSyncChatsDeletion
 
@@ -417,6 +420,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             UITestExperimentCohort.self
         case .autofillOnboardingExperiment:
             AutofillOnboardingExperimentCohort.self
+        case .autofillOnboardingDismissExperiment:
+            AutofillOnboardingDismissExperimentCohort.self
         case .simplifiedSyncSetupExperiment:
             SimplifiedSyncSetupExperimentCohort.self
         default:
@@ -435,6 +440,12 @@ extension FeatureFlag: FeatureFlagDescribing {
         case variant1
         case variant2
         case variant3
+    }
+
+    public enum AutofillOnboardingDismissExperimentCohort: String, FeatureFlagCohortDescribing {
+        case control
+        case variant1  // "Not Now"
+        case variant2  // "Never for this site"
     }
 
     public enum SimplifiedSyncSetupExperimentCohort: String, FeatureFlagCohortDescribing {
@@ -515,6 +526,7 @@ extension FeatureFlag: FeatureFlagDescribing {
              .embeddedExtension,
              .forceDarkModeOnWebsites,
              .autofillOnboardingExperiment,
+             .autofillOnboardingDismissExperiment,
              .supportsSyncChatsDeletion,
              .fireMode,
              .customXSafariRedirectHandling,

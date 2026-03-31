@@ -17,9 +17,11 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 @testable import DuckDuckGo
 
 final class MockAutofillOnboardingExperimentPixelFiring: AutofillOnboardingExperimentPixelFiring {
+    var subfeatureIDs: [SubfeatureID] = []
     func fireSaveTap() {}
     func fireDismissTap() {}
     func fireNeverAskTap() {}
@@ -28,6 +30,6 @@ final class MockAutofillOnboardingExperimentPixelFiring: AutofillOnboardingExper
     func fireAutofillEnabled(_ enabled: Bool) {}
     func fireSyncEnabled(_ enabled: Bool) {}
     func fireAutofillInOtherAppsEnabled(_ enabled: Bool) {}
-    func fireImpressionCount(_ count: Int) {}
-    func fireDaysToConversion(_ days: Int) {}
+    func fireImpressionCount(_ count: Int, for subfeatureID: SubfeatureID) {}
+    func fireDaysToConversion(_ days: Int, for subfeatureID: SubfeatureID) {}
 }
