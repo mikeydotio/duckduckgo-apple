@@ -49,6 +49,7 @@ extension WKWebpagePreferences {
 
 }
 
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
 extension WKWebpagePreferences {
 
     enum AutoplayPolicySelector {
@@ -99,3 +100,4 @@ public enum _WKWebsiteAutoplayPolicy: UInt {
         }
     }
 }
+#endif

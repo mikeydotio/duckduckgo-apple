@@ -203,8 +203,11 @@ public struct NavigationPreferences: Equatable {
 
     public var userAgent: String?
     public var contentMode: WKWebpagePreferences.ContentMode
+
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
     public var autoplayPolicy: _WKWebsiteAutoplayPolicy
     public var mustApplyAutoplayPolicy: Bool = false
+#endif
 
     fileprivate var javaScriptEnabledValue: Bool
     public var javaScriptEnabled: Bool {
@@ -232,13 +235,20 @@ public struct NavigationPreferences: Equatable {
         self.userAgent = userAgent
         self.contentMode = contentMode
         self.javaScriptEnabledValue = javaScriptEnabled
+
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
         self.autoplayPolicy = .default
+#endif
     }
 
     internal init(userAgent: String?, preferences: WKWebpagePreferences) {
         self.contentMode = preferences.preferredContentMode
         self.javaScriptEnabledValue = preferences.allowsContentJavaScript
+
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
         self.autoplayPolicy = .init(rawValue: preferences.autoplayPolicy) ?? .default
+#endif
+
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
         if Self.customHeadersSupported {
             self.customHeaders = preferences.customHeaderFields
@@ -250,9 +260,11 @@ public struct NavigationPreferences: Equatable {
         preferences.preferredContentMode = contentMode
         preferences.allowsContentJavaScript = javaScriptEnabled
 
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
         if mustApplyAutoplayPolicy {
             preferences.autoplayPolicy = autoplayPolicy.rawValue
         }
+#endif
 
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
         if Self.customHeadersSupported, let customHeaders = customHeaders {
