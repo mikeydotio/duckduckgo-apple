@@ -24818,7 +24818,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Always open in Duck Player"
+            "value" : "Always open YouTube videos in Duck Player"
           }
         }
       }
@@ -25515,6 +25515,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Настройки видео"
+          }
+        }
+      }
+    },
+    "duck-player.youtube-ad-blocking.explanation" : {
+      "comment" : "Duck Player explanation shown in YouTube Ad Blocking settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Duck Player provides a cleaner viewing experience and prevents viewing activity from influencing your YouTube recommendations."
           }
         }
       }

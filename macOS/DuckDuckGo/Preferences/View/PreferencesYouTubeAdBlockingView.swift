@@ -94,7 +94,7 @@ extension Preferences {
 
                 // Duck Player Section
                 PreferencePaneSection(UserText.duckPlayer) {
-                    TextMenuItemCaption(UserText.duckPlayerExplanation)
+                    TextMenuItemCaption(UserText.duckPlayerYouTubeAdBlockingExplanation)
 
                     if model.shouldDisplayContingencyMessage {
                         ContingencyMessageView {
