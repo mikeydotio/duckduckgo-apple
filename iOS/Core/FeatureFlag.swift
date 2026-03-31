@@ -810,6 +810,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(AIChatSubfeature.contextualFireButton))
         case .minimalChromeInLandscape:
             return .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.minimalChromeInLandscape))
+        case .autofillOnboardingDismissExperiment:
+            return .remoteReleasable(.subfeature(AutofillSubfeature.onboardingDismissExperiment))
         }
     }
 }

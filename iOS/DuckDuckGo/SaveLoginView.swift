@@ -337,6 +337,20 @@ struct SaveLoginView: View {
             AutofillViews.PrimaryButton(title: UserText.autofillSavePasswordSaveCTA,
                                         image: image,
                                         action: viewModel.save)
+            dismissButton
+        }
+    }
+
+    @ViewBuilder
+    private var dismissButton: some View {
+        switch viewModel.dismissExperimentCohort {
+        case .variant1:
+            AutofillViews.TertiaryButton(title: UserText.autofillSaveLoginNotNowCTA,
+                                         action: viewModel.cancelButtonPressed)
+        case .variant2:
+            AutofillViews.TertiaryButton(title: UserText.autofillSaveLoginNeverPromptCTA,
+                                         action: viewModel.neverPrompt)
+        case .control, nil:
             AutofillViews.TertiaryButton(title: UserText.autofillSaveLoginNoThanksCTA,
                                          action: viewModel.cancelButtonPressed)
         }
