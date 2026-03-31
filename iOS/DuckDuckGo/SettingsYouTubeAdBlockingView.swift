@@ -23,7 +23,6 @@ import DesignResourcesKit
 import DuckUI
 
 struct SettingsYouTubeAdBlockingView: View {
-    private static let learnMoreURL = URL(string: "https://duckduckgo.com/duckduckgo-help-pages/duck-player/")!
 
     /// The ContingencyMessageView may be redrawn multiple times in the onAppear method if the user scrolls it outside the list bounds.
     /// This property ensures that the associated action is only triggered once per viewing session, preventing redundant executions.
