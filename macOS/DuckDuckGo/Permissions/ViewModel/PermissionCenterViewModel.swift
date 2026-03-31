@@ -144,6 +144,14 @@ enum AutoplayDecision: Hashable {
     case allowAll
     case audioMuted
     case blockAll
+
+    init(_ blockingMode: AutoplayBlockingMode) {
+        switch blockingMode {
+        case .allowAll: self = .allowAll
+        case .blockAudio: self = .audioMuted
+        case .blockAll: self = .blockAll
+        }
+    }
 }
 
 /// ViewModel for the Permission Center popover
@@ -160,6 +168,7 @@ final class PermissionCenterViewModel: ObservableObject {
 
     private let permissionManager: PermissionManagerProtocol
     private let systemPermissionManager: SystemPermissionManagerProtocol
+    private let autoplayPreferences: AutoplayPreferences
     private let featureFlagger: FeatureFlagger
     private var usedPermissions: Permissions
     private let usedPermissionsPublisher: AnyPublisher<Permissions, Never>?
@@ -193,6 +202,7 @@ final class PermissionCenterViewModel: ObservableObject {
         usedPermissionsPublisher: AnyPublisher<Permissions, Never>? = nil,
         popupQueries: [PermissionAuthorizationQuery] = [],
         permissionManager: PermissionManagerProtocol,
+        autoplayPreferences: AutoplayPreferences = AutoplayPreferences(),
         featureFlagger: FeatureFlagger,
         removePermission: @escaping (PermissionType) -> Void,
         dismissPopover: @escaping () -> Void,
@@ -213,6 +223,7 @@ final class PermissionCenterViewModel: ObservableObject {
         self.usedPermissionsPublisher = usedPermissionsPublisher
         self.popupQueries = popupQueries
         self.permissionManager = permissionManager
+        self.autoplayPreferences = autoplayPreferences
         self.featureFlagger = featureFlagger
         self.removePermissionFromTab = removePermission
         self.dismissPopover = dismissPopover
@@ -383,7 +394,7 @@ final class PermissionCenterViewModel: ObservableObject {
     /// Returns the current autoplay decision based on whether a per-site override is persisted
     func currentAutoplayDecision() -> AutoplayDecision {
         guard permissionManager.hasPermissionPersisted(forDomain: domain, permissionType: .autoplayPolicy) else {
-            return .audioMuted
+            return AutoplayDecision(autoplayPreferences.autoplayBlockingMode)
         }
         let decision = permissionManager.permission(forDomain: domain, permissionType: .autoplayPolicy)
         switch decision {
