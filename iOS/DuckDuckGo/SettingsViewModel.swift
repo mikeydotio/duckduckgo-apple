@@ -36,6 +36,14 @@ import SystemSettingsPiPTutorial
 import SERPSettings
 import Networking
 
+enum YouTubeAdBlockingStorageKeys: String, StorageKeyDescribing {
+    case youTubeAdBlockingEnabled = "com_duckduckgo_ios_youTubeAdBlockingEnabled"
+}
+
+struct YouTubeAdBlockingKeys: StoringKeys {
+    let youTubeAdBlockingEnabled = StorageKey<Bool>(YouTubeAdBlockingStorageKeys.youTubeAdBlockingEnabled)
+}
+
 final class SettingsViewModel: ObservableObject {
 
     // Dependencies
@@ -80,6 +88,10 @@ final class SettingsViewModel: ObservableObject {
     }()
 
     private var afterInactivityStorage: any ThrowingKeyedStoring<AfterInactivitySettingKeys> {
+        keyValueStore.throwingKeyedStoring()
+    }
+
+    private var youTubeAdBlockingStorage: any ThrowingKeyedStoring<YouTubeAdBlockingKeys> {
         keyValueStore.throwingKeyedStoring()
     }
 
@@ -632,7 +644,7 @@ final class SettingsViewModel: ObservableObject {
         Binding<Bool>(
             get: { self.state.youTubeAdBlockingEnabled },
             set: {
-                self.appSettings.youTubeAdBlockingEnabled = $0
+                try? self.youTubeAdBlockingStorage.set($0, for: \YouTubeAdBlockingKeys.youTubeAdBlockingEnabled)
                 self.state.youTubeAdBlockingEnabled = $0
             }
         )
@@ -965,7 +977,7 @@ extension SettingsViewModel {
             duckPlayerNativeUISERPEnabled: duckPlayerSettings.nativeUISERPEnabled,
             duckPlayerNativeYoutubeMode: duckPlayerSettings.nativeUIYoutubeMode,
             youTubeAdBlockingAvailable: featureFlagger.isFeatureOn(.adBlockingExtension),
-            youTubeAdBlockingEnabled: appSettings.youTubeAdBlockingEnabled
+            youTubeAdBlockingEnabled: (try? youTubeAdBlockingStorage.value(for: \YouTubeAdBlockingKeys.youTubeAdBlockingEnabled)) ?? true
         )
 
         // Subscribe to DuckPlayerSettings updates

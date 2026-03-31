@@ -188,9 +188,6 @@ public struct UserDefaultsWrapper<T> {
         case duckPlayerNativeUIWasUsed = "com.duckduckgo.ios.duckPlayerNativeUIWasUsed"
         case duckPlayerNativeUISettingsMapped = "com.duckduckgo.ios.duckPlayerNativeUISettingsMapped"
 
-        // YouTube Ad Blocking
-        case youTubeAdBlockingEnabled = "com.duckduckgo.ios.youTubeAdBlockingEnabled"
-
         // AI Chat
         case autoClearAIChatHistory = "com.duckduckgo.ios.autoClearAIChatHistory"
 
