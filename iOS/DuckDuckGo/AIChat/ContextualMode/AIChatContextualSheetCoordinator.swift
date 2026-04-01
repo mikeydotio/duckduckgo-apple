@@ -252,22 +252,30 @@ private extension AIChatContextualSheetCoordinator {
             featureFlagger: featureFlagger,
             isFireTab: isFireTab,
             downloadHandler: downloadHandler,
-            getPageContext: { [weak self] reason in
-                guard let self else { return nil }
-                guard reason == .userAction else { return nil }
-                self.sessionState.beginManualAttach(fromFrontend: true)
-                let didTrigger = self.pageContextHandler.triggerContextCollection()
-                if !didTrigger {
-                    self.sessionState.cancelManualAttach()
-                }
-                return nil
-            },
+            getPageContext: Self.makePageContextProvider(sessionState: sessionState, pageContextHandler: pageContextHandler),
             pixelHandler: pixelHandler
         )
 
         return webVC
     }
-    
+
+    nonisolated private static func makePageContextProvider(
+        sessionState: AIChatContextualChatSessionState,
+        pageContextHandler: AIChatPageContextHandling
+    ) -> (PageContextRequestReason) -> AIChatPageContextData? {
+        return { reason in
+            guard reason == .userAction else { return nil }
+            DispatchQueue.main.async {
+                sessionState.beginManualAttach(fromFrontend: true)
+                let didTrigger = pageContextHandler.triggerContextCollection()
+                if !didTrigger {
+                    sessionState.cancelManualAttach()
+                }
+            }
+            return nil
+        }
+    }
+
     /// Starts the session timer after the sheet is dismissed.
     /// Timer will automatically reset the chat to native input after configured inactivity period.
     /// Uses privacy config value, but can be overridden via debug settings.

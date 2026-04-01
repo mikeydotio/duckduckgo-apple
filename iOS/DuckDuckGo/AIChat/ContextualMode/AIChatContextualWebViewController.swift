@@ -347,13 +347,16 @@ extension AIChatContextualWebViewController: UserContentControllerDelegate {
             return
         }
 
-        let isFireTab = isFireTab
-        userScripts.aiChatUserScript.setFireModeProvider { isFireTab }
+        userScripts.aiChatUserScript.setFireModeProvider(Self.makeFireModeProvider(isFireTab: isFireTab))
         aiChatContentHandler.setup(with: userScripts.aiChatUserScript, webView: webView, displayMode: .contextual)
         userScripts.aiChatUserScript.setContextualModePixelHandler(pixelHandler)
 
         isContentHandlerReady = true
         submitPendingIfReady()
+    }
+
+    nonisolated private static func makeFireModeProvider(isFireTab: Bool) -> (() -> Bool) {
+        return { isFireTab }
     }
 }
 

@@ -244,19 +244,21 @@ final class AIChatContentHandler: AIChatContentHandling {
 extension AIChatContentHandler: AIChatUserScriptDelegate {
     
     func aiChatUserScript(_ userScript: AIChatUserScript, didReceiveMessage message: AIChatUserScriptMessages) {
-        if message == .getAIChatPageContext {
-            delegate?.aiChatContentHandlerDidReceivePageContextRequest(self)
-        }
+        DispatchQueue.main.async { [self] in
+            if message == .getAIChatPageContext {
+                delegate?.aiChatContentHandlerDidReceivePageContextRequest(self)
+            }
 
-        switch message {
-        case .openAIChatSettings:
-            delegate?.aiChatContentHandlerDidReceiveOpenSettingsRequest(self)
-        case .closeAIChat:
-            delegate?.aiChatContentHandlerDidReceiveCloseChatRequest(self)
-        case .sendToSyncSettings, .sendToSetupSync:
-            delegate?.aiChatContentHandlerDidReceiveOpenSyncSettingsRequest(self)
-        default:
-            break
+            switch message {
+            case .openAIChatSettings:
+                delegate?.aiChatContentHandlerDidReceiveOpenSettingsRequest(self)
+            case .closeAIChat:
+                delegate?.aiChatContentHandlerDidReceiveCloseChatRequest(self)
+            case .sendToSyncSettings, .sendToSetupSync:
+                delegate?.aiChatContentHandlerDidReceiveOpenSyncSettingsRequest(self)
+            default:
+                break
+            }
         }
     }
 
@@ -264,7 +266,9 @@ extension AIChatContentHandler: AIChatUserScriptDelegate {
         if metric.metricName == .userDidSubmitPrompt
             || metric.metricName == .userDidSubmitFirstPrompt {
             NotificationCenter.default.post(name: .aiChatUserDidSubmitPrompt, object: nil)
-            delegate?.aiChatContentHandlerDidReceivePromptSubmission(self)
+            DispatchQueue.main.async { [self] in
+                delegate?.aiChatContentHandlerDidReceivePromptSubmission(self)
+            }
 
             if let tier = metric.modelTier, case .plus = tier {
                 freeTrialConversionService.markDuckAIActivated()

@@ -2336,6 +2336,10 @@ extension TabViewController: WKNavigationDelegate {
         return true
     }
 
+    nonisolated private static func makeFireModeProvider(isFireTab: Bool) -> (() -> Bool) {
+        return { isFireTab }
+    }
+
     nonisolated private static func refreshSearchRetentionAtb() {
         let backgroundAssertion = QRunInBackgroundAssertion(name: "StatisticsLoader background assertion - search",
                                                             application: UIApplication.shared)
@@ -3147,8 +3151,7 @@ extension TabViewController: UserContentControllerDelegate {
         userScripts.serpSettingsUserScript.setStore(keyValueStore)
         userScripts.serpSettingsUserScript.webView = webView
         
-        let isFireTab = tabModel.fireTab
-        userScripts.aiChatUserScript.setFireModeProvider { isFireTab }
+        userScripts.aiChatUserScript.setFireModeProvider(Self.makeFireModeProvider(isFireTab: tabModel.fireTab))
         aiChatContentHandler.setup(with: userScripts.aiChatUserScript, webView: webView, displayMode: .fullTab)
         aiChatContextualSheetCoordinator.pageContextHandler.resubscribe()
 
