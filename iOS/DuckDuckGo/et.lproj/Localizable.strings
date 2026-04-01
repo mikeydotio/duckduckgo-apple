@@ -94,6 +94,9 @@
 /* Open AI Chat action in the menu list */
 "action.title.duckai" = "Duck.ai";
 
+/* Open Duck.ai Voice mode action */
+"action.title.duckai.voice" = "Duck.ai hääl";
+
 /* Edit Bookmark action */
 "action.title.edit.bookmark" = "Redigeeri järjehoidjat";
 
@@ -1087,6 +1090,12 @@
 /* No comment provided by engineer. */
 "Contextual Session Timer" = "Contextual Session Timer";
 
+/* Button to confirm deleting a contextual AI chat */
+"contextual.chat.delete.confirmation.button" = "Kustuta vestlus";
+
+/* Title for the confirmation dialog when deleting a contextual AI chat */
+"contextual.chat.delete.confirmation.title" = "Kustutada see vestlus?";
+
 /* Button to continue the onboarding process */
 "contextual.onboarding.addToDock.buttons.skip" = "Jäta vahele";
 
@@ -2076,6 +2085,9 @@
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Airstream";
 
+/* The name of the legacy fire animation in the App Settings. This can be translated and it's not a brand or product name. Refer To 'fireButtonAnimation.fireRising.name' for translation */
+"fireButtonAnimation.fireRising.legacy.name" = "Inferno Klassikaline";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.fireRising.name" = "Inferno";
 
@@ -2135,6 +2147,9 @@
 
 /* Placeholder text for the duck.ai input field */
 "input.field.placeholder.duckai" = "Küsi privaatselt";
+
+/* Placeholder text for the duck.ai input field when a chat is already active */
+"input.field.placeholder.duckai.followup" = "Küsi lisaküsimus...";
 
 /* No comment provided by engineer. */
 "Install Extension" = "Paigalda laiendus";
@@ -2607,6 +2622,9 @@
 "No Logs" = "Logisid pole";
 
 /* No comment provided by engineer. */
+"No matches for \"%@\"" = "„%@“ kohta ei leitud vasteid";
+
+/* No comment provided by engineer. */
 "No messages" = "Sõnumeid pole";
 
 /* No comment provided by engineer. */
@@ -2632,6 +2650,9 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
+
+/* No comment provided by engineer. */
+"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "App Store'i versioonides kuvatakse see kuva ainult siis, kui oled sisse logitud sisekasutajana aadressi **use-login.duckduckgo.com** kaudu.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Sain aru";
@@ -2723,6 +2744,9 @@
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Ja enne kui ma unustan...";
 
+/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
+"onboarding.privacypro.promo.title.delayed" = "Kas teadsid?";
+
 /* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.message" = "Privaatne. Kiire. Vähem reklaame.";
 
@@ -2734,9 +2758,6 @@
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Tere!";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "Kas teadsid?";
 
 /* Body copy for the returning-user restore prompt */
 "onboarding.restore.prompt.body" = "Kas tahad taastada oma järjehoidjad, paroolid ja muu eelmisest DuckDuckGo sünkroonimisest?";
@@ -2761,6 +2782,9 @@
 
 /* The title of the skip onboarding dialog popup */
 "onboarding.skip.title" = "Sain aru! Jätan muud näpunäited vahele.";
+
+/* Button on the Subscription promotion onboarding step when the user is eligible for a free trial. Tapping the button navigates to the Subscription paywall. */
+"onboarding.subscription.promo.buttons.rebranding.tryItFree" = "Proovi tasuta!";
 
 /* Button on the Subscription promotion onboarding step when the user is eligible for a free trial. Tapping the button navigates to the Subscription paywall. */
 "onboarding.subscription.promo.buttons.tryItForFree" = "Proovi seda tasuta!";
@@ -3040,9 +3064,6 @@
 
 /* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
 "prompt.x-safari-https.try-open.title" = "See sait soovib avaneda Safaris.";
-
-/* No comment provided by engineer. */
-"REBRANDED" = "ÜMBER BRÄNDITUD";
 
 /* No comment provided by engineer. */
 "Recent Processing Logs" = "Hiljutised töötlemislogid";
@@ -3383,6 +3404,10 @@
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Vaikebrauser";
 
+/* Footer text explaining the toggle position setting in AI Features settings */
+"settings.default.omnibar.mode.footer" = "Lüliti vaikeasend uutel vahekaartidel.";
+/* Header text for the toggle position setting in AI Features settings */
+"settings.default.omnibar.mode.header" = "Lüliti asend";
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Kustuta Duck.ai vestlused";
 
@@ -4550,3 +4575,12 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Mida soovite importida?";
 
+
+/* Autoplay settings translations */
+"autoplay.mode.allowAll" = "Luba heli ja video";
+"autoplay.mode.blockAll" = "Blokeeri heli ja video";
+"autoplay.mode.blockAudio" = "Blokeeri heli";
+"settings.autoplay" = "Automaatne esitamine";
+"settings.autoplay.duck.player.link" = "Duck Playeri seaded";
+"settings.autoplay.footer" = "Automaatse esitamise seaded kehtivad ainult äsjaavatud vahelehtedele. Muudatusi ei saa olemasolevatele vahekaartidele rakendada enne rakenduse taaskäivitamist. Duck Playeris automaatse esitamise haldamiseks valige suvand ";
+"settings.media.section" = "Meedia";

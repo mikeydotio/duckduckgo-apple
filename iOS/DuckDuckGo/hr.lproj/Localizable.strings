@@ -94,6 +94,9 @@
 /* Open AI Chat action in the menu list */
 "action.title.duckai" = "Duck.ai";
 
+/* Open Duck.ai Voice mode action */
+"action.title.duckai.voice" = "Duck.ai glasovni način";
+
 /* Edit Bookmark action */
 "action.title.edit.bookmark" = "Uredi knjižnu oznaku";
 
@@ -1087,6 +1090,12 @@
 /* No comment provided by engineer. */
 "Contextual Session Timer" = "Contextual Session Timer";
 
+/* Button to confirm deleting a contextual AI chat */
+"contextual.chat.delete.confirmation.button" = "Izbriši čavrljanje";
+
+/* Title for the confirmation dialog when deleting a contextual AI chat */
+"contextual.chat.delete.confirmation.title" = "Izbrisati ovo čavrljanje?";
+
 /* Button to continue the onboarding process */
 "contextual.onboarding.addToDock.buttons.skip" = "Preskoči";
 
@@ -2076,6 +2085,9 @@
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Zračna struja";
 
+/* The name of the legacy fire animation in the App Settings. This can be translated and it's not a brand or product name. Refer To 'fireButtonAnimation.fireRising.name' for translation */
+"fireButtonAnimation.fireRising.legacy.name" = "Pakao Klasik";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.fireRising.name" = "Pakao";
 
@@ -2135,6 +2147,9 @@
 
 /* Placeholder text for the duck.ai input field */
 "input.field.placeholder.duckai" = "Pitaj privatno";
+
+/* Placeholder text for the duck.ai input field when a chat is already active */
+"input.field.placeholder.duckai.followup" = "Postavi dodatno pitanje...";
 
 /* No comment provided by engineer. */
 "Install Extension" = "Instaliraj proširenje";
@@ -2607,6 +2622,9 @@
 "No Logs" = "Nema zapisnika";
 
 /* No comment provided by engineer. */
+"No matches for \"%@\"" = "Nema rezultata za \"%@\"";
+
+/* No comment provided by engineer. */
 "No messages" = "Nema poruka";
 
 /* No comment provided by engineer. */
@@ -2632,6 +2650,9 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
+
+/* No comment provided by engineer. */
+"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "Na verzijama App Storea, ovaj će se zaslon prikazati samo ako si prijavljen kao interni korisnik putem **use-login.duckduckgo.com**.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Shvatio/la sam";
@@ -2723,6 +2744,9 @@
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Da, prije nego što zaboravim...";
 
+/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
+"onboarding.privacypro.promo.title.delayed" = "Jeste li znali?";
+
 /* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.message" = "Privatno. Brzo. Manje oglasa.";
 
@@ -2734,9 +2758,6 @@
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Bok!";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "Jeste li znali?";
 
 /* Body copy for the returning-user restore prompt */
 "onboarding.restore.prompt.body" = "Želiš li vratiti svoje oznake, lozinke i još mnogo toga iz prethodne DuckDuckGo sinkronizacije?";
@@ -2761,6 +2782,9 @@
 
 /* The title of the skip onboarding dialog popup */
 "onboarding.skip.title" = "Shvaćam! Preskočit ću ostale savjete.";
+
+/* Button on the Subscription promotion onboarding step when the user is eligible for a free trial. Tapping the button navigates to the Subscription paywall. */
+"onboarding.subscription.promo.buttons.rebranding.tryItFree" = "Isprobaj besplatno!";
 
 /* Button on the Subscription promotion onboarding step when the user is eligible for a free trial. Tapping the button navigates to the Subscription paywall. */
 "onboarding.subscription.promo.buttons.tryItForFree" = "Isprobaj besplatno!";
@@ -3040,9 +3064,6 @@
 
 /* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
 "prompt.x-safari-https.try-open.title" = "Ova stranica želi se otvoriti u Safariju.";
-
-/* No comment provided by engineer. */
-"REBRANDED" = "REDIZAJNIRANO";
 
 /* No comment provided by engineer. */
 "Recent Processing Logs" = "Nedavni zapisnici obrade";
@@ -3383,6 +3404,10 @@
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Zadani preglednik";
 
+/* Footer text explaining the toggle position setting in AI Features settings */
+"settings.default.omnibar.mode.footer" = "Zadani položaj preklopnika na novim karticama.";
+/* Header text for the toggle position setting in AI Features settings */
+"settings.default.omnibar.mode.header" = "Položaj preklopnika";
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Izbriši Duck.ai čavrljanja";
 
@@ -4550,3 +4575,12 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Što želiš uvesti?";
 
+
+/* Autoplay settings translations */
+"autoplay.mode.allowAll" = "Omogući zvuk i video";
+"autoplay.mode.blockAll" = "Blokiraj zvuk i video";
+"autoplay.mode.blockAudio" = "Blokiraj zvuk";
+"settings.autoplay" = "Automatsko pokretanje";
+"settings.autoplay.duck.player.link" = "Postavke Duck Playera";
+"settings.autoplay.footer" = "Postavke automatske reprodukcije primjenjivat će se samo na novootvorene kartice. Izmjene se ne mogu primijeniti na postojeće kartice osim ako se aplikacija ne pokrene ponovno. Za upravljanje automatskom reprodukcijom u Duck Playeru, idi na ";
+"settings.media.section" = "Mediji";

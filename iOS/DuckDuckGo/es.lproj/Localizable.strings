@@ -94,6 +94,9 @@
 /* Open AI Chat action in the menu list */
 "action.title.duckai" = "Duck.ai";
 
+/* Open Duck.ai Voice mode action */
+"action.title.duckai.voice" = "Voz de Duck.ai";
+
 /* Edit Bookmark action */
 "action.title.edit.bookmark" = "Editar marcador";
 
@@ -1087,6 +1090,12 @@
 /* No comment provided by engineer. */
 "Contextual Session Timer" = "Contextual Session Timer";
 
+/* Button to confirm deleting a contextual AI chat */
+"contextual.chat.delete.confirmation.button" = "Borrar chat";
+
+/* Title for the confirmation dialog when deleting a contextual AI chat */
+"contextual.chat.delete.confirmation.title" = "¿Borrar este chat?";
+
 /* Button to continue the onboarding process */
 "contextual.onboarding.addToDock.buttons.skip" = "Omitir";
 
@@ -2076,6 +2085,9 @@
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Corriente de aire";
 
+/* The name of the legacy fire animation in the App Settings. This can be translated and it's not a brand or product name. Refer To 'fireButtonAnimation.fireRising.name' for translation */
+"fireButtonAnimation.fireRising.legacy.name" = "Infierno Clásico";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.fireRising.name" = "Infierno";
 
@@ -2135,6 +2147,9 @@
 
 /* Placeholder text for the duck.ai input field */
 "input.field.placeholder.duckai" = "Pregunta en privado";
+
+/* Placeholder text for the duck.ai input field when a chat is already active */
+"input.field.placeholder.duckai.followup" = "Haz una pregunta de seguimiento...";
 
 /* No comment provided by engineer. */
 "Install Extension" = "Instalar extensión";
@@ -2607,6 +2622,9 @@
 "No Logs" = "Sin registros";
 
 /* No comment provided by engineer. */
+"No matches for \"%@\"" = "No hay coincidencias para \"%@\"";
+
+/* No comment provided by engineer. */
 "No messages" = "Sin mensajes";
 
 /* No comment provided by engineer. */
@@ -2632,6 +2650,9 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
+
+/* No comment provided by engineer. */
+"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "En las versiones de la App Store, esta pantalla solo se mostrará si has iniciado sesión como usuario interno a través de **use-login.duckduckgo.com**.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Entendido";
@@ -2723,6 +2744,9 @@
 /* The title of the onboarding dialog that promotes Privacy Pro */
 "onboarding.privacypro.promo.title" = "Oh, antes de que se me olvide...";
 
+/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
+"onboarding.privacypro.promo.title.delayed" = "¿Sabías?";
+
 /* After the user performs their first search using the browser, this dialog message explains the advantages of using DuckDuckGo */
 "onboarding.rebranding.first-search-done.message" = "Privado. Rápido. Menos anuncios.";
 
@@ -2734,9 +2758,6 @@
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Hola.";
-
-/* The title of the delayed subscription promotion dialog shown to users who skipped onboarding */
-"onboarding.privacypro.promo.title.delayed" = "¿Sabías?";
 
 /* Body copy for the returning-user restore prompt */
 "onboarding.restore.prompt.body" = "¿Quieres restaurar tus marcadores, contraseñas y más de tu sincronización anterior con DuckDuckGo?";
@@ -2761,6 +2782,9 @@
 
 /* The title of the skip onboarding dialog popup */
 "onboarding.skip.title" = "Entendido. Me saltaré los otros consejos.";
+
+/* Button on the Subscription promotion onboarding step when the user is eligible for a free trial. Tapping the button navigates to the Subscription paywall. */
+"onboarding.subscription.promo.buttons.rebranding.tryItFree" = "¡Pruébalo gratis!";
 
 /* Button on the Subscription promotion onboarding step when the user is eligible for a free trial. Tapping the button navigates to the Subscription paywall. */
 "onboarding.subscription.promo.buttons.tryItForFree" = "¡Pruébalas gratis!";
@@ -3040,9 +3064,6 @@
 
 /* Alert title when a site tries to redirect to Safari via x-safari-https scheme */
 "prompt.x-safari-https.try-open.title" = "Este sitio quiere abrirse en Safari.";
-
-/* No comment provided by engineer. */
-"REBRANDED" = "CAMBIO DE NOMBRE";
 
 /* No comment provided by engineer. */
 "Recent Processing Logs" = "Registros de procesamiento recientes";
@@ -3383,6 +3404,10 @@
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Navegador predeterminado";
 
+/* Footer text explaining the toggle position setting in AI Features settings */
+"settings.default.omnibar.mode.footer" = "Posición predeterminada de Alternar en las nuevas pestañas.";
+/* Header text for the toggle position setting in AI Features settings */
+"settings.default.omnibar.mode.header" = "Posición del interruptor";
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Elimina los chats de Duck.ai";
 
@@ -4550,3 +4575,12 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "¿Qué quieres importar?";
 
+
+/* Autoplay settings translations */
+"autoplay.mode.allowAll" = "Permitir audio y vídeo";
+"autoplay.mode.blockAll" = "Bloquear audio y vídeo";
+"autoplay.mode.blockAudio" = "Bloquear audio";
+"settings.autoplay" = "Reproducción automática";
+"settings.autoplay.duck.player.link" = "Configuración de Duck Player";
+"settings.autoplay.footer" = "La configuración de reproducción automática solo se aplicará a las pestañas recién abiertas. No se pueden aplicar cambios a las pestañas existentes a menos que se reinicie la aplicación. Para gestionar la reproducción automática en Duck Player, ve a ";
+"settings.media.section" = "Medios de comunicación";
