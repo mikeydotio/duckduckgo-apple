@@ -762,22 +762,26 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
     func page(_ page: TabSwitcherPageViewController, willDeleteTabs tabs: [Tab], allDeleted: Bool) {
         delegate?.tabSwitcher(self, willCloseTabs: tabs)
         tabManager.bulkRemoveTabs(tabs, in: page.tabsModel)
-        if allDeleted && !canDismissOnEmpty && isEditing {
+        // Use page.tabsModel — self.tabsModel can drift via selectedBrowsingMode mid-animation.
+        if allDeleted && page.tabsModel.allowsEmpty && isEditing {
             transitionFromMultiSelect(reloadCollectionView: false)
         }
     }
 
     func pageDidDeleteTabs(_ page: TabSwitcherPageViewController, allDeleted: Bool) {
-        if tabsModel.tabs.isEmpty && !tabsModel.allowsEmpty {
-            let newTab = Tab(fireTab: tabsModel.shouldCreateFireTabs)
-            tabsModel.insert(tab: newTab, placement: .atEnd, selectNewTab: true)
+        // Use page.tabsModel — self.tabsModel can drift via selectedBrowsingMode mid-animation.
+        let pageModel = page.tabsModel
+        if pageModel.tabs.isEmpty && !pageModel.allowsEmpty {
+            let newTab = Tab(fireTab: pageModel.shouldCreateFireTabs)
+            pageModel.insert(tab: newTab, placement: .atEnd, selectNewTab: true)
         }
-        currentSelection = tabsModel.currentIndex
+        page.currentSelection = pageModel.currentIndex
         delegate?.tabSwitcherDidBulkCloseTabs(tabSwitcher: self)
         refreshTitleViews()
         updateUIForSelectionMode()
         firePageController?.updateEmptyStateVisibility()
-        if allDeleted {
+        // Only dismiss for modes that don't allow empty (normal); fire shows empty state instead.
+        if allDeleted && !pageModel.allowsEmpty {
             dismissIfPossible()
         }
     }
