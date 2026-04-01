@@ -2299,13 +2299,7 @@ extension TabViewController: WKNavigationDelegate {
 
                     let shouldSkipSearchAtbForDuckAI = url.isDuckAIURL
                     if !shouldSkipSearchAtbForDuckAI {
-                        let backgroundAssertion = QRunInBackgroundAssertion(name: "StatisticsLoader background assertion - search",
-                                                                            application: UIApplication.shared)
-                        StatisticsLoader.shared.refreshSearchRetentionAtb {
-                            DispatchQueue.main.async {
-                                backgroundAssertion.release()
-                            }
-                        }
+                        Self.refreshSearchRetentionAtb()
                     }
                     subscriptionDataReporter.saveSearchCount()
                 }
@@ -2340,6 +2334,16 @@ extension TabViewController: WKNavigationDelegate {
             await MainActor.run(body: completion)
         }
         return true
+    }
+
+    nonisolated private static func refreshSearchRetentionAtb() {
+        let backgroundAssertion = QRunInBackgroundAssertion(name: "StatisticsLoader background assertion - search",
+                                                            application: UIApplication.shared)
+        StatisticsLoader.shared.refreshSearchRetentionAtb {
+            DispatchQueue.main.async {
+                backgroundAssertion.release()
+            }
+        }
     }
 
     private func decidePolicyFor(navigationAction: WKNavigationAction, completion: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -3143,7 +3147,8 @@ extension TabViewController: UserContentControllerDelegate {
         userScripts.serpSettingsUserScript.setStore(keyValueStore)
         userScripts.serpSettingsUserScript.webView = webView
         
-        userScripts.aiChatUserScript.setFireModeProvider { [weak self] in self?.tabModel.fireTab ?? false }
+        let isFireTab = tabModel.fireTab
+        userScripts.aiChatUserScript.setFireModeProvider { isFireTab }
         aiChatContentHandler.setup(with: userScripts.aiChatUserScript, webView: webView, displayMode: .fullTab)
         aiChatContextualSheetCoordinator.pageContextHandler.resubscribe()
 
