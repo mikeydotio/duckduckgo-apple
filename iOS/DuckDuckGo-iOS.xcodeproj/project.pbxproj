@@ -628,6 +628,7 @@
 		80483EF12F4D5C0100563037 /* MockAutoconsentManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80483EED2F4D5C0100563037 /* MockAutoconsentManagement.swift */; };
 		80483EF62F4F6ECA00563037 /* TabsModelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80483EF52F4F6EA900563037 /* TabsModelProvider.swift */; };
 		80483EF92F4F735200563037 /* TabsModelProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80483EF82F4F734500563037 /* TabsModelProviderTests.swift */; };
+		804BC3F12F7CB4770048FFB6 /* TabSwitcherPageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804BC3F02F7CB43D0048FFB6 /* TabSwitcherPageViewController.swift */; };
 		805674FB2EEF790700152470 /* SettingsDataClearingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 805674FA2EEF790700152470 /* SettingsDataClearingView.swift */; };
 		805674FF2EEFA0A500152470 /* DataClearingSettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 805674FD2EEFA0A500152470 /* DataClearingSettingsViewModel.swift */; };
 		805DF6B12F28E807004F1F41 /* GranularFireConfirmationViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 805DF6B02F28E807004F1F41 /* GranularFireConfirmationViewModelTests.swift */; };
@@ -3021,6 +3022,7 @@
 		80483EED2F4D5C0100563037 /* MockAutoconsentManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAutoconsentManagement.swift; sourceTree = "<group>"; };
 		80483EF52F4F6EA900563037 /* TabsModelProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabsModelProvider.swift; sourceTree = "<group>"; };
 		80483EF82F4F734500563037 /* TabsModelProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabsModelProviderTests.swift; sourceTree = "<group>"; };
+		804BC3F02F7CB43D0048FFB6 /* TabSwitcherPageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSwitcherPageViewController.swift; sourceTree = "<group>"; };
 		805674FA2EEF790700152470 /* SettingsDataClearingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDataClearingView.swift; sourceTree = "<group>"; };
 		805674FD2EEFA0A500152470 /* DataClearingSettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingSettingsViewModel.swift; sourceTree = "<group>"; };
 		805DF6B02F28E807004F1F41 /* GranularFireConfirmationViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GranularFireConfirmationViewModelTests.swift; sourceTree = "<group>"; };
@@ -10081,6 +10083,7 @@
 				F1617C181E573EA800DEDCAF /* TabSwitcherDelegate.swift */,
 				854D678C2F6D4BA8008707A3 /* TabSwitcherMenuBuilder.swift */,
 				6FF9AD3E2CE63DC200C5A406 /* TabSwitcherOpenDailyPixel.swift */,
+				804BC3F02F7CB43D0048FFB6 /* TabSwitcherPageViewController.swift */,
 				984D035B24AE15CD0066CFB8 /* TabSwitcherSettings.swift */,
 				AA1000010000000000000002 /* TabSwitcherTrackerInfoHeaderView.swift */,
 				F1617C121E572E0300DEDCAF /* TabSwitcherViewController.swift */,
@@ -12380,6 +12383,7 @@
 				BBAFF02F2F6A93F900029537 /* SubscriptionPromoLaunchView.swift in Sources */,
 				310C4B45281B5A9A00BA79A9 /* AutofillLoginDetailsView.swift in Sources */,
 				56CCBA2E2D5CF07D00EA0EB5 /* NetworkProtectionUIElements.swift in Sources */,
+				804BC3F12F7CB4770048FFB6 /* TabSwitcherPageViewController.swift in Sources */,
 				C1B3BF472D8D99DA00EE1D43 /* AutofillCreditCardListView.swift in Sources */,
 				C1B3BF482D8D99DA00EE1D43 /* AutofillCreditCardListViewModel.swift in Sources */,
 				CBF2597D2D41734700AC63E4 /* Terminating.swift in Sources */,
