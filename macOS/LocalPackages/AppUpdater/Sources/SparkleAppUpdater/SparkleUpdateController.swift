@@ -146,7 +146,8 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
     public var areAutomaticUpdatesEnabled: Bool {
         get {
-            (try? settings.automaticUpdates) ?? true
+            if manualUpdateRemovalHandler.shouldHideManualUpdateOption { return true }
+            return (try? settings.automaticUpdates) ?? true
         }
         set {
             let oldValue = areAutomaticUpdatesEnabled
@@ -178,13 +179,9 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
         userDriver.areAutomaticUpdatesEnabled = shouldAutoDownload
     }
 
-    public var needsNotificationDot: Bool {
-        get {
-            (try? settings.pendingUpdateShown) ?? false
-        }
-        set {
-            try? settings.set(newValue, for: \.pendingUpdateShown)
-            notificationDotSubject.send(newValue)
+    public var needsNotificationDot: Bool = false {
+        didSet {
+            notificationDotSubject.send(needsNotificationDot)
         }
     }
 
@@ -210,6 +207,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
     // MARK: - Feature Flags support
 
     private let featureFlagger: FeatureFlagger
+    private let manualUpdateRemovalHandler: ManualUpdateRemovalHandling
     private let allowCustomUpdateFeedOverride: Bool
     private let isAutoUpdatePaused: () -> Bool
 
@@ -240,6 +238,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
     public init(internalUserDecider: InternalUserDecider,
                 featureFlagger: FeatureFlagger,
+                manualUpdateRemovalHandler: ManualUpdateRemovalHandling,
                 pixelFiring: PixelFiring?,
                 notificationPresenter: UpdateNotificationPresenting,
                 keyValueStore: ThrowingKeyValueStoring,
@@ -251,6 +250,7 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
 
         willRelaunchAppPublisher = willRelaunchAppSubject.eraseToAnyPublisher()
         self.featureFlagger = featureFlagger
+        self.manualUpdateRemovalHandler = manualUpdateRemovalHandler
         self.allowCustomUpdateFeedOverride = allowCustomUpdateFeed
         self.isAutoUpdatePaused = isAutoUpdatePaused
         self.internalUserDecider = internalUserDecider
@@ -263,7 +263,8 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
         self.updateCompletionValidator = SparkleUpdateCompletionValidator(settings: settings)
 
         // Capture the current value before initializing updateWideEvent
-        let currentAutomaticUpdatesEnabled = (try? settings.automaticUpdates) ?? true
+        let currentAutomaticUpdatesEnabled = manualUpdateRemovalHandler.shouldHideManualUpdateOption
+            || ((try? settings.automaticUpdates) ?? true)
         self.updateWideEvent = SparkleUpdateWideEvent(
             wideEventManager: wideEvent,
             internalUserDecider: internalUserDecider,
@@ -309,6 +310,13 @@ public final class SparkleUpdateController: NSObject, SparkleUpdateControlling {
         self.updateWideEvent.cleanupAbandonedFlows()
 
         _ = try? configureUpdater()
+
+        pixelFiring?.fire(
+            UpdateFlowPixels.updateConfigurationDaily(
+                configuration: areAutomaticUpdatesEnabled ? "automatic" : "manual"
+            ),
+            frequency: .daily
+        )
 
         validateUpdateExpectations()
     }

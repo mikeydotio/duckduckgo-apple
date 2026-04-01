@@ -17,25 +17,24 @@
 //
 
 import AppKit
-import PrivacyConfig
 
 /// Debug submenu for disabling individual user scripts per-tab or globally.
-/// Per-tab changes filter scripts by debug name (session-only).
-/// Global changes create a local privacy config override with the feature disabled (session-only).
+/// Both per-tab and global changes are session-only and reset on app relaunch.
 @MainActor
 final class UserScriptsDebugMenu: NSMenu, NSMenuDelegate {
 
-    private let privacyConfigurationManager: PrivacyConfigurationManaging
-
-    init(privacyConfigurationManager: PrivacyConfigurationManaging) {
-        self.privacyConfigurationManager = privacyConfigurationManager
-        super.init(title: "Disable Individual Scripts")
+    override init(title: String) {
+        super.init(title: title)
         self.delegate = self
         self.autoenablesItems = false
     }
 
     required init(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    convenience init() {
+        self.init(title: "Disable Individual Scripts")
     }
 
     // MARK: - NSMenuDelegate
@@ -49,8 +48,8 @@ final class UserScriptsDebugMenu: NSMenu, NSMenuDelegate {
     private func rebuildMenu() {
         removeAllItems()
 
-        // Per-tab section
         let scriptNames = currentTabScriptNames()
+
         addSectionHeader("[Current Tab]")
         if scriptNames.isEmpty {
             let item = NSMenuItem(title: "No scripts loaded", action: nil, keyEquivalent: "")
@@ -58,24 +57,23 @@ final class UserScriptsDebugMenu: NSMenu, NSMenuDelegate {
             addItem(item)
         } else {
             for name in scriptNames {
-                let item = makeScriptItem(name: name,
-                                          action: #selector(togglePerTab(_:)),
-                                          isDisabled: currentTabUserScripts()?.perTabDisabled.contains(name) ?? false)
-                addItem(item)
+                let isDisabled = currentTabUserScripts()?.perTabDisabled.contains(name) ?? false
+                addItem(makeScriptItem(name: name, action: #selector(togglePerTab(_:)), isDisabled: isDisabled))
             }
         }
 
         addItem(.separator())
 
-        // Global section — ContentScope features via remote config override
-        // Checked state comes from overriddenFeatures (not from the "state" field in the config JSON,
-        // which is already patched to "disabled" for overridden features).
-        addSectionHeader("[Global — ContentScope features]")
-        for name in contentScopeFeatureNames() {
-            let item = makeScriptItem(name: name,
-                                      action: #selector(toggleGlobal(_:)),
-                                      isDisabled: PrivacyConfigOverrideStore.shared.overriddenFeatures.contains(name))
+        addSectionHeader("[Global]")
+        if scriptNames.isEmpty {
+            let item = NSMenuItem(title: "No scripts loaded", action: nil, keyEquivalent: "")
+            item.isEnabled = false
             addItem(item)
+        } else {
+            for name in scriptNames {
+                let isDisabled = UserScriptDisabledStore.shared.globallyDisabled.contains(name)
+                addItem(makeScriptItem(name: name, action: #selector(toggleGlobal(_:)), isDisabled: isDisabled))
+            }
         }
     }
 
@@ -95,23 +93,6 @@ final class UserScriptsDebugMenu: NSMenu, NSMenuDelegate {
     }
 
     // MARK: - Helpers
-
-    // trackerAllowlist/autoconsent: excluded by ContentScopePrivacyConfigurationJSONGenerator
-    // macOSBrowserConfig/iOSBrowserConfig: native app feature flags, handled in Feature Flags debug menu
-    private static let excludedFeatureKeys: Set<String> = [
-        "trackerAllowlist",
-        "autoconsent",
-        "macOSBrowserConfig",
-        "iOSBrowserConfig",
-    ]
-
-    private func contentScopeFeatureNames() -> [String] {
-        guard let json = (try? JSONSerialization.jsonObject(with: privacyConfigurationManager.currentConfig)) as? [String: Any],
-              let features = json["features"] as? [String: Any] else { return [] }
-        return features.keys
-            .filter { !Self.excludedFeatureKeys.contains($0) }
-            .sorted()
-    }
 
     private func currentTabUserScripts() -> UserScripts? {
         let tab = Application.appDelegate.windowControllersManager.selectedTab
@@ -148,11 +129,11 @@ final class UserScriptsDebugMenu: NSMenu, NSMenuDelegate {
     @objc private func toggleGlobal(_ sender: NSMenuItem) {
         guard let name = sender.representedObject as? String else { return }
 
-        let store = PrivacyConfigOverrideStore.shared
-        if store.overriddenFeatures.contains(name) {
-            store.enableFeature(name, in: privacyConfigurationManager)
+        let store = UserScriptDisabledStore.shared
+        if store.globallyDisabled.contains(name) {
+            store.globallyDisabled.remove(name)
         } else {
-            store.disableFeature(name, in: privacyConfigurationManager)
+            store.globallyDisabled.insert(name)
         }
 
         let allTabs = Application.appDelegate.windowControllersManager.mainWindowControllers

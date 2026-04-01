@@ -274,7 +274,7 @@ final class UserScripts: UserScriptsProvider, ReleaseNotesUserScriptProvider {
 
     @MainActor
     func loadWKUserScripts() async -> [WKUserScript] {
-        let disabled = perTabDisabled
+        let disabled = perTabDisabled.union(UserScriptDisabledStore.shared.globallyDisabled)
         return await withTaskGroup(of: WKUserScriptBox.self) { @MainActor group in
             var wkUserScripts = [WKUserScript]()
             userScripts

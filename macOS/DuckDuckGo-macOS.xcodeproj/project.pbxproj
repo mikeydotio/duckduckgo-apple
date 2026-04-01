@@ -2933,7 +2933,6 @@
 		AAEF6BC8276A081C0024DCF4 /* FaviconSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEF6BC7276A081C0024DCF4 /* FaviconSelector.swift */; };
 		AAFE068326C7082D005434CC /* WebKitVersionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFE068226C7082D005434CC /* WebKitVersionProvider.swift */; };
 		AD3EE48E959D44F9BC616CCD /* UserScriptDisabledStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8FF44791C9D4DD799293559 /* UserScriptDisabledStore.swift */; };
-		46FDF56DFF73472AB08F7F27 /* PrivacyConfigOverrideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E30A20C69F4EA7B6EDEF44 /* PrivacyConfigOverrideStore.swift */; };
 		B31055C427A1BA1D001AC618 /* AutoconsentUserScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31055BC27A1BA1D001AC618 /* AutoconsentUserScript.swift */; };
 		B31055C627A1BA1D001AC618 /* userscript.js in Resources */ = {isa = PBXBuildFile; fileRef = B31055BE27A1BA1D001AC618 /* userscript.js */; };
 		B31055CB27A1BA1D001AC618 /* autoconsent-bundle.js in Resources */ = {isa = PBXBuildFile; fileRef = B31055C327A1BA1D001AC618 /* autoconsent-bundle.js */; };
@@ -3591,7 +3590,6 @@
 		BBDAA9202DAD6F5E00555E1E /* FireButtonIconStyleProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDAA91F2DAD6F4B00555E1E /* FireButtonIconStyleProviding.swift */; };
 		BBDAA9212DAD6F5E00555E1E /* FireButtonIconStyleProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDAA91F2DAD6F4B00555E1E /* FireButtonIconStyleProviding.swift */; };
 		BBDBEA782F6CCD7100F1B7E3 /* UserScriptDisabledStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8FF44791C9D4DD799293559 /* UserScriptDisabledStore.swift */; };
-		2DA83764F8234A5698D4F9D4 /* PrivacyConfigOverrideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E30A20C69F4EA7B6EDEF44 /* PrivacyConfigOverrideStore.swift */; };
 		BBDBEA792F6CCD7500F1B7E3 /* UserScriptsDebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68DD3B74277A476780E6E46C /* UserScriptsDebugMenu.swift */; };
 		BBDE001C2D6DE6A800109F88 /* DefaultBrowserAndDockPromptPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDE001B2D6DE6A000109F88 /* DefaultBrowserAndDockPromptPopover.swift */; };
 		BBDE001D2D6DE6A800109F88 /* DefaultBrowserAndDockPromptPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDE001B2D6DE6A000109F88 /* DefaultBrowserAndDockPromptPopover.swift */; };
@@ -6533,7 +6531,6 @@
 		D65D0FA22E7239740075A784 /* PerformanceTest */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = PerformanceTest; sourceTree = "<group>"; };
 		D6E0ACB02CE36DC4005D3486 /* DuckPlayerOverlayPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckPlayerOverlayPixels.swift; sourceTree = "<group>"; };
 		D8FF44791C9D4DD799293559 /* UserScriptDisabledStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserScriptDisabledStore.swift; sourceTree = "<group>"; };
-		D1E30A20C69F4EA7B6EDEF44 /* PrivacyConfigOverrideStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyConfigOverrideStore.swift; sourceTree = "<group>"; };
 		E231C3CC2E1BB72300B53914 /* NewTabPageSectionsAvailabilityProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageSectionsAvailabilityProvider.swift; sourceTree = "<group>"; };
 		E274EFF22E1BD8B000373C41 /* NewTabPageSectionsAvailabilityProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageSectionsAvailabilityProviderTests.swift; sourceTree = "<group>"; };
 		E274EFF52E1D55CF00373C41 /* NewTabPageOmnibarSuggestionsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageOmnibarSuggestionsProvider.swift; sourceTree = "<group>"; };
@@ -7163,7 +7160,7 @@
 			isa = PBXGroup;
 			children = (
 				D8FF44791C9D4DD799293559 /* UserScriptDisabledStore.swift */,
-				D1E30A20C69F4EA7B6EDEF44 /* PrivacyConfigOverrideStore.swift */,
+
 				68DD3B74277A476780E6E46C /* UserScriptsDebugMenu.swift */,
 			);
 			path = Debug;
@@ -15121,7 +15118,6 @@
 				84F950B82F150E3D00863D32 /* PrivacyStatsAppTerminationDecider.swift in Sources */,
 				9FA173EC2B7B232200EE4E6E /* AddEditBookmarkDialogView.swift in Sources */,
 				BBDBEA782F6CCD7100F1B7E3 /* UserScriptDisabledStore.swift in Sources */,
-				2DA83764F8234A5698D4F9D4 /* PrivacyConfigOverrideStore.swift in Sources */,
 				3706FBE2293F65D500E42796 /* ClickToLoadUserScript.swift in Sources */,
 				3173072C2CD2490700C492AB /* AutofillToolbarOnboardingView.swift in Sources */,
 				EED4D3E02C8A298D00C79EEA /* AutofillPixelEvent.swift in Sources */,
@@ -17745,7 +17741,6 @@
 				AA5C1DD1285A154E0089850C /* RecentlyClosedMenu.swift in Sources */,
 				D1EC9FDAACABFE5B574FD557 /* WebViewUserAgentProvider.swift in Sources */,
 				AD3EE48E959D44F9BC616CCD /* UserScriptDisabledStore.swift in Sources */,
-				46FDF56DFF73472AB08F7F27 /* PrivacyConfigOverrideStore.swift in Sources */,
 				CD546DD2F7B04FCC82569350 /* UserScriptsDebugMenu.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
