@@ -33,12 +33,9 @@ struct PreferencesSection: Hashable, Identifiable {
                                 includingAIChat: Bool,
                                 includingYouTubeAdBlocking: Bool,
                                 subscriptionState: PreferencesSidebarSubscriptionState) -> [PreferencesSection] {
-        var privacyPanes: [PreferencePaneIdentifier] = [
+        let privacyPanes: [PreferencePaneIdentifier] = [
             .defaultBrowser, .privateSearch, .webTrackingProtection, .threatProtection, .cookiePopupProtection, .emailProtection
         ]
-        if includingYouTubeAdBlocking {
-            privacyPanes.append(.youTubeAdBlocking)
-        }
 
         let regularPanes: [PreferencePaneIdentifier] = {
             var panes: [PreferencePaneIdentifier] = [.appearance, .autofill, .accessibility, .dataClearing]
@@ -47,7 +44,9 @@ struct PreferencesSection: Hashable, Identifiable {
                 panes.append(.sync)
             }
 
-            if includingDuckPlayer && !includingYouTubeAdBlocking {
+            if includingYouTubeAdBlocking {
+                panes.append(.youTubeAdBlocking)
+            } else if includingDuckPlayer {
                 panes.append(.duckPlayer)
             }
 
