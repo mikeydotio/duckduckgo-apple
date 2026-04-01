@@ -104,7 +104,8 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         XCTAssertEqual(tp["state"] as? String, "enabled")
 
         let settings = tp["settings"] as? [String: Any]
-        XCTAssertEqual(settings?["blockingEnabled"] as? Bool, true)
+        let blocking = settings?["blocking"] as? [String: Any]
+        XCTAssertEqual(blocking?["state"] as? String, "enabled")
     }
 
     func testTPDisabledAndCBEnabled() {
@@ -138,7 +139,8 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         )
 
         let settings = trackerProtectionSettings(from: generator)
-        XCTAssertEqual(settings?["blockingEnabled"] as? Bool, false)
+        let blocking = settings?["blocking"] as? [String: Any]
+        XCTAssertEqual(blocking?["state"] as? String, "disabled")
     }
 
     func testBothDisabled() {
@@ -160,7 +162,8 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         XCTAssertEqual(tp["state"] as? String, "disabled")
 
         let settings = tp["settings"] as? [String: Any]
-        XCTAssertEqual(settings?["blockingEnabled"] as? Bool, false)
+        let blocking = settings?["blocking"] as? [String: Any]
+        XCTAssertEqual(blocking?["state"] as? String, "disabled")
     }
 
     // MARK: - CTL setting (Item 3)
@@ -233,7 +236,7 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         let settings = trackerProtectionSettings(from: generator)
         XCTAssertNil(settings?["surrogates"], "surrogates must not appear in trackerProtection settings")
         XCTAssertNil(settings?["trackerData"], "trackerData must not appear in trackerProtection settings (passed via args)")
-        XCTAssertNotNil(settings?["blockingEnabled"], "blockingEnabled should still be present")
+        XCTAssertNotNil(settings?["blocking"], "blocking should still be present")
         XCTAssertNotNil(settings?["ctlEnabled"], "ctlEnabled should still be present")
     }
 
@@ -295,7 +298,7 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         let expectedKeys: Set<String> = [
             "allowlist", "tempUnprotectedDomains",
             "userUnprotectedDomains", "contentBlockingExceptions",
-            "blockingEnabled", "ctlEnabled", "surrogateInjectionEnabled"
+            "blocking", "ctlEnabled", "surrogateInjection"
         ]
 
         guard let settings = trackerProtectionSettings(from: generator) else {
