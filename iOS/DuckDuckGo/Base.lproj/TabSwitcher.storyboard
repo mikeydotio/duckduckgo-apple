@@ -24,21 +24,6 @@
                                     <navigationItem title="Title" id="P3h-DO-2nT"/>
                                 </items>
                             </navigationBar>
-                            <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="XZT-ek-lrC">
-                                <rect key="frame" x="0.0" y="83.5" width="375" height="583.5"/>
-                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="14" minimumInteritemSpacing="14" id="bWt-k2-BEm">
-                                    <size key="itemSize" width="327" height="206"/>
-                                    <size key="headerReferenceSize" width="0.0" height="0.0"/>
-                                    <size key="footerReferenceSize" width="0.0" height="0.0"/>
-                                    <inset key="sectionInset" minX="14" minY="14" maxX="14" maxY="14"/>
-                                </collectionViewFlowLayout>
-                                <cells/>
-                                <connections>
-                                    <outlet property="dataSource" destination="G9p-Sf-e96" id="gcb-SK-xXr"/>
-                                    <outlet property="delegate" destination="G9p-Sf-e96" id="GK9-W4-6gs"/>
-                                </connections>
-                            </collectionView>
                             <toolbar opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" translucent="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PrD-ff-flI">
                                 <rect key="frame" x="0.0" y="618" width="375" height="49"/>
                                 <constraints>
@@ -54,19 +39,14 @@
                         <color key="tintColor" red="0.66666666669999997" green="0.66666666669999997" blue="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="Nqt-nV-6p2" firstAttribute="bottom" secondItem="PrD-ff-flI" secondAttribute="bottom" id="0oA-Ll-zZd"/>
-                            <constraint firstItem="XZT-ek-lrC" firstAttribute="top" secondItem="3Kd-yL-Gby" secondAttribute="bottom" constant="5.5" id="3tE-r6-pL1"/>
                             <constraint firstItem="PrD-ff-flI" firstAttribute="leading" secondItem="WJ0-lP-E4v" secondAttribute="leading" id="B4L-BE-vvi"/>
                             <constraint firstAttribute="trailing" secondItem="PrD-ff-flI" secondAttribute="trailing" id="BaM-0l-RFS"/>
                             <constraint firstItem="3Kd-yL-Gby" firstAttribute="centerX" secondItem="Nqt-nV-6p2" secondAttribute="centerX" constant="-1" id="CDY-b4-gBI"/>
-                            <constraint firstAttribute="bottom" secondItem="XZT-ek-lrC" secondAttribute="bottom" id="J8G-Xc-ZM0"/>
                             <constraint firstItem="3Kd-yL-Gby" firstAttribute="width" secondItem="WJ0-lP-E4v" secondAttribute="width" id="MMS-h8-g8C"/>
-                            <constraint firstItem="XZT-ek-lrC" firstAttribute="centerX" secondItem="Nqt-nV-6p2" secondAttribute="centerX" id="SmA-Z9-yAN"/>
-                            <constraint firstItem="XZT-ek-lrC" firstAttribute="width" secondItem="Nqt-nV-6p2" secondAttribute="width" id="XCa-fk-cv9"/>
                             <constraint firstItem="3Kd-yL-Gby" firstAttribute="top" secondItem="Nqt-nV-6p2" secondAttribute="top" constant="4" id="hbL-Ud-Buh"/>
                         </constraints>
                     </view>
                     <connections>
-                        <outlet property="collectionView" destination="XZT-ek-lrC" id="iNF-Uj-4dl"/>
                         <outlet property="titleBarView" destination="3Kd-yL-Gby" id="Q0T-rr-eAN"/>
                         <outlet property="toolbar" destination="PrD-ff-flI" id="6c2-zx-gsM"/>
                         <segue destination="JZX-S3-Ir9" kind="presentation" identifier="ActionSheetDaxDialog" modalPresentationStyle="overFullScreen" modalTransitionStyle="crossDissolve" id="Zno-fp-7xb"/>

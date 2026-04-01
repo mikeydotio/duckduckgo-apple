@@ -28,7 +28,9 @@ protocol TabViewCellDelegate: AnyObject {
     func deleteTab(tab: Tab)
 
     func isCurrent(tab: Tab) -> Bool
-    
+
+    func tabViewCellDidBeginSwipe(_ cell: TabViewCell)
+    func tabViewCellDidEndSwipe(_ cell: TabViewCell)
 }
 
 class TabViewCell: UICollectionViewCell {
@@ -344,6 +346,7 @@ class TabViewCell: UICollectionViewCell {
 
         case .began:
             startX = currentLocation.x
+            delegate?.tabViewCellDidBeginSwipe(self)
 
         case .changed:
             let offset = max(0, startX - currentLocation.x)
@@ -368,10 +371,12 @@ class TabViewCell: UICollectionViewCell {
                 startCancelAnimation()
             }
             canDelete = false
+            delegate?.tabViewCellDidEndSwipe(self)
 
         case .cancelled:
             startCancelAnimation()
             canDelete = false
+            delegate?.tabViewCellDidEndSwipe(self)
 
         default: break
 

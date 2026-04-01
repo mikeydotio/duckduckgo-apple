@@ -43,23 +43,33 @@ protocol TabSwitcherPageDelegate: AnyObject {
     func page(_ page: TabSwitcherPageViewController, didReorderTabs: Void)
     func page(_ page: TabSwitcherPageViewController, contextMenuForTabsAt indexPaths: [IndexPath]) -> UIMenu?
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController)
+    func pageCellDidBeginSwipe(_ page: TabSwitcherPageViewController)
+    func pageCellDidEndSwipe(_ page: TabSwitcherPageViewController)
 
     var isEditing: Bool { get }
-    var currentSelection: Int? { get set }
     var isProcessingUpdates: Bool { get set }
     var canDismissOnEmpty: Bool { get }
 }
 
 class TabSwitcherPageViewController: UIViewController {
-
+    
     private(set) var collectionView: UICollectionView!
-
-    let browsingMode: BrowsingMode
     let tabsModel: TabsModelManaging
-    weak var previewsSource: TabPreviewsSource?
-    let tabSwitcherSettings: TabSwitcherSettings
-    var isFireModeEnabled: Bool
     weak var pageDelegate: TabSwitcherPageDelegate?
+    var onNewFireTab: (() -> Void)?
+    var currentSelection: Int?
+
+
+    private let browsingMode: BrowsingMode
+    private weak var previewsSource: TabPreviewsSource?
+    private let tabSwitcherSettings: TabSwitcherSettings
+    private var isFireModeEnabled: Bool
+    private var tabObserverCancellable: AnyCancellable?
+    private var trackerCountViewModel: TabSwitcherTrackerCountViewModel?
+    private var trackerCountCancellable: AnyCancellable?
+    private var lastAppliedTrackerCountState: TabSwitcherTrackerCountViewModel.State?
+    private var trackerInfoModel: InfoPanelView.Model?
+    private var fireModeEmptyStateHostingController: UIHostingController<FireModeEmptyStateView>?
 
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
@@ -69,12 +79,15 @@ class TabSwitcherPageViewController: UIViewController {
          tabsModel: TabsModelManaging,
          previewsSource: TabPreviewsSource,
          tabSwitcherSettings: TabSwitcherSettings,
+         trackerCountViewModel: TabSwitcherTrackerCountViewModel?,
          isFireModeEnabled: Bool) {
         self.browsingMode = browsingMode
         self.tabsModel = tabsModel
         self.previewsSource = previewsSource
         self.tabSwitcherSettings = tabSwitcherSettings
+        self.trackerCountViewModel = trackerCountViewModel
         self.isFireModeEnabled = isFireModeEnabled
+        self.currentSelection = tabsModel.currentIndex
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -94,6 +107,8 @@ class TabSwitcherPageViewController: UIViewController {
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .clear
+        collectionView.clipsToBounds = true
+        collectionView.isMultipleTouchEnabled = true
         collectionView.dataSource = self
         collectionView.delegate = self
         collectionView.dragDelegate = self
@@ -121,12 +136,121 @@ class TabSwitcherPageViewController: UIViewController {
         let backgroundView = UIView(frame: collectionView.frame)
         backgroundView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleBackgroundTap(gesture:))))
         collectionView.backgroundView = backgroundView
+        
+        subscribeToTabChanges()
+        bindTrackerCount()
+        trackerCountViewModel?.refresh()
+
+        setupFireModeEmptyState()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        trackerCountViewModel?.refresh()
+    }
+    
+    private func subscribeToTabChanges() {
+        tabObserverCancellable = tabsModel.tabsPublisher
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reloadData()
+            }
+    }
+
+    private func setupFireModeEmptyState() {
+        guard browsingMode == .fire, isFireModeEnabled else { return }
+        let emptyStateView = FireModeEmptyStateView(type: .tabSwitcher(onNewFireTab: { [weak self] in
+            self?.onNewFireTab?()
+        }))
+        let hostingController = UIHostingController(rootView: emptyStateView)
+        hostingController.view.backgroundColor = .clear
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+
+        addChild(hostingController)
+        view.addSubview(hostingController.view)
+        hostingController.didMove(toParent: self)
+
+        NSLayoutConstraint.activate([
+            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
+            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        fireModeEmptyStateHostingController = hostingController
+    }
+
+    func updateEmptyStateVisibility() {
+        guard browsingMode == .fire else { return }
+        let shouldShowEmptyState = tabsModel.tabs.isEmpty
+        fireModeEmptyStateHostingController?.view.isHidden = !shouldShowEmptyState
+        collectionView.isHidden = shouldShowEmptyState
+    }
+
+    // MARK: - Tracker Count
+    
+    private func bindTrackerCount() {
+        trackerCountCancellable = trackerCountViewModel?.$state
+            .sink { [weak self] state in
+                self?.applyTrackerCountState(state)
+            }
+    }
+
+    private func applyTrackerCountState(_ state: TabSwitcherTrackerCountViewModel.State) {
+        guard state != lastAppliedTrackerCountState else { return }
+        lastAppliedTrackerCountState = state
+
+        guard state.isVisible else {
+            trackerInfoModel = nil
+            updateTrackerInfoHeaderIfVisible()
+            collectionView.collectionViewLayout.invalidateLayout()
+            return
+        }
+
+        trackerInfoModel = .trackerInfoPanel(
+            state: state,
+            onTap: { },
+            onInfo: { [weak self] in
+                self?.presentHideTrackerCountAlert()
+            }
+        )
+        updateTrackerInfoHeaderIfVisible()
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    private func updateTrackerInfoHeaderIfVisible() {
+        let indexPath = IndexPath(item: 0, section: 0)
+        guard let header = collectionView.supplementaryView(
+            forElementKind: UICollectionView.elementKindSectionHeader,
+            at: indexPath
+        ) as? TabSwitcherTrackerInfoHeaderView else {
+            return
+        }
+        header.configure(in: self, model: trackerInfoModel)
+    }
+
+    private func presentHideTrackerCountAlert() {
+        let alert = UIAlertController(title: UserText.tabSwitcherTrackerCountHideTitle,
+                                      message: UserText.tabSwitcherTrackerCountHideMessage,
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: UserText.tabSwitcherTrackerCountKeepAction, style: .cancel))
+        alert.addAction(UIAlertAction(title: UserText.tabSwitcherTrackerCountHideAction, style: .default) { [weak self] _ in
+            Pixel.fire(pixel: .tabSwitcherTrackerCountHidden)
+            self?.trackerCountViewModel?.hide()
+        })
+        present(alert, animated: true)
     }
 
     // MARK: - Public API
+    
+    var selectedTab: Tab? {
+        return tabsModel.get(tabAt: currentSelection)
+    }
 
     func reloadData() {
         collectionView.reloadData()
+        updateEmptyStateVisibility()
     }
 
     func scrollToTab(at index: Int) {
@@ -170,6 +294,7 @@ class TabSwitcherPageViewController: UIViewController {
                 exitEditingMode(reloadData: false)
             }
         } completion: { _ in
+            self.currentSelection = self.tabsModel.currentIndex
             pageDelegate.isProcessingUpdates = false
             pageDelegate.page(self, didDeleteAllTabs: allTabsDeleted)
         }
@@ -236,7 +361,7 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
             return UICollectionReusableView()
         }
 
-        // Header configuration is handled by the parent via updateTrackerHeader
+        header.configure(in: self, model: trackerInfoModel)
         return header
     }
 }
@@ -251,7 +376,7 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
             (collectionView.cellForItem(at: indexPath) as? TabViewCell)?.refreshSelectionAppearance()
             pageDelegate?.page(self, didSelectTabAt: indexPath.row)
         } else {
-            pageDelegate?.currentSelection = indexPath.row
+            currentSelection = indexPath.row
             Pixel.fire(pixel: .tabSwitcherSwitchTabs)
             if let tab = tabsModel.get(tabAt: indexPath.row) {
                 if tab.isAITab {
@@ -335,8 +460,8 @@ extension TabSwitcherPageViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         referenceSizeForHeaderInSection section: Int) -> CGSize {
-        // Header size is controlled by parent via trackerInfoModel; default to zero
-        return .zero
+        guard trackerInfoModel != nil else { return .zero }
+        return CGSize(width: collectionView.bounds.width, height: TabSwitcherTrackerInfoHeaderView.estimatedHeight)
     }
 }
 
@@ -350,7 +475,15 @@ extension TabSwitcherPageViewController: TabViewCellDelegate {
     }
 
     func isCurrent(tab: Tab) -> Bool {
-        return pageDelegate?.currentSelection == tabsModel.indexOf(tab: tab)
+        return currentSelection == tabsModel.indexOf(tab: tab)
+    }
+
+    func tabViewCellDidBeginSwipe(_ cell: TabViewCell) {
+        pageDelegate?.pageCellDidBeginSwipe(self)
+    }
+
+    func tabViewCellDidEndSwipe(_ cell: TabViewCell) {
+        pageDelegate?.pageCellDidEndSwipe(self)
     }
 }
 
@@ -408,7 +541,7 @@ extension TabSwitcherPageViewController: UICollectionViewDropDelegate {
         collectionView.performBatchUpdates {
             guard let tab = tabsModel.get(tabAt: source.row) else { return }
             tabsModel.move(tab: tab, to: destination.row)
-            pageDelegate?.currentSelection = tabsModel.currentIndex
+            currentSelection = tabsModel.currentIndex
             collectionView.deleteItems(at: [source])
             collectionView.insertItems(at: [destination])
         } completion: { [weak self] _ in
@@ -417,10 +550,41 @@ extension TabSwitcherPageViewController: UICollectionViewDropDelegate {
                 self.reloadData()
                 collectionView.selectItem(at: destination, animated: true, scrollPosition: [])
             } else {
-                collectionView.reloadItems(at: [IndexPath(row: self.pageDelegate?.currentSelection ?? 0, section: 0)])
+                collectionView.reloadItems(at: [IndexPath(row: self.currentSelection ?? 0, section: 0)])
             }
             self.pageDelegate?.page(self, didReorderTabs: ())
             coordinator.drop(item.dragItem, toItemAt: destination)
         }
+    }
+}
+
+// MARK: - UITapGestureRecognizer Helpers
+
+private extension UITapGestureRecognizer {
+    
+    func tappedInWhitespaceAtEndOfCollectionView(_ collectionView: UICollectionView) -> Bool {
+        guard collectionView.indexPathForItem(at: self.location(in: collectionView)) == nil else { return false }
+        let location = self.location(in: collectionView)
+           
+        // Now check if the tap is in the whitespace area at the end
+        let lastSection = collectionView.numberOfSections - 1
+        let lastItemIndex = collectionView.numberOfItems(inSection: lastSection) - 1
+        
+        // Get the frame of the last item
+        // If there are no items in the last section, the entire area is whitespace
+       guard lastItemIndex >= 0 else { return true }
+        
+        let lastItemIndexPath = IndexPath(item: lastItemIndex, section: lastSection)
+        let lastItemFrame = collectionView.layoutAttributesForItem(at: lastItemIndexPath)?.frame ?? .zero
+        
+        // Check if the tap is below the last item.
+        // Add 10px buffer to ensure it's whitespace.
+        if location.y > lastItemFrame.maxY + 15 // below the bottom of the last item is definitely the end
+            || (location.x > lastItemFrame.maxX + 15 && location.y > lastItemFrame.minY) { // to the right of the last item is the end as long as it's also at least below the start of the frame
+            // The tap is in the whitespace area at the end
+        return true
+    }
+    
+        return false
     }
 }
