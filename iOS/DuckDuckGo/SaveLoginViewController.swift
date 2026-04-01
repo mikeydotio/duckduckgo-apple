@@ -195,11 +195,13 @@ extension SaveLoginViewController: SaveLoginViewModelDelegate {
     private func fireOnboardingExperimentConversionPixels() {
         experimentPixels.fireSaveTap()
 
+        // Impression count
         let impressions = dismissExperimentImpressionTracker.impressionCount
         if impressions > 0 {
             experimentPixels.fireImpressionCount(impressions)
         }
 
+        // Days since enrollment
         let subfeatureID = AutofillSubfeature.onboardingDismissExperiment.rawValue
         if let enrollmentDate = featureFlagger.allActiveExperiments[subfeatureID]?.enrollmentDate {
             let daysSinceEnrollment = Calendar.current.dateComponents([.day], from: enrollmentDate, to: Date()).day ?? 0

@@ -73,23 +73,17 @@ protocol AutofillOnboardingExperimentPixelFiring {
 
     // MARK: - Diagnostic Metrics
 
-    /// Reports the bucketed number of onboarding prompt impressions.
+    /// Reports the bucketed number of onboarding prompt impressions at conversion time.
     func fireImpressionCount(_ count: Int)
 
     /// Reports the bucketed number of days between enrollment and save.
     func fireDaysToConversion(_ days: Int)
 }
 
-// MARK: - Impression Counting
-
-protocol ImpressionCounting {
-    var impressionCount: Int { get }
-}
-
 // MARK: - Impression Tracker
 
 /// Tracks onboarding prompt impressions for the dismiss button experiment.
-final class AutofillOnboardingDismissExperimentImpressionTracker: ImpressionCounting {
+final class AutofillOnboardingDismissExperimentImpressionTracker {
 
     private let storage: any KeyedStoring<AutofillOnboardingExperimentKeys>
 
