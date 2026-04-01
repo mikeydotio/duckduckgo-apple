@@ -484,39 +484,84 @@ final class MCPTools: @unchecked Sendable {
         # PIR/DBP MCP Debug Server
 
         Debug server for DuckDuckGo's Personal Information Removal (PIR) feature.
+        Communicates with the PIR background agent via XPC to query state, run operations, and read logs.
 
         ## Quick Start
-        1. get_agent_status — verify the PIR agent is running
-        2. get_auth_status — verify auth token is valid
-        3. list_brokers — see all brokers with scan status
+        1. get_agent_status — verify the PIR agent is running and see install path
+        2. get_auth_status — verify auth token is valid and check which environment is active
+        3. list_brokers — see all brokers with scan status, error counts, and versions
 
         ## Tools by Category
 
         ### Production DB Inspection (read-only)
-        - get_agent_status, get_auth_status, list_brokers, get_broker_json
-        - get_broker_details, get_scan_history, get_optout_history
-        - get_broker_scheduler_state, get_profile_queries, query_logs
+        - get_agent_status — agent version, running state, scheduler state, install path
+        - get_auth_status — token validity, environment, API endpoint URL
+        - list_brokers — all brokers with version, match/error counts, last scan date
+        - get_broker_json — full scan/opt-out step definitions for a broker
+        - get_broker_details — per-profile scan and opt-out results (returns broker_id, profile_query_id)
+        - get_scan_history — scan events for a broker+profile (needs IDs from get_broker_details)
+        - get_optout_history — opt-out events (needs IDs from get_broker_details)
+        - get_broker_scheduler_state — raw scheduler state: run dates, attempt counts, history
+        - get_profile_queries — configured profile queries being scanned
+        - query_logs — system logs filtered by PIR subsystems and build variant
 
         ### Environment & Auth
-        - start_immediate_scan, force_broker_update, set_api_endpoint, reauthenticate
+        - start_immediate_scan — trigger async scan of all brokers
+        - force_broker_update — force broker JSON update, bypass hourly rate limit
+        - set_api_endpoint — switch staging API service root for branch deploys
+        - reauthenticate — sign out and open activation flow for re-auth
 
         ### Broker JSON Development (isolated debug WebView)
-        - run_scan, run_optout, check_email_confirmation, continue_optout
+        - run_scan — scan a broker with given profile, optional custom JSON
+        - run_optout — opt-out for an extracted profile from a previous scan
+        - check_email_confirmation — check for email confirmation links post-opt-out
+        - continue_optout — continue opt-out after email confirmation
 
         ### Live WebView Inspection
-        - get_webview_state, execute_js
+        - get_webview_state — current URL, page HTML, active step, last error
+        - execute_js — run JavaScript on the live debug WebView
 
         ## Key Workflows
 
         ### Fix a broken broker
-        1. run_scan(broker_name, ...) → fails, WebView stays alive
-        2. get_webview_state / execute_js → inspect DOM
-        3. run_scan(broker_json: "<fixed>", ...) → test fix
+        1. run_scan(broker_name: "spokeo.com", first_name: ...) → fails, WebView stays alive (pause_on_error defaults to true)
+        2. get_webview_state → see current URL, page content, and error
+        3. execute_js(javascript: "document.querySelector(...)") → inspect DOM
+        4. Edit the broker JSON based on findings
+        5. run_scan(broker_name: "spokeo.com", broker_json: "<fixed JSON>", ...) → test the fix
+        6. run_optout(...) → verify opt-out flow works too
 
-        ### Build new broker JSON
-        1. run_scan with minimal JSON (navigate + dummy extract) → page loads, extract fails
-        2. execute_js to explore DOM and find selectors
-        3. Build JSON iteratively, test with run_scan(broker_json: ...)
+        ### Build new broker JSON from scratch
+        1. run_scan with minimal JSON (navigate + dummy extract) → page loads, extract fails, WebView stays alive
+        2. execute_js to explore DOM: find selectors, check page structure
+        3. Build JSON iteratively, test each version with run_scan(broker_json: ...)
+        4. Once scan works, test opt-out with run_optout(broker_json: ...)
+
+        ### Diagnose stuck or failing scans
+        1. get_agent_status → is the agent running?
+        2. get_auth_status → is the token valid? correct environment?
+        3. get_broker_scheduler_state(broker_name: "...", include_history: true) → check preferredRunDate, attemptCount
+        4. query_logs(minutes: 60, filter: "spokeo") → look for errors in logs
+
+        ### Switch to staging branch deploy
+        1. set_api_endpoint(service_root: "/my-branch") → point to staging
+        2. get_auth_status → confirm endpoint changed
+        3. force_broker_update → pull latest JSONs from staging
+        4. list_brokers → verify broker versions updated
+
+        ### Test opt-out with email confirmation
+        1. run_scan(...) → get extracted profiles
+        2. run_optout(..., extracted_profile: <from scan>) → starts opt-out, may need email confirmation
+        3. check_email_confirmation → poll for confirmation link from backend
+        4. continue_optout(...) → resume opt-out after confirmation
+
+        ## Important Tips
+        - Tool IDs chain: list_brokers → get_broker_details (returns broker_id, profile_query_id) → get_scan_history / get_optout_history
+        - pause_on_error (default: true) keeps the WebView alive after failures — use get_webview_state and execute_js to inspect
+        - Set pause_on_error: false for batch audits where you don't need to inspect failures
+        - query_logs automatically filters to this build variant (no prod/review log noise)
+        - run_scan/run_optout/continue_optout accept optional broker_json to test custom JSON without modifying the DB
+        - middle_name is optional on run_scan, run_optout, and continue_optout
         """
     }
 }
