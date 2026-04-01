@@ -65,7 +65,7 @@ Always use this skeleton when generating a definition. Fill in the `{{placeholde
         "triggers": [{{triggers}}],
         "suffixes": [{{suffixes}}],
         "parameters": [
-            // === Platform defaults (from wide event format + params_dictionary.json5) ===
+            // === Platform defaults (from the user's proposed wide event + params_dictionary.json5) ===
             {{platform_default_params}}
             // === Custom parameters ===
             {
@@ -90,10 +90,10 @@ Where:
 - `{{platform}}` — `ios` or `mac`
 - `{{platform_lowercase}}` — `ios` or `macos` (used in `meta.type`)
 - `{{feature-name-hyphens}}` — feature name with hyphens (e.g., `authv2-token-refresh`)
-- `{{platform_default_params}}` — derived from the wide event format (fetched from Asana) + `params_dictionary.json5`. To determine which and in what order:
-  1. Read the required/optional fields from the wide event format
+- `{{platform_default_params}}` — derived from the user's proposed wide event task + `params_dictionary.json5`. To determine which and in what order:
+  1. Read the parameters listed in the user's Asana task description
   2. Cross-reference with `params_dictionary.json5` to find matching key names
-  3. Check existing definitions in `examples/` for conventional ordering
+  3. Check `examples/` for conventional ordering
   4. iOS includes `wideEventFormFactor`; macOS does not. Not all defaults are needed for every event — compare with existing definitions.
 
 ### Status values

@@ -9,11 +9,10 @@ This skill is instructions and reference material — not an agent itself. Subag
 
 **When this skill triggers, follow this sequence:**
 
-1. **Main conversation: Gather context** — Do the MCP calls and user questions yourself (Steps 1–2 below). Subagents can't access MCP servers.
-2. **Spawn subagent: Do the work** — Once you have the wide event format and the user's preferences, spawn a subagent briefed with:
-   - The user's request (what wide event they need, platform, format preference)
-   - The wide event format (the full text fetched from Asana or pasted by the user)
-   - Any Asana task details (if the user provided a task link, fetch it and include the task description)
+1. **Main conversation: Gather context** — Do the MCP calls and user questions yourself (Steps 1–3 below). Subagents can't access MCP servers.
+2. **Spawn subagent: Do the work** — Once you have all the context, spawn a subagent briefed with:
+   - The Asana task details (the proposed wide event description, parameters, owners, etc.)
+   - The user's format preference (JSON5 or JSON)
    - The skill path: `~/.claude/skills/wideEvent-starter/`
    - Instructions to read the relevant guide and follow Actions 1–2 below
 
@@ -36,25 +35,25 @@ Two actions, usable in sequence or independently:
 
 ## Before Spawning the Subagent (main conversation)
 
-### Step 1 — Fetch the Wide Event Format
+### Step 1 — Get the Proposed Wide Event Task
 
-Run once per session, before writing the first definition. If the format has already been resolved in this conversation, reuse what's in context.
+Ask the user for the Asana task link for the proposed wide event, if they haven't already provided one:
 
-**Canonical format task ID:** `1211144309209145` ([Wide event format](https://app.asana.com/1/137249556945/project/1212203965891161/task/1211144309209145))
+> Could you share the Asana task link for this wide event?
 
-1. **Fetch from Asana:**
-   - Use the Asana MCP `get_task` tool to fetch the canonical format task (ID above) with `opt_fields: "notes,name"`.
-   - The task description (`notes` field) contains the full format. Read it carefully and in full.
-   - Parse the field tables. For each field, extract: field name, data type, allowed values/enums, and description.
-   - **Important:** The Asana task covers all platforms. Exclude parameters that only exist on non-Apple platforms (e.g., `app.dev_mode` is Android-only, `feature.data.ext.error.inner_exceptions` is Windows-only). Only include fields relevant to Apple (iOS/macOS).
+Skip if the user already provided a link (e.g., `https://app.asana.com/1/137249556945/task/1212683300907458`).
 
-2. **Use the format** as the working reference. Use **only** what it says — do not assume or invent fields, types, or values not in the format.
+### Step 2 — Fetch the Task from Asana
 
-**If Asana MCP is unavailable:** Inform the user and ask them to paste the current wide event format directly. Wait for their response before writing any definition.
+1. **Extract the task ID** from the URL (the numeric ID after `/task/`, stripping any query params like `?focus=true`).
+2. **Fetch from Asana:** Use the Asana MCP `get_task` tool with `opt_fields: "notes"`.
+3. **Read the task description** (`notes` field) carefully and in full. It contains the proposed wide event details: description, parameters, owners, expected statuses, etc.
 
-**If the format seems incomplete or ambiguous:** Ask the user rather than guessing.
+**If Asana MCP is unavailable:** Ask the user to paste the task description directly.
 
-### Step 2 — Choose Definition Format
+**If the task description seems incomplete or ambiguous:** Ask the user for clarification rather than guessing.
+
+### Step 3 — Choose Definition Format
 
 Ask the user:
 
@@ -64,9 +63,9 @@ Ask the user:
 
 Skip if the user already indicated a preference (mentioned "wide_events" / "new format" / "JSON" → use JSON; mentioned "pixels" / provided existing JSON5 → use JSON5).
 
-### Step 3 — Spawn Subagent and Create the Definition
+### Step 4 — Spawn Subagent and Create the Definition
 
-Spawn a subagent with the wide event format text, user preferences, and any Asana task details. The subagent reads the corresponding guide:
+Spawn a subagent with the Asana task details, user's format preference, and platform choice. The subagent reads the corresponding guide:
 
 - **(a) JSON5** → `references/definition/json5-guide.md`
 - **(b) JSON** → `references/definition/json-guide.md`
