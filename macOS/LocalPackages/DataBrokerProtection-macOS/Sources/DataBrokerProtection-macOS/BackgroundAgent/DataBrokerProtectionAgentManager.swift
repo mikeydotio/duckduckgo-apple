@@ -1066,7 +1066,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
 
     // MARK: - Debug Scan/OptOut/WebView State
 
-    public func runCustomScan(brokerJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
+    public func runCustomScan(brokerJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
         await debugScanSession.cleanUpPreviousWebView()
         debugScanSession.updateState { s in
             s.isRunning = true
@@ -1083,7 +1083,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             let resolvedBroker = broker.with(id: DebugHelper.stableId(for: broker))
 
             let profile = DataBrokerProtectionProfile(
-                names: [.init(firstName: firstName, lastName: lastName, middleName: nil)],
+                names: [.init(firstName: firstName, lastName: lastName, middleName: middleName)],
                 addresses: [.init(city: city, state: state)],
                 phones: [],
                 birthYear: birthYear
@@ -1178,7 +1178,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
         }
     }
 
-    public func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
+    public func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
         await debugScanSession.cleanUpPreviousWebView()
         debugScanSession.updateState { s in
             s.isRunning = true
@@ -1194,7 +1194,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             let extractedProfile = try JSONDecoder().decode(ExtractedProfile.self, from: extractedProfileJSON)
 
             let profile = DataBrokerProtectionProfile(
-                names: [.init(firstName: firstName, lastName: lastName, middleName: nil)],
+                names: [.init(firstName: firstName, lastName: lastName, middleName: middleName)],
                 addresses: [.init(city: city, state: state)],
                 phones: [],
                 birthYear: birthYear
@@ -1347,7 +1347,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
         }
     }
 
-    public func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
+    public func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
         // Find the confirmation URL from the debug email store
         let s = debugScanSession.state
         guard let broker = try? JSONDecoder().decode(DataBroker.self, from: brokerJSON) else {
@@ -1363,7 +1363,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
 
         let resolvedBroker = broker.with(id: DebugHelper.stableId(for: broker))
         let profile = DataBrokerProtectionProfile(
-            names: [.init(firstName: firstName, lastName: lastName, middleName: nil)],
+            names: [.init(firstName: firstName, lastName: lastName, middleName: middleName)],
             addresses: [.init(city: city, state: state)],
             phones: [],
             birthYear: birthYear

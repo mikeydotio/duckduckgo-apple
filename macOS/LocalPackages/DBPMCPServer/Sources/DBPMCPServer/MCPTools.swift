@@ -110,6 +110,7 @@ final class MCPTools: @unchecked Sendable {
                     "broker_json": prop(.string, "Optional: custom broker JSON to use instead of the DB version."),
                     "first_name": prop(.string, "First name to scan for"),
                     "last_name": prop(.string, "Last name to scan for"),
+                    "middle_name": prop(.string, "Middle name (optional)"),
                     "city": prop(.string, "City"),
                     "state": prop(.string, "State (2-letter abbreviation)"),
                     "birth_year": prop(.integer, "Birth year (e.g., 1980)"),
@@ -131,6 +132,7 @@ final class MCPTools: @unchecked Sendable {
                     "extracted_profile": .object(["type": .string("object"), "description": .string("The extracted profile object from run_scan results.")]),
                     "first_name": prop(.string, "First name"),
                     "last_name": prop(.string, "Last name"),
+                    "middle_name": prop(.string, "Middle name (optional)"),
                     "city": prop(.string, "City"),
                     "state": prop(.string, "State (2-letter abbreviation)"),
                     "birth_year": prop(.integer, "Birth year (e.g., 1980)"),
@@ -152,6 +154,7 @@ final class MCPTools: @unchecked Sendable {
                     "extracted_profile": .object(["type": .string("object"), "description": .string("The extracted profile from run_scan.")]),
                     "first_name": prop(.string, "First name"),
                     "last_name": prop(.string, "Last name"),
+                    "middle_name": prop(.string, "Middle name (optional)"),
                     "city": prop(.string, "City"),
                     "state": prop(.string, "State"),
                     "birth_year": prop(.integer, "Birth year"),
@@ -349,6 +352,7 @@ final class MCPTools: @unchecked Sendable {
     private func runScan(args: DecodedArguments) async throws -> String {
         let firstName = try args.requireString("first_name")
         let lastName = try args.requireString("last_name")
+        let middleName = args.string("middle_name")
         let city = try args.requireString("city")
         let state = try args.requireString("state")
         let birthYear = try args.requireInt("birth_year")
@@ -357,7 +361,7 @@ final class MCPTools: @unchecked Sendable {
 
         let brokerData = try await resolveBrokerJSON(args: args)
         let data = try await xpcDataCall("Scan failed — no response from agent") {
-            self.agent.runCustomScan(brokerJSON: brokerData, firstName: firstName, lastName: lastName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
+            self.agent.runCustomScan(brokerJSON: brokerData, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
         }
         return data.prettyJSON()
     }
@@ -366,6 +370,7 @@ final class MCPTools: @unchecked Sendable {
         let extractedProfileData = try args.requireJSONData("extracted_profile")
         let firstName = try args.requireString("first_name")
         let lastName = try args.requireString("last_name")
+        let middleName = args.string("middle_name")
         let city = try args.requireString("city")
         let state = try args.requireString("state")
         let birthYear = try args.requireInt("birth_year")
@@ -374,7 +379,7 @@ final class MCPTools: @unchecked Sendable {
 
         let brokerData = try await resolveBrokerJSON(args: args)
         let data = try await xpcDataCall("Opt-out failed — no response from agent") {
-            self.agent.runCustomOptOut(brokerJSON: brokerData, extractedProfileJSON: extractedProfileData, firstName: firstName, lastName: lastName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
+            self.agent.runCustomOptOut(brokerJSON: brokerData, extractedProfileJSON: extractedProfileData, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
         }
         return data.prettyJSON()
     }
@@ -383,6 +388,7 @@ final class MCPTools: @unchecked Sendable {
         let extractedProfileData = try args.requireJSONData("extracted_profile")
         let firstName = try args.requireString("first_name")
         let lastName = try args.requireString("last_name")
+        let middleName = args.string("middle_name")
         let city = try args.requireString("city")
         let state = try args.requireString("state")
         let birthYear = try args.requireInt("birth_year")
@@ -391,7 +397,7 @@ final class MCPTools: @unchecked Sendable {
 
         let brokerData = try await resolveBrokerJSON(args: args)
         let data = try await xpcDataCall("Continue opt-out failed — no response from agent") {
-            self.agent.continueOptOut(brokerJSON: brokerData, extractedProfileJSON: extractedProfileData, firstName: firstName, lastName: lastName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
+            self.agent.continueOptOut(brokerJSON: brokerData, extractedProfileJSON: extractedProfileData, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
         }
         return data.prettyJSON()
     }
