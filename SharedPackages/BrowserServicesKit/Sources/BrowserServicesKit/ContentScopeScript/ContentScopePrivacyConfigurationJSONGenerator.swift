@@ -88,7 +88,7 @@ public struct ContentScopePrivacyConfigurationJSONGenerator: CustomisedPrivacyCo
         settings["userUnprotectedDomains"] = privacyConfig.userUnprotectedDomains
         settings["contentBlockingExceptions"] = privacyConfig.exceptionsList(forFeature: .contentBlocking)
         settings["blocking"] = ["state": privacyConfig.isEnabled(featureKey: .contentBlocking) ? "enabled" : "disabled"]
-        settings["ctlEnabled"] = ctlEnabled
+        settings["ctl"] = ["state": ctlEnabled ? "enabled" : "disabled"]
         settings["surrogateInjection"] = ["state": "enabled"]
 
         let trackerProtectionFeature = PrivacyConfigurationData.PrivacyFeature(

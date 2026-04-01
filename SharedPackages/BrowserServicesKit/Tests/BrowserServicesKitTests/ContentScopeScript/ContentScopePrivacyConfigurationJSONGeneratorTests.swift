@@ -177,7 +177,8 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         )
 
         let settings = trackerProtectionSettings(from: generator)
-        XCTAssertEqual(settings?["ctlEnabled"] as? Bool, false)
+        let ctl = settings?["ctl"] as? [String: Any]
+        XCTAssertEqual(ctl?["state"] as? String, "disabled")
     }
 
     func testCTLEnabledPassedThrough() {
@@ -190,7 +191,8 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         )
 
         let settings = trackerProtectionSettings(from: generator)
-        XCTAssertEqual(settings?["ctlEnabled"] as? Bool, true)
+        let ctl = settings?["ctl"] as? [String: Any]
+        XCTAssertEqual(ctl?["state"] as? String, "enabled")
     }
 
     // MARK: - Unprotected domains (Item 2)
@@ -237,7 +239,7 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         XCTAssertNil(settings?["surrogates"], "surrogates must not appear in trackerProtection settings")
         XCTAssertNil(settings?["trackerData"], "trackerData must not appear in trackerProtection settings (passed via args)")
         XCTAssertNotNil(settings?["blocking"], "blocking should still be present")
-        XCTAssertNotNil(settings?["ctlEnabled"], "ctlEnabled should still be present")
+        XCTAssertNotNil(settings?["ctl"], "ctl should still be present")
     }
 
     // MARK: - P0-10: CTL platform behavior
@@ -252,8 +254,9 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         )
 
         let settings = trackerProtectionSettings(from: generator)
-        XCTAssertEqual(settings?["ctlEnabled"] as? Bool, false,
-                       "iOS platform should always pass ctlEnabled=false")
+        let ctl = settings?["ctl"] as? [String: Any]
+        XCTAssertEqual(ctl?["state"] as? String, "disabled",
+                       "iOS platform should always pass ctl as disabled")
     }
 
     func testCTLEnabledTrue_settingsReflectEnabled() {
@@ -266,8 +269,9 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         )
 
         let settings = trackerProtectionSettings(from: generator)
-        XCTAssertEqual(settings?["ctlEnabled"] as? Bool, true,
-                       "macOS platform should pass ctlEnabled reflecting live state")
+        let ctl = settings?["ctl"] as? [String: Any]
+        XCTAssertEqual(ctl?["state"] as? String, "enabled",
+                       "macOS platform should pass ctl reflecting live state")
     }
 
     func testCTLDefault_isFalse() {
@@ -279,8 +283,9 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         )
 
         let settings = trackerProtectionSettings(from: generator)
-        XCTAssertEqual(settings?["ctlEnabled"] as? Bool, false,
-                       "Default ctlEnabled should be false (iOS behavior)")
+        let ctl = settings?["ctl"] as? [String: Any]
+        XCTAssertEqual(ctl?["state"] as? String, "disabled",
+                       "Default ctl should be disabled (iOS behavior)")
     }
 
     // MARK: - Settings shape guard
@@ -298,7 +303,7 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         let expectedKeys: Set<String> = [
             "allowlist", "tempUnprotectedDomains",
             "userUnprotectedDomains", "contentBlockingExceptions",
-            "blocking", "ctlEnabled", "surrogateInjection"
+            "blocking", "ctl", "surrogateInjection"
         ]
 
         guard let settings = trackerProtectionSettings(from: generator) else {
@@ -330,8 +335,9 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         )
 
         let settings = trackerProtectionSettings(from: generator)
-        XCTAssertEqual(settings?["ctlEnabled"] as? Bool, false,
-                       "ctlEnabled must be false even when CTL rules are in the payload")
+        let ctl = settings?["ctl"] as? [String: Any]
+        XCTAssertEqual(ctl?["state"] as? String, "disabled",
+                       "ctl must be disabled even when CTL rules are in the payload")
         // trackerData is now passed via ContentScopeProperties, not feature settings
         XCTAssertNil(settings?["trackerData"],
                      "trackerData must not appear in settings (passed via args.trackerData)")
