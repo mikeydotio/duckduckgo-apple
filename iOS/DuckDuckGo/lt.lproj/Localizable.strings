@@ -1225,8 +1225,6 @@
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Pasirinktinis URL: %@";
 
-/* No comment provided by engineer. */
-
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Importuoti žymės failą...";
 
@@ -1578,14 +1576,23 @@
 /* Button text to resume video in Duck Player */
 "duckplayer.resume.in.duck.player" = "Tęsti su „Duck Player“";
 
+/* Toggle to always open videos in Duck Player */
+"duckplayer.settings.always-open-toggle" = "Visada atidaryti „YouTube“ vaizdo įrašus per „Duck Player“";
+
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Vaizdo įrašai, atidaryti „Duck Player“, bus automatiškai paleidžiami. Išjunk šią funkciją, jei nori rankiniu būdu paleisti „Duck Player“ atidarytų vaizdo įrašų atkūrimą.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Automatiškai paleidžiami vaizdo įrašai";
+/* Footer text for Enable Duck Player toggle */
+"duckplayer.settings.enable-footer" = "Atidaro vaizdo įrašus privačiu kino teatro režimu, kad tai, ką žiūri, nedarytų įtakos tavo „YouTube“ srautui.";
+
+/* Toggle to enable Duck Player */
+"duckplayer.settings.enable-toggle" = "Įjungti „Duck Player“";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Eksperimentinis";
+
+/* Explanation footer for Duck Player settings */
+"duckplayer.settings.explanation" = "„Duck Player“ leidžia žiūrėti „YouTube“ be tikslinių reklamų ir užtikrina, kad žiūrėjimo veikla nedarytų įtakos tavo rekomendacijoms.";
 
 /* Footer label in the settings screen for Duck Player */
 "duckplayer.settings.footer" = "„DuckDuckGo“ suteikia visas pagrindines privatumą užtikrinančias priemones, kurių reikia norint apsisaugoti naršant internete.";
@@ -1595,6 +1602,9 @@
 
 /* Button that takes the user to learn more about Duck Player. */
 "duckplayer.settings.learn-more" = "Sužinoti daugiau";
+
+/* Toggle to automatically open videos in Duck Player */
+"duckplayer.settings.open-automatically-toggle" = "Atidaryti automatiškai";
 
 /* Settings screen cell text for DuckPlayer settings to open in new tab */
 "duckplayer.settings.open-new-tab-label" = "Atidarykite „Duck Player“ naujame skirtuke";
@@ -1607,6 +1617,9 @@
 
 /* Label for the search results toggle in Duck Player settings */
 "duckplayer.settings.search.results.label" = "„DuckDuckGo Search“ paieškos rezultatai";
+
+/* Toggle to show Duck Player on YouTube */
+"duckplayer.settings.show-on-youtube-toggle" = "Rodyti „Duck Player“ „YouTube“ svetainėje";
 
 /* Message for the alert when changing Duck Player variant */
 "duckplayer.settings.tab.alert.message" = "Prašome uždaryti visus skirtukus, kad šis nustatymas įsigaliotų.";
@@ -2605,8 +2618,6 @@
 "No active subscriptions" = "Nėra aktyvių prenumeratų";
 
 /* No comment provided by engineer. */
-
-/* No comment provided by engineer. */
 "No existing subscription found" = "Nerasta jokių esamų prenumeratų";
 
 /* No comment provided by engineer. */
@@ -2647,9 +2658,6 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
-
-/* No comment provided by engineer. */
-"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "„App Store“ versijose šis langas bus rodomas tik jei per **use-login.duckduckgo.com** prisijungsi kaip vidinis naudotojas.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Supratau";
@@ -2827,9 +2835,6 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Atsisakoma...";
-
-/* No comment provided by engineer. */
-"Override" = "Perrašyti";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Nepavyksta pasiekti tik prenumeratoriams skirtų „Duck.ai“ modelių.";
@@ -3400,6 +3405,18 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Numatytoji naršyklė";
+
+/* Option to always default the omnibar toggle to Duck.ai */
+"settings.default.omnibar.mode.duckai" = "Duck.ai";
+
+/* Label for the default omnibar toggle position picker in AI Features settings */
+"settings.default.omnibar.mode.header" = "Naujos kortelės perjungimo vieta";
+
+/* Option to remember the last used omnibar toggle position */
+"settings.default.omnibar.mode.last.used" = "Paskutinį kartą naudota";
+
+/* Option to always default the omnibar toggle to Search */
+"settings.default.omnibar.mode.search" = "Paieška";
 
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Ištrinti „Duck.ai“ pokalbius";
@@ -4553,6 +4570,15 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Gaukite „DuckDuckGo“, skirtą „Windows“!";
 
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "„DuckDuckGo“ pašalina vaizdo įrašų reklamas „YouTube“ platformoje, todėl gali žiūrėti vaizdo įrašus be trikdžių.";
+
+/* Settings screen title for YouTube Ad Blocking */
+"youtube.ad.blocking.title" = "„YouTube“ reklamų blokavimas";
+
+/* Toggle label for enabling/disabling YouTube ad blocking */
+"youtube.ad.blocking.toggle" = "Blokuoti reklamas „YouTube“";
+
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Žymės";
 
@@ -4568,12 +4594,3 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Ką nori importuoti?";
 
-
-/* Autoplay settings translations */
-"autoplay.mode.allowAll" = "Leisti garsą ir vaizdą";
-"autoplay.mode.blockAll" = "Blokuoti garsą ir vaizdą";
-"autoplay.mode.blockAudio" = "Blokuoti garsą";
-"settings.autoplay" = "Automatinis paleidimas";
-"settings.autoplay.duck.player.link" = "„Duck Player“ nuostatos";
-"settings.autoplay.footer" = "Automatinio paleidimo nuostatos galios tik naujai atvertoms kortelėms. Pakeitimų negalima pritaikyti esamoms kortelėms iš naujo nepaleidus programos. Jei nori valdyti automatinį paleidimą „Duck Player“ programoje, eik į ";
-"settings.media.section" = "Medija";

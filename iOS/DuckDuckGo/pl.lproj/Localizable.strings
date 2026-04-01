@@ -1225,8 +1225,6 @@
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Niestandardowy adres URL: %@";
 
-/* No comment provided by engineer. */
-
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Importuj plik zakładek...";
 
@@ -1578,14 +1576,23 @@
 /* Button text to resume video in Duck Player */
 "duckplayer.resume.in.duck.player" = "Wznów w Duck Player";
 
+/* Toggle to always open videos in Duck Player */
+"duckplayer.settings.always-open-toggle" = "Zawsze otwieraj filmy z YouTube w odtwarzaczu Duck Player";
+
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Duck Player będzie automatycznie rozpoczynał odtwarzanie otwieranych w nim filmów. Wyłącz tę opcję, jeśli chcesz ręcznie rozpoczynać odtwarzanie filmów otwieranych w odtwarzaczu Duck Player.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Automatyczne odtwarzanie filmów";
+/* Footer text for Enable Duck Player toggle */
+"duckplayer.settings.enable-footer" = "Otwiera filmy w prywatnym trybie kinowym, dzięki czemu to, co oglądasz, nie wpływa na Twój kanał na YouTube.";
+
+/* Toggle to enable Duck Player */
+"duckplayer.settings.enable-toggle" = "Włącz Duck Player";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Eksperymentalne";
+
+/* Explanation footer for Duck Player settings */
+"duckplayer.settings.explanation" = "Duck Player umożliwia oglądanie YouTube bez ukierunkowanych reklam i zapobiega wpływowi aktywności oglądania na Twoje rekomendacje.";
 
 /* Footer label in the settings screen for Duck Player */
 "duckplayer.settings.footer" = "DuckDuckGo zapewnia wszystkie niezbędne funkcje ochrony prywatności użytkownika podczas przeglądania Internetu.";
@@ -1595,6 +1602,9 @@
 
 /* Button that takes the user to learn more about Duck Player. */
 "duckplayer.settings.learn-more" = "Dowiedz się więcej";
+
+/* Toggle to automatically open videos in Duck Player */
+"duckplayer.settings.open-automatically-toggle" = "Otwieraj automatycznie";
 
 /* Settings screen cell text for DuckPlayer settings to open in new tab */
 "duckplayer.settings.open-new-tab-label" = "Otwieraj Duck Player w nowej karcie";
@@ -1607,6 +1617,9 @@
 
 /* Label for the search results toggle in Duck Player settings */
 "duckplayer.settings.search.results.label" = "Wyniki wyszukiwania DuckDuckGo";
+
+/* Toggle to show Duck Player on YouTube */
+"duckplayer.settings.show-on-youtube-toggle" = "Pokaż Duck Player na YouTube";
 
 /* Message for the alert when changing Duck Player variant */
 "duckplayer.settings.tab.alert.message" = "Zamknij wszystkie karty, aby to ustawienie zaczęło obowiązywać.";
@@ -2605,8 +2618,6 @@
 "No active subscriptions" = "Brak aktywnych subskrypcji";
 
 /* No comment provided by engineer. */
-
-/* No comment provided by engineer. */
 "No existing subscription found" = "Nie znaleziono istniejącej subskrypcji";
 
 /* No comment provided by engineer. */
@@ -2647,9 +2658,6 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
-
-/* No comment provided by engineer. */
-"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "W kompilacjach z App Store ten ekran pojawi się tylko wtedy, gdy zalogujesz się jako użytkownik wewnętrzny przez **use-login.duckduckgo.com**.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Rozumiem";
@@ -2827,9 +2835,6 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Rezygnacja...";
-
-/* No comment provided by engineer. */
-"Override" = "Nadpisz";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Nie można uzyskać dostępu do modeli Duck.ai dostępnych wyłącznie dla subskrybentów";
@@ -3400,6 +3405,18 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Domyślna przeglądarka";
+
+/* Option to always default the omnibar toggle to Duck.ai */
+"settings.default.omnibar.mode.duckai" = "Duck.ai";
+
+/* Label for the default omnibar toggle position picker in AI Features settings */
+"settings.default.omnibar.mode.header" = "Pozycja przełącznika nowej karty";
+
+/* Option to remember the last used omnibar toggle position */
+"settings.default.omnibar.mode.last.used" = "Ostatnie użycie";
+
+/* Option to always default the omnibar toggle to Search */
+"settings.default.omnibar.mode.search" = "Szukaj";
 
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Usuń czaty Duck.ai";
@@ -4553,6 +4570,15 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Pobierz DuckDuckGo dla systemu Windows.";
 
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "DuckDuckGo usuwa reklamy wideo z YouTube, dzięki czemu możesz oglądać filmy bez przerw.";
+
+/* Settings screen title for YouTube Ad Blocking */
+"youtube.ad.blocking.title" = "Blokowanie reklam w serwisie YouTube";
+
+/* Toggle label for enabling/disabling YouTube ad blocking */
+"youtube.ad.blocking.toggle" = "Blokuj reklamy na YouTube";
+
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Zakładki";
 
@@ -4568,12 +4594,3 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Co chcesz importować?";
 
-
-/* Autoplay settings translations */
-"autoplay.mode.allowAll" = "Zezwalaj na dźwięk i wideo";
-"autoplay.mode.blockAll" = "Blokuj dźwięk i wideo";
-"autoplay.mode.blockAudio" = "Blokuj dźwięk";
-"settings.autoplay" = "Automatyczne odtwarzanie";
-"settings.autoplay.duck.player.link" = "Ustawienia odtwarzacza Duck Player";
-"settings.autoplay.footer" = "Ustawienia automatycznego odtwarzania będą miały zastosowanie tylko do nowo otwartych kart. Zmiany nie mogą zostać zastosowane do istniejących kart, chyba że aplikacja zostanie ponownie uruchomiona. Aby zarządzać autoodtwarzaniem w Duck Player, przejdź do ";
-"settings.media.section" = "Multimedia";

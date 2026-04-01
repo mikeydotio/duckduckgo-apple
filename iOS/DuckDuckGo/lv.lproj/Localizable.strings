@@ -1225,8 +1225,6 @@
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Pielāgots URL: %@";
 
-/* No comment provided by engineer. */
-
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Importēt grāmatzīmes failu...";
 
@@ -1578,14 +1576,23 @@
 /* Button text to resume video in Duck Player */
 "duckplayer.resume.in.duck.player" = "Turpināt atskaņošanu ar Duck Player";
 
+/* Toggle to always open videos in Duck Player */
+"duckplayer.settings.always-open-toggle" = "Vienmēr atvērt YouTube video ar Duck Player";
+
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Video, kas atvērti Duck Player, automātiski sāks atskaņošanu. Ja vēlies manuāli sākt Duck Player atvērto videoklipu atskaņošanu, izslēdz šo iestatījumu.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Automātiski atskaņot video";
+/* Footer text for Enable Duck Player toggle */
+"duckplayer.settings.enable-footer" = "Atver videoklipus privātā kinoteātra režīmā, kas neļauj skatītajam ietekmēt tavu YouTube plūsmu.";
+
+/* Toggle to enable Duck Player */
+"duckplayer.settings.enable-toggle" = "Iespējot Duck Player";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Eksperimentāls";
+
+/* Explanation footer for Duck Player settings */
+"duckplayer.settings.explanation" = "Duck Player ļauj skatīties YouTube bez mērķētām reklāmām un neļauj skatīšanās aktivitātēm ietekmēt tavus ieteikumus.";
 
 /* Footer label in the settings screen for Duck Player */
 "duckplayer.settings.footer" = "DuckDuckGo nodrošina visus privātuma aizsardzības līdzekļus, kas nepieciešami, lai aizsargātu sevi, pārlūkojot tīmekli.";
@@ -1595,6 +1602,9 @@
 
 /* Button that takes the user to learn more about Duck Player. */
 "duckplayer.settings.learn-more" = "Uzzināt vairāk";
+
+/* Toggle to automatically open videos in Duck Player */
+"duckplayer.settings.open-automatically-toggle" = "Atvērt automātiski";
 
 /* Settings screen cell text for DuckPlayer settings to open in new tab */
 "duckplayer.settings.open-new-tab-label" = "Atveriet Duck Player jaunā cilnē";
@@ -1607,6 +1617,9 @@
 
 /* Label for the search results toggle in Duck Player settings */
 "duckplayer.settings.search.results.label" = "DuckDuckGo Search rezultāti";
+
+/* Toggle to show Duck Player on YouTube */
+"duckplayer.settings.show-on-youtube-toggle" = "Rādīt Duck Player vietnē YouTube";
 
 /* Message for the alert when changing Duck Player variant */
 "duckplayer.settings.tab.alert.message" = "Lūdzu, aizver visas cilnes, lai šis iestatījums stātos spēkā.";
@@ -2605,8 +2618,6 @@
 "No active subscriptions" = "Nav aktīvu abonementu";
 
 /* No comment provided by engineer. */
-
-/* No comment provided by engineer. */
 "No existing subscription found" = "Nav atrasts neviens esošs abonements";
 
 /* No comment provided by engineer. */
@@ -2647,9 +2658,6 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
-
-/* No comment provided by engineer. */
-"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "App Store versijās šis ekrāns tiks parādīts tikai tad, ja esi pierakstījies kā iekšējais lietotājs, izmantojot **use-login.duckduckgo.com**.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Sapratu";
@@ -2827,9 +2835,6 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Izvēlas atteikties...";
-
-/* No comment provided by engineer. */
-"Override" = "Ignorēt";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Nevaru piekļūt tikai abonentiem paredzētajiem Duck.ai modeļiem.";
@@ -3400,6 +3405,18 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Noklusējuma pārlūks";
+
+/* Option to always default the omnibar toggle to Duck.ai */
+"settings.default.omnibar.mode.duckai" = "Duck.ai";
+
+/* Label for the default omnibar toggle position picker in AI Features settings */
+"settings.default.omnibar.mode.header" = "Jauna cilnes slēdža pozīcija";
+
+/* Option to remember the last used omnibar toggle position */
+"settings.default.omnibar.mode.last.used" = "Pēdējo reizi lietots";
+
+/* Option to always default the omnibar toggle to Search */
+"settings.default.omnibar.mode.search" = "Meklēt";
 
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Dzēst Duck.ai tērzēšanas sarunas";
@@ -4553,6 +4570,15 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Iegūsti DuckDuckGo operētājsistēmai Windows!";
 
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "DuckDuckGo noņem videoreklāmas pakalpojumā YouTube, lai tu varētu skatīties videoklipus bez pārtraukumiem.";
+
+/* Settings screen title for YouTube Ad Blocking */
+"youtube.ad.blocking.title" = "YouTube reklāmu bloķēšana";
+
+/* Toggle label for enabling/disabling YouTube ad blocking */
+"youtube.ad.blocking.toggle" = "Bloķēt reklāmas pakalpojumā YouTube";
+
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Grāmatzīmes";
 
@@ -4568,12 +4594,3 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Ko tu gribi importēt?";
 
-
-/* Autoplay settings translations */
-"autoplay.mode.allowAll" = "Atļaut audio un video";
-"autoplay.mode.blockAll" = "Bloķēt audio un video";
-"autoplay.mode.blockAudio" = "Bloķēt audio";
-"settings.autoplay" = "Automātiski atskaņot";
-"settings.autoplay.duck.player.link" = "Duck Player iestatījumi";
-"settings.autoplay.footer" = "Automātiskās atskaņošanas iestatījumi attieksies tikai uz jaunatvērtām cilnēm. Izmaiņas nevar tikt piemērotas esošajām cilnēm, ja vien lietojumprogramma netiek restartēta. Lai pārvaldītu automātisko atskaņošanu Duck Player atskaņotājā, dodieties uz ";
-"settings.media.section" = "Multivide";

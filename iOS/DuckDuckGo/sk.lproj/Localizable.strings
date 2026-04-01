@@ -1225,8 +1225,6 @@
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Vlastná URL adresa: %@";
 
-/* No comment provided by engineer. */
-
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Importovať súbor so záložkami...";
 
@@ -1578,14 +1576,23 @@
 /* Button text to resume video in Duck Player */
 "duckplayer.resume.in.duck.player" = "Pokračovať v prehrávači Duck Player";
 
+/* Toggle to always open videos in Duck Player */
+"duckplayer.settings.always-open-toggle" = "Vždy otvárať videá z YouTube s Duck Player";
+
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Videá otvorené v Duck Player sa začnú automaticky prehrávať. Túto možnosť vypni, ak chceš prehrávanie videí otvorených v Duck Player spúšťať manuálne.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Automatické prehrávanie videí";
+/* Footer text for Enable Duck Player toggle */
+"duckplayer.settings.enable-footer" = "Otvára videá v režime súkromného kina, ktorý zabraňuje tomu, aby sledované položky ovplyvňovali tvoj YouTube kanál.";
+
+/* Toggle to enable Duck Player */
+"duckplayer.settings.enable-toggle" = "Povoliť Duck Player";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Experimentálne";
+
+/* Explanation footer for Duck Player settings */
+"duckplayer.settings.explanation" = "Duck Player ti umožňuje sledovať YouTube bez cielených reklám a zabraňuje tomu, aby sledovanie ovplyvňovalo tvoje odporúčania.";
 
 /* Footer label in the settings screen for Duck Player */
 "duckplayer.settings.footer" = "DuckDuckGo poskytuje všetky Privacy Essentials, ktoré potrebujete na ochranu pri prehliadaní webu.";
@@ -1595,6 +1602,9 @@
 
 /* Button that takes the user to learn more about Duck Player. */
 "duckplayer.settings.learn-more" = "Zistite viac";
+
+/* Toggle to automatically open videos in Duck Player */
+"duckplayer.settings.open-automatically-toggle" = "Otvoriť automaticky";
 
 /* Settings screen cell text for DuckPlayer settings to open in new tab */
 "duckplayer.settings.open-new-tab-label" = "Otvoriť Duck Player na novej karte";
@@ -1607,6 +1617,9 @@
 
 /* Label for the search results toggle in Duck Player settings */
 "duckplayer.settings.search.results.label" = "Výsledky vyhľadávania DuckDuckGo";
+
+/* Toggle to show Duck Player on YouTube */
+"duckplayer.settings.show-on-youtube-toggle" = "Zobraziť Duck Player v YouTube";
 
 /* Message for the alert when changing Duck Player variant */
 "duckplayer.settings.tab.alert.message" = "Na použitie tohto nastavenia zatvor všetky karty.";
@@ -2605,8 +2618,6 @@
 "No active subscriptions" = "Žiadne aktívne predplatné";
 
 /* No comment provided by engineer. */
-
-/* No comment provided by engineer. */
 "No existing subscription found" = "Nebolo nájdené žiadne existujúce predplatné";
 
 /* No comment provided by engineer. */
@@ -2647,9 +2658,6 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
-
-/* No comment provided by engineer. */
-"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "V zostavách z App Store sa táto obrazovka zobrazí iba v prípade, že ste prihlásení ako interný používateľ prostredníctvom **use-login.duckduckgo.com**.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Rozumiem";
@@ -2827,9 +2835,6 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Odhlásenie...";
-
-/* No comment provided by engineer. */
-"Override" = "Prepísať";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Nepodarilo sa získať prístup k modelom Duck.ai, ktoré sú určené výhradne pre predplatiteľov.";
@@ -3400,6 +3405,18 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Predvolený prehliadač";
+
+/* Option to always default the omnibar toggle to Duck.ai */
+"settings.default.omnibar.mode.duckai" = "Duck.ai";
+
+/* Label for the default omnibar toggle position picker in AI Features settings */
+"settings.default.omnibar.mode.header" = "Nová poloha prepínača záložiek";
+
+/* Option to remember the last used omnibar toggle position */
+"settings.default.omnibar.mode.last.used" = "Naposledy použité";
+
+/* Option to always default the omnibar toggle to Search */
+"settings.default.omnibar.mode.search" = "Vyhľadávať";
 
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Odstrániť chaty Duck.ai";
@@ -4553,6 +4570,15 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Získajte DuckDuckGo pre Windows!";
 
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "DuckDuckGo odstraňuje reklamy na videá v službe YouTube, takže môžeš sledovať videá bez prerušenia.";
+
+/* Settings screen title for YouTube Ad Blocking */
+"youtube.ad.blocking.title" = "Blokovanie reklám na YouTube";
+
+/* Toggle label for enabling/disabling YouTube ad blocking */
+"youtube.ad.blocking.toggle" = "Blokuje reklamy na YouTube";
+
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Záložky";
 
@@ -4568,12 +4594,3 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Čo chceš importovať?";
 
-
-/* Autoplay settings translations */
-"autoplay.mode.allowAll" = "Povoľ zvuk a video";
-"autoplay.mode.blockAll" = "Blokovať zvuk a video";
-"autoplay.mode.blockAudio" = "Blokovať zvuk";
-"settings.autoplay" = "Automatické prehrávanie";
-"settings.autoplay.duck.player.link" = "Nastavenia Duck Player";
-"settings.autoplay.footer" = "Nastavenia automatického prehrávania sa použijú iba na novo otvorené karty. Zmeny nie je možné použiť na existujúce karty, pokiaľ sa aplikácia nereštartuje. Ak chceš spravovať automatické prehrávanie v Duck Player, prejdi na ";
-"settings.media.section" = "Médiá";

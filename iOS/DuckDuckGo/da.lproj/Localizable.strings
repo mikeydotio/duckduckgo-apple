@@ -1225,8 +1225,6 @@
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Tilpasset URL: %@";
 
-/* No comment provided by engineer. */
-
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Importer bogmærkefil...";
 
@@ -1578,14 +1576,23 @@
 /* Button text to resume video in Duck Player */
 "duckplayer.resume.in.duck.player" = "Genoptag i Duck Player";
 
+/* Toggle to always open videos in Duck Player */
+"duckplayer.settings.always-open-toggle" = "Åbn altid YouTube-videoer i Duck Player";
+
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Videoer, der åbnes i Duck Player, vil automatisk begynde at afspille. Slå dette fra, hvis du manuelt vil starte afspilning af videoer, der åbnes i Duck Player.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Automatisk afspilning af videoer";
+/* Footer text for Enable Duck Player toggle */
+"duckplayer.settings.enable-footer" = "Åbner videoer i en privat biograftilstand, så det, du ser, ikke påvirker dit YouTube-feed.";
+
+/* Toggle to enable Duck Player */
+"duckplayer.settings.enable-toggle" = "Slå Duck Player til";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Eksperimentel";
+
+/* Explanation footer for Duck Player settings */
+"duckplayer.settings.explanation" = "Med Duck Player kan du se YouTube uden målrettede annoncer og undgå, at seeraktiviteten påvirker dine anbefalinger.";
 
 /* Footer label in the settings screen for Duck Player */
 "duckplayer.settings.footer" = "DuckDuckGo giver dig de Privacy Essentials, du har brug for for at beskytte dig selv, når du surfer på nettet.";
@@ -1595,6 +1602,9 @@
 
 /* Button that takes the user to learn more about Duck Player. */
 "duckplayer.settings.learn-more" = "Mere info";
+
+/* Toggle to automatically open videos in Duck Player */
+"duckplayer.settings.open-automatically-toggle" = "Åbn automatisk";
 
 /* Settings screen cell text for DuckPlayer settings to open in new tab */
 "duckplayer.settings.open-new-tab-label" = "Åbn Duck Player i en ny fane";
@@ -1607,6 +1617,9 @@
 
 /* Label for the search results toggle in Duck Player settings */
 "duckplayer.settings.search.results.label" = "DuckDuckGo Search-resultater";
+
+/* Toggle to show Duck Player on YouTube */
+"duckplayer.settings.show-on-youtube-toggle" = "Vis Duck Player på YouTube";
 
 /* Message for the alert when changing Duck Player variant */
 "duckplayer.settings.tab.alert.message" = "Luk alle faner for, at denne indstilling kan træde i kraft.";
@@ -2605,8 +2618,6 @@
 "No active subscriptions" = "Ingen aktive abonnementer";
 
 /* No comment provided by engineer. */
-
-/* No comment provided by engineer. */
 "No existing subscription found" = "Intet eksisterende abonnement blev fundet";
 
 /* No comment provided by engineer. */
@@ -2647,9 +2658,6 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
-
-/* No comment provided by engineer. */
-"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "I App Store-versioner vises denne skærm kun, hvis du er logget ind som intern bruger via **use-login.duckduckgo.com**.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Forstået";
@@ -2827,9 +2835,6 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Fravælgelse...";
-
-/* No comment provided by engineer. */
-"Override" = "Tilsidesætte";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Kan ikke tilgå Duck.ai-modellerne kun for abonnenter.";
@@ -3400,6 +3405,18 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Standardbrowser";
+
+/* Option to always default the omnibar toggle to Duck.ai */
+"settings.default.omnibar.mode.duckai" = "Duck.ai";
+
+/* Label for the default omnibar toggle position picker in AI Features settings */
+"settings.default.omnibar.mode.header" = "Ny position for faneskift";
+
+/* Option to remember the last used omnibar toggle position */
+"settings.default.omnibar.mode.last.used" = "Sidst brugt";
+
+/* Option to always default the omnibar toggle to Search */
+"settings.default.omnibar.mode.search" = "Søgning";
 
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Slet Duck.ai-chats";
@@ -4553,6 +4570,15 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Få DuckDuckGo til Windows!";
 
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "DuckDuckGo fjerner videoannoncer på YouTube, så du kan se videoer uden afbrydelser.";
+
+/* Settings screen title for YouTube Ad Blocking */
+"youtube.ad.blocking.title" = "Blokering af YouTube-annoncer";
+
+/* Toggle label for enabling/disabling YouTube ad blocking */
+"youtube.ad.blocking.toggle" = "Bloker annoncer på YouTube";
+
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Bogmærker";
 
@@ -4568,12 +4594,3 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Hvad vil du importere?";
 
-
-/* Autoplay settings translations */
-"autoplay.mode.allowAll" = "Tillad lyd og video";
-"autoplay.mode.blockAll" = "Bloker lyd og video";
-"autoplay.mode.blockAudio" = "Bloker lyd";
-"settings.autoplay" = "Automatisk afspilning";
-"settings.autoplay.duck.player.link" = "Indstillinger for Duck Player";
-"settings.autoplay.footer" = "Indstillinger for automatisk afspilning gælder kun for nyligt åbnede faner. Ændringer kan ikke anvendes på eksisterende faner, medmindre programmet genstartes. For at administrere automatisk afspilning i Duck Player skal du gå til ";
-"settings.media.section" = "Medier";

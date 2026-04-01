@@ -1225,8 +1225,6 @@
 /* No comment provided by engineer. */
 "Custom URL: %@" = "Prilagođeni URL: %@";
 
-/* No comment provided by engineer. */
-
 /* Button label to select zip or html file for importing */
 "data.import.bookmarks.file-button" = "Uvezi datoteku knjižnih oznaka...";
 
@@ -1578,14 +1576,23 @@
 /* Button text to resume video in Duck Player */
 "duckplayer.resume.in.duck.player" = "Nastavi u Duck Playeru";
 
+/* Toggle to always open videos in Duck Player */
+"duckplayer.settings.always-open-toggle" = "Uvijek otvaraj YouTube videozapise u Duck Playeru";
+
 /* Footer text explaining the auto-play toggle in Duck Player settings */
 "duckplayer.settings.autoplay.footer" = "Videozapisi otvoreni u Duck Playeru automatski će započeti reprodukciju. Isključi ovo ako želiš ručno pokrenuti reprodukciju videozapisa otvorenih u Duck Playeru.";
 
-/* Label for the auto-play toggle in Duck Player settings */
-"duckplayer.settings.autoplay.label" = "Automatska reprodukcija videozapisa";
+/* Footer text for Enable Duck Player toggle */
+"duckplayer.settings.enable-footer" = "Otvara videozapise u načinu rada privatnog kina koji sprječava da ono što gledaš utječe na tvoj YouTube feed.";
+
+/* Toggle to enable Duck Player */
+"duckplayer.settings.enable-toggle" = "Omogući Duck Player";
 
 /* Label for the experimental section in Duck Player settings */
 "duckplayer.settings.experimental.label" = "Eksperimentalno";
+
+/* Explanation footer for Duck Player settings */
+"duckplayer.settings.explanation" = "Duck Player ti omogućuje gledanje YouTubea bez ciljanih oglasa i sprječava da aktivnost gledanja utječe na tvoje preporuke.";
 
 /* Footer label in the settings screen for Duck Player */
 "duckplayer.settings.footer" = "DuckDuckGo pruža sve bitne elemente Privacy Essentials koje su ti potrebne da se zaštitiš dok pregledavaš web.";
@@ -1595,6 +1602,9 @@
 
 /* Button that takes the user to learn more about Duck Player. */
 "duckplayer.settings.learn-more" = "Saznajte više";
+
+/* Toggle to automatically open videos in Duck Player */
+"duckplayer.settings.open-automatically-toggle" = "Otvori automatski";
 
 /* Settings screen cell text for DuckPlayer settings to open in new tab */
 "duckplayer.settings.open-new-tab-label" = "Otvori Duck Player u novoj kartici";
@@ -1607,6 +1617,9 @@
 
 /* Label for the search results toggle in Duck Player settings */
 "duckplayer.settings.search.results.label" = "Rezultati pretraživanja putem DuckDuckGoa";
+
+/* Toggle to show Duck Player on YouTube */
+"duckplayer.settings.show-on-youtube-toggle" = "Prikaži Duck Player na YouTubeu";
 
 /* Message for the alert when changing Duck Player variant */
 "duckplayer.settings.tab.alert.message" = "Zatvori sve kartice kako bi ova postavka stupila na snagu.";
@@ -2605,8 +2618,6 @@
 "No active subscriptions" = "Nema aktivnih pretplata";
 
 /* No comment provided by engineer. */
-
-/* No comment provided by engineer. */
 "No existing subscription found" = "Nema postojeće pretplate";
 
 /* No comment provided by engineer. */
@@ -2647,9 +2658,6 @@
 
 /* Text displayed on notification appearing in the address bar when the browser blocks trackers. The %d placeholder represents the number of trackers blocked. For languages which translation is longer than 30 characters, we should only translate 'Trackers', instead of 'Trackers Blocked'. Pluralization is handled by Localizable.stringsdict. */
 "omnibar.notification.trackers-blocked" = "%d Trackers";
-
-/* No comment provided by engineer. */
-"On App Store builds, this screen will only show if you're signed in as an internal user via **use-login.duckduckgo.com**." = "Na verzijama App Storea, ovaj će se zaslon prikazati samo ako si prijavljen kao interni korisnik putem **use-login.duckduckgo.com**.";
 
 /* Button on the Add to Dock tutorial screen of the onboarding, it will proceed to the next step of the onboarding. */
 "onboarding.addToDock.buttons.gotIt" = "Shvatio/la sam";
@@ -2827,9 +2835,6 @@
 
 /* No comment provided by engineer. */
 "Opting Out..." = "Odjava...";
-
-/* No comment provided by engineer. */
-"Override" = "Nadjačaj";
 
 /* Description for the feedback form when there is an issue with accessing the paid tier models */
 "paid-duck-ai.feedback-form.category.access-subscription-models" = "Nije moguće pristupiti modelima Duck.ai koji su dostupni samo pretplatnicima";
@@ -3400,6 +3405,18 @@
 
 /* The name of Settings category in Privacy Features related to configuration of the default browser */
 "settings.default.browser" = "Zadani preglednik";
+
+/* Option to always default the omnibar toggle to Duck.ai */
+"settings.default.omnibar.mode.duckai" = "Duck.ai";
+
+/* Label for the default omnibar toggle position picker in AI Features settings */
+"settings.default.omnibar.mode.header" = "Prebacivanje položaja nove kartice";
+
+/* Option to remember the last used omnibar toggle position */
+"settings.default.omnibar.mode.last.used" = "Posljednje korišteno";
+
+/* Option to always default the omnibar toggle to Search */
+"settings.default.omnibar.mode.search" = "Traži";
 
 /* Settings screen cell text for option to delete Duck.ai chats when using scoped fire */
 "settings.delete.duckai.chats" = "Izbriši Duck.ai čavrljanja";
@@ -4553,6 +4570,15 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Nabavi DuckDuckGo za Windows!";
 
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "DuckDuckGo uklanja video oglase na YouTubeu, tako da možeš gledati videozapise bez prekida.";
+
+/* Settings screen title for YouTube Ad Blocking */
+"youtube.ad.blocking.title" = "Blokiranje YouTube oglasa";
+
+/* Toggle label for enabling/disabling YouTube ad blocking */
+"youtube.ad.blocking.toggle" = "Blokiraj oglase na YouTubeu";
+
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Knjižne oznake";
 
@@ -4568,12 +4594,3 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Što želiš uvesti?";
 
-
-/* Autoplay settings translations */
-"autoplay.mode.allowAll" = "Omogući zvuk i video";
-"autoplay.mode.blockAll" = "Blokiraj zvuk i video";
-"autoplay.mode.blockAudio" = "Blokiraj zvuk";
-"settings.autoplay" = "Automatsko pokretanje";
-"settings.autoplay.duck.player.link" = "Postavke Duck Playera";
-"settings.autoplay.footer" = "Postavke automatske reprodukcije primjenjivat će se samo na novootvorene kartice. Izmjene se ne mogu primijeniti na postojeće kartice osim ako se aplikacija ne pokrene ponovno. Za upravljanje automatskom reprodukcijom u Duck Playeru, idi na ";
-"settings.media.section" = "Mediji";
