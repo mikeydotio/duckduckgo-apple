@@ -39,6 +39,7 @@ enum ToolError: LocalizedError {
 
 final class MCPTools: @unchecked Sendable {
     let agent: AgentConnection
+    private var cachedInstallPath: String?
 
     init(agent: AgentConnection) {
         self.agent = agent
@@ -258,16 +259,35 @@ final class MCPTools: @unchecked Sendable {
 
     // MARK: - Tool Implementations
 
-    private func getAgentStatus() async throws -> String {
+    private func fetchAgentMetadata() async throws -> DBPAgentMetadata {
         let metadata: DBPAgentMetadata? = await withCheckedContinuation { c in
             agent.getDebugMetadata { nonisolated(unsafe) let m = $0; c.resume(returning: m) }
         }
         guard let metadata else { throw ToolError.xpcError("Failed to get debug metadata. Is the PIR background agent running?") }
+        if let path = metadata.installPath {
+            cachedInstallPath = path
+        }
+        return metadata
+    }
+
+    /// Returns the agent's install root path for log filtering, fetching from agent if not cached.
+    private func resolveInstallPath() async -> String? {
+        if let cachedInstallPath { return cachedInstallPath }
+        _ = try? await fetchAgentMetadata()
+        return cachedInstallPath
+    }
+
+    private func getAgentStatus() async throws -> String {
+        let metadata = try await fetchAgentMetadata()
 
         var lines = ["PIR Background Agent Status", "==========================="]
         lines.append("Version:          \(metadata.backgroundAgentVersion)")
         lines.append("Running:          \(metadata.isAgentRunning)")
         lines.append("Scheduler State:  \(metadata.agentSchedulerState)")
+
+        if let installPath = metadata.installPath {
+            lines.append("Install Path:     \(installPath)")
+        }
 
         if let ts = metadata.lastSchedulerSessionStartTimestamp {
             let date = Date(timeIntervalSince1970: ts)
@@ -287,6 +307,7 @@ final class MCPTools: @unchecked Sendable {
         let level = args.string("level") ?? "debug"
         let filter = args.string("filter")
         let limit = min(args.int("limit") ?? 200, 2000)
+        let installPath = await resolveInstallPath()
 
         let validLevels = ["debug", "info", "default", "error", "fault"]
         guard validLevels.contains(level) else { throw ToolError.missingArgument("level must be one of: \(validLevels.joined(separator: ", "))") }
@@ -295,7 +316,11 @@ final class MCPTools: @unchecked Sendable {
             Thread.detachNewThread {
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: "/usr/bin/log")
-                var logArgs = ["show", "--predicate", "subsystem == 'PIR' OR subsystem == 'DBP Background Agent' OR subsystem CONTAINS 'DataBrokerProtection'", "--last", "\(minutes)m", "--style", "compact"]
+                var subsystemFilter = "subsystem == 'PIR' OR subsystem == 'DBP Background Agent' OR subsystem CONTAINS 'DataBrokerProtection'"
+                if let installPath {
+                    subsystemFilter = "(\(subsystemFilter)) AND processImagePath BEGINSWITH '\(installPath)'"
+                }
+                var logArgs = ["show", "--predicate", subsystemFilter, "--last", "\(minutes)m", "--style", "compact"]
                 switch level {
                 case "debug": logArgs += ["--info", "--debug"]
                 case "info": logArgs += ["--info"]

@@ -583,13 +583,25 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             return DBPBackgroundAgentMetadata(backgroundAgentVersion: backgroundAgentVersion + " (build: \(buildNumber))",
                                               isAgentRunning: true,
                                               agentSchedulerState: queueManager.debugRunningStatusString,
-                                              lastSchedulerSessionStartTimestamp: activityScheduler.lastTriggerTimestamp?.timeIntervalSince1970)
+                                              lastSchedulerSessionStartTimestamp: activityScheduler.lastTriggerTimestamp?.timeIntervalSince1970,
+                                              installPath: Self.resolveInstallPath())
         } else {
             return DBPBackgroundAgentMetadata(backgroundAgentVersion: "ERROR: Error fetching background agent version",
                                               isAgentRunning: true,
                                               agentSchedulerState: queueManager.debugRunningStatusString,
-                                              lastSchedulerSessionStartTimestamp: activityScheduler.lastTriggerTimestamp?.timeIntervalSince1970)
+                                              lastSchedulerSessionStartTimestamp: activityScheduler.lastTriggerTimestamp?.timeIntervalSince1970,
+                                              installPath: Self.resolveInstallPath())
         }
+    }
+
+    /// Resolves the install root directory from the agent's bundle path.
+    /// e.g. `/Applications/DEBUG/DuckDuckGo.app/Contents/Library/LoginItems/...` → `/Applications/DEBUG/`
+    private static func resolveInstallPath() -> String {
+        let bundlePath = Bundle.main.bundlePath
+        if let range = bundlePath.range(of: "DuckDuckGo", options: .literal) {
+            return String(bundlePath[..<range.lowerBound])
+        }
+        return URL(fileURLWithPath: bundlePath).deletingLastPathComponent().path
     }
 
     // MARK: - MCP Debug Server Support (Read-Only)
