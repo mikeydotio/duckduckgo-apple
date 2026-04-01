@@ -241,6 +241,9 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213336304802675
     case showNTPAfterIdleReturn
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213557229772465?focus=true
+    case autoplayBlocking
+
     case customXSafariRedirectHandling
 
     case crashReportOptInStatusResetting
@@ -306,6 +309,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case foregroundRunningOnAppActive
     case foregroundRunningWhenDashboardOpen
     case clickActionDelayReductionOptimization
+    case continuedProcessing
     case pirRollout
     case goToMarket
     case webViewUserAgent
@@ -414,6 +418,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Enables voice chat shortcut in the focused address bar
     case voiceShortcut
+
+    /// Enables improved contextual sheet UX (welcome message, ask about page, etc.)
+    case contextualSheetImprovements
 
     /// Enables removing individual AI chat suggestions
     case removeSuggestion
