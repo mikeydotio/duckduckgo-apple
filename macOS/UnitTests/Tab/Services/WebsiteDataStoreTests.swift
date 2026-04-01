@@ -161,6 +161,49 @@ final class WebCacheManagerTests: XCTestCase {
         XCTAssertEqual(dataStore.records.first?.displayName, "duck.ai")
     }
 
+    @MainActor func testWhenClearedThenDDGSubdomainCookiesAndStorageAreRetained() async {
+        let logins = MockPreservedLogins(domains: [])
+
+        let cookieStore = MockHTTPCookieStore(cookies: [
+            .make(domain: "duckduckgo.com"),
+            .make(domain: ".duckduckgo.com"),
+            .make(domain: "www.duckduckgo.com"),
+            .make(domain: "duck.ai"),
+            .make(domain: ".duck.ai"),
+            .make(domain: "www.duck.ai"),
+            .make(domain: "facebook.com")
+        ])
+
+        let dataStore = MockDataStore()
+        dataStore.cookieStore = cookieStore
+        dataStore.records = [
+            MockDataRecord(recordName: "duckduckgo.com"),
+            MockDataRecord(recordName: "www.duckduckgo.com"),
+            MockDataRecord(recordName: "duck.ai"),
+            MockDataRecord(recordName: "www.duck.ai"),
+            MockDataRecord(recordName: "facebook.com")
+        ]
+
+        let webCacheManager = WebCacheManager(fireproofDomains: logins, websiteDataStore: dataStore)
+        await webCacheManager.clear()
+
+        // All DDG and duck.ai cookies (including subdomains and dot-prefixed) should be retained
+        XCTAssertEqual(cookieStore.cookies.count, 6)
+        XCTAssertTrue(cookieStore.cookies.contains(where: { $0.domain == "duckduckgo.com" }))
+        XCTAssertTrue(cookieStore.cookies.contains(where: { $0.domain == ".duckduckgo.com" }))
+        XCTAssertTrue(cookieStore.cookies.contains(where: { $0.domain == "www.duckduckgo.com" }))
+        XCTAssertTrue(cookieStore.cookies.contains(where: { $0.domain == "duck.ai" }))
+        XCTAssertTrue(cookieStore.cookies.contains(where: { $0.domain == ".duck.ai" }))
+        XCTAssertTrue(cookieStore.cookies.contains(where: { $0.domain == "www.duck.ai" }))
+
+        // All DDG and duck.ai records (including subdomains) should be retained
+        XCTAssertEqual(dataStore.records.count, 4)
+        XCTAssertTrue(dataStore.records.contains(where: { $0.displayName == "duckduckgo.com" }))
+        XCTAssertTrue(dataStore.records.contains(where: { $0.displayName == "www.duckduckgo.com" }))
+        XCTAssertTrue(dataStore.records.contains(where: { $0.displayName == "duck.ai" }))
+        XCTAssertTrue(dataStore.records.contains(where: { $0.displayName == "www.duck.ai" }))
+    }
+
     func testWhenClearedThenCookiesForLoginsAreRetained() {
         let logins = MockPreservedLogins(domains: [
             "example.com"

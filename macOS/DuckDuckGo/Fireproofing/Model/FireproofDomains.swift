@@ -188,6 +188,14 @@ internal class FireproofDomains: DomainFireproofStatusProviding {
         store.clear()
     }
 
+    /// Returns true if the domain (or its eTLD+1) is duckduckgo.com or duck.ai.
+    /// Handles subdomains and dot-prefixed cookie domains.
+    func isDuckDuckGoDomain(_ domain: String) -> Bool {
+        let normalized = domain.dropping(prefix: ".")
+        let eTLDPlus1 = tld.eTLDplus1(normalized) ?? normalized
+        return eTLDPlus1 == URL.duckduckgoDomain || eTLDPlus1 == URL.duckAiDomain
+    }
+
     func isFireproof(cookieDomain: String) -> Bool {
         let domainWithoutDotPrefix = cookieDomain.dropping(prefix: ".")
         let eTLDPlus1Domain = tld.eTLDplus1(domainWithoutDotPrefix) ?? domainWithoutDotPrefix
