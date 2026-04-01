@@ -58,14 +58,12 @@ final class DBPAgentMetadata: NSObject, NSSecureCoding {
     let isAgentRunning: Bool
     let agentSchedulerState: String
     let lastSchedulerSessionStartTimestamp: Double?
-    let installPath: String?
 
     override init() {
         self.backgroundAgentVersion = ""
         self.isAgentRunning = false
         self.agentSchedulerState = ""
         self.lastSchedulerSessionStartTimestamp = nil
-        self.installPath = nil
         super.init()
     }
 
@@ -78,7 +76,6 @@ final class DBPAgentMetadata: NSObject, NSSecureCoding {
         self.isAgentRunning = coder.decodeBool(forKey: "isAgentRunning")
         self.agentSchedulerState = state
         self.lastSchedulerSessionStartTimestamp = coder.decodeObject(of: NSNumber.self, forKey: "lastSchedulerSessionStartTimestamp")?.doubleValue
-        self.installPath = coder.decodeObject(of: NSString.self, forKey: "installPath") as? String
         super.init()
     }
 
@@ -88,9 +85,6 @@ final class DBPAgentMetadata: NSObject, NSSecureCoding {
         coder.encode(agentSchedulerState as NSString, forKey: "agentSchedulerState")
         if let ts = lastSchedulerSessionStartTimestamp {
             coder.encode(ts as NSNumber, forKey: "lastSchedulerSessionStartTimestamp")
-        }
-        if let installPath {
-            coder.encode(installPath as NSString, forKey: "installPath")
         }
     }
 }

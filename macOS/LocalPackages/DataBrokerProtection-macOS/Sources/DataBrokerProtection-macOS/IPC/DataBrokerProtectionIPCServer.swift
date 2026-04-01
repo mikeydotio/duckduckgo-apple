@@ -26,7 +26,6 @@ public final class DBPBackgroundAgentMetadata: NSObject, NSSecureCoding {
         static let isAgentRunningKey = "isAgentRunning"
         static let agentSchedulerStateKey = "agentSchedulerState"
         static let lastSchedulerSessionStartTimestampKey = "lastSchedulerSessionStartTimestamp"
-        static let installPathKey = "installPath"
     }
 
     public static var supportsSecureCoding: Bool = true
@@ -35,18 +34,15 @@ public final class DBPBackgroundAgentMetadata: NSObject, NSSecureCoding {
     let isAgentRunning: Bool
     let agentSchedulerState: String
     let lastSchedulerSessionStartTimestamp: Double?
-    let installPath: String?
 
     public init(backgroundAgentVersion: String,
                 isAgentRunning: Bool,
                 agentSchedulerState: String,
-                lastSchedulerSessionStartTimestamp: Double?,
-                installPath: String? = nil) {
+                lastSchedulerSessionStartTimestamp: Double?) {
         self.backgroundAgentVersion = backgroundAgentVersion
         self.isAgentRunning = isAgentRunning
         self.agentSchedulerState = agentSchedulerState
         self.lastSchedulerSessionStartTimestamp = lastSchedulerSessionStartTimestamp
-        self.installPath = installPath
     }
 
     public init?(coder: NSCoder) {
@@ -64,7 +60,6 @@ public final class DBPBackgroundAgentMetadata: NSObject, NSSecureCoding {
             of: NSNumber.self,
             forKey: Consts.lastSchedulerSessionStartTimestampKey
         )?.doubleValue
-        self.installPath = coder.decodeObject(of: NSString.self, forKey: Consts.installPathKey) as? String
     }
 
     public func encode(with coder: NSCoder) {
@@ -74,9 +69,6 @@ public final class DBPBackgroundAgentMetadata: NSObject, NSSecureCoding {
 
         if let lastSchedulerSessionStartTimestamp = self.lastSchedulerSessionStartTimestamp {
             coder.encode(lastSchedulerSessionStartTimestamp as NSNumber, forKey: Consts.lastSchedulerSessionStartTimestampKey)
-        }
-        if let installPath {
-            coder.encode(installPath as NSString, forKey: Consts.installPathKey)
         }
     }
 }
