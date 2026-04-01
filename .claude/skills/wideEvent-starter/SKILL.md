@@ -13,7 +13,7 @@ This skill is instructions and reference material — not an agent itself. Subag
 2. **Spawn subagent: Do the work** — Once you have all the context, spawn a subagent briefed with:
    - The Asana task details (the proposed wide event description, parameters, owners, etc.)
    - The user's format preference (JSON5 or JSON)
-   - The skill path: `~/.claude/skills/wideEvent-starter/`
+   - The skill path: `.claude/skills/wideEvent-starter/` (relative to repo root)
    - Instructions to read the relevant guide and follow Actions 1–2 below
 
 The subagent writes definitions, creates Swift classes, runs tests, and reports back. If it needs more user input, it returns to the main conversation.
