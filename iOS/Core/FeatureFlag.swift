@@ -341,9 +341,6 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213278892205657?focus=true
     case forceDarkModeOnWebsites
 
-    /// https://app.asana.com/1/137249556945/project/72649045549333/task/1208707884599795?focus=true
-    case autofillOnboardingExperiment
-
     /// https://app.asana.com/1/137249556945/project/1201621853593513/task/1213833424979917?focus=true
     case autofillOnboardingDismissExperiment
 
@@ -418,8 +415,6 @@ extension FeatureFlag: FeatureFlagDescribing {
         switch self {
         case .uiTestExperiment:
             UITestExperimentCohort.self
-        case .autofillOnboardingExperiment:
-            AutofillOnboardingExperimentCohort.self
         case .autofillOnboardingDismissExperiment:
             AutofillOnboardingDismissExperimentCohort.self
         case .simplifiedSyncSetupExperiment:
@@ -433,13 +428,6 @@ extension FeatureFlag: FeatureFlagDescribing {
     public enum UITestExperimentCohort: String, FeatureFlagCohortDescribing {
         case control
         case treatment
-    }
-
-    public enum AutofillOnboardingExperimentCohort: String, FeatureFlagCohortDescribing {
-        case control
-        case variant1
-        case variant2
-        case variant3
     }
 
     public enum AutofillOnboardingDismissExperimentCohort: String, FeatureFlagCohortDescribing {
@@ -525,7 +513,6 @@ extension FeatureFlag: FeatureFlagDescribing {
              .webExtensions,
              .embeddedExtension,
              .forceDarkModeOnWebsites,
-             .autofillOnboardingExperiment,
              .autofillOnboardingDismissExperiment,
              .supportsSyncChatsDeletion,
              .fireMode,
@@ -790,8 +777,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(WebExtensionsSubfeature.embeddedExtension))
         case .forceDarkModeOnWebsites:
             return .remoteReleasable(.subfeature(ForceDarkModeOnWebsitesSubfeature.featureRollout))
-        case .autofillOnboardingExperiment:
-            return .remoteReleasable(.subfeature(AutofillSubfeature.onboardingExperiment))
         case .supportsSyncChatsDeletion:
             return .remoteReleasable(.subfeature(AIChatSubfeature.supportsSyncChatsDeletion))
         case .fireMode:

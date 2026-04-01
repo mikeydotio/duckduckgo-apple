@@ -69,7 +69,7 @@ final class SaveLoginViewModel: ObservableObject {
 
     var minHeight: CGFloat {
         switch layoutType {
-        case .newUser, .newUserVariant1, .newUserVariant2, .newUserVariant3, .saveLogin:
+        case .newUser, .saveLogin:
             return AutofillViews.saveLoginMinHeight
         case .savePassword, .updatePassword:
             return AutofillViews.savePasswordMinHeight
@@ -134,22 +134,8 @@ final class SaveLoginViewModel: ObservableObject {
         }
         
         if autofillFirstTimeUser {
-            guard let cohort = featureFlagger.resolveCohort(for: FeatureFlag.autofillOnboardingExperiment) as? FeatureFlag.AutofillOnboardingExperimentCohort else {
-                // Onboarding experiment not active
-                resolveDismissExperimentCohort()
-                return .newUser
-            }
-            switch cohort {
-            case .control:
-                resolveDismissExperimentCohort()
-                return .newUser
-            case .variant1:
-                return .newUserVariant1
-            case .variant2:
-                return .newUserVariant2
-            case .variant3:
-                return .newUserVariant3
-            }
+            resolveDismissExperimentCohort()
+            return .newUser
         }
         
         if credentialManager.isPasswordOnlyAccount {

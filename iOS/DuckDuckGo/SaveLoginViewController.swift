@@ -39,7 +39,6 @@ class SaveLoginViewController: UIViewController {
     private let domainLastShownOn: String?
     private let backfilled: Bool
     private let experimentPixels: AutofillOnboardingExperimentPixelFiring
-    private let experimentImpressionTracker: AutofillOnboardingExperimentImpressionTracker
     private let dismissExperimentImpressionTracker: AutofillOnboardingDismissExperimentImpressionTracker
     var viewModel: SaveLoginViewModel?
 
@@ -49,7 +48,6 @@ class SaveLoginViewController: UIViewController {
                   domainLastShownOn: String? = nil,
                   backfilled: Bool,
                   experimentPixels: AutofillOnboardingExperimentPixelFiring = AutofillOnboardingExperimentPixelReporter(),
-                  experimentImpressionTracker: AutofillOnboardingExperimentImpressionTracker = AutofillOnboardingExperimentImpressionTracker(),
                   dismissExperimentImpressionTracker: AutofillOnboardingDismissExperimentImpressionTracker = AutofillOnboardingDismissExperimentImpressionTracker()) {
         self.credentialManager = credentialManager
         self.appSettings = appSettings
@@ -57,7 +55,6 @@ class SaveLoginViewController: UIViewController {
         self.domainLastShownOn = domainLastShownOn
         self.backfilled = backfilled
         self.experimentPixels = experimentPixels
-        self.experimentImpressionTracker = experimentImpressionTracker
         self.dismissExperimentImpressionTracker = dismissExperimentImpressionTracker
         super.init(nibName: nil, bundle: nil)
     }
@@ -90,7 +87,7 @@ class SaveLoginViewController: UIViewController {
         let backfilledParameter = [PixelParameters.backfilled: String(describing: backfilled)]
 
         switch viewModel.layoutType {
-        case .newUser, .newUserVariant1, .newUserVariant2, .newUserVariant3:
+        case .newUser:
             Pixel.fire(pixel: .autofillLoginsSaveLoginOnboardingModalDismissed, withAdditionalParameters: backfilledParameter)
             experimentPixels.fireDismissTap()
         case .saveLogin:
@@ -124,9 +121,8 @@ class SaveLoginViewController: UIViewController {
         let backfilledParameter = [PixelParameters.backfilled: String(describing: backfilled)]
 
         switch saveViewModel.layoutType {
-        case .newUser, .newUserVariant1, .newUserVariant2, .newUserVariant3:
+        case .newUser:
             Pixel.fire(pixel: .autofillLoginsSaveLoginOnboardingModalDisplayed, withAdditionalParameters: backfilledParameter)
-            experimentImpressionTracker.recordImpression()
             dismissExperimentImpressionTracker.recordImpression()
         case .saveLogin:
             Pixel.fire(pixel: .autofillLoginsSaveLoginModalDisplayed, withAdditionalParameters: backfilledParameter)
@@ -152,8 +148,8 @@ extension SaveLoginViewController: SaveLoginViewModelDelegate {
 
         let backfilledParameter = [PixelParameters.backfilled: String(describing: backfilled)]
         switch viewModel.layoutType {
-        case .saveLogin, .savePassword, .newUser, .newUserVariant1, .newUserVariant2, .newUserVariant3:
-            if viewModel.layoutType.isNewUserVariant {
+        case .saveLogin, .savePassword, .newUser:
+            if case .newUser = viewModel.layoutType {
                 Pixel.fire(pixel: .autofillLoginsSaveLoginOnboardingModalConfirmed, withAdditionalParameters: backfilledParameter)
                 fireOnboardingExperimentConversionPixels()
             } else if case .savePassword = viewModel.layoutType {
@@ -199,26 +195,15 @@ extension SaveLoginViewController: SaveLoginViewModelDelegate {
     private func fireOnboardingExperimentConversionPixels() {
         experimentPixels.fireSaveTap()
 
-        firePerExperimentConversionPixels(
-            subfeatureID: AutofillSubfeature.onboardingExperiment.rawValue,
-            impressionTracker: experimentImpressionTracker
-        )
-
-        firePerExperimentConversionPixels(
-            subfeatureID: AutofillSubfeature.onboardingDismissExperiment.rawValue,
-            impressionTracker: dismissExperimentImpressionTracker
-        )
-    }
-
-    private func firePerExperimentConversionPixels(subfeatureID: SubfeatureID, impressionTracker: some ImpressionCounting) {
-        let impressions = impressionTracker.impressionCount
+        let impressions = dismissExperimentImpressionTracker.impressionCount
         if impressions > 0 {
-            experimentPixels.fireImpressionCount(impressions, for: subfeatureID)
+            experimentPixels.fireImpressionCount(impressions)
         }
 
+        let subfeatureID = AutofillSubfeature.onboardingDismissExperiment.rawValue
         if let enrollmentDate = featureFlagger.allActiveExperiments[subfeatureID]?.enrollmentDate {
             let daysSinceEnrollment = Calendar.current.dateComponents([.day], from: enrollmentDate, to: Date()).day ?? 0
-            experimentPixels.fireDaysToConversion(max(daysSinceEnrollment, 0), for: subfeatureID)
+            experimentPixels.fireDaysToConversion(max(daysSinceEnrollment, 0))
         }
     }
 
