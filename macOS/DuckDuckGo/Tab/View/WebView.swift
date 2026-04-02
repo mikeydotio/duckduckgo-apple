@@ -61,6 +61,9 @@ final class WebView: WKWebView {
     @UserDefaultsWrapper(key: .webViewTrackingAreaLoadingSuppressionDisabled, defaultValue: false)
     static private var isTrackingAreaLoadingSuppressionDisabled: Bool
 
+    @UserDefaultsWrapper(key: .disableAllWebViewTrackingModifications, defaultValue: false)
+    static private var isAllTrackingModificationsDisabled: Bool
+
     private var shouldShowWebInspector: Bool {
         // When a new tab is open, we don't want the web inspector to be active on screen and gain focus.
         // When a new tab is open the other tab views are removed from the window, hence, we should not show the web inspector.
@@ -73,7 +76,7 @@ final class WebView: WKWebView {
         if trackingArea.owner?.className == "WKMouseTrackingObserver" {
             Logger.general.debug("WebView: WKMouseTrackingObserver tracking area added (\(trackingArea.debugDescription))")
 
-            guard !Self.isTrackingAreaLoadingSuppressionDisabled else {
+            guard !Self.isTrackingAreaLoadingSuppressionDisabled && !Self.isAllTrackingModificationsDisabled else {
                 super.addTrackingArea(trackingArea)
                 return
             }

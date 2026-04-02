@@ -70,9 +70,21 @@ final class HoverTrackingArea: NSTrackingArea {
         method_exchangeImplementations(originalMethod, swizzledMethod)
     }()
 
+    @UserDefaultsWrapper(key: .hoverTrackingAreaSwizzleDisabled, defaultValue: false)
+    static private var isSwizzleDisabled: Bool
+
+    @UserDefaultsWrapper(key: .disableAllWebViewTrackingModifications, defaultValue: false)
+    static private var isAllTrackingModificationsDisabled: Bool
+
+    static var isSwizzleEffectivelyDisabled: Bool {
+        isSwizzleDisabled || isAllTrackingModificationsDisabled
+    }
+
     init(owner: some Hoverable) {
         super.init(rect: .zero, options: [.mouseEnteredAndExited, .mouseMoved, .activeInKeyWindow, .inVisibleRect], owner: owner, userInfo: nil)
-       _=Self.swizzleMouseExitedOnce
+        if !Self.isSwizzleEffectivelyDisabled {
+            _=Self.swizzleMouseExitedOnce
+        }
 
         observers = [
             owner.observe(\.backgroundColor) { [weak self] _, _ in self?.updateLayer() },

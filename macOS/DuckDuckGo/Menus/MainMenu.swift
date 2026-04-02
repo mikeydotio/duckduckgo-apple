@@ -106,6 +106,10 @@ final class MainMenu: NSMenu {
     let contentScopeDebugStateMenuItem = NSMenuItem(title: "Content Scope Scripts Debug State", action: #selector(MainMenu.toggleContentScopeStateDebugSettingsAction))
     let disableTrackingAreaSuppressionMenuItem = NSMenuItem(title: "Disable WebView Tracking Area Loading Suppression",
                                                             action: #selector(MainMenu.toggleTrackingAreaSuppressionAction))
+    let disableHoverSwizzleMenuItem = NSMenuItem(title: "Disable HoverTrackingArea _mouseExited Swizzle (restart required)",
+                                                 action: #selector(MainMenu.toggleHoverSwizzleAction))
+    let disableAllTrackingModificationsMenuItem = NSMenuItem(title: "Disable All WebView Tracking Modifications (restart required)",
+                                                             action: #selector(MainMenu.toggleAllTrackingModificationsAction))
     let toggleWatchdogMenuItem = NSMenuItem(title: "Toggle Hang Watchdog", action: #selector(MainViewController.toggleWatchdog))
     let toggleWatchdogCrashMenuItem = NSMenuItem(title: "Crash on timeout", action: #selector(MainViewController.toggleWatchdogCrash))
     let alwaysShowFirstTimeQuitSurvey = NSMenuItem(title: "Always Show First-Time Quit Survey", action: #selector(MainViewController.alwaysShowFirstTimeQuitSurvey))
@@ -525,6 +529,8 @@ final class MainMenu: NSMenu {
         updateAutofillDebugScriptMenuItem()
         updateContentScopeDebugStateMenuItem()
         updateDisableTrackingAreaSuppressionMenuItem()
+        updateDisableHoverSwizzleMenuItem()
+        updateDisableAllTrackingModificationsMenuItem()
         updateShiftNextStepsDaysMenuItem()
         updateShowToolbarsOnFullScreenMenuItem()
         updateWatchdogMenuItems()
@@ -1057,6 +1063,10 @@ final class MainMenu: NSMenu {
             .targetting(self))
         menu.addItem(disableTrackingAreaSuppressionMenuItem
             .targetting(self))
+        menu.addItem(disableHoverSwizzleMenuItem
+            .targetting(self))
+        menu.addItem(disableAllTrackingModificationsMenuItem
+            .targetting(self))
         menu.addItem(.separator())
         let exportLogsMenuItem = NSMenuItem(title: "Export Logs…", action: #selector(MainViewController.exportLogs))
         menu.addItem(exportLogsMenuItem)
@@ -1130,6 +1140,32 @@ final class MainMenu: NSMenu {
     @objc private func toggleTrackingAreaSuppressionAction(_ sender: NSMenuItem) {
         Self.isTrackingAreaLoadingSuppressionDisabled = !Self.isTrackingAreaLoadingSuppressionDisabled
         updateDisableTrackingAreaSuppressionMenuItem()
+    }
+
+    @UserDefaultsWrapper(key: .hoverTrackingAreaSwizzleDisabled, defaultValue: false)
+    static private var isHoverSwizzleDisabled: Bool
+
+    private func updateDisableHoverSwizzleMenuItem() {
+        disableHoverSwizzleMenuItem.state = Self.isHoverSwizzleDisabled ? .on : .off
+    }
+
+    @objc private func toggleHoverSwizzleAction(_ sender: NSMenuItem) {
+        Self.isHoverSwizzleDisabled = !Self.isHoverSwizzleDisabled
+        updateDisableHoverSwizzleMenuItem()
+    }
+
+    @UserDefaultsWrapper(key: .disableAllWebViewTrackingModifications, defaultValue: false)
+    static private var isAllTrackingModificationsDisabled: Bool
+
+    private func updateDisableAllTrackingModificationsMenuItem() {
+        disableAllTrackingModificationsMenuItem.state = Self.isAllTrackingModificationsDisabled ? .on : .off
+    }
+
+    @objc private func toggleAllTrackingModificationsAction(_ sender: NSMenuItem) {
+        Self.isAllTrackingModificationsDisabled = !Self.isAllTrackingModificationsDisabled
+        updateDisableAllTrackingModificationsMenuItem()
+        updateDisableTrackingAreaSuppressionMenuItem()
+        updateDisableHoverSwizzleMenuItem()
     }
 
     @MainActor

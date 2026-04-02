@@ -68,6 +68,8 @@ extension UserDefaults {
         case autofillDebugScriptEnabled = "preferences.enable-autofill-debug-script"
         case contentScopeDebugStateEnabled = "preferences.enable-content-scope-debug-state"
         case webViewTrackingAreaLoadingSuppressionDisabled = "debug.webview-tracking-area-loading-suppression-disabled"
+        case hoverTrackingAreaSwizzleDisabled = "debug.hover-tracking-area-swizzle-disabled"
+        case disableAllWebViewTrackingModifications = "debug.disable-all-webview-tracking-modifications"
 
         case saveAsPreferredFileType = "saveAs.selected.filetype"
 
