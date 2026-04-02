@@ -343,6 +343,7 @@ extension TabExtensionsBuilder {
             TabSuspensionExtension(
                 webViewPublisher: args.webViewFuture,
                 contentPublisher: args.contentPublisher,
+                scriptsPublisher: userScripts.compactMap { $0 },
                 featureFlagger: dependencies.featureFlagger,
                 isTabPinned: args.isTabPinned
             )

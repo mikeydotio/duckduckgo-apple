@@ -21,17 +21,28 @@ import Foundation
 import PrivacyConfig
 import WebKit
 
+@MainActor
+protocol TabSuspensionUserScriptProvider {
+    var tabSuspensionUserScript: TabSuspensionUserScript { get }
+}
+extension UserScripts: TabSuspensionUserScriptProvider {}
+
 final class TabSuspensionExtension {
 
     private var cancellables = Set<AnyCancellable>()
 
+    private weak var tabSuspensionUserScript: TabSuspensionUserScript?
     private weak var webView: WKWebView?
     private var tabContent: Tab.TabContent = .none
     private let isTabPinned: () -> Bool
     private let featureFlagger: FeatureFlagger
 
+    /// Whether the JS layer has reported the page can't be suspended (e.g. focused input field).
+    private var jsCanBeSuspended: Bool = true
+
     var canBeSuspended: Bool {
         guard featureFlagger.isFeatureOn(.tabSuspension) else { return false }
+        guard jsCanBeSuspended else { return false }
         guard case let .url(url, _, _) = tabContent, !url.isDuckPlayer else { return false }
         guard !isTabPinned() else { return false }
         guard let webView else {
@@ -43,6 +54,7 @@ final class TabSuspensionExtension {
     init(
         webViewPublisher: some Publisher<WKWebView, Never>,
         contentPublisher: some Publisher<Tab.TabContent, Never>,
+        scriptsPublisher: some Publisher<some TabSuspensionUserScriptProvider, Never>,
         featureFlagger: FeatureFlagger,
         isTabPinned: @escaping () -> Bool
     ) {
@@ -56,6 +68,19 @@ final class TabSuspensionExtension {
         webViewPublisher.sink { [weak self] webView in
             self?.webView = webView
         }.store(in: &cancellables)
+
+        scriptsPublisher.sink { [weak self] scripts in
+            Task { @MainActor in
+                self?.tabSuspensionUserScript = scripts.tabSuspensionUserScript
+                self?.tabSuspensionUserScript?.delegate = self
+            }
+        }.store(in: &cancellables)
+    }
+}
+
+extension TabSuspensionExtension: TabSuspensionUserScriptDelegate {
+    func tabSuspensionUserScript(_ userScript: TabSuspensionUserScript, didChangeCanBeSuspended canBeSuspended: Bool) {
+        jsCanBeSuspended = canBeSuspended
     }
 }
 
