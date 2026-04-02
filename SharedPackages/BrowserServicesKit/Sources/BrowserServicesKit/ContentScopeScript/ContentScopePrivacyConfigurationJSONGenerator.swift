@@ -16,25 +16,37 @@
 //  limitations under the License.
 //
 
-import Foundation
 import PrivacyConfig
+import Foundation
 
-/// Strips features that should not be sent to C-S-S (e.g. autoconsent,
-/// which is handled by a separate native module).
+/// A protocol that defines an interface for generating a JSON representation of a the privacy configuration file.
+/// It can be used to create customised configurations
+public protocol CustomisedPrivacyConfigurationJSONGenerating {
+    var privacyConfiguration: Data? { get }
+}
+
+/// A JSON generator for content scope privacy configuration.
 public struct ContentScopePrivacyConfigurationJSONGenerator: CustomisedPrivacyConfigurationJSONGenerating {
-    private let privacyConfigurationManager: PrivacyConfigurationManaging
+    let featureFlagger: FeatureFlagger
+    let privacyConfigurationManager: PrivacyConfigurationManaging
 
-    public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+    public init(featureFlagger: FeatureFlagger, privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.featureFlagger = featureFlagger
         self.privacyConfigurationManager = privacyConfigurationManager
     }
 
+    /// Generates and returns the privacy configuration as JSON data.
+    ///
+    /// Note: this was used for an experiment but left so that in the future we can pass ContentScope only the needed configuration
     public var privacyConfiguration: Data? {
         guard let config = try? PrivacyConfigurationData(data: privacyConfigurationManager.currentConfig) else { return nil }
 
-        return try? config.toJSONData(
+        let newConfig = PrivacyConfigurationData(features: config.features, unprotectedTemporary: config.unprotectedTemporary, trackerAllowlist: config.trackerAllowlist, version: config.version)
+        return try? newConfig.toJSONData(
             excludeFeatures: [
                 PrivacyFeature.autoconsent.rawValue
             ]
         )
     }
+
 }

@@ -83,7 +83,8 @@ final class UserScripts: UserScriptsProvider {
                                                           currentCohorts: baseProps.currentCohorts,
                                                           trackerData: sourceProvider.trackerProtectionDataSource?.surrogateFilteredTrackerData)
         do {
-            let configGenerator = ContentScopePrivacyConfigurationJSONGenerator(privacyConfigurationManager: sourceProvider.privacyConfigurationManager)
+            let configGenerator = ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: AppDependencyProvider.shared.featureFlagger,
+                                                                               privacyConfigurationManager: sourceProvider.privacyConfigurationManager)
             contentScopeUserScript = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
                                                                 properties: propsWithTrackerData,
                                                                 scriptContext: .contentScope,

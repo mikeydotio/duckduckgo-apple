@@ -67,6 +67,7 @@ struct DuckPlayerWebView: UIViewRepresentable {
         scriptSourceProviderDependencies: DefaultScriptSourceProvider.Dependencies,
         duckPlayerUserScript: DuckPlayerUserScriptPlayer? = nil,
         featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger,
+        privacyConfigurationJSONGenerator: ContentScopePrivacyConfigurationJSONGenerator? = nil,
         contentScopeUserScripts: ContentScopeUserScript? = nil) {
        
        self.viewModel = viewModel
@@ -75,12 +76,16 @@ struct DuckPlayerWebView: UIViewRepresentable {
               
        self.duckPlayerUserScript = duckPlayerUserScript ?? DuckPlayerUserScriptPlayer(viewModel: viewModel)
 
+       let jsonGenerator = privacyConfigurationJSONGenerator ??
+            ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: featureFlagger,
+                                                          privacyConfigurationManager: scriptSourceProvider.privacyConfigurationManager)
+
        do {
            self.contentScopeUserScripts = try contentScopeUserScripts ??
            ContentScopeUserScript(scriptSourceProvider.privacyConfigurationManager,
                                   properties: scriptSourceProvider.contentScopeProperties,
                                   scriptContext: .contentScopeIsolated,
-                                  privacyConfigurationJSONGenerator: nil
+                                  privacyConfigurationJSONGenerator: jsonGenerator
            )
        } catch {
            if let error = error as? UserScriptError {
