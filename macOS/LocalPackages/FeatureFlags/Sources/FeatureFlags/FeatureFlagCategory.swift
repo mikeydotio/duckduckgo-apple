@@ -98,8 +98,6 @@ extension FeatureFlag: FeatureFlagCategorization {
             return .popupBlocking
         case .webNotifications:
             return .webNotifications
-        case .showYouTubeAdBlockOnBadge:
-            return .adBlocking
         case .webExtensions,
                 .adBlockingExtension,
                 .forceDarkModeOnWebsites,

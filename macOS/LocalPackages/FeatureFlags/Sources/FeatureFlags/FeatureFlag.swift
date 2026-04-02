@@ -319,9 +319,6 @@ public enum FeatureFlag: String, CaseIterable {
     /// Gates the Suspend Tab / Resume Tab context menu actions for debugging purposes
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213883766662888?focus=true
     case tabSuspensionDebugging
-
-    /// Controls whether the YouTube Ad Block On badge animation is shown in the address bar
-    case showYouTubeAdBlockOnBadge
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -456,7 +453,6 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .privateProcessName,
                 .tabSuspensionDebugging,
                 .tabSuspension,
-                .showYouTubeAdBlockOnBadge,
                 .aiChatChromeSidebar,
                 .webViewLookUpAction,
                 .promoQueue,
@@ -665,8 +661,6 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .tabSuspension:
             return .disabled
         case .tabSuspensionDebugging:
-            return .disabled
-        case .showYouTubeAdBlockOnBadge:
             return .disabled
         }
     }
