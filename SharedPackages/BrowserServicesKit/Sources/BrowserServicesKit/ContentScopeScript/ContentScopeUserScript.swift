@@ -25,10 +25,6 @@ import TrackerRadarKit
 import UserScript
 import WebKit
 
-public protocol CustomisedPrivacyConfigurationJSONGenerating {
-    var privacyConfiguration: Data? { get }
-}
-
 public protocol ContentScopeUserScriptDelegate: AnyObject {
     func contentScopeUserScript(_ script: ContentScopeUserScript, didReceiveDebugFlag debugFlag: String)
 }

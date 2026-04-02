@@ -83,15 +83,16 @@ final class UserScripts: UserScriptsProvider {
                                                           currentCohorts: baseProps.currentCohorts,
                                                           trackerData: sourceProvider.trackerProtectionDataSource?.surrogateFilteredTrackerData)
         do {
+            let configGenerator = ContentScopePrivacyConfigurationJSONGenerator(privacyConfigurationManager: sourceProvider.privacyConfigurationManager)
             contentScopeUserScript = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
                                                                 properties: propsWithTrackerData,
                                                                 scriptContext: .contentScope,
                                                                 allowedNonisolatedFeatures: [PageContextUserScript.featureName, PrintingSubfeature.featureNameValue, TrackerProtectionSubfeature.featureNameValue],
-                                                                privacyConfigurationJSONGenerator: nil)
+                                                                privacyConfigurationJSONGenerator: configGenerator)
             contentScopeUserScriptIsolated = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
                                                                         properties: propsWithTrackerData,
                                                                         scriptContext: .contentScopeIsolated,
-                                                                        privacyConfigurationJSONGenerator: nil)
+                                                                        privacyConfigurationJSONGenerator: configGenerator)
         } catch {
             if let error = error as? UserScriptError {
                 error.fireLoadJSFailedPixelIfNeeded()
