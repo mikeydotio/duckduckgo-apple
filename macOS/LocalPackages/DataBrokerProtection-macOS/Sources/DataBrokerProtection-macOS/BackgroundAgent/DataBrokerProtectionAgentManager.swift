@@ -201,9 +201,9 @@ public final class DataBrokerProtectionAgentManager {
     private var activityScheduler: DataBrokerProtectionBackgroundActivityScheduler
     private var ipcServer: DataBrokerProtectionIPCServer
     private var queueManager: JobQueueManaging
-    let dataManager: DataBrokerProtectionDataManaging
+    private let dataManager: DataBrokerProtectionDataManaging
     public var emailConfirmationDataService: EmailConfirmationDataServiceProvider?
-    let jobDependencies: BrokerProfileJobDependencyProviding
+    private let jobDependencies: BrokerProfileJobDependencyProviding
     private let sharedPixelsHandler: EventMapping<DataBrokerProtectionSharedPixels>
     private let pixelHandler: EventMapping<DataBrokerProtectionMacOSPixels>
     private let engagementPixelRepository: DataBrokerProtectionEngagementPixelsRepository
@@ -211,9 +211,9 @@ public final class DataBrokerProtectionAgentManager {
     private let statsPixelRepository: DataBrokerProtectionStatsPixelsRepository
     private let agentStopper: DataBrokerProtectionAgentStopper
     private let configurationManger: DefaultConfigurationManager
-    let brokerUpdater: BrokerJSONServiceProvider
+    private let brokerUpdater: BrokerJSONServiceProvider
     private let privacyConfigurationManager: PrivacyConfigurationManaging
-    let authenticationManager: DataBrokerProtectionAuthenticationManaging
+    private let authenticationManager: DataBrokerProtectionAuthenticationManaging
     private let freemiumDBPUserStateManager: FreemiumDBPUserStateManager
     private let wideEventSweeper: DBPWideEventSweeper?
 
@@ -629,6 +629,13 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
         }
     }
 
+
+    // MARK: - MCP Accessors (used by DataBrokerProtectionAgentManager+MCP.swift)
+
+    var mcpDataManager: DataBrokerProtectionDataManaging { dataManager }
+    var mcpJobDependencies: BrokerProfileJobDependencyProviding { jobDependencies }
+    var mcpAuthenticationManager: DataBrokerProtectionAuthenticationManaging { authenticationManager }
+    var mcpBrokerUpdater: BrokerJSONServiceProvider { brokerUpdater }
 
     // All MCP tool implementations are in DataBrokerProtectionAgentManager+MCP.swift
 }

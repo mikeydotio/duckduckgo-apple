@@ -32,7 +32,7 @@ extension DataBrokerProtectionAgentManager {
 
     public func removeAllData() async -> Data? {
         do {
-            try dataManager.communicator.deleteProfileData()
+            try mcpDataManager.communicator.deleteProfileData()
             let result: [String: Any] = ["success": true, "message": "All PIR data removed"]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         } catch {
@@ -44,7 +44,7 @@ extension DataBrokerProtectionAgentManager {
     public func saveProfile(profileJSON: Data) async -> Data? {
         do {
             let profile = try JSONDecoder().decode(DataBrokerProtectionProfile.self, from: profileJSON)
-            try await dataManager.saveProfile(profile)
+            try await mcpDataManager.saveProfile(profile)
             let queries = profile.profileQueries
             // Trigger the same flow as the UI: pixel events, auth refresh, immediate scan
             await profileSaved()
@@ -63,7 +63,7 @@ extension DataBrokerProtectionAgentManager {
 
     public func getBrokerProfileData() async -> Data? {
         do {
-            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let allData = try mcpDataManager.fetchBrokerProfileQueryData(ignoresCache: true)
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
@@ -133,7 +133,7 @@ extension DataBrokerProtectionAgentManager {
 
     public func getBrokerJSON(brokerURL: String) async -> Data? {
         do {
-            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let allData = try mcpDataManager.fetchBrokerProfileQueryData(ignoresCache: true)
             let normalizedURL = brokerURL.replacingOccurrences(of: ".json", with: "")
 
             let broker = allData.first(where: {
@@ -154,7 +154,7 @@ extension DataBrokerProtectionAgentManager {
 
     public func getBrokerDetails(brokerName: String) async -> Data? {
         do {
-            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let allData = try mcpDataManager.fetchBrokerProfileQueryData(ignoresCache: true)
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
@@ -276,7 +276,7 @@ extension DataBrokerProtectionAgentManager {
 
     public func getScanHistory(brokerId: Int64, profileQueryId: Int64) async -> Data? {
         do {
-            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let allData = try mcpDataManager.fetchBrokerProfileQueryData(ignoresCache: true)
             let item = allData.first(where: {
                 $0.dataBroker.id == brokerId && $0.profileQuery.id == profileQueryId
             })
@@ -293,7 +293,7 @@ extension DataBrokerProtectionAgentManager {
 
     public func getOptOutHistory(brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64) async -> Data? {
         do {
-            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let allData = try mcpDataManager.fetchBrokerProfileQueryData(ignoresCache: true)
             let item = allData.first(where: {
                 $0.dataBroker.id == brokerId && $0.profileQuery.id == profileQueryId
             })
@@ -316,7 +316,7 @@ extension DataBrokerProtectionAgentManager {
 
     public func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, includeHistory: Bool) async -> Data? {
         do {
-            let allData = try dataManager.fetchBrokerProfileQueryData(ignoresCache: true)
+            let allData = try mcpDataManager.fetchBrokerProfileQueryData(ignoresCache: true)
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
@@ -404,11 +404,11 @@ extension DataBrokerProtectionAgentManager {
 
     public func getAuthStatus() async -> Data? {
         let settings = DataBrokerProtectionSettings(defaults: .dbp)
-        let isAuthenticated = await authenticationManager.isUserAuthenticated
-        let hasToken = await authenticationManager.accessToken() != nil
+        let isAuthenticated = await mcpAuthenticationManager.isUserAuthenticated
+        let hasToken = await mcpAuthenticationManager.accessToken() != nil
         var hasEntitlement = false
         do {
-            hasEntitlement = try await authenticationManager.hasValidEntitlement()
+            hasEntitlement = try await mcpAuthenticationManager.hasValidEntitlement()
         } catch {}
 
         let result: [String: Any] = [
@@ -429,7 +429,7 @@ extension DataBrokerProtectionAgentManager {
         settings.resetBrokerDeliveryData()
 
         do {
-            try await brokerUpdater.checkForUpdates(skipsLimiter: true)
+            try await mcpBrokerUpdater.checkForUpdates(skipsLimiter: true)
             let result: [String: Any] = [
                 "success": true,
                 "message": "Broker JSON update completed. Rate limiter bypassed, delivery data reset.",
@@ -469,7 +469,7 @@ extension DataBrokerProtectionAgentManager {
     }
 
     public func reauthenticate() async -> Data? {
-        await authenticationManager.signOut()
+        await mcpAuthenticationManager.signOut()
 
         let activationURLString = "https://duckduckgo.com/subscriptions/activation-flow"
         let browserBundleID = Bundle.main.bundleIdentifier?
@@ -530,13 +530,13 @@ extension DataBrokerProtectionAgentManager {
 
                 let stageCalculator = session.makeStageCalculator()
                 let runner = BrokerProfileScanSubJobWebRunner(
-                    privacyConfig: jobDependencies.privacyConfig,
-                    prefs: jobDependencies.contentScopeProperties,
+                    privacyConfig: mcpJobDependencies.privacyConfig,
+                    prefs: mcpJobDependencies.contentScopeProperties,
                     context: queryData,
                     emailConfirmationDataService: emailService,
                     captchaService: debugCaptchaService,
-                    featureFlagger: jobDependencies.featureFlagger,
-                    applicationNameForUserAgent: jobDependencies.applicationNameForUserAgent,
+                    featureFlagger: mcpJobDependencies.featureFlagger,
+                    applicationNameForUserAgent: mcpJobDependencies.applicationNameForUserAgent,
                     stageDurationCalculator: stageCalculator,
                     pixelHandler: debugPixelHandler,
                     executionConfig: .init(),
@@ -645,13 +645,13 @@ extension DataBrokerProtectionAgentManager {
 
             let stageCalculator = session.makeStageCalculator()
             let runner = BrokerProfileOptOutSubJobWebRunner(
-                privacyConfig: jobDependencies.privacyConfig,
-                prefs: jobDependencies.contentScopeProperties,
+                privacyConfig: mcpJobDependencies.privacyConfig,
+                prefs: mcpJobDependencies.contentScopeProperties,
                 context: queryData,
                 emailConfirmationDataService: emailService,
                 captchaService: debugCaptchaService,
-                featureFlagger: jobDependencies.featureFlagger,
-                applicationNameForUserAgent: jobDependencies.applicationNameForUserAgent,
+                featureFlagger: mcpJobDependencies.featureFlagger,
+                applicationNameForUserAgent: mcpJobDependencies.applicationNameForUserAgent,
                 stageCalculator: stageCalculator,
                 pixelHandler: debugPixelHandler,
                 executionConfig: .init(),
@@ -855,13 +855,13 @@ extension DataBrokerProtectionAgentManager {
 
             let stageCalculator = session.makeStageCalculator()
             let runner = BrokerProfileOptOutSubJobWebRunner(
-                privacyConfig: jobDependencies.privacyConfig,
-                prefs: jobDependencies.contentScopeProperties,
+                privacyConfig: mcpJobDependencies.privacyConfig,
+                prefs: mcpJobDependencies.contentScopeProperties,
                 context: queryData,
                 emailConfirmationDataService: emailService,
                 captchaService: debugCaptchaService,
-                featureFlagger: jobDependencies.featureFlagger,
-                applicationNameForUserAgent: jobDependencies.applicationNameForUserAgent,
+                featureFlagger: mcpJobDependencies.featureFlagger,
+                applicationNameForUserAgent: mcpJobDependencies.applicationNameForUserAgent,
                 stageCalculator: stageCalculator,
                 pixelHandler: debugPixelHandler,
                 executionConfig: .init(),
