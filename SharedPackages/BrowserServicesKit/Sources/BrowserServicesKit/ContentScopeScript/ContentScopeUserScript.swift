@@ -25,6 +25,10 @@ import TrackerRadarKit
 import UserScript
 import WebKit
 
+public protocol CustomisedPrivacyConfigurationJSONGenerating {
+    var privacyConfiguration: Data? { get }
+}
+
 public protocol ContentScopeUserScriptDelegate: AnyObject {
     func contentScopeUserScript(_ script: ContentScopeUserScript, didReceiveDebugFlag debugFlag: String)
 }
@@ -258,7 +262,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
                 properties: ContentScopeProperties,
                 scriptContext: ContentScopeScriptContext = .contentScope,
                 allowedNonisolatedFeatures: [String] = [],
-                privacyConfigurationJSONGenerator: CustomisedPrivacyConfigurationJSONGenerating?
+                privacyConfigurationJSONGenerator: (any CustomisedPrivacyConfigurationJSONGenerating)? = nil
     ) throws {
         self.scriptContext = scriptContext
         self.allowedNonisolatedFeatures = allowedNonisolatedFeatures
@@ -280,7 +284,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
                                       properties: ContentScopeProperties,
                                       scriptContext: ContentScopeScriptContext,
                                       config: WebkitMessagingConfig,
-                                      privacyConfigurationJSONGenerator: CustomisedPrivacyConfigurationJSONGenerating?
+                                      privacyConfigurationJSONGenerator: (any CustomisedPrivacyConfigurationJSONGenerating)? = nil
     ) throws -> String {
         if scriptContext != .contentScope {
             properties.trackerData = nil
