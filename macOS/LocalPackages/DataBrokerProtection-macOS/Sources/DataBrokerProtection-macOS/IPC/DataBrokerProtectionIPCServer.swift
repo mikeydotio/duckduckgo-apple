@@ -124,7 +124,7 @@ protocol XPCServerInterface {
     func getBrokerProfileData(completion: @escaping (Data?) -> Void)
     func getBrokerJSON(brokerURL: String, completion: @escaping (Data?) -> Void)
     func getBrokerDetails(brokerName: String, completion: @escaping (Data?) -> Void)
-    func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void)
+    func getBrokerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void)
     func getAuthStatus(completion: @escaping (Data?) -> Void)
 
     // MARK: - MCP Debug Server Support (Actions)
@@ -264,9 +264,9 @@ extension DefaultDataBrokerProtectionIPCServer: XPCServerInterface {
         }
     }
 
-    func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void) {
+    func getBrokerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void) {
         Task {
-            let data = await serverDelegate?.getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType)
+            let data = await serverDelegate?.getBrokerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType)
             completion(data)
         }
     }

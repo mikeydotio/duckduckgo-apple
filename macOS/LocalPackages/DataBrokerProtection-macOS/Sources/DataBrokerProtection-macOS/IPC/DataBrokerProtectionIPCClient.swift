@@ -220,10 +220,10 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
         }
     }
 
-    public func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?) async -> Data? {
+    public func getBrokerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?) async -> Data? {
         await withCheckedContinuation { continuation in
             xpc.execute(call: { server in
-                server.getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType) { data in
+                server.getBrokerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType) { data in
                     continuation.resume(returning: data)
                 }
             }, xpcReplyErrorHandler: { error in

@@ -274,7 +274,7 @@ extension DataBrokerProtectionAgentManager {
         }
     }
 
-    public func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?) async -> Data? {
+    public func getBrokerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?) async -> Data? {
         let includeScanHistory = historyType == "scan" || historyType == "all"
         let includeOptOutHistory = historyType == "optout" || historyType == "all"
         do {

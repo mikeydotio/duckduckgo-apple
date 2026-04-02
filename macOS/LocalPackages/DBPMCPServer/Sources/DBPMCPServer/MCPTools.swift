@@ -75,7 +75,7 @@ final class MCPTools: @unchecked Sendable {
                  "Get detailed per-profile-query scan and opt-out results for a specific broker.",
                  properties: ["broker_name": prop(.string, "The broker name or URL (e.g., 'PeopleLooker' or 'peoplelooker.com')")],
                  required: ["broker_name"]),
-            tool("get_broker_scheduler_state",
+            tool("get_broker_state",
                  "Get scheduler state for a broker: preferredRunDate, lastRunDate, attemptCount for scan and each opt-out job. Optionally include history events filtered by type.",
                  properties: [
                     "broker_name": prop(.string, "The broker name or URL"),
@@ -209,13 +209,13 @@ final class MCPTools: @unchecked Sendable {
                 text = try await xpcDataCall("Broker '\(brokerName)' not found") {
                     self.agent.getBrokerDetails(brokerName: brokerName, completion: $0)
                 }.prettyJSON()
-            case "get_broker_scheduler_state":
+            case "get_broker_state":
                 let brokerName = try args.requireString("broker_name")
                 let profileQueryId = args.int64("profile_query_id") ?? 0
                 let extractedProfileId = args.int64("extracted_profile_id") ?? 0
                 let historyType = args.string("history_type")
                 text = try await xpcDataCall("Failed to fetch scheduler state") {
-                    self.agent.getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType, completion: $0)
+                    self.agent.getBrokerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType, completion: $0)
                 }.prettyJSON()
             case "get_auth_status":
                 text = try await xpcDataCall("Failed to fetch auth status") { self.agent.getAuthStatus(completion: $0) }.prettyJSON()
@@ -552,9 +552,8 @@ final class MCPTools: @unchecked Sendable {
         - list_brokers — all brokers with version, match/error counts, last scan date
         - get_broker_json — full scan/opt-out step definitions for a broker
         - get_broker_details — per-profile scan and opt-out results (returns broker_id, profile_query_id)
-        - get_scan_history — scan events for a broker+profile (needs IDs from get_broker_details)
-        - get_optout_history — opt-out events (needs IDs from get_broker_details)
-        - get_broker_scheduler_state — raw scheduler state: run dates, attempt counts, history
+        - get_broker_state — scheduler state, job status, and history events (scan/optout/all) for a broker
+        - get_broker_state — raw scheduler state: run dates, attempt counts, history
         - get_profile_queries — configured profile queries being scanned
         - query_logs — system logs filtered by PIR subsystems and debug build variant
 
@@ -619,7 +618,7 @@ final class MCPTools: @unchecked Sendable {
         ### Diagnose stuck or failing scans
         1. get_agent_status → is the agent running? (Last Trigger = last background scheduler fire, not last immediate scan)
         2. get_auth_status → is the token valid? correct environment?
-        3. get_broker_scheduler_state(broker_name: "...", include_history: true) → check preferredRunDate, attemptCount
+        3. get_broker_state(broker_name: "...", history_type: "all") → check preferredRunDate, attemptCount, history events
         4. query_logs(minutes: 60, filter: "spokeo") → look for errors in logs
 
         ### Switch to staging branch deploy
@@ -638,7 +637,7 @@ final class MCPTools: @unchecked Sendable {
         - save_profile auto-triggers an immediate scan (same as the real app UI flow)
         - start_immediate_scan is for re-scanning without changing the profile (e.g. after force_broker_update)
         - Last Trigger in get_agent_status = last NSBackgroundActivityScheduler fire, NOT last immediate scan
-        - Tool IDs chain: list_brokers → get_broker_details (returns broker_id, profile_query_id) → get_scan_history / get_optout_history
+        - Tool IDs chain: list_brokers → get_broker_details (returns broker_id, profile_query_id) → get_broker_state (with history_type for events)
         - Parallel sessions: run_scan/run_optout each create an independent session. Multiple can run or be paused concurrently.
         - run_scan/run_optout/continue_optout return a sessionId in responses. Use it with get_webview_state, execute_js, check_email_confirmation, and close_session.
         - pause_on_error (default: true) keeps the WebView alive after failures — session stays in pool for inspection via session_id

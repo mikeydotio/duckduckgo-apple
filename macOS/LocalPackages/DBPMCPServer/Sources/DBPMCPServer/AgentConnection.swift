@@ -29,7 +29,7 @@ import Foundation
     func getBrokerProfileData(completion: @escaping (Data?) -> Void)
     func getBrokerJSON(brokerURL: String, completion: @escaping (Data?) -> Void)
     func getBrokerDetails(brokerName: String, completion: @escaping (Data?) -> Void)
-    func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void)
+    func getBrokerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void)
     func getAuthStatus(completion: @escaping (Data?) -> Void)
     func removeAllData(completion: @escaping (Data?) -> Void)
     func saveProfile(profileJSON: Data, completion: @escaping (Data?) -> Void)
@@ -202,15 +202,15 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
         proxy.getBrokerDetails(brokerName: brokerName, completion: completion)
     }
 
-    func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void) {
+    func getBrokerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?, completion: @escaping (Data?) -> Void) {
         guard let proxy = serverProxy(errorHandler: { error in
-            log("XPC error (getSchedulerState): \(error)")
+            log("XPC error (getBrokerState): \(error)")
             completion(nil)
         }) else {
             completion(nil)
             return
         }
-        proxy.getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType, completion: completion)
+        proxy.getBrokerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType, completion: completion)
     }
 
     func getAuthStatus(completion: @escaping (Data?) -> Void) {

@@ -142,8 +142,8 @@ extension DefaultDataBrokerProtectionLoginItemInterface: DataBrokerProtectionLog
         return await ipcClient.getBrokerDetails(brokerName: brokerName)
     }
 
-    func getSchedulerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?) async -> Data? {
-        return await ipcClient.getSchedulerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType)
+    func getBrokerState(brokerName: String, profileQueryId: Int64, extractedProfileId: Int64, historyType: String?) async -> Data? {
+        return await ipcClient.getBrokerState(brokerName: brokerName, profileQueryId: profileQueryId, extractedProfileId: extractedProfileId, historyType: historyType)
     }
 
     func getAuthStatus() async -> Data? {
