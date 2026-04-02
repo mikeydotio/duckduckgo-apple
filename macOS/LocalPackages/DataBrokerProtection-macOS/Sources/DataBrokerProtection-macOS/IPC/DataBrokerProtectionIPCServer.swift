@@ -137,11 +137,12 @@ protocol XPCServerInterface {
     func setAPIEndpoint(environment: String, serviceRoot: String, completion: @escaping (Data?) -> Void)
     func runCustomScan(brokerJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void)
     func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void)
-    func getWebViewState(completion: @escaping (Data?) -> Void)
+    func getWebViewState(sessionId: String?, completion: @escaping (Data?) -> Void)
     func reauthenticate(completion: @escaping (Data?) -> Void)
-    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void)
-    func checkEmailConfirmation(completion: @escaping (Data?) -> Void)
-    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void)
+    func executeJavaScript(sessionId: String?, code: String, completion: @escaping (Data?) -> Void)
+    func checkEmailConfirmation(sessionId: String?, completion: @escaping (Data?) -> Void)
+    func closeDebugSession(sessionId: String, completion: @escaping (Data?) -> Void)
+    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void)
 }
 
 protocol DataBrokerProtectionIPCServer: IPCClientInterface, XPCServerInterface {
@@ -337,9 +338,9 @@ extension DefaultDataBrokerProtectionIPCServer: XPCServerInterface {
         }
     }
 
-    func getWebViewState(completion: @escaping (Data?) -> Void) {
+    func getWebViewState(sessionId: String?, completion: @escaping (Data?) -> Void) {
         Task {
-            let data = await serverDelegate?.getWebViewState()
+            let data = await serverDelegate?.getWebViewState(sessionId: sessionId)
             completion(data)
         }
     }
@@ -351,23 +352,30 @@ extension DefaultDataBrokerProtectionIPCServer: XPCServerInterface {
         }
     }
 
-    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void) {
+    func executeJavaScript(sessionId: String?, code: String, completion: @escaping (Data?) -> Void) {
         Task {
-            let data = await serverDelegate?.executeJavaScript(code: code)
+            let data = await serverDelegate?.executeJavaScript(sessionId: sessionId, code: code)
             completion(data)
         }
     }
 
-    func checkEmailConfirmation(completion: @escaping (Data?) -> Void) {
+    func checkEmailConfirmation(sessionId: String?, completion: @escaping (Data?) -> Void) {
         Task {
-            let data = await serverDelegate?.checkEmailConfirmation()
+            let data = await serverDelegate?.checkEmailConfirmation(sessionId: sessionId)
             completion(data)
         }
     }
 
-    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void) {
+    func closeDebugSession(sessionId: String, completion: @escaping (Data?) -> Void) {
         Task {
-            let data = await serverDelegate?.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError)
+            let data = await serverDelegate?.closeDebugSession(sessionId: sessionId)
+            completion(data)
+        }
+    }
+
+    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void) {
+        Task {
+            let data = await serverDelegate?.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, sessionId: sessionId, showWebView: showWebView, pauseOnError: pauseOnError)
             completion(data)
         }
     }

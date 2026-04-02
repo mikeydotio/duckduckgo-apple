@@ -26,6 +26,12 @@ import os.log
 /// Updated by the stage calculator callbacks and read by get_webview_state.
 public final class DebugScanSession {
 
+    /// Unique session identifier, returned to MCP callers for parallel session support.
+    let id: String = UUID().uuidString
+
+    /// Timestamp when this session was created, used for auto-expiry.
+    let createdAt: Date = Date()
+
     /// In-memory email confirmation store for debug scans (mirrors DebugEmailConfirmationStore in debug VM).
     let debugEmailConfirmationStore = DebugEmailConfirmationStore()
 

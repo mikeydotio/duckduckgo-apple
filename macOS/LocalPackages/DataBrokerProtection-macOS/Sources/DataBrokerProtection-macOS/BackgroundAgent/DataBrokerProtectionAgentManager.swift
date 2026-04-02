@@ -219,10 +219,51 @@ public final class DataBrokerProtectionAgentManager {
 
     // Used for debug functions only, so not injected
     private lazy var browserWindowManager = BrowserWindowManager()
-    private let debugScanSession = DebugScanSession()
 
-    /// Lazily-constructed debug email confirmation service (mirrors DataBrokerRunCustomJSONViewModel).
-    private lazy var debugEmailConfirmationService: EmailConfirmationDataServiceProvider = {
+    // MARK: - Debug Session Pool
+
+    private var debugSessions: [String: DebugScanSession] = [:]
+    private let debugSessionsLock = NSLock()
+    private let debugSessionExpiry: TimeInterval = 30 * 60 // 30 minutes
+
+    private func createDebugSession() -> DebugScanSession {
+        reapExpiredSessions()
+        let session = DebugScanSession()
+        debugSessionsLock.lock()
+        debugSessions[session.id] = session
+        debugSessionsLock.unlock()
+        return session
+    }
+
+    private func debugSession(for sessionId: String?) -> DebugScanSession? {
+        debugSessionsLock.lock()
+        defer { debugSessionsLock.unlock() }
+        if let sessionId { return debugSessions[sessionId] }
+        // Fall back to most recent session with a live WebView
+        return debugSessions.values
+            .filter { $0.activeWebViewHandler != nil }
+            .sorted { $0.createdAt > $1.createdAt }
+            .first
+    }
+
+    private func removeDebugSession(_ session: DebugScanSession) async {
+        await session.cleanUpPreviousWebView()
+        debugSessionsLock.lock()
+        debugSessions.removeValue(forKey: session.id)
+        debugSessionsLock.unlock()
+    }
+
+    private func reapExpiredSessions() {
+        let now = Date()
+        debugSessionsLock.lock()
+        let expired = debugSessions.filter { now.timeIntervalSince($0.value.createdAt) > debugSessionExpiry }
+        debugSessionsLock.unlock()
+        for (_, session) in expired {
+            Task { await removeDebugSession(session) }
+        }
+    }
+
+    private func makeDebugEmailConfirmationService(for session: DebugScanSession) -> EmailConfirmationDataServiceProvider {
         let dbpSettings = DataBrokerProtectionSettings(defaults: .dbp)
         let fakePixelHandler: EventMapping<DataBrokerProtectionSharedPixels> = EventMapping { event, _, _, _ in
             Logger.dataBrokerProtection.debug("Debug event: \(String(describing: event), privacy: .public)")
@@ -231,14 +272,14 @@ public final class DataBrokerProtectionAgentManager {
         let emailService = EmailService(authenticationManager: authenticationManager, settings: dbpSettings, servicePixel: backendServicePixels)
         let emailServiceV1 = EmailServiceV1(authenticationManager: authenticationManager, settings: dbpSettings, servicePixel: backendServicePixels)
         return EmailConfirmationDataService(
-            emailConfirmationStore: debugScanSession.debugEmailConfirmationStore,
+            emailConfirmationStore: session.debugEmailConfirmationStore,
             database: nil,
             emailServiceV0: emailService,
             emailServiceV1: emailServiceV1,
             featureFlagger: jobDependencies.featureFlagger,
             pixelHandler: fakePixelHandler
         )
-    }()
+    }
 
     /// No-op pixel handler for debug scan/optout runners.
     private lazy var debugPixelHandler: EventMapping<DataBrokerProtectionSharedPixels> = EventMapping { event, _, _, _ in
@@ -1098,8 +1139,9 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
     // MARK: - Debug Scan/OptOut/WebView State
 
     public func runCustomScan(brokerJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
-        await debugScanSession.cleanUpPreviousWebView()
-        debugScanSession.updateState { s in
+        let session = createDebugSession()
+        let emailService = makeDebugEmailConfirmationService(for: session)
+        session.updateState { s in
             s.isRunning = true
             s.currentStep = "scan"
             s.currentAction = nil
@@ -1107,7 +1149,6 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             s.debugEvents.removeAll()
             s.lastExtractedProfiles.removeAll()
         }
-        debugScanSession.debugEmailConfirmationStore.reset()
 
         do {
             let broker = try JSONDecoder().decode(DataBroker.self, from: brokerJSON)
@@ -1137,12 +1178,12 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                     scanJobData: fakeScanJob
                 )
 
-                let stageCalculator = debugScanSession.makeStageCalculator()
+                let stageCalculator = session.makeStageCalculator()
                 let runner = BrokerProfileScanSubJobWebRunner(
                     privacyConfig: jobDependencies.privacyConfig,
                     prefs: jobDependencies.contentScopeProperties,
                     context: queryData,
-                    emailConfirmationDataService: debugEmailConfirmationService,
+                    emailConfirmationDataService: emailService,
                     captchaService: debugCaptchaService,
                     featureFlagger: jobDependencies.featureFlagger,
                     applicationNameForUserAgent: jobDependencies.applicationNameForUserAgent,
@@ -1156,9 +1197,8 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                 do {
                     let profiles = try await runner.scan(queryData, showWebView: showWebView) { true }
 
-                    // Store in debug email confirmation store (mirrors debug VM flow)
                     let assignedProfiles: [ExtractedProfile] = profiles.map { profile in
-                        debugScanSession.debugEmailConfirmationStore.storeExtractedProfile(
+                        session.debugEmailConfirmationStore.storeExtractedProfile(
                             profile,
                             brokerId: brokerId,
                             profileQueryId: profileQueryId,
@@ -1167,27 +1207,28 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                     }
                     allExtracted.append(contentsOf: assignedProfiles)
 
-                    // Success — clean up WebView
                     await runner.webViewHandler?.finish()
                 } catch {
-                    // Error — keep WebView alive for inspection
-                    debugScanSession.activeWebViewHandler = runner.webViewHandler
+                    session.activeWebViewHandler = runner.webViewHandler
                     throw error
                 }
             }
 
-            debugScanSession.updateState { s in
+            // Success — clean up session
+            session.updateState { s in
                 s.isRunning = false
                 s.currentStep = "idle"
                 s.lastBroker = resolvedBroker
                 s.lastProfileQuery = profile.profileQueries.first
                 s.lastExtractedProfiles = allExtracted
             }
+            await removeDebugSession(session)
 
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let result: [String: Any] = [
                 "success": true,
+                "sessionId": session.id,
                 "matchCount": allExtracted.count,
                 "extractedProfiles": (try? JSONSerialization.jsonObject(with: encoder.encode(allExtracted))) ?? [],
             ]
@@ -1195,23 +1236,29 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
 
         } catch {
             Logger.dataBrokerProtection.error("Debug scan failed: \(error.localizedDescription, privacy: .public)")
-            debugScanSession.updateState { s in
+            session.updateState { s in
                 s.isRunning = false
                 s.currentStep = "paused"
                 s.lastError = error.localizedDescription
             }
+            let keepAlive = pauseOnError && session.activeWebViewHandler != nil
+            if !keepAlive {
+                await removeDebugSession(session)
+            }
             let result: [String: Any] = [
                 "success": false,
+                "sessionId": session.id,
                 "error": error.localizedDescription,
-                "webViewAlive": debugScanSession.activeWebViewHandler != nil,
+                "webViewAlive": keepAlive,
             ]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         }
     }
 
     public func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
-        await debugScanSession.cleanUpPreviousWebView()
-        debugScanSession.updateState { s in
+        let session = createDebugSession()
+        let emailService = makeDebugEmailConfirmationService(for: session)
+        session.updateState { s in
             s.isRunning = true
             s.currentStep = "optOut"
             s.currentAction = nil
@@ -1247,12 +1294,12 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                 scanJobData: fakeScanJob
             )
 
-            let stageCalculator = debugScanSession.makeStageCalculator()
+            let stageCalculator = session.makeStageCalculator()
             let runner = BrokerProfileOptOutSubJobWebRunner(
                 privacyConfig: jobDependencies.privacyConfig,
                 prefs: jobDependencies.contentScopeProperties,
                 context: queryData,
-                emailConfirmationDataService: debugEmailConfirmationService,
+                emailConfirmationDataService: emailService,
                 captchaService: debugCaptchaService,
                 featureFlagger: jobDependencies.featureFlagger,
                 applicationNameForUserAgent: jobDependencies.applicationNameForUserAgent,
@@ -1264,8 +1311,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             )
             runner.keepWebViewAlive = pauseOnError
 
-            // Store optout context for email confirmation flow
-            debugScanSession.updateState { s in
+            session.updateState { s in
                 s.lastOptOutExtractedProfile = extractedProfile
             }
 
@@ -1276,60 +1322,73 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                     showWebView: showWebView
                 ) { true }
 
-                // Success — clean up WebView
                 await runner.webViewHandler?.finish()
             } catch {
-                // Error — keep WebView alive for inspection if pauseOnError
                 if pauseOnError {
-                    debugScanSession.activeWebViewHandler = runner.webViewHandler
+                    session.activeWebViewHandler = runner.webViewHandler
                 }
                 throw error
             }
 
-            debugScanSession.updateState { s in
+            // Success — clean up session
+            session.updateState { s in
                 s.isRunning = false
                 s.currentStep = "idle"
             }
+            await removeDebugSession(session)
 
             let result: [String: Any] = [
                 "success": true,
+                "sessionId": session.id,
                 "message": "Opt-out completed successfully.",
             ]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
 
         } catch {
-            // Keep WebView alive for inspection
             Logger.dataBrokerProtection.error("Debug opt-out failed: \(error.localizedDescription, privacy: .public)")
-            debugScanSession.updateState { s in
+            session.updateState { s in
                 s.isRunning = false
                 s.currentStep = "paused"
                 s.lastError = error.localizedDescription
             }
+            let keepAlive = pauseOnError && session.activeWebViewHandler != nil
+            if !keepAlive {
+                await removeDebugSession(session)
+            }
             let result: [String: Any] = [
                 "success": false,
+                "sessionId": session.id,
                 "error": error.localizedDescription,
-                "webViewAlive": debugScanSession.activeWebViewHandler != nil,
+                "webViewAlive": keepAlive,
             ]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         }
     }
 
-    public func getWebViewState() async -> Data? {
-        return await debugScanSession.serializeState()
+    public func getWebViewState(sessionId: String?) async -> Data? {
+        guard let session = debugSession(for: sessionId) else {
+            let result: [String: Any] = ["success": false, "error": "No active debug session found." + (sessionId != nil ? " Session '\(sessionId!)' not found." : "")]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
+        return await session.serializeState()
     }
 
-    public func executeJavaScript(code: String) async -> Data? {
-        guard let handler = debugScanSession.activeWebViewHandler else {
+    public func executeJavaScript(sessionId: String?, code: String) async -> Data? {
+        guard let session = debugSession(for: sessionId) else {
+            let result: [String: Any] = ["success": false, "error": "No active debug session found." + (sessionId != nil ? " Session '\(sessionId!)' not found." : "")]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
+        guard let handler = session.activeWebViewHandler else {
             let result: [String: Any] = [
                 "success": false,
-                "error": "No active WebView. Run a scan or optout first (WebView is kept alive on error).",
+                "error": "No active WebView in session '\(session.id)'. WebView is only kept alive on error with pause_on_error: true.",
             ]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         }
 
         do {
             let jsResult = try await handler.evaluateJavaScriptReturningResult(code)
-            var result: [String: Any] = ["success": true]
+            var result: [String: Any] = ["success": true, "sessionId": session.id]
             if let stringResult = jsResult as? String {
                 result["result"] = stringResult
             } else if let numResult = jsResult as? NSNumber {
@@ -1351,17 +1410,22 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
         }
     }
 
-    public func checkEmailConfirmation() async -> Data? {
+    public func checkEmailConfirmation(sessionId: String?) async -> Data? {
+        guard let session = debugSession(for: sessionId) else {
+            let result: [String: Any] = ["success": false, "error": "No active debug session found." + (sessionId != nil ? " Session '\(sessionId!)' not found." : "")]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
+        let emailService = makeDebugEmailConfirmationService(for: session)
         do {
-            try await debugEmailConfirmationService.checkForEmailConfirmationData()
+            try await emailService.checkForEmailConfirmationData()
 
-            // Check if confirmation link is now available
-            let store = debugScanSession.debugEmailConfirmationStore
+            let store = session.debugEmailConfirmationStore
             let withLinks = try store.fetchOptOutEmailConfirmationsWithLink()
             let awaiting = try store.fetchOptOutEmailConfirmationsAwaitingLink()
 
             let result: [String: Any] = [
                 "success": true,
+                "sessionId": session.id,
                 "confirmationsWithLink": withLinks.count,
                 "confirmationsAwaiting": awaiting.count,
                 "message": withLinks.isEmpty
@@ -1378,9 +1442,21 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
         }
     }
 
-    public func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
-        // Find the confirmation URL from the debug email store
-        let s = debugScanSession.state
+    public func closeDebugSession(sessionId: String) async -> Data? {
+        guard let session = debugSession(for: sessionId) else {
+            let result: [String: Any] = ["success": false, "error": "Session '\(sessionId)' not found."]
+            return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        }
+        await removeDebugSession(session)
+        let result: [String: Any] = ["success": true, "message": "Session '\(sessionId)' closed."]
+        return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+    }
+
+    public func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool) async -> Data? {
+        // Look up the original session's email store for confirmation links
+        let originalSession = debugSession(for: sessionId)
+        let emailStore = originalSession?.debugEmailConfirmationStore ?? DebugEmailConfirmationStore()
+
         guard let broker = try? JSONDecoder().decode(DataBroker.self, from: brokerJSON) else {
             let result: [String: Any] = ["success": false, "error": "Invalid broker JSON"]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
@@ -1407,8 +1483,7 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
         let brokerId = DebugHelper.stableId(for: resolvedBroker)
         let profileQueryId = DebugHelper.stableId(for: profileQuery)
 
-        // Look up confirmation URL from email store
-        guard let confirmations = try? debugScanSession.debugEmailConfirmationStore.fetchOptOutEmailConfirmationsWithLink(),
+        guard let confirmations = try? emailStore.fetchOptOutEmailConfirmationsWithLink(),
               let match = confirmations.first(where: { $0.brokerId == brokerId && $0.profileQueryId == profileQueryId && $0.extractedProfileId == extractedProfileId }),
               let link = match.emailConfirmationLink,
               let confirmationURL = URL(string: link) else {
@@ -1416,8 +1491,10 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         }
 
-        await debugScanSession.cleanUpPreviousWebView()
-        debugScanSession.updateState { s in
+        // Create a new session for the continuation
+        let session = createDebugSession()
+        let emailService = makeDebugEmailConfirmationService(for: session)
+        session.updateState { s in
             s.isRunning = true
             s.currentStep = "emailConfirmation"
             s.currentAction = nil
@@ -1430,12 +1507,12 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
             let fakeScanJob = ScanJobData(brokerId: brokerId, profileQueryId: profileQueryId, historyEvents: [])
             let queryData = BrokerProfileQueryData(dataBroker: resolvedBroker, profileQuery: queryWithId, scanJobData: fakeScanJob)
 
-            let stageCalculator = debugScanSession.makeStageCalculator()
+            let stageCalculator = session.makeStageCalculator()
             let runner = BrokerProfileOptOutSubJobWebRunner(
                 privacyConfig: jobDependencies.privacyConfig,
                 prefs: jobDependencies.contentScopeProperties,
                 context: queryData,
-                emailConfirmationDataService: debugEmailConfirmationService,
+                emailConfirmationDataService: emailService,
                 captchaService: debugCaptchaService,
                 featureFlagger: jobDependencies.featureFlagger,
                 applicationNameForUserAgent: jobDependencies.applicationNameForUserAgent,
@@ -1452,29 +1529,35 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
                 await runner.webViewHandler?.finish()
             } catch {
                 if pauseOnError {
-                    debugScanSession.activeWebViewHandler = runner.webViewHandler
+                    session.activeWebViewHandler = runner.webViewHandler
                 }
                 throw error
             }
 
-            debugScanSession.updateState { s in
+            session.updateState { s in
                 s.isRunning = false
                 s.currentStep = "idle"
             }
+            await removeDebugSession(session)
 
-            let result: [String: Any] = ["success": true, "message": "Opt-out email confirmation completed successfully."]
+            let result: [String: Any] = ["success": true, "sessionId": session.id, "message": "Opt-out email confirmation completed successfully."]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         } catch {
             Logger.dataBrokerProtection.error("Debug email confirmation opt-out failed: \(error.localizedDescription, privacy: .public)")
-            debugScanSession.updateState { s in
+            session.updateState { s in
                 s.isRunning = false
                 s.currentStep = pauseOnError ? "paused" : "idle"
                 s.lastError = error.localizedDescription
             }
+            let keepAlive = pauseOnError && session.activeWebViewHandler != nil
+            if !keepAlive {
+                await removeDebugSession(session)
+            }
             let result: [String: Any] = [
                 "success": false,
+                "sessionId": session.id,
                 "error": error.localizedDescription,
-                "webViewAlive": debugScanSession.activeWebViewHandler != nil,
+                "webViewAlive": keepAlive,
             ]
             return try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         }

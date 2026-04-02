@@ -184,23 +184,27 @@ extension DefaultDataBrokerProtectionLoginItemInterface: DataBrokerProtectionLog
         return await ipcClient.runCustomOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError)
     }
 
-    func getWebViewState() async -> Data? {
-        return await ipcClient.getWebViewState()
+    func getWebViewState(sessionId: String?) async -> Data? {
+        return await ipcClient.getWebViewState(sessionId: sessionId)
     }
 
     func reauthenticate() async -> Data? {
         return await ipcClient.reauthenticate()
     }
 
-    func executeJavaScript(code: String) async -> Data? {
-        return await ipcClient.executeJavaScript(code: code)
+    func executeJavaScript(sessionId: String?, code: String) async -> Data? {
+        return await ipcClient.executeJavaScript(sessionId: sessionId, code: code)
     }
 
-    func checkEmailConfirmation() async -> Data? {
-        return await ipcClient.checkEmailConfirmation()
+    func checkEmailConfirmation(sessionId: String?) async -> Data? {
+        return await ipcClient.checkEmailConfirmation(sessionId: sessionId)
     }
 
-    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
-        return await ipcClient.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError)
+    func closeDebugSession(sessionId: String) async -> Data? {
+        return await ipcClient.closeDebugSession(sessionId: sessionId)
+    }
+
+    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool) async -> Data? {
+        return await ipcClient.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, sessionId: sessionId, showWebView: showWebView, pauseOnError: pauseOnError)
     }
 }

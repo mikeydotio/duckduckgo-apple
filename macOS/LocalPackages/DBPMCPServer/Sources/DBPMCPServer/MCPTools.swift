@@ -141,11 +141,17 @@ final class MCPTools: @unchecked Sendable {
                  ],
                  required: ["extracted_profile", "first_name", "last_name", "city", "state", "birth_year"]),
             tool("get_webview_state",
-                 "Get the current state of the debug WebView during an active scan or opt-out."),
+                 "Get the current state of the debug WebView during an active scan or opt-out.",
+                 properties: [
+                    "session_id": prop(.string, "Session ID from run_scan/run_optout response. Omit to use most recent session with a live WebView."),
+                 ]),
             tool("reauthenticate",
                  "Sign out of subscription and open the activation flow in the browser for re-authentication."),
             tool("check_email_confirmation",
-                 "Check for email confirmation links from the backend after an opt-out that requires email confirmation."),
+                 "Check for email confirmation links from the backend after an opt-out that requires email confirmation.",
+                 properties: [
+                    "session_id": prop(.string, "Session ID from run_optout response."),
+                 ]),
             tool("continue_optout",
                  "Continue an opt-out after email confirmation link is found.",
                  properties: [
@@ -158,14 +164,22 @@ final class MCPTools: @unchecked Sendable {
                     "city": prop(.string, "City"),
                     "state": prop(.string, "State"),
                     "birth_year": prop(.integer, "Birth year"),
+                    "session_id": prop(.string, "Session ID from the original run_optout that needs email confirmation."),
                     "show_web_view": prop(.boolean, "Show web view (default: true)"),
                     "pause_on_error": prop(.boolean, "Keep WebView alive on failure (default: true)."),
                  ],
                  required: ["extracted_profile", "first_name", "last_name", "city", "state", "birth_year"]),
             tool("execute_js",
                  "Execute JavaScript on the live debug WebView. Only works when a WebView is alive (paused on error).",
-                 properties: ["javascript": prop(.string, "JavaScript expression to evaluate in the WebView.")],
+                 properties: [
+                    "session_id": prop(.string, "Session ID from run_scan/run_optout response. Omit to use most recent session with a live WebView."),
+                    "javascript": prop(.string, "JavaScript expression to evaluate in the WebView."),
+                 ],
                  required: ["javascript"]),
+            tool("close_session",
+                 "Close a debug session and release its WebView. Use to clean up paused sessions after inspection.",
+                 properties: ["session_id": prop(.string, "Session ID to close.")],
+                 required: ["session_id"]),
             tool("restart_agent",
                  "Restart the PIR background agent via launchctl. Use after rebuilding the app or to recover from a stuck agent."),
             tool("remove_all_data",
@@ -247,18 +261,24 @@ final class MCPTools: @unchecked Sendable {
             case "run_optout":
                 text = try await runOptOut(args: args)
             case "get_webview_state":
-                text = try await xpcDataCall("Failed to get WebView state") { self.agent.getWebViewState(completion: $0) }.prettyJSON()
+                let sessionId = args.string("session_id")
+                text = try await xpcDataCall("Failed to get WebView state") { self.agent.getWebViewState(sessionId: sessionId, completion: $0) }.prettyJSON()
             case "reauthenticate":
                 text = reauthenticate()
             case "check_email_confirmation":
-                text = try await xpcDataCall("Failed to check email confirmation") { self.agent.checkEmailConfirmation(completion: $0) }.prettyJSON()
+                let sessionId = args.string("session_id")
+                text = try await xpcDataCall("Failed to check email confirmation") { self.agent.checkEmailConfirmation(sessionId: sessionId, completion: $0) }.prettyJSON()
             case "continue_optout":
                 text = try await continueOptOut(args: args)
             case "execute_js":
+                let sessionId = args.string("session_id")
                 let javascript = try args.requireString("javascript")
                 text = try await xpcDataCall("Failed to execute JavaScript. Is a WebView alive?") {
-                    self.agent.executeJavaScript(code: javascript, completion: $0)
+                    self.agent.executeJavaScript(sessionId: sessionId, code: javascript, completion: $0)
                 }.prettyJSON()
+            case "close_session":
+                let sessionId = try args.requireString("session_id")
+                text = try await xpcDataCall("Failed to close session") { self.agent.closeDebugSession(sessionId: sessionId, completion: $0) }.prettyJSON()
             case "restart_agent":
                 text = try restartAgent()
             case "remove_all_data":
@@ -411,12 +431,13 @@ final class MCPTools: @unchecked Sendable {
         let city = try args.requireString("city")
         let state = try args.requireString("state")
         let birthYear = try args.requireInt("birth_year")
+        let sessionId = args.string("session_id")
         let showWebView = args.bool("show_web_view") ?? true
         let pauseOnError = args.bool("pause_on_error") ?? true
 
         let brokerData = try await resolveBrokerJSON(args: args)
         let data = try await xpcDataCall("Continue opt-out failed — no response from agent") {
-            self.agent.continueOptOut(brokerJSON: brokerData, extractedProfileJSON: extractedProfileData, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
+            self.agent.continueOptOut(brokerJSON: brokerData, extractedProfileJSON: extractedProfileData, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, sessionId: sessionId, showWebView: showWebView, pauseOnError: pauseOnError, completion: $0)
         }
         return data.prettyJSON()
     }
@@ -582,9 +603,10 @@ final class MCPTools: @unchecked Sendable {
         - check_email_confirmation — check for email confirmation links post-opt-out
         - continue_optout — continue opt-out after email confirmation
 
-        ### Live WebView Inspection
-        - get_webview_state — current URL, page HTML, active step, last error
-        - execute_js — run JavaScript on the live debug WebView
+        ### Live WebView Inspection (parallel sessions supported)
+        - get_webview_state — current URL, page HTML, active step, last error (pass session_id for specific session)
+        - execute_js — run JavaScript on the live debug WebView (pass session_id for specific session)
+        - close_session — close a paused session and release its WebView
 
         ## Key Workflows
 
@@ -608,6 +630,13 @@ final class MCPTools: @unchecked Sendable {
         4. Edit the broker JSON based on findings
         5. run_scan(broker_name: "spokeo.com", broker_json: "<fixed JSON>", ...) → test the fix
         6. run_optout(...) → verify opt-out flow works too
+
+        ### Fix multiple brokers in parallel
+        1. run_scan(broker_name: "broker1.com", ..., pause_on_error: true) → fails, returns sessionId A
+        2. run_scan(broker_name: "broker2.com", ..., pause_on_error: true) → fails, returns sessionId B
+        3. get_webview_state(session_id: A) / execute_js(session_id: A) → inspect broker 1
+        4. get_webview_state(session_id: B) / execute_js(session_id: B) → inspect broker 2
+        5. Fix both JSONs, close_session(A), close_session(B), re-test each
 
         ### Build new broker JSON from scratch
         1. run_scan with minimal JSON (navigate + dummy extract) → page loads, extract fails, WebView stays alive
@@ -638,7 +667,11 @@ final class MCPTools: @unchecked Sendable {
         - start_immediate_scan is for re-scanning without changing the profile (e.g. after force_broker_update)
         - Last Trigger in get_agent_status = last NSBackgroundActivityScheduler fire, NOT last immediate scan
         - Tool IDs chain: list_brokers → get_broker_details (returns broker_id, profile_query_id) → get_scan_history / get_optout_history
-        - pause_on_error (default: true) keeps the WebView alive after failures — use get_webview_state and execute_js to inspect
+        - Parallel sessions: run_scan/run_optout each create an independent session. Multiple can run or be paused concurrently.
+        - run_scan/run_optout/continue_optout return a sessionId in responses. Use it with get_webview_state, execute_js, check_email_confirmation, and close_session.
+        - pause_on_error (default: true) keeps the WebView alive after failures — session stays in pool for inspection via session_id
+        - Successful operations auto-clean their session. Failed operations with pause_on_error: false also auto-clean.
+        - Use close_session(session_id) to clean up paused sessions after inspection. Sessions auto-expire after 30 minutes.
         - Set pause_on_error: false for batch audits where you don't need to inspect failures
         - query_logs automatically filters to debug build variant (no prod/review log noise)
         - run_scan/run_optout/continue_optout accept optional broker_json to test custom JSON without modifying the DB
@@ -664,9 +697,9 @@ struct DecodedArguments {
     }
 
     func string(_ key: String) -> String? { dict[key] as? String }
-    func int(_ key: String) -> Int? { dict[key] as? Int }
-    func int64(_ key: String) -> Int64? { (dict[key] as? Int64) ?? (dict[key] as? Int).map(Int64.init) }
-    func bool(_ key: String) -> Bool? { dict[key] as? Bool }
+    func int(_ key: String) -> Int? { (dict[key] as? Int) ?? (dict[key] as? NSNumber)?.intValue ?? (dict[key] as? String).flatMap(Int.init) }
+    func int64(_ key: String) -> Int64? { (dict[key] as? Int64) ?? (dict[key] as? NSNumber)?.int64Value ?? (dict[key] as? String).flatMap(Int64.init) }
+    func bool(_ key: String) -> Bool? { (dict[key] as? Bool) ?? { if let s = dict[key] as? String { return s == "true" ? true : s == "false" ? false : nil }; return nil }() }
     func array(_ key: String) -> [Any]? { dict[key] as? [Any] }
 
     func requireString(_ key: String) throws -> String {

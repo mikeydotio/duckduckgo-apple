@@ -39,11 +39,12 @@ import Foundation
     func forceBrokerUpdate(completion: @escaping (Data?) -> Void)
     func setAPIEndpoint(environment: String, serviceRoot: String, completion: @escaping (Data?) -> Void)
     func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void)
-    func getWebViewState(completion: @escaping (Data?) -> Void)
+    func getWebViewState(sessionId: String?, completion: @escaping (Data?) -> Void)
     func reauthenticate(completion: @escaping (Data?) -> Void)
-    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void)
-    func checkEmailConfirmation(completion: @escaping (Data?) -> Void)
-    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void)
+    func executeJavaScript(sessionId: String?, code: String, completion: @escaping (Data?) -> Void)
+    func checkEmailConfirmation(sessionId: String?, completion: @escaping (Data?) -> Void)
+    func closeDebugSession(sessionId: String, completion: @escaping (Data?) -> Void)
+    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void)
 }
 
 /// Mirror of the agent's XPC client interface (currently unused by MCP server).
@@ -313,7 +314,7 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
         proxy.runCustomOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: completion)
     }
 
-    func getWebViewState(completion: @escaping (Data?) -> Void) {
+    func getWebViewState(sessionId: String?, completion: @escaping (Data?) -> Void) {
         guard let proxy = serverProxy(errorHandler: { error in
             log("XPC error (getWebViewState): \(error)")
             completion(nil)
@@ -321,7 +322,7 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
             completion(nil)
             return
         }
-        proxy.getWebViewState(completion: completion)
+        proxy.getWebViewState(sessionId: sessionId, completion: completion)
     }
 
     func reauthenticate(completion: @escaping (Data?) -> Void) {
@@ -335,7 +336,7 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
         proxy.reauthenticate(completion: completion)
     }
 
-    func executeJavaScript(code: String, completion: @escaping (Data?) -> Void) {
+    func executeJavaScript(sessionId: String?, code: String, completion: @escaping (Data?) -> Void) {
         guard let proxy = serverProxy(errorHandler: { error in
             log("XPC error (executeJavaScript): \(error)")
             completion(nil)
@@ -343,10 +344,10 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
             completion(nil)
             return
         }
-        proxy.executeJavaScript(code: code, completion: completion)
+        proxy.executeJavaScript(sessionId: sessionId, code: code, completion: completion)
     }
 
-    func checkEmailConfirmation(completion: @escaping (Data?) -> Void) {
+    func checkEmailConfirmation(sessionId: String?, completion: @escaping (Data?) -> Void) {
         guard let proxy = serverProxy(errorHandler: { error in
             log("XPC error (checkEmailConfirmation): \(error)")
             completion(nil)
@@ -354,10 +355,21 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
             completion(nil)
             return
         }
-        proxy.checkEmailConfirmation(completion: completion)
+        proxy.checkEmailConfirmation(sessionId: sessionId, completion: completion)
     }
 
-    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void) {
+    func closeDebugSession(sessionId: String, completion: @escaping (Data?) -> Void) {
+        guard let proxy = serverProxy(errorHandler: { error in
+            log("XPC error (closeDebugSession): \(error)")
+            completion(nil)
+        }) else {
+            completion(nil)
+            return
+        }
+        proxy.closeDebugSession(sessionId: sessionId, completion: completion)
+    }
+
+    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool, completion: @escaping (Data?) -> Void) {
         guard let proxy = serverProxy(errorHandler: { error in
             log("XPC error (continueOptOut): \(error)")
             completion(nil)
@@ -365,6 +377,6 @@ final class AgentConnection: NSObject, DBPXPCClientInterface {
             completion(nil)
             return
         }
-        proxy.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError, completion: completion)
+        proxy.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, sessionId: sessionId, showWebView: showWebView, pauseOnError: pauseOnError, completion: completion)
     }
 }

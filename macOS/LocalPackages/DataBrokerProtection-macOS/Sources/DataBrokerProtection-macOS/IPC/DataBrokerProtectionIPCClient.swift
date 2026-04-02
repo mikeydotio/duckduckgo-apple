@@ -352,10 +352,10 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
         }
     }
 
-    public func getWebViewState() async -> Data? {
+    public func getWebViewState(sessionId: String?) async -> Data? {
         await withCheckedContinuation { continuation in
             xpc.execute(call: { server in
-                server.getWebViewState { data in
+                server.getWebViewState(sessionId: sessionId) { data in
                     continuation.resume(returning: data)
                 }
             }, xpcReplyErrorHandler: { error in
@@ -378,10 +378,10 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
         }
     }
 
-    public func executeJavaScript(code: String) async -> Data? {
+    public func executeJavaScript(sessionId: String?, code: String) async -> Data? {
         await withCheckedContinuation { continuation in
             xpc.execute(call: { server in
-                server.executeJavaScript(code: code) { data in
+                server.executeJavaScript(sessionId: sessionId, code: code) { data in
                     continuation.resume(returning: data)
                 }
             }, xpcReplyErrorHandler: { error in
@@ -391,10 +391,10 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
         }
     }
 
-    public func checkEmailConfirmation() async -> Data? {
+    public func checkEmailConfirmation(sessionId: String?) async -> Data? {
         await withCheckedContinuation { continuation in
             xpc.execute(call: { server in
-                server.checkEmailConfirmation { data in
+                server.checkEmailConfirmation(sessionId: sessionId) { data in
                     continuation.resume(returning: data)
                 }
             }, xpcReplyErrorHandler: { error in
@@ -404,10 +404,23 @@ extension DataBrokerProtectionIPCClient: IPCServerInterface {
         }
     }
 
-    public func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data? {
+    public func closeDebugSession(sessionId: String) async -> Data? {
         await withCheckedContinuation { continuation in
             xpc.execute(call: { server in
-                server.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, showWebView: showWebView, pauseOnError: pauseOnError) { data in
+                server.closeDebugSession(sessionId: sessionId) { data in
+                    continuation.resume(returning: data)
+                }
+            }, xpcReplyErrorHandler: { error in
+                Logger.dataBrokerProtection.error("Error closing debug session: \(error.localizedDescription)")
+                continuation.resume(returning: nil)
+            })
+        }
+    }
+
+    public func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool) async -> Data? {
+        await withCheckedContinuation { continuation in
+            xpc.execute(call: { server in
+                server.continueOptOut(brokerJSON: brokerJSON, extractedProfileJSON: extractedProfileJSON, firstName: firstName, lastName: lastName, middleName: middleName, city: city, state: state, birthYear: birthYear, sessionId: sessionId, showWebView: showWebView, pauseOnError: pauseOnError) { data in
                     continuation.resume(returning: data)
                 }
             }, xpcReplyErrorHandler: { error in

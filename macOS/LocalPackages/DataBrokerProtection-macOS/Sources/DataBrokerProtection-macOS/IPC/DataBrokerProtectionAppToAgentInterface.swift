@@ -71,15 +71,17 @@ public protocol DataBrokerProtectionAgentDebugCommands {
     /// Runs opt-out for an extracted profile from a previous scan. Takes broker JSON + extracted profile JSON.
     func runCustomOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data?
     /// Returns the current debug WebView state (action progress, errors, etc.)
-    func getWebViewState() async -> Data?
+    func getWebViewState(sessionId: String?) async -> Data?
     /// Signs out of subscription and opens the activation flow for the user to re-auth.
     func reauthenticate() async -> Data?
     /// Evaluates JavaScript on the paused debug WebView.
-    func executeJavaScript(code: String) async -> Data?
+    func executeJavaScript(sessionId: String?, code: String) async -> Data?
     /// Checks for email confirmation links from the backend.
-    func checkEmailConfirmation() async -> Data?
+    func checkEmailConfirmation(sessionId: String?) async -> Data?
+    /// Closes a debug session and releases its WebView.
+    func closeDebugSession(sessionId: String) async -> Data?
     /// Continues opt-out after email confirmation link is found.
-    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, showWebView: Bool, pauseOnError: Bool) async -> Data?
+    func continueOptOut(brokerJSON: Data, extractedProfileJSON: Data, firstName: String, lastName: String, middleName: String?, city: String, state: String, birthYear: Int, sessionId: String?, showWebView: Bool, pauseOnError: Bool) async -> Data?
 }
 
 public protocol DataBrokerProtectionAppToAgentInterface: AnyObject, DataBrokerProtectionAgentAppEvents, DataBrokerProtectionAgentDebugCommands {
