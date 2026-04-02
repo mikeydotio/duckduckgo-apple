@@ -30,13 +30,18 @@ struct YouTubeAdBlockingSettings: StoringKeys {
 }
 
 final class YouTubeAdBlockingPreferences: ObservableObject {
+
+    static let youTubeAdBlockingEnabledDidChangeNotification = Notification.Name("youTubeAdBlockingEnabledDidChange")
+
     private var settings: any KeyedStoring<YouTubeAdBlockingSettings>
     private var cancellables = Set<AnyCancellable>()
 
     @Published
     var youTubeAdBlockingEnabled: Bool {
         didSet {
+            guard youTubeAdBlockingEnabled != oldValue else { return }
             settings.youTubeAdBlockingEnabled = youTubeAdBlockingEnabled
+            NotificationCenter.default.post(name: Self.youTubeAdBlockingEnabledDidChangeNotification, object: nil)
         }
     }
 
