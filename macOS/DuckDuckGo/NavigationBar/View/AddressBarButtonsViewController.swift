@@ -528,11 +528,16 @@ final class AddressBarButtonsViewController: NSViewController {
     }
 
     func showBadgeNotification(_ type: NavigationBarBadgeAnimationView.AnimationType) {
+        if case .youTubeAdBlockOn = type {
+            guard featureFlagger.isFeatureOn(.showYouTubeAdBlockOnBadge) else { return }
+            buttonsBadgeAnimator.cancelPendingAnimations()
+        }
+
         let priority: NavigationBarBadgeAnimator.AnimationPriority
         switch type {
         case .trackersBlocked:
             priority = .high
-        case .cookiePopupManaged, .cookiePopupHidden:
+        case .cookiePopupManaged, .cookiePopupHidden, .youTubeAdBlockOn:
             priority = .low
         }
 

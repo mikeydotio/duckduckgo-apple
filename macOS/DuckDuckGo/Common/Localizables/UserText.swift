@@ -2286,6 +2286,7 @@ struct UserText {
     // MARK: - OmniBar Notifications
     static let omnibarNotificationCookiesManaged = NSLocalizedString("omnibar.notification.cookies.managed", value: "Cookies Managed", comment: "Text displayed when cookies are managed by DuckDuckGo")
     static let omnibarNotificationPopupHidden = NSLocalizedString("omnibar.notification.popup.hidden", value: "Pop-up Hidden", comment: "Text displayed when a pop-up is hidden by DuckDuckGo")
+    static let omnibarNotificationYouTubeAdBlockOn = NSLocalizedString("omnibar.notification.youtube-ad-block-on", value: "Youtube Ad Block On", comment: "Text displayed on notification appearing in the address bar when YouTube ad blocking is active")
 
     static func omnibarNotificationTrackersBlocked(_ count: Int) -> String {
         let template = NSLocalizedString(

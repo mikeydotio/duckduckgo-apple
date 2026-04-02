@@ -3724,6 +3724,8 @@
 		C11198352C89AEFA00F0272C /* FreemiumDBPFirstProfileSavedNotifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11198332C89AEFA00F0272C /* FreemiumDBPFirstProfileSavedNotifierTests.swift */; };
 		C124AC232D4257BE009FBFD0 /* DataImportExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = C124AC222D4257BE009FBFD0 /* DataImportExtension.swift */; };
 		C124AC242D4257BE009FBFD0 /* DataImportExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = C124AC222D4257BE009FBFD0 /* DataImportExtension.swift */; };
+		826DE2AF36B745189B120C74 /* AdBlockingDebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E98EDA7AE9931D95CEA01E /* AdBlockingDebugMenu.swift */; };
+		1D955E273EB784CB1672BB43 /* AdBlockingDebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E98EDA7AE9931D95CEA01E /* AdBlockingDebugMenu.swift */; };
 		C126B35A2C820924005DC2A3 /* FreemiumDebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = C126B3592C820924005DC2A3 /* FreemiumDebugMenu.swift */; };
 		C126B35B2C820924005DC2A3 /* FreemiumDebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = C126B3592C820924005DC2A3 /* FreemiumDebugMenu.swift */; };
 		C1351DD12C8B31CE0086B058 /* NotificationName+FreemiumDBP.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1351DD02C8B31CE0086B058 /* NotificationName+FreemiumDBP.swift */; };
@@ -6449,6 +6451,7 @@
 		C11198302C898AB500F0272C /* FreemiumDBPFirstProfileSavedNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreemiumDBPFirstProfileSavedNotifier.swift; sourceTree = "<group>"; };
 		C11198332C89AEFA00F0272C /* FreemiumDBPFirstProfileSavedNotifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreemiumDBPFirstProfileSavedNotifierTests.swift; sourceTree = "<group>"; };
 		C124AC222D4257BE009FBFD0 /* DataImportExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataImportExtension.swift; sourceTree = "<group>"; };
+		E5E98EDA7AE9931D95CEA01E /* AdBlockingDebugMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdBlockingDebugMenu.swift; sourceTree = "<group>"; };
 		C126B3592C820924005DC2A3 /* FreemiumDebugMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreemiumDebugMenu.swift; sourceTree = "<group>"; };
 		C1351DD02C8B31CE0086B058 /* NotificationName+FreemiumDBP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationName+FreemiumDBP.swift"; sourceTree = "<group>"; };
 		C1372EF32BBC5BAD003F8793 /* SecureTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureTextField.swift; sourceTree = "<group>"; };
@@ -10465,6 +10468,7 @@
 				8556A60C256C15C60092FA9D /* FileDownload */,
 				85A0115D25AF1C4700FA6A0C /* FindInPage */,
 				AA6820E825503A21005ED0D5 /* Fire */,
+				68E7E683755D62949300B1D8 /* AdBlocking */,
 				4B02197B25E05FAC00ED7DEA /* Fireproofing */,
 				C1858CCF2C7C95DB00C9BEAB /* Freemium */,
 				B65536902684409300085A79 /* Geolocation */,
@@ -12340,6 +12344,22 @@
 				126335EE0A1DF773E18BED26 /* FreemiumDBPPromoDelegateTests.swift */,
 			);
 			path = DBP;
+			sourceTree = "<group>";
+		};
+		68E7E683755D62949300B1D8 /* AdBlocking */ = {
+			isa = PBXGroup;
+			children = (
+				E52B37163DD93C132713AA69 /* Debug */,
+			);
+			path = AdBlocking;
+			sourceTree = "<group>";
+		};
+		E52B37163DD93C132713AA69 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				E5E98EDA7AE9931D95CEA01E /* AdBlockingDebugMenu.swift */,
+			);
+			path = Debug;
 			sourceTree = "<group>";
 		};
 		C1858CCF2C7C95DB00C9BEAB /* Freemium */ = {
@@ -14832,6 +14852,7 @@
 				BB8E05722EE0D2B9006CD2E6 /* HomePageSubscriptionCardPersistor.swift in Sources */,
 				3706FB2D293F65D500E42796 /* PasswordManagementPopover.swift in Sources */,
 				C1935A152C88F958001AD72D /* SyncPromoView.swift in Sources */,
+				1D955E273EB784CB1672BB43 /* AdBlockingDebugMenu.swift in Sources */,
 				C126B35B2C820924005DC2A3 /* FreemiumDebugMenu.swift in Sources */,
 				BBDE001C2D6DE6A800109F88 /* DefaultBrowserAndDockPromptPopover.swift in Sources */,
 				D6E0ACB22CE36DCA005D3486 /* DuckPlayerOverlayPixels.swift in Sources */,
@@ -17777,6 +17798,7 @@
 				85589E8327BBB8630038AD11 /* BurnerHomePageViewController.swift in Sources */,
 				F17114852C7C9D28009836C1 /* Logger+Fire.swift in Sources */,
 				EEF7091C2DDE2C2400BA3C36 /* SyncExtensions.swift in Sources */,
+				826DE2AF36B745189B120C74 /* AdBlockingDebugMenu.swift in Sources */,
 				C126B35A2C820924005DC2A3 /* FreemiumDebugMenu.swift in Sources */,
 				B6A9E46B2614618A0067D1B9 /* OperatingSystemVersionExtension.swift in Sources */,
 				4BDFA4AE27BF19E500648192 /* ToggleableScrollView.swift in Sources */,
