@@ -55,6 +55,9 @@ final class WebView: WKWebView {
     private let featureFlagger: FeatureFlagger
     private let privacyConfig: PrivacyConfiguration
 
+    @UserDefaultsWrapper(key: .nsTrackingAlwaysActiveOnWebContent, defaultValue: false)
+    static var isNSTrackingAlwaysActiveOnWebContent: Bool
+
     private var isLoadingObserver: Any?
     /// used in tests
     @objc func resetLoadingObserver() {
@@ -91,7 +94,7 @@ final class WebView: WKWebView {
     override func addTrackingArea(_ trackingArea: NSTrackingArea) {
         /// disable mouseEntered/mouseMoved/mouseExited events passing to Web View while it‘s loading
         /// see https://app.asana.com/0/1177771139624306/1206990108527681/f
-        if trackingArea.owner?.className == "WKMouseTrackingObserver" {
+        if trackingArea.owner?.className == "WKMouseTrackingObserver" && !Self.isNSTrackingAlwaysActiveOnWebContent {
             // suppress Tracking Area events while loading
             isLoadingObserver = self.observe(\.isLoading, options: [.new]) { [weak self, trackingArea] _, c in
                 if c.newValue /* isLoading */ ?? false {

@@ -157,6 +157,8 @@ final class MainMenu: NSMenu {
     let configurationDateAndTimeMenuItem = NSMenuItem(title: "Configuration URL", action: nil)
     let autofillDebugScriptMenuItem = NSMenuItem(title: "Autofill Debug Script", action: #selector(MainMenu.toggleAutofillScriptDebugSettingsAction))
     let contentScopeDebugStateMenuItem = NSMenuItem(title: "Content Scope Scripts Debug State", action: #selector(MainMenu.toggleContentScopeStateDebugSettingsAction))
+    let nsTrackingAlwaysActiveMenuItem = NSMenuItem(title: "NSTracking Always Active on Web Content",
+                                                       action: #selector(MainMenu.toggleNSTrackingAlwaysActive))
     let toggleWatchdogMenuItem = NSMenuItem(title: "Toggle Hang Watchdog", action: #selector(MainViewController.toggleWatchdog))
     let toggleWatchdogCrashMenuItem = NSMenuItem(title: "Crash on timeout", action: #selector(MainViewController.toggleWatchdogCrash))
     let alwaysShowFirstTimeQuitSurvey = NSMenuItem(title: "Always Show First-Time Quit Survey", action: #selector(MainViewController.alwaysShowFirstTimeQuitSurvey))
@@ -573,6 +575,7 @@ final class MainMenu: NSMenu {
         updateRemoteConfigurationInfo()
         updateAutofillDebugScriptMenuItem()
         updateContentScopeDebugStateMenuItem()
+        updateNSTrackingAlwaysActiveMenuItem()
         updateShiftNextStepsDaysMenuItem()
         updateShowToolbarsOnFullScreenMenuItem()
         updateWatchdogMenuItems()
@@ -1182,6 +1185,8 @@ final class MainMenu: NSMenu {
             .targetting(self))
         menu.addItem(contentScopeDebugStateMenuItem
             .targetting(self))
+        menu.addItem(nsTrackingAlwaysActiveMenuItem
+            .targetting(self))
         menu.addItem(.separator())
         let exportLogsMenuItem = NSMenuItem(title: "Export Logs…", action: #selector(MainViewController.exportLogs))
         menu.addItem(exportLogsMenuItem)
@@ -1232,6 +1237,15 @@ final class MainMenu: NSMenu {
         configurationDateAndTimeMenuItem.title = dateString
 
         customConfigurationUrlMenuItem.title = "Configuration URL:  \(configurationURLProvider.url(for: .privacyConfiguration).absoluteString)"
+    }
+
+    private func updateNSTrackingAlwaysActiveMenuItem() {
+        nsTrackingAlwaysActiveMenuItem.state = WebView.isNSTrackingAlwaysActiveOnWebContent ? .on : .off
+    }
+
+    @objc private func toggleNSTrackingAlwaysActive(_ sender: NSMenuItem) {
+        WebView.isNSTrackingAlwaysActiveOnWebContent = !WebView.isNSTrackingAlwaysActiveOnWebContent
+        updateNSTrackingAlwaysActiveMenuItem()
     }
 
     @objc private func toggleAutofillScriptDebugSettingsAction(_ sender: NSMenuItem) {
