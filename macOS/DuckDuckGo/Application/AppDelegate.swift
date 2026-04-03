@@ -1434,6 +1434,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         guard didFinishLaunching else { return }
 
+        if NSApp.keyWindow == nil, let mainWindow = NSApp.mainWindow ?? NSApp.windows.first(where: { $0 is MainWindow && $0.isVisible }) {
+            mainWindow.makeKeyAndOrderFront(nil)
+        }
+
         // Touch coordinator so Next Steps delegate is registered before promo service starts (1s fallback).
         _ = newTabPageCoordinator
         promoService?.applicationDidBecomeActive()

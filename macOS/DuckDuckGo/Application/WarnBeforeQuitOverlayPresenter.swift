@@ -166,12 +166,12 @@ final class WarnBeforeQuitOverlayPresenter {
             // Clear content view to prevent shadow artifacts
             overlayWindow.contentView = nil
 
-            // Order out asynchronously to allow content view cleanup
             DispatchQueue.main.async {
                 self?.overlayWindow = nil
-                overlayWindow.parent?.removeChildWindow(overlayWindow)
+                let parentWindow = overlayWindow.parent
+                parentWindow?.removeChildWindow(overlayWindow)
                 overlayWindow.orderOut(nil)
-                // Reset progress and shouldHide after window is hidden
+                parentWindow?.makeKeyAndOrderFront(nil)
                 self?.viewModel.resetProgress()
                 self?.viewModel.shouldHide = false
             }
