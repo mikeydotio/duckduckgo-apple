@@ -94,7 +94,11 @@ final class WebView: WKWebView {
     override func addTrackingArea(_ trackingArea: NSTrackingArea) {
         /// disable mouseEntered/mouseMoved/mouseExited events passing to Web View while it‘s loading
         /// see https://app.asana.com/0/1177771139624306/1206990108527681/f
-        if trackingArea.owner?.className == "WKMouseTrackingObserver" && !Self.isNSTrackingAlwaysActiveOnWebContent {
+        if Self.isNSTrackingAlwaysActiveOnWebContent {
+            super.addTrackingArea(trackingArea.replacingActivationWithActiveAlways())
+            return
+        }
+        if trackingArea.owner?.className == "WKMouseTrackingObserver" {
             // suppress Tracking Area events while loading
             isLoadingObserver = self.observe(\.isLoading, options: [.new]) { [weak self, trackingArea] _, c in
                 if c.newValue /* isLoading */ ?? false {
@@ -549,5 +553,18 @@ private extension WebView {
         ControlClickFixCache.domains = domains
         ControlClickFixCache.configIdentifier = currentIdentifier
         return domains
+    }
+}
+
+// MARK: - NSTrackingArea activeAlways replacement
+private extension NSTrackingArea {
+
+    static let activationOptions: NSTrackingArea.Options = [.activeInKeyWindow, .activeInActiveApp, .activeAlways]
+
+    func replacingActivationWithActiveAlways() -> NSTrackingArea {
+        var adjusted = options.subtracting(Self.activationOptions)
+        adjusted.insert(.activeAlways)
+        guard adjusted != options else { return self }
+        return NSTrackingArea(rect: rect, options: adjusted, owner: owner, userInfo: userInfo)
     }
 }
