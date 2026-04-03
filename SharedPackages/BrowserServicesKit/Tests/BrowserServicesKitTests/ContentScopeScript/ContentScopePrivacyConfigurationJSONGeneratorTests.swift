@@ -89,9 +89,9 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
         XCTAssertNil(outputFeatures["autoconsent"])
     }
 
-    // MARK: - trackerAllowlist preserved
+    // MARK: - trackerAllowlist excluded
 
-    func testWhenTrackerAllowlistPresentThenItIsPreserved() {
+    func testWhenTrackerAllowlistPresentThenItIsExcluded() {
         let features: [String: Any] = [
             "contentBlocking": ["state": "enabled", "exceptions": []]
         ]
@@ -102,10 +102,7 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
             return
         }
 
-        // trackerAllowlist is serialized from PrivacyConfigurationData.trackerAllowlist,
-        // not from the features dict. With the mock's default empty allowlist it may or
-        // may not appear, but the key point is it is NOT excluded.
-        // We verify indirectly by confirming autoconsent is the only exclusion.
+        XCTAssertNil(outputFeatures["trackerAllowlist"], "trackerAllowlist must be excluded (not needed by isolated script)")
         XCTAssertNil(outputFeatures["autoconsent"])
     }
 

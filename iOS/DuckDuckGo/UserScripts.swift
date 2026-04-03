@@ -83,17 +83,16 @@ final class UserScripts: UserScriptsProvider {
                                                           currentCohorts: baseProps.currentCohorts,
                                                           trackerData: sourceProvider.trackerProtectionDataSource?.surrogateFilteredTrackerData)
         do {
-            let configGenerator = ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: AppDependencyProvider.shared.featureFlagger,
-                                                                               privacyConfigurationManager: sourceProvider.privacyConfigurationManager)
+            let isolatedConfigGenerator = ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: AppDependencyProvider.shared.featureFlagger,
+                                                                                     privacyConfigurationManager: sourceProvider.privacyConfigurationManager)
             contentScopeUserScript = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
                                                                 properties: propsWithTrackerData,
                                                                 scriptContext: .contentScope,
-                                                                allowedNonisolatedFeatures: [PageContextUserScript.featureName, PrintingSubfeature.featureNameValue, TrackerProtectionSubfeature.featureNameValue],
-                                                                privacyConfigurationJSONGenerator: configGenerator)
+                                                                allowedNonisolatedFeatures: [PageContextUserScript.featureName, PrintingSubfeature.featureNameValue, TrackerProtectionSubfeature.featureNameValue])
             contentScopeUserScriptIsolated = try ContentScopeUserScript(sourceProvider.privacyConfigurationManager,
                                                                         properties: propsWithTrackerData,
                                                                         scriptContext: .contentScopeIsolated,
-                                                                        privacyConfigurationJSONGenerator: configGenerator)
+                                                                        privacyConfigurationJSONGenerator: isolatedConfigGenerator)
         } catch {
             if let error = error as? UserScriptError {
                 error.fireLoadJSFailedPixelIfNeeded()
