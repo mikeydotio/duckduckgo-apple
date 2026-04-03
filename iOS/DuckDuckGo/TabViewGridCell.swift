@@ -25,7 +25,18 @@ import DesignResourcesKitIcons
 import UIComponents
 
 final class TabViewGridCell: TabViewCell {
-    
+
+    enum Constants {
+        static let headerHeight: CGFloat = 44
+        static let faviconSize: CGFloat = 16
+        static let faviconLeadingPadding: CGFloat = 12
+        static let faviconTrailingPadding: CGFloat = 8
+        static let unreadSize: CGFloat = 9
+        static let unreadOffset: CGFloat = 7
+        static let previewHorizontalInset: CGFloat = 8
+        static let previewBottomPadding: CGFloat = 4
+    }
+
     static let reuseIdentifier = "TabViewGridCell"
 
     override init(frame: CGRect) {
@@ -69,7 +80,7 @@ final class TabViewGridCell: TabViewCell {
         preview = previewImageView
 
         let spacing = buttonContainer.leadingAnchor.constraint(equalTo: headerStack.trailingAnchor,
-                                                               constant: Constants.removeButtonTextSpacingRegular)
+                                                               constant: TabViewCell.Constants.removeButtonTextSpacingRegular)
         textButtonSpacing = spacing
 
         let pvTop = previewImageView.topAnchor.constraint(equalTo: previewClipView.topAnchor)
@@ -82,21 +93,21 @@ final class TabViewGridCell: TabViewCell {
         NSLayoutConstraint.activate([
             headerStack.topAnchor.constraint(equalTo: background.topAnchor),
             headerStack.leadingAnchor.constraint(equalTo: background.leadingAnchor),
-            headerStack.heightAnchor.constraint(equalToConstant: 44),
+            headerStack.heightAnchor.constraint(equalToConstant: Constants.headerHeight),
 
-            favicon.widthAnchor.constraint(equalToConstant: 16),
-            favicon.heightAnchor.constraint(equalToConstant: 16),
-            favicon.leadingAnchor.constraint(equalTo: faviconContainer.leadingAnchor, constant: 12),
+            favicon.widthAnchor.constraint(equalToConstant: Constants.faviconSize),
+            favicon.heightAnchor.constraint(equalToConstant: Constants.faviconSize),
+            favicon.leadingAnchor.constraint(equalTo: faviconContainer.leadingAnchor, constant: Constants.faviconLeadingPadding),
             favicon.centerYAnchor.constraint(equalTo: faviconContainer.centerYAnchor),
-            faviconContainer.trailingAnchor.constraint(equalTo: favicon.trailingAnchor, constant: 8),
+            faviconContainer.trailingAnchor.constraint(equalTo: favicon.trailingAnchor, constant: Constants.faviconTrailingPadding),
 
-            unread.widthAnchor.constraint(equalToConstant: 9),
-            unread.heightAnchor.constraint(equalToConstant: 9),
-            unread.centerYAnchor.constraint(equalTo: favicon.centerYAnchor, constant: 7),
-            unread.centerXAnchor.constraint(equalTo: favicon.centerXAnchor, constant: 7),
+            unread.widthAnchor.constraint(equalToConstant: Constants.unreadSize),
+            unread.heightAnchor.constraint(equalToConstant: Constants.unreadSize),
+            unread.centerYAnchor.constraint(equalTo: favicon.centerYAnchor, constant: Constants.unreadOffset),
+            unread.centerXAnchor.constraint(equalTo: favicon.centerXAnchor, constant: Constants.unreadOffset),
 
-            buttonContainer.widthAnchor.constraint(equalToConstant: 44),
-            buttonContainer.heightAnchor.constraint(equalToConstant: 44),
+            buttonContainer.widthAnchor.constraint(equalToConstant: Constants.headerHeight),
+            buttonContainer.heightAnchor.constraint(equalToConstant: Constants.headerHeight),
             buttonContainer.trailingAnchor.constraint(equalTo: background.trailingAnchor),
             buttonContainer.centerYAnchor.constraint(equalTo: headerStack.centerYAnchor),
             spacing,
@@ -108,8 +119,8 @@ final class TabViewGridCell: TabViewCell {
 
             previewClipView.topAnchor.constraint(equalTo: headerStack.bottomAnchor),
             previewClipView.centerXAnchor.constraint(equalTo: background.centerXAnchor),
-            previewClipView.widthAnchor.constraint(equalTo: background.widthAnchor, constant: -8),
-            background.bottomAnchor.constraint(equalTo: previewClipView.bottomAnchor, constant: 4),
+            previewClipView.widthAnchor.constraint(equalTo: background.widthAnchor, constant: -Constants.previewHorizontalInset),
+            background.bottomAnchor.constraint(equalTo: previewClipView.bottomAnchor, constant: Constants.previewBottomPadding),
 
             pvTop,
             previewImageView.leadingAnchor.constraint(equalTo: previewClipView.leadingAnchor),

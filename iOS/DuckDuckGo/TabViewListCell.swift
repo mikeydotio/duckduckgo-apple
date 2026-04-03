@@ -25,7 +25,19 @@ import DesignResourcesKitIcons
 import UIComponents
 
 final class TabViewListCell: TabViewCell {
-    
+
+    enum Constants {
+        static let titleLinkSpacing: CGFloat = 2
+        static let leadingPadding: CGFloat = 16
+        static let trailingPadding: CGFloat = 12
+        static let verticalPadding: CGFloat = 8
+        static let faviconSize: CGFloat = 24
+        static let faviconTrailingPadding: CGFloat = 8
+        static let rowHeight: CGFloat = 44
+        static let unreadSize: CGFloat = 10
+        static let unreadOffset: CGFloat = 6
+    }
+
     static let reuseIdentifier = "TabViewListCell"
 
     override init(frame: CGRect) {
@@ -62,7 +74,7 @@ final class TabViewListCell: TabViewCell {
         let titleLinkStack = UIStackView()
         titleLinkStack.translatesAutoresizingMaskIntoConstraints = false
         titleLinkStack.axis = .vertical
-        titleLinkStack.spacing = 2
+        titleLinkStack.spacing = Constants.titleLinkSpacing
         titleLinkStack.addArrangedSubview(title)
         titleButtonsContainer.addSubview(titleLinkStack)
 
@@ -80,42 +92,42 @@ final class TabViewListCell: TabViewCell {
         background.addSubview(unread)
 
         let spacing = buttonContainer.leadingAnchor.constraint(equalTo: titleLinkStack.trailingAnchor,
-                                                               constant: Constants.removeButtonTextSpacingRegular)
+                                                               constant: TabViewCell.Constants.removeButtonTextSpacingRegular)
         textButtonSpacing = spacing
 
         NSLayoutConstraint.activate([
-            mainStack.leadingAnchor.constraint(equalTo: background.leadingAnchor, constant: 16),
-            background.trailingAnchor.constraint(equalTo: mainStack.trailingAnchor, constant: 12),
-            mainStack.topAnchor.constraint(equalTo: background.topAnchor, constant: 8),
-            background.bottomAnchor.constraint(equalTo: mainStack.bottomAnchor, constant: 8),
+            mainStack.leadingAnchor.constraint(equalTo: background.leadingAnchor, constant: Constants.leadingPadding),
+            background.trailingAnchor.constraint(equalTo: mainStack.trailingAnchor, constant: Constants.trailingPadding),
+            mainStack.topAnchor.constraint(equalTo: background.topAnchor, constant: Constants.verticalPadding),
+            background.bottomAnchor.constraint(equalTo: mainStack.bottomAnchor, constant: Constants.verticalPadding),
             mainStack.centerYAnchor.constraint(equalTo: background.centerYAnchor),
 
-            favicon.widthAnchor.constraint(equalToConstant: 24),
-            favicon.heightAnchor.constraint(equalToConstant: 24),
+            favicon.widthAnchor.constraint(equalToConstant: Constants.faviconSize),
+            favicon.heightAnchor.constraint(equalToConstant: Constants.faviconSize),
             favicon.leadingAnchor.constraint(equalTo: faviconContainer.leadingAnchor),
             favicon.centerYAnchor.constraint(equalTo: faviconContainer.centerYAnchor),
-            faviconContainer.trailingAnchor.constraint(equalTo: favicon.trailingAnchor, constant: 8),
-            faviconContainer.heightAnchor.constraint(equalToConstant: 44),
+            faviconContainer.trailingAnchor.constraint(equalTo: favicon.trailingAnchor, constant: Constants.faviconTrailingPadding),
+            faviconContainer.heightAnchor.constraint(equalToConstant: Constants.rowHeight),
 
             titleLinkStack.leadingAnchor.constraint(equalTo: titleButtonsContainer.leadingAnchor),
-            titleLinkStack.topAnchor.constraint(equalTo: titleButtonsContainer.topAnchor, constant: 8),
-            titleButtonsContainer.bottomAnchor.constraint(equalTo: titleLinkStack.bottomAnchor, constant: 8),
+            titleLinkStack.topAnchor.constraint(equalTo: titleButtonsContainer.topAnchor, constant: Constants.verticalPadding),
+            titleButtonsContainer.bottomAnchor.constraint(equalTo: titleLinkStack.bottomAnchor, constant: Constants.verticalPadding),
 
             buttonContainer.topAnchor.constraint(equalTo: titleButtonsContainer.topAnchor),
             buttonContainer.bottomAnchor.constraint(equalTo: titleButtonsContainer.bottomAnchor),
             buttonContainer.trailingAnchor.constraint(equalTo: titleButtonsContainer.trailingAnchor),
             spacing,
 
-            removeButton.widthAnchor.constraint(equalToConstant: 44),
-            removeButton.heightAnchor.constraint(equalToConstant: 44),
+            removeButton.widthAnchor.constraint(equalToConstant: Constants.rowHeight),
+            removeButton.heightAnchor.constraint(equalToConstant: Constants.rowHeight),
             removeButton.centerYAnchor.constraint(equalTo: buttonContainer.centerYAnchor),
             removeButton.leadingAnchor.constraint(equalTo: buttonContainer.leadingAnchor),
             removeButton.trailingAnchor.constraint(equalTo: buttonContainer.trailingAnchor),
 
-            unread.widthAnchor.constraint(equalToConstant: 10),
-            unread.heightAnchor.constraint(equalToConstant: 10),
-            unread.leadingAnchor.constraint(equalTo: background.leadingAnchor, constant: 6),
-            unread.topAnchor.constraint(equalTo: background.topAnchor, constant: 6),
+            unread.widthAnchor.constraint(equalToConstant: Constants.unreadSize),
+            unread.heightAnchor.constraint(equalToConstant: Constants.unreadSize),
+            unread.leadingAnchor.constraint(equalTo: background.leadingAnchor, constant: Constants.unreadOffset),
+            unread.topAnchor.constraint(equalTo: background.topAnchor, constant: Constants.unreadOffset),
         ])
     }
 }

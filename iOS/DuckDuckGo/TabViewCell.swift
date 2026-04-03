@@ -35,7 +35,7 @@ protocol TabViewCellDelegate: AnyObject {
 
 class TabViewCell: UICollectionViewCell {
 
-    struct Constants {
+    enum Constants {
 
         static let swipeToDeleteAlpha: CGFloat = 0.5
 
@@ -53,6 +53,18 @@ class TabViewCell: UICollectionViewCell {
 
         static let removeButtonTextSpacingRegular: CGFloat = -12
         static let removeButtonTextSpacingHighlighted: CGFloat = 2
+
+        static let faviconCornerRadius: CGFloat = 4
+        static let cardBorderWidth: CGFloat = 2
+        static let borderOutset: CGFloat = 4
+        static let selectionIndicatorSize: CGFloat = 24
+
+        static let shadowRadius: CGFloat = 12
+        static let shadowOffset: CGSize = CGSize(width: 0, height: 4)
+        static let unreadBorderWidth: CGFloat = 6
+
+        static let swipeAnimationDuration: TimeInterval = 0.2
+        static let highlightAnimationDuration: TimeInterval = 0.15
     }
 
     var removeThreshold: CGFloat {
@@ -72,8 +84,8 @@ class TabViewCell: UICollectionViewCell {
         tab?.fireTab ?? false
     }
 
-    var background: UIView!
-    var border: UIView!
+    let background = RoundedRectangleView()
+    let border = UIView()
 
     override func dragStateDidChange(_ dragState: UICollectionViewCell.DragState) {
         super.dragStateDidChange(dragState)
@@ -96,11 +108,11 @@ class TabViewCell: UICollectionViewCell {
         setNeedsDisplay()
     }
 
-    var favicon: UIImageView!
-    var title: FadeOutLabel!
-    var removeButton: BrowserChromeButton!
-    var unread: UIImageView!
-    var selectionIndicator: UIImageView!
+    let favicon = UIImageView()
+    let title = FadeOutLabel()
+    let removeButton = BrowserChromeButton(.tabSwitcher)
+    let unread = UIImageView()
+    let selectionIndicator = UIImageView()
 
     // List view
     var link: FadeOutLabel?
@@ -113,7 +125,7 @@ class TabViewCell: UICollectionViewCell {
     var previewBottomConstraint: NSLayoutConstraint?
     var previewTrailingConstraint: NSLayoutConstraint?
 
-    var buttonContainer: UIView!
+    let buttonContainer = UIView()
     var textButtonSpacing: NSLayoutConstraint?
 
     /// Note that `backgroundView` and `selectedBackgroundView` are provided by UICollectionViewCell and we don't use them for legacy and design reasons, so ignore them.
@@ -128,8 +140,8 @@ class TabViewCell: UICollectionViewCell {
 
         backgroundColor = .clear
 
-        background?.layer.cornerCurve = .continuous
-        background?.backgroundColor = .clear
+        background.layer.cornerCurve = .continuous
+        background.backgroundColor = .clear
 
         border.layer.cornerRadius = Constants.borderRadius
         border.layer.cornerCurve = .continuous
@@ -137,7 +149,7 @@ class TabViewCell: UICollectionViewCell {
         layer.cornerRadius = Constants.cellCornerRadius
         layer.cornerCurve = .continuous
 
-        favicon.layer.cornerRadius = 4
+        favicon.layer.cornerRadius = Constants.faviconCornerRadius
         favicon.layer.cornerCurve = .continuous
         favicon.layer.masksToBounds = true
         favicon.image = DesignSystemImages.Glyphs.Size24.globe
@@ -155,7 +167,7 @@ class TabViewCell: UICollectionViewCell {
         layoutIfNeeded()
         textButtonSpacing?.constant = spacing
         
-        UIView.animate(withDuration: 0.15,
+        UIView.animate(withDuration: Constants.highlightAnimationDuration,
                        delay: 0.0,
                        options: [.beginFromCurrentState, .curveEaseInOut]) {
             self.layoutIfNeeded()
@@ -165,8 +177,8 @@ class TabViewCell: UICollectionViewCell {
     private func applyShadows() {
         layer.shadowColor = UIColor(designSystemColor: .shadowSecondary).cgColor
         layer.shadowOpacity = 1.0
-        layer.shadowRadius = 12.0
-        layer.shadowOffset = CGSize(width: 0, height: 4)
+        layer.shadowRadius = Constants.shadowRadius
+        layer.shadowOffset = Constants.shadowOffset
     }
 
     private func updatePreviewToDisplay(image: UIImage) {
@@ -205,7 +217,7 @@ class TabViewCell: UICollectionViewCell {
         func unreadImage(for style: UIUserInterfaceStyle) -> UIImage {
             let color = ThemeManager.shared.currentTheme.tabSwitcherCellBackgroundColor.resolvedColor(with: .init(userInterfaceStyle: style))
             let image = UIImage.stackedIconImage(withIconImage: UIImage(resource: .tabUnread),
-                                                 borderWidth: 6.0,
+                                                 borderWidth: Constants.unreadBorderWidth,
                                                  foregroundColor: accentColor,
                                                  borderColor: color)
             return image
@@ -252,81 +264,65 @@ class TabViewCell: UICollectionViewCell {
     /// Subclasses override, call super, then arrange the pre-created views
     /// (favicon, title, unread, selectionIndicator, removeButton) into their specific layout.
     func setupLayout() {
-        let bg = RoundedRectangleView()
-        bg.translatesAutoresizingMaskIntoConstraints = false
-        bg.cornerRadius = Constants.cellCornerRadius
-        bg.borderWidth = 2
-        bg.borderColor = .clear
-        contentView.addSubview(bg)
-        background = bg
+        background.translatesAutoresizingMaskIntoConstraints = false
+        background.cornerRadius = Constants.cellCornerRadius
+        background.borderWidth = Constants.cardBorderWidth
+        background.borderColor = .clear
+        contentView.addSubview(background)
 
-        let borderView = UIView()
-        borderView.translatesAutoresizingMaskIntoConstraints = false
-        borderView.isUserInteractionEnabled = false
-        contentView.addSubview(borderView)
-        border = borderView
+        border.translatesAutoresizingMaskIntoConstraints = false
+        border.isUserInteractionEnabled = false
+        contentView.addSubview(border)
 
         NSLayoutConstraint.activate([
-            bg.topAnchor.constraint(equalTo: contentView.topAnchor),
-            bg.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            bg.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            bg.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            background.topAnchor.constraint(equalTo: contentView.topAnchor),
+            background.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            background.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            background.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            borderView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            borderView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            borderView.widthAnchor.constraint(equalTo: contentView.widthAnchor, constant: 4),
-            borderView.heightAnchor.constraint(equalTo: contentView.heightAnchor, constant: 4),
+            border.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            border.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            border.widthAnchor.constraint(equalTo: contentView.widthAnchor, constant: Constants.borderOutset),
+            border.heightAnchor.constraint(equalTo: contentView.heightAnchor, constant: Constants.borderOutset),
         ])
 
-        let faviconView = UIImageView()
-        faviconView.translatesAutoresizingMaskIntoConstraints = false
-        faviconView.contentMode = .scaleAspectFit
-        favicon = faviconView
+        favicon.translatesAutoresizingMaskIntoConstraints = false
+        favicon.contentMode = .scaleAspectFit
 
-        let titleLabel = FadeOutLabel()
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.lineBreakMode = .byClipping
-        titleLabel.adjustsFontForContentSizeCategory = true
-        titleLabel.isAccessibilityElement = true
-        titleLabel.accessibilityTraits = [.button, .staticText]
-        title = titleLabel
+        title.translatesAutoresizingMaskIntoConstraints = false
+        title.lineBreakMode = .byClipping
+        title.adjustsFontForContentSizeCategory = true
+        title.isAccessibilityElement = true
+        title.accessibilityTraits = [.button, .staticText]
 
-        let unreadView = UIImageView()
-        unreadView.translatesAutoresizingMaskIntoConstraints = false
-        unreadView.contentMode = .scaleToFill
-        unreadView.image = UIImage(resource: .tabUnread)
-        unreadView.isUserInteractionEnabled = false
-        unreadView.accessibilityLabel = UserText.tabCellUnreadAccessibility
-        unreadView.isAccessibilityElement = false
-        unread = unreadView
+        unread.translatesAutoresizingMaskIntoConstraints = false
+        unread.contentMode = .scaleToFill
+        unread.image = UIImage(resource: .tabUnread)
+        unread.isUserInteractionEnabled = false
+        unread.accessibilityLabel = UserText.tabCellUnreadAccessibility
+        unread.isAccessibilityElement = false
 
-        let indicatorView = UIImageView()
-        indicatorView.translatesAutoresizingMaskIntoConstraints = false
-        indicatorView.contentMode = .center
-        indicatorView.clipsToBounds = true
-        selectionIndicator = indicatorView
+        selectionIndicator.translatesAutoresizingMaskIntoConstraints = false
+        selectionIndicator.contentMode = .center
+        selectionIndicator.clipsToBounds = true
 
-        let closeButton = BrowserChromeButton(.tabSwitcher)
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.accessibilityLabel = UserText.tabCellCloseButtonAccessibility
-        closeButton.setImage(DesignSystemImages.Glyphs.Size16.close, for: .normal)
-        closeButton.addTarget(self, action: #selector(deleteTab), for: .touchUpInside)
-        removeButton = closeButton
+        removeButton.translatesAutoresizingMaskIntoConstraints = false
+        removeButton.accessibilityLabel = UserText.tabCellCloseButtonAccessibility
+        removeButton.setImage(DesignSystemImages.Glyphs.Size16.close, for: .normal)
+        removeButton.addTarget(self, action: #selector(deleteTab), for: .touchUpInside)
 
-        let btnContainer = UIView()
-        btnContainer.translatesAutoresizingMaskIntoConstraints = false
-        btnContainer.setContentHuggingPriority(.defaultHigh + 250, for: .horizontal)
-        btnContainer.setContentCompressionResistancePriority(.required, for: .horizontal)
-        btnContainer.setContentCompressionResistancePriority(.required, for: .vertical)
-        btnContainer.addSubview(indicatorView)
-        btnContainer.addSubview(closeButton)
-        buttonContainer = btnContainer
+        buttonContainer.translatesAutoresizingMaskIntoConstraints = false
+        buttonContainer.setContentHuggingPriority(.defaultHigh + 250, for: .horizontal)
+        buttonContainer.setContentCompressionResistancePriority(.required, for: .horizontal)
+        buttonContainer.setContentCompressionResistancePriority(.required, for: .vertical)
+        buttonContainer.addSubview(selectionIndicator)
+        buttonContainer.addSubview(removeButton)
 
         NSLayoutConstraint.activate([
-            indicatorView.widthAnchor.constraint(equalToConstant: 24),
-            indicatorView.heightAnchor.constraint(equalToConstant: 24),
-            indicatorView.centerXAnchor.constraint(equalTo: btnContainer.centerXAnchor),
-            indicatorView.centerYAnchor.constraint(equalTo: btnContainer.centerYAnchor),
+            selectionIndicator.widthAnchor.constraint(equalToConstant: Constants.selectionIndicatorSize),
+            selectionIndicator.heightAnchor.constraint(equalToConstant: Constants.selectionIndicatorSize),
+            selectionIndicator.centerXAnchor.constraint(equalTo: buttonContainer.centerXAnchor),
+            selectionIndicator.centerYAnchor.constraint(equalTo: buttonContainer.centerYAnchor),
         ])
     }
 
@@ -384,13 +380,13 @@ class TabViewCell: UICollectionViewCell {
     }
 
     private func makeTranslucent() {
-        UIView.animate(withDuration: 0.2, animations: {
+        UIView.animate(withDuration: Constants.swipeAnimationDuration, animations: {
             self.alpha = Constants.swipeToDeleteAlpha
         })
     }
 
     private func makeOpaque() {
-        UIView.animate(withDuration: 0.2, animations: {
+        UIView.animate(withDuration: Constants.swipeAnimationDuration, animations: {
             self.alpha = 1.0
         })
     }
@@ -399,7 +395,7 @@ class TabViewCell: UICollectionViewCell {
         self.isDeleting = true
         Pixel.fire(pixel: .tabSwitcherSwipeCloseTab)
         self.deleteTab()
-        UIView.animate(withDuration: 0.2, animations: {
+        UIView.animate(withDuration: Constants.swipeAnimationDuration, animations: {
             self.transform = CGAffineTransform.identity.translatedBy(x: -self.frame.width, y: 0)
         }, completion: { _ in
             self.isHidden = true
@@ -407,7 +403,7 @@ class TabViewCell: UICollectionViewCell {
     }
 
     private func startCancelAnimation() {
-        UIView.animate(withDuration: 0.2) {
+        UIView.animate(withDuration: Constants.swipeAnimationDuration) {
             self.transform = .identity
         }
     }
