@@ -45,6 +45,8 @@ protocol TabSwitcherPageDelegate: AnyObject {
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController)
     func pageCellDidBeginSwipe(_ page: TabSwitcherPageViewController)
     func pageCellDidEndSwipe(_ page: TabSwitcherPageViewController)
+    func pageCellDidBeginDrag(_ page: TabSwitcherPageViewController)
+    func pageCellDidEndDrag(_ page: TabSwitcherPageViewController)
 
     var isEditing: Bool { get }
     var isProcessingUpdates: Bool { get set }
@@ -508,6 +510,14 @@ extension TabSwitcherPageViewController: UICollectionViewDragDelegate {
 
     func collectionView(_ collectionView: UICollectionView, itemsForAddingTo session: any UIDragSession, at indexPath: IndexPath, point: CGPoint) -> [UIDragItem] {
         return [UIDragItem(itemProvider: NSItemProvider())]
+    }
+
+    func collectionView(_ collectionView: UICollectionView, dragSessionWillBegin session: any UIDragSession) {
+        pageDelegate?.pageCellDidBeginDrag(self)
+    }
+
+    func collectionView(_ collectionView: UICollectionView, dragSessionDidEnd session: any UIDragSession) {
+        pageDelegate?.pageCellDidEndDrag(self)
     }
 }
 

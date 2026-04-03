@@ -811,6 +811,14 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
     func pageCellDidEndSwipe(_ page: TabSwitcherPageViewController) {
         pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing
     }
+
+    func pageCellDidBeginDrag(_ page: TabSwitcherPageViewController) {
+        pagingScrollView.isScrollEnabled = false
+    }
+
+    func pageCellDidEndDrag(_ page: TabSwitcherPageViewController) {
+        pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing
+    }
 }
 
 struct TabSwitcherPickerWrapper: View {
