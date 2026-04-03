@@ -68,6 +68,7 @@ extension UserDefaults {
         case autofillDebugScriptEnabled = "preferences.enable-autofill-debug-script"
         case contentScopeDebugStateEnabled = "preferences.enable-content-scope-debug-state"
         case nsTrackingAlwaysActiveOnWebContent = "debug.ns-tracking-always-active-on-web-content"
+        case keyWindowDiagnosticsEnabled = "debug.key-window-diagnostics-enabled"
 
         case saveAsPreferredFileType = "saveAs.selected.filetype"
 

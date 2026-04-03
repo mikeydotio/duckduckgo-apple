@@ -984,6 +984,14 @@ final class MainMenu: NSMenu {
                 NSMenuItem(title: "Simulate Memory Pressure (Critical)", action: #selector(AppDelegate.simulateMemoryPressureCritical))
             }
 
+            NSMenuItem(title: "Key Window Diagnostics") {
+                NSMenuItem(title: "Enable Key Window Logging", action: #selector(MainMenu.toggleKeyWindowDiagnostics))
+                    .targetting(self)
+                NSMenuItem(title: "Force Reclaim Key Window", action: #selector(MainMenu.forceReclaimKeyWindow))
+                    .targetting(self)
+                NSMenuItem(title: "Dump Window State to Log", action: #selector(MainMenu.dumpWindowState))
+                    .targetting(self)
+            }
             NSMenuItem(title: "Hang Debugging") {
                 toggleWatchdogMenuItem
                 toggleWatchdogCrashMenuItem
@@ -1241,6 +1249,37 @@ final class MainMenu: NSMenu {
 
     private func updateNSTrackingAlwaysActiveMenuItem() {
         nsTrackingAlwaysActiveMenuItem.state = WebView.isNSTrackingAlwaysActiveOnWebContent ? .on : .off
+    }
+
+    @objc private func toggleKeyWindowDiagnostics(_ sender: NSMenuItem) {
+        MainWindow.isKeyWindowDiagnosticsEnabled = !MainWindow.isKeyWindowDiagnosticsEnabled
+        sender.state = MainWindow.isKeyWindowDiagnosticsEnabled ? .on : .off
+    }
+
+    @objc private func forceReclaimKeyWindow(_ sender: NSMenuItem) {
+        guard let window = NSApp.mainWindow ?? NSApp.windows.first(where: { $0 is MainWindow }) else { return }
+        Logger.general.log("KeyWindowDiag: force reclaim — isKey: \(window.isKeyWindow), isMain: \(window.isMainWindow)")
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func dumpWindowState(_ sender: NSMenuItem) {
+        for window in NSApp.windows where !window.className.contains("Status") {
+            let kind = window is MainWindow ? "MainWindow" : String(describing: type(of: window))
+            Logger.general.log("""
+                KeyWindowDiag: [\(kind, privacy: .public)] \
+                title=\(window.title, privacy: .public) \
+                isKey=\(window.isKeyWindow) \
+                isMain=\(window.isMainWindow) \
+                isVisible=\(window.isVisible) \
+                canBecomeKey=\(window.canBecomeKey) \
+                level=\(window.level.rawValue) \
+                children=\(window.childWindows?.count ?? 0) \
+                sheets=\(window.sheets.count) \
+                parent=\(window.parent?.title ?? "nil", privacy: .public)
+                """)
+        }
+        Logger.general.log("KeyWindowDiag: NSApp.keyWindow = \(NSApp.keyWindow?.title ?? "nil", privacy: .public)")
+        Logger.general.log("KeyWindowDiag: NSApp.mainWindow = \(NSApp.mainWindow?.title ?? "nil", privacy: .public)")
     }
 
     @objc private func toggleNSTrackingAlwaysActive(_ sender: NSMenuItem) {

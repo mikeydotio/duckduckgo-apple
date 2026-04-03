@@ -18,11 +18,15 @@
 
 import Cocoa
 import Common
+import OSLog
 
 final class MainWindow: NSWindow {
 
     static let minWindowWidth: CGFloat = 544
     static let firstResponderDidChangeNotification = Notification.Name("firstResponderDidChange")
+
+    @UserDefaultsWrapper(key: .keyWindowDiagnosticsEnabled, defaultValue: false)
+    static var isKeyWindowDiagnosticsEnabled: Bool
 
     override var canBecomeKey: Bool {
         return true
@@ -30,6 +34,28 @@ final class MainWindow: NSWindow {
 
     override var canBecomeMain: Bool {
         return true
+    }
+
+    override func becomeKey() {
+        super.becomeKey()
+        if Self.isKeyWindowDiagnosticsEnabled {
+            Logger.general.log("KeyWindowDiag: becomeKey \(self.title ?? "untitled", privacy: .public)")
+        }
+    }
+
+    override func resignKey() {
+        if Self.isKeyWindowDiagnosticsEnabled {
+            let newKey = NSApp.keyWindow?.title ?? "nil"
+            let childCount = childWindows?.count ?? 0
+            Logger.general.log("""
+                KeyWindowDiag: resignKey \(self.title ?? "untitled", privacy: .public) \
+                -> newKey: \(newKey, privacy: .public), \
+                childWindows: \(childCount), \
+                sheets: \(self.sheets.count), \
+                isMain: \(self.isMainWindow)
+                """)
+        }
+        super.resignKey()
     }
 
     override var frameAutosaveName: NSWindow.FrameAutosaveName {
