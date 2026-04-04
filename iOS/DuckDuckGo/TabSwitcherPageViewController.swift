@@ -142,8 +142,17 @@ class TabSwitcherPageViewController: UIViewController {
         subscribeToTabChanges()
         bindTrackerCount()
         trackerCountViewModel?.refresh()
-
         setupFireModeEmptyState()
+    }
+
+    private var lastLayoutSize: CGSize = .zero
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let currentSize = view.bounds.size
+        guard currentSize != lastLayoutSize, currentSize != .zero else { return }
+        lastLayoutSize = currentSize
+        collectionView.collectionViewLayout.invalidateLayout()
     }
     
     override func viewWillAppear(_ animated: Bool) {

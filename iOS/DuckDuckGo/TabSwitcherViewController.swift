@@ -231,6 +231,10 @@ class TabSwitcherViewController: UIViewController {
         appearance.configureWithTransparentBackground()
         titleBarView.standardAppearance = appearance
         titleBarView.scrollEdgeAppearance = appearance
+
+        let heightConstraint = titleBarView.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
+        heightConstraint.priority = .required - 1
+        heightConstraint.isActive = true
     }
     
     private func setupModeToggle() {
