@@ -559,7 +559,6 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
     }
 
     @MainActor
-    @MainActor
     private func makeAIChatMenu() -> AIChatMenu {
         let actions = AIChatMenu.Actions.makeDefault(
             remoteSettings: AIChatRemoteSettings(),
