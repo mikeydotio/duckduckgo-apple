@@ -587,7 +587,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
                 }
             }
         )
-        return AIChatMenu(suggestionsReader: aiChatSuggestionsReader, actions: actions, viewAllChatsThreshold: 25)
+        return AIChatMenu(suggestionsReader: aiChatSuggestionsReader, actions: actions, viewAllChatsThreshold: 10)
     }
 
     @MainActor

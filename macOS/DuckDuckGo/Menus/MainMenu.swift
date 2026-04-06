@@ -1240,7 +1240,7 @@ final class MainMenu: NSMenu {
                 }
             }
         )
-        return AIChatMenu(suggestionsReader: aiChatSuggestionsReader, actions: actions)
+        return AIChatMenu(suggestionsReader: aiChatSuggestionsReader, actions: actions, viewAllChatsThreshold: 10)
     }
 
     private func setupAIChatMenu() {
