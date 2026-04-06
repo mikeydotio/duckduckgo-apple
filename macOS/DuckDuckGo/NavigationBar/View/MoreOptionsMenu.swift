@@ -587,7 +587,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
                 }
             }
         )
-        return AIChatMenu(suggestionsReader: aiChatSuggestionsReader, actions: actions, viewAllChatsThreshold: 10)
+        return AIChatMenu(suggestionsReader: aiChatSuggestionsReader, actions: actions, viewAllChatsThreshold: 10, origin: .moreOptionsMenu)
     }
 
     @MainActor
@@ -595,7 +595,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
         if aiChatMenuConfiguration.shouldDisplayMoreOptionsMenuShortcut {
             let aiChatItem = NSMenuItem(title: "Duck.ai", action: nil, keyEquivalent: "n")
             aiChatItem.keyEquivalentModifierMask = [.command, .option]
-            aiChatItem.image = moreOptionsMenuIconsProvider.newAIChatIcon
+            aiChatItem.image = DesignSystemImages.Glyphs.Size16.duckAi
             aiChatItem.submenu = makeAIChatMenu()
             addItem(aiChatItem)
         }

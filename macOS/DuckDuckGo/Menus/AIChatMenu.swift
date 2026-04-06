@@ -25,6 +25,11 @@ import SwiftUI
 @MainActor
 final class AIChatMenu: NSMenu {
 
+    enum Origin {
+        case mainMenu
+        case moreOptionsMenu
+    }
+
     // MARK: - Actions
 
     struct Actions {
@@ -42,18 +47,21 @@ final class AIChatMenu: NSMenu {
         let item = NSMenuItem(title: UserText.aiChatMenuNewChat, action: #selector(newChatTapped), keyEquivalent: "n")
         item.keyEquivalentModifierMask = [.option, .command]
         item.target = self
+        item.image = origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.aiChat : DesignSystemImages.Glyphs.Size12.duckAi
         return item
     }()
 
     private lazy var newVoiceChatItem: NSMenuItem = {
         let item = NSMenuItem(title: UserText.aiChatMenuNewVoiceChat, action: #selector(newVoiceChatTapped), keyEquivalent: "")
         item.target = self
+        item.image = origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.voice : DesignSystemImages.Glyphs.Size12.voice
         return item
     }()
 
     private lazy var newImageChatItem: NSMenuItem = {
         let item = NSMenuItem(title: UserText.aiChatMenuNewImageChat, action: #selector(newImageChatTapped), keyEquivalent: "")
         item.target = self
+        item.image = origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.images : DesignSystemImages.Glyphs.Size12.images
         return item
     }()
 
@@ -72,6 +80,7 @@ final class AIChatMenu: NSMenu {
     private lazy var deleteAllChatsItem: NSMenuItem = {
         let item = NSMenuItem(title: UserText.aiChatMenuDeleteAllChats, action: #selector(deleteAllChatsTapped), keyEquivalent: "")
         item.target = self
+        item.image = origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.fire : DesignSystemImages.Glyphs.Size12.fire
         return item
     }()
 
@@ -86,13 +95,18 @@ final class AIChatMenu: NSMenu {
     private let actions: Actions
     /// When set, limits the number of chat items shown in the menu.
     private let viewAllChatsThreshold: Int?
+    private let origin: Origin
 
     // MARK: - Init
 
-    init(suggestionsReader: AIChatSuggestionsReading, actions: Actions, viewAllChatsThreshold: Int? = nil) {
+    init(suggestionsReader: AIChatSuggestionsReading,
+         actions: Actions,
+         viewAllChatsThreshold: Int? = nil,
+         origin: Origin = .mainMenu) {
         self.suggestionsReader = suggestionsReader
         self.actions = actions
         self.viewAllChatsThreshold = viewAllChatsThreshold
+        self.origin = origin
         super.init(title: "Duck.ai")
         buildMenu()
     }
@@ -147,7 +161,9 @@ final class AIChatMenu: NSMenu {
             let item = NSMenuItem(title: chat.title, action: #selector(chatItemTapped(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = chat
-            item.image = chat.isPinned ? DesignSystemImages.Glyphs.Size16.pin : DesignSystemImages.Glyphs.Size16.chat
+            item.image = chat.isPinned
+                ? (origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.pin : DesignSystemImages.Glyphs.Size12.pin)
+                : (origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.chat : DesignSystemImages.Glyphs.Size12.chat)
             insertItem(item, at: labelIndex + 1 + offset)
             chatItems.append(item)
         }
