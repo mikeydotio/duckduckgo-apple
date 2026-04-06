@@ -32,7 +32,7 @@ struct AIChatDeleteChatsDialog: ModalView {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(.historyBurn)
+            Image(.fireChat)
 
             VStack(spacing: 8) {
                 Text(title)
@@ -44,7 +44,7 @@ struct AIChatDeleteChatsDialog: ModalView {
                     .multilineTextAlignment(.center)
                     .fixMultilineScrollableText()
                     .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(designSystemColor: .textSecondary))
             }
             .padding(.bottom, 8)
 
@@ -73,5 +73,6 @@ struct AIChatDeleteChatsDialog: ModalView {
         }
         .padding(20)
         .frame(width: 330)
+        .background(Color(designSystemColor: .surfaceSecondary))
     }
 }
