@@ -296,6 +296,21 @@ final class TabSuspensionExtensionTests: XCTestCase {
 
         XCTAssertFalse(sut.canBeSuspended)
     }
+
+    // MARK: - PDF Display
+
+    @MainActor
+    func testWhenWebViewIsDisplayingPDF_ThenCanBeSuspendedIsFalse() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+        sut.isDisplayingPDF = true
+
+        let webView = MockTabSuspensionWebView()
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        XCTAssertFalse(sut.canBeSuspended)
+    }
 }
 
 // MARK: - MockTabSuspensionWebView
@@ -304,4 +319,5 @@ private final class MockTabSuspensionWebView: TabSuspensionWebViewChecking {
     var isPlayingAudio: Bool = false
     var isCapturingAudio: Bool = false
     var isCapturingVideo: Bool = false
+    var isDisplayingPDF: Bool = false
 }

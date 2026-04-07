@@ -18,6 +18,7 @@
 
 import Combine
 import Foundation
+import Navigation
 import PrivacyConfig
 import WebKit
 
@@ -26,15 +27,22 @@ protocol TabSuspensionWebViewChecking: AnyObject {
     var isPlayingAudio: Bool { get }
     var isCapturingAudio: Bool { get }
     var isCapturingVideo: Bool { get }
+    var isDisplayingPDF: Bool { get async }
 }
 
 extension WKWebView: TabSuspensionWebViewChecking {
     var isCapturingAudio: Bool {
-        microphoneState != .none
+        return microphoneState != .none
     }
 
     var isCapturingVideo: Bool {
-        cameraState != .none
+        return cameraState != .none
+    }
+
+    var isDisplayingPDF: Bool {
+        get async {
+            return await mimeType == "application/pdf"
+        }
     }
 }
 
@@ -48,6 +56,7 @@ final class TabSuspensionExtension {
     private let featureFlagger: FeatureFlagger
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     var hasVideoInPictureInPicture: Bool = false
+    var isDisplayingPDF: Bool = false
 
     var canBeSuspended: Bool {
 
@@ -83,6 +92,9 @@ final class TabSuspensionExtension {
         // not using picture in picture
         guard !hasVideoInPictureInPicture else { return false }
 
+        // not displaying a PDF
+        guard !isDisplayingPDF else { return false }
+
         return true
     }
 
@@ -107,13 +119,24 @@ final class TabSuspensionExtension {
     }
 }
 
-protocol TabSuspensionExtensionProtocol: AnyObject {
+protocol TabSuspensionExtensionProtocol: AnyObject, NavigationResponder {
     var canBeSuspended: Bool { get }
     var hasVideoInPictureInPicture: Bool { get set }
 }
 
 extension TabSuspensionExtension: TabSuspensionExtensionProtocol, TabExtension {
     func getPublicProtocol() -> TabSuspensionExtensionProtocol { self }
+}
+
+extension TabSuspensionExtension: NavigationResponder {
+    @MainActor
+    func navigationDidFinish(_ navigation: Navigation) {
+        guard let webView else { return }
+        Task { @MainActor [weak self, weak webView] in
+            let isPDF = await webView?.isDisplayingPDF ?? false
+            self?.isDisplayingPDF = isPDF
+        }
+    }
 }
 
 extension TabExtensions {
