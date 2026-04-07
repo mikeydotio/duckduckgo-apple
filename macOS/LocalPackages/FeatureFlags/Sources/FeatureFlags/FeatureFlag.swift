@@ -309,6 +309,9 @@ public enum FeatureFlag: String, CaseIterable {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213813585476250?focus=true
     case screenTimeCleaning
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213973058005627?focus=true
+    case aiChatSidebarAboutSchemeNavigationFix
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -344,7 +347,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .websitesHistoryFirstTimeQuitSurvey,
                 .screenTimeCleaning,
                 .addToDockAppStore,
-                .tabAnimations:
+                .tabAnimations,
+                .aiChatSidebarAboutSchemeNavigationFix:
             .enabled
         case .autofillPasswordsStatusBar,
              .aiChatSidebarFloating,
@@ -450,7 +454,8 @@ extension FeatureFlag: FeatureFlagDescribing {
                 .lazyMenuRebuild,
                 .websitesHistoryFirstTimeQuitSurvey,
                 .addToDockAppStore,
-                .screenTimeCleaning:
+                .screenTimeCleaning,
+                .aiChatSidebarAboutSchemeNavigationFix:
             return true
         case .freemiumDBP,
                 .contextualOnboarding,
@@ -644,6 +649,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             return .remoteReleasable(.subfeature(AIChatSubfeature.removeSuggestion))
         case .screenTimeCleaning:
             return .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.screenTimeCleaning))
+        case .aiChatSidebarAboutSchemeNavigationFix:
+            return .remoteReleasable(.subfeature(AIChatSubfeature.sidebarAboutSchemeNavigationFix))
         }
     }
 }

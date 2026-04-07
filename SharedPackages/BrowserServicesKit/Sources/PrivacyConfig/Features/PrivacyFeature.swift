@@ -424,6 +424,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Enables the fire button in the contextual AI chat sheet
     case contextualFireButton
+
+    /// Prevents about: scheme navigations (e.g. about:srcdoc) from opening new tabs in the sidebar
+    case sidebarAboutSchemeNavigationFix
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
