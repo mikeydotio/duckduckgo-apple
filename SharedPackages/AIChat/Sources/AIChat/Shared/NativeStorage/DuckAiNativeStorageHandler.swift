@@ -83,6 +83,10 @@ public final class DuckAiNativeStorageHandler: DuckAiNativeStorageHandling {
         try dataStore.putChat(chatId: chatId, data: data)
     }
 
+    public func putChats(_ chats: [(chatId: String, data: Data)]) throws {
+        try dataStore.putChats(chats)
+    }
+
     public func getAllChats() throws -> [DuckAiChatRecord] {
         try dataStore.getAllChats()
     }
@@ -119,15 +123,29 @@ public final class DuckAiNativeStorageHandler: DuckAiNativeStorageHandling {
 
     // MARK: - Migration
 
-    public func isMigrationDone() throws -> Bool {
-        return try settingsStore.value(for: \.migrationDone) ?? false
+    public func isMigrationDone(for key: String) throws -> Bool {
+        let flags = try loadMigrationFlags()
+        return flags[key] ?? false
     }
 
-    public func markMigrationDone() throws {
-        try settingsStore.set(true, for: \.migrationDone)
+    public func markMigrationDone(for key: String) throws {
+        var flags = try loadMigrationFlags()
+        flags[key] = true
+        let data = try JSONSerialization.data(withJSONObject: flags, options: [])
+        try settingsStore.set(data, for: \.migrationDone)
     }
 
     // MARK: - Private helpers
+
+    private func loadMigrationFlags() throws -> [String: Bool] {
+        guard let data = try settingsStore.value(for: \.migrationDone) else {
+            return [:]
+        }
+        guard let dict = try JSONSerialization.jsonObject(with: data) as? [String: Bool] else {
+            return [:]
+        }
+        return dict
+    }
 
     private func loadSettingsBlob() throws -> [String: Any] {
         guard let data = try settingsStore.value(for: \.settings) else {

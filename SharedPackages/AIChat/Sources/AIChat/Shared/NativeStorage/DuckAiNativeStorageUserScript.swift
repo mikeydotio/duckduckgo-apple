@@ -69,6 +69,7 @@ public final class DuckAiNativeStorageUserScript: NSObject, Subfeature {
 
         // Chats
         case .putChat: return putChat
+        case .putChats: return putChats
         case .getAllChats: return getAllChats
         case .deleteChat: return deleteChat
         case .deleteAllChats: return deleteAllChats
@@ -222,6 +223,34 @@ public final class DuckAiNativeStorageUserScript: NSObject, Subfeature {
             Logger.aiChat.debug("DuckAiNativeStorage: putChat '\(chatId)' succeeded (\(jsonData.count) bytes)")
         } catch {
             Logger.aiChat.error("DuckAiNativeStorage: putChat failed for \(chatId): \(error.localizedDescription)")
+        }
+        return nil
+    }
+
+    private func putChats(params: Any, message: UserScriptMessage) async -> Encodable? {
+        Logger.aiChat.debug("DuckAiNativeStorage: ← putChats called")
+        guard let dict = params as? [String: Any],
+              let chatsArray = dict["chats"] as? [[String: Any]] else {
+            Logger.aiChat.error("DuckAiNativeStorage: putChats — invalid params")
+            return nil
+        }
+        var chatTuples: [(chatId: String, data: Data)] = []
+        for chatDict in chatsArray {
+            guard let chatId = chatDict["chatId"] as? String,
+                  let data = chatDict["data"] as? [String: Any],
+                  let jsonData = try? JSONSerialization.data(withJSONObject: data) else {
+                Logger.aiChat.error("DuckAiNativeStorage: putChats — skipping invalid chat entry")
+                continue
+            }
+            chatTuples.append((chatId: chatId, data: jsonData))
+        }
+        do {
+            try await performStorageOperation {
+                try self.handler.putChats(chatTuples)
+            }
+            Logger.aiChat.debug("DuckAiNativeStorage: putChats succeeded (\(chatTuples.count) chats)")
+        } catch {
+            Logger.aiChat.error("DuckAiNativeStorage: putChats failed: \(error.localizedDescription)")
         }
         return nil
     }
@@ -383,11 +412,16 @@ public final class DuckAiNativeStorageUserScript: NSObject, Subfeature {
 
     private func isMigrationDone(params: Any, message: UserScriptMessage) async -> Encodable? {
         Logger.aiChat.debug("DuckAiNativeStorage: ← isMigrationDone called")
+        guard let dict = params as? [String: Any],
+              let key = dict["key"] as? String else {
+            Logger.aiChat.error("DuckAiNativeStorage: isMigrationDone — invalid params (missing key)")
+            return MigrationDoneResponse(value: false)
+        }
         do {
             let done = try await performStorageOperation {
-                try self.handler.isMigrationDone()
+                try self.handler.isMigrationDone(for: key)
             }
-            Logger.aiChat.debug("DuckAiNativeStorage: isMigrationDone → \(done)")
+            Logger.aiChat.debug("DuckAiNativeStorage: isMigrationDone('\(key)') → \(done)")
             return MigrationDoneResponse(value: done)
         } catch {
             Logger.aiChat.error("DuckAiNativeStorage: isMigrationDone failed: \(error.localizedDescription)")
@@ -397,11 +431,16 @@ public final class DuckAiNativeStorageUserScript: NSObject, Subfeature {
 
     private func markMigrationDone(params: Any, message: UserScriptMessage) async -> Encodable? {
         Logger.aiChat.debug("DuckAiNativeStorage: ← markMigrationDone called")
+        guard let dict = params as? [String: Any],
+              let key = dict["key"] as? String else {
+            Logger.aiChat.error("DuckAiNativeStorage: markMigrationDone — invalid params (missing key)")
+            return nil
+        }
         do {
             try await performStorageOperation {
-                try self.handler.markMigrationDone()
+                try self.handler.markMigrationDone(for: key)
             }
-            Logger.aiChat.debug("DuckAiNativeStorage: markMigrationDone succeeded")
+            Logger.aiChat.debug("DuckAiNativeStorage: markMigrationDone('\(key)') succeeded")
         } catch {
             Logger.aiChat.error("DuckAiNativeStorage: markMigrationDone failed: \(error.localizedDescription)")
         }

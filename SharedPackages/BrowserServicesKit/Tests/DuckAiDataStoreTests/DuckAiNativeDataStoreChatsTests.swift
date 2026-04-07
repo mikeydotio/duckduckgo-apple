@@ -66,6 +66,44 @@ final class DuckAiNativeDataStoreChatsTests: XCTestCase {
         XCTAssertEqual(chats.first, DuckAiChatRecord(chatId: chatId, data: updatedData))
     }
 
+    func testWhenPutChatsThenGetAllChatsReturnsAll() throws {
+        let chats: [(chatId: String, data: Data)] = [
+            (chatId: "chat-1", data: Data("data1".utf8)),
+            (chatId: "chat-2", data: Data("data2".utf8)),
+            (chatId: "chat-3", data: Data("data3".utf8))
+        ]
+
+        try sut.putChats(chats)
+
+        let result = try sut.getAllChats()
+        XCTAssertEqual(result.count, 3)
+        XCTAssertEqual(result.map(\.chatId).sorted(), ["chat-1", "chat-2", "chat-3"])
+    }
+
+    func testWhenPutChatsWithExistingIdsThenTheyAreUpdated() throws {
+        try sut.putChat(chatId: "chat-1", data: Data("old".utf8))
+
+        let chats: [(chatId: String, data: Data)] = [
+            (chatId: "chat-1", data: Data("new".utf8)),
+            (chatId: "chat-2", data: Data("data2".utf8))
+        ]
+        try sut.putChats(chats)
+
+        let result = try sut.getAllChats()
+        XCTAssertEqual(result.count, 2)
+        let chat1 = result.first { $0.chatId == "chat-1" }
+        XCTAssertEqual(chat1?.data, Data("new".utf8))
+    }
+
+    func testWhenPutChatsWithEmptyArrayThenNothingChanges() throws {
+        try sut.putChat(chatId: "chat-1", data: Data("data".utf8))
+
+        try sut.putChats([])
+
+        let result = try sut.getAllChats()
+        XCTAssertEqual(result.count, 1)
+    }
+
     func testWhenDeleteChatThenItIsRemoved() throws {
         let chatId = "chat-1"
         let data = Data("hello".utf8)

@@ -161,16 +161,24 @@ final class DuckAiNativeStorageHandlerTests: XCTestCase {
 
     // MARK: - Migration
 
-    func testWhenMigrationNotDoneThenReturnsFalse() throws {
-        let result = try handler.isMigrationDone()
+    func testWhenMigrationNotDoneForKeyThenReturnsFalse() throws {
+        let result = try handler.isMigrationDone(for: "chats")
         XCTAssertFalse(result)
     }
 
-    func testWhenMarkMigrationDoneThenReturnsTrue() throws {
-        try handler.markMigrationDone()
+    func testWhenMarkMigrationDoneForKeyThenReturnsTrueForThatKey() throws {
+        try handler.markMigrationDone(for: "chats")
 
-        let result = try handler.isMigrationDone()
-        XCTAssertTrue(result)
+        XCTAssertTrue(try handler.isMigrationDone(for: "chats"))
+        XCTAssertFalse(try handler.isMigrationDone(for: "files"))
+    }
+
+    func testWhenMarkMigrationDoneForMultipleKeysThenEachTrackedIndependently() throws {
+        try handler.markMigrationDone(for: "chats")
+        try handler.markMigrationDone(for: "files")
+
+        XCTAssertTrue(try handler.isMigrationDone(for: "chats"))
+        XCTAssertTrue(try handler.isMigrationDone(for: "files"))
     }
 
     // MARK: - Chat delegation
@@ -182,6 +190,19 @@ final class DuckAiNativeStorageHandlerTests: XCTestCase {
         XCTAssertEqual(mockDataStore.putChatCallCount, 1)
         XCTAssertEqual(mockDataStore.lastPutChatId, "chat-1")
         XCTAssertEqual(mockDataStore.lastPutChatData, data)
+    }
+
+    func testWhenPutChatsThenDelegatesToDataStore() throws {
+        let chats: [(chatId: String, data: Data)] = [
+            (chatId: "chat-1", data: Data("test1".utf8)),
+            (chatId: "chat-2", data: Data("test2".utf8))
+        ]
+        try handler.putChats(chats)
+
+        XCTAssertEqual(mockDataStore.putChatsCallCount, 1)
+        XCTAssertEqual(mockDataStore.lastPutChats?.count, 2)
+        XCTAssertEqual(mockDataStore.lastPutChats?[0].chatId, "chat-1")
+        XCTAssertEqual(mockDataStore.lastPutChats?[1].chatId, "chat-2")
     }
 
     func testWhenDeleteChatThenDelegatesToDataStore() throws {
@@ -222,6 +243,9 @@ private final class MockDuckAiNativeDataStore: DuckAiNativeDataStoring {
     var lastPutChatId: String?
     var lastPutChatData: Data?
 
+    var putChatsCallCount = 0
+    var lastPutChats: [(chatId: String, data: Data)]?
+
     var getAllChatsCallCount = 0
     var stubbedChats: [DuckAiChatRecord] = []
 
@@ -250,6 +274,11 @@ private final class MockDuckAiNativeDataStore: DuckAiNativeDataStoring {
         putChatCallCount += 1
         lastPutChatId = chatId
         lastPutChatData = data
+    }
+
+    func putChats(_ chats: [(chatId: String, data: Data)]) throws {
+        putChatsCallCount += 1
+        lastPutChats = chats
     }
 
     func getAllChats() throws -> [DuckAiChatRecord] {

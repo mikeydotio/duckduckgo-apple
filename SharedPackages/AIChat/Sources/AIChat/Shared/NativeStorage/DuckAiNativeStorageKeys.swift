@@ -27,6 +27,6 @@ public enum DuckAiNativeStorageKeyNames: String, StorageKeyDescribing {
 public struct DuckAiNativeStorageSettings: StoringKeys {
     public init() {}
 
-    public let migrationDone = StorageKey<Bool>(DuckAiNativeStorageKeyNames.migrationDone)
+    public let migrationDone = StorageKey<Data>(DuckAiNativeStorageKeyNames.migrationDone)
     public let settings = StorageKey<Data>(DuckAiNativeStorageKeyNames.settings)
 }

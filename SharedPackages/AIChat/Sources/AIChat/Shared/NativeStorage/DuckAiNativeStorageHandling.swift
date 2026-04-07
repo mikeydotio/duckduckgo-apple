@@ -33,6 +33,7 @@ public protocol DuckAiNativeStorageHandling {
     // MARK: - Chats
 
     func putChat(chatId: String, data: Data) throws
+    func putChats(_ chats: [(chatId: String, data: Data)]) throws
     func getAllChats() throws -> [DuckAiChatRecord]
     func deleteChat(chatId: String) throws
     func deleteAllChats() throws
@@ -47,6 +48,6 @@ public protocol DuckAiNativeStorageHandling {
 
     // MARK: - Migration
 
-    func isMigrationDone() throws -> Bool
-    func markMigrationDone() throws
+    func isMigrationDone(for key: String) throws -> Bool
+    func markMigrationDone(for key: String) throws
 }

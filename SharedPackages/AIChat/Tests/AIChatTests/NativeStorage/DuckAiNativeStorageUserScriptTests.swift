@@ -61,6 +61,7 @@ private final class MockDuckAiNativeStorageHandler: DuckAiNativeStorageHandling 
     func deleteAllSettings() throws {}
     func replaceAllSettings(_ settings: [String: Any]) throws {}
     func putChat(chatId: String, data: Data) throws {}
+    func putChats(_ chats: [(chatId: String, data: Data)]) throws {}
     func getAllChats() throws -> [DuckAiChatRecord] { [] }
     func deleteChat(chatId: String) throws {}
     func deleteAllChats() throws {}
@@ -69,6 +70,6 @@ private final class MockDuckAiNativeStorageHandler: DuckAiNativeStorageHandling 
     func listFiles() throws -> [DuckAiFileMetadata] { [] }
     func deleteFile(uuid: String) throws {}
     func deleteAllFiles() throws {}
-    func isMigrationDone() throws -> Bool { false }
-    func markMigrationDone() throws {}
+    func isMigrationDone(for key: String) throws -> Bool { false }
+    func markMigrationDone(for key: String) throws {}
 }
