@@ -21,14 +21,32 @@ import Foundation
 import PrivacyConfig
 import WebKit
 
+/// This protocol encapsulates checks for tab suspension eligibility performed on a web view instance.
+protocol TabSuspensionWebViewChecking: AnyObject {
+    var isPlayingAudio: Bool { get }
+    var isCapturingAudio: Bool { get }
+    var isCapturingVideo: Bool { get }
+}
+
+extension WKWebView: TabSuspensionWebViewChecking {
+    var isCapturingAudio: Bool {
+        microphoneState != .none
+    }
+
+    var isCapturingVideo: Bool {
+        cameraState != .none
+    }
+}
+
 final class TabSuspensionExtension {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private weak var webView: WKWebView?
+    private weak var webView: TabSuspensionWebViewChecking?
     private var tabContent: Tab.TabContent = .none
     private let isTabPinned: () -> Bool
     private let featureFlagger: FeatureFlagger
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
 
     var canBeSuspended: Bool {
 
@@ -38,26 +56,35 @@ final class TabSuspensionExtension {
         // only URLs, except Duck Player, SERP and Duck.ai
         guard case let .url(url, _, _) = tabContent, !url.isDuckPlayer, !url.isDuckDuckGoSearch, !url.isDuckAIURL else { return false }
 
+        // domain not in exceptions list
+        guard privacyConfigurationManager.privacyConfig.isFeature(.tabSuspension, enabledForDomain: url.host) else { return false }
+
         // not pinned
         guard !isTabPinned() else { return false }
 
-        guard let webView else {
-            return false
-        }
+        guard let webView else { return false }
 
         // not playing audio
-        guard !webView.audioState.isPlayingAudio else { return false }
+        guard !webView.isPlayingAudio else { return false }
+
+        // not capturing audio
+        guard !webView.isCapturingAudio else { return false }
+
+        // not capturing video
+        guard !webView.isCapturingVideo else { return false }
 
         return true
     }
 
     init(
-        webViewPublisher: some Publisher<WKWebView, Never>,
+        webViewPublisher: some Publisher<TabSuspensionWebViewChecking, Never>,
         contentPublisher: some Publisher<Tab.TabContent, Never>,
         featureFlagger: FeatureFlagger,
+        privacyConfigurationManager: PrivacyConfigurationManaging,
         isTabPinned: @escaping () -> Bool
     ) {
         self.featureFlagger = featureFlagger
+        self.privacyConfigurationManager = privacyConfigurationManager
         self.isTabPinned = isTabPinned
 
         contentPublisher.sink { [weak self] content in

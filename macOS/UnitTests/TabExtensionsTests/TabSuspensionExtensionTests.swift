@@ -18,6 +18,7 @@
 
 import Combine
 import PrivacyConfig
+import PrivacyConfigTestsUtils
 import WebKit
 import XCTest
 
@@ -25,18 +26,20 @@ import XCTest
 
 final class TabSuspensionExtensionTests: XCTestCase {
 
-    private var webViewPublisher: PassthroughSubject<WKWebView, Never>!
+    private var webViewPublisher: PassthroughSubject<TabSuspensionWebViewChecking, Never>!
     private var contentPublisher: PassthroughSubject<Tab.TabContent, Never>!
     private var featureFlagger: MockFeatureFlagger!
+    private var privacyConfigurationManager: MockPrivacyConfigurationManager!
     private var isPinned: Bool!
 
     private var sut: TabSuspensionExtension!
 
     override func setUp() {
         super.setUp()
-        webViewPublisher = PassthroughSubject<WKWebView, Never>()
+        webViewPublisher = PassthroughSubject<TabSuspensionWebViewChecking, Never>()
         contentPublisher = PassthroughSubject<Tab.TabContent, Never>()
         featureFlagger = MockFeatureFlagger()
+        privacyConfigurationManager = MockPrivacyConfigurationManager()
         isPinned = false
     }
 
@@ -55,6 +58,7 @@ final class TabSuspensionExtensionTests: XCTestCase {
             webViewPublisher: webViewPublisher,
             contentPublisher: contentPublisher,
             featureFlagger: featureFlagger,
+            privacyConfigurationManager: privacyConfigurationManager,
             isTabPinned: { [unowned self] in self.isPinned }
         )
     }

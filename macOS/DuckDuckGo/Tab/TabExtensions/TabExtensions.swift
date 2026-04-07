@@ -351,9 +351,10 @@ extension TabExtensionsBuilder {
 
         add {
             TabSuspensionExtension(
-                webViewPublisher: args.webViewFuture,
+                webViewPublisher: args.webViewFuture.map { $0 as TabSuspensionWebViewChecking },
                 contentPublisher: args.contentPublisher,
                 featureFlagger: dependencies.featureFlagger,
+                privacyConfigurationManager: dependencies.privacyFeatures.contentBlocking.privacyConfigurationManager,
                 isTabPinned: args.isTabPinned
             )
         }
