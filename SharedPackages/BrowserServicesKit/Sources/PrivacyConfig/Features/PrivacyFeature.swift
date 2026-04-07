@@ -439,6 +439,8 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Prevents about: scheme navigations (e.g. about:srcdoc) from opening new tabs in the sidebar
     case sidebarAboutSchemeNavigationFix
+
+    case viewAllChatsNativeOmnibar
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
