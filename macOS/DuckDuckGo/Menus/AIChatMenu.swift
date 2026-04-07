@@ -168,8 +168,8 @@ final class AIChatMenu: NSMenu {
             item.target = self
             item.representedObject = chat
             item.image = chat.isPinned
-                ? (origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.pin : DesignSystemImages.Glyphs.Size12.pin)
-                : (origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.chat : DesignSystemImages.Glyphs.Size12.chat)
+            ? (origin == .moreOptionsMenu ? DesignSystemImages.Color.Size16.chatPinned : DesignSystemImages.Color.Size12.chatPinned)
+                : (origin == .moreOptionsMenu ? DesignSystemImages.Color.Size16.chat : DesignSystemImages.Color.Size12.chat)
             insertItem(item, at: labelIndex + 1 + offset)
             chatItems.append(item)
         }
