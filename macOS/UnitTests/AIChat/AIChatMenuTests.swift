@@ -63,17 +63,6 @@ final class AIChatMenuTests: XCTestCase {
         let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions)
         let titles = menu.items.map(\.title)
         XCTAssertTrue(titles.contains(UserText.aiChatMenuOpenDuckAI))
-        XCTAssertFalse(titles.contains(UserText.aiChatMenuNewChat), "Main menu should not show New Chat item")
-        XCTAssertTrue(titles.contains(UserText.aiChatMenuNewVoiceChat))
-        XCTAssertTrue(titles.contains(UserText.aiChatMenuNewImageChat))
-        XCTAssertTrue(titles.contains(UserText.aiChatMenuRecentChats))
-        XCTAssertTrue(titles.contains(UserText.aiChatMenuDeleteAllChats))
-    }
-
-    func testMoreOptionsStaticItemsArePresent() {
-        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions, origin: .moreOptionsMenu)
-        let titles = menu.items.map(\.title)
-        XCTAssertTrue(titles.contains(UserText.aiChatMenuOpenDuckAI))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewChat))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewVoiceChat))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewImageChat))
@@ -174,7 +163,7 @@ final class AIChatMenuTests: XCTestCase {
     }
 
     func testNewChatTappedCallsAction() {
-        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions, origin: .moreOptionsMenu)
+        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions)
         let item = menu.items.first { $0.title == UserText.aiChatMenuNewChat }!
         menu.performActionForItem(at: menu.index(of: item))
         XCTAssertTrue(openNewChatCalled)

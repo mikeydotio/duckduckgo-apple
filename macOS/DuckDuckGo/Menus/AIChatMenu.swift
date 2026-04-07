@@ -57,7 +57,7 @@ final class AIChatMenu: NSMenu {
     private lazy var newChatItem: NSMenuItem = {
         let item = NSMenuItem(title: UserText.aiChatMenuNewChat, action: #selector(newChatTapped), keyEquivalent: "")
         item.target = self
-        item.image = DesignSystemImages.Glyphs.Size16.compose
+        item.image = origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.compose : DesignSystemImages.Glyphs.Size12.compose
         return item
     }()
 
@@ -123,10 +123,8 @@ final class AIChatMenu: NSMenu {
 
     private func buildMenu() {
         addItem(openDuckAIItem)
-        if origin == .moreOptionsMenu {
-            addItem(.separator())
-            addItem(newChatItem)
-        }
+        addItem(.separator())
+        addItem(newChatItem)
         addItem(newVoiceChatItem)
         addItem(newImageChatItem)
         addItem(.separator())
