@@ -44,11 +44,20 @@ final class AIChatMenu: NSMenu {
 
     // MARK: - Static items
 
-    private lazy var newChatItem: NSMenuItem = {
-        let item = NSMenuItem(title: UserText.aiChatMenuNewChat, action: #selector(newChatTapped), keyEquivalent: "n")
-        item.keyEquivalentModifierMask = [.option, .command]
+    private lazy var openDuckAIItem: NSMenuItem = {
+        let item = NSMenuItem(title: UserText.aiChatMenuOpenDuckAI, action: #selector(openDuckAITapped), keyEquivalent: origin == .mainMenu ? "n" : "")
+        if origin == .mainMenu {
+            item.keyEquivalentModifierMask = [.option, .command]
+        }
         item.target = self
-        item.image = origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.aiChat : DesignSystemImages.Glyphs.Size12.duckAi
+        item.image = origin == .moreOptionsMenu ? DesignSystemImages.Glyphs.Size16.duckAi : DesignSystemImages.Glyphs.Size12.duckAi
+        return item
+    }()
+
+    private lazy var newChatItem: NSMenuItem = {
+        let item = NSMenuItem(title: UserText.aiChatMenuNewChat, action: #selector(newChatTapped), keyEquivalent: "")
+        item.target = self
+        item.image = DesignSystemImages.Glyphs.Size16.compose
         return item
     }()
 
@@ -113,7 +122,11 @@ final class AIChatMenu: NSMenu {
     // MARK: - Menu construction
 
     private func buildMenu() {
-        addItem(newChatItem)
+        addItem(openDuckAIItem)
+        if origin == .moreOptionsMenu {
+            addItem(.separator())
+            addItem(newChatItem)
+        }
         addItem(newVoiceChatItem)
         addItem(newImageChatItem)
         addItem(.separator())
@@ -164,10 +177,15 @@ final class AIChatMenu: NSMenu {
 
     // MARK: - Action handlers
 
-    @objc private func newChatTapped() {
+    @objc private func openDuckAITapped() {
         actions.openNewChat()
         let pixel: AIChatPixel = origin == .moreOptionsMenu ? .aiChatNewChatMoreOptionsMenu : .aiChatNewChatMainMenu
         PixelKit.fire(pixel, frequency: .dailyAndStandard)
+    }
+
+    @objc private func newChatTapped() {
+        actions.openNewChat()
+        PixelKit.fire(AIChatPixel.aiChatNewChatMoreOptionsMenu, frequency: .dailyAndStandard)
     }
 
     @objc private func newVoiceChatTapped() {

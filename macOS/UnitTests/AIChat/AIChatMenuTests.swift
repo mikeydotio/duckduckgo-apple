@@ -62,6 +62,18 @@ final class AIChatMenuTests: XCTestCase {
     func testStaticItemsArePresent() {
         let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions)
         let titles = menu.items.map(\.title)
+        XCTAssertTrue(titles.contains(UserText.aiChatMenuOpenDuckAI))
+        XCTAssertFalse(titles.contains(UserText.aiChatMenuNewChat), "Main menu should not show New Chat item")
+        XCTAssertTrue(titles.contains(UserText.aiChatMenuNewVoiceChat))
+        XCTAssertTrue(titles.contains(UserText.aiChatMenuNewImageChat))
+        XCTAssertTrue(titles.contains(UserText.aiChatMenuRecentChats))
+        XCTAssertTrue(titles.contains(UserText.aiChatMenuDeleteAllChats))
+    }
+
+    func testMoreOptionsStaticItemsArePresent() {
+        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions, origin: .moreOptionsMenu)
+        let titles = menu.items.map(\.title)
+        XCTAssertTrue(titles.contains(UserText.aiChatMenuOpenDuckAI))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewChat))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewVoiceChat))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewImageChat))
@@ -69,11 +81,17 @@ final class AIChatMenuTests: XCTestCase {
         XCTAssertTrue(titles.contains(UserText.aiChatMenuDeleteAllChats))
     }
 
-    func testNewChatItemHasOptionCommandNShortcut() {
+    func testOpenDuckAIItemHasOptionCommandNShortcut() {
         let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions)
-        let item = menu.items.first { $0.title == UserText.aiChatMenuNewChat }
+        let item = menu.items.first { $0.title == UserText.aiChatMenuOpenDuckAI }
         XCTAssertEqual(item?.keyEquivalent, "n")
         XCTAssertEqual(item?.keyEquivalentModifierMask, [.option, .command])
+    }
+
+    func testMoreOptionsOpenDuckAIItemHasNoShortcut() {
+        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions, origin: .moreOptionsMenu)
+        let item = menu.items.first { $0.title == UserText.aiChatMenuOpenDuckAI }
+        XCTAssertEqual(item?.keyEquivalent, "")
     }
 
     // MARK: - Dynamic chat items
@@ -148,8 +166,15 @@ final class AIChatMenuTests: XCTestCase {
 
     // MARK: - Action handlers
 
-    func testNewChatTappedCallsAction() {
+    func testOpenDuckAITappedCallsAction() {
         let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions)
+        let item = menu.items.first { $0.title == UserText.aiChatMenuOpenDuckAI }!
+        menu.performActionForItem(at: menu.index(of: item))
+        XCTAssertTrue(openNewChatCalled)
+    }
+
+    func testNewChatTappedCallsAction() {
+        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions, origin: .moreOptionsMenu)
         let item = menu.items.first { $0.title == UserText.aiChatMenuNewChat }!
         menu.performActionForItem(at: menu.index(of: item))
         XCTAssertTrue(openNewChatCalled)

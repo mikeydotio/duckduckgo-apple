@@ -26252,13 +26252,13 @@
       }
     },
     "duckai.menu.new-chat" : {
-      "comment" : "Duck.ai main menu item to open Duck.ai",
+      "comment" : "Duck.ai menu item to start a new chat",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Open Duck.ai"
+            "value" : "New Chat"
           }
         }
       }
@@ -26283,6 +26283,18 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "New Voice Chat"
+          }
+        }
+      }
+    },
+    "duckai.menu.open-duck-ai" : {
+      "comment" : "Duck.ai menu item to open Duck.ai",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Duck.ai"
           }
         }
       }

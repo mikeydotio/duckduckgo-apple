@@ -139,6 +139,7 @@ public extension DesignSystemImages {
             public static var closeSolidAlt: DesignSystemImage { .init(resource: .closeSolidAlt16) }
             public static var cookie: DesignSystemImage { .init(resource: .cookie16) }
             public static var cookieWhole: DesignSystemImage { .init(resource: .cookieWhole16) }
+            public static var compose: DesignSystemImage { .init(resource: .compose16) }
             public static var copy: DesignSystemImage { .init(resource: .copy16) }
             public static var creditCard: DesignSystemImage { .init(resource: .creditCard16) }
             public static var currency: DesignSystemImage { .init(resource: .currency16) }
