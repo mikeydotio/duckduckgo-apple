@@ -255,6 +255,9 @@ enum AIChatPixel: PixelKitEvent {
 
     // MARK: - Main menu
 
+    /// Event Trigger: User taps Open Duck.ai from the main menu
+    case aiChatOpenDuckAiMainMenu
+
     /// Event Trigger: User opens a new Duck.ai chat from the main menu
     case aiChatNewChatMainMenu
 
@@ -271,6 +274,9 @@ enum AIChatPixel: PixelKitEvent {
     case aiChatDeleteAllChatsMainMenu
 
     // MARK: - More options menu
+
+    /// Event Trigger: User taps Open Duck.ai from the more options menu
+    case aiChatOpenDuckAiMoreOptionsMenu
 
     /// Event Trigger: User opens a new Duck.ai chat from the more options menu
     case aiChatNewChatMoreOptionsMenu
@@ -441,6 +447,8 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_start_new_conversation"
         case .aiChatMetricSentPromptOngoingChat:
             return "aichat_sent_prompt_ongoing_chat"
+        case .aiChatOpenDuckAiMainMenu:
+            return "aichat_open_duck_ai_main_menu"
         case .aiChatNewChatMainMenu:
             return "aichat_new_chat_main_menu"
         case .aiChatNewVoiceChatMainMenu:
@@ -451,6 +459,8 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_recent_chat_selected_main_menu"
         case .aiChatDeleteAllChatsMainMenu:
             return "aichat_delete_all_chats_main_menu"
+        case .aiChatOpenDuckAiMoreOptionsMenu:
+            return "aichat_open_duck_ai_more_options_menu"
         case .aiChatNewChatMoreOptionsMenu:
             return "aichat_new_chat_more_options_menu"
         case .aiChatNewVoiceChatMoreOptionsMenu:
@@ -525,11 +535,13 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatMetricSentPromptOngoingChat,
                 .aiChatTermsAcceptedDuplicateSyncOff,
                 .aiChatTermsAcceptedDuplicateSyncOn,
+                .aiChatOpenDuckAiMainMenu,
                 .aiChatNewChatMainMenu,
                 .aiChatNewVoiceChatMainMenu,
                 .aiChatNewImageChatMainMenu,
                 .aiChatRecentChatSelectedMainMenu,
                 .aiChatDeleteAllChatsMainMenu,
+                .aiChatOpenDuckAiMoreOptionsMenu,
                 .aiChatNewChatMoreOptionsMenu,
                 .aiChatNewVoiceChatMoreOptionsMenu,
                 .aiChatNewImageChatMoreOptionsMenu,
@@ -640,11 +652,13 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatMetricSentPromptOngoingChat,
                 .aiChatTermsAcceptedDuplicateSyncOff,
                 .aiChatTermsAcceptedDuplicateSyncOn,
+                .aiChatOpenDuckAiMainMenu,
                 .aiChatNewChatMainMenu,
                 .aiChatNewVoiceChatMainMenu,
                 .aiChatNewImageChatMainMenu,
                 .aiChatRecentChatSelectedMainMenu,
                 .aiChatDeleteAllChatsMainMenu,
+                .aiChatOpenDuckAiMoreOptionsMenu,
                 .aiChatNewChatMoreOptionsMenu,
                 .aiChatNewVoiceChatMoreOptionsMenu,
                 .aiChatNewImageChatMoreOptionsMenu,

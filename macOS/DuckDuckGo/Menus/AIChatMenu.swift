@@ -177,13 +177,14 @@ final class AIChatMenu: NSMenu {
 
     @objc private func openDuckAITapped() {
         actions.openNewChat()
-        let pixel: AIChatPixel = origin == .moreOptionsMenu ? .aiChatNewChatMoreOptionsMenu : .aiChatNewChatMainMenu
+        let pixel: AIChatPixel = origin == .moreOptionsMenu ? .aiChatOpenDuckAiMoreOptionsMenu : .aiChatOpenDuckAiMainMenu
         PixelKit.fire(pixel, frequency: .dailyAndStandard)
     }
 
     @objc private func newChatTapped() {
         actions.openNewChat()
-        PixelKit.fire(AIChatPixel.aiChatNewChatMoreOptionsMenu, frequency: .dailyAndStandard)
+        let pixel: AIChatPixel = origin == .moreOptionsMenu ? .aiChatNewChatMoreOptionsMenu : .aiChatNewChatMainMenu
+        PixelKit.fire(pixel, frequency: .dailyAndStandard)
     }
 
     @objc private func newVoiceChatTapped() {
