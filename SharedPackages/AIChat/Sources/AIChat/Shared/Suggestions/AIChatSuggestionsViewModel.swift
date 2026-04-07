@@ -44,6 +44,9 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
     /// Used to suppress mouse hover while navigating with keyboard.
     @Published public private(set) var isKeyboardNavigating: Bool = false
 
+    /// Controls visibility of the virtual "view all chats" row at the bottom of the list.
+    @Published public var showViewAllChats: Bool = false
+
     // MARK: - Computed Properties
 
     /// Returns true if there are any suggestions to display.
@@ -57,6 +60,11 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
             return nil
         }
         return filteredSuggestions[index]
+    }
+
+    /// True when the "view all" virtual row is selected (index one past the last suggestion).
+    public var isViewAllChatsSelected: Bool {
+        showViewAllChats && selectedIndex == filteredSuggestions.count
     }
 
     // MARK: - Initialization
@@ -91,7 +99,8 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
 
         // Reset selection if it's now out of bounds
         if let index = selectedIndex, index >= filteredSuggestions.count {
-            selectedIndex = filteredSuggestions.isEmpty ? nil : filteredSuggestions.count - 1
+            let maxValidIndex = showViewAllChats ? filteredSuggestions.count : filteredSuggestions.count - 1
+            selectedIndex = filteredSuggestions.isEmpty && !showViewAllChats ? nil : maxValidIndex
         }
     }
 
@@ -109,6 +118,9 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
             let nextIndex = currentIndex + 1
             if nextIndex < filteredSuggestions.count {
                 selectedIndex = nextIndex
+                return true
+            } else if showViewAllChats && nextIndex == filteredSuggestions.count {
+                selectedIndex = nextIndex   // virtual "view all" row
                 return true
             }
             return false
@@ -152,6 +164,12 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
         }
     }
 
+    /// Selects the virtual "view all chats" row via mouse hover.
+    public func selectViewAllChats() {
+        guard showViewAllChats else { return }
+        selectedIndex = filteredSuggestions.count
+    }
+
     /// Selects a suggestion at the given index (from mouse interaction).
     /// - Parameter index: The index to select.
     public func select(at index: Int) {
@@ -183,7 +201,8 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
         // Adjust selection after removal
         if let index = selectedIndex {
             if index >= filteredSuggestions.count {
-                selectedIndex = filteredSuggestions.isEmpty ? nil : filteredSuggestions.count - 1
+                let maxValidIndex = showViewAllChats ? filteredSuggestions.count : filteredSuggestions.count - 1
+                selectedIndex = filteredSuggestions.isEmpty && !showViewAllChats ? nil : maxValidIndex
             }
         }
     }
@@ -195,5 +214,6 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
         selectedIndex = nil
         isKeyboardNavigating = false
         filteredSuggestions = []
+        showViewAllChats = false
     }
 }
