@@ -287,6 +287,10 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213489080183740
     case webViewLookUpAction
 
+    /// Autoplay policy control via WKWebpagePreferences
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213734484627619
+    case autoplayPolicy
+
     /// Window Semaphore Fullscreen Behavior Flag
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213585076410725?focus=true
     case semaphoreAlwaysVisible
@@ -548,6 +552,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .disabled)
         case .aiChatNativeStorage:
             Config(source: .remoteReleasable(.subfeature(AIChatSubfeature.nativeStorage)), category: .duckAI)
+        case .autoplayPolicy:
+            Config(defaultValue: .disabled, source: .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.autoplayPolicy)), supportsLocalOverriding: true)
         }
     }
 
