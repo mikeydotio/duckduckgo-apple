@@ -124,6 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let tabCrashAggregator = TabCrashAggregator()
     let windowControllersManager: WindowControllersManager
+    let tabSuspensionService: TabSuspensionService
     let subscriptionNavigationCoordinator: SubscriptionNavigationCoordinator
 
     let appearancePreferences: AppearancePreferences
@@ -160,6 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let downloadListCoordinator: DownloadListCoordinator
     let autoconsentManagement = AutoconsentManagement()
     let attributedMetricManager: AttributedMetricManager
+    let duckAiNativeStorageHandler: DuckAiNativeStorageHandling?
 
     @MainActor
     private(set) lazy var autoconsentStatsPopoverCoordinator: AutoconsentStatsPopoverCoordinator = AutoconsentStatsPopoverCoordinator(
@@ -1142,6 +1144,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             logger: .memory
         )
 
+        tabSuspensionService = TabSuspensionService(
+            windowControllersManager: windowControllersManager,
+            featureFlagger: featureFlagger,
+            memoryUsageMonitor: memoryUsageMonitor,
+            pixelFiring: PixelKit.shared
+        )
+
+        if featureFlagger.isFeatureOn(.aiChatNativeStorage),
+           let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let nativeStorageContainerURL = appSupportURL.appendingPathComponent(DuckAiNativeStorageProvider.directoryName)
+            do {
+                duckAiNativeStorageHandler = try DuckAiNativeStorageProvider(containerURL: nativeStorageContainerURL).handler
+            } catch {
+                Logger.aiChat.error("[NativeStorage] Handler init failed: \(error)")
+                duckAiNativeStorageHandler = nil
+            }
+        } else {
+            duckAiNativeStorageHandler = nil
+        }
+
         super.init()
 
         webExtensionManagerHolder.appDelegate = self
@@ -1818,7 +1840,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let webExtensionManager = WebExtensionManagerFactory.makeManager(
                 privacyConfigurationManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
                 autoconsentPreferences: cookiePopupProtectionPreferences,
-                darkReaderExcludedDomainsProvider: darkReaderSettings
+                darkReaderExcludedDomainsProvider: darkReaderSettings,
+                scriptletConfiguration: makeScriptletConfiguration()
             )
             self.webExtensionManager = webExtensionManager
 
@@ -1845,7 +1868,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let webExtensionManager = WebExtensionManagerFactory.makeManager(
             privacyConfigurationManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
             autoconsentPreferences: cookiePopupProtectionPreferences,
-            darkReaderExcludedDomainsProvider: darkReaderFeatureSettings
+            darkReaderExcludedDomainsProvider: darkReaderFeatureSettings,
+            scriptletConfiguration: makeScriptletConfiguration()
         )
         self.webExtensionManager = webExtensionManager
 
@@ -1872,6 +1896,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         await webExtensionManager.syncEmbeddedExtensions(enabledTypes: enabledTypes)
     }
 
+    @available(macOS 15.4, *)
+    @MainActor
+    private func makeScriptletConfiguration() -> ScriptletConfiguration {
+        let scriptletsDirectory = URL.sandboxApplicationSupportURL
+            .appendingPathComponent("Scriptlets", isDirectory: true)
+
+        return ScriptletManagerFactory.makeConfiguration(
+            privacyConfigManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
+            apiService: DefaultAPIService(),
+            baseDirectory: scriptletsDirectory,
+            isProduction: !StandardApplicationBuildType().isDebugBuild
+        )
+    }
+
     // MARK: - PixelKit
 
     static func configurePixelKit() {
@@ -1886,7 +1924,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                        appVersion: AppVersion.shared.versionNumber,
                        source: source,
                        defaultHeaders: [:],
-                       defaults: .netP) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, onComplete: @escaping PixelKit.CompletionBlock) in
+                       defaults: UserDefaults.netP) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, onComplete: @escaping PixelKit.CompletionBlock) in
 
             let url = URL.pixelUrl(forPixelNamed: pixelName)
             let apiHeaders = APIRequest.Headers(userAgent: userAgent, additionalHeaders: headers)

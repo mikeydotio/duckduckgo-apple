@@ -127,6 +127,7 @@ class MainViewController: UIViewController {
     let tabManager: TabManager
     let previewsSource: TabPreviewsSource
     let appSettings: AppSettings
+    let toggleModeStorage: ToggleModeStoring
     var fireExecutor: FireExecuting
     private var launchTabObserver: LaunchTabNotification.Observer?
     var isNewTabPageVisible: Bool {
@@ -297,6 +298,7 @@ class MainViewController: UIViewController {
     private let aichatFullModeFeature: AIChatFullModeFeatureProviding
     private let aichatIPadTabFeature: AIChatIPadTabFeatureProviding
     private let aiChatContextualModeFeature: AIChatContextualModeFeatureProviding
+    let voiceShortcutFeature: DuckAIVoiceShortcutFeatureProviding
     lazy var unifiedToggleInputFeature: UnifiedToggleInputFeatureProviding = UnifiedToggleInputFeature()
     var unifiedToggleInputCoordinator: UnifiedToggleInputCoordinator?
     var unifiedToggleInputCancellables = Set<AnyCancellable>()
@@ -309,6 +311,9 @@ class MainViewController: UIViewController {
         aiChatSettings: aiChatSettings,
         iPadTabFeature: aichatIPadTabFeature
     )
+    private var iPadAIChatQuery = ""
+    private var allowIPadAIAutocompleteShow = false
+    private var isAwaitingIPadHistoryRefreshAfterModeSwitch = false
 
     private(set) var webExtensionEventsCoordinator: WebExtensionEventsCoordinator?
     func setWebExtensionEventsCoordinator(_ coordinator: WebExtensionEventsCoordinator?) {
@@ -378,7 +383,9 @@ class MainViewController: UIViewController {
         privacyStats: PrivacyStatsProviding,
         aiChatContextualModeFeature: AIChatContextualModeFeatureProviding = AIChatContextualModeFeature(),
         whatsNewRepository: WhatsNewMessageRepository,
-        darkReaderFeatureSettings: DarkReaderFeatureSettings
+        darkReaderFeatureSettings: DarkReaderFeatureSettings,
+        voiceShortcutFeature: DuckAIVoiceShortcutFeatureProviding = DuckAIVoiceShortcutFeature(),
+        toggleModeStorage: ToggleModeStoring = ToggleModeStorage()
     ) {
         self.remoteMessagingActionHandler = remoteMessagingActionHandler
         self.remoteMessagingImageLoader = remoteMessagingImageLoader
@@ -439,6 +446,8 @@ class MainViewController: UIViewController {
         self.aiChatContextualModeFeature = aiChatContextualModeFeature
         self.whatsNewRepository = whatsNewRepository
         self.darkReaderFeatureSettings = darkReaderFeatureSettings
+        self.voiceShortcutFeature = voiceShortcutFeature
+        self.toggleModeStorage = toggleModeStorage
 
         super.init(nibName: nil, bundle: nil)
         
@@ -763,25 +772,18 @@ class MainViewController: UIViewController {
     }
 
     func loadSuggestionTray() {
-        let storyboard = UIStoryboard(name: "SuggestionTray", bundle: nil)
 
-        guard let controller = storyboard.instantiateInitialViewController(creator: { coder in
-            SuggestionTrayViewController(coder: coder,
-                                         favoritesViewModel: self.favoritesViewModel,
-                                         bookmarksDatabase: self.bookmarksDatabase,
-                                         historyManager: self.historyManager,
-                                         tabsModelProvider: { self.tabManager.currentTabsModel },
-                                         featureFlagger: self.featureFlagger,
-                                         appSettings: self.appSettings,
-                                         aiChatSettings: self.aiChatSettings,
-                                         featureDiscovery: self.featureDiscovery,
-                                         newTabPageDependencies: self.newTabPageDependencies,
-                                         productSurfaceTelemetry: self.productSurfaceTelemetry,
-                                         hideBorder: false)
-        }) else {
-            assertionFailure()
-            return
-        }
+        let controller = SuggestionTrayViewController(favoritesViewModel: self.favoritesViewModel,
+                                     bookmarksDatabase: self.bookmarksDatabase,
+                                     historyManager: self.historyManager,
+                                     tabsModelProvider: { self.tabManager.currentTabsModel },
+                                     featureFlagger: self.featureFlagger,
+                                     appSettings: self.appSettings,
+                                     aiChatSettings: self.aiChatSettings,
+                                     featureDiscovery: self.featureDiscovery,
+                                     newTabPageDependencies: self.newTabPageDependencies,
+                                     productSurfaceTelemetry: self.productSurfaceTelemetry,
+                                     hideBorder: false)
 
         controller.view.frame = viewCoordinator.suggestionTrayContainer.bounds
         controller.newTabPageControllerDelegate = self
@@ -806,7 +808,7 @@ class MainViewController: UIViewController {
         controller.keyValueStore = keyValueStore
         controller.tabManager = tabManager
         controller.daxDialogsManager = daxDialogsManager
-        controller.fireModeCapability = FireModeCapability.create(using: featureFlagger)
+        controller.fireModeCapability = FireModeCapability.create()
         viewCoordinator.tabBarContainer.addSubview(controller.view)
         tabsBarController = controller
         controller.didMove(toParent: self)
@@ -1055,6 +1057,15 @@ class MainViewController: UIViewController {
         if let tab = tabManager.currentTabsModel.currentTab, tab.link == nil {
             ntpAfterIdleInstrumentation.appBackgroundedFromNTP(afterIdle: tab.openedAfterIdle)
         }
+
+        /// Resign the web view's first responder when backgrounding with the tab switcher
+        /// visible. The tab switcher uses .overCurrentContext so the WKWebView stays in the
+        /// hierarchy; without this, the web process restores focus on foreground and the
+        /// keyboard appears on top of the tab switcher.
+        /// https://app.asana.com/1/137249556945/project/414709148257752/task/1213823670012997?focus=true
+        if tabSwitcherController != nil {
+            currentTab?.webView.resignFirstResponder()
+        }
     }
 
     @objc func onAddressBarPositionChanged() {
@@ -1138,6 +1149,7 @@ class MainViewController: UIViewController {
             let keyboardFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else {
             return
         }
+
         latestKeyboardFrame = keyboardFrame
         let duration: TimeInterval = (userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0
         let animationCurveRawNSN = userInfo[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber
@@ -1187,6 +1199,11 @@ class MainViewController: UIViewController {
 
             let bottomOffset = intersection.height > 0 ? containerHeight - omniBarHeight : 0
             currentTab.borderView.bottomOffset = -bottomOffset
+        } else if isAnyAITabUTIState, let currentTab {
+            let inset = keyboardHeight > 0 ? baseInputHeight : 0
+            if currentTab.webView.scrollView.contentInset.bottom != inset {
+                currentTab.webView.scrollView.contentInset = .init(top: 0, left: 0, bottom: inset, right: 0)
+            }
         }
 
         if appSettings.currentAddressBarPosition.isBottom,
@@ -1591,7 +1608,16 @@ class MainViewController: UIViewController {
         fireKeyboardSettingsPixels()
         fireTemporaryTelemetryPixels()
         skipSERPFlow = true
-        
+
+        /// Dismiss any keyboard restored by WKWebView when returning to foreground
+        /// with the tab switcher visible. The tab switcher uses .overCurrentContext so
+        /// the WKWebView remains in the hierarchy and its web process can restore focus
+        /// on a text input, causing the keyboard to appear on top of the tab switcher.
+        /// https://app.asana.com/1/137249556945/project/414709148257752/task/1213823670012997?focus=true
+        if tabSwitcherController != nil {
+            currentTab?.webView.resignFirstResponder()
+        }
+
         // Show Fire Pulse only if Privacy button pulse should not be shown. In control group onboarding `shouldShowPrivacyButtonPulse` is always false.
         if daxDialogsManager.shouldShowFireButtonPulse && !daxDialogsManager.shouldShowPrivacyButtonPulse {
             showFireButtonPulse()
@@ -1891,6 +1917,9 @@ class MainViewController: UIViewController {
             viewCoordinator.omniBar.stopBrowsing()
             // Clear Dax Easter Egg logo when no tab is active
             viewCoordinator.omniBar.setDaxEasterEggLogoURL(nil)
+            if let tabModel = tabManager.currentTabsModel.currentTab {
+                viewCoordinator.omniBar.setSelectedTextEntryMode(tabModel.preferredTextEntryMode)
+            }
             updateBrowsingMenuHeaderDataSource()
             if let tab = currentTab {
                 refreshUnifiedToggleInput(for: tab)
@@ -1917,11 +1946,13 @@ class MainViewController: UIViewController {
         viewCoordinator.omniBar.setDaxEasterEggLogoURL(logoURL)
 
         if tab.isAITab && (aichatFullModeFeature.isAvailable || aichatIPadTabFeature.isAvailable) {
+            // AI tabs use branding UI — skip setSelectedTextEntryMode to avoid
+            // flashing the "ask privately" placeholder before branding covers the text field.
             viewCoordinator.omniBar.enterAIChatMode()
         } else {
             viewCoordinator.omniBar.startBrowsing()
+            viewCoordinator.omniBar.setSelectedTextEntryMode(tab.tabModel.preferredTextEntryMode)
         }
-
         refreshUnifiedToggleInput(for: tab)
         updateBrowsingMenuHeaderDataSource()
     }
@@ -1957,14 +1988,15 @@ class MainViewController: UIViewController {
     func dismissOmniBar() {
         hideSuggestionTray()
         viewCoordinator.omniBar.endEditing()
-
-        if aiChatAddressBarExperience.shouldShowModeToggle,
-           let omniBarVC = viewCoordinator.omniBar as? OmniBarViewController,
-           omniBarVC.selectedTextEntryMode == .aiChat {
-            omniBarVC.setSelectedTextEntryMode(.search)
-        }
-
         refreshOmniBar()
+    }
+
+    private var isModeToggleInAIChatMode: Bool {
+        guard aiChatAddressBarExperience.shouldShowModeToggle,
+              let omniBarVC = viewCoordinator.omniBar as? OmniBarViewController else {
+            return false
+        }
+        return omniBarVC.selectedTextEntryMode == .aiChat
     }
 
     private func hideNotificationBarIfBrokenSitePromptShown(afterRefresh: Bool = false) {
@@ -1984,7 +2016,7 @@ class MainViewController: UIViewController {
         super.viewWillTransition(to: size, with: coordinator)
 
         let isKeyboardShowing = omniBar.isTextFieldEditing
-        if isKeyboardShowing {
+        if isKeyboardShowing && !AppWidthObserver.shared.isPad && featureFlagger.isFeatureOn(.minimalChromeInLandscape) {
             omniBar.barView.textField.suppressResignFirstResponder = true
         }
 
@@ -2100,7 +2132,6 @@ class MainViewController: UIViewController {
         viewCoordinator.tabBarContainer.isHidden = false
         viewCoordinator.toolbar.isHidden = true
         viewCoordinator.omniBar.enterPadState()
-        viewCoordinator.moveAddressBarToPosition(.top)
 
         swipeTabsCoordinator?.isEnabled = false
     }
@@ -2109,7 +2140,6 @@ class MainViewController: UIViewController {
         viewCoordinator.tabBarContainer.isHidden = true
         viewCoordinator.toolbar.isHidden = false
         viewCoordinator.omniBar.enterPhoneState()
-        viewCoordinator.moveAddressBarToPosition(appSettings.currentAddressBarPosition)
 
         swipeTabsCoordinator?.isEnabled = true
     }
@@ -2144,6 +2174,14 @@ class MainViewController: UIViewController {
     }
     
     private func showSuggestionTray(_ type: SuggestionTrayViewController.SuggestionType) {
+        if iPadTabChatHistoryCoordinator.isInstalled {
+            if case .autocomplete = type,
+               isModeToggleInAIChatMode,
+               !allowIPadAIAutocompleteShow {
+                return
+            }
+        }
+
         suggestionTrayController?.show(for: type)
         applyWidthToTrayController()
         if !isUsingSingleBar {
@@ -2365,7 +2403,8 @@ class MainViewController: UIViewController {
             ViewHighlighter.hideAll()
         }
         daxDialogsManager.fireButtonPulseCancelled()
-        hideSuggestionTray()
+        // Reset omnibar editing state before creating a new tab.
+        dismissOmniBar()
         hideNotificationBarIfBrokenSitePromptShown()
         currentTab?.aiChatContextualSheetCoordinator.dismissSheet()
         currentTab?.dismiss()
@@ -2847,9 +2886,9 @@ class MainViewController: UIViewController {
         Pixel.fire(pixel: pixel, withAdditionalParameters: pixelParameters, includedParameters: [.atb])
     }
 
-    func openAIChat(_ query: String? = nil, autoSend: Bool = false, payload: Any? = nil, tools: [AIChatRAGTool]? = nil, modelId: String? = nil, images: [AIChatNativePrompt.NativePromptImage]? = nil) {
+    func openAIChat(_ query: String? = nil, autoSend: Bool = false, payload: Any? = nil, tools: [AIChatRAGTool]? = nil, modelId: String? = nil, images: [AIChatNativePrompt.NativePromptImage]? = nil, fromDeepLink: Bool = false) {
         if aichatFullModeFeature.isAvailable || aichatIPadTabFeature.isAvailable {
-            openAIChatInTab(query, autoSend: autoSend, payload: payload, tools: tools, modelId: modelId, images: images)
+            openAIChatInTab(query, autoSend: autoSend, payload: payload, tools: tools, modelId: modelId, images: images, fromDeepLink: fromDeepLink)
         } else {
             aiChatViewControllerManager.openAIChat(query, payload: payload, autoSend: autoSend, tools: tools, on: self)
         }
@@ -2860,21 +2899,37 @@ class MainViewController: UIViewController {
         openAIChatInVoiceMode()
     }
 
-    private func openAIChatInVoiceMode() {
+    func openAIVoiceChatFromDeepLink() {
+        openAIChatInVoiceMode(fromDeepLink: true)
+    }
+
+    private func openAIChatInVoiceMode(fromDeepLink: Bool = false) {
         if aichatFullModeFeature.isAvailable || aichatIPadTabFeature.isAvailable {
-            openAIChatVoiceModeInTab()
+            openAIChatVoiceModeInTab(fromDeepLink: fromDeepLink)
         } else {
             aiChatViewControllerManager.openAIChatVoiceMode(on: self)
         }
     }
 
-    private func openAIChatVoiceModeInTab() {
+    private func openAIChatVoiceModeInTab(fromDeepLink: Bool = false) {
         guard tabManager.current(createIfNeeded: true) != nil else {
             assertionFailure("openAIChatVoiceModeInTab: no current tab available")
             return
         }
 
         guard let currentTab else { return }
+
+        if fromDeepLink, currentTab.tabModel.link != nil {
+            let voiceURL = currentTab.aiChatContentHandler.buildVoiceModeURL()
+            loadUrlInNewTab(voiceURL, inheritedAttribution: nil)
+            // Collapse the input that was auto-expanded for the restored tab.
+            // This cancels any pending async activateInput because showCollapsed
+            // sets displayState to .collapsed, failing the guard in showExpanded's
+            // async block.
+            unifiedToggleInputCoordinator?.showCollapsed()
+            return
+        }
+
         prepareTabForRequest {
             currentTab.loadVoiceMode()
         }
@@ -2887,9 +2942,16 @@ class MainViewController: UIViewController {
     ///   - autoSend: Whether to automatically send the query
     ///   - payload: Optional payload data for AI Chat
     ///   - tools: Optional RAG tools available in AI Chat
-    private func openAIChatInTab(_ query: String? = nil, autoSend: Bool = false, payload: Any? = nil, tools: [AIChatRAGTool]? = nil, modelId: String? = nil, images: [AIChatNativePrompt.NativePromptImage]? = nil) {
+    ///   - fromDeepLink: When true and current tab has content, opens in a new tab instead
+    private func openAIChatInTab(_ query: String? = nil, autoSend: Bool = false, payload: Any? = nil, tools: [AIChatRAGTool]? = nil, modelId: String? = nil, images: [AIChatNativePrompt.NativePromptImage]? = nil, fromDeepLink: Bool = false) {
         guard tabManager.current(createIfNeeded: true) != nil else {
             assertionFailure("openAIChatInTab: no current tab available")
+            return
+        }
+
+        if fromDeepLink, let currentTab, currentTab.tabModel.link != nil {
+            let chatURL = currentTab.aiChatContentHandler.buildQueryURL(query: query, autoSend: autoSend, tools: tools)
+            loadUrlInNewTab(chatURL, inheritedAttribution: nil)
             return
         }
 
@@ -3018,26 +3080,20 @@ extension MainViewController: BrowserChromeDelegate {
     }
     
     var barsMaxHeight: CGFloat {
-        if viewCoordinator.toolbar.isHidden {
-            return viewCoordinator.omniBar.barView.expectedHeight
-        }
-        return max(toolbarHeight, viewCoordinator.omniBar.barView.expectedHeight)
+        max(toolbarHeight, viewCoordinator.omniBar.barView.expectedHeight)
     }
 
     // 1.0 - full size, 0.0 - hidden
     private func updateToolbarConstant(_ ratio: CGFloat) {
-        let bottomHeight = toolbarHeight + view.safeAreaInsets.bottom
+        var bottomHeight = toolbarHeight
+        if viewCoordinator.addressBarPosition.isBottom {
+            // When position is set to bottom, contentContainer is pinned to top
+            // of navigationBarContainer, hence the adjustment.
+            bottomHeight += viewCoordinator.navigationBarContainer.frame.height
+        }
+        bottomHeight += view.safeAreaInsets.bottom
         let multiplier = viewCoordinator.toolbar.isHidden ? 1.0 : 1.0 - ratio
         viewCoordinator.constraints.toolbarBottom.constant = bottomHeight * multiplier
-
-        if viewCoordinator.addressBarPosition.isBottom,
-           !viewCoordinator.isNavigationBarContainerBottomKeyboardBased,
-           !isAnyAITabUTIState {
-            // Push the navigation bar down independently so the content container
-            // (which is pinned to toolbar.top) doesn't extend past the screen bottom.
-            let navBarHeight = viewCoordinator.navigationBarContainer.frame.height
-            viewCoordinator.constraints.navigationBarContainerBottom.constant = navBarHeight * (1.0 - ratio)
-        }
     }
 
     // 1.0 - full size, 0.0 - hidden
@@ -3133,6 +3189,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onPromptSubmitted(_ query: String, tools: [AIChatRAGTool]?) {
+        commitToggleStateToCurrentTab()
         openAIChat(query, autoSend: true, tools: tools)
     }
 
@@ -3141,7 +3198,9 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onAIChatQueryUpdated(_ query: String) {
+        iPadAIChatQuery = query
         iPadTabChatHistoryCoordinator.updateQuery(query)
+        updateIPadURLFallbackSuggestions()
     }
 
     func didRequestCurrentURL() -> URL? {
@@ -3166,6 +3225,16 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onOmniQueryUpdated(_ updatedQuery: String) {
+        if iPadTabChatHistoryCoordinator.isInstalled {
+            iPadAIChatQuery = updatedQuery
+        }
+        // During iPad mode toggle transitions, text can be copied to the textField
+        // which triggers this method even in duck.ai mode — suppress suggestions.
+        if isModeToggleInAIChatMode {
+            hideSuggestionTray()
+            return
+        }
+
         if updatedQuery.isEmpty {
             if newTabPageViewController != nil || !omniBar.isTextFieldEditing {
                 hideSuggestionTray()
@@ -3182,6 +3251,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onOmniQuerySubmitted(_ query: String) {
+        commitToggleStateToCurrentTab()
         if !daxDialogsManager.shouldShowFireButtonPulse {
             ViewHighlighter.hideAll()
         }
@@ -3532,7 +3602,8 @@ extension MainViewController: OmniBarDelegate {
         }
 
         guard newTabPageViewController == nil else { return }
-        
+        guard !isModeToggleInAIChatMode else { return }
+
         if !skipSERPFlow, isSERPPresented, let query = omniBar.text {
             tryToShowSuggestionTray(.autocomplete(query: query))
         } else {
@@ -3656,7 +3727,14 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onDidBeginEditing() { }
-    func onDidEndEditing() { }
+    func onDidEndEditing() {
+        // Restore the tab's committed mode — the user may have toggled without submitting.
+        // Safe on iPhone: the experimental editing state prevents textFieldDidEndEditing from
+        // firing (text field never becomes first responder during that flow).
+        if let tabMode = tabManager.currentTabsModel.currentTab?.preferredTextEntryMode {
+            viewCoordinator.omniBar.setSelectedTextEntryMode(tabMode)
+        }
+    }
 
     // MARK: - iPad Expanded Omnibar
 
@@ -3669,8 +3747,16 @@ extension MainViewController: OmniBarDelegate {
                 in: view,
                 parentViewController: self,
                 searchContainer: viewCoordinator.omniBar.barView.searchContainer,
+                isFireTab: isCurrentTabFireTab(),
                 keyboardLayoutGuide: view.keyboardLayoutGuide
             )
+            iPadTabChatHistoryCoordinator.onSuggestionsVisibilityChanged = { [weak self] _ in
+                guard let self else { return }
+                if self.isAwaitingIPadHistoryRefreshAfterModeSwitch {
+                    self.isAwaitingIPadHistoryRefreshAfterModeSwitch = false
+                }
+                self.updateIPadURLFallbackSuggestions()
+            }
 
             guard expandedOmniBarDismissTapGesture == nil else { return }
             let tap = UITapGestureRecognizer(target: self, action: #selector(dismissExpandedOmniBar))
@@ -3679,6 +3765,9 @@ extension MainViewController: OmniBarDelegate {
             expandedOmniBarDismissTapGesture = tap
         } else {
             iPadTabChatHistoryCoordinator.tearDown()
+            iPadAIChatQuery = ""
+            suggestionTrayController?.suggestionFilter = .all
+            suggestionTrayController?.additionalTopInset = 0
 
             if let tap = expandedOmniBarDismissTapGesture {
                 viewCoordinator.contentContainer.removeGestureRecognizer(tap)
@@ -3689,6 +3778,70 @@ extension MainViewController: OmniBarDelegate {
 
     @objc private func dismissExpandedOmniBar() {
         performCancel()
+    }
+
+    /// Shows URL-only suggestions below the AI text input only when chat history has no matches.
+    private func updateIPadURLFallbackSuggestions() {
+        let effectiveQuery = currentIPadAIQuery()
+        iPadAIChatQuery = effectiveQuery
+
+        guard iPadTabChatHistoryCoordinator.isInstalled else {
+            suggestionTrayController?.suggestionFilter = .all
+            suggestionTrayController?.additionalTopInset = 0
+            return
+        }
+        guard isModeToggleInAIChatMode else {
+            suggestionTrayController?.suggestionFilter = .all
+            suggestionTrayController?.additionalTopInset = 0
+            return
+        }
+        if isAwaitingIPadHistoryRefreshAfterModeSwitch {
+            hideSuggestionTrayContainerForIPadAI()
+            return
+        }
+
+        let shouldShowURLFallback = !effectiveQuery.isBlank && !iPadTabChatHistoryCoordinator.hasSuggestions
+        if shouldShowURLFallback {
+            suggestionTrayController?.suggestionFilter = .urlsOnly
+            suggestionTrayController?.additionalTopInset = iPadURLFallbackTopInset()
+            allowIPadAIAutocompleteShow = true
+            let didShow = tryToShowSuggestionTray(.autocomplete(query: effectiveQuery))
+            allowIPadAIAutocompleteShow = false
+            if !didShow {
+                hideSuggestionTrayContainerForIPadAI()
+            }
+        } else {
+            suggestionTrayController?.suggestionFilter = .all
+            suggestionTrayController?.additionalTopInset = 0
+            hideSuggestionTrayContainerForIPadAI()
+        }
+    }
+
+    private func iPadURLFallbackTopInset() -> CGFloat {
+        guard let searchContainer = viewCoordinator.omniBar.barView.searchContainer else {
+            return 0
+        }
+        let spacing: CGFloat = 12
+        let containerFrame = searchContainer.convert(searchContainer.bounds, to: viewCoordinator.contentContainer)
+        return max(0, containerFrame.maxY) + spacing
+    }
+
+    private func currentIPadAIQuery() -> String {
+        guard let omniBarVC = viewCoordinator.omniBar as? OmniBarViewController else {
+            return iPadAIChatQuery
+        }
+        if let expandable = omniBarVC.expandableBarView, expandable.isSearchAreaExpanded {
+            return expandable.aiChatTextView.text ?? ""
+        }
+        return omniBarVC.text ?? iPadAIChatQuery
+    }
+
+    /// Hides only the tray container during iPad duck.ai transitions.
+    /// Keeps tray content alive to avoid remove/reinstall flicker when toggling modes.
+    private func hideSuggestionTrayContainerForIPadAI() {
+        viewCoordinator.omniBar.showSeparator()
+        viewCoordinator.suggestionTrayContainer.isHidden = true
+        currentTab?.webView.accessibilityElementsHidden = false
     }
 
     // MARK: - Experimental Address Bar (pixels only)
@@ -3763,6 +3916,43 @@ extension MainViewController: OmniBarDelegate {
         if let tab = tabManager.currentTabsModel.currentTab, tab.link == nil {
             ntpAfterIdleInstrumentation.toggleUsedFromNTP(afterIdle: tab.openedAfterIdle)
         }
+        iPadAIChatQuery = currentIPadAIQuery()
+        guard iPadTabChatHistoryCoordinator.isInstalled else { return }
+        if isModeToggleInAIChatMode {
+            // Hide visible search suggestions immediately, but keep content alive
+            // to avoid raw teardown/reinstall flashes during quick mode toggles.
+            hideSuggestionTrayContainerForIPadAI()
+            isAwaitingIPadHistoryRefreshAfterModeSwitch = !iPadAIChatQuery.isBlank
+            iPadTabChatHistoryCoordinator.updateQuery(iPadAIChatQuery)
+            if !isAwaitingIPadHistoryRefreshAfterModeSwitch {
+                updateIPadURLFallbackSuggestions()
+            }
+        } else {
+            isAwaitingIPadHistoryRefreshAfterModeSwitch = false
+            suggestionTrayController?.suggestionFilter = .all
+            suggestionTrayController?.additionalTopInset = 0
+        }
+    }
+
+    func onTextEntryModeDidChange(_ mode: TextEntryMode) {
+        onToggleModeSwitched()
+    }
+
+    func preferredTextEntryModeForCurrentTab() -> TextEntryMode? {
+        tabManager.currentTabsModel.currentTab?.preferredTextEntryMode
+    }
+
+    /// Saves the current omnibar toggle state to the tab on submission,
+    /// and persists it globally so "Last Used" mode picks it up for new tabs.
+    private func commitToggleStateToCurrentTab() {
+        guard let omniBarVC = viewCoordinator.omniBar as? OmniBarViewController else { return }
+        commitToggleMode(omniBarVC.selectedTextEntryMode)
+    }
+
+    /// Shared commit logic for all toggle paths (iPad, iPhone editing state, unified toggle input).
+    func commitToggleMode(_ mode: TextEntryMode) {
+        tabManager.currentTabsModel.currentTab?.preferredTextEntryMode = mode
+        toggleModeStorage.save(mode)
     }
     
     func isCurrentTabFireTab() -> Bool {
@@ -4899,8 +5089,12 @@ extension MainViewController: VoiceSearchViewControllerDelegate {
 
         case .AIChat:
             Pixel.fire(pixel: .voiceSearchAIChatDone)
-            performCancel()
-            openAIChat(query, autoSend: true)
+            if let coordinator = unifiedToggleInputCoordinator, coordinator.isAITabState, coordinator.hasBoundUserScript {
+                coordinator.submitVoicePrompt(query)
+            } else {
+                performCancel()
+                openAIChat(query, autoSend: true)
+            }
         }
     }
 }

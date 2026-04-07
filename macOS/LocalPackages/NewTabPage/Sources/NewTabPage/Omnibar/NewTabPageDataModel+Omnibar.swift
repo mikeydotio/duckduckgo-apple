@@ -26,6 +26,32 @@ public extension NewTabPageDataModel {
         case search, ai
     }
 
+    struct AIModelItem: Codable, Equatable {
+        public let id: String
+        public let name: String
+        public let shortName: String
+        public let isEnabled: Bool
+        public let supportsImageUpload: Bool
+
+        public init(id: String, name: String, shortName: String, isEnabled: Bool, supportsImageUpload: Bool) {
+            self.id = id
+            self.name = name
+            self.shortName = shortName
+            self.isEnabled = isEnabled
+            self.supportsImageUpload = supportsImageUpload
+        }
+    }
+
+    struct AIModelSection: Codable, Equatable {
+        public let header: String?
+        public let items: [AIModelItem]
+
+        public init(header: String?, items: [AIModelItem]) {
+            self.header = header
+            self.items = items
+        }
+    }
+
     struct OmnibarConfig: Codable, Equatable {
         let mode: OmnibarMode
         let enableAi: Bool
@@ -33,6 +59,9 @@ public extension NewTabPageDataModel {
         let showCustomizePopover: Bool?
         let enableRecentAiChats: Bool?
         let showViewAllAiChats: Bool?
+        let enableAiChatTools: Bool?
+        let selectedModelId: String?
+        let aiModelSections: [AIModelSection]?
     }
 
     // MARK: - omnibar_getSuggestions
@@ -187,9 +216,16 @@ public extension NewTabPageDataModel {
 
     // MARK: - omnibar_submitChat
 
+    struct SubmitChatImage: Codable, Equatable {
+        public let data: String
+        public let format: String
+    }
+
     struct SubmitChatAction: Codable, Equatable {
         let chat: String
         let target: OpenTarget
+        let modelId: String?
+        let images: [SubmitChatImage]?
     }
 
     // MARK: - omnibar_openAiChat

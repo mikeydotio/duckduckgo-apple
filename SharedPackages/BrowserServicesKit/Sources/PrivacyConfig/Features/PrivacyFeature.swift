@@ -90,6 +90,7 @@ public enum PrivacyFeature: String {
     case webExtensions
     case forceDarkModeOnWebsites
     case promoQueue
+    case adBlockingExtension
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -240,6 +241,9 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213336304802675
     case showNTPAfterIdleReturn
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213557229772465?focus=true
+    case autoplayBlocking
+
     case customXSafariRedirectHandling
 
     case crashReportOptInStatusResetting
@@ -249,6 +253,12 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
     case screenTimeCleaning
 
     case minimalChromeInLandscape
+
+    /// https://app.asana.com/1/137249556945/project/1206329551987282/task/1211806114021630?focus=true
+    case onboardingRebranding
+
+    /// https://app.asana.com/1/137249556945/task/1213314048601761
+    case fireMode
 }
 
 public enum TabManagerSubfeature: String, PrivacySubfeature {
@@ -305,6 +315,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case foregroundRunningOnAppActive
     case foregroundRunningWhenDashboardOpen
     case clickActionDelayReductionOptimization
+    case continuedProcessing
     case pirRollout
     case goToMarket
     case webViewUserAgent
@@ -375,6 +386,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Enables the omnibar tools (customize, search toggle, image upload) for AI Chat
     case omnibarTools
 
+    /// Enables the default omnibar toggle position setting for AI Chat
+    case omnibarDefaultPosition
+
     /// Controls showing the Hide AI section in Settings -> AI Features
     case showHideAiGeneratedImages
 
@@ -402,6 +416,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Enables recent AI chats on the New Tab Page omnibar
     case ntpRecentChats
 
+    /// Enables AI chat tools (model selector, image upload) on the New Tab Page omnibar
+    case ntpChatTools
+
     /// Enables support for adding multiple page contexts to a single chat session
     case multiplePageContexts
 
@@ -411,11 +428,17 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Enables voice chat shortcut in the focused address bar
     case voiceShortcut
 
+    /// Enables improved contextual sheet UX (welcome message, ask about page, etc.)
+    case contextualSheetImprovements
+
     /// Enables removing individual AI chat suggestions
     case removeSuggestion
 
     /// Enables the fire button in the contextual AI chat sheet
     case contextualFireButton
+
+    /// Enables native-side storage for AI Chat (settings, chats, files)
+    case nativeStorage
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {

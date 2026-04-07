@@ -36,4 +36,8 @@ public protocol NewTabPageOmnibarConfigProviding: AnyObject {
 
     var showViewAllAiChats: Bool { get }
     var showViewAllAiChatsPublisher: AnyPublisher<Bool, Never> { get }
+
+    var isAIChatToolsEnabled: Bool { get }
+
+    var selectedModelId: String? { get set }
 }
