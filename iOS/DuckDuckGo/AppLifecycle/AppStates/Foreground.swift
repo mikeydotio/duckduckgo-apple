@@ -80,10 +80,12 @@ struct Foreground: ForegroundHandling {
         launchAction = LaunchAction(actionToHandle: actionToHandle,
                                     lastBackgroundDate: (try? lastBackgroundDateStorage.lastBackgroundDate) ?? nil,
                                     isFirstForeground: isFirstForeground)
+        let daxDialogsManager = appDependencies.mainCoordinator.controller.daxDialogsManager
         let idleReturnEligibilityManager = IdleReturnEligibilityManager(
             featureFlagger: appDependencies.featureFlagger,
             keyValueStore: appDependencies.services.keyValueFileStoreService.keyValueFilesStore,
-            privacyConfigurationManager: appDependencies.services.contentBlockingService.common.privacyConfigurationManager
+            privacyConfigurationManager: appDependencies.services.contentBlockingService.common.privacyConfigurationManager,
+            isStillOnboarding: { daxDialogsManager.isStillOnboarding() }
         )
         let idleReturnEvaluator = IdleReturnEvaluator(
             featureFlagger: appDependencies.featureFlagger,
@@ -93,6 +95,7 @@ struct Foreground: ForegroundHandling {
         launchActionHandler = LaunchActionHandler(
             urlHandler: appDependencies.mainCoordinator,
             shortcutItemHandler: appDependencies.mainCoordinator,
+            userActivityHandler: appDependencies.mainCoordinator,
             keyboardPresenter: KeyboardPresenter(mainViewController: appDependencies.mainCoordinator.controller),
             launchSourceService: appDependencies.launchSourceManager,
             idleReturnEvaluator: idleReturnEvaluator,
@@ -177,6 +180,8 @@ struct Foreground: ForegroundHandling {
             launchActionHandler.handleLaunchAction(.openURL(url))
         case .handleShortcutItem(let shortcutItem):
             launchActionHandler.handleLaunchAction(.handleShortcutItem(shortcutItem))
+        case .handleUserActivity(let userActivity):
+            launchActionHandler.handleLaunchAction(.handleUserActivity(userActivity))
         }
     }
 

@@ -43,7 +43,8 @@ public class DataBrokerProtectionAgentManagerProvider {
                                     privacyConfigurationManager: PrivacyConfigurationManaging,
                                     featureFlagger: DBPFeatureFlagging,
                                     wideEvent: WideEventManaging,
-                                    vpnBypassService: VPNBypassFeatureProvider) -> DataBrokerProtectionAgentManager? {
+                                    vpnBypassService: VPNBypassFeatureProvider,
+                                    applicationNameForUserAgent: String?) -> DataBrokerProtectionAgentManager? {
         guard let pixelKit = PixelKit.shared else {
             assertionFailure("PixelKit not set up")
             return nil
@@ -158,6 +159,7 @@ public class DataBrokerProtectionAgentManagerProvider {
             emailConfirmationDataService: emailConfirmationDataService,
             captchaService: captchaService,
             featureFlagger: featureFlagger,
+            applicationNameForUserAgent: applicationNameForUserAgent,
             vpnBypassService: vpnBypassService,
             wideEvent: wideEvent,
             isAuthenticatedUserProvider: { await authenticationManager.isUserAuthenticated })
@@ -293,6 +295,8 @@ public final class DataBrokerProtectionAgentManager {
             await fireMonitoringPixels()
             Logger.dataBrokerProtection.debug("PIR wide event sweep requested (agent launch)")
             sweepWideEvents()
+            let operationPreferredDateUpdater = OperationPreferredDateUpdater(database: jobDependencies.database)
+            operationPreferredDateUpdater.runPreferredRunDateNilMigrationIfNeeded(settings: jobDependencies.dataBrokerProtectionSettings)
             await checkForEmailConfirmationData()
 
             startFreemiumOrSubscriptionScheduledOperations(showWebView: false, jobDependencies: jobDependencies, errorHandler: nil, completion: nil)
@@ -401,7 +405,7 @@ extension DataBrokerProtectionAgentManager: JobQueueManagerDelegate {
         }
     }
 
-    public func queueManagerDidCompleteIndividualJob(_ queueManager: any DataBrokerProtectionCore.JobQueueManaging) {
+    public func queueManagerDidCompleteIndividualJob(_ queueManager: any DataBrokerProtectionCore.JobQueueManaging, identifier: CompletedJobIdentifier?) {
         // Figure out if we've just finished initial scans, and send the appropriate pixel if necessary
 
         let database = jobDependencies.database
@@ -528,10 +532,10 @@ extension DataBrokerProtectionAgentManager: DataBrokerProtectionAgentDebugComman
     }
 
     public func runAllOptOuts(showWebView: Bool) {
-        queueManager.execute(.startOptOutOperations(showWebView: showWebView,
-                                                    jobDependencies: jobDependencies,
-                                                    errorHandler: nil,
-                                                    completion: nil))
+        queueManager.startImmediateOptOutOperationsIfPermitted(showWebView: showWebView,
+                                                               jobDependencies: jobDependencies,
+                                                               errorHandler: nil,
+                                                               completion: nil)
     }
 
     public func runEmailConfirmationOperations(showWebView: Bool) async {

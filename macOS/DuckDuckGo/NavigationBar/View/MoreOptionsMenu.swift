@@ -84,7 +84,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
     private let freemiumDBPFeature: FreemiumDBPFeature
     private let freemiumDBPPresenter: FreemiumDBPPresenter
     private let appearancePreferences: AppearancePreferences
-    private var dockCustomizer: DockCustomization?
+    private let dockCustomizer: DockCustomization
     private let defaultBrowserPreferences: DefaultBrowserPreferences
     private let featureFlagger: FeatureFlagger
     private let freeTrialBadgePersistor: FreeTrialBadgePersisting
@@ -126,7 +126,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
          freemiumDBPFeature: FreemiumDBPFeature,
          freemiumDBPPresenter: FreemiumDBPPresenter = DefaultFreemiumDBPPresenter(),
          appearancePreferences: AppearancePreferences = NSApp.delegateTyped.appearancePreferences,
-         dockCustomizer: DockCustomization?,
+         dockCustomizer: DockCustomization,
          defaultBrowserPreferences: DefaultBrowserPreferences,
          notificationCenter: NotificationCenter = .default,
          featureFlagger: FeatureFlagger = NSApp.delegateTyped.featureFlagger,
@@ -187,7 +187,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
             guard internalUserDecider.isInternalUser else {
                 return UserText.sendFeedback
             }
-            return "\(UserText.sendFeedback) (version: \(AppVersionModel(appVersion: AppVersion(), internalUserDecider: nil).versionLabelShort))"
+            return "\(UserText.sendFeedback) (version: \(AppVersionModel().versionLabelShort))"
         }()
         let feedbackMenuItem = NSMenuItem(title: feedbackString, action: nil, keyEquivalent: "")
             .withImage(moreOptionsMenuIconsProvider.sendFeedbackIcon)
@@ -199,7 +199,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
                                                    featureFlagger: featureFlagger)
         addItem(feedbackMenuItem)
 
-        if let dockCustomizer = self.dockCustomizer,
+        if dockCustomizer.supportsAddingToDock,
            dockCustomizer.isAddedToDock == false {
 
             if dockCustomizer.shouldShowNotification {
@@ -234,7 +234,8 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
         zoomMenuItem.submenu = ZoomSubMenu(targetting: self,
                                            tabCollectionViewModel: tabCollectionViewModel,
-                                           moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+                                           moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider,
+                                           featureFlagger: featureFlagger)
         addItem(zoomMenuItem)
 
         addItem(NSMenuItem.separator())
@@ -255,11 +256,10 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
         let helpItem = NSMenuItem(title: UserText.mainMenuHelp, action: nil, keyEquivalent: "")
             .withImage(moreOptionsMenuIconsProvider.helpIcon)
-        helpItem.submenu = HelpSubMenu(targetting: self)
+        helpItem.submenu = HelpSubMenu(targetting: self, featureFlagger: featureFlagger)
         addItem(helpItem)
 
-#if APPSTORE
-        if !featureFlagger.isFeatureOn(.appStoreUpdateFlow) {
+        if StandardApplicationBuildType().isAppStoreBuild && !featureFlagger.isFeatureOn(.appStoreUpdateFlow) {
             let checkForAppStoreUpdates = NSMenuItem(title: UserText.mainMenuAppCheckforUpdates.replacingOccurrences(of: "…", with: ""),
                                                      action: #selector(checkForUpdates(_:)),
                                                      keyEquivalent: "")
@@ -267,7 +267,6 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
                 .targetting(self)
             addItem(checkForAppStoreUpdates)
         }
-#endif
 
         let preferencesItem = NSMenuItem(title: UserText.settings, action: #selector(openPreferences(_:)), keyEquivalent: "")
             .targetting(self)
@@ -295,8 +294,8 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
     @MainActor
     @objc func addToDock(_ sender: NSMenuItem) {
+        guard dockCustomizer.supportsAddingToDock, dockCustomizer.addToDock() else { return }
         PixelKit.fire(GeneralPixel.userAddedToDockFromMoreOptionsMenu, frequency: .dailyAndStandard)
-        dockCustomizer?.addToDock()
     }
 
     @MainActor
@@ -500,11 +499,10 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
         updateMenuItem = menuItem
         addItem(menuItem)
 
-        #if SPARKLE
-        if let releaseNotes = NSApp.mainMenuTyped.releaseNotesMenuItem.copy() as? NSMenuItem {
+        if StandardApplicationBuildType().isSparkleBuild,
+           let releaseNotes = NSApp.mainMenuTyped.releaseNotesMenuItem.copy() as? NSMenuItem {
             addItem(releaseNotes)
         }
-        #endif
 
         addItem(NSMenuItem.separator())
     }
@@ -560,7 +558,8 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
         let bookmarksSubMenu = BookmarksSubMenu(targetting: self,
                                                 tabCollectionViewModel: tabCollectionViewModel,
                                                 bookmarkManager: bookmarkManager,
-                                                moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+                                                moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider,
+                                                featureFlagger: featureFlagger)
 
         addItem(withTitle: UserText.bookmarks, action: #selector(openBookmarks), keyEquivalent: "")
             .targetting(self)
@@ -584,7 +583,8 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
         let loginsSubMenu = LoginsSubMenu(targetting: self,
                                           passwordManagerCoordinator: passwordManagerCoordinator,
-                                          moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+                                          moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider,
+                                          featureFlagger: featureFlagger)
 
         addItem(withTitle: UserText.passwordManagementTitle, action: #selector(openAutofillWithAllItems), keyEquivalent: "")
             .targetting(self)
@@ -760,7 +760,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
     }
 
     func menuDidClose(_ menu: NSMenu) {
-        dockCustomizer?.didCloseMoreOptionsMenu()
+        dockCustomizer.didCloseMoreOptionsMenu()
     }
 
     override func performActionForItem(at index: Int) {
@@ -873,10 +873,13 @@ final class EmailOptionsButtonSubMenu: NSMenu {
     }
 }
 
-final class FeedbackSubMenu: NSMenu {
+final class FeedbackSubMenu: NSMenu, NSMenuDelegate {
     private let authenticationStateProvider: any SubscriptionAuthenticationStateProvider
     private let internalUserDecider: InternalUserDecider
     private let featureFlagger: FeatureFlagger
+    private weak var target: AnyObject?
+    private let moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding
+    private var isPopulated = false
 
     init(targetting target: AnyObject,
          authenticationStateProvider: any SubscriptionAuthenticationStateProvider,
@@ -886,15 +889,32 @@ final class FeedbackSubMenu: NSMenu {
         self.authenticationStateProvider = authenticationStateProvider
         self.internalUserDecider = internalUserDecider
         self.featureFlagger = featureFlagger
+        self.target = target
+        self.moreOptionsMenuIconsProvider = moreOptionsMenuIconsProvider
         super.init(title: UserText.sendFeedback)
 
-        updateMenuItems(targetting: target,
-                        featureFlagger: featureFlagger,
-                        moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+        if featureFlagger.isFeatureOn(.lazyMenuRebuild) {
+            addItem(NSMenuItem())
+            delegate = self
+        } else {
+            updateMenuItems(targetting: target,
+                            featureFlagger: featureFlagger,
+                            moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+        }
     }
 
     required init(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard !isPopulated else { return }
+        isPopulated = true
+        removeAllItems()
+        guard let target else { return }
+        updateMenuItems(targetting: target,
+                        featureFlagger: featureFlagger,
+                        moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
     }
 
     private func updateMenuItems(targetting target: AnyObject,
@@ -955,21 +975,48 @@ final class FeedbackSubMenu: NSMenu {
     }
 }
 
-final class ZoomSubMenu: NSMenu {
+final class ZoomSubMenu: NSMenu, NSMenuDelegate {
+
+    private weak var target: AnyObject?
+    private weak var tabCollectionViewModel: TabCollectionViewModel?
+    private let moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding
+    private let featureFlagger: FeatureFlagger
+    private var isPopulated = false
 
     @MainActor
     init(targetting target: AnyObject,
          tabCollectionViewModel: TabCollectionViewModel,
-         moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding) {
+         moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding,
+         featureFlagger: FeatureFlagger) {
+        self.target = target
+        self.tabCollectionViewModel = tabCollectionViewModel
+        self.moreOptionsMenuIconsProvider = moreOptionsMenuIconsProvider
+        self.featureFlagger = featureFlagger
         super.init(title: UserText.zoom)
 
-        updateMenuItems(with: tabCollectionViewModel,
-                        targetting: target,
-                        moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+        if featureFlagger.isFeatureOn(.lazyMenuRebuild) {
+            addItem(NSMenuItem())
+            delegate = self
+        } else {
+            updateMenuItems(with: tabCollectionViewModel,
+                            targetting: target,
+                            moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+        }
     }
 
     required init(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    @MainActor
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard !isPopulated else { return }
+        isPopulated = true
+        removeAllItems()
+        guard let target, let tabCollectionViewModel else { return }
+        updateMenuItems(with: tabCollectionViewModel,
+                        targetting: target,
+                        moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
     }
 
     @MainActor
@@ -1016,24 +1063,55 @@ final class ZoomSubMenu: NSMenu {
     private var zoomItems: [NSMenuItem] = []
 }
 
-final class BookmarksSubMenu: NSMenu {
+final class BookmarksSubMenu: NSMenu, NSMenuDelegate {
+
+    private weak var target: AnyObject?
+    private weak var tabCollectionViewModel: TabCollectionViewModel?
+    private let bookmarkManager: BookmarkManager
+    private let moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding
+    private let featureFlagger: FeatureFlagger
+    private var isPopulated = false
 
     @MainActor
     init(targetting target: AnyObject,
          tabCollectionViewModel: TabCollectionViewModel,
          bookmarkManager: BookmarkManager,
-         moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding
+         moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding,
+         featureFlagger: FeatureFlagger
     ) {
+        self.target = target
+        self.tabCollectionViewModel = tabCollectionViewModel
+        self.bookmarkManager = bookmarkManager
+        self.moreOptionsMenuIconsProvider = moreOptionsMenuIconsProvider
+        self.featureFlagger = featureFlagger
         super.init(title: UserText.passwordManagementTitle)
         self.autoenablesItems = false
-        addMenuItems(with: tabCollectionViewModel,
-                     target: target,
-                     bookmarkManager: bookmarkManager,
-                     moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+
+        if featureFlagger.isFeatureOn(.lazyMenuRebuild) {
+            addItem(NSMenuItem())
+            delegate = self
+        } else {
+            addMenuItems(with: tabCollectionViewModel,
+                         target: target,
+                         bookmarkManager: bookmarkManager,
+                         moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+        }
     }
 
     required init(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    @MainActor
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard !isPopulated else { return }
+        isPopulated = true
+        removeAllItems()
+        guard let target, let tabCollectionViewModel else { return }
+        addMenuItems(with: tabCollectionViewModel,
+                     target: target,
+                     bookmarkManager: bookmarkManager,
+                     moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
     }
 
     @MainActor
@@ -1141,19 +1219,41 @@ final class BookmarksSubMenu: NSMenu {
     }
 }
 
-final class LoginsSubMenu: NSMenu {
+final class LoginsSubMenu: NSMenu, NSMenuDelegate {
     let passwordManagerCoordinator: PasswordManagerCoordinating
+    private weak var target: AnyObject?
+    private let moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding
+    private let featureFlagger: FeatureFlagger
+    private var isPopulated = false
 
     init(targetting target: AnyObject,
          passwordManagerCoordinator: PasswordManagerCoordinating,
-         moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding) {
+         moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding,
+         featureFlagger: FeatureFlagger) {
         self.passwordManagerCoordinator = passwordManagerCoordinator
+        self.target = target
+        self.moreOptionsMenuIconsProvider = moreOptionsMenuIconsProvider
+        self.featureFlagger = featureFlagger
         super.init(title: UserText.passwordManagementTitle)
-        updateMenuItems(with: target, moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+
+        if featureFlagger.isFeatureOn(.lazyMenuRebuild) {
+            addItem(NSMenuItem())
+            delegate = self
+        } else {
+            updateMenuItems(with: target, moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
+        }
     }
 
     required init(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard !isPopulated else { return }
+        isPopulated = true
+        removeAllItems()
+        guard let target else { return }
+        updateMenuItems(with: target, moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
     }
 
     private func updateMenuItems(with target: AnyObject,
@@ -1193,17 +1293,37 @@ final class LoginsSubMenu: NSMenu {
 
 }
 
-final class HelpSubMenu: NSMenu {
+final class HelpSubMenu: NSMenu, NSMenuDelegate {
+
+    private weak var target: AnyObject?
+    private let featureFlagger: FeatureFlagger
+    private var isPopulated = false
 
     @MainActor
-    init(targetting target: AnyObject) {
+    init(targetting target: AnyObject, featureFlagger: FeatureFlagger) {
+        self.target = target
+        self.featureFlagger = featureFlagger
         super.init(title: UserText.mainMenuHelp)
 
-        updateMenuItems(targetting: target)
+        if featureFlagger.isFeatureOn(.lazyMenuRebuild) {
+            addItem(NSMenuItem())
+            delegate = self
+        } else {
+            updateMenuItems(targetting: target)
+        }
     }
 
     required init(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    @MainActor
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard !isPopulated else { return }
+        isPopulated = true
+        removeAllItems()
+        guard let target else { return }
+        updateMenuItems(targetting: target)
     }
 
     @MainActor
@@ -1212,13 +1332,14 @@ final class HelpSubMenu: NSMenu {
 
         let about = (NSApp.mainMenuTyped.aboutMenuItem.copy() as? NSMenuItem)!
         addItem(about)
-#if SPARKLE
-        let releaseNotes = (NSApp.mainMenuTyped.releaseNotesMenuItem.copy() as? NSMenuItem)!
-        addItem(releaseNotes)
 
-        let whatIsNew = (NSApp.mainMenuTyped.whatIsNewMenuItem.copy() as? NSMenuItem)!
-        addItem(whatIsNew)
-#endif
+        if StandardApplicationBuildType().isSparkleBuild,
+           let releaseNotes = NSApp.mainMenuTyped.releaseNotesMenuItem.copy() as? NSMenuItem,
+           let whatIsNew = (NSApp.mainMenuTyped.whatIsNewMenuItem.copy() as? NSMenuItem) {
+            addItem(releaseNotes)
+            addItem(whatIsNew)
+        }
+
         let feedback = (NSApp.mainMenuTyped.sendFeedbackMenuItem.copy() as? NSMenuItem)!
         addItem(feedback)
     }

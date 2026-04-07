@@ -58,13 +58,15 @@ jobs:
     timeout-minutes: 60
 
     steps:
-    - name: Register SSH key for certificates repository access
+    - name: Register SSH keys for private repos
       uses: webfactory/ssh-agent@v0.9.1
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_FASTLANE_MATCH }}
+        ssh-private-key: |
+          ${{ secrets.SSH_PRIVATE_KEY_FASTLANE_MATCH }}
+          ${{ secrets.SSH_PRIVATE_KEY_DUCKSANS_FONT }}
 
     - name: Check out the code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         ref: ${{ inputs.branch || github.sha }}
@@ -153,10 +155,13 @@ jobs:
         log stream --debug --info --predicate 'process == "DuckDuckGo Review" OR process == "UI Tests-Runner"' --style syslog > app-console.log 2>&1 &
         echo $! > log_stream.pid
 
-    - name: Override XCTest Baseline HW Specs
-      working-directory: macOS
-      run: |
-        ./scripts/override-test-baseline-specs.sh
+    - name: Restore Xcode Compilation Cache
+      uses: actions/cache/restore@v4
+      with:
+        path: macOS/DerivedData/CompilationCache.noindex
+        key: xcode-compilation-cache-perf-tests
+        restore-keys: |
+          xcode-compilation-cache-perf-tests-
 
     - name: Build Performance Tests
       working-directory: macOS
@@ -166,8 +171,27 @@ jobs:
           -derivedDataPath DerivedData \
           -skipPackagePluginValidation \
           -skipMacroValidation \
+          COMPILATION_CACHE_ENABLE_CACHING=YES \
         | tee xcodebuild.log \
         | xcbeautify
+
+    - name: Compute Compilation Cache hash
+      if: github.ref == 'refs/heads/main'
+      id: compilation-cache-hash
+      run: |
+        if [ -d "DerivedData/CompilationCache.noindex" ]; then
+          hash=$(find DerivedData/CompilationCache.noindex -type f \( -name "*.index" -o -name "*.actions" \) 2>/dev/null | sort | xargs cat | shasum -a 256 | cut -d' ' -f1)
+          echo "hash=${hash}" >> $GITHUB_OUTPUT
+        else
+          echo "No compilation cache directory found (Xcode version may not support compilation caching)"
+        fi
+
+    - name: Save Xcode Compilation Cache
+      if: github.ref == 'refs/heads/main' && steps.compilation-cache-hash.outputs.hash
+      uses: actions/cache/save@v4
+      with:
+        path: macOS/DerivedData/CompilationCache.noindex
+        key: xcode-compilation-cache-perf-tests-${{ steps.compilation-cache-hash.outputs.hash }}
 
     - name: Extract and Copy app to /DerivedData
       working-directory: macOS
@@ -200,6 +224,7 @@ jobs:
         | tee ui-tests.log
 
     - name: Build Performance Report
+      if: always()
       working-directory: macOS
       run: |
         XCRESULT_PATH=$(find DerivedData/Logs/Test -name "*.xcresult" | head -1)
@@ -230,22 +255,33 @@ jobs:
           > insert-statements-startup-metrics.sql
 
     - name: Debug Insert SQL
+      if: always()
       working-directory: macOS
       run: |
-        echo "Generated insert-statements-memory.sql:"
-        cat insert-statements-memory.sql
+        if [ -f insert-statements-memory.sql ]; then
+          echo "Generated insert-statements-memory.sql:"
+          cat insert-statements-memory.sql
+        else
+          echo "No insert-statements-memory.sql found"
+        fi
 
-        echo "Generated insert-statements-startup-metrics.sql:"
-        cat insert-statements-startup-metrics.sql
-        
+        if [ -f insert-statements-startup-metrics.sql ]; then
+          echo "Generated insert-statements-startup-metrics.sql:"
+          cat insert-statements-startup-metrics.sql
+        else
+          echo "No insert-statements-startup-metrics.sql found"
+        fi
+
     - name: Upload memory metrics
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: memory-metrics
         path: macOS/insert-statements-memory.sql
         retention-days: 1
-    
+
     - name: Upload startup metrics
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: startup-metrics
@@ -347,6 +383,7 @@ jobs:
   report-memory-metrics-to-clickhouse:
     name: Report Memory Metrics to ClickHouse
     needs: performance-tests
+    if: always()
     runs-on: [ self-hosted, apple ]
 
     steps:
@@ -388,7 +425,7 @@ jobs:
 
     steps:
     - name: Check out the code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ inputs.branch || github.sha }}
 

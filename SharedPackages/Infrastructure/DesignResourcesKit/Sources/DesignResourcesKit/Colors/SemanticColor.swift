@@ -72,6 +72,9 @@ public enum DesignSystemColor {
     case alertGreen
     case alertYellow
 
+    // Shield
+    case shieldPrivacy
+
     // Icons
     case icons
     case iconsSecondary
@@ -125,9 +128,6 @@ public enum DesignSystemColor {
     case decorationSecondary
     case decorationTertiary
     case decorationQuaternary
-
-    // Fire Tabs
-    case fireMode
 
 }
 #endif

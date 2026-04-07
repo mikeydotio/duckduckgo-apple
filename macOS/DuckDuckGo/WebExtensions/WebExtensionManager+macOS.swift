@@ -17,6 +17,7 @@
 //
 
 import AppKit
+import AppKitExtensions
 import WebExtensions
 import PrivacyConfig
 
@@ -40,26 +41,32 @@ extension CookiePopupProtectionPreferences: AutoconsentPreferencesProviding {}
 @available(macOS 15.4, *)
 enum WebExtensionManagerFactory {
 
+    private static var extensionsDirectory: URL {
+        URL.sandboxApplicationSupportURL.appendingPathComponent("WebExtensions", isDirectory: true)
+    }
+
     /// Creates a fully configured WebExtensionManager with all macOS-specific providers.
     @MainActor
     static func makeManager(
         privacyConfigurationManager: PrivacyConfigurationManaging,
         autoconsentPreferences: AutoconsentPreferencesProviding,
-        darkReaderExcludedDomainsProvider: DarkReaderExcludedDomainsProviding? = nil
+        darkReaderExcludedDomainsProvider: DarkReaderExcludedDomainsProviding? = nil,
+        scriptletConfiguration: ScriptletConfiguration? = nil
     ) -> WebExtensionManager {
         let internalSiteHandler = WebExtensionInternalSiteHandler()
 
         let manager = WebExtensionManager(
             configuration: WebExtensionConfigurationProvider(),
             windowTabProvider: WebExtensionWindowTabProvider(),
-            storageProvider: WebExtensionStorageProvider(),
+            storageProvider: WebExtensionStorageProvider(extensionsDirectory: extensionsDirectory),
             internalSiteHandler: internalSiteHandler,
             pixelFiring: MacOSWebExtensionPixelFiring(),
             handlerProvider: WebExtensionHandlerProvider(
                 privacyConfigurationManager: privacyConfigurationManager,
                 autoconsentPreferences: autoconsentPreferences,
                 darkReaderExcludedDomainsProvider: darkReaderExcludedDomainsProvider
-            )
+            ),
+            scriptletConfiguration: scriptletConfiguration
         )
 
         internalSiteHandler.dataSource = manager

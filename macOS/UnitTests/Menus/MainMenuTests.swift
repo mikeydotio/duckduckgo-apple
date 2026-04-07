@@ -143,7 +143,6 @@ class MainMenuTests: XCTestCase {
         XCTAssertTrue(duckDuckGoMenu.items[3].isHidden)
     }
 
-#if SPARKLE
     @MainActor
     func testWhenBrowserIsNotInTheDockThenMenuItemIsVisible() throws {
         let dockCustomizer = DockCustomizerMock()
@@ -174,6 +173,40 @@ class MainMenuTests: XCTestCase {
 
         XCTAssertEqual(duckDuckGoMenu.items[3].isHidden, false)
         XCTAssertEqual(duckDuckGoMenu.items[3].title, UserText.addDuckDuckGoToDock)
+    }
+
+    @MainActor
+    func testWhenAddingToDockIsNotSupportedThenMenuItemIsHidden() throws {
+        let dockCustomizer = DockCustomizerMock()
+        dockCustomizer.supportsAddingToDock = false
+        dockCustomizer.dockStatus = false
+
+        let sut = MainMenu(
+            featureFlagger: MockFeatureFlagger(),
+            bookmarkManager: MockBookmarkManager(),
+            historyCoordinator: HistoryCoordinatingMock(),
+            recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
+            faviconManager: FaviconManagerMock(),
+            dockCustomizer: dockCustomizer,
+            defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
+            aiChatMenuConfig: DummyAIChatConfig(),
+            internalUserDecider: MockInternalUserDecider(),
+            appearancePreferences: appearancePreferences,
+            privacyConfigurationManager: MockPrivacyConfigurationManager(),
+            isFireWindowDefault: false,
+            configurationURLProvider: MockCustomURLProvider(),
+            contentScopePreferences: ContentScopePreferences(windowControllersManager: WindowControllersManagerMock()),
+            quitSurveyPersistor: MockQuitSurveyPersistor(),
+            pinningManager: MockPinningManager(),
+            subscriptionManager: SubscriptionManagerMock()
+        )
+
+        sut.update()
+
+        let duckDuckGoMenu = try XCTUnwrap(sut.items.first?.submenu)
+
+        XCTAssertEqual(duckDuckGoMenu.items[3].title, UserText.addDuckDuckGoToDock)
+        XCTAssertTrue(duckDuckGoMenu.items[3].isHidden)
     }
 
     @MainActor
@@ -208,7 +241,6 @@ class MainMenuTests: XCTestCase {
         XCTAssertEqual(duckDuckGoMenu.items[3].isHidden, true)
         XCTAssertEqual(duckDuckGoMenu.items[3].title, UserText.addDuckDuckGoToDock)
     }
-#endif
 
     // MARK: - Default Browser Action
 
@@ -223,6 +255,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: .init(defaultBrowserProvider: defaultBrowserProvider),
             aiChatMenuConfig: DummyAIChatConfig(),
             internalUserDecider: MockInternalUserDecider(),
@@ -255,6 +288,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: .init(defaultBrowserProvider: defaultBrowserProvider),
             aiChatMenuConfig: DummyAIChatConfig(),
             internalUserDecider: MockInternalUserDecider(),
@@ -287,6 +321,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             aiChatMenuConfig: DummyAIChatConfig(),
             internalUserDecider: MockInternalUserDecider(),
@@ -321,6 +356,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             aiChatMenuConfig: aiChatConfig,
             internalUserDecider: MockInternalUserDecider(),
@@ -357,6 +393,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             aiChatMenuConfig: aiChatConfig,
             internalUserDecider: MockInternalUserDecider(),
@@ -390,6 +427,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             aiChatMenuConfig: DummyAIChatConfig(),
             internalUserDecider: MockInternalUserDecider(),
@@ -417,6 +455,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             aiChatMenuConfig: DummyAIChatConfig(),
             internalUserDecider: MockInternalUserDecider(),
@@ -447,6 +486,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             aiChatMenuConfig: DummyAIChatConfig(),
             internalUserDecider: MockInternalUserDecider(),
@@ -474,6 +514,7 @@ class MainMenuTests: XCTestCase {
             historyCoordinator: HistoryCoordinatingMock(),
             recentlyClosedCoordinator: RecentlyClosedCoordinatorMock(),
             faviconManager: FaviconManagerMock(),
+            dockCustomizer: DockCustomizerMock(),
             defaultBrowserPreferences: DefaultBrowserPreferences(defaultBrowserProvider: MockDefaultBrowserProvider()),
             aiChatMenuConfig: DummyAIChatConfig(),
             internalUserDecider: MockInternalUserDecider(),
@@ -496,6 +537,101 @@ class MainMenuTests: XCTestCase {
 
         XCTAssertEqual(fileMenu.submenu?.item(at: 2)?.title, UserText.newWindowMenuItem)
         XCTAssertEqual(fileMenu.submenu?.item(at: 1)?.title, UserText.newBurnerWindowMenuItem)
+    }
+}
+
+// MARK: - LazyBookmarkFolderMenuDelegateTests
+
+@MainActor
+class LazyBookmarkFolderMenuDelegateTests: XCTestCase {
+
+    func testMenuIsEmptyBeforeFirstOpen() {
+        // GIVEN
+        let bookmark = Bookmark(id: "1", url: "https://example.com", title: "Example", isFavorite: false)
+        let viewModel = BookmarkViewModel(entity: bookmark)
+        let delegate = LazyBookmarkFolderMenuDelegate(children: [viewModel])
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem()) // placeholder
+        menu.delegate = delegate
+
+        // THEN
+        XCTAssertEqual(menu.items.count, 1)
+    }
+
+    func testMenuIsPopulatedAfterFirstOpen() {
+        // GIVEN
+        let bookmark = Bookmark(id: "1", url: "https://example.com", title: "Example Bookmark", isFavorite: false)
+        let viewModel = BookmarkViewModel(entity: bookmark)
+        let delegate = LazyBookmarkFolderMenuDelegate(children: [viewModel])
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem()) // placeholder
+        menu.delegate = delegate
+
+        // WHEN
+        delegate.menuNeedsUpdate(menu)
+
+        // THEN
+        XCTAssertFalse(menu.items.isEmpty)
+        XCTAssertEqual(menu.items.first?.title, "Example Bookmark")
+    }
+
+    func testMenuIsNotRebuiltOnSecondOpen() {
+        // GIVEN
+        let bookmark = Bookmark(id: "1", url: "https://example.com", title: "Example", isFavorite: false)
+        let viewModel = BookmarkViewModel(entity: bookmark)
+        let delegate = LazyBookmarkFolderMenuDelegate(children: [viewModel])
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem()) // placeholder
+        menu.delegate = delegate
+
+        // WHEN
+        delegate.menuNeedsUpdate(menu) // first open
+        let countAfterFirstOpen = menu.items.count
+        menu.addItem(NSMenuItem(title: "sentinel", action: nil, keyEquivalent: ""))
+        delegate.menuNeedsUpdate(menu) // second open — should not rebuild
+
+        // THEN
+        XCTAssertEqual(menu.items.count, countAfterFirstOpen + 1, "Sentinel should still be present — menu was not rebuilt")
+    }
+
+    func testEmptyFolderHasNoSubmenu() {
+        // GIVEN
+        let folder = BookmarkFolder(id: "1", title: "Empty Folder")
+        // no children added
+        let folderViewModel = BookmarkViewModel(entity: folder)
+
+        let delegate = LazyBookmarkFolderMenuDelegate(children: [folderViewModel])
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem()) // placeholder
+        menu.delegate = delegate
+
+        // WHEN
+        delegate.menuNeedsUpdate(menu)
+
+        // THEN
+        let folderItem = menu.items.first
+        XCTAssertNil(folderItem?.submenu, "Empty folder should not have a submenu")
+    }
+
+    func testFolderChildrenGetLazySubmenus() {
+        // GIVEN
+        let childBookmark = Bookmark(id: "2", url: "https://child.com", title: "Child", isFavorite: false)
+        let folder = BookmarkFolder(id: "f1", title: "My Folder", children: [childBookmark])
+        let folderViewModel = BookmarkViewModel(entity: folder)
+        let delegate = LazyBookmarkFolderMenuDelegate(children: [folderViewModel])
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem()) // placeholder
+        menu.delegate = delegate
+
+        // WHEN
+        delegate.menuNeedsUpdate(menu)
+
+        // THEN
+        let folderItem = menu.items.first
+        let subMenu = folderItem?.submenu
+        XCTAssertNotNil(subMenu, "Folder menu item should have a submenu")
+        XCTAssertEqual(subMenu?.items.count, 1, "Submenu should contain exactly one placeholder item")
+        XCTAssertNotNil(subMenu?.delegate, "Submenu should have a delegate for lazy population")
     }
 }
 

@@ -27,6 +27,7 @@ import UIKit
 import NetworkExtension
 import Networking
 import os.log
+import Persistence
 import PixelKit
 import Subscription
 import VPN
@@ -503,7 +504,7 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
     @MainActor
     @objc init() {
         APIRequest.Headers.setUserAgent(DefaultUserAgentManager.duckDuckGoUserAgent)
-        Self.setupPixelKit()
+        Self.configurePixelStorage()
 
         let settings = VPNSettings(defaults: .networkProtectionGroupDefaults)
 
@@ -519,7 +520,14 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
             experimentManager: nil
         )
 
-        self.wideEvent = WideEvent(featureFlagProvider: WideEventFeatureFlagProvider(featureFlagger: featureFlagger))
+        self.wideEvent = WideEvent(useMockRequests: {
+#if DEBUG || REVIEW || ALPHA
+            true
+#else
+            false
+#endif
+        }(),
+                                   featureFlagProvider: WideEventFeatureFlagProvider(featureFlagger: featureFlagger))
 
         // Align Subscription environment to the VPN environment
         var subscriptionEnvironment = SubscriptionEnvironment.default
@@ -545,7 +553,7 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
         let keychainType: KeychainType = .dataProtection(.named(subscriptionAppGroup))
         let keychainManager = KeychainManager(attributes: SubscriptionTokenKeychainStorage.defaultAttributes(keychainType: keychainType), pixelHandler: pixelHandler)
         let tokenStorage = SubscriptionTokenKeychainStorage(keychainManager: keychainManager,
-                                                              userDefaults: UserDefaults.standard) { accessType, error in
+                                                            userDefaults: UserDefaults.standard) { accessType, error in
             let parameters = [PixelParameters.subscriptionKeychainAccessType: accessType.rawValue,
                               PixelParameters.subscriptionKeychainError: error.localizedDescription,
                               PixelParameters.source: KeychainErrorSource.vpn.rawValue,
@@ -566,17 +574,17 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
         }))
 
         let subscriptionEndpointService = DefaultSubscriptionEndpointService(apiService: APIServiceFactory.makeAPIServiceForSubscription(withUserAgent: DefaultUserAgentManager.duckDuckGoUserAgent),
-                                                                               baseURL: subscriptionEnvironment.serviceEnvironment.url)
+                                                                             baseURL: subscriptionEnvironment.serviceEnvironment.url)
         let storePurchaseManager = DefaultStorePurchaseManager(subscriptionFeatureMappingCache: subscriptionEndpointService)
         let subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                               oAuthClient: authClient,
-                                                               userDefaults: UserDefaults.standard,
-                                                               subscriptionEndpointService: subscriptionEndpointService,
-                                                               subscriptionEnvironment: subscriptionEnvironment,
-                                                               pixelHandler: pixelHandler,
-                                                               initForPurchase: false,
-                                                               wideEvent: wideEvent,
-                                                               isAuthV2WideEventEnabled: {
+                                                             oAuthClient: authClient,
+                                                             userDefaults: UserDefaults.standard,
+                                                             subscriptionEndpointService: subscriptionEndpointService,
+                                                             subscriptionEnvironment: subscriptionEnvironment,
+                                                             pixelHandler: pixelHandler,
+                                                             initForPurchase: false,
+                                                             wideEvent: wideEvent,
+                                                             isAuthV2WideEventEnabled: {
 #if DEBUG
             return true // Allow the refresh event when using staging in debug mode, for easier testing
 #else
@@ -664,13 +672,25 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
         .store(in: &cancellables)
     }
 
-    private static func setupPixelKit() {
+    private static func setupPixelKit(vpnFileStoreDirectory: URL?) {
+        let pixelKitDefaults: ThrowingKeyValueStoring
+        if let vpnFileStoreDirectory,
+           let fileStore = try? KeyValueFileStore(
+               location: vpnFileStoreDirectory,
+               name: "pixelkit",
+               writeOptions: [.atomic, .noFileProtection]
+           ) {
+            pixelKitDefaults = fileStore
+        } else {
+            pixelKitDefaults = UserDefaults.networkProtectionGroupDefaults
+        }
+
         PixelKit.setUp(
             dryRun: PixelKitConfig.isDryRun(isProductionBuild: BuildFlags.isProductionBuild),
             appVersion: AppVersion.shared.versionNumber,
             source: (UIDevice.current.userInterfaceIdiom == .phone ? PixelKit.Source.iOS : PixelKit.Source.iPadOS).rawValue,
             defaultHeaders: [:],
-            defaults: .networkProtectionGroupDefaults
+            defaults: pixelKitDefaults
         ) { (pixelName: String, headers: [String: String], parameters: [String: String], _, _, onComplete: @escaping PixelKit.CompletionBlock) in
             let url = URL.pixelUrl(forPixelNamed: pixelName)
             let apiHeaders = APIRequestV2.HeadersV2(userAgent: Pixel.defaultPixelUserAgent, additionalHeaders: headers)
@@ -687,6 +707,84 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
                     onComplete(false, error)
                 }
             }
+        }
+    }
+
+    private static func configurePixelStorage() {
+        do {
+            let vpnFileStoreDirectory = try Self.vpnFileStoreDirectory()
+            Self.setupPixelKit(vpnFileStoreDirectory: vpnFileStoreDirectory)
+            Self.configureDailyPixelFileStore(vpnFileStoreDirectory: vpnFileStoreDirectory)
+        } catch {
+            Self.setupPixelKit(vpnFileStoreDirectory: nil)
+            Pixel.fire(pixel: .networkProtectionPixelStorageSetupFailure, error: error)
+        }
+    }
+
+    enum VPNFileStoreError: DDGError {
+        case containerURLNotFound
+        case directoryCreationFailed(underlying: Error?)
+
+        static var errorDomain: String { "com.duckduckgo.vpnFileStore" }
+
+        var errorCode: Int {
+            switch self {
+            case .containerURLNotFound: return 1
+            case .directoryCreationFailed: return 2
+            }
+        }
+
+        var underlyingError: Error? {
+            switch self {
+            case .containerURLNotFound: return nil
+            case .directoryCreationFailed(let underlying): return underlying
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .containerURLNotFound: return "App group container URL not found"
+            case .directoryCreationFailed: return "Failed to create VPN file store directory"
+            }
+        }
+
+        static func == (lhs: VPNFileStoreError, rhs: VPNFileStoreError) -> Bool {
+            lhs.errorCode == rhs.errorCode
+        }
+    }
+
+    private static func vpnFileStoreDirectory() throws -> URL {
+        let vpnGroupName = "\(Global.groupIdPrefix).netp"
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: vpnGroupName) else {
+            throw VPNFileStoreError.containerURLNotFound
+        }
+
+        let directory = containerURL.appendingPathComponent("vpn", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            throw VPNFileStoreError.directoryCreationFailed(underlying: error)
+        }
+        return directory
+    }
+
+    private static func configureDailyPixelFileStore(vpnFileStoreDirectory: URL?) {
+        guard let vpnFileStoreDirectory else { return }
+
+        if let dailyPixelFileStore = try? KeyValueFileStore(
+            location: vpnFileStoreDirectory,
+            name: "daily-pixel",
+            writeOptions: [.atomic, .noFileProtection]
+        ) {
+            DailyPixel.storage = dailyPixelFileStore
+        }
+
+        if let uniquePixelFileStore = try? KeyValueFileStore(
+            location: vpnFileStoreDirectory,
+            name: "unique-pixel",
+            writeOptions: [.atomic, .noFileProtection]
+        ) {
+            UniquePixel.storage = uniquePixelFileStore
         }
     }
 

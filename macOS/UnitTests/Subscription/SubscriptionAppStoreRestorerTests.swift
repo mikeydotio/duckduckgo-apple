@@ -142,7 +142,7 @@ final class SubscriptionAppStoreRestorerTests: XCTestCase {
         XCTAssertEqual(uiEventsHappened, [.didPresentProgressViewController,
                                           .didDismissProgressViewController])
 
-        XCTAssertTrue(pixelsFired.isEmpty)
+        XCTAssertTrue(assertNoOtherSubscriptionPixelsExcept(Set()), "Unexpected Subscription pixels fired")
     }
 
     func testRestoreAppStoreSubscriptionSuccessWhenSyncAppleIDFailsButUserProceedsRegardeless() async throws {
@@ -321,11 +321,7 @@ final class SubscriptionAppStoreRestorerTests: XCTestCase {
     }
 
     private func assertNoOtherSubscriptionPixelsExcept(_ expectedPixels: Set<String>) -> Bool {
-#if APPSTORE
-        let appDistribution = "store"
-#else
-        let appDistribution = "direct"
-#endif
+        let appDistribution = NSApp.isSandboxed ? "store" : "direct"
         let subscriptionPixelPrefix = "m_mac_\(appDistribution)_privacy-pro"
 
         let otherPixels = pixelsFired.subtracting(expectedPixels)
