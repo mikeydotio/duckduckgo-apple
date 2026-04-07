@@ -30,6 +30,7 @@ extension UserScripts: TabSuspensionUserScriptProvider {}
 
 /// This protocol encapsulates checks for tab suspension eligibility performed on a web view instance.
 protocol TabSuspensionWebViewChecking: AnyObject {
+    var isLoading: Bool { get }
     var isPlayingAudio: Bool { get }
     var isCapturingAudio: Bool { get }
     var isCapturingVideo: Bool { get }
@@ -88,6 +89,9 @@ final class TabSuspensionExtension {
         guard !isTabPinned() else { return false }
 
         guard let webView else { return false }
+
+        // not currently loading
+        guard !webView.isLoading else { return false }
 
         // not playing audio
         guard !webView.isPlayingAudio else { return false }

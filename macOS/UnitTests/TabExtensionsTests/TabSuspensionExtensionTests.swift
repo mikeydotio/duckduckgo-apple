@@ -242,6 +242,21 @@ final class TabSuspensionExtensionTests: XCTestCase {
         XCTAssertFalse(sut.canBeSuspended)
     }
 
+    // MARK: - Loading
+
+    @MainActor
+    func testWhenWebViewIsLoading_ThenCanBeSuspendedIsFalse() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+
+        let webView = MockTabSuspensionWebView()
+        webView.isLoading = true
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        XCTAssertFalse(sut.canBeSuspended)
+    }
+
     // MARK: - Audio Playback
 
     @MainActor
@@ -386,6 +401,7 @@ final class TabSuspensionExtensionTests: XCTestCase {
 // MARK: - MockTabSuspensionWebView
 
 private final class MockTabSuspensionWebView: TabSuspensionWebViewChecking {
+    var isLoading: Bool = false
     var isPlayingAudio: Bool = false
     var isCapturingAudio: Bool = false
     var isCapturingVideo: Bool = false
