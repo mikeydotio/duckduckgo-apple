@@ -84,6 +84,10 @@ final class AIChatOmnibarController {
         featureFlagger.isFeatureOn(.aiChatOmnibarTools)
     }
 
+    var isViewAllChatsEnabled: Bool {
+        featureFlagger.isFeatureOn(.aiChatViewAllChatsNativeOmnibar)
+    }
+
     /// Publisher that emits when the omnibar tools enabled state changes.
     var isOmnibarToolsEnabledPublisher: AnyPublisher<Bool, Never> {
         featureFlagger.updatesPublisher
@@ -204,11 +208,14 @@ final class AIChatOmnibarController {
         currentFetchTask = Task { [weak self] in
             guard let self else { return }
 
-            let suggestions = await reader.fetchSuggestions(query: query.isEmpty ? nil : query, maxChats: reader.maxHistoryCount)
+            let maxChats = isViewAllChatsEnabled ? reader.maxHistoryCount + 1 : reader.maxHistoryCount
+            let suggestions = await reader.fetchSuggestions(query: query.isEmpty ? nil : query, maxChats: maxChats)
 
             // Check if task was cancelled
             guard !Task.isCancelled else { return }
 
+            let totalFetched = suggestions.pinned.count + suggestions.recent.count
+            suggestionsViewModel.showViewAllChats = isViewAllChatsEnabled && totalFetched > reader.maxHistoryCount
             self.suggestionsViewModel.setChats(pinned: suggestions.pinned, recent: suggestions.recent)
         }
     }
@@ -309,11 +316,17 @@ final class AIChatOmnibarController {
     /// Submits the currently selected suggestion, if any.
     /// - Returns: `true` if a suggestion was submitted, `false` if no suggestion was selected.
     func submitSelectedSuggestion() -> Bool {
-        guard isSuggestionsEnabled,
-              let selectedSuggestion = suggestionsViewModel.selectedSuggestion else {
-            return false
+        guard isSuggestionsEnabled else { return false }
+
+        if suggestionsViewModel.isViewAllChatsSelected {
+            viewAllChats()
+            currentText = ""
+            return true
         }
 
+        guard let selectedSuggestion = suggestionsViewModel.selectedSuggestion else {
+            return false
+        }
         delegate?.aiChatOmnibarController(self, didSelectSuggestion: selectedSuggestion)
         currentText = ""
         return true
@@ -360,6 +373,10 @@ final class AIChatOmnibarController {
                     self.isUpdatingFromSharedState = false
                 }
             }
+    }
+
+    func viewAllChats() {
+        aiChatTabOpener.openNewAIChat(in: .newTab(selected: true))
     }
 
     func submit() {
