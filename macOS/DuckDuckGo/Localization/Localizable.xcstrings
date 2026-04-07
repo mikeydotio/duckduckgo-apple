@@ -3920,6 +3920,30 @@
         }
       }
     },
+    "aichat.suggestions.open-duck-ai" : {
+      "comment" : "Label on the 'View all chats' footer row indicating it opens duck.ai",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Duck.ai"
+          }
+        }
+      }
+    },
+    "aichat.suggestions.view-all-chats" : {
+      "comment" : "Footer row in the duck.ai address bar suggestions list, opens full chat history",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "View all chats"
+          }
+        }
+      }
+    },
     "aichat.toggle.ask.label" : {
       "comment" : "Label for the ask AI segment in the address bar toggle control",
       "extractionState" : "extracted_with_value",
