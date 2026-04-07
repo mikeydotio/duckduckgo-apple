@@ -27,6 +27,11 @@ if ! xcodebuild -showsdks | grep -q 18.2; then
     xcodebuild -downloadPlatform iOS -buildVersion 18.2
 fi
 
+if [ -z "$PROJECT_ROOT" ]; then
+    PROJECT_ROOT="$(realpath "$(dirname "$0")"/../..)"
+fi
+export PROJECT_ROOT
+
 # Check for --clean flag
 if [ "$1" = "--clean" ]; then
     echo "Clearing tmp directory"
@@ -47,10 +52,6 @@ if [ -f "$IOS_HASH_FILE" ] && cmp -s "$IOS_HASH_FILE" "$IOS_HASH_FILE.old"; then
     echo "iOS source files have not changed, skipping build."
 else
     echo "iOS source files have changed, building app."
-    if [ -z "$PROJECT_ROOT" ]; then
-        PROJECT_ROOT="$(realpath "$(dirname "$0")"/../..)"
-    fi
-    export PROJECT_ROOT
     # shellcheck source=/dev/null
     . .maestro/common.sh
     build_app
@@ -66,7 +67,11 @@ xcrun simctl erase all || true
 cd tmp || exit
 
 if [ ! -d "shared-web-tests" ]; then
-    git clone --recurse-submodules git@github.com:duckduckgo/shared-web-tests.git
+    if [ -d "$PROJECT_ROOT/../shared-web-tests" ]; then
+        ln -s "$PROJECT_ROOT/../shared-web-tests" shared-web-tests
+    else
+        git clone --recurse-submodules https://github.com/duckduckgo/shared-web-tests.git
+    fi
 fi
 cd shared-web-tests || exit
 
@@ -85,9 +90,9 @@ else
 fi
 
 echo "Starting test run:"
-DERIVED_DATA_PATH="$(pwd)/../../DerivedData/"
+DERIVED_DATA_PATH="$PROJECT_ROOT/DerivedData"
 export DERIVED_DATA_PATH
-npm run test | tee "../../tmp/test_out_$(date +"%Y%m%d_%H%M%S").log"
+DDG_PLATFORM=ios npm run test | tee "../../tmp/test_out_$(date +"%Y%m%d_%H%M%S").log"
 cd ../.. || exit
 # Deactivate the Python virtual environment
 if [ -n "$VIRTUAL_ENV" ]; then
