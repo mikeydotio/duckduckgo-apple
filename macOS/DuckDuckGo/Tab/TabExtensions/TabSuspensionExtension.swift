@@ -47,6 +47,7 @@ final class TabSuspensionExtension {
     private let isTabPinned: () -> Bool
     private let featureFlagger: FeatureFlagger
     private let privacyConfigurationManager: PrivacyConfigurationManaging
+    var hasVideoInPictureInPicture: Bool = false
 
     var canBeSuspended: Bool {
 
@@ -72,6 +73,9 @@ final class TabSuspensionExtension {
 
         // not capturing video
         guard !webView.isCapturingVideo else { return false }
+
+        // not using picture in picture
+        guard !hasVideoInPictureInPicture else { return false }
 
         return true
     }
@@ -99,6 +103,7 @@ final class TabSuspensionExtension {
 
 protocol TabSuspensionExtensionProtocol: AnyObject {
     var canBeSuspended: Bool { get }
+    var hasVideoInPictureInPicture: Bool { get set }
 }
 
 extension TabSuspensionExtension: TabSuspensionExtensionProtocol, TabExtension {

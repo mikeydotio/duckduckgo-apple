@@ -255,6 +255,21 @@ final class TabSuspensionExtensionTests: XCTestCase {
 
         XCTAssertFalse(sut.canBeSuspended)
     }
+
+    // MARK: - Picture in Picture
+
+    @MainActor
+    func testWhenVideoIsInPictureInPicture_ThenCanBeSuspendedIsFalse() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+        sut.hasVideoInPictureInPicture = true
+
+        let webView = MockTabSuspensionWebView()
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        XCTAssertFalse(sut.canBeSuspended)
+    }
 }
 
 // MARK: - MockTabSuspensionWebView
