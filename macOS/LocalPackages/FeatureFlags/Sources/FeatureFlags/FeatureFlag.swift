@@ -270,6 +270,9 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1148564399326804/task/1213356927349370?focus=true
     case aiChatNtpRecentChats
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213622362394873
+    case aiChatNtpChatTools
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213279513677422
     case aiChatSidebarFloating
 
@@ -327,6 +330,8 @@ public enum FeatureFlag: String, CaseIterable {
     /// Enables the Duck.ai submenu in the more options (hamburger) menu (macOS only, disabled by default)
     /// https://app.asana.com/1/137249556945/project/1204006570077678/task/1213833143996470
     case aiChatMoreOptionsMenuShortcut
+
+    case aiChatNativeStorage
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -519,6 +524,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(AIChatSubfeature.sidebarResizable)), category: .duckAI)
         case .aiChatNtpRecentChats:
             Config(source: .remoteReleasable(.subfeature(AIChatSubfeature.ntpRecentChats)), category: .duckAI)
+        case .aiChatNtpChatTools:
+            Config(source: .remoteReleasable(.subfeature(AIChatSubfeature.ntpChatTools)), category: .duckAI)
         case .aiChatSidebarFloating:
             Config(defaultValue: .internalOnly, source: .remoteReleasable(.subfeature(AIChatSubfeature.sidebarFloating)), category: .duckAI)
         case .privateProcessName:
@@ -551,6 +558,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .disabled, source: .remoteReleasable(.subfeature(AIChatSubfeature.moreOptionsMenuShortcut)), category: .duckAI)
         case .aiChatMainMenuShortcut:
             Config(defaultValue: .disabled, source: .remoteReleasable(.subfeature(AIChatSubfeature.mainMenuShortcut)), category: .duckAI)
+        case .aiChatNativeStorage:
+            Config(source: .remoteReleasable(.subfeature(AIChatSubfeature.nativeStorage)), category: .duckAI)
         }
     }
 

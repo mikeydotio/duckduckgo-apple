@@ -256,6 +256,9 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
 
     /// https://app.asana.com/1/137249556945/project/1206329551987282/task/1211806114021630?focus=true
     case onboardingRebranding
+
+    /// https://app.asana.com/1/137249556945/task/1213314048601761
+    case fireMode
 }
 
 public enum TabManagerSubfeature: String, PrivacySubfeature {
@@ -413,6 +416,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Enables recent AI chats on the New Tab Page omnibar
     case ntpRecentChats
 
+    /// Enables AI chat tools (model selector, image upload) on the New Tab Page omnibar
+    case ntpChatTools
+
     /// Enables support for adding multiple page contexts to a single chat session
     case multiplePageContexts
 
@@ -436,6 +442,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Enables the Duck.ai submenu in the more options (hamburger) menu (macOS only)
     case moreOptionsMenuShortcut
+
+    /// Enables native-side storage for AI Chat (settings, chats, files)
+    case nativeStorage
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
