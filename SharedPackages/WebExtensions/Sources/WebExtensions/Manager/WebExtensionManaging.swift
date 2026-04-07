@@ -54,7 +54,8 @@ public protocol WebExtensionManaging: AnyObject {
     /// Installs an extension from a source URL, copying it to platform storage.
     /// - Parameter sourceURL: The source URL of the extension (e.g., from document picker).
     @available(macOS 15.4, iOS 18.4, *)
-    func installExtension(from sourceURL: URL) async throws
+    @discardableResult
+    func installExtension(from sourceURL: URL) async throws -> InstalledWebExtension
 
     /// Uninstalls an extension with the given identifier.
     @available(macOS 15.4, iOS 18.4, *)

@@ -101,10 +101,11 @@ final class WebExtensionManagerTests: XCTestCase {
         let manager = makeManager()
         let sourceURL = URL(fileURLWithPath: "/source/extension.zip")
 
-        try await manager.installExtension(from: sourceURL)
+        let installedExtension = try await manager.installExtension(from: sourceURL)
 
         XCTAssertTrue(installedExtensionStoringMock.addCalled)
         XCTAssertNotNil(installedExtensionStoringMock.addedExtension?.uniqueIdentifier)
+        XCTAssertEqual(installedExtension.uniqueIdentifier, installedExtensionStoringMock.addedExtension?.uniqueIdentifier)
         XCTAssertEqual(storageProvidingMock.copyExtensionIdentifier, installedExtensionStoringMock.addedExtension?.uniqueIdentifier)
     }
 

@@ -127,7 +127,9 @@ private final class MockWebExtensionManaging: WebExtensionManaging {
     var extensionUpdates: AsyncStream<Void> { AsyncStream { _ in } }
 
     func loadInstalledExtensions() async {}
-    func installExtension(from sourceURL: URL) async throws {}
+    func installExtension(from sourceURL: URL) async throws -> InstalledWebExtension {
+        InstalledWebExtension(uniqueIdentifier: "mock-extension", filename: sourceURL.lastPathComponent, name: nil, version: nil)
+    }
     func uninstallExtension(identifier: String) throws {}
 
     @discardableResult

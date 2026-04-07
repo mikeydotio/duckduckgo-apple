@@ -43,6 +43,33 @@ enum AutomationServerError: Error {
     case unsupportedOSVersion
     case unknownMethod
     case invalidURL
+    case invalidWebExtensionRequest
+    case webExtensionsUnavailable
+}
+
+extension AutomationServerError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .noWindow:
+            return "No active browser window is available"
+        case .invalidWindowHandle:
+            return "The requested window handle is invalid"
+        case .tabNotFound:
+            return "The requested tab could not be found"
+        case .jsonEncodingFailed:
+            return "Failed to encode or decode JSON payload"
+        case .unsupportedOSVersion:
+            return "The current OS version does not support this automation command"
+        case .unknownMethod:
+            return "Unknown automation method"
+        case .invalidURL:
+            return "Invalid automation request URL"
+        case .invalidWebExtensionRequest:
+            return "Invalid web extension automation request"
+        case .webExtensionsUnavailable:
+            return "Web extensions are unavailable for automation"
+        }
+    }
 }
 
 typealias ConnectionResult = Result<String, AutomationServerError>
@@ -231,6 +258,10 @@ final class AutomationServer {
             self.newWindow(url: url)
         case "/getWindowHandle":
             self.getWindowHandle(url: url)
+        case "/installWebExtension":
+            await self.installWebExtension(url: url)
+        case "/uninstallWebExtension":
+            self.uninstallWebExtension(url: url)
         default:
             .failure(.unknownMethod)
         }
@@ -321,6 +352,60 @@ final class AutomationServer {
             return .success(jsonString)
         } else {
             return .failure(.jsonEncodingFailed)
+        }
+    }
+
+    func installWebExtension(url: URLComponents) async -> ConnectionResult {
+        guard #available(iOS 18.4, *),
+              let webExtensionManager = main.webExtensionManager else {
+            return .failure(.webExtensionsUnavailable)
+        }
+
+        guard let type = getQueryStringParameter(url: url, param: "type") else {
+            return .failure(.invalidWebExtensionRequest)
+        }
+
+        switch type {
+        case "path", "archivePath":
+            guard let path = getQueryStringParameter(url: url, param: "path"), !path.isEmpty else {
+                return .failure(.invalidWebExtensionRequest)
+            }
+
+            let sourceURL = URL(fileURLWithPath: path)
+
+            do {
+                let installedExtension = try await webExtensionManager.installExtension(from: sourceURL)
+                let response = ["extension": installedExtension.uniqueIdentifier]
+                guard let jsonData = try? JSONEncoder().encode(response),
+                      let jsonString = String(data: jsonData, encoding: .utf8) else {
+                    return .failure(.jsonEncodingFailed)
+                }
+                return .success(jsonString)
+            } catch {
+                Logger.automationServer.error("Failed to install web extension: \(error)")
+                return .failure(.invalidWebExtensionRequest)
+            }
+        default:
+            return .failure(.invalidWebExtensionRequest)
+        }
+    }
+
+    func uninstallWebExtension(url: URLComponents) -> ConnectionResult {
+        guard #available(iOS 18.4, *),
+              let webExtensionManager = main.webExtensionManager else {
+            return .failure(.webExtensionsUnavailable)
+        }
+
+        guard let extensionIdentifier = getQueryStringParameter(url: url, param: "extensionId"), !extensionIdentifier.isEmpty else {
+            return .failure(.invalidWebExtensionRequest)
+        }
+
+        do {
+            try webExtensionManager.uninstallExtension(identifier: extensionIdentifier)
+            return .success("null")
+        } catch {
+            Logger.automationServer.error("Failed to uninstall web extension: \(error)")
+            return .failure(.invalidWebExtensionRequest)
         }
     }
 

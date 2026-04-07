@@ -113,7 +113,8 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
 
     // MARK: - Install/Uninstall
 
-    public func installExtension(from sourceURL: URL) async throws {
+    @discardableResult
+    public func installExtension(from sourceURL: URL) async throws -> InstalledWebExtension {
         Logger.webExtensions.debug("🔄 Installing extension from: \(sourceURL.path)")
 
         let identifier = UUID().uuidString
@@ -121,10 +122,12 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
         _ = try storageProvider.copyExtension(from: sourceURL, identifier: identifier)
         Logger.webExtensions.debug("🔄 Extension stored with identifier: \(identifier)")
 
+        let installedExtension: InstalledWebExtension
+
         do {
             let loadResult = try await loader.loadWebExtension(identifier: identifier, into: controller)
 
-            let installedExtension = InstalledWebExtension(
+            installedExtension = InstalledWebExtension(
                 uniqueIdentifier: identifier,
                 filename: loadResult.filename,
                 name: loadResult.displayName,
@@ -144,6 +147,7 @@ open class WebExtensionManager: NSObject, WebExtensionManaging {
         }
 
         notifyUpdate()
+        return installedExtension
     }
 
     public func uninstallExtension(identifier: String) throws {
