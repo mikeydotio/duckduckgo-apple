@@ -39,7 +39,6 @@ final class AIChatMenu: NSMenu {
         var openNewVoiceChat: @MainActor () -> Void
         var openNewImageChat: @MainActor () -> Void
         var openChat: @MainActor (AIChatSuggestion) -> Void
-        var viewAllChats: @MainActor () -> Void
         var deleteAllChats: () async -> Void
     }
 
@@ -73,12 +72,6 @@ final class AIChatMenu: NSMenu {
         return item
     }()
 
-    private lazy var viewAllChatsItem: NSMenuItem = {
-        let item = NSMenuItem(title: UserText.aiChatMenuViewAllChats, action: #selector(viewAllChatsTapped), keyEquivalent: "")
-        item.target = self
-        return item
-    }()
-
     private lazy var deleteAllChatsItem: NSMenuItem = {
         let item = NSMenuItem(title: UserText.aiChatMenuDeleteAllChats, action: #selector(deleteAllChatsTapped), keyEquivalent: "")
         item.target = self
@@ -96,18 +89,18 @@ final class AIChatMenu: NSMenu {
     private let suggestionsReader: AIChatSuggestionsReading
     private let actions: Actions
     /// When set, limits the number of chat items shown in the menu.
-    private let viewAllChatsThreshold: Int?
+    private let maxChatItems: Int?
     private let origin: Origin
 
     // MARK: - Init
 
     init(suggestionsReader: AIChatSuggestionsReading,
          actions: Actions,
-         viewAllChatsThreshold: Int? = nil,
+         maxChatItems: Int? = nil,
          origin: Origin = .mainMenu) {
         self.suggestionsReader = suggestionsReader
         self.actions = actions
-        self.viewAllChatsThreshold = viewAllChatsThreshold
+        self.maxChatItems = maxChatItems
         self.origin = origin
         super.init(title: "Duck.ai")
         buildMenu()
@@ -127,8 +120,6 @@ final class AIChatMenu: NSMenu {
         addItem(recentChatsLabel)
         // Dynamic chat items are inserted after recentChatsLabel by insertChatItems(_:)
         addItem(.separator())
-        addItem(viewAllChatsItem)
-        addItem(.separator())
         addItem(deleteAllChatsItem)
     }
 
@@ -139,7 +130,7 @@ final class AIChatMenu: NSMenu {
         fetchTask?.cancel()
         fetchTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            let maxChats = viewAllChatsThreshold ?? .max
+            let maxChats = maxChatItems ?? .max
             let (pinned, recent) = await suggestionsReader.fetchSuggestions(query: nil, maxChats: maxChats)
             guard !Task.isCancelled else { return }
             let sorted = (pinned + recent)
@@ -198,12 +189,6 @@ final class AIChatMenu: NSMenu {
         PixelKit.fire(pixel, frequency: .dailyAndStandard)
     }
 
-    @objc private func viewAllChatsTapped() {
-        actions.viewAllChats()
-        let pixel: AIChatPixel = origin == .moreOptionsMenu ? .aiChatViewAllChatsMoreOptionsMenu : .aiChatViewAllChatsMainMenu
-        PixelKit.fire(pixel, frequency: .dailyAndStandard)
-    }
-
     @objc private func deleteAllChatsTapped() {
         var dialog = AIChatDeleteChatsDialog()
         dialog.confirmed = { [weak self] in
@@ -243,9 +228,6 @@ extension AIChatMenu.Actions {
             },
             openChat: { suggestion in
                 tabOpener.openAIChatTab(with: .existingChat(chatId: suggestion.chatId), behavior: .currentTab)
-            },
-            viewAllChats: {
-                tabOpener.openAIChatTab(with: .newChat, behavior: .newTab(selected: true))
             },
             deleteAllChats: {
                 if case .failure(let error) = await historyCleaner.cleanAIChatHistory() {

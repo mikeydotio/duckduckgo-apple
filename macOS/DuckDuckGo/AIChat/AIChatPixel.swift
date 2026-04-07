@@ -261,9 +261,6 @@ enum AIChatPixel: PixelKitEvent {
     /// Event Trigger: User selects a recent chat from the main menu
     case aiChatRecentChatSelectedMainMenu
 
-    /// Event Trigger: User clicks View All Chats in the main menu
-    case aiChatViewAllChatsMainMenu
-
     /// Event Trigger: User confirms Delete All Chats from the main menu
     case aiChatDeleteAllChatsMainMenu
 
@@ -280,9 +277,6 @@ enum AIChatPixel: PixelKitEvent {
 
     /// Event Trigger: User selects a recent chat from the more options menu
     case aiChatRecentChatSelectedMoreOptionsMenu
-
-    /// Event Trigger: User clicks View All Chats in the more options menu
-    case aiChatViewAllChatsMoreOptionsMenu
 
     /// Event Trigger: User confirms Delete All Chats from the more options menu
     case aiChatDeleteAllChatsMoreOptionsMenu
@@ -445,8 +439,6 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_new_image_chat_main_menu"
         case .aiChatRecentChatSelectedMainMenu:
             return "aichat_recent_chat_selected_main_menu"
-        case .aiChatViewAllChatsMainMenu:
-            return "aichat_view_all_chats_main_menu"
         case .aiChatDeleteAllChatsMainMenu:
             return "aichat_delete_all_chats_main_menu"
         case .aiChatNewChatMoreOptionsMenu:
@@ -457,8 +449,6 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_new_image_chat_more_options_menu"
         case .aiChatRecentChatSelectedMoreOptionsMenu:
             return "aichat_recent_chat_selected_more_options_menu"
-        case .aiChatViewAllChatsMoreOptionsMenu:
-            return "aichat_view_all_chats_more_options_menu"
         case .aiChatDeleteAllChatsMoreOptionsMenu:
             return "aichat_delete_all_chats_more_options_menu"
         case .aiChatIsEnabled:
@@ -528,13 +518,11 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatNewVoiceChatMainMenu,
                 .aiChatNewImageChatMainMenu,
                 .aiChatRecentChatSelectedMainMenu,
-                .aiChatViewAllChatsMainMenu,
                 .aiChatDeleteAllChatsMainMenu,
                 .aiChatNewChatMoreOptionsMenu,
                 .aiChatNewVoiceChatMoreOptionsMenu,
                 .aiChatNewImageChatMoreOptionsMenu,
                 .aiChatRecentChatSelectedMoreOptionsMenu,
-                .aiChatViewAllChatsMoreOptionsMenu,
                 .aiChatDeleteAllChatsMoreOptionsMenu:
             return nil
         case .aiChatIsEnabled(let isEnabled):
@@ -642,13 +630,11 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatNewVoiceChatMainMenu,
                 .aiChatNewImageChatMainMenu,
                 .aiChatRecentChatSelectedMainMenu,
-                .aiChatViewAllChatsMainMenu,
                 .aiChatDeleteAllChatsMainMenu,
                 .aiChatNewChatMoreOptionsMenu,
                 .aiChatNewVoiceChatMoreOptionsMenu,
                 .aiChatNewImageChatMoreOptionsMenu,
                 .aiChatRecentChatSelectedMoreOptionsMenu,
-                .aiChatViewAllChatsMoreOptionsMenu,
                 .aiChatDeleteAllChatsMoreOptionsMenu,
                 .aiChatIsEnabled:
             return [.pixelSource]

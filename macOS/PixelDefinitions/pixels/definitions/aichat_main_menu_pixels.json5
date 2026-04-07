@@ -27,13 +27,6 @@
         "suffixes": ["daily_standard"],
         "parameters": ["appVersion", "pixelSource"]
     },
-    "m_mac_aichat_view_all_chats_main_menu": {
-        "description": "Fired when user clicks View All Chats in the main menu",
-        "owners": ["jotaemepereira"],
-        "triggers": ["other"],
-        "suffixes": ["daily_standard"],
-        "parameters": ["appVersion", "pixelSource"]
-    },
     "m_mac_aichat_delete_all_chats_main_menu": {
         "description": "Fired when user confirms Delete All Chats from the main menu",
         "owners": ["jotaemepereira"],
@@ -64,13 +57,6 @@
     },
     "m_mac_aichat_recent_chat_selected_more_options_menu": {
         "description": "Fired when user selects a recent Duck.ai chat from the more options menu",
-        "owners": ["jotaemepereira"],
-        "triggers": ["other"],
-        "suffixes": ["daily_standard"],
-        "parameters": ["appVersion", "pixelSource"]
-    },
-    "m_mac_aichat_view_all_chats_more_options_menu": {
-        "description": "Fired when user clicks View All Chats in the more options menu",
         "owners": ["jotaemepereira"],
         "triggers": ["other"],
         "suffixes": ["daily_standard"],

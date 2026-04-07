@@ -32,7 +32,6 @@ final class AIChatMenuTests: XCTestCase {
     private var openNewVoiceChatCalled = false
     private var openNewImageChatCalled = false
     private var openedChat: AIChatSuggestion?
-    private var viewAllChatsCalled = false
     private var deleteAllChatsCalled = false
 
     override func setUp() {
@@ -43,7 +42,6 @@ final class AIChatMenuTests: XCTestCase {
             openNewVoiceChat: { [weak self] in self?.openNewVoiceChatCalled = true },
             openNewImageChat: { [weak self] in self?.openNewImageChatCalled = true },
             openChat: { [weak self] suggestion in self?.openedChat = suggestion },
-            viewAllChats: { [weak self] in self?.viewAllChatsCalled = true },
             deleteAllChats: { [weak self] in self?.deleteAllChatsCalled = true }
         )
     }
@@ -68,7 +66,6 @@ final class AIChatMenuTests: XCTestCase {
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewVoiceChat))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewImageChat))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuRecentChats))
-        XCTAssertTrue(titles.contains(UserText.aiChatMenuViewAllChats))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuDeleteAllChats))
     }
 
@@ -170,13 +167,6 @@ final class AIChatMenuTests: XCTestCase {
         let item = menu.items.first { $0.title == UserText.aiChatMenuNewImageChat }!
         menu.performActionForItem(at: menu.index(of: item))
         XCTAssertTrue(openNewImageChatCalled)
-    }
-
-    func testViewAllChatsTappedCallsAction() {
-        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions)
-        let item = menu.items.first { $0.title == UserText.aiChatMenuViewAllChats }!
-        menu.performActionForItem(at: menu.index(of: item))
-        XCTAssertTrue(viewAllChatsCalled)
     }
 
     func testChatItemTappedCallsOpenChatWithCorrectSuggestion() async {
