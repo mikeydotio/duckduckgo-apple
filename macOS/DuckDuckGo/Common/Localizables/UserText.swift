@@ -668,6 +668,16 @@ struct UserText {
     static let aiChatRemoveAttachmentButtonAccessibility = NSLocalizedString("aichat.remove-attachment-button.accessibility", value: "Remove attachment", comment: "Accessibility label for the remove attachment button on image thumbnails in AI chat")
     static let aiChatRemoveAttachmentButtonTooltip = NSLocalizedString("aichat.remove-attachment-button.tooltip", value: "Remove attachment", comment: "Tooltip for the remove attachment button on image thumbnails in AI chat")
     static let aiChatOmnibarPlaceholder = NSLocalizedString("aichat.omnibar.placeholder", value: "Ask privately", comment: "Placeholder text shown in the Duck.ai chat input field")
+    static let aiChatViewAllChats = NSLocalizedString(
+        "aichat.suggestions.view-all-chats",
+        value: "View all chats",
+        comment: "Footer row in the duck.ai address bar suggestions list, opens full chat history"
+    )
+    static let aiChatOpenDuckAI = NSLocalizedString(
+        "aichat.suggestions.open-duck-ai",
+        value: "Open Duck.ai",
+        comment: "Label on the 'View all chats' footer row indicating it opens duck.ai"
+    )
     static let moreSearchSettings = NSLocalizedString("settings.more-search-settings", value: "More Search Settings", comment: "The button name in preferences for More Search Settings")
     static let moreSearchSettingsDescription = NSLocalizedString("settings.more-search-settings.description", value: "Customize your language, region, and more.", comment: "Subtitle of the 'More Search Settings' button")
     static let moreSearchSettingsLink = NSLocalizedString("settings.more-search-settings.link", value: "Open DuckDuckGo Search Settings", comment: "Button to open Search Settings on duckduckgo.com")
