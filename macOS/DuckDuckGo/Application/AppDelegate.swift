@@ -359,6 +359,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private(set) var webExtensionManager: WebExtensionManaging?
     private var webExtensionFeatureFlagHandler: AnyObject?
+    private var automationServer: AutomationServer?
 
     private var didFinishLaunching = false
 
@@ -1202,6 +1203,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         setupWebExtensions()
+        startAutomationServerIfNeeded()
 
         vpnUpsellVisibilityManager.setup(isFirstLaunch: isFirstLaunch, isOnboardingFinished: OnboardingActionsManager.isOnboardingFinished)
 
@@ -1645,6 +1647,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @MainActor
+    private func startAutomationServerIfNeeded() {
+        guard let automationPort = AutomationServer.launchPort else {
+            return
+        }
+        automationServer = AutomationServer(appDelegate: self, port: automationPort)
+    }
+
     // MARK: - PixelKit
 
     static func configurePixelKit() {
@@ -2004,4 +2014,436 @@ private extension FeatureFlagLocalOverrides {
         }
     }
 
+}
+
+extension Logger {
+    static var automationServer = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Automation Server") }()
+}
+
+private struct AnyEncodable: Encodable {
+    private let encode: (Encoder) throws -> Void
+
+    init<T: Encodable>(_ value: T) {
+        encode = value.encode(to:)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try encode(encoder)
+    }
+}
+
+private enum AutomationServerError: Error {
+    case noWindow
+    case invalidWindowHandle
+    case jsonEncodingFailed
+    case unknownMethod
+    case invalidURL
+    case invalidWebExtensionRequest
+    case webExtensionsUnavailable
+}
+
+extension AutomationServerError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .noWindow:
+            return "No active browser window is available"
+        case .invalidWindowHandle:
+            return "The requested window handle is invalid"
+        case .jsonEncodingFailed:
+            return "Failed to encode or decode JSON payload"
+        case .unknownMethod:
+            return "Unknown automation method"
+        case .invalidURL:
+            return "Invalid automation request URL"
+        case .invalidWebExtensionRequest:
+            return "Invalid web extension automation request"
+        case .webExtensionsUnavailable:
+            return "Web extensions are unavailable for automation"
+        }
+    }
+}
+
+private typealias ConnectionResult = Result<String, AutomationServerError>
+private typealias ConnectionResultWithPath = (String, ConnectionResult)
+
+private actor PerConnectionQueue {
+    private var isProcessing = false
+    private var queue: [Data] = []
+
+    func enqueue(
+        content: Data,
+        processor: @escaping (Data) async -> ConnectionResultWithPath,
+        responder: @escaping (ConnectionResultWithPath) -> Void
+    ) async {
+        queue.append(content)
+
+        guard !isProcessing else { return }
+        isProcessing = true
+
+        while !queue.isEmpty {
+            let request = queue.removeFirst()
+            let result = await processor(request)
+            responder(result)
+        }
+
+        isProcessing = false
+    }
+}
+
+private func encodeToJsonString(_ value: Any?) -> String {
+    do {
+        guard let value else {
+            return "null"
+        }
+        if let encodableValue = value as? Encodable {
+            let jsonData = try JSONEncoder().encode(AnyEncodable(encodableValue))
+            return String(data: jsonData, encoding: .utf8) ?? "{}"
+        } else if JSONSerialization.isValidJSONObject(value) {
+            let jsonData = try JSONSerialization.data(withJSONObject: value, options: .prettyPrinted)
+            return String(data: jsonData, encoding: .utf8) ?? "{}"
+        } else {
+            Logger.automationServer.error("Have value that can't be encoded: \(String(describing: value))")
+            return "{\"error\": \"Value is not a valid JSON object\"}"
+        }
+    } catch {
+        Logger.automationServer.error("Failed to encode: \(String(describing: value))")
+        return "{\"error\": \"JSON encoding failed: \(error)\"}"
+    }
+}
+
+@MainActor
+private final class AutomationServer {
+    static var launchPort: Int? {
+        let environment = ProcessInfo.processInfo.environment
+        let keys = ["AUTOMATION_PORT", "automationPort"]
+        for key in keys {
+            if let value = environment[key], let port = Int(value) {
+                return port
+            }
+        }
+        return nil
+    }
+
+    let listener: NWListener
+    let appDelegate: AppDelegate
+    var connectionQueues: [ObjectIdentifier: PerConnectionQueue] = [:]
+
+    init(appDelegate: AppDelegate, port: Int) {
+        self.appDelegate = appDelegate
+        Logger.automationServer.info("Starting automation server on port \(port)")
+        do {
+            listener = try NWListener(using: .tcp, on: NWEndpoint.Port(integerLiteral: UInt16(port)))
+        } catch {
+            Logger.automationServer.error("Failed to start listener: \(error)")
+            fatalError("Failed to start automation listener: \(error)")
+        }
+
+        listener.newConnectionHandler = { [weak self] connection in
+            guard let self else { return }
+            Task { @MainActor in
+                connection.start(queue: .main)
+                self.receive(from: connection)
+            }
+        }
+
+        listener.start(queue: .main)
+        Logger.automationServer.info("Automation server started on port \(port)")
+    }
+
+    private var mainWindowController: MainWindowController? {
+        if let windowController = appDelegate.windowControllersManager.lastKeyMainWindowController ?? appDelegate.windowControllersManager.mainWindowControllers.first {
+            return windowController
+        }
+
+        _ = appDelegate.windowControllersManager.openNewWindow(lazyLoadTabs: true)
+        return appDelegate.windowControllersManager.lastKeyMainWindowController ?? appDelegate.windowControllersManager.mainWindowControllers.first
+    }
+
+    private var mainViewController: MainViewController? {
+        mainWindowController?.mainViewController
+    }
+
+    private var currentTab: Tab? {
+        mainViewController?.tabCollectionViewModel.selectedTabViewModel?.tab
+    }
+
+    private func getQueryStringParameter(url: URLComponents, param: String) -> String? {
+        url.queryItems?.first(where: { $0.name == param })?.value
+    }
+
+    func receive(from connection: NWConnection) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: connection.maximumDatagramSize) { [weak self] content, _, isComplete, error in
+            guard let self else { return }
+            guard connection.state == .ready else {
+                Logger.automationServer.info("Receive aborted as connection is no longer ready.")
+                return
+            }
+
+            if let error {
+                Logger.automationServer.error("Error in request: \(error)")
+                return
+            }
+
+            if let content {
+                let queue = self.connectionQueues[ObjectIdentifier(connection)] ?? PerConnectionQueue()
+                self.connectionQueues[ObjectIdentifier(connection)] = queue
+                Task { @MainActor in
+                    await queue.enqueue(
+                        content: content,
+                        processor: { data in await self.processContentWhenReady(content: data) },
+                        responder: { result in self.respond(on: connection, connectionResultWithPath: result) })
+                }
+            }
+
+            if isComplete {
+                connection.cancel()
+                return
+            }
+
+            if connection.state == .ready {
+                Task { @MainActor in
+                    self.receive(from: connection)
+                }
+            }
+        }
+    }
+
+    func processContentWhenReady(content: Data) async -> ConnectionResultWithPath {
+        while currentTab?.isLoading == true {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+
+        return await handleConnection(content)
+    }
+
+    func handleConnection(_ content: Data) async -> ConnectionResultWithPath {
+        let stringContent = String(bytes: content, encoding: .utf8) ?? ""
+        guard let requestLine = stringContent.components(separatedBy: CharacterSet.newlines).first else {
+            return ("unknown", .failure(.unknownMethod))
+        }
+
+        let components = requestLine.split(separator: " ")
+        guard components.count >= 2 else {
+            return ("unknown", .failure(.unknownMethod))
+        }
+
+        let requestPath = String(components[1])
+        guard let url = URLComponents(string: requestPath) else {
+            return ("unknown", .failure(.invalidURL))
+        }
+
+        return (url.path, await handlePath(url))
+    }
+
+    func handlePath(_ url: URLComponents) async -> ConnectionResult {
+        switch url.path {
+        case "/navigate":
+            return navigate(url: url)
+        case "/execute":
+            return await execute(url: url)
+        case "/getUrl":
+            return .success(currentTab?.url?.absoluteString ?? "")
+        case "/getWindowHandles":
+            return getWindowHandles()
+        case "/closeWindow":
+            return closeWindow()
+        case "/switchToWindow":
+            return switchToWindow(url: url)
+        case "/newWindow":
+            return newWindow()
+        case "/getWindowHandle":
+            return getWindowHandle()
+        case "/installWebExtension":
+            return await installWebExtension(url: url)
+        case "/uninstallWebExtension":
+            return uninstallWebExtension(url: url)
+        default:
+            return .failure(.unknownMethod)
+        }
+    }
+
+    func navigate(url: URLComponents) -> ConnectionResult {
+        guard let mainViewController,
+              let navigateURLString = getQueryStringParameter(url: url, param: "url"),
+              let navigateURL = URL(string: navigateURLString) else {
+            return .failure(.invalidURL)
+        }
+
+        mainViewController.browserTabViewController.loadURLInCurrentTab(navigateURL)
+        return .success("done")
+    }
+
+    func execute(url: URLComponents) async -> ConnectionResult {
+        guard let script = getQueryStringParameter(url: url, param: "script"),
+              let webView = currentTab?.webView else {
+            return .failure(.unknownMethod)
+        }
+
+        do {
+            let result = try await webView.evaluateJavaScript(script)
+            return .success(encodeToJsonString(result))
+        } catch {
+            Logger.automationServer.error("Error executing script: \(error)")
+            return .failure(.unknownMethod)
+        }
+    }
+
+    func getWindowHandle() -> ConnectionResult {
+        guard let currentTab else {
+            return .failure(.noWindow)
+        }
+
+        return .success(currentTab.id)
+    }
+
+    func getWindowHandles() -> ConnectionResult {
+        guard let tabs = mainViewController?.tabCollectionViewModel.tabs else {
+            return .failure(.noWindow)
+        }
+
+        let handles = tabs.map(\.id)
+        guard let jsonData = try? JSONEncoder().encode(handles),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            return .failure(.jsonEncodingFailed)
+        }
+
+        return .success(jsonString)
+    }
+
+    func closeWindow() -> ConnectionResult {
+        guard let mainViewController,
+              let selectionIndex = mainViewController.tabCollectionViewModel.selectionIndex else {
+            return .failure(.noWindow)
+        }
+
+        mainViewController.tabCollectionViewModel.remove(at: selectionIndex, forceChange: true)
+        return .success("done")
+    }
+
+    func switchToWindow(url: URLComponents) -> ConnectionResult {
+        guard let handle = getQueryStringParameter(url: url, param: "handle"),
+              let mainViewController,
+              let tabIndex = mainViewController.tabCollectionViewModel.tabs.firstIndex(where: { $0.id == handle }) else {
+            return .failure(.invalidWindowHandle)
+        }
+
+        _ = mainViewController.tabCollectionViewModel.select(at: .unpinned(tabIndex), forceChange: true)
+        return .success("done")
+    }
+
+    func newWindow() -> ConnectionResult {
+        guard let mainViewController else {
+            return .failure(.noWindow)
+        }
+
+        let tab = Tab(
+            content: .newtab,
+            shouldLoadInBackground: true,
+            burnerMode: mainViewController.tabCollectionViewModel.burnerMode,
+            webViewSize: mainViewController.view.frame.size
+        )
+        mainViewController.tabCollectionViewModel.insertOrAppend(tab: tab, selected: true)
+
+        let response = ["handle": tab.id, "type": "tab"]
+        guard let jsonData = try? JSONEncoder().encode(response),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            return .failure(.jsonEncodingFailed)
+        }
+
+        return .success(jsonString)
+    }
+
+    func installWebExtension(url: URLComponents) async -> ConnectionResult {
+        guard #available(macOS 15.4, *),
+              let webExtensionManager = appDelegate.webExtensionManager else {
+            return .failure(.webExtensionsUnavailable)
+        }
+
+        guard let type = getQueryStringParameter(url: url, param: "type") else {
+            return .failure(.invalidWebExtensionRequest)
+        }
+
+        switch type {
+        case "path", "archivePath":
+            guard let path = getQueryStringParameter(url: url, param: "path"), !path.isEmpty else {
+                return .failure(.invalidWebExtensionRequest)
+            }
+
+            do {
+                let installedExtension = try await webExtensionManager.installExtension(from: URL(fileURLWithPath: path))
+                let response = ["extension": installedExtension.uniqueIdentifier]
+                guard let jsonData = try? JSONEncoder().encode(response),
+                      let jsonString = String(data: jsonData, encoding: .utf8) else {
+                    return .failure(.jsonEncodingFailed)
+                }
+                return .success(jsonString)
+            } catch {
+                Logger.automationServer.error("Failed to install web extension: \(error)")
+                return .failure(.invalidWebExtensionRequest)
+            }
+        default:
+            return .failure(.invalidWebExtensionRequest)
+        }
+    }
+
+    func uninstallWebExtension(url: URLComponents) -> ConnectionResult {
+        guard #available(macOS 15.4, *),
+              let webExtensionManager = appDelegate.webExtensionManager else {
+            return .failure(.webExtensionsUnavailable)
+        }
+
+        guard let extensionIdentifier = getQueryStringParameter(url: url, param: "extensionId"), !extensionIdentifier.isEmpty else {
+            return .failure(.invalidWebExtensionRequest)
+        }
+
+        do {
+            try webExtensionManager.uninstallExtension(identifier: extensionIdentifier)
+            return .success("null")
+        } catch {
+            Logger.automationServer.error("Failed to uninstall web extension: \(error)")
+            return .failure(.invalidWebExtensionRequest)
+        }
+    }
+
+    func responseToString(_ connectionResultWithPath: ConnectionResultWithPath) -> String {
+        let (requestPath, responseData) = connectionResultWithPath
+
+        struct Response: Codable {
+            var message: String
+            var requestPath: String
+        }
+
+        let responseStruct: Response
+        let statusCode: Int
+
+        switch responseData {
+        case .success(let result):
+            statusCode = 200
+            responseStruct = Response(message: result, requestPath: requestPath)
+        case .failure(let error):
+            statusCode = 400
+            responseStruct = Response(message: encodeToJsonString(["error": error.localizedDescription]), requestPath: requestPath)
+        }
+
+        let data = try? JSONEncoder().encode(responseStruct)
+        let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+
+        return """
+        HTTP/1.1 \(statusCode) OK
+        Content-Type: application/json
+        Connection: close
+
+        \(body)
+        """
+    }
+
+    func respond(on connection: NWConnection, connectionResultWithPath: ConnectionResultWithPath) {
+        let responseString = responseToString(connectionResultWithPath)
+        connection.send(content: responseString.data(using: .utf8), completion: .contentProcessed({ error in
+            if let error {
+                Logger.automationServer.error("Error sending response: \(error)")
+            }
+            connection.cancel()
+        }))
+    }
 }
