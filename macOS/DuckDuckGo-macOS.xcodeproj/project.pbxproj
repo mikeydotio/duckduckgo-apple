@@ -1313,6 +1313,8 @@
 		37CDFC2C2D79CCF400CBB429 /* HistoryViewDataProviderPixelHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CDFC2A2D79CCE600CBB429 /* HistoryViewDataProviderPixelHandlerTests.swift */; };
 		37CEFCA92A6737A2001EF741 /* CredentialsCleanupErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CEFCA82A6737A2001EF741 /* CredentialsCleanupErrorHandling.swift */; };
 		37CEFCAA2A6737A2001EF741 /* CredentialsCleanupErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CEFCA82A6737A2001EF741 /* CredentialsCleanupErrorHandling.swift */; };
+		37CFD4352F85544900AB8AE6 /* TabSuspensionUserScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CFD4342F85544900AB8AE6 /* TabSuspensionUserScript.swift */; };
+		37CFD4362F85544900AB8AE6 /* TabSuspensionUserScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CFD4342F85544900AB8AE6 /* TabSuspensionUserScript.swift */; };
 		37D046992C7D037500AEAA50 /* CapturingUserBackgroundImagesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D046982C7D037500AEAA50 /* CapturingUserBackgroundImagesManager.swift */; };
 		37D0469A2C7D037500AEAA50 /* CapturingUserBackgroundImagesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D046982C7D037500AEAA50 /* CapturingUserBackgroundImagesManager.swift */; };
 		37D0469E2C7D0EDD00AEAA50 /* CustomBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D0469B2C7D0EC100AEAA50 /* CustomBackground.swift */; };
@@ -5055,6 +5057,7 @@
 		37CDFC242D7874C100CBB429 /* HistoryViewDataProviderPixelHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViewDataProviderPixelHandler.swift; sourceTree = "<group>"; };
 		37CDFC2A2D79CCE600CBB429 /* HistoryViewDataProviderPixelHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViewDataProviderPixelHandlerTests.swift; sourceTree = "<group>"; };
 		37CEFCA82A6737A2001EF741 /* CredentialsCleanupErrorHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialsCleanupErrorHandling.swift; sourceTree = "<group>"; };
+		37CFD4342F85544900AB8AE6 /* TabSuspensionUserScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSuspensionUserScript.swift; sourceTree = "<group>"; };
 		37D046982C7D037500AEAA50 /* CapturingUserBackgroundImagesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturingUserBackgroundImagesManager.swift; sourceTree = "<group>"; };
 		37D0469B2C7D0EC100AEAA50 /* CustomBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomBackground.swift; sourceTree = "<group>"; };
 		37D046A02C7DA9A200AEAA50 /* UserBackgroundImagesManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserBackgroundImagesManagerTests.swift; sourceTree = "<group>"; };
@@ -10965,6 +10968,7 @@
 				AA9FF95E24A1FB680039E328 /* TabCollectionViewModel.swift */,
 				43A7F6C124DA119D76D5AC50 /* TabSuspensionService.swift */,
 				37D23779287EB8CA00BCE03B /* TabIndex.swift */,
+				37CFD4342F85544900AB8AE6 /* TabSuspensionUserScript.swift */,
 			);
 			path = ViewModel;
 			sourceTree = "<group>";
@@ -14502,6 +14506,7 @@
 				3765CAAD2E4B50AC00A26678 /* PageContextUserScript.swift in Sources */,
 				37EE56202D5F197300D53C7C /* MenuItemWithNotificationDot.swift in Sources */,
 				37EE56212D5F197300D53C7C /* MoreOptionsMenu.swift in Sources */,
+				37CFD4362F85544900AB8AE6 /* TabSuspensionUserScript.swift in Sources */,
 				37EE56222D5F197300D53C7C /* MoreOptionsMenuButton.swift in Sources */,
 				37EE56232D5F197300D53C7C /* NavigationBarPopovers.swift in Sources */,
 				37EE56242D5F197300D53C7C /* NavigationBarViewController.swift in Sources */,
@@ -16713,6 +16718,7 @@
 				9FA5A0A52BC8F34900153786 /* UserDefaultsBookmarkFoldersStore.swift in Sources */,
 				B6C0B23026E61D630031CB7F /* DownloadListStore.swift in Sources */,
 				C1935A182C88F9D6001AD72D /* SyncPromoManager.swift in Sources */,
+				37CFD4352F85544900AB8AE6 /* TabSuspensionUserScript.swift in Sources */,
 				9F5D4EC52DED3FA800B16D98 /* DefaultBrowserAndDockPromptPixelEvent.swift in Sources */,
 				85799C1825DEBB3F0007EC87 /* Logger+Multiple.swift in Sources */,
 				AAC30A2E268F1EE300D2D9CD /* CrashReportPromptPresenter.swift in Sources */,

@@ -20,7 +20,13 @@ import Combine
 import Foundation
 import Navigation
 import PrivacyConfig
+import UserScript
 import WebKit
+
+protocol TabSuspensionUserScriptProvider {
+    var tabSuspensionScript: TabSuspensionUserScript { get }
+}
+extension UserScripts: TabSuspensionUserScriptProvider {}
 
 /// This protocol encapsulates checks for tab suspension eligibility performed on a web view instance.
 protocol TabSuspensionWebViewChecking: AnyObject {
@@ -51,12 +57,15 @@ final class TabSuspensionExtension {
     private var cancellables = Set<AnyCancellable>()
 
     private weak var webView: TabSuspensionWebViewChecking?
+    private weak var tabSuspensionUserScript: TabSuspensionUserScript?
     private var tabContent: Tab.TabContent = .none
     private let isTabPinned: () -> Bool
     private let featureFlagger: FeatureFlagger
     private let privacyConfigurationManager: PrivacyConfigurationManaging
+
     var hasVideoInPictureInPicture: Bool = false
     var isDisplayingPDF: Bool = false
+    private(set) var pageReportsUnableToSuspend: Bool = false
 
     var canBeSuspended: Bool {
 
@@ -95,12 +104,16 @@ final class TabSuspensionExtension {
         // not displaying a PDF
         guard !isDisplayingPDF else { return false }
 
+        // page doesn't report conditions preventing suspension
+        guard !pageReportsUnableToSuspend else { return false }
+
         return true
     }
 
     init(
         webViewPublisher: some Publisher<TabSuspensionWebViewChecking, Never>,
         contentPublisher: some Publisher<Tab.TabContent, Never>,
+        scriptsPublisher: some Publisher<some TabSuspensionUserScriptProvider, Never>,
         featureFlagger: FeatureFlagger,
         privacyConfigurationManager: PrivacyConfigurationManaging,
         isTabPinned: @escaping () -> Bool
@@ -116,6 +129,13 @@ final class TabSuspensionExtension {
         webViewPublisher.sink { [weak self] webView in
             self?.webView = webView
         }.store(in: &cancellables)
+
+        scriptsPublisher.sink { [weak self] scripts in
+            Task { @MainActor in
+                self?.tabSuspensionUserScript = scripts.tabSuspensionScript
+                self?.tabSuspensionUserScript?.delegate = self
+            }
+        }.store(in: &cancellables)
     }
 }
 
@@ -130,12 +150,30 @@ extension TabSuspensionExtension: TabSuspensionExtensionProtocol, TabExtension {
 
 extension TabSuspensionExtension: NavigationResponder {
     @MainActor
+    func didCommit(_ navigation: Navigation) {
+        pageReportsUnableToSuspend = false
+    }
+
+    @MainActor
     func navigationDidFinish(_ navigation: Navigation) {
+        // This flag already gets reset in didCommit but let's repeat it here in case
+        // there are automated 'focusin' events that happen at page load.
+        // We're not interested in these as they aren't user-initiated.
+        // The didCommit is still needed to handle websites that fail to load or get stuck loading.
+        pageReportsUnableToSuspend = false
+
         guard let webView else { return }
         Task { @MainActor [weak self, weak webView] in
             let isPDF = await webView?.isDisplayingPDF ?? false
             self?.isDisplayingPDF = isPDF
         }
+    }
+}
+
+extension TabSuspensionExtension: TabSuspensionUserScriptDelegate {
+    @MainActor
+    func tabSuspensionUserScript(_ script: TabSuspensionUserScript, didReceiveCanBeSuspended canBeSuspended: Bool) {
+        pageReportsUnableToSuspend = !canBeSuspended
     }
 }
 

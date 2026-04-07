@@ -17,6 +17,7 @@
 //
 
 import Combine
+@testable import Navigation
 import PrivacyConfig
 import PrivacyConfigTestsUtils
 import WebKit
@@ -28,6 +29,7 @@ final class TabSuspensionExtensionTests: XCTestCase {
 
     private var webViewPublisher: PassthroughSubject<TabSuspensionWebViewChecking, Never>!
     private var contentPublisher: PassthroughSubject<Tab.TabContent, Never>!
+    private var scriptsPublisher: PassthroughSubject<MockTabSuspensionUserScriptProvider, Never>!
     private var featureFlagger: MockFeatureFlagger!
     private var privacyConfigurationManager: MockPrivacyConfigurationManager!
     private var mockPrivacyConfig: MockPrivacyConfiguration!
@@ -39,6 +41,7 @@ final class TabSuspensionExtensionTests: XCTestCase {
         super.setUp()
         webViewPublisher = PassthroughSubject<TabSuspensionWebViewChecking, Never>()
         contentPublisher = PassthroughSubject<Tab.TabContent, Never>()
+        scriptsPublisher = PassthroughSubject<MockTabSuspensionUserScriptProvider, Never>()
         featureFlagger = MockFeatureFlagger()
         mockPrivacyConfig = MockPrivacyConfiguration()
         privacyConfigurationManager = MockPrivacyConfigurationManager(privacyConfig: mockPrivacyConfig)
@@ -49,6 +52,7 @@ final class TabSuspensionExtensionTests: XCTestCase {
         sut = nil
         webViewPublisher = nil
         contentPublisher = nil
+        scriptsPublisher = nil
         featureFlagger = nil
         mockPrivacyConfig = nil
         privacyConfigurationManager = nil
@@ -61,6 +65,7 @@ final class TabSuspensionExtensionTests: XCTestCase {
         TabSuspensionExtension(
             webViewPublisher: webViewPublisher,
             contentPublisher: contentPublisher,
+            scriptsPublisher: scriptsPublisher,
             featureFlagger: featureFlagger,
             privacyConfigurationManager: privacyConfigurationManager,
             isTabPinned: { [unowned self] in self.isPinned }
@@ -311,6 +316,71 @@ final class TabSuspensionExtensionTests: XCTestCase {
 
         XCTAssertFalse(sut.canBeSuspended)
     }
+
+    // MARK: - Page Reports Unable to Suspend
+
+    @MainActor
+    func testWhenPageReportsUnableToSuspend_ThenCanBeSuspendedIsFalse() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+
+        let webView = MockTabSuspensionWebView()
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        sut.tabSuspensionUserScript(TabSuspensionUserScript(), didReceiveCanBeSuspended: false)
+
+        XCTAssertFalse(sut.canBeSuspended)
+    }
+
+    @MainActor
+    func testWhenPageReportsCanBeSuspended_ThenCanBeSuspendedIsTrue() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+
+        let webView = MockTabSuspensionWebView()
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        sut.tabSuspensionUserScript(TabSuspensionUserScript(), didReceiveCanBeSuspended: true)
+
+        XCTAssertTrue(sut.canBeSuspended)
+    }
+
+    @MainActor
+    func testWhenPageReportsUnableToSuspend_AndNavigationCommits_ThenFlagIsReset() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+
+        let webView = MockTabSuspensionWebView()
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        sut.tabSuspensionUserScript(TabSuspensionUserScript(), didReceiveCanBeSuspended: false)
+        XCTAssertTrue(sut.pageReportsUnableToSuspend)
+
+        sut.didCommit(Navigation(identity: NavigationIdentity(nil), responders: ResponderChain(), state: .started, isCurrent: true))
+
+        XCTAssertFalse(sut.pageReportsUnableToSuspend)
+        XCTAssertTrue(sut.canBeSuspended)
+    }
+
+    @MainActor
+    func testWhenPageReportsUnableToSuspend_AndNavigationFinishes_ThenFlagIsReset() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+
+        let webView = MockTabSuspensionWebView()
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        sut.tabSuspensionUserScript(TabSuspensionUserScript(), didReceiveCanBeSuspended: false)
+        XCTAssertTrue(sut.pageReportsUnableToSuspend)
+
+        sut.navigationDidFinish(Navigation(identity: NavigationIdentity(nil), responders: ResponderChain(), state: .started, isCurrent: true))
+
+        XCTAssertFalse(sut.pageReportsUnableToSuspend)
+    }
 }
 
 // MARK: - MockTabSuspensionWebView
@@ -320,4 +390,8 @@ private final class MockTabSuspensionWebView: TabSuspensionWebViewChecking {
     var isCapturingAudio: Bool = false
     var isCapturingVideo: Bool = false
     var isDisplayingPDF: Bool = false
+}
+
+private struct MockTabSuspensionUserScriptProvider: TabSuspensionUserScriptProvider {
+    let tabSuspensionScript = TabSuspensionUserScript()
 }
