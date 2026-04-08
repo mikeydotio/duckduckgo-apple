@@ -2203,32 +2203,15 @@ public struct UserText {
                 public static var title: String {
                     NSLocalizedString("onboarding.rebranding.intro.title", value: "Hi there.", comment: "The title of the onboarding intro")
                 }
-                public static var message: String {
-                    if Locale.current.isEnglishLanguage {
-                        NotLocalizedString("onboarding.rebranding.intro.message.english-only", value: "Ready for a faster browser that protects you and lets you decide when and how to use AI?", comment: "The message of the onboarding dialog popup")
-                    } else {
-                        NSLocalizedString("onboarding.rebranding.intro.message", value: "Ready for a faster browser that keeps you protected?", comment: "The message of the onboarding dialog popup")
-                    }
-                }
+                public static let message = NSLocalizedString("onboarding.rebranding.intro.message", value: "Ready for a faster browser that protects you and lets you decide when and how to use AI?", comment: "The message of the onboarding dialog popup")
             }
         }
 
         public enum Intro {
-            public static var title: String {
-                if Locale.current.isEnglishLanguage {
-                    NotLocalizedString("onboarding.highlights.intro.title.english-only", value: "Hi there.\n\nReady for a faster browser that protects you and lets you decide when and how to use AI?", comment: "The title of the onboarding dialog popup for English-language copy update")
-                } else {
-                    NSLocalizedString("onboarding.highlights.intro.title", value: "Hi there.\n\nReady for a faster browser that keeps you protected?", comment: "The title of the onboarding dialog popup")
-                }
-            }
+            public static let title = NSLocalizedString("onboarding.highlights.intro.title", value: "Hi there.\n\nReady for a faster browser that protects you and lets you decide when and how to use AI?", comment: "The title of the onboarding dialog popup.")
 
-            public static var continueCTA: String {
-                if Locale.current.isEnglishLanguage {
-                    NotLocalizedString("onboarding.intro.cta.english-only", value: "Let’s get started!", comment: "Button to continue the onboarding process for English-language copy update")
-                } else {
-                    NSLocalizedString("onboarding.intro.cta", value: "Let’s do it!", comment: "Button to continue the onboarding process")
-                }
-            }
+            public static let continueCTA = NSLocalizedString("onboarding.intro.cta", value: "Let’s get started!", comment: "Button to continue the onboarding process.")
+
             public static let skipCTA = NSLocalizedString("onboarding.intro.cta.skip", value: "I’ve been here before", comment: "Button to skip the onboarding process")
 
             enum Debug {
@@ -2272,47 +2255,26 @@ public struct UserText {
         }
 
         enum SearchExperience {
-            public static var title: String {
-                if Locale.current.isEnglishLanguage {
-                    NotLocalizedString(
-                        "onboarding.highlights.searchExperience.title.english-only",
-                        value: "Want easy access to private AI chat in the address bar?",
-                        comment: "The title of the onboarding dialog popup to select the preferred search experience for English-language copy update."
-                    )
-                } else {
-                    NSLocalizedString(
-                        "onboarding.highlights.searchExperience.title",
-                        value: "Want easy access to private AI chat?",
-                        comment: "The title of the onboarding dialog popup to select the preferred search experience."
-                    )
-                }
-            }
+            public static let title = NSLocalizedString(
+                "onboarding.highlights.searchExperience.title",
+                value: "Want easy access to private AI chat in the address bar?",
+                comment: "The title of the onboarding dialog popup to select the preferred search experience."
+            )
+
             public static let footer = NSLocalizedString("onboarding.highlights.searchExperience.footer", value: "AI features are private and optional. You can make changes in Settings > AI Features.", comment: "The footer disclaimer text for the search experience onboarding screen.")
             public static let cta = NSLocalizedString("onboarding.highlights.searchExperience.cta", value: "Next", comment: "The title of the CTA to progress to the next onboarding screen.")
 
-            public static var searchOnlyOption: String {
-                if Locale.current.isEnglishLanguage {
-                    NotLocalizedString(
-                        "onboarding.highlights.searchExperience.searchOnly.english-only",
-                        value: "Search only",
-                        comment: "Title for the search-only option in onboarding picker for English-language copy update."
-                    )
-                } else {
-                    UserText.settingsAIPickerSearchOnly
-                }
-            }
+            public static let searchOnlyOption = NSLocalizedString(
+                "onboarding.highlights.searchExperience.searchOnly",
+                value: "Search only",
+                comment: "Title for the search-only option in onboarding picker."
+            )
 
-            public static var searchAndDuckAIOption: String {
-                if Locale.current.isEnglishLanguage {
-                    NotLocalizedString(
-                        "onboarding.highlights.searchExperience.searchAndDuckAI.english-only",
-                        value: "Toggle between\nSearch and Duck.ai",
-                        comment: "Title for the search and Duck.ai option in onboarding picker for English-language copy update."
-                    )
-                } else {
-                    UserText.settingsAIPickerSearchAndDuckAI
-                }
-            }
+            public static var searchAndDuckAIOption = NSLocalizedString(
+                "onboarding.highlights.searchExperience.searchAndDuckAI",
+                value: "Toggle between\nSearch and Duck.ai",
+                comment: "Title for the search and Duck.ai option in onboarding picker."
+            )
             
             static func footerAttributed() -> NSAttributedString {
                 let settingsPathBold = NSLocalizedString(
