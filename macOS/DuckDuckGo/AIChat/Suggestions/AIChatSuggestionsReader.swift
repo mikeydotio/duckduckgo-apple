@@ -66,10 +66,6 @@ final class AIChatSuggestionsReader: AIChatSuggestionsReading {
 
     func fetchSuggestions(query: String?, maxChats: Int) async -> (pinned: [AIChatSuggestion], recent: [AIChatSuggestion]) {
         let result = await suggestionsReader.fetchSuggestions(query: query, maxChats: maxChats)
-<<<<<<< HEAD
-
-=======
->>>>>>> juan/feature/duck-ai-main-menu
         switch result {
         case .success(let suggestions):
             return suggestions

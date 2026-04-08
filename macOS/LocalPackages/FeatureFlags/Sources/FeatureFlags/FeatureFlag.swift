@@ -341,6 +341,9 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1204006570077678/task/1213833143996468?focus=true
     case aiChatViewAllChatsNativeOmnibar
 
+    /// https://app.asana.com/1/137249556945/project/1204006570077678/task/1213833143996468?focus=true
+    case aiChatViewAllChatsNativeNTP
+
     case aiChatNativeStorage
 }
 
@@ -571,7 +574,7 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .aiChatSidebarAboutSchemeNavigationFix:
             Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(AIChatSubfeature.sidebarAboutSchemeNavigationFix)), category: .duckAI)
         case .aiChatViewAllChatsNativeOmnibar:
-            Config(defaultValue: .internalOnly,
+            Config(defaultValue: .disabled,
                    source: .remoteReleasable(.subfeature(AIChatSubfeature.viewAllChatsNativeOmnibar)),
                    category: .duckAI)
         case .aiChatNativeStorage:
