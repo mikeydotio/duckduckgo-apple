@@ -1150,7 +1150,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             windowControllersManager: windowControllersManager,
             featureFlagger: featureFlagger,
             memoryUsageMonitor: memoryUsageMonitor,
-            pixelFiring: PixelKit.shared
+            pixelFiring: PixelKit.shared,
+            keyValueStore: keyValueStore
         )
 
         if featureFlagger.isFeatureOn(.aiChatNativeStorage),
