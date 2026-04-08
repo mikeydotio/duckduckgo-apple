@@ -1043,7 +1043,7 @@ final class TabBarViewItem: NSCollectionViewItem {
                 guard let self else {
                     return
                 }
-                let alpha: CGFloat = isSuspended && featureFlagger.isFeatureOn(.tabSuspensionDebugging) ? 0.5 : 1.0
+                let alpha: CGFloat = isSuspended ? 0.5 : 1.0
                 cell.faviconView.alphaValue = alpha
                 cell.titleView.alphaValue = alpha
             }
