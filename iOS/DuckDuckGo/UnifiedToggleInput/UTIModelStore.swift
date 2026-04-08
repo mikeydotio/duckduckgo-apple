@@ -59,9 +59,17 @@ final class UTIModelStore {
         preferences.selectedModelId
     }
 
+    var selectedReasoningMode: AIChatReasoningMode? {
+        preferences.selectedReasoningMode
+    }
+
+    var selectedModel: AIChatModel? {
+        guard let persistedModelId else { return nil }
+        return models.first(where: { $0.id == persistedModelId })
+    }
+
     var selectedModelSupportsImageUpload: Bool {
-        guard !models.isEmpty else { return false }
-        return models.first(where: { $0.id == persistedModelId })?.supportsImageUpload ?? false
+        selectedModel?.supportsImageUpload ?? false
     }
 
     func selectedModelSupports(tool: AIChatRAGTool) -> Bool {
@@ -97,6 +105,10 @@ final class UTIModelStore {
         preferences.selectedModelShortName = models.first(where: { $0.id == modelId })?.shortName
     }
 
+    func updateSelectedReasoningMode(_ mode: AIChatReasoningMode) {
+        preferences.selectedReasoningMode = mode
+    }
+
     static func resolveModels(from remoteModels: [AIChatRemoteModel], userTier: AIChatUserTier) -> [AIChatModel] {
         remoteModels.map { remote in
             if remote.accessTier.isEmpty {
@@ -109,7 +121,8 @@ final class UTIModelStore {
                     supportedImageFormats: remote.supportsImageUpload ? ["png", "jpeg", "webp"] : [],
                     supportedTools: remote.supportedTools.compactMap(AIChatRAGTool.init(rawValue:)),
                     entityHasAccess: remote.entityHasAccess,
-                    accessTier: remote.accessTier
+                    accessTier: remote.accessTier,
+                    supportedReasoningEffort: remote.supportedReasoningEffort
                 )
             }
             return AIChatModel(remoteModel: remote, userTier: userTier)

@@ -87,11 +87,23 @@ final class UnifiedToggleInputToolbarView: UIView {
         didSet { updateChipVisibility() }
     }
 
+    var selectedReasoningMode: AIChatReasoningMode? {
+        didSet { updateReasoningButtonAppearance() }
+    }
+
     var modelPickerMenu: UIMenu? {
         get { modelChipButton.menu }
         set {
             modelChipButton.menu = newValue
             modelChipButton.showsMenuAsPrimaryAction = (newValue != nil)
+        }
+    }
+
+    var reasoningPickerMenu: UIMenu? {
+        get { reasoningButton.menu }
+        set {
+            reasoningButton.menu = newValue
+            reasoningButton.showsMenuAsPrimaryAction = (newValue != nil)
         }
     }
 
@@ -114,6 +126,11 @@ final class UnifiedToggleInputToolbarView: UIView {
     var isToolsButtonHidden: Bool {
         get { toolsButton.isHidden }
         set { toolsButton.isHidden = newValue }
+    }
+
+    var isReasoningButtonHidden: Bool {
+        get { reasoningButton.isHidden }
+        set { reasoningButton.isHidden = newValue }
     }
 
     var isImageButtonHidden: Bool {
@@ -141,6 +158,16 @@ final class UnifiedToggleInputToolbarView: UIView {
         accessibilityLabel: UserText.aiChatToolbarAttachButtonAccessibilityLabel,
         action: #selector(attachTapped)
     )
+
+    private lazy var reasoningButton: UIButton = {
+        let button = makeToolButton(
+            image: DesignSystemImages.Color.Size24.lightning,
+            accessibilityLabel: UserText.aiChatToolbarReasoningButtonAccessibilityLabel,
+            action: nil
+        )
+        button.isHidden = true
+        return button
+    }()
 
     private lazy var modelChipButton: UIButton = {
         var config = UIButton.Configuration.plain()
@@ -291,7 +318,7 @@ private extension UnifiedToggleInputToolbarView {
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let rightGroup = UIStackView(arrangedSubviews: [modelChipButton, submitButton, stopButton])
+        let rightGroup = UIStackView(arrangedSubviews: [reasoningButton, modelChipButton, submitButton, stopButton])
         rightGroup.axis = .horizontal
         rightGroup.spacing = Constants.rightGroupSpacing
         rightGroup.alignment = .center
@@ -346,6 +373,12 @@ private extension UnifiedToggleInputToolbarView {
 
     private func updateModelChipConfiguration() {
         modelChipButton.configuration?.title = modelName
+    }
+
+    private func updateReasoningButtonAppearance() {
+        let mode = selectedReasoningMode ?? .fast
+        reasoningButton.setImage(mode.unifiedToggleInputButtonImage, for: .normal)
+        reasoningButton.tintColor = mode.unifiedToggleInputButtonTintColor
     }
 
     private func updateChipVisibility() {

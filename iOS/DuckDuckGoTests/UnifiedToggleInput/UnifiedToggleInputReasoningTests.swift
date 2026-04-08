@@ -1,0 +1,148 @@
+//
+//  UnifiedToggleInputReasoningTests.swift
+//  DuckDuckGo
+//
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import AIChat
+import Combine
+import XCTest
+@testable import DuckDuckGo
+
+@MainActor
+final class UnifiedToggleInputReasoningTests: XCTestCase {
+
+    private var sut: UnifiedToggleInputCoordinator!
+    private var mockDelegate: MockUnifiedToggleInputReasoningDelegate!
+    private var mockPreferences: MockAIChatReasoningPreferences!
+
+    override func setUp() {
+        super.setUp()
+        mockPreferences = MockAIChatReasoningPreferences()
+        sut = UnifiedToggleInputCoordinator(isToggleEnabled: true, preferences: mockPreferences)
+        mockDelegate = MockUnifiedToggleInputReasoningDelegate()
+        sut.delegate = mockDelegate
+    }
+
+    override func tearDown() {
+        sut = nil
+        mockDelegate = nil
+        mockPreferences = nil
+        super.tearDown()
+    }
+
+    func testSubmitAIChatWithoutBoundScriptPassesResolvedReasoningEffort() {
+        mockPreferences.selectedModelId = "gpt-5.2"
+        mockPreferences.selectedReasoningMode = .extendedReasoning
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-5.2", supportedReasoningEffort: [.none, .low, .medium])]
+
+        sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "hello AI", mode: .aiChat)
+
+        XCTAssertEqual(mockDelegate.submittedReasoningEffort, .medium)
+    }
+
+    func testUpdateSelectedModelWhenReasoningModelShowsReasoningButton() {
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-5.2", supportedReasoningEffort: [.none, .low, .medium])]
+
+        sut.updateSelectedModel("gpt-5.2")
+
+        XCTAssertFalse(sut.viewController.isReasoningButtonHidden)
+    }
+
+    func testUpdateSelectedReasoningModeUpdatesVisibleReasoningMode() {
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-5.2", supportedReasoningEffort: [.none, .low, .medium])]
+
+        sut.updateSelectedModel("gpt-5.2")
+        sut.updateSelectedReasoningMode(.extendedReasoning)
+
+        XCTAssertEqual(sut.viewController.selectedReasoningMode, .extendedReasoning)
+    }
+
+    func testUpdateSelectedModelWhenReasoningModeUnavailableClampsToHighestAvailable() {
+        mockPreferences.selectedReasoningMode = .extendedReasoning
+        sut.modelStore.models = [makeReasoningModel(id: "claude-opus-4-6", provider: .anthropic, supportedReasoningEffort: [.none, .low])]
+
+        sut.updateSelectedModel("claude-opus-4-6")
+
+        XCTAssertEqual(sut.persistedReasoningEffort, .low)
+    }
+
+    func testSubmitAIChatAfterFirstPromptStillPassesReasoningEffort() {
+        mockPreferences.selectedModelId = "gpt-5.2"
+        mockPreferences.selectedReasoningMode = .reasoning
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-5.2", supportedReasoningEffort: [.none, .low, .medium])]
+
+        sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "first", mode: .aiChat)
+        mockDelegate.submittedReasoningEffort = nil
+
+        sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "second", mode: .aiChat)
+
+        XCTAssertEqual(mockDelegate.submittedReasoningEffort, .low)
+    }
+
+    func testBindToExistingChatWhenReasoningModelKeepsReasoningButtonAvailable() {
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-5.2", supportedReasoningEffort: [.none, .low, .medium])]
+        mockPreferences.selectedModelId = "gpt-5.2"
+
+        sut.bindToTab(makeTestUserScript(), hasExistingChat: true)
+
+        XCTAssertFalse(sut.viewController.isReasoningButtonHidden)
+    }
+}
+
+private extension UnifiedToggleInputReasoningTests {
+    func makeReasoningModel(
+        id: String,
+        provider: AIChatModel.ModelProvider = .openAI,
+        supportedReasoningEffort: [AIChatReasoningEffort]
+    ) -> AIChatModel {
+        AIChatModel(
+            id: id,
+            name: id,
+            shortName: id,
+            provider: provider,
+            supportsImageUpload: false,
+            entityHasAccess: true,
+            supportedReasoningEffort: supportedReasoningEffort
+        )
+    }
+}
+
+@MainActor
+private final class MockUnifiedToggleInputReasoningDelegate: UnifiedToggleInputDelegate {
+    var submittedPrompt: String?
+    var submittedModelId: String?
+    var submittedReasoningEffort: AIChatReasoningEffort?
+    var submittedImages: [AIChatNativePrompt.NativePromptImage]?
+
+    func unifiedToggleInputDidSubmitPrompt(_ prompt: String, modelId: String?, tools: [AIChatRAGTool]?, reasoningEffort: AIChatReasoningEffort?, images: [AIChatNativePrompt.NativePromptImage]?) {
+        submittedPrompt = prompt
+        submittedModelId = modelId
+        submittedReasoningEffort = reasoningEffort
+        submittedImages = images
+    }
+
+    func unifiedToggleInputDidSubmitQuery(_ query: String) {}
+    func unifiedToggleInputDidRequestVoiceSearch() {}
+    func unifiedToggleInputDidChangeHeight() {}
+}
+
+private final class MockAIChatReasoningPreferences: AIChatPreferencesPersisting {
+    var selectedModelId: String?
+    var selectedModelShortName: String?
+    var selectedReasoningMode: AIChatReasoningMode?
+    var selectedModelIdPublisher: AnyPublisher<String?, Never> { Empty().eraseToAnyPublisher() }
+}

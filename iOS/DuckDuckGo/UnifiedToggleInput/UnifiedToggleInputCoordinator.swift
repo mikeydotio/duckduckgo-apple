@@ -62,6 +62,11 @@ enum ExternalSubmissionType {
     case prompt
 }
 
+private struct PromptSubmissionConfiguration {
+    let modelId: String?
+    let reasoningEffort: AIChatReasoningEffort?
+}
+
 // MARK: - Subscription State
 
 struct SubscriptionState {
@@ -99,6 +104,15 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
     var aiChatStatusPublisher: Published<AIChatStatusValue>.Publisher { $aiChatStatus }
     var aiChatInputBoxVisibilityPublisher: Published<AIChatInputBoxVisibility>.Publisher { $aiChatInputBoxVisibility }
     var attachmentUsagePublisher: Published<AIChatAttachmentUsage?>.Publisher { $attachmentUsage }
+    var persistedReasoningEffort: AIChatReasoningEffort? {
+        selectedModel?.reasoningEffort(for: persistedReasoningMode)
+    }
+    private var promptSubmissionConfiguration: PromptSubmissionConfiguration {
+        PromptSubmissionConfiguration(
+            modelId: hasSubmittedPrompt ? nil : persistedModelId,
+            reasoningEffort: persistedReasoningEffort
+        )
+    }
 
     @Published var aiChatStatus: AIChatStatusValue = .unknown
     @Published var aiChatInputBoxVisibility: AIChatInputBoxVisibility = .unknown
@@ -601,13 +615,14 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
 
     func submitVoicePrompt(_ text: String) {
         guard let userScript = boundUserScript else { return }
-        let modelId = hasSubmittedPrompt ? nil : persistedModelId
+        let configuration = promptSubmissionConfiguration
+        logVoicePromptSubmission(configuration: configuration)
         hasSubmittedPrompt = true
         updateModelChipVisibility()
         syncHasSubmittedPromptToHandler()
         resetToolsSelection()
         showCollapsed()
-        userScript.submitPrompt(text, images: nil, modelId: modelId)
+        userScript.submitPrompt(text, images: nil, modelId: configuration.modelId, reasoningEffort: configuration.reasoningEffort)
     }
 
     func handleExternalSubmission(_ type: ExternalSubmissionType) {
@@ -731,6 +746,8 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
     var subscriptionState: SubscriptionState { modelStore.subscriptionState }
     var persistedModelId: String? { modelStore.persistedModelId }
     var currentModelId: String? { modelStore.currentModelId }
+    var persistedReasoningMode: AIChatReasoningMode? { modelStore.selectedReasoningMode }
+    var selectedModel: AIChatModel? { modelStore.selectedModel }
     var selectedModelSupportsImageUpload: Bool { modelStore.selectedModelSupportsImageUpload }
     var selectedTool: AIChatRAGTool? { toolsController.selectedTool }
 
@@ -752,6 +769,12 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
     func updateSelectedModel(_ modelId: String) {
         modelStore.updateSelectedModel(modelId)
         handleModelsUpdated()
+    }
+
+    func updateSelectedReasoningMode(_ mode: AIChatReasoningMode) {
+        modelStore.updateSelectedReasoningMode(mode)
+        logReasoningModeSelection(mode)
+        updateReasoningPicker()
     }
 
     func selectTool(_ tool: AIChatRAGTool) {
@@ -782,6 +805,33 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
         ) { [weak self] modelId in
             self?.updateSelectedModel(modelId)
         }
+    }
+
+    private func buildReasoningPickerMenu() -> UIMenu? {
+        guard let selectedModel, selectedModel.supportsReasoningPicker else { return nil }
+
+        let selectedMode = resolvedSelectedReasoningMode
+        let actions = selectedModel.availableReasoningModes.map { mode in
+            UIAction(
+                title: mode.unifiedToggleInputTitle,
+                subtitle: mode.unifiedToggleInputSubtitle,
+                image: mode.unifiedToggleInputMenuImage,
+                state: mode == selectedMode ? .on : .off
+            ) { [weak self] _ in
+                self?.updateSelectedReasoningMode(mode)
+            }
+        }
+
+        return UIMenu(options: .singleSelection, children: actions)
+    }
+
+    private func updateReasoningPicker() {
+        let selectedMode = resolvedSelectedReasoningMode
+        let shouldHide = !(selectedModel?.supportsReasoningPicker ?? false)
+        logReasoningPickerVisibility(hidden: shouldHide)
+        viewController.selectedReasoningMode = selectedMode
+        viewController.isReasoningButtonHidden = shouldHide
+        viewController.reasoningPickerMenu = shouldHide ? nil : buildReasoningPickerMenu()
     }
 
     // MARK: - Attachments
@@ -866,7 +916,8 @@ extension UnifiedToggleInputCoordinator: UnifiedToggleInputViewControllerDelegat
             let images = selectedModelSupportsImageUpload
                 ? UnifiedToggleInputImageEncoder.encode(viewController.currentAttachments)
                 : nil
-            let modelId = hasSubmittedPrompt ? nil : persistedModelId
+            let configuration = promptSubmissionConfiguration
+            logPromptSubmission(configuration: configuration, images: images)
             clearAttachments()
             hasSubmittedPrompt = true
             updateModelChipVisibility()
@@ -878,9 +929,9 @@ extension UnifiedToggleInputCoordinator: UnifiedToggleInputViewControllerDelegat
                 showCollapsed()
             }
             if let userScript = boundUserScript {
-                userScript.submitPrompt(text, images: images, modelId: modelId, tools: tools)
+                userScript.submitPrompt(text, images: images, modelId: configuration.modelId, tools: tools, reasoningEffort: configuration.reasoningEffort)
             } else {
-                delegate?.unifiedToggleInputDidSubmitPrompt(text, modelId: modelId, tools: tools, images: images)
+                delegate?.unifiedToggleInputDidSubmitPrompt(text, modelId: configuration.modelId, tools: tools, reasoningEffort: configuration.reasoningEffort, images: images)
             }
         }
     }
@@ -945,6 +996,7 @@ private extension UnifiedToggleInputCoordinator {
 
     func updateModelChipVisibility() {
         viewController.isModelChipHidden = hasSubmittedPrompt
+        updateReasoningPicker()
     }
 
     func syncHasSubmittedPromptToHandler() {
@@ -979,6 +1031,7 @@ private extension UnifiedToggleInputCoordinator {
     func handleModelsUpdated() {
         toolsController.clearSelectionIfUnsupported(for: modelStore)
         updateModelChipLabel()
+        updateReasoningPicker()
         updateImageButtonVisibility()
         refreshToolsPresentation()
     }
@@ -1018,6 +1071,26 @@ private extension UnifiedToggleInputCoordinator {
     func updateImageButtonEnabledState() {
         let canAttachMore = remainingImagesForPicker > 0 && !viewController.isGenerating
         viewController.isImageButtonEnabled = canAttachMore
+    }
+
+    var resolvedSelectedReasoningMode: AIChatReasoningMode? {
+        selectedModel?.resolvedReasoningMode(from: persistedReasoningMode)
+    }
+
+    func logPromptSubmission(configuration: PromptSubmissionConfiguration, images: [AIChatNativePrompt.NativePromptImage]?) {
+        Logger.aiChat.info("UTI prompt submit with modelId=\(configuration.modelId ?? "nil", privacy: .public) reasoningEffort=\(configuration.reasoningEffort?.rawValue ?? "nil", privacy: .public) hasImages=\(!(images?.isEmpty ?? true), privacy: .public) imageCount=\(images?.count ?? 0, privacy: .public) firstSubmission=\(!self.hasSubmittedPrompt, privacy: .public)")
+    }
+
+    func logVoicePromptSubmission(configuration: PromptSubmissionConfiguration) {
+        Logger.aiChat.info("UTI voice prompt submit with modelId=\(configuration.modelId ?? "nil", privacy: .public) reasoningEffort=\(configuration.reasoningEffort?.rawValue ?? "nil", privacy: .public)")
+    }
+
+    func logReasoningModeSelection(_ mode: AIChatReasoningMode) {
+        Logger.aiChat.debug("UTI reasoning mode updated to \(mode.rawValue, privacy: .public) for modelId=\(self.selectedModel?.id ?? "nil", privacy: .public)")
+    }
+
+    func logReasoningPickerVisibility(hidden: Bool) {
+        Logger.aiChat.debug("UTI reasoning picker hidden=\(hidden, privacy: .public) modelId=\(self.selectedModel?.id ?? "nil", privacy: .public) availableEfforts=\(self.selectedModel?.supportedReasoningEffort.map(\.rawValue).joined(separator: ",") ?? "none", privacy: .public)")
     }
 
     // MARK: Subscriptions
