@@ -74,9 +74,17 @@ struct SettingsYouTubeAdBlockingView: View {
                 }
             }
 
-            if !viewModel.duckPlayerNativeUI.wrappedValue {
+            if viewModel.duckPlayerNativeUI.wrappedValue {
+                Section(footer: Text(UserText.duckPlayerEnableFooter)) {
+                    NavigationLink(destination: SettingsDuckPlayerView().environmentObject(viewModel)) {
+                        SettingsCellView(label: UserText.duckPlayerFeatureName)
+                    }
+                    .listRowBackground(Color(designSystemColor: .surface))
+                    .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
+                }
+            } else {
                 Section(header: Text(UserText.duckPlayerFeatureName),
-                        footer: Text(UserText.duckPlayerExplanation)) {
+                        footer: Text(UserText.duckPlayerEnableFooter)) {
                     SettingsCellView(
                         label: UserText.duckPlayerEnableToggle,
                         accessory: .toggle(isOn: viewModel.isDuckPlayerEnabledBinding)
@@ -98,33 +106,6 @@ struct SettingsYouTubeAdBlockingView: View {
                                 accessory: .toggle(isOn: viewModel.duckPlayerOpenInNewTabBinding)
                             )
                         }
-                    }
-                }
-            } else {
-                Section(header: Text(UserText.duckPlayerFeatureName),
-                        footer: Text(UserText.duckPlayerEnableFooter)) {
-                    SettingsCellView(
-                        label: UserText.duckPlayerEnableToggle,
-                        accessory: .toggle(isOn: viewModel.isShowDuckPlayerOnYoutubeBinding)
-                    )
-                    .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
-                }
-
-                if viewModel.state.duckPlayerNativeYoutubeMode != .never {
-                    Section(footer: Text(UserText.duckPlayerSearchResultsFooter)) {
-                        SettingsCellView(
-                            label: UserText.duckPlayerAlwaysOpenToggle,
-                            accessory: .toggle(isOn: viewModel.isOpenAutomaticallyBinding)
-                        )
-                        .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
-
-                        SettingsCellView(label: UserText.duckPlayerAutoplayLabel,
-                                        accessory: .toggle(isOn: viewModel.duckPlayerAutoplay))
-                        .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
-
-                        SettingsCellView(label: UserText.duckPlayerSearchResultsLabel,
-                                         accessory: .toggle(isOn: viewModel.duckPlayerNativeUISERPEnabled))
-                        .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
                     }
                 }
             }
