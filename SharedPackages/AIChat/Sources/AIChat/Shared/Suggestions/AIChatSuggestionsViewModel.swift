@@ -45,7 +45,7 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
     @Published public private(set) var isKeyboardNavigating: Bool = false
 
     /// Controls visibility of the virtual "view all chats" row at the bottom of the list.
-    @Published public var showViewAllChats: Bool = false
+    @Published public private(set) var showViewAllChats: Bool = false
 
     // MARK: - Computed Properties
 
@@ -83,7 +83,9 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
     /// - Parameters:
     ///   - pinned: The list of pinned chats.
     ///   - recent: The list of recent chats.
-    public func setChats(pinned: [AIChatSuggestion], recent: [AIChatSuggestion]) {
+    public func setChats(pinned: [AIChatSuggestion], recent: [AIChatSuggestion], showViewAllChats: Bool = false) {
+        self.showViewAllChats = showViewAllChats
+
         // Merge pinned and recent chats
         var allChats = pinned + recent
 
@@ -149,8 +151,8 @@ public final class AIChatSuggestionsViewModel: ObservableObject {
                 return true
             }
         } else {
-            // No selection, select last item (bottom of list)
-            selectedIndex = filteredSuggestions.count - 1
+            // No selection, select last item (bottom of list), including virtual "view all" row
+            selectedIndex = showViewAllChats ? filteredSuggestions.count : filteredSuggestions.count - 1
             return true
         }
     }

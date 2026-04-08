@@ -211,7 +211,6 @@ final class NewTabPageOmnibarConfigProvider: NewTabPageOmnibarConfigProviding {
             .sink { [weak self] hasExcess in
                 guard let self else { return }
                 self.hasExcessChats = hasExcess
-                Logger.newTabPageOmnibar.debug("[ViewAllChats] hasExcessChats: \(hasExcess) → showViewAllAiChats: \(self.showViewAllAiChats)")
             }
     }
 

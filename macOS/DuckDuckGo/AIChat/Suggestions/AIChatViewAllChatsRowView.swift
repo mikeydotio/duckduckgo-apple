@@ -36,7 +36,6 @@ final class AIChatViewAllChatsRowView: NSView {
 
         static let iconColor: NSColor = .suggestionIcon
         static let textColor: NSColor = NSColor(designSystemColor: .textPrimary)
-        static let secondaryTextColor: NSColor = NSColor(designSystemColor: .textSecondary)
     }
 
     // MARK: - UI Components
@@ -72,7 +71,7 @@ final class AIChatViewAllChatsRowView: NSView {
         let label = NSTextField(labelWithString: UserText.aiChatOpenDuckAI)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = .systemFont(ofSize: 11, weight: .semibold)
-        label.textColor = NSColor(designSystemColor: .textSecondary)
+        label.textColor = .controlAccentColor
         label.lineBreakMode = .byTruncatingTail
         label.maximumNumberOfLines = 1
         return label
@@ -82,7 +81,7 @@ final class AIChatViewAllChatsRowView: NSView {
         let imageView = NSImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.imageScaling = .scaleProportionallyDown
-        imageView.image = NSImage(systemSymbolName: "arrow.right", accessibilityDescription: nil)
+        imageView.image = NSImage(named: "Arrow-Right-12")
         imageView.contentTintColor = Constants.iconColor
         return imageView
     }()
@@ -154,8 +153,8 @@ final class AIChatViewAllChatsRowView: NSView {
 
             arrowImageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.horizontalPadding),
             arrowImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            arrowImageView.widthAnchor.constraint(equalToConstant: Constants.iconSize),
-            arrowImageView.heightAnchor.constraint(equalToConstant: Constants.iconSize),
+            arrowImageView.widthAnchor.constraint(equalToConstant: 9),
+            arrowImageView.heightAnchor.constraint(equalToConstant: 9),
 
             openDuckAILabel.trailingAnchor.constraint(equalTo: arrowImageView.leadingAnchor, constant: -Constants.trailingSpacing),
             openDuckAILabel.centerYAnchor.constraint(equalTo: centerYAnchor),

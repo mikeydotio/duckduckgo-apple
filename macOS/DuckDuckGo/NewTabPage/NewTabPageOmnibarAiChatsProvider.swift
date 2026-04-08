@@ -76,7 +76,6 @@ final class NewTabPageOmnibarAiChatsProvider: NewTabPageOmnibarAiChatsProviding 
         let (pinned, recent) = await suggestionsReader.fetchSuggestions(query: effectiveQuery, maxChats: maxCount + 1)
         let totalFetched = pinned.count + recent.count
         hasExcessChats = totalFetched > maxCount
-        Logger.newTabPageOmnibar.debug("[ViewAllChats] fetched \(totalFetched) chats (cap: \(maxCount)) → hasExcessChats: \(self.hasExcessChats)")
         let viewModel = AIChatSuggestionsViewModel(maxSuggestions: maxCount)
         viewModel.setChats(pinned: pinned, recent: recent)
         let chats = viewModel.filteredSuggestions.map { $0.asNewTabPageAiChat }

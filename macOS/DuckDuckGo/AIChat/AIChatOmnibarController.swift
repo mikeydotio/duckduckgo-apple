@@ -215,8 +215,8 @@ final class AIChatOmnibarController {
             guard !Task.isCancelled else { return }
 
             let totalFetched = suggestions.pinned.count + suggestions.recent.count
-            suggestionsViewModel.showViewAllChats = isViewAllChatsEnabled && totalFetched > reader.maxHistoryCount
-            self.suggestionsViewModel.setChats(pinned: suggestions.pinned, recent: suggestions.recent)
+            let showViewAllChats = isViewAllChatsEnabled && totalFetched > reader.maxHistoryCount
+            self.suggestionsViewModel.setChats(pinned: suggestions.pinned, recent: suggestions.recent, showViewAllChats: showViewAllChats)
         }
     }
 

@@ -330,6 +330,7 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213973058005627?focus=true
     case aiChatSidebarAboutSchemeNavigationFix
 
+    /// https://app.asana.com/1/137249556945/project/1204006570077678/task/1213833143996468?focus=true
     case aiChatViewAllChatsNativeOmnibar
 
     case aiChatNativeStorage
