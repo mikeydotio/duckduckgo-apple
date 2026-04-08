@@ -1,5 +1,5 @@
 {
-  "originHash" : "3fb361d55ea65982f6d91182bfe7577a91f080d61fdff5259acd7c1c9d151e63",
+  "originHash" : "c8aac9174132bae3754e4431184102f9f2f91c1fde471fd9f006e9be47847b7c",
   "pins" : [
     {
       "identity" : "apple-toolbox",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "branch" : "pr-releases/dominik/tab-suspension-updates",
-        "revision" : "925b59fdcc63f8b714b2858eb80678490de178be"
+        "revision" : "71bac704c43c64b70c96569e51836c3281946a3f",
+        "version" : "13.38.0"
       }
     },
     {
