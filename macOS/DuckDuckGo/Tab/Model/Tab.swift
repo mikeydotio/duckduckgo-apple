@@ -1620,6 +1620,7 @@ extension Tab {
             title: title,
             favicon: favicon,
             interactionStateData: getActualInteractionStateData(),
+            parentTab: parentTab,
             shouldLoadInBackground: false,
             burnerMode: burnerMode,
             isSuspended: true,

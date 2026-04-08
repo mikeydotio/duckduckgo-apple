@@ -31,9 +31,11 @@ final class TabSuspensionExtensionTests: XCTestCase {
     private var contentPublisher: PassthroughSubject<Tab.TabContent, Never>!
     private var scriptsPublisher: PassthroughSubject<MockTabSuspensionUserScriptProvider, Never>!
     private var featureFlagger: MockFeatureFlagger!
+    private var aiChatSessionStore: MockAIChatSessionStore!
     private var privacyConfigurationManager: MockPrivacyConfigurationManager!
     private var mockPrivacyConfig: MockPrivacyConfiguration!
     private var isPinned: Bool!
+    private var tabID: TabIdentifier!
 
     private var sut: TabSuspensionExtension!
 
@@ -43,9 +45,11 @@ final class TabSuspensionExtensionTests: XCTestCase {
         contentPublisher = PassthroughSubject<Tab.TabContent, Never>()
         scriptsPublisher = PassthroughSubject<MockTabSuspensionUserScriptProvider, Never>()
         featureFlagger = MockFeatureFlagger()
+        aiChatSessionStore = MockAIChatSessionStore()
         mockPrivacyConfig = MockPrivacyConfiguration()
         privacyConfigurationManager = MockPrivacyConfigurationManager(privacyConfig: mockPrivacyConfig)
         isPinned = false
+        tabID = "test-tab-id"
     }
 
     override func tearDown() {
@@ -54,19 +58,23 @@ final class TabSuspensionExtensionTests: XCTestCase {
         contentPublisher = nil
         scriptsPublisher = nil
         featureFlagger = nil
+        aiChatSessionStore = nil
         mockPrivacyConfig = nil
         privacyConfigurationManager = nil
         isPinned = nil
+        tabID = nil
         super.tearDown()
     }
 
     @MainActor
     private func makeSUT() -> TabSuspensionExtension {
         TabSuspensionExtension(
+            tabID: tabID,
             webViewPublisher: webViewPublisher,
             contentPublisher: contentPublisher,
             scriptsPublisher: scriptsPublisher,
             featureFlagger: featureFlagger,
+            aiChatSessionStore: aiChatSessionStore,
             privacyConfigurationManager: privacyConfigurationManager,
             isTabPinned: { [unowned self] in self.isPinned }
         )
@@ -226,6 +234,22 @@ final class TabSuspensionExtensionTests: XCTestCase {
         let webView = MockTabSuspensionWebView()
         webViewPublisher.send(webView)
         contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        XCTAssertFalse(sut.canBeSuspended)
+    }
+
+    // MARK: - AI Chat Session
+
+    @MainActor
+    func testWhenTabHasActiveAIChatSession_ThenCanBeSuspendedIsFalse() {
+        featureFlagger.enabledFeatureFlags = [.tabSuspension]
+        sut = makeSUT()
+
+        let webView = MockTabSuspensionWebView()
+        webViewPublisher.send(webView)
+        contentPublisher.send(.url(.duckDuckGo, credential: nil, source: .link))
+
+        _ = aiChatSessionStore.getOrCreateSession(for: tabID, burnerMode: .regular)
 
         XCTAssertFalse(sut.canBeSuspended)
     }

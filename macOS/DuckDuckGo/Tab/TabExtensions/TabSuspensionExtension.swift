@@ -60,13 +60,19 @@ final class TabSuspensionExtension {
     private weak var webView: TabSuspensionWebViewChecking?
     private weak var tabSuspensionUserScript: TabSuspensionUserScript?
     private var tabContent: Tab.TabContent = .none
+    private let tabID: TabIdentifier
     private let isTabPinned: () -> Bool
+    private let aiChatSessionStore: AIChatSessionStoring
     private let featureFlagger: FeatureFlagger
     private let privacyConfigurationManager: PrivacyConfigurationManaging
 
     var hasVideoInPictureInPicture: Bool = false
     var isDisplayingPDF: Bool = false
     private(set) var pageReportsUnableToSuspend: Bool = false
+
+    private var hasActiveAIChatSession: Bool {
+        aiChatSessionStore.sessions[tabID] != nil
+    }
 
     var canBeSuspended: Bool {
 
@@ -87,6 +93,9 @@ final class TabSuspensionExtension {
 
         // not pinned
         guard !isTabPinned() else { return false }
+
+        // without active AI chat
+        guard !hasActiveAIChatSession else { return false }
 
         guard let webView else { return false }
 
@@ -115,16 +124,20 @@ final class TabSuspensionExtension {
     }
 
     init(
+        tabID: TabIdentifier,
         webViewPublisher: some Publisher<TabSuspensionWebViewChecking, Never>,
         contentPublisher: some Publisher<Tab.TabContent, Never>,
         scriptsPublisher: some Publisher<some TabSuspensionUserScriptProvider, Never>,
         featureFlagger: FeatureFlagger,
+        aiChatSessionStore: AIChatSessionStoring,
         privacyConfigurationManager: PrivacyConfigurationManaging,
         isTabPinned: @escaping () -> Bool
     ) {
+        self.tabID = tabID
         self.featureFlagger = featureFlagger
         self.privacyConfigurationManager = privacyConfigurationManager
         self.isTabPinned = isTabPinned
+        self.aiChatSessionStore = aiChatSessionStore
 
         contentPublisher.sink { [weak self] content in
             self?.tabContent = content
