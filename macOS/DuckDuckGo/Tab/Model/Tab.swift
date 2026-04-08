@@ -1614,6 +1614,8 @@ extension Tab {
         }
 
         let suspendedTab = Tab(
+            id: id,
+            uuid: uuid,
             content: .url(url, source: .pendingStateRestoration),
             title: title,
             favicon: favicon,
@@ -1623,6 +1625,13 @@ extension Tab {
             isSuspended: true,
             lastSelectedAt: lastSelectedAt
         )
+
+        if let snapshotsExtension = self.tabSnapshots {
+            let tabSnapshotIdentifier = snapshotsExtension.identifier
+            snapshotsExtension.shouldClearSnapshotOnDeinit = false
+
+            suspendedTab.tabSnapshots?.setIdentifier(tabSnapshotIdentifier)
+        }
         return suspendedTab
     }
 
