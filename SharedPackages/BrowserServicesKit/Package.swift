@@ -64,7 +64,7 @@ let package = Package(
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1"),
         .package(url: "https://github.com/vapor/jwt-kit.git", exact: "4.13.5"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.6"),
-        .package(path: "../ContentScopeScripts"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts.git", branch: "moon0326/ntp/view-all-chats-link"),
         .package(path: "../URLPredictor"),
     ],
     targets: [
@@ -82,7 +82,7 @@ let package = Package(
             name: "BrowserServicesKit",
             dependencies: [
                 .product(name: "Autofill", package: "duckduckgo-autofill"),
-                .product(name: "ContentScopeScripts", package: "ContentScopeScripts"),
+                .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
                 "PrivacyConfig",
                 "TrackerRadarKit",
@@ -467,7 +467,7 @@ let package = Package(
                 "UserScript",
                 "BrowserServicesKit",
                 "MaliciousSiteProtection",
-                .product(name: "ContentScopeScripts", package: "ContentScopeScripts"),
+                .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -798,7 +798,7 @@ let package = Package(
                 "SharedObjCTestsUtils",
                 "PrivacyDashboard",
                 "PersistenceTestingUtils",
-                .product(name: "ContentScopeScripts", package: "ContentScopeScripts"),
+                .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
             ]
         ),
         .testTarget(
@@ -851,7 +851,7 @@ let package = Package(
                 "SharedObjCTestsUtils",
                 "PixelExperimentKit",
                 "Configuration",
-                .product(name: "ContentScopeScripts", package: "ContentScopeScripts"),
+                .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
             ]
         ),
         .testTarget(
