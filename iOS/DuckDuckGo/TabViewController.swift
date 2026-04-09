@@ -474,6 +474,14 @@ class TabViewController: UIViewController {
 
 
     let historyManager: HistoryManaging
+    private lazy var adBlockNavigationHandler: AdBlockNavigationHandling = AdBlockNavigationHandler(
+        featureFlagger: featureFlagger,
+        onShouldShowAdBlockAnimation: { [weak self] in
+            guard let self else { return }
+            self.delegate?.tabDidRequestPresentingYouTubeAdBlockAnimation(tab: self)
+        }
+    )
+
     private lazy var duckPlayerNavigationHandler: DuckPlayerNavigationHandling = {
         let duckPlayer = DuckPlayer(settings: DuckPlayerSettingsDefault(),
                                     featureFlagger: AppDependencyProvider.shared.featureFlagger,
@@ -1093,6 +1101,7 @@ class TabViewController: UIViewController {
     func webViewUrlHasChanged(previousURL: URL? = nil, newURL: URL? = nil) {
         // Handle DuckPlayer Navigation URL changes
         if let currentURL = newURL ?? webView.url {
+            adBlockNavigationHandler.handleURLChange(previousURL: previousURL, newURL: currentURL)
             _ = duckPlayerNavigationHandler.handleURLChange(webView: webView, previousURL: previousURL, newURL: currentURL, isNavigationError: lastError != nil)
         }
 
@@ -1180,6 +1189,7 @@ class TabViewController: UIViewController {
         wasLoadingStoppedExternally = false
         updateContentMode()
         cachedRuntimeConfigurationForDomain = [:]
+        adBlockNavigationHandler.handleReload()
         duckPlayerNavigationHandler.handleReload(webView: webView)
         delegate?.tabLoadingStateDidChange(tab: self)
         resetCreditCardPrompt()
@@ -1861,11 +1871,6 @@ extension TabViewController: WKNavigationDelegate {
 
         tabModel.link = link
         delegate?.tabLoadingStateDidChange(tab: self)
-
-        if featureFlagger.isFeatureOn(.adBlockingExtension),
-           let url = url, url.isPlayableYoutubeVideoContent {
-            delegate?.tabDidRequestPresentingYouTubeAdBlockAnimation(tab: self)
-        }
 
         // Present the Dax dialog with a delay to mitigate issue where user script detec trackers after the dialog is show to the user
         // Debounce to avoid showing multiple animations on redirects. e.g. !image baby ducklings

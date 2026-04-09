@@ -422,7 +422,6 @@ class OmniBarViewController: UIViewController, OmniBar {
 
     func showYouTubeAdBlockNotification() {
         shouldSuppressNonAdBlockAnimations = true
-        cancelAllAnimations()
 
         enqueueAnimationIfNeeded(priority: .low) { [weak self] in
             guard let self else { return }
