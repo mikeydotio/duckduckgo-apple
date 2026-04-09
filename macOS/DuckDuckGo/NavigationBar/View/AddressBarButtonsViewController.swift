@@ -531,7 +531,7 @@ final class AddressBarButtonsViewController: NSViewController {
 
     func showBadgeNotification(_ type: NavigationBarBadgeAnimationView.AnimationType) {
         if case .youTubeAdBlockOn = type {
-            guard adBlockingAvailability.isFeatureAvailable else { return }
+            guard adBlockingAvailability.isEnabled else { return }
             buttonsBadgeAnimator.cancelPendingAnimations()
         }
 

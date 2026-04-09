@@ -511,7 +511,7 @@ final class TabViewModel: NSObject {
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self,
-                      adBlockingAvailability.isFeatureAvailable else { return }
+                      adBlockingAvailability.isEnabled else { return }
                 youtubeAdBlockAnimationTriggerPublisher.send()
             }
             .store(in: &cancellables)
@@ -519,7 +519,7 @@ final class TabViewModel: NSObject {
         tab.webViewDidFinishNavigationPublisher
             .sink { [weak self] _ in
                 guard let self,
-                      adBlockingAvailability.isFeatureAvailable,
+                      adBlockingAvailability.isEnabled,
                       case .url(let url, _, _) = tab.content,
                       url.isPlayableYoutubeVideoContent else { return }
                 youtubeAdBlockAnimationTriggerPublisher.send()
