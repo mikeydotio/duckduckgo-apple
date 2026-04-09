@@ -1,13 +1,13 @@
 {
-  "originHash" : "9a21dc805f9cd7c2d3ba0d16cbe4a2f4430504f2d16d1fa757fcdd604b6a9127",
+  "originHash" : "f7e91b281229c6649f9a9936f7ff774b6fc8231d0e7ca46556587c3252e18a06",
   "pins" : [
     {
       "identity" : "content-scope-scripts",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "revision" : "56754c6e0fd58a76a78f2241b6e811d08cfbee84",
-        "version" : "13.37.0"
+        "branch" : "pr-releases/kmC/native-content-blocking-tests-059d",
+        "revision" : "ada07d652744f4879bd26c8ffe85f31e44e1dedf"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/privacy-dashboard",
       "state" : {
-        "revision" : "40a8c752fb73a15738899dc0edb5e17e33302a37",
-        "version" : "9.10.1"
+        "revision" : "a3adc679f86a3276dfb12ddf4a379b17c80dfc60",
+        "version" : "9.10.0"
       }
     },
     {
