@@ -1,5 +1,5 @@
 //
-//  AdBlockNavigationHandler.swift
+//  AdBlockingNavigationHandler.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -21,7 +21,7 @@ import Foundation
 import DuckPlayer
 import WebExtensions
 
-protocol AdBlockNavigationHandling {
+protocol AdBlockingNavigationHandling {
 
     /// Handles a URL change, triggering the ad-block animation if appropriate.
     ///
@@ -34,15 +34,15 @@ protocol AdBlockNavigationHandling {
     func handleReload()
 }
 
-final class AdBlockNavigationHandler: AdBlockNavigationHandling {
+final class AdBlockingNavigationHandler: AdBlockingNavigationHandling {
 
     private let availability: AdBlockingAvailabilityProviding
-    private let onShouldShowAdBlockAnimation: () -> Void
+    private let onShouldShowAdBlockingAnimation: () -> Void
     private var lastAnimatedVideoID: String?
 
-    init(availability: AdBlockingAvailabilityProviding, onShouldShowAdBlockAnimation: @escaping () -> Void) {
+    init(availability: AdBlockingAvailabilityProviding, onShouldShowAdBlockingAnimation: @escaping () -> Void) {
         self.availability = availability
-        self.onShouldShowAdBlockAnimation = onShouldShowAdBlockAnimation
+        self.onShouldShowAdBlockingAnimation = onShouldShowAdBlockingAnimation
     }
 
     func handleURLChange(previousURL: URL?, newURL: URL?) {
@@ -55,7 +55,7 @@ final class AdBlockNavigationHandler: AdBlockNavigationHandling {
 
         if isNewVideo || hasNotAnimatedForCurrentVideo {
             lastAnimatedVideoID = newVideoID
-            onShouldShowAdBlockAnimation()
+            onShouldShowAdBlockingAnimation()
         }
     }
 

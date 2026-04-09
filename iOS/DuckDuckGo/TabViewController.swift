@@ -474,7 +474,7 @@ class TabViewController: UIViewController {
 
 
     let historyManager: HistoryManaging
-    private(set) lazy var adBlockNavigationHandler: AdBlockNavigationHandling = {
+    private(set) lazy var adBlockingNavigationHandler: AdBlockingNavigationHandling = {
         let youTubeAdBlockingStorage: any ThrowingKeyedStoring<YouTubeAdBlockingKeys> = keyValueStore.throwingKeyedStoring()
         let availability = AdBlockingAvailability(
             featureFlagger: featureFlagger,
@@ -482,9 +482,9 @@ class TabViewController: UIViewController {
                 (try? youTubeAdBlockingStorage.value(for: \.youTubeAdBlockingEnabled)) ?? true
             }
         )
-        return AdBlockNavigationHandler(
+        return AdBlockingNavigationHandler(
             availability: availability,
-            onShouldShowAdBlockAnimation: { [weak self] in
+            onShouldShowAdBlockingAnimation: { [weak self] in
                 guard let self else { return }
                 self.delegate?.tabDidRequestPresentingYouTubeAdBlockAnimation(tab: self)
             }
@@ -1111,7 +1111,7 @@ class TabViewController: UIViewController {
         // Handle DuckPlayer Navigation URL changes
         if let currentURL = newURL ?? webView.url,
            shouldHandleUpdate(previousURL, newURL) {
-            adBlockNavigationHandler.handleURLChange(previousURL: previousURL, newURL: currentURL)
+            adBlockingNavigationHandler.handleURLChange(previousURL: previousURL, newURL: currentURL)
             _ = duckPlayerNavigationHandler.handleURLChange(webView: webView, previousURL: previousURL, newURL: currentURL, isNavigationError: lastError != nil)
         }
 
@@ -1210,7 +1210,7 @@ class TabViewController: UIViewController {
         wasLoadingStoppedExternally = false
         updateContentMode()
         cachedRuntimeConfigurationForDomain = [:]
-        adBlockNavigationHandler.handleReload()
+        adBlockingNavigationHandler.handleReload()
         duckPlayerNavigationHandler.handleReload(webView: webView)
         delegate?.tabLoadingStateDidChange(tab: self)
         resetCreditCardPrompt()
@@ -1809,7 +1809,7 @@ extension TabViewController: WKNavigationDelegate {
         adClickAttributionLogic.onDidFinishNavigation(host: webView.url?.host)
         hideProgressIndicator()
         onWebpageDidFinishLoading()
-        adBlockNavigationHandler.handleURLChange(previousURL: nil, newURL: webView.url)
+        adBlockingNavigationHandler.handleURLChange(previousURL: nil, newURL: webView.url)
         extractDaxEasterEggLogoIfDuckDuckGoSearch(webView)
         instrumentation.didLoadURL()
         checkLoginDetectionAfterNavigation()
