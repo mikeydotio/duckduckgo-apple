@@ -74,40 +74,12 @@ struct SettingsYouTubeAdBlockingView: View {
                 }
             }
 
-            if viewModel.duckPlayerNativeUI.wrappedValue {
-                Section(footer: Text(UserText.duckPlayerEnableFooter)) {
-                    NavigationLink(destination: SettingsDuckPlayerView().environmentObject(viewModel)) {
-                        SettingsCellView(label: UserText.duckPlayerFeatureName)
-                    }
-                    .listRowBackground(Color(designSystemColor: .surface))
-                    .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
+            Section(footer: Text(UserText.duckPlayerEnableFooter)) {
+                NavigationLink(destination: SettingsDuckPlayerView().environmentObject(viewModel)) {
+                    SettingsCellView(label: UserText.duckPlayerFeatureName)
                 }
-            } else {
-                Section(header: Text(UserText.duckPlayerFeatureName),
-                        footer: Text(UserText.duckPlayerEnableFooter)) {
-                    SettingsCellView(
-                        label: UserText.duckPlayerEnableToggle,
-                        accessory: .toggle(isOn: viewModel.isDuckPlayerEnabledBinding)
-                    )
-                    .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
-                }
-
-                if viewModel.state.duckPlayerMode != .disabled {
-                    Section {
-                        SettingsCellView(
-                            label: UserText.duckPlayerAlwaysOpenToggle,
-                            accessory: .toggle(isOn: viewModel.isAlwaysOpenBinding)
-                        )
-                        .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
-
-                        if viewModel.state.duckPlayerOpenInNewTabEnabled {
-                            SettingsCellView(
-                                label: UserText.settingsOpenDuckPlayerNewTabLabel,
-                                accessory: .toggle(isOn: viewModel.duckPlayerOpenInNewTabBinding)
-                            )
-                        }
-                    }
-                }
+                .listRowBackground(Color(designSystemColor: .surface))
+                .disabled(viewModel.shouldDisplayDuckPlayerContingencyMessage)
             }
         }
         .applySettingsListModifiers(title: UserText.youTubeAdBlockingTitle,
