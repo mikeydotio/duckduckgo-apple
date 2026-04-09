@@ -527,17 +527,28 @@ final class TabViewModel: NSObject {
     }
 
     private func subscribeToYouTubeAdBlockAnimationTrigger() {
-        tab.navigationDidEndPublisher
-            .sink { [weak self] tab in
+        tab.$content
+            .compactMap { content -> URL? in
+                guard case .url(let url, _, source: .webViewUpdated) = content,
+                      url.isPlayableYoutubeVideoContent else { return nil }
+                return url
+            }
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
                 guard let self,
-                      featureFlagger.isFeatureOn(.adBlockingExtension),
-                      case .url(let url, _, _) = tab.content,
-                      url.isPlayableYoutubeVideoContent else { return }
+                      featureFlagger.isFeatureOn(.adBlockingExtension) else { return }
+                youtubeAdBlockAnimationTriggerPublisher.send()
+            }
+            .store(in: &cancellables)
+
+        tab.webViewDidFinishNavigationPublisher
+            .sink { [weak self] _ in
+                guard let self,
+                      featureFlagger.isFeatureOn(.adBlockingExtension) else { return }
                 youtubeAdBlockAnimationTriggerPublisher.send()
             }
             .store(in: &cancellables)
     }
-
 }
 
 extension TabViewModel {
