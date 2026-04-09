@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# Environment variables for matrix configuration:
+#   IOS_SDK_VERSION  – iOS SDK build version to ensure is available (default: auto-detect from Xcode)
+#   TARGET_DEVICE    – simulator device type for the webdriver (default: iPhone-16)
+#   TARGET_OS        – simulator OS version for the webdriver (default: iOS-18-2)
+#   SKIP_BUILD       – set to "true" to skip the iOS app build step (e.g. CI provides a pre-built app)
+
 # If we're not in python 3.9, switch to it
 if ! python3 --version | grep -q "3.9"; then
     # If we have 3.9 installed don't call remotely.
@@ -22,9 +28,15 @@ if ! command -v npm > /dev/null 2>&1; then
     exit 1
 fi
 
+# Determine the iOS SDK version to use
+if [ -z "$IOS_SDK_VERSION" ]; then
+    IOS_SDK_VERSION=$(xcodebuild -showsdks | grep "iphoneos" | tail -1 | awk '{print $NF}' | sed 's/iphoneos//')
+    echo "Auto-detected iOS SDK version: $IOS_SDK_VERSION"
+fi
+
 # Check if the required iOS platform is already downloaded
-if ! xcodebuild -showsdks | grep -q 18.2; then
-    xcodebuild -downloadPlatform iOS -buildVersion 18.2
+if ! xcodebuild -showsdks | grep -q "$IOS_SDK_VERSION"; then
+    xcodebuild -downloadPlatform iOS -buildVersion "$IOS_SDK_VERSION"
 fi
 
 # Check for --clean flag
@@ -36,25 +48,29 @@ fi
 # Ensure we have a tmp directory
 mkdir -p tmp
 
-# Ensure we have the app built, note we use the .maestro/common.sh but don't depend on maestro
-# Create a hash of all the files in the iOS/ source directory to reduce the build overhead.
-# Pass --clean to clear out this caching.
-IOS_HASH_FILE="$(pwd)/tmp/ios_source_hash.txt"
-find iOS -type f -name '*.swift' 2>/dev/null | sort | xargs cat 2>/dev/null | sha256sum > "$IOS_HASH_FILE"
-
-# Check if the hash file exists and compare it with the current hash
-if [ -f "$IOS_HASH_FILE" ] && cmp -s "$IOS_HASH_FILE" "$IOS_HASH_FILE.old"; then
-    echo "iOS source files have not changed, skipping build."
+if [ "$SKIP_BUILD" = "true" ]; then
+    echo "SKIP_BUILD is set, skipping iOS app build."
 else
-    echo "iOS source files have changed, building app."
-    if [ -z "$PROJECT_ROOT" ]; then
-        PROJECT_ROOT="$(realpath "$(dirname "$0")"/../..)"
+    # Ensure we have the app built, note we use the .maestro/common.sh but don't depend on maestro
+    # Create a hash of all the files in the iOS/ source directory to reduce the build overhead.
+    # Pass --clean to clear out this caching.
+    IOS_HASH_FILE="$(pwd)/tmp/ios_source_hash.txt"
+    find iOS -type f -name '*.swift' 2>/dev/null | sort | xargs cat 2>/dev/null | sha256sum > "$IOS_HASH_FILE"
+
+    # Check if the hash file exists and compare it with the current hash
+    if [ -f "$IOS_HASH_FILE" ] && cmp -s "$IOS_HASH_FILE" "$IOS_HASH_FILE.old"; then
+        echo "iOS source files have not changed, skipping build."
+    else
+        echo "iOS source files have changed, building app."
+        if [ -z "$PROJECT_ROOT" ]; then
+            PROJECT_ROOT="$(realpath "$(dirname "$0")"/../..)"
+        fi
+        export PROJECT_ROOT
+        # shellcheck source=/dev/null
+        . .maestro/common.sh
+        build_app
+        cp "$IOS_HASH_FILE" "$IOS_HASH_FILE.old"
     fi
-    export PROJECT_ROOT
-    # shellcheck source=/dev/null
-    . .maestro/common.sh
-    build_app
-    cp "$IOS_HASH_FILE" "$IOS_HASH_FILE.old"
 fi
 
 # Ensure the simulator is in a clean state
@@ -87,6 +103,9 @@ fi
 echo "Starting test run:"
 DERIVED_DATA_PATH="$(pwd)/../../DerivedData/"
 export DERIVED_DATA_PATH
+export TARGET_DEVICE="${TARGET_DEVICE:-iPhone-16}"
+export TARGET_OS="${TARGET_OS:-iOS-18-2}"
+echo "Using TARGET_DEVICE=$TARGET_DEVICE TARGET_OS=$TARGET_OS"
 npm run test | tee "../../tmp/test_out_$(date +"%Y%m%d_%H%M%S").log"
 cd ../.. || exit
 # Deactivate the Python virtual environment
