@@ -25,9 +25,10 @@ import TrackerRadarKit
 /// Classifies raw C-S-S resource observations into DetectedRequest using native TrackerResolver.
 ///
 /// C-S-S sends pre-block `{url, resourceType, potentiallyBlocked, pageUrl}` signals.
-/// `potentiallyBlocked` reflects JS-side heuristics, not the definitive WKContentRuleList verdict.
-/// This mapper computes a native blocked candidate from privacy config state and passes it to
-/// TrackerResolver instead, matching WKContentRuleList blocking semantics.
+/// `potentiallyBlocked` reflects JS-side heuristics but may diverge from native rule evaluation
+/// (e.g. `options.domains` matching). The mapper therefore computes its own `potentiallyBlocked`
+/// from `contentBlockingEnabled` and the native tracker allowlist rather than passing through
+/// the JS value, ensuring native-authoritative classification.
 ///
 /// Classification uses a multi-TDS loop:
 /// 1. Try each supplementary TDS (CTL, ad-attribution) with the ad-click vendor —
@@ -42,19 +43,22 @@ public struct TrackerProtectionEventMapper {
     private let unprotectedSites: [String]
     private let tempList: [String]
     private let contentBlockingEnabled: Bool
+    private let trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData
 
     public init(tld: TLD,
                 mainTrackerData: TrackerData,
                 supplementaryTrackerData: [TrackerData] = [],
                 unprotectedSites: [String],
                 tempList: [String],
-                contentBlockingEnabled: Bool) {
+                contentBlockingEnabled: Bool,
+                trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData = [:]) {
         self.tld = tld
         self.mainTrackerData = mainTrackerData
         self.supplementaryTrackerData = supplementaryTrackerData
         self.unprotectedSites = unprotectedSites
         self.tempList = tempList
         self.contentBlockingEnabled = contentBlockingEnabled
+        self.trackerAllowlist = trackerAllowlist
     }
 
     /// Convenience init matching the old single-resolver API.
@@ -65,27 +69,39 @@ public struct TrackerProtectionEventMapper {
         self.unprotectedSites = trackerResolver.unprotectedSites
         self.tempList = trackerResolver.tempList
         self.contentBlockingEnabled = privacyConfig.isEnabled(featureKey: .contentBlocking)
+        self.trackerAllowlist = privacyConfig.trackerAllowlist.entries
     }
 
     // MARK: - ResourceObservation classification
 
-    /// Classify a raw resource observation using the multi-TDS loop.
+    /// Classify a raw resource observation using the multi-TDS loop that mirrors the legacy pipeline.
+    ///
+    /// Returns `nil` for same-site observations. Content rules only block
+    /// third-party loads (`load-type: ["third-party"]`), so a same-site
+    /// tracker is never actually blocked by WebKit. The old pipeline's
+    /// `ContentBlockerRulesUserScript` suppressed these via `isFirstParty`
+    /// guards before reporting to the delegate.
     public func classifyResource(_ observation: TrackerProtectionSubfeature.ResourceObservation,
                                  adClickAttributionVendor: String? = nil) -> DetectedRequest? {
+        guard !isSameSiteObservation(observation) else { return nil }
         return classifyUrl(observation.url,
                            pageUrlString: observation.pageUrl,
                            resourceType: observation.resourceType,
+                           potentiallyBlocked: contentBlockingEnabled,
                            adClickAttributionVendor: adClickAttributionVendor)
     }
 
     // MARK: - SurrogateInjection mapping
 
     /// Map a surrogate injection signal to a DetectedRequest.
+    /// Surrogates are only injected for blocked requests, so `potentiallyBlocked` is always
+    /// derived from `contentBlockingEnabled`.
     public func classifySurrogate(_ surrogate: TrackerProtectionSubfeature.SurrogateInjection,
                                   adClickAttributionVendor: String? = nil) -> DetectedRequest? {
         return classifyUrl(surrogate.url,
                            pageUrlString: surrogate.pageUrl,
                            resourceType: "script",
+                           potentiallyBlocked: contentBlockingEnabled,
                            adClickAttributionVendor: adClickAttributionVendor)
     }
 
@@ -105,6 +121,8 @@ public struct TrackerProtectionEventMapper {
     }
 
     /// Build a DetectedRequest for a non-TDS cross-site resource (third-party request).
+    /// Affiliated entities (same entity as the page) are reported as `.ownedByFirstParty`;
+    /// unaffiliated cross-site resources are reported as `.otherThirdPartyRequest`.
     public func makeThirdPartyRequest(from observation: TrackerProtectionSubfeature.ResourceObservation) -> DetectedRequest? {
         guard !isSameSiteObservation(observation) else { return nil }
         let requestETLDp1 = tld.eTLDplus1(forStringURL: observation.url) ?? observation.url
@@ -116,12 +134,14 @@ public struct TrackerProtectionEventMapper {
                                            tld: tld)
         let isAffiliated = mainResolver.isPageAffiliatedWithTrackerEntity(
             pageUrlString: observation.pageUrl, trackerEntity: entity)
-        guard !isAffiliated else { return nil }
+        let state: BlockingState = isAffiliated
+            ? .allowed(reason: .ownedByFirstParty)
+            : .allowed(reason: .otherThirdPartyRequest)
         return DetectedRequest(url: observation.url,
                                eTLDplus1: requestETLDp1,
                                knownTracker: nil,
                                entity: entity,
-                               state: .allowed(reason: .otherThirdPartyRequest),
+                               state: state,
                                pageUrl: observation.pageUrl)
     }
 
@@ -138,6 +158,7 @@ public struct TrackerProtectionEventMapper {
     private func classifyUrl(_ urlString: String,
                              pageUrlString: String,
                              resourceType: String,
+                             potentiallyBlocked: Bool,
                              adClickAttributionVendor: String?) -> DetectedRequest? {
         var candidate: DetectedRequest?
 
@@ -150,9 +171,9 @@ public struct TrackerProtectionEventMapper {
             if let tracker = resolver.trackerFromUrl(urlString,
                                                      pageUrlString: pageUrlString,
                                                      resourceType: resourceType,
-                                                     potentiallyBlocked: contentBlockingEnabled) {
+                                                     potentiallyBlocked: potentiallyBlocked) {
                 if tracker.isBlocked {
-                    return tracker
+                    return applyOverrides(tracker, urlString: urlString, pageUrlString: pageUrlString)
                 }
                 candidate = tracker
             }
@@ -165,10 +186,140 @@ public struct TrackerProtectionEventMapper {
         if let tracker = mainResolver.trackerFromUrl(urlString,
                                                      pageUrlString: pageUrlString,
                                                      resourceType: resourceType,
-                                                     potentiallyBlocked: contentBlockingEnabled) {
+                                                     potentiallyBlocked: potentiallyBlocked) {
             candidate = tracker
         }
 
+        if let result = candidate, result.isBlocked {
+            return applyOverrides(result, urlString: urlString, pageUrlString: pageUrlString)
+        }
+
         return candidate
+    }
+
+    /// Chain of post-classification overrides: allowlist first, then temp-list subdomain.
+    private func applyOverrides(_ request: DetectedRequest,
+                                urlString: String,
+                                pageUrlString: String) -> DetectedRequest {
+        let afterAllowlist = applyAllowlistOverride(request, urlString: urlString, pageUrlString: pageUrlString)
+        guard afterAllowlist.isBlocked else { return afterAllowlist }
+        return applyTempListSubdomainOverride(afterAllowlist, pageUrlString: pageUrlString)
+    }
+
+    /// If the tracker is blocked but the native allowlist says it should be allowed,
+    /// re-classify as `.allowed(reason: .ruleException)`.
+    private func applyAllowlistOverride(_ request: DetectedRequest,
+                                        urlString: String,
+                                        pageUrlString: String) -> DetectedRequest {
+        guard request.isBlocked,
+              isTrackerAllowlisted(urlString, pageUrlString: pageUrlString)
+        else { return request }
+
+        return DetectedRequest(url: request.url,
+                               eTLDplus1: request.eTLDplus1,
+                               ownerName: request.ownerName,
+                               entityName: request.entityName,
+                               category: request.category,
+                               prevalence: request.prevalence,
+                               state: .allowed(reason: .ruleException),
+                               pageUrl: request.pageUrl)
+    }
+
+    /// Mirrors the tracker allowlist matching from WKContentRuleList generation:
+    /// the request URL must match a rule pattern, and the page host must be in the
+    /// rule's domain list (or the domain list contains `<all>`).
+    private func isTrackerAllowlisted(_ urlString: String, pageUrlString: String) -> Bool {
+        guard !trackerAllowlist.isEmpty,
+              let requestURL = URL(string: urlString),
+              let requestHost = requestURL.host,
+              let pageHost = URL(string: pageUrlString)?.host
+        else { return false }
+
+        // Build a normalized URL string for rule matching: strip port, query, and
+        // semicolon-delimited parameters — mirroring WKContentRuleList generation behavior.
+        let normalizedForMatching = normalizeURLForAllowlistMatching(requestURL)
+
+        // Walk up the request host's domain parts to find a matching allowlist entry,
+        // mirroring the subdomain fallback used by C-S-S and content rule generation.
+        var domainParts = requestHost.split(separator: ".").map(String.init)
+        while domainParts.count > 1 {
+            let domain = domainParts.joined(separator: ".")
+            if let entries = trackerAllowlist[domain] {
+                for entry in entries {
+                    guard let regex = try? NSRegularExpression(pattern: entry.rule, options: []),
+                          regex.firstMatch(in: normalizedForMatching, options: [],
+                                           range: NSRange(normalizedForMatching.startIndex..., in: normalizedForMatching)) != nil
+                    else { continue }
+
+                    if entry.domains.contains("<all>") { return true }
+
+                    // Walk up the page host's domain parts to match entry domains.
+                    var pageParts = pageHost.split(separator: ".").map(String.init)
+                    while pageParts.count > 1 {
+                        if entry.domains.contains(pageParts.joined(separator: ".")) {
+                            return true
+                        }
+                        pageParts.removeFirst()
+                    }
+                }
+            }
+            domainParts.removeFirst()
+        }
+        return false
+    }
+
+    /// Strips port, query string, and semicolon parameters from a URL for allowlist
+    /// rule matching, producing `scheme://host/path` with no trailing artifacts.
+    private func normalizeURLForAllowlistMatching(_ url: URL) -> String {
+        let scheme = url.scheme ?? "https"
+        guard let host = url.host else { return url.absoluteString }
+        var path = url.path
+        // Strip semicolon-delimited parameters (e.g. /videos.js;a=123&b=abc → /videos.js)
+        if let semicolonRange = path.range(of: ";") {
+            path = String(path[..<semicolonRange.lowerBound])
+        }
+        return "\(scheme)://\(host)\(path)"
+    }
+
+    /// TrackerResolver uses exact string matching for tempList, which misses subdomains.
+    /// Content rules (WKContentRuleList) use `if-domain` with subdomain coverage, so a page on
+    /// sub.example.com is correctly unblocked when example.com is in the temp list.
+    /// This override restores parity by walking up the page host's domain parts.
+    ///
+    /// Locally-unprotected sites (unprotectedSites) intentionally remain exact-host only.
+    private func applyTempListSubdomainOverride(_ request: DetectedRequest,
+                                                pageUrlString: String) -> DetectedRequest {
+        guard request.isBlocked,
+              isPageOnTempListWithSubdomains(pageUrlString)
+        else { return request }
+
+        return DetectedRequest(url: request.url,
+                               eTLDplus1: request.eTLDplus1,
+                               ownerName: request.ownerName,
+                               entityName: request.entityName,
+                               category: request.category,
+                               prevalence: request.prevalence,
+                               state: .allowed(reason: .protectionDisabled),
+                               pageUrl: request.pageUrl)
+    }
+
+    /// Subdomain-aware temp-list matching: walks up the page host's domain parts
+    /// to find a match in the temp list. For example, if tempList contains "example.com",
+    /// this matches pages on sub.example.com, a.b.example.com, etc.
+    private func isPageOnTempListWithSubdomains(_ pageUrlString: String) -> Bool {
+        guard !tempList.isEmpty,
+              let pageHost = URL(string: pageUrlString)?.host
+        else { return false }
+
+        if tempList.contains(pageHost) { return true }
+
+        var parts = pageHost.split(separator: ".").map(String.init)
+        while parts.count > 2 {
+            parts.removeFirst()
+            if tempList.contains(parts.joined(separator: ".")) {
+                return true
+            }
+        }
+        return false
     }
 }

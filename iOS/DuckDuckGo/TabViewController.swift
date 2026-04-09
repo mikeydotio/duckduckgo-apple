@@ -3219,7 +3219,8 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
                                                   supplementaryTrackerData: supplementary,
                                                   unprotectedSites: privacyConfig.userUnprotectedDomains,
                                                   tempList: privacyConfig.tempUnprotectedDomains,
-                                                  contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking))
+                                                  contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking),
+                                                  trackerAllowlist: privacyConfig.trackerAllowlist.entries)
         cachedMapper = mapper
         cachedMapperVendor = vendor
         return mapper

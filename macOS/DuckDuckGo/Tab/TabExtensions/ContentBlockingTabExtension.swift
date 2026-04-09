@@ -59,18 +59,20 @@ final class ContentBlockingTabExtension: NSObject {
     private func makeMapper(attributionTrackerData: TrackerData?) -> TrackerProtectionEventMapper? {
         let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
         let attrListName = AdClickAttributionRulesSplitter.blockingAttributionRuleListName(forListNamed: tdsName)
+        let ctlListName = DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName
+        let excludeCTL = !fbBlockingEnabledProvider.fbBlockingEnabled
         guard let mainTrackerData = contentBlockingManager.currentRules
             .first(where: { $0.name == tdsName })?.trackerData else { return nil }
 
         var supplementary: [TrackerData]
         if let attributionTrackerData {
             supplementary = contentBlockingManager.currentRules
-                .filter { $0.name != tdsName && $0.name != attrListName }
+                .filter { $0.name != tdsName && $0.name != attrListName && !(excludeCTL && $0.name == ctlListName) }
                 .map(\.trackerData)
             supplementary.append(attributionTrackerData)
         } else {
             supplementary = contentBlockingManager.currentRules
-                .filter { $0.name != tdsName }
+                .filter { $0.name != tdsName && !(excludeCTL && $0.name == ctlListName) }
                 .map(\.trackerData)
         }
 
@@ -80,7 +82,8 @@ final class ContentBlockingTabExtension: NSObject {
                                             supplementaryTrackerData: supplementary,
                                             unprotectedSites: privacyConfig.userUnprotectedDomains,
                                             tempList: privacyConfig.tempUnprotectedDomains,
-                                            contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking))
+                                            contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking),
+                                            trackerAllowlist: privacyConfig.trackerAllowlist.entries)
     }
     private var trackersSubject = PassthroughSubject<DetectedTracker, Never>()
 
