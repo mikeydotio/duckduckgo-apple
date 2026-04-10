@@ -138,7 +138,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     /// Ordered list of focusable tool buttons. Tab cycles through visible/enabled buttons in this order.
     private var focusableToolButtons: [AIChatOmnibarToolButton] {
-        [imageUploadButton, toolsButton, imageGenActiveButton, webSearchActiveButton]
+        var buttons: [AIChatOmnibarToolButton] = [imageUploadButton]
+        if voiceChatLeftButton.superview != nil { buttons.append(voiceChatLeftButton) }
+        buttons += [toolsButton, imageGenActiveButton, webSearchActiveButton]
+        if voiceChatRightButton.superview != nil { buttons.append(voiceChatRightButton) }
+        return buttons
     }
 
     var isImageUploadButtonAvailableForFocus: Bool {
@@ -465,6 +469,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             voiceChatLeftButton.image = DesignSystemImages.Glyphs.Size16.voice
             voiceChatLeftButton.toolTip = UserText.aiChatOpenVoiceChatButton
             voiceChatLeftButton.setAccessibilityLabel(UserText.aiChatOpenVoiceChatButton)
+            voiceChatLeftButton.onTabPressed = { [weak self] in guard let self else { return }; self.advanceFocusAfter(self.voiceChatLeftButton) }
             containerView.addSubview(voiceChatLeftButton)
             NSLayoutConstraint.activate([
                 voiceChatLeftButton.leadingAnchor.constraint(equalTo: imageUploadButton.trailingAnchor, constant: Constants.toolButtonSpacing),
@@ -589,6 +594,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             voiceChatRightButton.image = DesignSystemImages.Glyphs.Size16.voice
             voiceChatRightButton.toolTip = UserText.aiChatOpenVoiceChatButton
             voiceChatRightButton.setAccessibilityLabel(UserText.aiChatOpenVoiceChatButton)
+            voiceChatRightButton.onTabPressed = { [weak self] in guard let self else { return }; self.advanceFocusAfter(self.voiceChatRightButton) }
             containerView.addSubview(voiceChatRightButton)
             NSLayoutConstraint.activate([
                 voiceChatRightButton.trailingAnchor.constraint(equalTo: submitButton.leadingAnchor, constant: -Constants.toolButtonSpacing),
@@ -1140,6 +1146,12 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         imageUploadButton.tintColor = toolButtonTintColor
         imageUploadButton.hoverBackgroundColor = .buttonMouseOver
         imageUploadButton.pressedBackgroundColor = .buttonMouseDown
+        voiceChatLeftButton.tintColor = toolButtonTintColor
+        voiceChatLeftButton.hoverBackgroundColor = .buttonMouseOver
+        voiceChatLeftButton.pressedBackgroundColor = .buttonMouseDown
+        voiceChatRightButton.tintColor = toolButtonTintColor
+        voiceChatRightButton.hoverBackgroundColor = .buttonMouseOver
+        voiceChatRightButton.pressedBackgroundColor = .buttonMouseDown
         modelPickerButton.tintColor = toolButtonTintColor
 
         innerBorderView.cornerRadius = barStyleProvider.addressBarActiveBackgroundViewRadius
