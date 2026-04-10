@@ -565,6 +565,14 @@ final class MainViewController: NSViewController {
         NSApp.delegateTyped.aiChatTabOpener.openNewAIChat(in: behavior)
     }
 
+    func openNewDuckAIVoiceChatTab() {
+        let behavior: LinkOpenBehavior = tabCollectionViewModel.selectedTabViewModel?.tab.content == .newtab
+            ? .currentTab
+            : .newTab(selected: true)
+        let url = AIChatURLParameters.voiceModeURL(from: AIChatRemoteSettings().aiChatURL)
+        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .url(url), behavior: behavior)
+    }
+
     func toggleDuckAISidebar() {
         aiChatCoordinator.toggleSidebar()
     }
