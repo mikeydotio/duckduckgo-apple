@@ -321,6 +321,9 @@ enum AIChatPixel: PixelKitEvent {
     /// Event Trigger: User opens a new Duck.ai voice chat from the omnibar right button (left of submit)
     case aiChatNewVoiceChatOmnibarRight
 
+    /// Event Trigger: User opens a new Duck.ai voice chat from the tools menu in the omnibar
+    case aiChatNewVoiceChatOmnibarToolsMenu
+
     /// Event Trigger: User opens a new Duck.ai image chat from the more options menu
     case aiChatNewImageChatMoreOptionsMenu
 
@@ -530,6 +533,8 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_new_voice_chat_omnibar_left"
         case .aiChatNewVoiceChatOmnibarRight:
             return "aichat_new_voice_chat_omnibar_right"
+        case .aiChatNewVoiceChatOmnibarToolsMenu:
+            return "aichat_new_voice_chat_omnibar_tools_menu"
         case .aiChatNewImageChatMoreOptionsMenu:
             return "aichat_new_image_chat_more_options_menu"
         case .aiChatRecentChatSelectedMoreOptionsMenu:
@@ -624,6 +629,7 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatNewVoiceChatTabBarButton,
                 .aiChatNewVoiceChatOmnibarLeft,
                 .aiChatNewVoiceChatOmnibarRight,
+                .aiChatNewVoiceChatOmnibarToolsMenu,
                 .aiChatNewImageChatMoreOptionsMenu,
                 .aiChatRecentChatSelectedMoreOptionsMenu,
                 .aiChatDeleteAllChatsMoreOptionsMenu,
@@ -748,6 +754,7 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatNewVoiceChatTabBarButton,
                 .aiChatNewVoiceChatOmnibarLeft,
                 .aiChatNewVoiceChatOmnibarRight,
+                .aiChatNewVoiceChatOmnibarToolsMenu,
                 .aiChatNewImageChatMoreOptionsMenu,
                 .aiChatRecentChatSelectedMoreOptionsMenu,
                 .aiChatDeleteAllChatsMoreOptionsMenu,

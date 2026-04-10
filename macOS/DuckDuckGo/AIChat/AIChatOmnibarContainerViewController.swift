@@ -855,6 +855,16 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             menu.addItem(webSearchItem)
         }
 
+        let voiceChatItem = NSMenuItem()
+        voiceChatItem.attributedTitle = toolsMenuItemAttributedTitle(
+            title: UserText.aiChatOpenVoiceChatButton,
+            subtitle: UserText.aiChatVoiceChatToolSubtitle
+        )
+        voiceChatItem.image = DesignSystemImages.Glyphs.Size16.voice
+        voiceChatItem.target = self
+        voiceChatItem.action = #selector(toolsMenuVoiceChatClicked)
+        menu.addItem(voiceChatItem)
+
         return menu
     }
 
@@ -885,6 +895,12 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             PixelKit.fire(AIChatPixel.aiChatAddressBarWebSearchActivated, frequency: .dailyAndCount, includeAppVersionParameter: true)
         }
         omnibarController.toggleWebSearchMode()
+    }
+
+    @objc private func toolsMenuVoiceChatClicked() {
+        PixelKit.fire(AIChatPixel.aiChatNewVoiceChatOmnibarToolsMenu, frequency: .dailyAndStandard)
+        let url = AIChatURLParameters.voiceModeURL(from: AIChatRemoteSettings().aiChatURL)
+        NSApp.delegateTyped.aiChatTabOpener.openAIChatTab(with: .url(url), behavior: .newTab(selected: true))
     }
 
     @objc private func imageUploadButtonClicked() {
