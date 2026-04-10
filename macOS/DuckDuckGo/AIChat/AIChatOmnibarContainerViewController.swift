@@ -463,7 +463,8 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             voiceChatLeftButton.target = self
             voiceChatLeftButton.action = #selector(voiceChatLeftButtonClicked)
             voiceChatLeftButton.image = DesignSystemImages.Glyphs.Size16.voice
-            voiceChatLeftButton.toolTip = "New Voice Chat"
+            voiceChatLeftButton.toolTip = UserText.aiChatOpenVoiceChatButton
+            voiceChatLeftButton.setAccessibilityLabel(UserText.aiChatOpenVoiceChatButton)
             containerView.addSubview(voiceChatLeftButton)
             NSLayoutConstraint.activate([
                 voiceChatLeftButton.leadingAnchor.constraint(equalTo: imageUploadButton.trailingAnchor, constant: Constants.toolButtonSpacing),
@@ -586,10 +587,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             voiceChatRightButton.target = self
             voiceChatRightButton.action = #selector(voiceChatRightButtonClicked)
             voiceChatRightButton.image = DesignSystemImages.Glyphs.Size16.voice
-            voiceChatRightButton.toolTip = "New Voice Chat"
+            voiceChatRightButton.toolTip = UserText.aiChatOpenVoiceChatButton
+            voiceChatRightButton.setAccessibilityLabel(UserText.aiChatOpenVoiceChatButton)
             containerView.addSubview(voiceChatRightButton)
             NSLayoutConstraint.activate([
-                voiceChatRightButton.trailingAnchor.constraint(equalTo: submitButton.leadingAnchor, constant: -Constants.modelPickerTrailingSpacing),
+                voiceChatRightButton.trailingAnchor.constraint(equalTo: submitButton.leadingAnchor, constant: -Constants.toolButtonSpacing),
                 voiceChatRightButton.widthAnchor.constraint(equalToConstant: Constants.toolButtonSize),
                 voiceChatRightButton.heightAnchor.constraint(equalToConstant: Constants.toolButtonSize),
             ])
@@ -629,15 +631,16 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         ])
 
         // Voice buttons — only constrain if they were added to the view
-        if NSApp.delegateTyped.featureFlagger.isFeatureOn(.aiChatOmnibarVoiceChatLeft) {
+        let voiceLeftEnabled = NSApp.delegateTyped.featureFlagger.isFeatureOn(.aiChatOmnibarVoiceChatLeft)
+        let voiceRightEnabled = NSApp.delegateTyped.featureFlagger.isFeatureOn(.aiChatOmnibarVoiceChatRight)
+        if voiceLeftEnabled {
             voiceChatLeftButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset).isActive = true
         }
-        if NSApp.delegateTyped.featureFlagger.isFeatureOn(.aiChatOmnibarVoiceChatRight) {
+        if voiceRightEnabled {
             voiceChatRightButton.bottomAnchor.constraint(equalTo: suggestionsView.topAnchor, constant: -Constants.toolButtonBottomInset).isActive = true
         }
 
         // Tools button chains after image upload button (or voice left button if enabled), or aligns to container when upload is hidden
-        let voiceLeftEnabled = NSApp.delegateTyped.featureFlagger.isFeatureOn(.aiChatOmnibarVoiceChatLeft)
         toolsLeadingToUploadButton = voiceLeftEnabled
             ? toolsButton.leadingAnchor.constraint(equalTo: voiceChatLeftButton.trailingAnchor, constant: Constants.toolButtonSpacing)
             : toolsButton.leadingAnchor.constraint(equalTo: imageUploadButton.trailingAnchor, constant: Constants.toolButtonSpacing)
