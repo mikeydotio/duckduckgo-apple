@@ -19,6 +19,7 @@
 import Cocoa
 import Combine
 import Common
+import DesignResourcesKitIcons
 import Lottie
 import os.log
 import PixelKit
@@ -182,6 +183,7 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
     var duckAISplitButtonContainer: NSView? { duckAIChromeControlContainer }
     private var duckAIChromeBlurView: NSVisualEffectView?
     private var duckAIChromeTitleButton: MouseOverButton?
+    private var duckAIVoiceChatButton: MouseOverButton?
     private var duckAIChromeSidebarButton: MouseOverButton?
     private var duckAIChromeDivider: ColorView?
 
@@ -523,7 +525,19 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         sidebarButton.setAccessibilityTitle(UserText.aiChatOpenSidebarButton)
         sidebarButton.toolTip = UserText.aiChatOpenSidebarButton
 
-        let contentStack = NSStackView(views: [titleButton, divider, sidebarButton])
+        let voiceButton = MouseOverButton(frame: .zero)
+        voiceButton.translatesAutoresizingMaskIntoConstraints = false
+        voiceButton.isBordered = false
+        voiceButton.target = self
+        voiceButton.action = #selector(duckAIVoiceChatButtonAction(_:))
+        voiceButton.sendAction(on: .leftMouseDown)
+        voiceButton.image = DesignSystemImages.Glyphs.Size16.voice
+        voiceButton.imageScaling = .scaleProportionallyDown
+        voiceButton.setAccessibilityIdentifier("TabBarViewController.duckAIVoiceChatButton")
+        voiceButton.setAccessibilityTitle(UserText.aiChatOpenVoiceChatButton)
+        voiceButton.toolTip = UserText.aiChatOpenVoiceChatButton
+
+        let contentStack = NSStackView(views: [titleButton, divider, voiceButton, sidebarButton])
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         contentStack.orientation = .horizontal
         contentStack.alignment = .centerY
@@ -543,6 +557,8 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
             container.heightAnchor.constraint(equalToConstant: theme.tabBarButtonSize),
             titleButton.heightAnchor.constraint(equalTo: container.heightAnchor),
             divider.widthAnchor.constraint(equalToConstant: 1),
+            voiceButton.heightAnchor.constraint(equalTo: container.heightAnchor),
+            voiceButton.widthAnchor.constraint(equalToConstant: theme.tabBarButtonSize + 4),
             sidebarButton.heightAnchor.constraint(equalTo: container.heightAnchor),
             sidebarButton.widthAnchor.constraint(equalToConstant: theme.tabBarButtonSize + 4)
         ])
@@ -559,12 +575,15 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
 
         duckAIChromeControlContainer = container
         duckAIChromeTitleButton = titleButton
+        duckAIVoiceChatButton = voiceButton
         duckAIChromeSidebarButton = sidebarButton
         duckAIChromeDivider = divider
 
-        aiChatButtonHoverCancellable = Publishers.Merge4(
+        aiChatButtonHoverCancellable = Publishers.Merge6(
             titleButton.publisher(for: \.isMouseOver),
             titleButton.publisher(for: \.isMouseDown),
+            voiceButton.publisher(for: \.isMouseOver),
+            voiceButton.publisher(for: \.isMouseDown),
             sidebarButton.publisher(for: \.isMouseOver),
             sidebarButton.publisher(for: \.isMouseDown)
         )
@@ -588,6 +607,7 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
             disableDuckAIChromeContextMenuOnTabBar()
             container.menu = nil
             titleButton.isHidden = true
+            duckAIVoiceChatButton?.isHidden = true
             sidebarButton.isHidden = true
             divider.isHidden = true
             container.isHidden = true
@@ -600,11 +620,13 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
 
         let duckAIHidden = duckAIChromeButtonsVisibilityManager.isHidden(.duckAI)
         let sidebarHidden = duckAIChromeButtonsVisibilityManager.isHidden(.sidebar)
+        let voiceHidden = duckAIChromeButtonsVisibilityManager.isHidden(.voiceChat)
 
         titleButton.isHidden = duckAIHidden
+        duckAIVoiceChatButton?.isHidden = voiceHidden
         sidebarButton.isHidden = sidebarHidden
-        divider.isHidden = duckAIHidden || sidebarHidden
-        container.isHidden = duckAIHidden && sidebarHidden
+        divider.isHidden = duckAIHidden || (sidebarHidden && voiceHidden)
+        container.isHidden = duckAIHidden && sidebarHidden && voiceHidden
 
         if !duckAIHidden && !sidebarHidden {
             titleButton.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner]
@@ -741,6 +763,7 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         disableDuckAIChromeContextMenuOnTabBar()
         self.duckAIChromeControlContainer = nil
         self.duckAIChromeTitleButton = nil
+        self.duckAIVoiceChatButton = nil
         self.duckAIChromeSidebarButton = nil
         self.duckAIChromeDivider = nil
         self.aiChatButtonHoverCancellable = nil
@@ -914,6 +937,23 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         }
 
         Logger.general.error("TabBarViewController: Failed to find MainViewController to open Duck.ai")
+    }
+
+    @objc private func duckAIVoiceChatButtonAction(_ sender: NSButton) {
+        if let mainViewController = parent as? MainViewController {
+            PixelKit.fire(AIChatPixel.aiChatNewVoiceChatTabBarButton, frequency: .dailyAndStandard)
+            mainViewController.openNewDuckAIVoiceChatTab()
+            return
+        }
+        Logger.general.error("TabBarViewController: Failed to find MainViewController to open Duck.ai voice chat")
+    }
+
+    @objc private func hideVoiceChatButtonAction() {
+        duckAIChromeButtonsVisibilityManager.setHidden(true, for: .voiceChat)
+    }
+
+    @objc private func showVoiceChatButtonAction() {
+        duckAIChromeButtonsVisibilityManager.setHidden(false, for: .voiceChat)
     }
 
     @objc private func duckAIChromeSidebarButtonAction(_ sender: NSButton) {
@@ -2673,6 +2713,15 @@ extension TabBarViewController: NSMenuDelegate {
         )
         duckAIItem.target = self
         menu.addItem(duckAIItem)
+
+        let voiceHidden = duckAIChromeButtonsVisibilityManager.isHidden(.voiceChat)
+        let voiceItem = NSMenuItem(
+            title: voiceHidden ? UserText.aiChatChromeShowVoiceChatButton : UserText.aiChatChromeHideVoiceChatButton,
+            action: voiceHidden ? #selector(showVoiceChatButtonAction) : #selector(hideVoiceChatButtonAction),
+            keyEquivalent: ""
+        )
+        voiceItem.target = self
+        menu.addItem(voiceItem)
 
         let sidebarItem = NSMenuItem(
             title: sidebarHidden ? UserText.aiChatChromeShowSidebarButton : UserText.aiChatChromeHideSidebarButton,
