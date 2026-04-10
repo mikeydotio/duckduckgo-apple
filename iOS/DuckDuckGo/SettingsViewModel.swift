@@ -1002,7 +1002,7 @@ extension SettingsViewModel {
             duckPlayerNativeYoutubeMode: duckPlayerSettings.nativeUIYoutubeMode,
             autoplayBlockingMode: autoplaySettings.currentAutoplayBlockingMode,
             youTubeAdBlockingAvailable: adBlockingAvailability.isFeatureAvailable,
-            youTubeAdBlockingEnabled: (try? youTubeAdBlockingStorage.value(for: \YouTubeAdBlockingKeys.youTubeAdBlockingEnabled)) ?? true
+            youTubeAdBlockingEnabled: (try? youTubeAdBlockingStorage.value(for: \YouTubeAdBlockingKeys.youTubeAdBlockingEnabled)) ?? false
         )
 
         // Subscribe to DuckPlayerSettings updates

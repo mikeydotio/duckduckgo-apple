@@ -105,7 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) lazy var adBlockingAvailability: AdBlockingAvailabilityProviding = AdBlockingAvailability(
         featureFlagger: featureFlagger,
         isEnabledByUserProvider: {
-            UserDefaults.standard.object(forKey: UserDefaultsKeys.youTubeAdBlockingEnabled.rawValue) as? Bool ?? true
+            UserDefaults.standard.object(forKey: UserDefaultsKeys.youTubeAdBlockingEnabled.rawValue) as? Bool ?? false
         }
     )
     let visualizeFireSettingsDecider: VisualizeFireSettingsDecider

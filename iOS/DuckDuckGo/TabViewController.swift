@@ -489,7 +489,7 @@ class TabViewController: UIViewController {
         let availability = AdBlockingAvailability(
             featureFlagger: featureFlagger,
             isEnabledByUserProvider: {
-                (try? youTubeAdBlockingStorage.value(for: \.youTubeAdBlockingEnabled)) ?? true
+                (try? youTubeAdBlockingStorage.value(for: \.youTubeAdBlockingEnabled)) ?? false
             }
         )
         return AdBlockingNavigationHandler(

@@ -290,7 +290,7 @@ class MainViewController: UIViewController {
         return AdBlockingAvailability(
             featureFlagger: featureFlagger,
             isEnabledByUserProvider: {
-                (try? storage.value(for: \.youTubeAdBlockingEnabled)) ?? true
+                (try? storage.value(for: \.youTubeAdBlockingEnabled)) ?? false
             }
         )
     }()

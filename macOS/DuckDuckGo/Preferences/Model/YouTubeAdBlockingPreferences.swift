@@ -101,7 +101,7 @@ final class YouTubeAdBlockingPreferences: ObservableObject {
          duckPlayerPreferences: DuckPlayerPreferences? = nil) {
         self.settings = if let settings { settings } else { UserDefaults.standard.keyedStoring() }
         self.duckPlayerPreferences = duckPlayerPreferences ?? DuckPlayerPreferences()
-        youTubeAdBlockingEnabled = self.settings.youTubeAdBlockingEnabled ?? true
+        youTubeAdBlockingEnabled = self.settings.youTubeAdBlockingEnabled ?? false
 
         self.duckPlayerPreferences.objectWillChange
             .sink { [weak self] _ in
