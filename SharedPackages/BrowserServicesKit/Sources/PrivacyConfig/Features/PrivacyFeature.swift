@@ -468,6 +468,12 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Enables web search tool in the Duck.ai omnibar
     case omnibarWebSearch
 
+    /// Enables voice chat shortcut button on the left side of the Duck.ai omnibar (right of image attachment)
+    case omnibarVoiceChatLeft
+
+    /// Enables voice chat shortcut button on the right side of the Duck.ai omnibar (left of submit)
+    case omnibarVoiceChatRight
+
     /// Enables querying AI Chat data directly from local storage instead of via webview
     case localStorageManipulation
 }
