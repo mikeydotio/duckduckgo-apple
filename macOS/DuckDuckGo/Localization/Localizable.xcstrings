@@ -2541,6 +2541,18 @@
         }
       }
     },
+    "aichat.chrome.hide-voicechat-button" : {
+      "comment" : "Context menu item to hide the Duck.ai voice chat button in the tab bar",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hide Voice Chat Button"
+          }
+        }
+      }
+    },
     "aichat.chrome.open-ai-settings" : {
       "comment" : "Context menu item to open AI Features settings pane",
       "extractionState" : "extracted_with_value",
@@ -2597,6 +2609,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Открыть настройки ИИ"
+          }
+        }
+      }
+    },
+    "aichat.chrome.open-voice-chat-button" : {
+      "comment" : "Tab bar button tooltip to open a new Duck.ai voice chat",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "New Voice Chat"
           }
         }
       }
@@ -2717,6 +2741,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показать кнопку боковой панели"
+          }
+        }
+      }
+    },
+    "aichat.chrome.show-voicechat-button" : {
+      "comment" : "Context menu item to show the Duck.ai voice chat button in the tab bar",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show Voice Chat Button"
           }
         }
       }
@@ -4577,6 +4613,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Инструменты"
+          }
+        }
+      }
+    },
+    "aichat.voice-chat-tool.subtitle" : {
+      "comment" : "Subtitle for Voice Chat option in the tools dropdown menu",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chat with your voice"
           }
         }
       }
