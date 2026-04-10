@@ -186,6 +186,9 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
     private var duckAIVoiceChatButton: MouseOverButton?
     private var duckAIChromeSidebarButton: MouseOverButton?
     private var duckAIChromeDivider: ColorView?
+    private var duckAIVoiceSidebarDivider: ColorView?
+    private var duckAIVoiceSidebarDividerInsetConstraint: NSLayoutConstraint?
+    private var duckAIVoiceSidebarDividerFullConstraint: NSLayoutConstraint?
 
     private var isFireWindow: Bool {
         tabCollectionViewModel.isBurner
@@ -537,7 +540,10 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         voiceButton.setAccessibilityTitle(UserText.aiChatOpenVoiceChatButton)
         voiceButton.toolTip = UserText.aiChatOpenVoiceChatButton
 
-        let contentStack = NSStackView(views: [titleButton, divider, voiceButton, sidebarButton])
+        let voiceSidebarDivider = ColorView(frame: .zero)
+        voiceSidebarDivider.translatesAutoresizingMaskIntoConstraints = false
+
+        let contentStack = NSStackView(views: [titleButton, divider, voiceButton, voiceSidebarDivider, sidebarButton])
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         contentStack.orientation = .horizontal
         contentStack.alignment = .centerY
@@ -549,6 +555,10 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         let dividerFull = divider.heightAnchor.constraint(equalTo: container.heightAnchor)
         dividerInset.isActive = true
 
+        let voiceSidebarDividerInset = voiceSidebarDivider.heightAnchor.constraint(equalToConstant: max(12, theme.tabBarButtonSize - 12))
+        let voiceSidebarDividerFull = voiceSidebarDivider.heightAnchor.constraint(equalTo: container.heightAnchor)
+        voiceSidebarDividerInset.isActive = true
+
         NSLayoutConstraint.activate([
             contentStack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             contentStack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
@@ -559,12 +569,15 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
             divider.widthAnchor.constraint(equalToConstant: 1),
             voiceButton.heightAnchor.constraint(equalTo: container.heightAnchor),
             voiceButton.widthAnchor.constraint(equalToConstant: theme.tabBarButtonSize + 4),
+            voiceSidebarDivider.widthAnchor.constraint(equalToConstant: 1),
             sidebarButton.heightAnchor.constraint(equalTo: container.heightAnchor),
             sidebarButton.widthAnchor.constraint(equalToConstant: theme.tabBarButtonSize + 4)
         ])
 
         duckAIChromeDividerInsetConstraint = dividerInset
         duckAIChromeDividerFullConstraint = dividerFull
+        duckAIVoiceSidebarDividerInsetConstraint = voiceSidebarDividerInset
+        duckAIVoiceSidebarDividerFullConstraint = voiceSidebarDividerFull
 
         if let fireButtonIndex = rightSideStackView.arrangedSubviews.firstIndex(of: fireButton) {
             rightSideStackView.insertArrangedSubview(container, at: fireButtonIndex)
@@ -578,6 +591,7 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         duckAIVoiceChatButton = voiceButton
         duckAIChromeSidebarButton = sidebarButton
         duckAIChromeDivider = divider
+        duckAIVoiceSidebarDivider = voiceSidebarDivider
 
         aiChatButtonHoverCancellable = Publishers.Merge6(
             titleButton.publisher(for: \.isMouseOver),
@@ -610,6 +624,7 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
             duckAIVoiceChatButton?.isHidden = true
             sidebarButton.isHidden = true
             divider.isHidden = true
+            duckAIVoiceSidebarDivider?.isHidden = true
             container.isHidden = true
             updateDuckAIChromeVibrancyBackground()
             return
@@ -626,6 +641,7 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         duckAIVoiceChatButton?.isHidden = voiceHidden
         sidebarButton.isHidden = sidebarHidden
         divider.isHidden = duckAIHidden || (sidebarHidden && voiceHidden)
+        duckAIVoiceSidebarDivider?.isHidden = voiceHidden || sidebarHidden
         container.isHidden = duckAIHidden && sidebarHidden && voiceHidden
 
         // Layout order: [titleButton | voiceButton | sidebarButton]
@@ -722,13 +738,18 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         if showFullHeight {
             duckAIChromeDividerInsetConstraint?.isActive = false
             duckAIChromeDividerFullConstraint?.isActive = true
+            duckAIVoiceSidebarDividerInsetConstraint?.isActive = false
+            duckAIVoiceSidebarDividerFullConstraint?.isActive = true
         } else {
             duckAIChromeDividerFullConstraint?.isActive = false
             duckAIChromeDividerInsetConstraint?.isActive = true
+            duckAIVoiceSidebarDividerFullConstraint?.isActive = false
+            duckAIVoiceSidebarDividerInsetConstraint?.isActive = true
         }
         let colorsProvider = theme.colorsProvider
-        duckAIChromeDivider?.backgroundColor = showFullHeight ?
-            colorsProvider.separatorActiveColor : colorsProvider.separatorColor
+        let separatorColor = showFullHeight ? colorsProvider.separatorActiveColor : colorsProvider.separatorColor
+        duckAIChromeDivider?.backgroundColor = separatorColor
+        duckAIVoiceSidebarDivider?.backgroundColor = separatorColor
     }
 
     private func updateDuckAIChromeVibrancyBackground() {
@@ -783,9 +804,12 @@ final class TabBarViewController: NSViewController, TabBarRemoteMessagePresentin
         self.duckAIVoiceChatButton = nil
         self.duckAIChromeSidebarButton = nil
         self.duckAIChromeDivider = nil
+        self.duckAIVoiceSidebarDivider = nil
         self.aiChatButtonHoverCancellable = nil
         self.duckAIChromeDividerInsetConstraint = nil
         self.duckAIChromeDividerFullConstraint = nil
+        self.duckAIVoiceSidebarDividerInsetConstraint = nil
+        self.duckAIVoiceSidebarDividerFullConstraint = nil
     }
 
     private func enableDuckAIChromeContextMenuOnTabBar() {
