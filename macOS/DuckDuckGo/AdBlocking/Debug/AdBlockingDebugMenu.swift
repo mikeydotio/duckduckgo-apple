@@ -36,7 +36,7 @@ final class AdBlockingDebugMenu: NSMenuItem, NSMenuDelegate {
     private func makeSubmenu() -> NSMenu {
         let menu = NSMenu(title: "")
         menu.delegate = self
-        menu.addItem(NSMenuItem(title: "Trigger `Youtube Ad Block On` address bar animation",
+        menu.addItem(NSMenuItem(title: "Trigger `YouTube Ad Block On` address bar animation",
                                 action: #selector(showYouTubeAdBlockOnAnimation),
                                 target: self))
         menu.addItem(.separator())
@@ -46,7 +46,7 @@ final class AdBlockingDebugMenu: NSMenuItem, NSMenuDelegate {
     // MARK: - NSMenuDelegate
 
     nonisolated func menuNeedsUpdate(_ menu: NSMenu) {
-        MainActor.assumeIsolated {
+        MainActor.assumeMainThread {
             rebuildScriptletDebugInfoItems(in: menu)
         }
     }
