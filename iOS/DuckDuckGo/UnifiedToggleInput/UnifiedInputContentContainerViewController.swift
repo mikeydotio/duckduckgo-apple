@@ -421,6 +421,10 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         manager.titleLayoutConfiguration = .unifiedInput
         swipeContainerManager.installChatHistory(using: manager)
         manager.subscribeToTextChanges(switchBarHandler.currentTextPublisher)
+        manager.onFetchCompleted = { [weak self] _, _ in
+            guard let self else { return }
+            self.updateDaxVisibility()
+        }
         aiChatHistoryManager = manager
         manager.hasSuggestionsPublisher
             .receive(on: DispatchQueue.main)
@@ -578,21 +582,18 @@ final class UnifiedInputContentContainerViewController: UIViewController {
             return
         }
         let shouldDisplaySuggestionTray = suggestionTrayManager?.shouldDisplaySuggestionTray == true
+        let isShowingTray = suggestionTrayManager?.isShowingSuggestionTray ?? false
         let shouldDisplayFavoritesOverlay = suggestionTrayManager?.shouldDisplayFavoritesOverlay == true
         let isHorizontallyCompactLayoutEnabled = requiresHorizontallyCompactLayout(for: view.bounds.size)
         let isShowingChatHistory = aiChatHistoryManager?.hasSuggestions == true
         let isChatHistoryPending = aiChatHistoryManager != nil
             && aiChatHistoryManager?.hasCompletedInitialFetch != true
             && switchBarHandler.currentToggleState == .aiChat
-        let isURLFallbackShowingContent = isShowingURLFallback && (suggestionTrayManager?.isShowingSuggestionTray ?? false)
+        let isURLFallbackShowingContent = isShowingURLFallback && isShowingTray
 
-        let isHomeDaxVisible = !shouldDisplaySuggestionTray && !shouldDisplayFavoritesOverlay && !isHorizontallyCompactLayoutEnabled
-        let isAIDaxVisible: Bool
-        if switchBarHandler.isUsingFadeOutAnimation {
-            isAIDaxVisible = !isHorizontallyCompactLayoutEnabled && !isShowingChatHistory && !isChatHistoryPending && !isURLFallbackShowingContent && !shouldDisplaySuggestionTray
-        } else {
-            isAIDaxVisible = !shouldDisplaySuggestionTray && !isHorizontallyCompactLayoutEnabled && !isShowingChatHistory && !isChatHistoryPending && !isURLFallbackShowingContent
-        }
+        let hasContent = (shouldDisplaySuggestionTray && isShowingTray) || isHorizontallyCompactLayoutEnabled
+        let isHomeDaxVisible = !hasContent && !shouldDisplayFavoritesOverlay
+        let isAIDaxVisible = !hasContent && !isShowingChatHistory && !isChatHistoryPending && !isURLFallbackShowingContent
 
         daxLogoManager.updateVisibility(isHomeDaxVisible: isHomeDaxVisible, isAIDaxVisible: isAIDaxVisible)
         updateSectionTitle()
