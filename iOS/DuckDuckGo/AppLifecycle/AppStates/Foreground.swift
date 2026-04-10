@@ -104,11 +104,10 @@ struct Foreground: ForegroundHandling {
         interactionManager = UIInteractionManager(
             authenticationService: sceneDependencies.authenticationService,
             autoClearService: sceneDependencies.autoClearService,
-            launchActionHandler: launchActionHandler
+            launchActionHandler: launchActionHandler,
+            onboardingFlowManager: appDependencies.onboardingManager,
+            onboardingPresenter: OnboardingPresenter(mainViewController: appDependencies.mainCoordinator.controller)
         )
-
-        let onboardingManager = appDependencies.onboardingManager
-        onboardingManager.configureOnboardingFlow(from: actionToHandle)
     }
 
     // MARK: - Handle applicationDidBecomeActive(_:) logic here

@@ -27,13 +27,20 @@ final class UIInteractionManager {
     private let authenticationService: AuthenticationServiceProtocol
     private let autoClearService: AutoClearServiceProtocol
     private let launchActionHandler: LaunchActionHandling
+    private let onboardingFlowManager: OnboardingFlowManaging
+    private let onboardingPresenter: OnboardingPresenting
 
     init(authenticationService: AuthenticationServiceProtocol,
          autoClearService: AutoClearServiceProtocol,
-         launchActionHandler: LaunchActionHandling) {
+         launchActionHandler: LaunchActionHandling,
+         onboardingFlowManager: OnboardingFlowManaging,
+         onboardingPresenter: OnboardingPresenting
+    ) {
         self.authenticationService = authenticationService
         self.autoClearService = autoClearService
         self.launchActionHandler = launchActionHandler
+        self.onboardingFlowManager = onboardingFlowManager
+        self.onboardingPresenter = onboardingPresenter
     }
 
     /// This method orchestrates the following operations:
@@ -55,6 +62,12 @@ final class UIInteractionManager {
                 }
                 group.addTask {
                     await self.autoClearService.waitForDataCleared()
+
+                    // Set Onboarding Flow Type based on
+                    self.onboardingFlowManager.configureOnboardingFlow(for: launchAction)
+                    // Bring Launch screen cover
+                    await self.startOnboardingFlowIfNotSeenBefore()
+
                     // Handle URL, shortcut item, and user activities after data clearing, so UI is ready when auth is dismissed.
                     switch launchAction {
                     case .openURL, .handleShortcutItem, .handleUserActivity:
@@ -72,6 +85,36 @@ final class UIInteractionManager {
                 onAppReadyForInteractions()
             }
         }
+    }
+
+    @MainActor
+    private func startOnboardingFlowIfNotSeenBefore() {
+        onboardingPresenter.presentOnboardingIfNeeded()
+    }
+
+}
+
+
+protocol OnboardingPresenting {
+    func presentOnboardingIfNeeded()
+}
+
+final class OnboardingPresenter: OnboardingPresenting {
+    private weak var mainViewController: MainViewController?
+
+    init(mainViewController: MainViewController) {
+        self.mainViewController = mainViewController
+    }
+
+    func presentOnboardingIfNeeded() {
+        mainViewController?.startOnboardingFlowIfNotSeenBefore()
+    }
+
+    private func bringCoverToFrontIfNeeded() {
+        guard let mvc = mainViewController,
+              mvc.isStartupOnboardingPending,
+              !mvc.hasPresentedStartupOnboarding else { return }
+        mvc.startupOnboardingCover.bringToFront()
     }
 
 }

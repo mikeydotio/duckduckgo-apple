@@ -151,9 +151,9 @@ class MainViewController: UIViewController {
     var autoClearShouldRefreshUIAfterClear = true
     private var hasLoadedInitialView = false
     private weak var burningOverlayView: UIView?
-    private var isStartupOnboardingPending = false
-    private var hasPresentedStartupOnboarding = false
-    private lazy var startupOnboardingCover = StartupOnboardingCover(
+    private(set) var isStartupOnboardingPending = false
+    private(set) var hasPresentedStartupOnboarding = false
+    private(set) lazy var startupOnboardingCover = StartupOnboardingCover(
         parentViewController: self,
         fallbackBackgroundColor: themeManager.currentTheme.onboardingBackgroundColor
     )
@@ -691,8 +691,6 @@ class MainViewController: UIViewController {
         // Needs to be called here because sometimes the frames are not the expected size during didLoad
         refreshViewsBasedOnAddressBarPosition(appSettings.currentAddressBarPosition)
 
-        startOnboardingFlowIfNotSeenBefore()
-        restorePendingDuckAIAnswerStepIfNeeded()
         tabsBarController?.refresh(tabsModel: tabManager.currentTabsModel, scrollToSelected: true)
         swipeTabsCoordinator?.refresh(tabsModel: tabManager.currentTabsModel, scrollToSelected: true)
 
@@ -876,7 +874,6 @@ class MainViewController: UIViewController {
     func startOnboardingFlowIfNotSeenBefore() {
         guard isStartupOnboardingPending, !hasPresentedStartupOnboarding else { return }
         hasPresentedStartupOnboarding = true
-        startupOnboardingCover.bringToFront()
         segueToDaxOnboarding { [weak self] in
             self?.startupOnboardingCover.detach()
         }

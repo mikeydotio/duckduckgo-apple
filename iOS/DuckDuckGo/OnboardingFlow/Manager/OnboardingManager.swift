@@ -45,10 +45,12 @@ protocol OnboardingAddToDockVisibilityManager {
 }
 
 protocol OnboardingExperienceManager {
-    func configureOnboardingFlow(from action: AppAction?)
+    func configureOnboardingFlow(for action: LaunchAction?)
 }
 
-typealias OnboardingManaging = OnboardingFlowEvaluating & OnboardingStepsProvider & OnboardingAddToDockVisibilityManager & OnboardingExperienceManager
+typealias OnboardingFlowManaging = OnboardingFlowEvaluating & OnboardingExperienceManager
+
+typealias OnboardingManaging =  OnboardingStepsProvider & OnboardingAddToDockVisibilityManager & OnboardingFlowManaging
 
 final class OnboardingManager {
     private let onboardingFlowEvaluator: OnboardingFlowEvaluating
@@ -202,7 +204,7 @@ extension OnboardingManager: OnboardingExperienceManager {
 
     /// Configure the onboarding flow based on the app action (e.g., deep link)
     /// This should be called early in the app lifecycle, before onboarding is presented
-    func configureOnboardingFlow(from action: AppAction?) {
+    func configureOnboardingFlow(for action: LaunchAction?) {
         // If onboarding has already been completed or skipped return
         guard !tutorialSettings.hasSeenOnboarding || !tutorialSettings.hasSkippedOnboarding else { return }
         // If onboarding type has been previously set, skip it. This will avoid starting a different onboarding experience if the user quits the onboarding mid journey and launches the app again.
