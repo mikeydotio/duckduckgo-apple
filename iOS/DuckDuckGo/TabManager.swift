@@ -553,10 +553,17 @@ class TabManager: TabManaging, TrackerAnimationSuppressing {
         // In normal mode, removing the last tab auto-inserts a blank tab, so we skip
         // inserting newTab (the auto-created tab serves the same purpose).
         // In fire mode (allowsEmpty), no auto-insert happens, so we must always insert newTab.
-        if model.tabs.count == 1 && !model.allowsEmpty {
+        if model.tabs.count == 1 && !model.allowsEmpty && newTab.link == nil {
             // Since we're not re-inserting we should use the proper removal to ensure
             //  things are cleaned up properly.
             remove(tab: tab, clearTabHistory: clearTabHistory, in: model)
+        } else if model.tabs.count == 1 && !model.allowsEmpty {
+            // newTab has content (e.g. AI chat URL) so the auto-created blank won't suffice.
+            // Use removeTabs (no auto-insert) to avoid ending up with both newTab and an
+            // auto-created blank tab.
+            model.removeTabs([tab])
+            model.insert(tab: newTab, placement: .atEnd, selectNewTab: false)
+            clean(tabs: [tab], clearTabHistory: clearTabHistory)
         } else {
             model.insert(tab: newTab, placement: .replacing(tab), selectNewTab: false)
             clean(tabs: [tab], clearTabHistory: clearTabHistory)
