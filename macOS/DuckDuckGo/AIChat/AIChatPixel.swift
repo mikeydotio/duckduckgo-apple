@@ -312,6 +312,15 @@ enum AIChatPixel: PixelKitEvent {
     /// Event Trigger: User opens a new Duck.ai voice chat from the more options menu
     case aiChatNewVoiceChatMoreOptionsMenu
 
+    /// Event Trigger: User opens a new Duck.ai voice chat from the tab bar button
+    case aiChatNewVoiceChatTabBarButton
+
+    /// Event Trigger: User opens a new Duck.ai voice chat from the omnibar left button (right of image attachment)
+    case aiChatNewVoiceChatOmnibarLeft
+
+    /// Event Trigger: User opens a new Duck.ai voice chat from the omnibar right button (left of submit)
+    case aiChatNewVoiceChatOmnibarRight
+
     /// Event Trigger: User opens a new Duck.ai image chat from the more options menu
     case aiChatNewImageChatMoreOptionsMenu
 
@@ -515,6 +524,12 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_new_chat_more_options_menu"
         case .aiChatNewVoiceChatMoreOptionsMenu:
             return "aichat_new_voice_chat_more_options_menu"
+        case .aiChatNewVoiceChatTabBarButton:
+            return "aichat_new_voice_chat_tab_bar_button"
+        case .aiChatNewVoiceChatOmnibarLeft:
+            return "aichat_new_voice_chat_omnibar_left"
+        case .aiChatNewVoiceChatOmnibarRight:
+            return "aichat_new_voice_chat_omnibar_right"
         case .aiChatNewImageChatMoreOptionsMenu:
             return "aichat_new_image_chat_more_options_menu"
         case .aiChatRecentChatSelectedMoreOptionsMenu:
@@ -606,6 +621,9 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatOpenDuckAiMoreOptionsMenu,
                 .aiChatNewChatMoreOptionsMenu,
                 .aiChatNewVoiceChatMoreOptionsMenu,
+                .aiChatNewVoiceChatTabBarButton,
+                .aiChatNewVoiceChatOmnibarLeft,
+                .aiChatNewVoiceChatOmnibarRight,
                 .aiChatNewImageChatMoreOptionsMenu,
                 .aiChatRecentChatSelectedMoreOptionsMenu,
                 .aiChatDeleteAllChatsMoreOptionsMenu,
@@ -727,6 +745,9 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatOpenDuckAiMoreOptionsMenu,
                 .aiChatNewChatMoreOptionsMenu,
                 .aiChatNewVoiceChatMoreOptionsMenu,
+                .aiChatNewVoiceChatTabBarButton,
+                .aiChatNewVoiceChatOmnibarLeft,
+                .aiChatNewVoiceChatOmnibarRight,
                 .aiChatNewImageChatMoreOptionsMenu,
                 .aiChatRecentChatSelectedMoreOptionsMenu,
                 .aiChatDeleteAllChatsMoreOptionsMenu,
