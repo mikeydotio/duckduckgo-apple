@@ -24,73 +24,64 @@ import TrackerRadarKit
 /// Source of tracker data for the C-S-S trackerProtection feature.
 ///
 /// `trackerData` provides the full merged TDS for native classification.
-/// `encodedTrackerData` provides the surrogate-filtered subset for JS injection.
-/// These are separate datasets per the dataset contract (see ContentBlockerRulesManager.Rules).
+/// `surrogateFilteredTrackerData` provides the surrogate-only subset for ContentScopeProperties.
+/// `encodedTrackerData` provides the surrogate-filtered JSON for C-S-S injection.
+///
+/// All values are computed once at construction from a `currentRules` snapshot,
+/// eliminating per-access merging and encoding overhead.
 public protocol TrackerProtectionDataSource {
     var trackerData: TrackerData? { get }
     var surrogateFilteredTrackerData: TrackerData? { get }
     var encodedTrackerData: String? { get }
 }
 
-/// Default implementation using `CompiledRuleListsSource` (typically `ContentBlockerRulesManager`).
+/// Default implementation that pre-computes all tracker data from a rules snapshot.
 ///
 /// On macOS, ClickToLoad rules are compiled into a separate rule list.
 /// Pass the list name via `additionalRuleLists` so the merged tracker data
 /// includes CTL rules (e.g. `block-ctl-fb`), making them visible to the
 /// C-S-S TrackerResolver for blocking decisions and dashboard reporting.
+///
+/// All values are computed eagerly at init and cached as stored properties,
+/// avoiding repeated merging/encoding on every access.
 public struct DefaultTrackerProtectionDataSource: TrackerProtectionDataSource {
 
-    private let contentBlockingManager: CompiledRuleListsSource
-    private let additionalRuleLists: [String]
+    public let trackerData: TrackerData?
+    public let surrogateFilteredTrackerData: TrackerData?
+    public let encodedTrackerData: String?
 
     public init(contentBlockingManager: CompiledRuleListsSource,
                 additionalRuleLists: [String] = []) {
-        self.contentBlockingManager = contentBlockingManager
-        self.additionalRuleLists = additionalRuleLists
-    }
+        let merged = Self.computeMergedTrackerData(from: contentBlockingManager, additionalRuleLists: additionalRuleLists)
+        self.trackerData = merged
 
-    public var trackerData: TrackerData? {
-        mergedTrackerData()
-    }
+        if let merged {
+            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: merged)
+            self.surrogateFilteredTrackerData = surrogateTDS
 
-    /// Returns surrogate-filtered TrackerData for ContentScopeProperties injection.
-    /// Only includes trackers with surrogate rules per the dataset contract.
-    public var surrogateFilteredTrackerData: TrackerData? {
-        guard let data = mergedTrackerData() else { return nil }
-        return ContentBlockerRulesManager.extractSurrogates(from: data)
-    }
-
-    /// Returns JSON-encoded surrogate-filtered tracker data for C-S-S surrogate injection.
-    ///
-    /// Uses `extractSurrogates` to include only trackers with surrogate rules,
-    /// matching the dataset contract: full TDS for native classification,
-    /// surrogate-filtered TDS for JavaScript.
-    public var encodedTrackerData: String? {
-        guard let data = mergedTrackerData() else {
-            Logger.contentBlocking.warning("TrackerProtectionDataSource: no tracker data available")
-            return nil
+            if let encodedData = try? JSONEncoder().encode(surrogateTDS),
+               let encodedString = String(data: encodedData, encoding: .utf8) {
+                self.encodedTrackerData = encodedString
+            } else {
+                Logger.contentBlocking.warning("TrackerProtectionDataSource: Failed to encode surrogate TDS")
+                self.encodedTrackerData = nil
+            }
+        } else {
+            Logger.contentBlocking.warning("TrackerProtectionDataSource: no tracker data available at init")
+            self.surrogateFilteredTrackerData = nil
+            self.encodedTrackerData = nil
         }
-
-        let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: data)
-
-        guard let encodedData = try? JSONEncoder().encode(surrogateTDS),
-              let encodedString = String(data: encodedData, encoding: .utf8) else {
-            Logger.contentBlocking.warning("TrackerProtectionDataSource: Failed to encode trackerData")
-            return nil
-        }
-
-        return encodedString
     }
 
     /// Merge main TDS tracker data with any additional compiled rule lists
     /// (e.g. ClickToLoad).  Takes a single snapshot of `currentRules` to
     /// avoid torn reads while rules are recompiling.
-    private func mergedTrackerData() -> TrackerData? {
+    private static func computeMergedTrackerData(from contentBlockingManager: CompiledRuleListsSource,
+                                                 additionalRuleLists: [String]) -> TrackerData? {
         let rulesSnapshot = contentBlockingManager.currentRules
         guard let main = rulesSnapshot.first(where: {
             $0.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
         }) else {
-            Logger.contentBlocking.warning("TrackerProtectionDataSource: currentMainRules is nil")
             return nil
         }
 
