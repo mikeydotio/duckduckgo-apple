@@ -140,6 +140,23 @@ public final class ContentScopeProperties: Encodable {
         case surrogateTrackerData = "trackerData"
     }
 
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(languageCode, forKey: .languageCode)
+        try container.encode(globalPrivacyControlValue, forKey: .globalPrivacyControlValue)
+        try container.encode(debug, forKey: .debug)
+        try container.encode(sessionKey, forKey: .sessionKey)
+        try container.encode(messageSecret, forKey: .messageSecret)
+        try container.encode(platform, forKey: .platform)
+        try container.encode(features, forKey: .features)
+        try container.encode(currentCohorts, forKey: .currentCohorts)
+        try container.encodeIfPresent(themeVariant, forKey: .themeVariant)
+
+        if let surrogateTrackerData {
+            try container.encode(JavaScriptTrackerData(from: surrogateTrackerData), forKey: .surrogateTrackerData)
+        }
+    }
 }
 
 public struct ContentScopeFeature: Encodable {

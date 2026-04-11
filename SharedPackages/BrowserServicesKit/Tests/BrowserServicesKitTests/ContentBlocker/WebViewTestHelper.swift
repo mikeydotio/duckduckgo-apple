@@ -112,6 +112,24 @@ final class TestTrackerProtectionDelegate: NSObject, TrackerProtectionSubfeature
         fulfillExpectation(for: surrogate.url)
     }
 
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didDetectTracker tracker: TrackerProtectionSubfeature.TrackerDetection) {
+        if let classification = eventMapper.classifyDetectedTracker(tracker) {
+            switch classification {
+            case .tracker(let detected):
+                if detected.state == .blocked {
+                    detectedTrackers.append(detected)
+                } else {
+                    detectedThirdPartyRequests.append(detected)
+                }
+            case .thirdPartyRequest(let request):
+                detectedThirdPartyRequests.append(request)
+            }
+        }
+
+        fulfillExpectation(for: tracker.url)
+    }
+
     private func fulfillExpectation(for urlString: String) {
         if let expectation = expectations[urlString] {
             expectation.fulfill()

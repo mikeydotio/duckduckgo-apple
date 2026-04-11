@@ -53,7 +53,7 @@ class ContentScopePropertiesTests: XCTestCase {
             sessionKey: "test-session",
             messageSecret: "test-secret",
             featureToggles: ContentScopeFeatureToggles.allTogglesOn,
-            trackerData: trackerData
+            surrogateTrackerData: trackerData
         )
 
         // Encode to JSON
@@ -79,6 +79,30 @@ class ContentScopePropertiesTests: XCTestCase {
             return
         }
         XCTAssertNotNil(trackers["tracker.example"], "tracker.example should be in trackers")
+
+        guard let tracker = trackers["tracker.example"] as? [String: Any] else {
+            XCTFail("tracker.example should encode to a dictionary")
+            return
+        }
+        XCTAssertNil(tracker["domain"], "trackerData should omit tracker.domain for JavaScript payloads")
+        XCTAssertNil(tracker["prevalence"], "trackerData should omit tracker.prevalence for JavaScript payloads")
+
+        guard let owner = tracker["owner"] as? [String: Any] else {
+            XCTFail("tracker owner should be encoded")
+            return
+        }
+        XCTAssertEqual(owner["name"] as? String, "Tracker Inc")
+        XCTAssertEqual(owner["displayName"] as? String, "Tracker Inc")
+        XCTAssertNil(owner["ownedBy"], "trackerData should omit owner.ownedBy for JavaScript payloads")
+
+        guard let entities = encodedTrackerData["entities"] as? [String: Any],
+              let entity = entities["Tracker Inc"] as? [String: Any] else {
+            XCTFail("Tracker Inc entity should be encoded")
+            return
+        }
+        XCTAssertEqual(entity["displayName"] as? String, "Tracker Inc")
+        XCTAssertEqual((entity["prevalence"] as? NSNumber)?.doubleValue, 0.1, accuracy: 0.0001)
+        XCTAssertNil(entity["domains"], "trackerData should omit entity.domains for JavaScript payloads")
     }
 
     func testTrackerDataNilByDefault() {

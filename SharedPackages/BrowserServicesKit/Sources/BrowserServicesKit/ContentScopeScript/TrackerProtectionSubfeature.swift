@@ -23,6 +23,46 @@ import TrackerRadarKit
 import UserScript
 import WebKit
 
+public enum TrackerBlockingReason: String {
+    case firstParty = "first party"
+    case ruleException = "matched rule - exception"
+    case defaultIgnore = "default ignore"
+    case matchedRuleIgnore = "matched rule - ignore"
+    case defaultBlock = "default block"
+    case surrogate = "matched rule - surrogate"
+    case matchedRuleBlock = "matched rule - block"
+    case noMatch = "no match"
+    case unprotectedDomain
+    case thirdPartyRequest
+    case thirdPartyRequestOwnedByFirstParty
+
+    var allowReason: AllowReason {
+        switch self {
+        case .firstParty, .thirdPartyRequestOwnedByFirstParty:
+            return .ownedByFirstParty
+        case .ruleException, .defaultIgnore, .matchedRuleIgnore:
+            return .ruleException
+        case .unprotectedDomain:
+            return .protectionDisabled
+        case .defaultBlock, .surrogate, .matchedRuleBlock, .noMatch, .thirdPartyRequest:
+            return .otherThirdPartyRequest
+        }
+    }
+
+    var isFirstParty: Bool {
+        self == .firstParty
+    }
+
+    var isThirdPartyRequest: Bool {
+        switch self {
+        case .noMatch, .thirdPartyRequest, .thirdPartyRequestOwnedByFirstParty:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 /// Delegate protocol for tracker protection events from C-S-S.
 ///
 /// C-S-S is a raw resource observer — native is sole classifier.
@@ -38,6 +78,10 @@ public protocol TrackerProtectionSubfeatureDelegate: AnyObject {
     /// Called when a surrogate is injected by C-S-S (only when surrogateInjectionEnabled).
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection)
+
+    /// Called when the current C-S-S bridge emits a fully classified tracker event.
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didDetectTracker tracker: TrackerProtectionSubfeature.TrackerDetection)
 
     /// Whether resource observation processing should proceed.
     func trackerProtectionShouldProcessTrackers(_ subfeature: TrackerProtectionSubfeature) -> Bool
@@ -79,6 +123,73 @@ public final class TrackerProtectionSubfeature: NSObject, Subfeature {
         }
     }
 
+    /// Classified tracker detection notification from the current C-S-S bridge.
+    public struct TrackerDetection: Decodable {
+        public let url: String
+        public let blocked: Bool
+        public let reason: TrackerBlockingReason?
+        public let isSurrogate: Bool
+        public let pageUrl: String
+        public let entityName: String?
+        public let ownerName: String?
+        public let category: String?
+        public let prevalence: Double?
+        public let isAllowlisted: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case url
+            case blocked
+            case reason
+            case isSurrogate
+            case pageUrl
+            case entityName
+            case ownerName
+            case category
+            case prevalence
+            case isAllowlisted
+        }
+
+        public init(url: String,
+                    blocked: Bool,
+                    reason: TrackerBlockingReason?,
+                    isSurrogate: Bool,
+                    pageUrl: String,
+                    entityName: String?,
+                    ownerName: String?,
+                    category: String?,
+                    prevalence: Double?,
+                    isAllowlisted: Bool?) {
+            self.url = url
+            self.blocked = blocked
+            self.reason = reason
+            self.isSurrogate = isSurrogate
+            self.pageUrl = pageUrl
+            self.entityName = entityName
+            self.ownerName = ownerName
+            self.category = category
+            self.prevalence = prevalence
+            self.isAllowlisted = isAllowlisted
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            url = try container.decode(String.self, forKey: .url)
+            blocked = try container.decode(Bool.self, forKey: .blocked)
+            if let rawReason = try container.decodeIfPresent(String.self, forKey: .reason) {
+                reason = TrackerBlockingReason(rawValue: rawReason)
+            } else {
+                reason = nil
+            }
+            isSurrogate = try container.decode(Bool.self, forKey: .isSurrogate)
+            pageUrl = try container.decode(String.self, forKey: .pageUrl)
+            entityName = try container.decodeIfPresent(String.self, forKey: .entityName)
+            ownerName = try container.decodeIfPresent(String.self, forKey: .ownerName)
+            category = try container.decodeIfPresent(String.self, forKey: .category)
+            prevalence = try container.decodeIfPresent(Double.self, forKey: .prevalence)
+            isAllowlisted = try container.decodeIfPresent(Bool.self, forKey: .isAllowlisted)
+        }
+    }
+
     // MARK: - Properties
 
     public static let featureNameValue = "trackerProtection"
@@ -104,6 +215,7 @@ public final class TrackerProtectionSubfeature: NSObject, Subfeature {
     enum MessageNames: String, CaseIterable {
         case resourceObserved
         case surrogateInjected
+        case trackerDetected
     }
 
     public func handler(forMethodNamed methodName: String) -> Subfeature.Handler? {
@@ -112,6 +224,8 @@ public final class TrackerProtectionSubfeature: NSObject, Subfeature {
             return { [weak self] in try await self?.handleResourceObserved(params: $0, original: $1) }
         case .surrogateInjected:
             return { [weak self] in try await self?.handleSurrogateInjected(params: $0, original: $1) }
+        case .trackerDetected:
+            return { [weak self] in try await self?.handleTrackerDetected(params: $0, original: $1) }
         default:
             return nil
         }
@@ -146,6 +260,21 @@ public final class TrackerProtectionSubfeature: NSObject, Subfeature {
         }
 
         delegate?.trackerProtection(self, didInjectSurrogate: injection)
+        return nil
+    }
+
+    @MainActor
+    private func handleTrackerDetected(params: Any, original: WKScriptMessage) async throws -> Encodable? {
+        guard delegate?.trackerProtectionShouldProcessTrackers(self) == true else {
+            return nil
+        }
+
+        guard let detection = Self.decode(TrackerDetection.self, from: params) else {
+            Logger.general.warning("TrackerProtection: Failed to decode trackerDetected params")
+            return nil
+        }
+
+        delegate?.trackerProtection(self, didDetectTracker: detection)
         return nil
     }
 

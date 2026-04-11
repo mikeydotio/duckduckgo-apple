@@ -37,6 +37,11 @@ import TrackerRadarKit
 /// 3. If no tracker found, synthesize a third-party request when cross-site.
 public struct TrackerProtectionEventMapper {
 
+    public enum TrackerDetectionClassification {
+        case tracker(DetectedRequest)
+        case thirdPartyRequest(DetectedRequest)
+    }
+
     private let tld: TLD
     private let mainTrackerData: TrackerData
     private let supplementaryTrackerData: [TrackerData]
@@ -119,6 +124,41 @@ public struct TrackerProtectionEventMapper {
                            resourceType: "script",
                            potentiallyBlocked: contentBlockingEnabled,
                            adClickAttributionVendor: adClickAttributionVendor)
+    }
+
+    /// Map the current C-S-S `trackerDetected` payload to the native DetectedRequest model.
+    ///
+    /// This is a compatibility path for the legacy bridge where C-S-S sends an already
+    /// classified result rather than the raw `resourceObserved` contract Apple originally
+    /// expected. We preserve the JS-side classification semantics here instead of fabricating
+    /// a missing `resourceType`.
+    public func classifyDetectedTracker(_ detection: TrackerProtectionSubfeature.TrackerDetection) -> TrackerDetectionClassification? {
+        guard detection.reason?.isFirstParty != true else {
+            return nil
+        }
+
+        let state: BlockingState
+        if detection.blocked {
+            state = .blocked
+        } else {
+            state = .allowed(reason: detection.reason?.allowReason ?? .otherThirdPartyRequest)
+        }
+
+        let request = DetectedRequest(
+            url: detection.url,
+            eTLDplus1: tld.eTLDplus1(forStringURL: detection.url),
+            ownerName: detection.ownerName,
+            entityName: detection.entityName,
+            category: detection.category,
+            prevalence: detection.prevalence,
+            state: state,
+            pageUrl: detection.pageUrl)
+
+        if detection.reason?.isThirdPartyRequest == true {
+            return .thirdPartyRequest(request)
+        }
+
+        return .tracker(request)
     }
 
     /// Extract the surrogate host from the injection URL.

@@ -204,6 +204,33 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
                        "Encoded data should not include CTL data when no additional lists")
     }
 
+    func testEncodedTrackerData_omitsUnusedJavaScriptFields() async throws {
+        let mainRules = await makeFakeRules(
+            name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
+            trackerData: mainTDS()
+        )!
+        let mock = StubCompiledRuleListsSource(rules: [mainRules])
+
+        let dataSource = DefaultTrackerProtectionDataSource(contentBlockingManager: mock)
+
+        guard let encoded = dataSource.encodedTrackerData,
+              let encodedData = encoded.data(using: .utf8),
+              let json = try JSONSerialization.jsonObject(with: encodedData) as? [String: Any],
+              let trackers = json["trackers"] as? [String: Any],
+              let tracker = trackers["tracker.com"] as? [String: Any],
+              let owner = tracker["owner"] as? [String: Any],
+              let entities = json["entities"] as? [String: Any],
+              let entity = entities["Tracker Inc"] as? [String: Any] else {
+            XCTFail("encodedTrackerData should decode to the expected JSON structure")
+            return
+        }
+
+        XCTAssertNil(tracker["domain"])
+        XCTAssertNil(tracker["prevalence"])
+        XCTAssertNil(owner["ownedBy"])
+        XCTAssertNil(entity["domains"])
+    }
+
     func testMergedTrackerData_includesBothCTLAndAttributionTrackers() async {
         let mainRules = await makeFakeRules(
             name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,

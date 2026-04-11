@@ -41,6 +41,11 @@ final class TrackerProtectionSubfeatureTests: XCTestCase {
         XCTAssertNotNil(subfeature.handler(forMethodNamed: "surrogateInjected"))
     }
 
+    func testWhenTrackerDetectedMethodIsRequestedThenHandlerIsReturned() {
+        let subfeature = TrackerProtectionSubfeature()
+        XCTAssertNotNil(subfeature.handler(forMethodNamed: "trackerDetected"))
+    }
+
     func testWhenUnknownMethodIsRequestedThenNilIsReturned() {
         let subfeature = TrackerProtectionSubfeature()
         XCTAssertNil(subfeature.handler(forMethodNamed: "unknownMethod"))
@@ -81,6 +86,53 @@ final class TrackerProtectionSubfeatureTests: XCTestCase {
             XCTAssertThrowsError(try JSONDecoder().decode(TrackerProtectionSubfeature.ResourceObservation.self, from: data),
                                  "Expected decode failure when \(label) is missing")
         }
+    }
+
+    // MARK: - TrackerDetection Decoding
+
+    func testWhenTrackerDetectedParamsAreValidThenDecodesCorrectly() throws {
+        let params: [String: Any] = [
+            "url": "https://tracker.example/pixel.js",
+            "blocked": true,
+            "reason": "matched rule - block",
+            "isSurrogate": false,
+            "pageUrl": "https://example.com",
+            "entityName": "Tracker Inc",
+            "ownerName": "Tracker Inc",
+            "category": "Analytics",
+            "prevalence": 0.1,
+            "isAllowlisted": false
+        ]
+
+        let data = try JSONSerialization.data(withJSONObject: params)
+        let detection = try JSONDecoder().decode(TrackerProtectionSubfeature.TrackerDetection.self, from: data)
+
+        XCTAssertEqual(detection.url, "https://tracker.example/pixel.js")
+        XCTAssertTrue(detection.blocked)
+        XCTAssertEqual(detection.reason, .matchedRuleBlock)
+        XCTAssertFalse(detection.isSurrogate)
+        XCTAssertEqual(detection.pageUrl, "https://example.com")
+        XCTAssertEqual(detection.entityName, "Tracker Inc")
+        XCTAssertEqual(detection.ownerName, "Tracker Inc")
+        XCTAssertEqual(detection.category, "Analytics")
+        XCTAssertEqual(detection.prevalence, 0.1)
+        XCTAssertEqual(detection.isAllowlisted, false)
+    }
+
+    func testWhenTrackerDetectedReasonIsUnknownThenDecodeSucceedsWithNilReason() throws {
+        let params: [String: Any] = [
+            "url": "https://tracker.example/pixel.js",
+            "blocked": false,
+            "reason": "some unknown reason",
+            "isSurrogate": false,
+            "pageUrl": "https://example.com"
+        ]
+
+        let data = try JSONSerialization.data(withJSONObject: params)
+        let detection = try JSONDecoder().decode(TrackerProtectionSubfeature.TrackerDetection.self, from: data)
+
+        XCTAssertNil(detection.reason)
+        XCTAssertFalse(detection.blocked)
     }
 
     // MARK: - SurrogateInjection Decoding (new minimal schema)
@@ -141,6 +193,7 @@ final class TrackerProtectionSubfeatureTests: XCTestCase {
             return
         }
         XCTAssertThrowsError(try JSONDecoder().decode(TrackerProtectionSubfeature.ResourceObservation.self, from: data))
+        XCTAssertThrowsError(try JSONDecoder().decode(TrackerProtectionSubfeature.TrackerDetection.self, from: data))
         XCTAssertThrowsError(try JSONDecoder().decode(TrackerProtectionSubfeature.SurrogateInjection.self, from: data))
     }
 

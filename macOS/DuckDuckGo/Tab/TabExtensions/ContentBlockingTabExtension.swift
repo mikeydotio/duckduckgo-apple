@@ -211,6 +211,23 @@ extension ContentBlockingTabExtension: TrackerProtectionSubfeatureDelegate {
     }
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didDetectTracker tracker: TrackerProtectionSubfeature.TrackerDetection) {
+        guard let mapper = mapper(forAttributionTrackerData: subfeature.currentAttributionTrackerData,
+                                  vendor: subfeature.currentAdClickAttributionVendor),
+              let classification = mapper.classifyDetectedTracker(tracker) else { return }
+
+        switch classification {
+        case .tracker(let detected):
+            trackersSubject.send(DetectedTracker(request: detected, type: .tracker))
+            if detected.state == .blocked && detected.ownerName == fbBlockingEnabledProvider.fbEntity {
+                fbBlockingEnabledProvider.trackerDetected()
+            }
+        case .thirdPartyRequest(let request):
+            trackersSubject.send(DetectedTracker(request: request, type: .thirdPartyRequest))
+        }
+    }
+
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
         guard let mapper = mapper(forAttributionTrackerData: subfeature.currentAttributionTrackerData,
                                   vendor: subfeature.currentAdClickAttributionVendor),

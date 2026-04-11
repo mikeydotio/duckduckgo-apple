@@ -3288,6 +3288,21 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
         userScriptDetectedTracker(detected)
     }
 
+    func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
+                           didDetectTracker tracker: TrackerProtectionSubfeature.TrackerDetection) {
+        guard let mapper = makeMapper(attributionTrackerData: subfeature.currentAttributionTrackerData,
+                                      vendor: subfeature.currentAdClickAttributionVendor) else { return }
+
+        switch mapper.classifyDetectedTracker(tracker) {
+        case .tracker(let detected):
+            userScriptDetectedTracker(detected)
+        case .thirdPartyRequest(let thirdParty):
+            privacyInfo?.trackerInfo.add(detectedThirdPartyRequest: thirdParty)
+        case nil:
+            break
+        }
+    }
+
     fileprivate func userScriptDetectedTracker(_ tracker: DetectedRequest) {
         guard let url = url else { return }
 

@@ -59,7 +59,7 @@ public struct DefaultTrackerProtectionDataSource: TrackerProtectionDataSource {
             let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: merged)
             self.surrogateFilteredTrackerData = surrogateTDS
 
-            if let encodedData = try? JSONEncoder().encode(surrogateTDS),
+            if let encodedData = try? JSONEncoder().encode(JavaScriptTrackerData(from: surrogateTDS)),
                let encodedString = String(data: encodedData, encoding: .utf8) {
                 self.encodedTrackerData = encodedString
             } else {
