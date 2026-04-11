@@ -577,8 +577,8 @@ final class TrackerProtectionEventMapperTests: XCTestCase {
     }
 
     // MARK: - CTL-Inactive Parity (authentic split-TDS validation)
-    // Uses ClickToLoadRulesSplitter + CTLTests fixture from ClickToLoadBlockingTests.swift,
-    // both of which are macOS-only.
+    // Uses ClickToLoadRulesSplitter + exampleCTLRules fixture from
+    // ClickToLoadRulesSplitterTests.swift, both of which are macOS-only.
 
     #if os(macOS)
     /// Builds the same split TDS that production uses via ClickToLoadRulesSplitter,
@@ -586,7 +586,7 @@ final class TrackerProtectionEventMapperTests: XCTestCase {
     /// supplementary = [] (CTL TDS excluded per Option A).
     private func makeCtlInactiveMapper() throws -> TrackerProtectionEventMapper {
         let fullTDS = try JSONDecoder().decode(
-            TrackerData.self, from: CTLTests.exampleRules.data(using: .utf8)!)
+            TrackerData.self, from: Data(exampleCTLRules.utf8))
         let dataSet = TrackerDataManager.DataSet(tds: fullTDS, etag: "test")
         let ruleList = ContentBlockerRulesList(
             name: "TrackerDataSet", trackerData: nil, fallbackTrackerData: dataSet)
@@ -652,7 +652,7 @@ final class TrackerProtectionEventMapperTests: XCTestCase {
 
     func testCTLActiveSDKIsBlocked() throws {
         let fullTDS = try JSONDecoder().decode(
-            TrackerData.self, from: CTLTests.exampleRules.data(using: .utf8)!)
+            TrackerData.self, from: Data(exampleCTLRules.utf8))
         let dataSet = TrackerDataManager.DataSet(tds: fullTDS, etag: "test")
         let ruleList = ContentBlockerRulesList(
             name: "TrackerDataSet", trackerData: nil, fallbackTrackerData: dataSet)
