@@ -304,7 +304,7 @@ final public class UserContentController: WKUserContentController {
             guard !scriptMessageHandler.isMessageHandlerRegistered(for: messageName) else { continue }
 
             if #available(macOS 11.0, iOS 14.0, *) {
-                let contentWorld: WKContentWorld = userScript.getContentWorld()
+                let contentWorld = contentWorld(for: userScript)
                 if userScript is WKScriptMessageHandlerWithReply {
                     addScriptMessageHandler(scriptMessageHandler, contentWorld: contentWorld, name: messageName)
                 } else {
@@ -314,6 +314,19 @@ final public class UserContentController: WKUserContentController {
                 add(scriptMessageHandler, name: messageName)
             }
         }
+    }
+
+    @available(macOS 11.0, iOS 14.0, *)
+    private func contentWorld(for userScript: UserScript) -> WKContentWorld {
+        guard let contentScopeUserScript = userScript as? ContentScopeUserScript else {
+            return userScript.getContentWorld()
+        }
+
+        if contentScopeUserScript.scriptContext == .contentScope {
+            return .defaultClient
+        }
+
+        return userScript.getContentWorld()
     }
 
 }

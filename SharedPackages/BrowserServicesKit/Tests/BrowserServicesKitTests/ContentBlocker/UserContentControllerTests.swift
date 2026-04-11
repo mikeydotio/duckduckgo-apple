@@ -57,6 +57,7 @@ final class UserContentControllerTests: XCTestCase {
     override func setUp() async throws {
         _=WKUserContentController.swizzleContentRuleListsMethodsOnce
         _=WKUserContentController.swizzleScriptMessageHandlerMethodsOnce
+        WKUserContentController.resetInstalledScriptHandlers()
         ucc = UserContentController(assetsPublisher: assetsSubject, privacyConfigurationManager: PrivacyConfigurationManagerMock())
         ucc.delegate = self
     }
@@ -80,6 +81,45 @@ final class UserContentControllerTests: XCTestCase {
 
         XCTAssertTrue(ucc.registeredScriptHandlerNames.contains("message1"))
         XCTAssertTrue(ucc.registeredScriptHandlerNames.contains("message2"))
+    }
+
+    @MainActor
+    func testWhenContentScopePageWorldHandlerIsAddedThenItUsesDefaultClientContentWorld() async throws {
+        let properties = ContentScopeProperties(
+            gpcEnabled: false,
+            sessionKey: "",
+            messageSecret: "",
+            featureToggles: ContentScopeFeatureToggles(
+                emailProtection: false,
+                emailProtectionIncontextSignup: false,
+                credentialsAutofill: false,
+                identitiesAutofill: false,
+                creditCardsAutofill: false,
+                credentialsSaving: false,
+                passwordGeneration: false,
+                inlineIconCredentials: false,
+                thirdPartyCredentialsProvider: false,
+                unknownUsernameCategorization: false,
+                partialFormSaves: false,
+                passwordVariantCategorization: true,
+                inputFocusApi: false,
+                autocompleteAttributeSupport: false
+            )
+        )
+        let script = try ContentScopeUserScript(
+            PrivacyConfigurationManagerMock(),
+            properties: properties,
+            scriptContext: .contentScope,
+            privacyConfigurationJSONGenerator: nil
+        )
+
+        ucc.addHandler(script)
+
+        let handlerContentWorld = try XCTUnwrap(
+            ucc.registeredScriptHandlers.first(where: { $0.name == ContentScopeScriptContext.contentScope.messagingContextName })
+        ).contentWorld
+
+        XCTAssertEqual(handlerContentWorld, .defaultClient)
     }
 
     @MainActor
@@ -285,8 +325,16 @@ extension WKUserContentController {
         swizzled_add(scriptMessageHandler, contentWorld: contentWorld, name: name) // calling the original method
     }
 
+    static func resetInstalledScriptHandlers() {
+        installedScriptHandlers.removeAll()
+    }
+
     var registeredScriptHandlerNames: [String] {
         return Self.installedScriptHandlers.map { $0.2 }
+    }
+
+    var registeredScriptHandlers: [(handler: WKScriptMessageHandler, contentWorld: WKContentWorld, name: String)] {
+        Self.installedScriptHandlers.map { (handler: $0.0, contentWorld: $0.1, name: $0.2) }
     }
 }
 
