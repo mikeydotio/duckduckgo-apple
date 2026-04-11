@@ -253,6 +253,7 @@ final class AddressBarButtonsViewController: NSViewController {
         didSet {
             if isMouseOverNavigationBar != oldValue {
                 updateBookmarkButtonVisibility()
+                updatePermissionCenterButton()
             }
         }
     }
@@ -273,6 +274,7 @@ final class AddressBarButtonsViewController: NSViewController {
     private var privacyEntryPointIconUpdateCancellable: AnyCancellable?
     private var tabRemovalCancellables = Set<AnyCancellable>()
     private var aiChatChromeSidebarFeatureFlagCancellable: AnyCancellable?
+    private var videoPlaybackCancellable: AnyCancellable?
 
     private struct TrackerAnimationDomainState {
         var lastVisitedDomain: String?
@@ -602,6 +604,7 @@ final class AddressBarButtonsViewController: NSViewController {
             subscribeToUrl()
             subscribeToPermissions()
             subscribeToPrivacyEntryPointIconUpdateTrigger()
+            subscribeToVideoPlayback()
 
             updatePrivacyEntryPointIcon()
             updateAIChatButtonState()
@@ -685,6 +688,14 @@ final class AddressBarButtonsViewController: NSViewController {
         privacyEntryPointIconUpdateCancellable = tabViewModel?.privacyEntryPointIconUpdateTrigger
             .sink { [weak self] _ in
                 self?.updatePrivacyEntryPointIcon()
+            }
+    }
+
+    private func subscribeToVideoPlayback() {
+        videoPlaybackCancellable = tabViewModel?.tab.$mustDisplayAutoplayPolicy
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updatePermissionCenterButton()
             }
     }
 
@@ -838,7 +849,10 @@ final class AddressBarButtonsViewController: NSViewController {
         let domain = tabViewModel.tab.content.urlForWebView?.host ?? ""
         let hasAnyPersistedPermissions = permissionManager.hasAnyPermissionPersisted(forDomain: domain)
 
+        let isPermissionCenterPopoverShown = permissionCenterPopover?.isShown == true
+
         permissionCenterButton.isShown = tabViewModel.shouldShowPermissionCenterButton(
+            isPermissionCenterPopoverShown: isPermissionCenterPopoverShown,
             isTextFieldEditorFirstResponder: isTextFieldEditorFirstResponder,
             hasAnyPersistedPermissions: hasAnyPersistedPermissions
         )
@@ -1915,6 +1929,7 @@ final class AddressBarButtonsViewController: NSViewController {
             usedPermissionsPublisher: tabViewModel.$usedPermissions.eraseToAnyPublisher(),
             popupQueries: popupQueries,
             permissionManager: permissionManager,
+            autoplayPreferences: NSApp.delegateTyped.autoplayPreferences,
             featureFlagger: featureFlagger,
             removePermission: { [weak tabViewModel] permissionType in
                 tabViewModel?.tab.permissions.remove(permissionType)
@@ -1949,6 +1964,7 @@ final class AddressBarButtonsViewController: NSViewController {
             },
             hasTemporaryPopupAllowance: tabViewModel.tab.popupHandling?.popupsTemporarilyAllowedForCurrentPage ?? false,
             pageInitiatedPopupOpened: tabViewModel.tab.popupHandling?.pageInitiatedPopupOpened ?? false,
+            displaysAutoplayPolicy: tabViewModel.tab.mustDisplayAutoplayPolicy,
             permissionsNeedReload: tabViewModel.permissionsNeedReload
         )
 
@@ -2835,6 +2851,7 @@ extension TabViewModel {
 
     @MainActor
     func shouldShowPermissionCenterButton(
+        isPermissionCenterPopoverShown: Bool,
         isTextFieldEditorFirstResponder: Bool,
         hasAnyPersistedPermissions: Bool
     ) -> Bool {
@@ -2844,10 +2861,14 @@ extension TabViewModel {
         let shouldShowWhileFocused = (tab.content == .newtab) && hasRequestedPermission
         let isAnyPermissionPresent = !usedPermissions.values.isEmpty
         let pageInitiatedPopupOpened = tab.popupHandling?.pageInitiatedPopupOpened ?? false
+        let mustDisplayAutoplayPolicy = tab.mustDisplayAutoplayPolicy
 
         // Also show when a page-initiated popup was auto-allowed (due to "Always Allow" setting)
         // so user can access permission center to change the decision
-        return (shouldShowWhileFocused || (!isTextFieldEditorFirstResponder && (isAnyPermissionPresent || pageInitiatedPopupOpened || hasAnyPersistedPermissions)))
+        return (shouldShowWhileFocused
+            || (!isTextFieldEditorFirstResponder && (isAnyPermissionPresent || pageInitiatedPopupOpened || hasAnyPersistedPermissions))
+            || (!isTextFieldEditorFirstResponder && mustDisplayAutoplayPolicy)
+            || (!isTextFieldEditorFirstResponder && isPermissionCenterPopoverShown))
         && !isShowingErrorPage
     }
 
