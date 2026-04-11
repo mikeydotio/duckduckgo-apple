@@ -89,7 +89,7 @@ class ContentScopePropertiesTests: XCTestCase {
             featureToggles: ContentScopeFeatureToggles.allTogglesOn
         )
 
-        XCTAssertNil(properties.trackerData, "trackerData should be nil by default")
+        XCTAssertNil(properties.surrogateTrackerData, "surrogateTrackerData should be nil by default")
 
         // Verify the properties still encode correctly even with nil trackerData
         guard let jsonData = try? JSONEncoder().encode(properties),

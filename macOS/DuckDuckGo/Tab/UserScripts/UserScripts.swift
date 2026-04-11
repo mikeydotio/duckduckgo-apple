@@ -124,7 +124,7 @@ final class UserScripts: UserScriptsProvider, ReleaseNotesUserScriptProvider {
                                            featureToggles: ContentScopeFeatureToggles.supportedFeaturesOnMacOS(privacyConfig),
                                            currentCohorts: currentCohorts,
                                            themeVariant: themeVariant,
-                                           trackerData: sourceProvider.trackerProtectionDataSource?.surrogateFilteredTrackerData)
+                                           surrogateTrackerData: sourceProvider.trackerProtectionDataSource?.surrogateFilteredTrackerData)
         do {
             let configGenerator = ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: sourceProvider.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager, excludedFeatures: [PrivacyFeature.autoconsent.rawValue])
             let isolatedConfigGenerator = ContentScopePrivacyConfigurationJSONGenerator(featureFlagger: sourceProvider.featureFlagger, privacyConfigurationManager: sourceProvider.privacyConfigurationManager)

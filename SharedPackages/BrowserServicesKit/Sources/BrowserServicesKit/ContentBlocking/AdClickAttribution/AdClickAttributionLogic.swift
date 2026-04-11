@@ -239,6 +239,10 @@ public class AdClickAttributionLogic {
                   case .allowed(reason: .ruleException) = request.state,
                   let pageHost = URL(string: request.pageUrl)?.host?.droppingWwwPrefix(),
                   tld.eTLDplus1(pageHost) == vendor {
+            // A general TDS rule exception on the vendor's own page may allow a request
+            // that the attribution-specific rule list didn't explicitly tag as
+            // .adClickAttribution. Treat it as an attribution match so the activity
+            // pixel fires. Scoped to vendor pages to avoid false positives elsewhere.
             isAttributionMatch = true
         } else {
             isAttributionMatch = false

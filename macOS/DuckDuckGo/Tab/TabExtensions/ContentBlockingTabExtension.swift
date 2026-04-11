@@ -56,6 +56,24 @@ final class ContentBlockingTabExtension: NSObject {
     private let fbBlockingEnabledProvider: FbBlockingEnabledProvider
     private let tld: TLD
     private let contentBlockingManager: ContentBlockerRulesManagerProtocol
+
+    /// Cached mapper and the attribution vendor string used to build it.
+    /// Invalidated when the vendor changes (attribution activates/deactivates/changes vendor).
+    private var cachedMapper: TrackerProtectionEventMapper?
+    private var cachedMapperVendor: String??
+
+    private func mapper(forAttributionTrackerData attributionTrackerData: TrackerData?,
+                        vendor: String?) -> TrackerProtectionEventMapper? {
+        // Return cached mapper when the vendor (cache key) hasn't changed.
+        if let cachedMapper, cachedMapperVendor == vendor {
+            return cachedMapper
+        }
+        let mapper = makeMapper(attributionTrackerData: attributionTrackerData)
+        cachedMapper = mapper
+        cachedMapperVendor = vendor
+        return mapper
+    }
+
     private func makeMapper(attributionTrackerData: TrackerData?) -> TrackerProtectionEventMapper? {
         let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
         let attrListName = AdClickAttributionRulesSplitter.blockingAttributionRuleListName(forListNamed: tdsName)
@@ -178,7 +196,8 @@ extension ContentBlockingTabExtension: TrackerProtectionSubfeatureDelegate {
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didObserveResource observation: TrackerProtectionSubfeature.ResourceObservation) {
-        guard let mapper = makeMapper(attributionTrackerData: subfeature.currentAttributionTrackerData) else { return }
+        guard let mapper = mapper(forAttributionTrackerData: subfeature.currentAttributionTrackerData,
+                                  vendor: subfeature.currentAdClickAttributionVendor) else { return }
 
         if let detected = mapper.classifyResource(observation,
                                                    adClickAttributionVendor: subfeature.currentAdClickAttributionVendor) {
@@ -193,7 +212,8 @@ extension ContentBlockingTabExtension: TrackerProtectionSubfeatureDelegate {
 
     func trackerProtection(_ subfeature: TrackerProtectionSubfeature,
                            didInjectSurrogate surrogate: TrackerProtectionSubfeature.SurrogateInjection) {
-        guard let mapper = makeMapper(attributionTrackerData: subfeature.currentAttributionTrackerData),
+        guard let mapper = mapper(forAttributionTrackerData: subfeature.currentAttributionTrackerData,
+                                  vendor: subfeature.currentAdClickAttributionVendor),
               let detected = mapper.classifySurrogate(surrogate,
                                                       adClickAttributionVendor: subfeature.currentAdClickAttributionVendor),
               let host = mapper.surrogateHost(from: surrogate) else { return }
