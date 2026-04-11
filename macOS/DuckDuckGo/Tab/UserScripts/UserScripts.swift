@@ -21,6 +21,7 @@ import AppUpdaterShared
 import BrowserServicesKit
 import os.log
 import Foundation
+import PrivacyConfig
 import HistoryView
 import Persistence
 import PixelKit
