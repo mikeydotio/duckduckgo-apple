@@ -417,7 +417,7 @@ final class WebViewTestHarness: NSObject {
             sessionKey: UUID().uuidString,
             messageSecret: UUID().uuidString,
             featureToggles: .allTogglesOn,
-            surrogateTrackerData: cssTrackerData ?? trackerData
+            trackerData: cssTrackerData ?? trackerData
         )
 
         contentScopeUserScript = try ContentScopeUserScript(

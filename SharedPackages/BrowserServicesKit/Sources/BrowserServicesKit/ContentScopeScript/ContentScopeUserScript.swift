@@ -97,10 +97,9 @@ public final class ContentScopeProperties: Encodable {
     public let features: [String: ContentScopeFeature]
     public var currentCohorts: [ContentScopeExperimentData]
     public let themeVariant: String?
-    /// Surrogate-filtered tracker data for C-S-S surrogate injection.
-    /// Contains only trackers with surrogate rules, not the full TDS.
-    /// Encoded as "trackerData" for C-S-S compatibility.
-    public var surrogateTrackerData: TrackerData?
+    /// Tracker data payload for C-S-S injection.
+    /// Callers currently provide the surrogate-filtered subset used by C-S-S.
+    public var trackerData: TrackerData?
 
     public init(gpcEnabled: Bool,
                 sessionKey: String,
@@ -110,7 +109,7 @@ public final class ContentScopeProperties: Encodable {
                 featureToggles: ContentScopeFeatureToggles,
                 currentCohorts: [ContentScopeExperimentData] = [],
                 themeVariant: String? = nil,
-                surrogateTrackerData: TrackerData? = nil) {
+                trackerData: TrackerData? = nil) {
         self.globalPrivacyControlValue = gpcEnabled
         self.debug = debug
         self.sessionKey = sessionKey
@@ -122,7 +121,7 @@ public final class ContentScopeProperties: Encodable {
         ]
         self.currentCohorts = currentCohorts
         self.themeVariant = themeVariant
-        self.surrogateTrackerData = surrogateTrackerData
+        self.trackerData = trackerData
     }
 
     enum CodingKeys: String, CodingKey {
@@ -137,7 +136,7 @@ public final class ContentScopeProperties: Encodable {
         case features
         case currentCohorts
         case themeVariant
-        case surrogateTrackerData = "trackerData"
+        case trackerData = "trackerData"
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -153,8 +152,8 @@ public final class ContentScopeProperties: Encodable {
         try container.encode(currentCohorts, forKey: .currentCohorts)
         try container.encodeIfPresent(themeVariant, forKey: .themeVariant)
 
-        if let surrogateTrackerData {
-            try container.encode(JavaScriptTrackerData(from: surrogateTrackerData), forKey: .surrogateTrackerData)
+        if let trackerData {
+            try container.encode(JavaScriptTrackerData(from: trackerData), forKey: .trackerData)
         }
     }
 }
@@ -303,7 +302,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
                                       privacyConfigurationJSONGenerator: (any CustomisedPrivacyConfigurationJSONGenerating)? = nil
     ) throws -> String {
         if scriptContext != .contentScope {
-            properties.surrogateTrackerData = nil
+            properties.trackerData = nil
         }
 
         let privacyConfigJsonData = privacyConfigurationJSONGenerator?.privacyConfiguration ?? privacyConfigurationManager.currentConfig

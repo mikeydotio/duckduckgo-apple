@@ -32,7 +32,7 @@ class ContentScopePropertiesTests: XCTestCase {
         XCTAssertEqual(properties.platform.name, ContentScopePlatform().name)
     }
 
-    func testTrackerDataEncodedIntoUserPreferences() {
+    func testTrackerDataEncodedIntoUserPreferences() throws {
         let trackerData = TrackerData(
             trackers: ["tracker.example": KnownTracker(
                 domain: "tracker.example",
@@ -53,7 +53,7 @@ class ContentScopePropertiesTests: XCTestCase {
             sessionKey: "test-session",
             messageSecret: "test-secret",
             featureToggles: ContentScopeFeatureToggles.allTogglesOn,
-            surrogateTrackerData: trackerData
+            trackerData: trackerData
         )
 
         // Encode to JSON
@@ -101,7 +101,8 @@ class ContentScopePropertiesTests: XCTestCase {
             return
         }
         XCTAssertEqual(entity["displayName"] as? String, "Tracker Inc")
-        XCTAssertEqual((entity["prevalence"] as? NSNumber)?.doubleValue, 0.1, accuracy: 0.0001)
+        let prevalence = try XCTUnwrap((entity["prevalence"] as? NSNumber)?.doubleValue)
+        XCTAssertEqual(prevalence, 0.1, accuracy: 0.0001)
         XCTAssertNil(entity["domains"], "trackerData should omit entity.domains for JavaScript payloads")
     }
 
@@ -113,7 +114,7 @@ class ContentScopePropertiesTests: XCTestCase {
             featureToggles: ContentScopeFeatureToggles.allTogglesOn
         )
 
-        XCTAssertNil(properties.surrogateTrackerData, "surrogateTrackerData should be nil by default")
+        XCTAssertNil(properties.trackerData, "trackerData should be nil by default")
 
         // Verify the properties still encode correctly even with nil trackerData
         guard let jsonData = try? JSONEncoder().encode(properties),
