@@ -1,5 +1,5 @@
 {
-  "originHash" : "9442126bc03308cbb7130689bb56b5204b0037972159db90cf2bb9cfce92d807",
+  "originHash" : "17b8b6a4a36c0b5ff2e3dd0926e468785cd41085909d55c9524330d370849603",
   "pins" : [
     {
       "identity" : "apple-toolbox",
@@ -33,7 +33,6 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "branch" : "pr-releases/kmC/native-content-blocking-tests-059d",
         "revision" : "c65a56f22dd0d773f588f56db01d7fe26826d7ef"
       }
     },
