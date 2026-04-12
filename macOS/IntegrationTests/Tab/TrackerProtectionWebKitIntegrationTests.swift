@@ -273,15 +273,13 @@ final class TrackerProtectionWebKitIntegrationTests: XCTestCase {
             return false
         }
 
-        // If third-party request reporting is active, we expect at least one event
-        // for the non-tracker domain. If the C-S-S feature doesn't report this domain
-        // (not in TDS), this assertion documents the observed behavior.
-        if !thirdPartyEvents.isEmpty {
-            let nonTrackerEvent = thirdPartyEvents.first { $0.request.url.contains("nontrackercdn.org") }
-            if let event = nonTrackerEvent {
-                XCTAssertEqual(event.request.state, .allowed(reason: .otherThirdPartyRequest),
-                               "Non-tracker third-party should be allowed with .otherThirdPartyRequest reason")
-            }
-        }
+        try XCTSkipIf(thirdPartyEvents.isEmpty,
+                       "C-S-S did not report third-party events for non-TDS domains; " +
+                       "skip until resourceObserved covers all cross-origin requests")
+
+        let nonTrackerEvent = thirdPartyEvents.first { $0.request.url.contains("nontrackercdn.org") }
+        XCTAssertNotNil(nonTrackerEvent, "Expected a third-party event for nontrackercdn.org")
+        XCTAssertEqual(nonTrackerEvent?.request.state, .allowed(reason: .otherThirdPartyRequest),
+                       "Non-tracker third-party should be allowed with .otherThirdPartyRequest reason")
     }
 }

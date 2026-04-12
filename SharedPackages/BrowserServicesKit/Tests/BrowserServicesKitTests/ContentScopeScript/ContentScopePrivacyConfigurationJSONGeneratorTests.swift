@@ -93,7 +93,10 @@ final class ContentScopePrivacyConfigurationJSONGeneratorTests: XCTestCase {
 
     func testWhenTrackerAllowlistPresentThenItIsExcluded() {
         let features: [String: Any] = [
-            "contentBlocking": ["state": "enabled", "exceptions": []]
+            "contentBlocking": ["state": "enabled", "exceptions": []],
+            "trackerAllowlist": ["state": "enabled", "settings": ["allowlistedTrackers": [
+                "tracker.com": ["rules": [["rule": "tracker\\.com/.*", "domains": ["<all>"]]]]
+            ]]]
         ]
         let manager = makeManager(features: features)
 
