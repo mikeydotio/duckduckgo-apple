@@ -57,20 +57,20 @@ final class ContentBlockingTabExtension: NSObject {
     private let tld: TLD
     private let contentBlockingManager: ContentBlockerRulesManagerProtocol
 
-    /// Cached mapper and the attribution vendor string used to build it.
-    /// Invalidated when the vendor changes (attribution activates/deactivates/changes vendor).
     private var cachedMapper: TrackerProtectionEventMapper?
     private var cachedMapperVendor: String??
+    private var cachedMapperFbBlocking: Bool?
 
     private func mapper(forAttributionTrackerData attributionTrackerData: TrackerData?,
                         vendor: String?) -> TrackerProtectionEventMapper? {
-        // Return cached mapper when the vendor (cache key) hasn't changed.
-        if let cachedMapper, cachedMapperVendor == vendor {
+        let fbBlocking = fbBlockingEnabledProvider.fbBlockingEnabled
+        if let cachedMapper, cachedMapperVendor == vendor, cachedMapperFbBlocking == fbBlocking {
             return cachedMapper
         }
         let mapper = makeMapper(attributionTrackerData: attributionTrackerData)
         cachedMapper = mapper
         cachedMapperVendor = vendor
+        cachedMapperFbBlocking = fbBlocking
         return mapper
     }
 
