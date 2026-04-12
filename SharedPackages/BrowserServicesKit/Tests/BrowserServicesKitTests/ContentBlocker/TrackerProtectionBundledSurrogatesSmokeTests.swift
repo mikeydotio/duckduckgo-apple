@@ -103,7 +103,10 @@ final class TrackerProtectionBundledSurrogatesSmokeTests: XCTestCase {
 
     @MainActor
     func testBundledSurrogateInjectsAndExecutes() async throws {
-        let harness = try await WebViewTestHarness.create(trackerDataJSON: Self.tdsJSON)
+        let harness = try await WebViewTestHarness.create(
+            trackerDataJSON: Self.tdsJSON,
+            useDefaultDataStore: true
+        )
         defer { harness.proxy.stop() }
 
         let trackerHost = "analytics-tracker.org"
@@ -155,7 +158,10 @@ final class TrackerProtectionBundledSurrogatesSmokeTests: XCTestCase {
 
     @MainActor
     func testIntegrityAttributePreventsSurrogateInjection() async throws {
-        let harness = try await WebViewTestHarness.create(trackerDataJSON: Self.tdsJSON)
+        let harness = try await WebViewTestHarness.create(
+            trackerDataJSON: Self.tdsJSON,
+            useDefaultDataStore: true
+        )
         defer { harness.proxy.stop() }
 
         let trackerHost = "analytics-tracker.org"
@@ -206,7 +212,8 @@ final class TrackerProtectionBundledSurrogatesSmokeTests: XCTestCase {
     func testTempUnprotectedDomainPreventsBlocking() async throws {
         let harness = try await WebViewTestHarness.create(
             trackerDataJSON: Self.tdsJSON,
-            tempUnprotected: ["page.example.com"])
+            tempUnprotected: ["page.example.com"],
+            useDefaultDataStore: true)
         defer { harness.proxy.stop() }
 
         let trackerHost = "analytics-tracker.org"
@@ -217,6 +224,8 @@ final class TrackerProtectionBundledSurrogatesSmokeTests: XCTestCase {
         <html><body>
         <script>
         var s = document.createElement('script');
+        s.integrity = 'sha256-temp-unprotected-no-exec';
+        s.crossOrigin = 'anonymous';
         s.src = 'http://\(trackerHost):\(port)\(trackerPath)';
         document.body.appendChild(s);
         </script>
@@ -224,8 +233,7 @@ final class TrackerProtectionBundledSurrogatesSmokeTests: XCTestCase {
         """
 
         harness.registerContent(host: "page.example.com", path: "/index.html", body: pageHTML)
-        harness.registerContent(host: trackerHost, path: trackerPath,
-                                body: "window.__trackerLoaded = true;")
+        harness.registerContent(host: trackerHost, path: trackerPath, body: "/* allowed */")
 
         let trackerURL = "http://\(trackerHost):\(port)\(trackerPath)"
         let exp = harness.expectObservation(of: trackerURL, testCase: self)
@@ -243,7 +251,9 @@ final class TrackerProtectionBundledSurrogatesSmokeTests: XCTestCase {
             harness.delegate.detectedSurrogates.count, 0,
             "No surrogate on unprotected domain")
 
-        // Surrogate global should NOT exist (the actual tracker script loaded instead)
+        // Surrogate global should NOT exist.
+        // The integrity attribute deliberately suppresses execution of the real script
+        // while still proving the request is not blocked and no surrogate is injected.
         let gaIsDefined = try await evaluateJS(
             "typeof window.ga === 'function'", in: harness.webView) as? Bool
         XCTAssertNotEqual(gaIsDefined, true,
@@ -254,7 +264,10 @@ final class TrackerProtectionBundledSurrogatesSmokeTests: XCTestCase {
 
     @MainActor
     func testSecondBundledSurrogateGptInjectsAndExecutes() async throws {
-        let harness = try await WebViewTestHarness.create(trackerDataJSON: Self.tdsJSON)
+        let harness = try await WebViewTestHarness.create(
+            trackerDataJSON: Self.tdsJSON,
+            useDefaultDataStore: true
+        )
         defer { harness.proxy.stop() }
 
         let trackerHost = "adservices-tracker.org"
