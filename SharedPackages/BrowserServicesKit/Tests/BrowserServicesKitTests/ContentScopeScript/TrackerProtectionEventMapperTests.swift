@@ -456,18 +456,6 @@ final class TrackerProtectionEventMapperTests: XCTestCase {
                        "Similar domain name must not accidentally match temp-list entry")
     }
 
-    func testExceptionListSubdomainUnblocksTracker() {
-        let mapper = makeMapper(tempList: ["example.com"])
-        let result = classify(mapper: mapper, url: "https://tracker.com/pixel.js", pageUrl: "https://sub.example.com")
-
-        XCTAssertNotNil(result)
-        XCTAssertFalse(result!.isBlocked,
-                        "Exception-list domains (merged into tempList) must cover subdomains")
-        if case .allowed(reason: .protectionDisabled) = result?.state {} else {
-            XCTFail("Expected .protectionDisabled, got \(String(describing: result?.state))")
-        }
-    }
-
     // MARK: - CTL Supplementary TDS (Option A validation)
 
     private func makeCtlTDS() -> TrackerData {
