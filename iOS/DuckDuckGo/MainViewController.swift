@@ -152,8 +152,11 @@ class MainViewController: UIViewController {
     private var vpnCancellables = Set<AnyCancellable>()
     private var feedbackCancellable: AnyCancellable?
     private var aiChatCancellables = Set<AnyCancellable>()
+    private var pictureInPictureCancellables = Set<AnyCancellable>()
     private var settingsCancellables = Set<AnyCancellable>()
     private var syncRecoveryPromptService: SyncRecoveryPromptService?
+    private var pictureInPictureOriginatingTabID: String?
+    private var shouldRestorePictureInPictureOriginatingTab = false
 
     let subscriptionFeatureAvailability: SubscriptionFeatureAvailability
     let subscriptionDataReporter: SubscriptionDataReporting
@@ -489,6 +492,7 @@ class MainViewController: UIViewController {
         subscribeToNetworkProtectionEvents()
         subscribeToUnifiedFeedbackNotifications()
         subscribeToAIChatSettingsEvents()
+        subscribeToPictureInPictureEvents()
         subscribeToRefreshButtonSettingsEvents()
         subscribeToCustomizationSettingsEvents()
         subscribeToDaxEasterEggLogoChanges()
@@ -2169,6 +2173,32 @@ class MainViewController: UIViewController {
             }
             .store(in: &aiChatCancellables)
     }
+
+    private func subscribeToPictureInPictureEvents() {
+        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.restorePictureInPictureTabIfNeeded()
+            }
+            .store(in: &pictureInPictureCancellables)
+    }
+
+    private func restorePictureInPictureTabIfNeeded() {
+        guard shouldRestorePictureInPictureOriginatingTab,
+              let pictureInPictureOriginatingTabID else {
+            return
+        }
+
+        defer {
+            shouldRestorePictureInPictureOriginatingTab = false
+            self.pictureInPictureOriginatingTabID = nil
+        }
+
+        guard currentTab?.tabModel.uid != pictureInPictureOriginatingTabID else { return }
+        guard let tab = tabManager.first(withId: pictureInPictureOriginatingTabID) else { return }
+
+        selectTab(tab)
+    }
     
     private func subscribeToRefreshButtonSettingsEvents() {
         NotificationCenter.default.publisher(for: AppUserDefaults.Notifications.refreshButtonSettingsChanged)
@@ -3469,6 +3499,26 @@ extension MainViewController: TabDelegate {
             viewCoordinator.omniBar.updatePrivacyIcon(for: privacyInfo)
             themeColorManager.updateThemeColor()
         }
+    }
+
+    func tab(_ tab: TabViewController, didChangePictureInPictureState isActive: Bool) {
+        if isActive {
+            pictureInPictureOriginatingTabID = tab.tabModel.uid
+            shouldRestorePictureInPictureOriginatingTab = false
+            return
+        }
+
+        guard pictureInPictureOriginatingTabID == tab.tabModel.uid else {
+            return
+        }
+
+        shouldRestorePictureInPictureOriginatingTab = true
+
+        guard UIApplication.shared.applicationState == .active else {
+            return
+        }
+
+        restorePictureInPictureTabIfNeeded()
     }
     
     func tab(_ tab: TabViewController, didExtractDaxEasterEggLogoURL logoURL: String?) {

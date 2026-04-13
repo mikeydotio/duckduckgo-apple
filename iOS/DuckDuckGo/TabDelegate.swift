@@ -138,6 +138,7 @@ protocol TabDelegate: AnyObject {
 
     func tabDidRequestRefresh(tab: TabViewController)
     func tabDidRequestNavigationToDifferentSite(tab: TabViewController)
+    func tab(_ tab: TabViewController, didChangePictureInPictureState isActive: Bool)
     
     var isAIChatEnabled: Bool { get }
 
@@ -150,5 +151,7 @@ extension TabDelegate {
     func tabDidRequestClose(_ tab: TabViewController) {
         tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true)
     }
+
+    func tab(_ tab: TabViewController, didChangePictureInPictureState isActive: Bool) {}
     
 }

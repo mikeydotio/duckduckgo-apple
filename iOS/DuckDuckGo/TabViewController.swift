@@ -3018,6 +3018,9 @@ extension TabViewController: UserContentControllerDelegate {
     private var contentBlockerUserScript: ContentBlockerRulesUserScript? {
         userScripts?.contentBlockerUserScript
     }
+    private var fullScreenVideoScript: FullScreenVideoUserScript? {
+        userScripts?.fullScreenVideoScript
+    }
     private var autofillUserScript: AutofillUserScript? {
         userScripts?.autofillUserScript
     }
@@ -3031,6 +3034,7 @@ extension TabViewController: UserContentControllerDelegate {
         userScripts.debugScript.instrumentation = instrumentation
         userScripts.surrogatesScript.delegate = self
         userScripts.contentBlockerUserScript.delegate = self
+        userScripts.fullScreenVideoScript.delegate = self
         userScripts.autofillUserScript.emailDelegate = emailManager
         userScripts.autofillUserScript.vaultDelegate = vaultManager
         userScripts.autofillUserScript.passwordImportDelegate = credentialsImportManager
@@ -3083,6 +3087,13 @@ extension TabViewController: UserContentControllerDelegate {
         }
     }
 
+}
+
+// MARK: - FullScreenVideoUserScriptDelegate
+extension TabViewController: FullScreenVideoUserScriptDelegate {
+    func fullScreenVideoUserScript(_ script: FullScreenVideoUserScript, didChangePictureInPictureState isActive: Bool) {
+        delegate?.tab(self, didChangePictureInPictureState: isActive)
+    }
 }
 
 // MARK: - ContentBlockerRulesUserScriptDelegate

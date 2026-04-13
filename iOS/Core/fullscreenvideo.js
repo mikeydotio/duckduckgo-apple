@@ -24,9 +24,52 @@
 (function () {
     const canEnterFullscreen = HTMLVideoElement.prototype.webkitEnterFullscreen !== undefined
     const browserHasExistingFullScreenSupport = document.fullscreenEnabled || document.webkitFullscreenEnabled
+    const pictureInPictureMessageHandler = 'pictureInPictureState'
+    let isPictureInPictureActive = false
 
     // YouTube Mobile won't exit fullscreen correctly if requestFullscreen is overridden. Reference: https://github.com/brave/brave-ios/pull/2002
     const isMobile = /mobile/i.test(navigator.userAgent)
+
+    function postPictureInPictureState(isActive) {
+        if (isPictureInPictureActive === isActive) {
+            return
+        }
+
+        isPictureInPictureActive = isActive
+        window.webkit?.messageHandlers?.[pictureInPictureMessageHandler]?.postMessage({
+            isActive
+        })
+    }
+
+    function onPictureInPictureStateChange(video) {
+        const presentationMode = typeof video.webkitPresentationMode === 'string' ? video.webkitPresentationMode : null
+        const isActive = presentationMode === 'picture-in-picture'
+
+        if (isActive) {
+            postPictureInPictureState(true)
+        } else if (isPictureInPictureActive) {
+            postPictureInPictureState(false)
+        }
+    }
+
+    function trackVideo(video) {
+        if (video.ddgPictureInPictureTracked) {
+            return
+        }
+
+        video.ddgPictureInPictureTracked = true
+        video.addEventListener('enterpictureinpicture', () => postPictureInPictureState(true))
+        video.addEventListener('leavepictureinpicture', () => postPictureInPictureState(false))
+        video.addEventListener('webkitpresentationmodechanged', () => onPictureInPictureStateChange(video))
+    }
+
+    function trackVideos(root) {
+        if (!root?.querySelectorAll) {
+            return
+        }
+
+        root.querySelectorAll('video').forEach(trackVideo)
+    }
 
     if (!browserHasExistingFullScreenSupport && canEnterFullscreen && !isMobile) {
         Object.defineProperty(document, 'fullscreenEnabled', {
@@ -44,4 +87,21 @@
             return false
         }
     }
+
+    trackVideos(document)
+
+    new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node instanceof HTMLVideoElement) {
+                    trackVideo(node)
+                } else {
+                    trackVideos(node)
+                }
+            })
+        })
+    }).observe(document.documentElement, {
+        childList: true,
+        subtree: true
+    })
 })()

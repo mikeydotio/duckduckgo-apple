@@ -20,7 +20,15 @@
 import WebKit
 import UserScript
 
+public protocol FullScreenVideoUserScriptDelegate: AnyObject {
+    func fullScreenVideoUserScript(_ script: FullScreenVideoUserScript, didChangePictureInPictureState isActive: Bool)
+}
+
 public class FullScreenVideoUserScript: NSObject, UserScript {
+    private enum MessageNames {
+        static let pictureInPictureState = "pictureInPictureState"
+    }
+
     public var source: String {
         do {
             return try Self.loadJS("fullscreenvideo", from: Bundle.core)
@@ -34,8 +42,17 @@ public class FullScreenVideoUserScript: NSObject, UserScript {
 
     public var injectionTime: WKUserScriptInjectionTime = .atDocumentStart
     public var forMainFrameOnly: Bool = false
-    public var messageNames: [String] = []
+    public var messageNames: [String] = [MessageNames.pictureInPictureState]
     public var requiresRunInPageContentWorld: Bool { true }
+    public weak var delegate: FullScreenVideoUserScriptDelegate?
 
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {}
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == MessageNames.pictureInPictureState,
+              let body = message.body as? [String: Any],
+              let isActive = body["isActive"] as? Bool else {
+            return
+        }
+
+        delegate?.fullScreenVideoUserScript(self, didChangePictureInPictureState: isActive)
+    }
 }
