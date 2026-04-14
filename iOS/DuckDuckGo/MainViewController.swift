@@ -82,6 +82,9 @@ struct StartupOnboardingDecision {
 
 class MainViewController: UIViewController {
 
+    /// iOS may deliver buffered accelerometer data as a spurious shake when returning from background.
+    private static let shakeIgnoreIntervalAfterForeground: TimeInterval = 1.5
+
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return ThemeManager.shared.currentTheme.statusBarStyle
     }
@@ -200,6 +203,7 @@ class MainViewController: UIViewController {
     private var feedbackCancellable: AnyCancellable?
     private var aiChatCancellables = Set<AnyCancellable>()
     private var settingsCancellables = Set<AnyCancellable>()
+    private var lastForegroundEntryDate = Date.distantPast
     private var syncRecoveryPromptService: SyncRecoveryPromptService?
     private var currentNTPEscapeHatch: EscapeHatchModel?
     private var hasCompletedInitialLoad = false
@@ -1672,6 +1676,8 @@ class MainViewController: UIViewController {
     }
     
     func onForeground() {
+        lastForegroundEntryDate = Date()
+
         fireExperimentalAddressBarPixel()
         fireIPadToggleStateOnAppOpenPixel()
         fireContextualAutoAttachPixel()
@@ -3742,17 +3748,16 @@ extension MainViewController: OmniBarDelegate {
     }
 
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        defer { super.motionEnded(motion, with: event) }
+
         if motion == .motionShake, featureFlagger.internalUserDecider.isInternalUser || isDebugBuild {
-            var topVC: UIViewController = self
-            while let presented = topVC.presentedViewController {
-                topVC = presented
+            guard Date().timeIntervalSince(lastForegroundEntryDate) > Self.shakeIgnoreIntervalAfterForeground else {
+                Logger.lifecycle.debug("Ignoring shake shortly after foregrounding")
+                return
             }
-            if !(topVC is DebugScreensViewController),
-               !((topVC as? UINavigationController)?.viewControllers.first is DebugScreensViewController) {
-                segueToDebugSettings()
-            }
+
+            segueToDebugSettings()
         }
-        super.motionEnded(motion, with: event)
     }
 
     func performCancel() {

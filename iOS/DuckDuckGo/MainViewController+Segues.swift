@@ -506,6 +506,12 @@ extension MainViewController {
     private func launchDebugSettings(completion: ((DebugScreensViewController) -> Void)? = nil) {
         Logger.lifecycle.debug(#function)
 
+        let presenter = topMostPresentedViewController() ?? self
+        guard !(presenter is DebugScreensViewController),
+              !((presenter as? UINavigationController)?.viewControllers.first is DebugScreensViewController) else {
+            return
+        }
+
         let debug = DebugScreensViewController(dependencies: .init(
             syncService: self.syncService,
             syncAutoRestoreHandler: self.syncAutoRestoreHandler,
@@ -530,10 +536,6 @@ extension MainViewController {
 
         let controller = UINavigationController(rootViewController: debug)
         controller.modalPresentationStyle = .automatic
-        var presenter: UIViewController = self
-        while let presented = presenter.presentedViewController {
-            presenter = presented
-        }
         presenter.present(controller, animated: true) {
             completion?(debug)
         }
