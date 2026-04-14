@@ -33,14 +33,17 @@ extension OnboardingRebranding.OnboardingView {
 
         @State private var showAddToDockTutorial = false
         @Binding var showContent: Bool
+        private let copy: OnboardingAddToDockPromoStepCopy
         private let showTutorialAction: () -> Void
         private let dismissAction: (_ fromAddToDock: Bool) -> Void
 
         init(
+            copy: OnboardingAddToDockPromoStepCopy,
             showContent: Binding<Bool>,
             showTutorialAction: @escaping () -> Void,
             dismissAction: @escaping (_ fromAddToDock: Bool) -> Void
         ) {
+            self.copy = copy
             self._showContent = showContent
             self.showTutorialAction = showTutorialAction
             self.dismissAction = dismissAction
@@ -65,7 +68,7 @@ extension OnboardingRebranding.OnboardingView {
                     actionsSpacing: onboardingTheme.linearOnboardingMetrics.actionsSpacing
                 ),
                 message: AnyView(
-                    Text(UserText.AddToDockOnboarding.Promo.introMessage)
+                    Text(copy.message)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.body)
                         .multilineTextAlignment(.center)
@@ -74,7 +77,7 @@ extension OnboardingRebranding.OnboardingView {
                     addToDockPromoView
                 ),
                 title: {
-                    Text(UserText.AddToDockOnboarding.Promo.title)
+                    Text(copy.title)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .font(onboardingTheme.typography.title)
                         .multilineTextAlignment(.center)
@@ -82,12 +85,12 @@ extension OnboardingRebranding.OnboardingView {
                 actions: {
                     VStack(spacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing) {
                         Button(action: showTutorial) {
-                            Text(UserText.AddToDockOnboarding.Buttons.tutorial)
+                            Text(copy.primaryCTA)
                         }
                         .buttonStyle(onboardingTheme.primaryButtonStyle.style)
 
                         Button(action: { dismissAction(false) }) {
-                            Text(UserText.AddToDockOnboarding.Buttons.skip)
+                            Text(copy.secondaryCTA)
                         }
                         .buttonStyle(onboardingTheme.secondaryButtonStyle.style)
                     }

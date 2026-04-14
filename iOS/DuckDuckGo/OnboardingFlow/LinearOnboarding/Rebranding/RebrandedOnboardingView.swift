@@ -200,11 +200,11 @@ extension OnboardingRebranding {
         var body: some View {
             ZStack(alignment: .topTrailing) {
                 switch model.state {
-                case .landing:
+                case let .landing(copy):
                     onboardingTheme.colorPalette.background
                         .ignoresSafeArea()
 
-                    landingView
+                    landingView(copy: copy)
                         .transition(AnyTransition.slideLeftAndFade.animation(.easeOut(duration: 1.0)))
                 case let .onboarding(viewState):
                     onboardingTheme.colorPalette.background
@@ -270,8 +270,8 @@ extension OnboardingRebranding {
             .opacity(isExperimentExitTransitionActive && isExperimentSearchStep ? 0 : 1)
         }
 
-        private var landingView: some View {
-            LandingView(animationNamespace: animationNamespace) {
+        private func landingView(copy: OnboardingWelcomeStepCopy) -> some View {
+            LandingView(copy: copy, animationNamespace: animationNamespace) {
                 withAnimation {
                     model.onAppear()
                 }
@@ -281,7 +281,7 @@ extension OnboardingRebranding {
         }
 
         @ViewBuilder
-        private func introView(dialogType: ViewState.Intro.IntroDialogType) -> some View {
+        private func introView(dialogType: ViewState.Intro.IntroDialogType, copy: OnboardingIntroStepCopy) -> some View {
             let skipOnboardingView: AnyView? = if dialogType == .default {
                 nil
             } else {
@@ -315,8 +315,8 @@ extension OnboardingRebranding {
                 )
             case .skipTutorial, .default:
                 IntroDialogContent(
-                    title: UserText.Onboarding.Rebranding.Intro.title,
-                    message: UserText.Onboarding.Rebranding.Intro.message,
+                    title: copy.title,
+                    message: copy.message,
                     skipOnboardingView: skipOnboardingView,
                     showContent: $showBubbleContent,
                     continueAction: {
@@ -383,12 +383,12 @@ extension OnboardingRebranding {
         @ViewBuilder
         private func bubbleBackedDialogContent(for type: ViewState.Intro.IntroType) -> some View {
             switch type {
-            case .startOnboardingDialog(let dialogType):
-                introView(dialogType: dialogType)
+            case let .startOnboardingDialog(dialogType, copy):
+                introView(dialogType: dialogType, copy: copy)
             case .browsersComparisonDialog:
                 browsersComparisonView
-            case .addToDockPromoDialog:
-                addToDockPromoView
+            case let .addToDockPromoDialog(copy):
+                addToDockPromoView(copy: copy)
             case .chooseAppIconDialog:
                 appIconPickerView
             case .chooseAddressBarPositionDialog:
@@ -461,8 +461,9 @@ extension OnboardingRebranding {
             }
         }
 
-        private var addToDockPromoView: some View {
+        private func addToDockPromoView(copy: OnboardingAddToDockPromoStepCopy) -> some View {
             AddToDockPromoContent(
+                copy: copy,
                 showContent: $showBubbleContent,
                 showTutorialAction: {
                     // Don't use animateContentTransition here - the child handles it
@@ -613,5 +614,180 @@ private struct SlideLeftAndFadeModifier: ViewModifier, Animatable {
                 // Fade out twice as fast as the slide, clamped to avoid negative opacity
                 .opacity(max(0, 1.0 - progress * 2))
         }
+    }
+}
+
+import protocol PrivacyConfig.FeatureFlagger
+
+struct OnboardingWelcomeStepCopy: Equatable {
+    let title: String
+}
+
+struct OnboardingIntroStepCopy: Equatable {
+    struct SkipFlowStepCopy: Equatable {
+        let title: String
+        let message: String
+        let primaryCTA: String
+        let secondaryCTA: String
+    }
+
+    let title: String
+    let message: String
+    let primaryCTA: String
+    let secondaryCTA: String
+
+    let skipFlowStepCopy: SkipFlowStepCopy?
+}
+
+struct OnboardingBrowserComparisonStepCopy: Equatable {
+    let title: String
+    let primaryCTA: String
+    let secondaryCTA: String
+}
+
+struct OnboardingAddToDockPromoStepCopy: Equatable {
+    let title: String
+    let message: String
+    let primaryCTA: String
+    let secondaryCTA: String
+}
+
+struct OnboardingAppIconColorStepCopy: Equatable {
+    let title: String
+    let message: String
+    let primaryCTA: String
+}
+
+struct OnboardingAddressBarPositionStepCopy: Equatable {
+    let title: String
+    let option1Title: String
+    let option1Message: String
+    let option2Title: String
+    let option2Message: String
+    let primaryCTA: String
+}
+
+struct OnboardingSearchExperienceStepCopy: Equatable {
+    let title: String
+    let option1Title: String
+    let option2Title: String
+    let primaryCTA: String
+    let footer: AttributedString
+}
+
+protocol LinearOnboardingCopyProviding {
+    func provideWelcomeStepCopy(flowType: OnboardingFlowType) -> OnboardingWelcomeStepCopy
+    func provideIntroStepCopy(flowType: OnboardingFlowType) -> OnboardingIntroStepCopy
+    func provideBrowserComparisonStepCopy(flowType: OnboardingFlowType) -> OnboardingBrowserComparisonStepCopy
+    func provideAddToDockPromoStepCopy(flowType: OnboardingFlowType) -> OnboardingAddToDockPromoStepCopy
+    func provideAppIconColorStepCopy(flowType: OnboardingFlowType) -> OnboardingAppIconColorStepCopy
+    func provideAddressBarPositionStepCopy(flowType: OnboardingFlowType) -> OnboardingAddressBarPositionStepCopy
+    func provideSearchExperienceStepCopy(flowType: OnboardingFlowType) -> OnboardingSearchExperienceStepCopy
+}
+
+struct LinearOnboardingCopyProvider: LinearOnboardingCopyProviding {
+    private let featureFlagger: FeatureFlagger
+
+    init(featureFlagger: FeatureFlagger) {
+        self.featureFlagger = featureFlagger
+    }
+
+    func provideWelcomeStepCopy(flowType: OnboardingFlowType) -> OnboardingWelcomeStepCopy {
+        let title: String
+        switch flowType {
+        case .standard:
+            title = UserText.onboardingWelcomeHeader
+        case .tailored(.duckAI):
+            title = UserText.onboardingWelcomeHeader + "Duck.ai"
+        }
+
+        return OnboardingWelcomeStepCopy(title: title)
+    }
+
+    func provideIntroStepCopy(flowType: OnboardingFlowType) -> OnboardingIntroStepCopy {
+        switch flowType {
+        case .standard:
+            OnboardingIntroStepCopy(
+                title: UserText.Onboarding.Rebranding.Intro.title,
+                message: UserText.Onboarding.Rebranding.Intro.message,
+                primaryCTA: UserText.Onboarding.Intro.continueCTA,
+                secondaryCTA: UserText.Onboarding.Intro.skipCTA,
+                skipFlowStepCopy: .init(
+                    title: UserText.Onboarding.Skip.title,
+                    message: UserText.Onboarding.Skip.message,
+                    primaryCTA: UserText.Onboarding.Skip.resumeOnboardingCTA,
+                    secondaryCTA: UserText.Onboarding.Skip.confirmSkipOnboardingCTA
+                )
+            )
+        case .tailored(.duckAI):
+            OnboardingIntroStepCopy(
+                title: UserText.Onboarding.Rebranding.Intro.title,
+                message: "Ready to chat privately with ChatGPT, Claude, and other AIs for free, in a browser that actively protects you?",
+                primaryCTA: UserText.Onboarding.Intro.continueCTA,
+                secondaryCTA: UserText.Onboarding.Intro.skipCTA,
+                skipFlowStepCopy: .init(
+                    title: UserText.Onboarding.Skip.title,
+                    message: "Remember: you can use Duck.ai from anywhere you see the chat icon",
+                    primaryCTA: UserText.Onboarding.Skip.resumeOnboardingCTA,
+                    secondaryCTA: UserText.Onboarding.Skip.confirmSkipOnboardingCTA
+                )
+            )
+        }
+    }
+
+    func provideBrowserComparisonStepCopy(flowType: OnboardingFlowType) -> OnboardingBrowserComparisonStepCopy {
+        OnboardingBrowserComparisonStepCopy(
+            title: UserText.Onboarding.BrowsersComparison.title,
+            primaryCTA: UserText.Onboarding.BrowsersComparison.cta,
+            secondaryCTA: UserText.onboardingSkip
+        )
+    }
+
+    func provideAddToDockPromoStepCopy(flowType: OnboardingFlowType) -> OnboardingAddToDockPromoStepCopy {
+        switch flowType {
+        case .standard:
+            OnboardingAddToDockPromoStepCopy(
+                title: UserText.AddToDockOnboarding.Promo.title,
+                message: UserText.AddToDockOnboarding.Promo.introMessage,
+                primaryCTA: UserText.AddToDockOnboarding.Buttons.tutorial,
+                secondaryCTA: UserText.AddToDockOnboarding.Buttons.skip
+            )
+        case .tailored(.duckAI):
+            OnboardingAddToDockPromoStepCopy(
+                title: UserText.AddToDockOnboarding.Promo.title,
+                message: "I'll nest in easy reach for all your daily AI chats and browsing.",
+                primaryCTA: UserText.AddToDockOnboarding.Buttons.tutorial,
+                secondaryCTA: UserText.AddToDockOnboarding.Buttons.skip
+            )
+        }
+    }
+
+    func provideAppIconColorStepCopy(flowType: OnboardingFlowType) -> OnboardingAppIconColorStepCopy {
+        OnboardingAppIconColorStepCopy(
+            title: UserText.Onboarding.AppIconSelection.title,
+            message: UserText.Onboarding.AppIconSelection.message,
+            primaryCTA: UserText.Onboarding.AppIconSelection.cta
+        )
+    }
+
+    func provideAddressBarPositionStepCopy(flowType: OnboardingFlowType) -> OnboardingAddressBarPositionStepCopy {
+        OnboardingAddressBarPositionStepCopy(
+            title: UserText.Onboarding.AddressBarPosition.title,
+            option1Title: UserText.Onboarding.AddressBarPosition.topTitle,
+            option1Message: UserText.Onboarding.AddressBarPosition.topMessage,
+            option2Title: UserText.Onboarding.AddressBarPosition.bottomTitle,
+            option2Message: UserText.Onboarding.AddressBarPosition.bottomMessage,
+            primaryCTA: UserText.Onboarding.AddressBarPosition.cta
+        )
+    }
+
+    func provideSearchExperienceStepCopy(flowType: OnboardingFlowType) -> OnboardingSearchExperienceStepCopy {
+        OnboardingSearchExperienceStepCopy(
+            title: UserText.Onboarding.SearchExperience.title,
+            option1Title: UserText.Onboarding.SearchExperience.searchOnlyOption,
+            option2Title: UserText.Onboarding.SearchExperience.searchAndDuckAIOption,
+            primaryCTA: UserText.Onboarding.SearchExperience.cta,
+            footer: AttributedString(UserText.Onboarding.SearchExperience.footerAttributed())
+        )
     }
 }

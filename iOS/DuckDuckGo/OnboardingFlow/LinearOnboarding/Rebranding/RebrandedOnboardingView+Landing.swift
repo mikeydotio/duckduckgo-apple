@@ -160,6 +160,7 @@ extension OnboardingRebranding.OnboardingView {
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
         @Environment(\.onboardingTheme) private var onboardingTheme
 
+        let copy: OnboardingWelcomeStepCopy
         let animationNamespace: Namespace.ID
         var onAnimationComplete: () -> Void
 
@@ -208,7 +209,7 @@ extension OnboardingRebranding.OnboardingView {
                     .opacity(logo.opacity)
 
                 // Text
-                Text(UserText.onboardingWelcomeHeader)
+                Text(copy.title)
                     .font(onboardingTheme.typography.largeTitle)
                     .foregroundStyle(onboardingTheme.colorPalette.textPrimary)
                     .multilineTextAlignment(.center)

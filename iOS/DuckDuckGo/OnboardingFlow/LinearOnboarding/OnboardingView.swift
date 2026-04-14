@@ -85,7 +85,7 @@ struct OnboardingView: View {
                     content: {
                         VStack {
                             switch state.type {
-                            case .startOnboardingDialog(let dialogType):
+                            case let .startOnboardingDialog(dialogType, _):
                                 introView(dialogType: dialogType)
                             case .browsersComparisonDialog:
                                 browsersComparisonView
@@ -115,7 +115,7 @@ struct OnboardingView: View {
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.daxDialogVisibilityDelay) {
                     model.introState.showDaxDialogBox = true
-                    if case .startOnboardingDialog(type: .restoreData) = state.type {
+                    if case .startOnboardingDialog(type: .restoreData, _) = state.type {
                         model.restorePromptState.animateTitle = true
                     } else {
                         model.introState.animateIntroText = true
@@ -305,7 +305,7 @@ struct OnboardingView: View {
 extension OnboardingView {
 
     enum ViewState: Equatable {
-        case landing
+        case landing(copy: OnboardingWelcomeStepCopy)
         case onboarding(Intro)
 
         var intro: Intro? {
@@ -338,9 +338,9 @@ extension OnboardingView.ViewState.Intro {
     }
 
     enum IntroType: Equatable {
-        case startOnboardingDialog(type: IntroDialogType)
+        case startOnboardingDialog(type: IntroDialogType, copy: OnboardingIntroStepCopy)
         case browsersComparisonDialog
-        case addToDockPromoDialog
+        case addToDockPromoDialog(copy: OnboardingAddToDockPromoStepCopy)
         case chooseAppIconDialog
         case chooseAddressBarPositionDialog
         case chooseSearchExperienceDialog
