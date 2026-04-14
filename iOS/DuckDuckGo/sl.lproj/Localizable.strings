@@ -109,8 +109,6 @@
 /* Confirmation message */
 "action.title.forgetAllDone" = "Zavihki in podatki so izbrisani";
 
-/* Fire button title when AI chat clearing is enabled */
-"action.title.forgetAllWithAIChat" = "Počisti zavihke, podatke in klepete Duck.ai";
 
 /* Open in New Background Tab action */
 "action.title.newBackgroundTabForUrl" = "Odpri v ozadju";
@@ -210,6 +208,15 @@
 
 /* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
 "aichat.attachment.option.take.photo" = "Posnemite fotografijo";
+
+/* Title for the customize responses action in the unified input tools menu */
+"aichat.toolbar.tools.customizeResponses.title" = "Prilagodi odzive";
+
+/* Subtitle for the web search tool in the unified input tools menu */
+"aichat.toolbar.tools.websearch.subtitle" = "Poiščite trenutne informacije";
+
+/* Title for the web search tool in the unified input tools menu */
+"aichat.toolbar.tools.websearch.title" = "Spletno iskanje";
 
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Obstoječi zaznamki ne bodo podvojeni.";
@@ -2757,8 +2764,8 @@
 /* The title of the fire button CTA to skip erasing the data. */
 "onboarding.highlights.fireDialog.cta.skip" = "Preskoči";
 
-/* The title of the onboarding dialog popup */
-"onboarding.highlights.intro.title" = "Pozdravljeni!\n\nSte pripravljeni na hitrejši brskalnik, ki vas zaščiti?";
+/* The title of the onboarding dialog popup. */
+"onboarding.highlights.intro.title" = "Pozdravljeni!\n\nSte pripravljeni na hitrejši brskalnik, ki vas ščiti in vam omogoča, da se odločite, kdaj in kako boste uporabljali umetno inteligenco?";
 
 /* The title of the CTA to progress to the next onboarding screen. */
 "onboarding.highlights.searchExperience.cta" = "Naslednji";
@@ -2772,11 +2779,17 @@
 /* Bold text 'Settings > AI Features.'. This will replace the placeholder (%@) in the footer string. */
 "onboarding.highlights.searchExperience.footer.settings-path-bold" = "Nastavitvah > Funkcije UI.";
 
-/* The title of the onboarding dialog popup to select the preferred search experience. */
-"onboarding.highlights.searchExperience.title" = "Želite preprost dostop do zasebnega klepeta z umetno inteligenco?";
+/* Title for the search and Duck.ai option in onboarding picker. */
+"onboarding.highlights.searchExperience.searchAndDuckAI" = "Preklopite med\niskanjem in Duck.ai";
 
-/* Button to continue the onboarding process */
-"onboarding.intro.cta" = "Pa začnimo!";
+/* Title for the search-only option in onboarding picker. */
+"onboarding.highlights.searchExperience.searchOnly" = "Samo iskanje";
+
+/* The title of the onboarding dialog popup to select the preferred search experience. */
+"onboarding.highlights.searchExperience.title" = "Želite preprost dostop do zasebnega klepeta z umetno inteligenco v naslovni vrstici?";
+
+/* Button to continue the onboarding process. */
+"onboarding.intro.cta" = "Začnimo!";
 
 /* Button to skip the onboarding process */
 "onboarding.intro.cta.skip" = "Tukaj sem že bil/-a";
@@ -2803,7 +2816,7 @@
 "onboarding.rebranding.first-search-done.title" = "To je iskanje DuckDuckGo Search!";
 
 /* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Ste pripravljeni na hitrejši brskalnik, ki vas zaščiti?";
+"onboarding.rebranding.intro.message" = "Ste pripravljeni na hitrejši brskalnik, ki vas ščiti in vam omogoča, da se odločite, kdaj in kako boste uporabljali umetno inteligenco?";
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Pozdravljeni.";
@@ -3273,12 +3286,6 @@
 /* Option: show New Tab when returning after inactivity */
 "settings.afterInactivity.option.newTab" = "Nov zavihek";
 
-/* Title for the 'Search & Duck.ai' option in the AI experimental picker */
-"settings.ai.experimental.picker.search_and_duckai" = "Iskanje in Duck.ai";
-
-/* Title for the 'Search Only' option in the AI experimental picker */
-"settings.ai.experimental.picker.search_only" = "Samo iskanje";
-
 /* Footer under the AI picker, descriptive sentence without link */
 "settings.ai.new.picker.footer" = "Preizkusite novo možnost preklopa med iskanjem in Duck.ai v naslovni vrstici.";
 
@@ -3342,11 +3349,7 @@
 /* Section header for the auto clear options */
 "settings.autoclear.section.header" = "Počisti";
 
-/* Autoclear action option to clear tabs and data */
-"settings.autoclear.tabs.and.data" = "Počisti zavihke in podatke";
 
-/* Autoclear action option to clear tabs, data and AI chat when AI chat clearing is enabled */
-"settings.autoclear.tabs.and.data.with.aichat" = "Počisti zavihke, podatke in klepete Duck.ai";
 
 /* Subtitle explaining what the tabs option does in auto clear settings */
 "settings.autoclear.tabs.subtitle" = "Zaprite vse odprte zavihke";
@@ -3414,14 +3417,10 @@
 /* Settings screen footer text explaining that Fire Button also clears AI chat history */
 "settings.clear.aichat.history.footer" = "Fire Button bo izbrisal tudi zgodovino Duck.ai, vključno s pripetimi klepeti.";
 
-/* Settings screen cell text for clearing AI chat history */
-"settings.clear.aichat.history.title" = "Počisti klepete Duck.ai";
 
 /* Button to clear browsing data */
 "settings.clear.browsing.data" = "Čiščenje podatkov o brskanju";
 
-/* Settings screen cell text for Automatically Clearing Data */
-"settings.clear.data" = "Samodejno počisti podatke";
 
 /* The name of the settings section containing options to set up the app */
 "settings.complete.setup" = "Dokončanje nastavitve";
@@ -3441,11 +3440,7 @@
 /* Settings title for the customize section */
 "settings.customize" = "Prilagodi";
 
-/* Clear data button explanation */
-"settings.data.clear.forget.all.duck.ai.footnote" = "Počisti vse zavihke, klepete Duck.ai in podatke za vsa spletna mesta, ki jih niste zaščitili s funkcijo Fireproof.";
 
-/* Clear data button explanation */
-"settings.data.clear.forget.all.footnote" = "Počisti vse zavihke in podatke za vsa spletna mesta, ki jih niste zaščitili s funkcijo Fireproof.";
 
 /* The name of a settings subsection related to the data clearing */
 "settings.data.clearing" = "Počiščenje podatkov";
@@ -3505,8 +3500,6 @@
 /* Settings screen cell text for fire button animation */
 "settings.firebutton" = "Animacija za gumb ogenj";
 
-/* Settings screen cell text for Fireproof Sites */
-"settings.fireproof.sites" = "Spletne strani s požarno zaščito";
 
 /* Settings screen cell text for Fireproofed Sites */
 "settings.fireproofed.sites" = "Požarno zaščitena mesta";
@@ -4188,6 +4181,12 @@
 
 /* Data syncing unavailable warning message */
 "sync.warning.data.syncing.disabled.upgrade.required" = "Sinhronizacija in varnostno kopiranje v tej različici aplikacije žal nista več na voljo. Za nadaljevanje DuckDuckGo posodobite na najnovejšo različico.";
+
+/* Accessibility label for the close button on a tab cell */
+"tab.cell.closeButton.accessibility" = "Zapri zavihek";
+
+/* Accessibility label for the unread indicator on a tab cell */
+"tab.cell.unread.accessibility" = "Zavihek ni prebran";
 
 /* Accessibility label on remove button */
 "tab.close.home" = "Zapri zavihek Domov";

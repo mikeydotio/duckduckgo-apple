@@ -109,8 +109,6 @@
 /* Confirmation message */
 "action.title.forgetAllDone" = "Έγινε εκκαθάριση καρτελών και δεδομένων";
 
-/* Fire button title when AI chat clearing is enabled */
-"action.title.forgetAllWithAIChat" = "Εκκαθάριση καρτελών, δεδομένων και συνομιλιών Duck.ai";
 
 /* Open in New Background Tab action */
 "action.title.newBackgroundTabForUrl" = "Άνοιγμα στο παρασκήνιο";
@@ -210,6 +208,15 @@
 
 /* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
 "aichat.attachment.option.take.photo" = "Τραβήξτε μια φωτογραφία";
+
+/* Title for the customize responses action in the unified input tools menu */
+"aichat.toolbar.tools.customizeResponses.title" = "Προσαρμογή απαντήσεων";
+
+/* Subtitle for the web search tool in the unified input tools menu */
+"aichat.toolbar.tools.websearch.subtitle" = "Βρείτε τρέχουσες πληροφορίες";
+
+/* Title for the web search tool in the unified input tools menu */
+"aichat.toolbar.tools.websearch.title" = "Αναζήτηση στο διαδίκτυο";
 
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Οι υπάρχοντες σελιδοδείκτες δεν θα αναπαραχθούν.";
@@ -2757,8 +2764,8 @@
 /* The title of the fire button CTA to skip erasing the data. */
 "onboarding.highlights.fireDialog.cta.skip" = "Παράλειψη";
 
-/* The title of the onboarding dialog popup */
-"onboarding.highlights.intro.title" = "Γεια σας.\n\nΕίστε έτοιμοι για ένα ταχύτερο πρόγραμμα περιήγησης που σας διατηρεί προστατευμένους;";
+/* The title of the onboarding dialog popup. */
+"onboarding.highlights.intro.title" = "Γεια σας.\n\nΕίστε έτοιμοι για ένα ταχύτερο πρόγραμμα περιήγησης το οποίο σας προστατεύει και σας επιτρέπει να αποφασίζετε πότε και πώς να χρησιμοποιείτε την τεχνητή νοημοσύνη;";
 
 /* The title of the CTA to progress to the next onboarding screen. */
 "onboarding.highlights.searchExperience.cta" = "Επόμενο";
@@ -2772,11 +2779,17 @@
 /* Bold text 'Settings > AI Features.'. This will replace the placeholder (%@) in the footer string. */
 "onboarding.highlights.searchExperience.footer.settings-path-bold" = "Ρυθμίσεις > Λειτουργίες τεχνητής νοημοσύνης.";
 
-/* The title of the onboarding dialog popup to select the preferred search experience. */
-"onboarding.highlights.searchExperience.title" = "Θέλετε εύκολη πρόσβαση στο ιδιωτικό AI chat;";
+/* Title for the search and Duck.ai option in onboarding picker. */
+"onboarding.highlights.searchExperience.searchAndDuckAI" = "Εναλλαγή μεταξύ\nΑναζήτησης και Duck.ai";
 
-/* Button to continue the onboarding process */
-"onboarding.intro.cta" = "Ας το δοκιμάσουμε!";
+/* Title for the search-only option in onboarding picker. */
+"onboarding.highlights.searchExperience.searchOnly" = "Αναζήτηση μόνο";
+
+/* The title of the onboarding dialog popup to select the preferred search experience. */
+"onboarding.highlights.searchExperience.title" = "Θέλετε εύκολη πρόσβαση σε ιδιωτική συνομιλία με τεχνητή νοημοσύνη στη γραμμή διευθύνσεων;";
+
+/* Button to continue the onboarding process. */
+"onboarding.intro.cta" = "Ας ξεκινήσουμε!";
 
 /* Button to skip the onboarding process */
 "onboarding.intro.cta.skip" = "Έχω ξαναβρεθεί εδώ";
@@ -2803,7 +2816,7 @@
 "onboarding.rebranding.first-search-done.title" = "Αυτό είναι το DuckDuckGo Search!";
 
 /* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Είστε έτοιμοι για ένα ταχύτερο πρόγραμμα περιήγησης που σας διατηρεί προστατευμένους;";
+"onboarding.rebranding.intro.message" = "Είστε έτοιμοι για ένα ταχύτερο πρόγραμμα περιήγησης το οποίο σας προστατεύει και σας επιτρέπει να αποφασίζετε πότε και πώς να χρησιμοποιείτε την τεχνητή νοημοσύνη;";
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Γεια σας.";
@@ -3273,12 +3286,6 @@
 /* Option: show New Tab when returning after inactivity */
 "settings.afterInactivity.option.newTab" = "Νέα καρτέλα";
 
-/* Title for the 'Search & Duck.ai' option in the AI experimental picker */
-"settings.ai.experimental.picker.search_and_duckai" = "Αναζήτηση και Duck.ai";
-
-/* Title for the 'Search Only' option in the AI experimental picker */
-"settings.ai.experimental.picker.search_only" = "Αναζήτηση μόνο";
-
 /* Footer under the AI picker, descriptive sentence without link */
 "settings.ai.new.picker.footer" = "Δοκιμάστε τη νέα επιλογή για εναλλαγή μεταξύ αναζήτησης και Duck.ai στη γραμμή διευθύνσεων.";
 
@@ -3342,11 +3349,7 @@
 /* Section header for the auto clear options */
 "settings.autoclear.section.header" = "Διαγραφή";
 
-/* Autoclear action option to clear tabs and data */
-"settings.autoclear.tabs.and.data" = "Εκκαθάριση καρτελών και δεδομένων";
 
-/* Autoclear action option to clear tabs, data and AI chat when AI chat clearing is enabled */
-"settings.autoclear.tabs.and.data.with.aichat" = "Εκκαθάριση καρτελών, δεδομένων και συνομιλιών Duck.ai";
 
 /* Subtitle explaining what the tabs option does in auto clear settings */
 "settings.autoclear.tabs.subtitle" = "Κλείσιμο όλων των ανοιχτών καρτελών";
@@ -3414,14 +3417,10 @@
 /* Settings screen footer text explaining that Fire Button also clears AI chat history */
 "settings.clear.aichat.history.footer" = "Το Fire Button θα διαγράψει επίσης το ιστορικό του Duck.ai, συμπεριλαμβανομένων των καρφιτσωμένων συνομιλιών.";
 
-/* Settings screen cell text for clearing AI chat history */
-"settings.clear.aichat.history.title" = "Εκκαθάριση συνομιλιών Duck.ai";
 
 /* Button to clear browsing data */
 "settings.clear.browsing.data" = "Εκκαθάριση δεδομένων περιήγησης";
 
-/* Settings screen cell text for Automatically Clearing Data */
-"settings.clear.data" = "Αυτόματη απαλοιφή δεδομένων";
 
 /* The name of the settings section containing options to set up the app */
 "settings.complete.setup" = "Ολοκληρώστε την εγκατάστασή σας";
@@ -3441,11 +3440,7 @@
 /* Settings title for the customize section */
 "settings.customize" = "Προσαρμογή";
 
-/* Clear data button explanation */
-"settings.data.clear.forget.all.duck.ai.footnote" = "Εκκαθαρίζει όλες τις καρτέλες, τις συνομιλίες Duck.ai και τα δεδομένα για οποιονδήποτε ιστότοπο δεν έχετε προστατεύσει με Fireproof.";
 
-/* Clear data button explanation */
-"settings.data.clear.forget.all.footnote" = "Εκκαθαρίζει όλες τις καρτέλες και τα δεδομένα για ιστότοπους που δεν έχετε προστατεύσει με Fireproof.";
 
 /* The name of a settings subsection related to the data clearing */
 "settings.data.clearing" = "Διαγραφή δεδομένων";
@@ -3505,8 +3500,6 @@
 /* Settings screen cell text for fire button animation */
 "settings.firebutton" = "Κινούμενο κουμπί φωτιάς";
 
-/* Settings screen cell text for Fireproof Sites */
-"settings.fireproof.sites" = "Ασφαλείς ιστότοποι";
 
 /* Settings screen cell text for Fireproofed Sites */
 "settings.fireproofed.sites" = "Ασφαλείς ιστότοποι";
@@ -4188,6 +4181,12 @@
 
 /* Data syncing unavailable warning message */
 "sync.warning.data.syncing.disabled.upgrade.required" = "Δυστυχώς, η λειτουργία Συγχρονισμός και δημιουργία αντιγράφων ασφαλείας δεν είναι διαθέσιμη πλέον σε αυτήν την έκδοση της εφαρμογής. Ενημερώστε το DuckDuckGo στην πιο πρόσφατη έκδοση για να συνεχίσετε.";
+
+/* Accessibility label for the close button on a tab cell */
+"tab.cell.closeButton.accessibility" = "Κλείσιμο καρτέλα";
+
+/* Accessibility label for the unread indicator on a tab cell */
+"tab.cell.unread.accessibility" = "Μη αναγνωσμένη καρτέλα";
 
 /* Accessibility label on remove button */
 "tab.close.home" = "Κλείσιμο αρχικής καρτέλας";

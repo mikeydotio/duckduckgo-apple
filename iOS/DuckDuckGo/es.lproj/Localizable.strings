@@ -109,8 +109,6 @@
 /* Confirmation message */
 "action.title.forgetAllDone" = "Pestañas y datos borrados";
 
-/* Fire button title when AI chat clearing is enabled */
-"action.title.forgetAllWithAIChat" = "Borrar pestañas, datos y chats de Duck.ai";
 
 /* Open in New Background Tab action */
 "action.title.newBackgroundTabForUrl" = "Abrir en segundo plano";
@@ -210,6 +208,15 @@
 
 /* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
 "aichat.attachment.option.take.photo" = "Hacer una foto";
+
+/* Title for the customize responses action in the unified input tools menu */
+"aichat.toolbar.tools.customizeResponses.title" = "Personaliza las respuestas";
+
+/* Subtitle for the web search tool in the unified input tools menu */
+"aichat.toolbar.tools.websearch.subtitle" = "Busca información actualizada";
+
+/* Title for the web search tool in the unified input tools menu */
+"aichat.toolbar.tools.websearch.title" = "Búsqueda en la web";
 
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Los marcadores existentes no se duplicarán.";
@@ -2757,8 +2764,8 @@
 /* The title of the fire button CTA to skip erasing the data. */
 "onboarding.highlights.fireDialog.cta.skip" = "Omitir";
 
-/* The title of the onboarding dialog popup */
-"onboarding.highlights.intro.title" = "Hola.\n\n¿Todo listo para un navegador más rápido que mantiene tu protección?";
+/* The title of the onboarding dialog popup. */
+"onboarding.highlights.intro.title" = "Hola.\n\n¿Listo para un navegador más rápido que te protege y te permite decidir cuándo y cómo usar la IA?";
 
 /* The title of the CTA to progress to the next onboarding screen. */
 "onboarding.highlights.searchExperience.cta" = "Siguiente";
@@ -2772,11 +2779,17 @@
 /* Bold text 'Settings > AI Features.'. This will replace the placeholder (%@) in the footer string. */
 "onboarding.highlights.searchExperience.footer.settings-path-bold" = "Ajustes > Funciones de IA.";
 
-/* The title of the onboarding dialog popup to select the preferred search experience. */
-"onboarding.highlights.searchExperience.title" = "¿Quieres un acceso fácil al chat privado de IA?";
+/* Title for the search and Duck.ai option in onboarding picker. */
+"onboarding.highlights.searchExperience.searchAndDuckAI" = "Alterna entre la búsqueda y Duck.ai";
 
-/* Button to continue the onboarding process */
-"onboarding.intro.cta" = "¡Adelante!";
+/* Title for the search-only option in onboarding picker. */
+"onboarding.highlights.searchExperience.searchOnly" = "Solo buscar";
+
+/* The title of the onboarding dialog popup to select the preferred search experience. */
+"onboarding.highlights.searchExperience.title" = "¿Quieres un acceso fácil al chat privado de IA en la barra de direcciones?";
+
+/* Button to continue the onboarding process. */
+"onboarding.intro.cta" = "¡Empecemos!";
 
 /* Button to skip the onboarding process */
 "onboarding.intro.cta.skip" = "He estado aquí antes";
@@ -2803,7 +2816,7 @@
 "onboarding.rebranding.first-search-done.title" = "¡Eso es DuckDuckGo Search!";
 
 /* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "¿Todo listo para un navegador más rápido que mantiene tu protección?";
+"onboarding.rebranding.intro.message" = "¿Listo para un navegador más rápido que te protege y te permite decidir cuándo y cómo usar la IA?";
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Hola.";
@@ -3273,12 +3286,6 @@
 /* Option: show New Tab when returning after inactivity */
 "settings.afterInactivity.option.newTab" = "Nueva pestaña";
 
-/* Title for the 'Search & Duck.ai' option in the AI experimental picker */
-"settings.ai.experimental.picker.search_and_duckai" = "Búsqueda y Duck.ai";
-
-/* Title for the 'Search Only' option in the AI experimental picker */
-"settings.ai.experimental.picker.search_only" = "Solo buscar";
-
 /* Footer under the AI picker, descriptive sentence without link */
 "settings.ai.new.picker.footer" = "Prueba la nueva opción para alternar entre la búsqueda y Duck.ai en la barra de direcciones.";
 
@@ -3342,11 +3349,7 @@
 /* Section header for the auto clear options */
 "settings.autoclear.section.header" = "Borrar";
 
-/* Autoclear action option to clear tabs and data */
-"settings.autoclear.tabs.and.data" = "Borrar datos y pestañas";
 
-/* Autoclear action option to clear tabs, data and AI chat when AI chat clearing is enabled */
-"settings.autoclear.tabs.and.data.with.aichat" = "Borrar pestañas, datos y chats de Duck.ai";
 
 /* Subtitle explaining what the tabs option does in auto clear settings */
 "settings.autoclear.tabs.subtitle" = "Cierra todas las pestañas";
@@ -3414,14 +3417,10 @@
 /* Settings screen footer text explaining that Fire Button also clears AI chat history */
 "settings.clear.aichat.history.footer" = "Fire Button también eliminará el historial de Duck.ai, incluidos los chats anclados.";
 
-/* Settings screen cell text for clearing AI chat history */
-"settings.clear.aichat.history.title" = "Borra chats de Duck.ai";
 
 /* Button to clear browsing data */
 "settings.clear.browsing.data" = "Borrar datos de navegación";
 
-/* Settings screen cell text for Automatically Clearing Data */
-"settings.clear.data" = "Borrar datos automáticamente";
 
 /* The name of the settings section containing options to set up the app */
 "settings.complete.setup" = "Completa tu configuración";
@@ -3441,11 +3440,7 @@
 /* Settings title for the customize section */
 "settings.customize" = "Personalizar";
 
-/* Clear data button explanation */
-"settings.data.clear.forget.all.duck.ai.footnote" = "Borra todas las pestañas, los chats de Duck.ai y los datos de los sitios que no hayas protegido con Fireproof.";
 
-/* Clear data button explanation */
-"settings.data.clear.forget.all.footnote" = "Borrar todas las pestañas y los datos de los sitios no protegidos con Fireproof.";
 
 /* The name of a settings subsection related to the data clearing */
 "settings.data.clearing" = "Eliminación de datos";
@@ -3505,8 +3500,6 @@
 /* Settings screen cell text for fire button animation */
 "settings.firebutton" = "Animación del botón Fuego";
 
-/* Settings screen cell text for Fireproof Sites */
-"settings.fireproof.sites" = "Sitios web a prueba de fuego";
 
 /* Settings screen cell text for Fireproofed Sites */
 "settings.fireproofed.sites" = "Sitios Fireproof";
@@ -4188,6 +4181,12 @@
 
 /* Data syncing unavailable warning message */
 "sync.warning.data.syncing.disabled.upgrade.required" = "Lo sentimos, pero la sincronización y la copia de seguridad ya no están disponibles en esta versión de la aplicación. Actualiza DuckDuckGo a la última versión para continuar.";
+
+/* Accessibility label for the close button on a tab cell */
+"tab.cell.closeButton.accessibility" = "Cerrar pestaña";
+
+/* Accessibility label for the unread indicator on a tab cell */
+"tab.cell.unread.accessibility" = "Pestaña sin leer";
 
 /* Accessibility label on remove button */
 "tab.close.home" = "Cerrar la pestaña inicio";
