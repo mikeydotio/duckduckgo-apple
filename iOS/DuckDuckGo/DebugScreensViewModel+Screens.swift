@@ -266,7 +266,8 @@ extension DebugScreensViewModel {
                             systemSettingsPiPTutorialManager: d.systemSettingsPiPTutorialManager,
                             daxDialogsManager: d.daxDialogManager,
                             syncAutoRestoreHandler: d.syncAutoRestoreHandler,
-                            onboardingManager: OnboardingManager()
+                            onboardingManager: OnboardingManager(),
+                            interludeDelegate: nil
                         )
                     } else {
                         OnboardingIntroViewController.legacy(
@@ -274,7 +275,8 @@ extension DebugScreensViewModel {
                             systemSettingsPiPTutorialManager: d.systemSettingsPiPTutorialManager,
                             daxDialogsManager: d.daxDialogManager,
                             syncAutoRestoreHandler: d.syncAutoRestoreHandler,
-                            onboardingManager: OnboardingManager()
+                            onboardingManager: OnboardingManager(),
+                            interludeDelegate: nil
                         )
                     }
                     controller.delegate = capturedController

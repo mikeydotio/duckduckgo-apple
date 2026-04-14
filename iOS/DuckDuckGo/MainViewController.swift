@@ -51,6 +51,11 @@ import WebExtensions
 import WebKit
 import WidgetKit
 
+struct LinearOnboardingContext {
+    var onboardingViewController: UIViewController
+    var onboardingViewModel: OnboardingIntroViewModel
+}
+
 struct StartupOnboardingDecision {
     let shouldShowOnboarding: Bool
 
@@ -173,6 +178,7 @@ class MainViewController: UIViewController {
     private let tutorialSettings: TutorialSettings
     private let contextualOnboardingLogic: ContextualOnboardingLogic
     let contextualOnboardingPixelReporter: OnboardingPixelReporting
+    var linearOnboardingContext: LinearOnboardingContext?
     private let statisticsStore: StatisticsStore
     let voiceSearchHelper: VoiceSearchHelperProtocol
     let featureFlagger: FeatureFlagger
@@ -877,6 +883,8 @@ class MainViewController: UIViewController {
         segueToDaxOnboarding { [weak self] in
             self?.startupOnboardingCover.detach()
         }
+
+        restorePendingDuckAIAnswerStepIfNeeded()
     }
 
     func presentSyncRecoveryPromptIfNeeded() {
@@ -4989,6 +4997,7 @@ extension MainViewController {
             }
 
             self.daxDialogsManager.clearedBrowserData()
+            self.finishOnboardingInterlude()
         }
     }
     
@@ -5350,6 +5359,7 @@ extension MainViewController: OnboardingDelegate {
         controller.modalTransitionStyle = .crossDissolve
         controller.dismiss(animated: true)
         newTabPageViewController?.onboardingCompleted()
+        linearOnboardingContext = nil
     }
 
     func markOnboardingSeen() {
@@ -5904,4 +5914,42 @@ extension ConsentStatusInfo {
             consentHeuristicEnabled: consentHeuristicEnabled
         )
     }
+}
+
+// MARK: - OnboardingInterludeDelegate
+
+extension MainViewController: OnboardingInterludeDelegate {
+
+    func startOnboardingInterlude() {
+        // TODO: Implement - Send onboarding view to back and show browsing session
+        UIView.animate(withDuration: 0.2) {
+            self.linearOnboardingContext?.onboardingViewController.view.alpha = 0
+        } completion: { _ in
+            self.linearOnboardingContext?.onboardingViewController.dismiss(animated: false)
+        }
+    }
+
+    func finishOnboardingInterlude() {
+        guard let viewModel = linearOnboardingContext?.onboardingViewModel else { return }
+
+        // Re-create and present the onboarding controller
+        let controller: Onboarding = if featureFlagger.isFeatureOn(.onboardingRebranding) {
+            OnboardingIntroViewController.rebranded(
+                viewModel: viewModel,
+                interludeDelegate: self
+            )
+        } else {
+            OnboardingIntroViewController.legacy(
+                viewModel: viewModel,
+                interludeDelegate: self
+            )
+        }
+        controller.delegate = self
+        linearOnboardingContext = LinearOnboardingContext(onboardingViewController: controller, onboardingViewModel: viewModel)
+        controller.modalPresentationStyle = .overFullScreen
+        controller.isModalInPresentation = true
+        controller.modalTransitionStyle = .crossDissolve
+        present(controller, animated: true)
+    }
+
 }

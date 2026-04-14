@@ -73,11 +73,21 @@ final class OnboardingIntroViewController<Content: View>: UIHostingController<Co
 extension OnboardingIntroViewController where Content == OnboardingView {
 
     static func legacy(
+        viewModel: OnboardingIntroViewModel,
+        interludeDelegate: OnboardingInterludeDelegate?
+    ) -> OnboardingIntroViewController {
+        viewModel.interludeDelegate = interludeDelegate
+        let rootView = OnboardingView(model: viewModel)
+        return OnboardingIntroViewController(rootView: rootView, viewModel: viewModel)
+    }
+
+    static func legacy(
         onboardingPixelReporter: OnboardingPixelReporting,
         systemSettingsPiPTutorialManager: SystemSettingsPiPTutorialManaging,
         daxDialogsManager: ContextualDaxDialogDisabling,
         syncAutoRestoreHandler: SyncAutoRestoreHandling,
-        onboardingManager: OnboardingManaging
+        onboardingManager: OnboardingManaging,
+        interludeDelegate: OnboardingInterludeDelegate?
     ) -> OnboardingIntroViewController {
         let viewModel = OnboardingIntroViewModel(
             pixelReporter: onboardingPixelReporter,
@@ -89,6 +99,7 @@ extension OnboardingIntroViewController where Content == OnboardingView {
             ),
             onboardingManager: onboardingManager
         )
+        viewModel.interludeDelegate = interludeDelegate
         let rootView = OnboardingView(model: viewModel)
         return OnboardingIntroViewController(rootView: rootView, viewModel: viewModel)
     }
@@ -98,11 +109,21 @@ extension OnboardingIntroViewController where Content == OnboardingView {
 extension OnboardingIntroViewController where Content == RebrandedOnboardingView {
 
     static func rebranded(
+        viewModel: OnboardingIntroViewModel,
+        interludeDelegate: OnboardingInterludeDelegate?
+    ) -> OnboardingIntroViewController {
+        viewModel.interludeDelegate = interludeDelegate
+        let rootView = RebrandedOnboardingView(model: viewModel)
+        return OnboardingIntroViewController(rootView: rootView, viewModel: viewModel)
+    }
+
+    static func rebranded(
         onboardingPixelReporter: OnboardingPixelReporting,
         systemSettingsPiPTutorialManager: SystemSettingsPiPTutorialManaging,
         daxDialogsManager: ContextualDaxDialogDisabling,
         syncAutoRestoreHandler: SyncAutoRestoreHandling,
-        onboardingManager: OnboardingManaging
+        onboardingManager: OnboardingManaging,
+        interludeDelegate: OnboardingInterludeDelegate?
     ) -> OnboardingIntroViewController {
         let viewModel = OnboardingIntroViewModel(
             pixelReporter: onboardingPixelReporter,
@@ -114,6 +135,7 @@ extension OnboardingIntroViewController where Content == RebrandedOnboardingView
             ),
             onboardingManager: onboardingManager
         )
+        viewModel.interludeDelegate = interludeDelegate
         let rootView = RebrandedOnboardingView(model: viewModel)
         return OnboardingIntroViewController(rootView: rootView, viewModel: viewModel)
     }

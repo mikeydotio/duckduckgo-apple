@@ -48,9 +48,13 @@ protocol OnboardingExperienceManager {
     func configureOnboardingFlow(for action: LaunchAction?)
 }
 
+protocol OnboardingInterludeProvider {
+    func interludeStep(for flowType: OnboardingFlowType) -> OnboardingIntroStep?
+}
+
 typealias OnboardingFlowManaging = OnboardingFlowEvaluating & OnboardingExperienceManager
 
-typealias OnboardingManaging =  OnboardingStepsProvider & OnboardingAddToDockVisibilityManager & OnboardingFlowManaging
+typealias OnboardingManaging =  OnboardingStepsProvider & OnboardingAddToDockVisibilityManager & OnboardingFlowManaging & OnboardingInterludeProvider
 
 final class OnboardingManager {
     private let onboardingFlowEvaluator: OnboardingFlowEvaluating
@@ -158,7 +162,7 @@ extension OnboardingManager: OnboardingNewUserProviderDebugging {
 
 // MARK: - Onboarding Steps Provider
 
-enum OnboardingIntroStep: Equatable {
+enum OnboardingIntroStep: Equatable, Codable {
     case introDialog(isReturningUser: Bool)
     case browserComparison
     case appIconSelection
@@ -214,7 +218,7 @@ extension OnboardingManager: OnboardingExperienceManager {
         case .some(.openURL(let url)):
             tutorialSettings.onboardingFlowType = onboardingFlowEvaluator.evaluateOnboardingFlow(from: url)
         default:
-            tutorialSettings.onboardingFlowType = .standard
+            tutorialSettings.onboardingFlowType = .tailored(.duckAI)
         }
     }
 
@@ -235,7 +239,29 @@ extension OnboardingManager: OnboardingExperienceManager {
 
     private func tailoredOnboardingSteps(for type: OnboardingFlowType.TailoredType) -> [OnboardingIntroStep] {
         switch type {
-        case .duckAI: return duckAIFlowSteps
+        case .duckAI:
+            let firstStep = OnboardingIntroStep.introDialog(isReturningUser: !isNewUser)
+            return [firstStep] + [.appIconSelection, .addToDockPromo, .browserComparison]
+        }
+    }
+
+}
+
+extension OnboardingManager: OnboardingInterludeProvider {
+
+    func interludeStep(for flowType: OnboardingFlowType) -> OnboardingIntroStep? {
+        switch flowType {
+        case .standard:
+            return nil
+        case .tailored(let type):
+            return tailoredInterludeStep(for: type)
+        }
+    }
+
+    private func tailoredInterludeStep(for type: OnboardingFlowType.TailoredType) -> OnboardingIntroStep? {
+        switch type {
+        case .duckAI:
+            return .appIconSelection
         }
     }
 

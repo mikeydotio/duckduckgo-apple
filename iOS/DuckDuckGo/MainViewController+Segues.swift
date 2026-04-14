@@ -53,25 +53,33 @@ extension MainViewController {
         Logger.lifecycle.debug("~~~ \(#function, privacy: .public)")
         hideAllHighlightsIfNeeded()
 
+        let viewModel = OnboardingIntroViewModel(
+            pixelReporter: contextualOnboardingPixelReporter,
+            systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
+            daxDialogsManager: daxDialogsManager,
+            restorePromptHandler: OnboardingRestorePromptHandler(
+                configuration: .enabled,
+                syncAutoRestoreHandler: syncAutoRestoreHandler
+            ),
+            onboardingManager: onboardingManager
+        )
+
+
         let controller: Onboarding = if featureFlagger.isFeatureOn(.onboardingRebranding) {
             OnboardingIntroViewController.rebranded(
-                onboardingPixelReporter: contextualOnboardingPixelReporter,
-                systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
-                daxDialogsManager: daxDialogsManager,
-                syncAutoRestoreHandler: syncAutoRestoreHandler,
-                onboardingManager: onboardingManager
+                viewModel: viewModel,
+                interludeDelegate: self
             )
         } else {
             OnboardingIntroViewController.legacy(
-                onboardingPixelReporter: contextualOnboardingPixelReporter,
-                systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
-                daxDialogsManager: daxDialogsManager,
-                syncAutoRestoreHandler: syncAutoRestoreHandler,
-                onboardingManager: onboardingManager
+                viewModel: viewModel,
+                interludeDelegate: self
             )
         }
         controller.delegate = self
+        linearOnboardingContext = LinearOnboardingContext(onboardingViewController: controller, onboardingViewModel: viewModel)
         controller.modalPresentationStyle = .overFullScreen
+        controller.isModalInPresentation = true
         present(controller, animated: false, completion: completion)
     }
 

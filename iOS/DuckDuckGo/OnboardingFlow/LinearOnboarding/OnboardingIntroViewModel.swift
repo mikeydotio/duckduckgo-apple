@@ -27,6 +27,10 @@ import PrivacyConfig
 import SetDefaultBrowserCore
 import SystemSettingsPiPTutorial
 
+protocol OnboardingInterludeDelegate: AnyObject {
+    func startOnboardingInterlude()
+}
+
 @MainActor
 final class OnboardingIntroViewModel: ObservableObject {
 
@@ -97,7 +101,9 @@ final class OnboardingIntroViewModel: ObservableObject {
     var onOpenAIChatFromOnboarding: ((String?, Bool) -> Void)?
     var onSearchFromOnboarding: ((String) -> Void)?
     private var introSteps: [OnboardingIntroStep]
+    weak var interludeDelegate: OnboardingInterludeDelegate?
     private var currentIntroStep: OnboardingIntroStep
+    private let interludeStep: OnboardingIntroStep?
 
     private let defaultBrowserManager: DefaultBrowserManaging
     private let contextualDaxDialogs: ContextualDaxDialogDisabling
@@ -111,13 +117,16 @@ final class OnboardingIntroViewModel: ObservableObject {
     private let restorePromptHandler: OnboardingRestorePromptHandling
     private let tutorialSettings: TutorialSettings
     private let duckAIOnboardingResumeStepStore: any KeyedStoring<DuckAIOnboardingStoringKeys>
+    private let onboardingResumeStepStore: any KeyedStoring<LinearOnboardingStoringKeys>
 
     convenience init(pixelReporter: LinearOnboardingPixelReporting,
                      systemSettingsPiPTutorialManager: SystemSettingsPiPTutorialManaging,
                      daxDialogsManager: ContextualDaxDialogDisabling,
                      restorePromptHandler: OnboardingRestorePromptHandling,
-                     duckAIOnboardingResumeStepStore: (any KeyedStoring<DuckAIOnboardingStoringKeys>)? = nil),
-                     onboardingManager: OnboardingManaging) {
+                     duckAIOnboardingResumeStepStore: (any KeyedStoring<DuckAIOnboardingStoringKeys>)? = nil,
+                     onboardingManager: OnboardingManaging,
+                     onboardingResumeStepStore: any KeyedStoring<LinearOnboardingStoringKeys> = UserDefaults.app.keyedStoring()
+        ) {
         let defaultBrowserInfoStore = DefaultBrowserInfoStore()
         let defaultBrowserEventMapper = DefaultBrowserPromptManagerDebugPixelHandler()
         let onboardingSearchExperienceProvider = OnboardingSearchExperience()
@@ -135,7 +144,8 @@ final class OnboardingIntroViewModel: ObservableObject {
             featureFlagger: AppDependencyProvider.shared.featureFlagger,
             restorePromptHandler: restorePromptHandler,
             tutorialSettings: DefaultTutorialSettings(),
-            duckAIOnboardingResumeStepStore: duckAIOnboardingResumeStepStore
+            duckAIOnboardingResumeStepStore: duckAIOnboardingResumeStepStore,
+            onboardingResumeStepStore: onboardingResumeStepStore
         )
     }
 
@@ -152,7 +162,8 @@ final class OnboardingIntroViewModel: ObservableObject {
         featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger,
         restorePromptHandler: OnboardingRestorePromptHandling,
         tutorialSettings: TutorialSettings = DefaultTutorialSettings(),
-        duckAIOnboardingResumeStepStore: (any KeyedStoring<DuckAIOnboardingStoringKeys>)? = nil
+        duckAIOnboardingResumeStepStore: (any KeyedStoring<DuckAIOnboardingStoringKeys>)? = nil,
+        onboardingResumeStepStore: any KeyedStoring<LinearOnboardingStoringKeys>
     ) {
         self.defaultBrowserManager = defaultBrowserManager
         self.contextualDaxDialogs = contextualDaxDialogs
@@ -166,6 +177,14 @@ final class OnboardingIntroViewModel: ObservableObject {
         self.restorePromptHandler = restorePromptHandler
         self.tutorialSettings = tutorialSettings
         self.duckAIOnboardingResumeStepStore = if let duckAIOnboardingResumeStepStore { duckAIOnboardingResumeStepStore } else { UserDefaults.app.keyedStoring() }
+        self.onboardingResumeStepStore = onboardingResumeStepStore
+
+        // Cache the interlude step once based on flow type
+        if let flowType = tutorialSettings.onboardingFlowType {
+            self.interludeStep = onboardingManager.interludeStep(for: flowType)
+        } else {
+            self.interludeStep = nil
+        }
 
         introSteps = onboardingManager.onboardingSteps
         currentIntroStep = currentOnboardingStep
@@ -340,6 +359,11 @@ private extension OnboardingIntroViewModel {
             return
         }
 
+        // Trigger interlude if on the interlude step
+        if currentIntroStep == interludeStep {
+            interludeDelegate?.startOnboardingInterlude()
+        }
+
         // Get next onboarding step index
         let nextStepIndex = currentStepIndex + 1
 
@@ -448,4 +472,32 @@ private extension OnboardingIntroViewModel {
         pixelReporter.measureAutoRestoreOnboardingPromptShown()
     }
 
+//    func restorePendingOnboardingStepIfNeeded() {
+//        guard let resumeStep = onboardingResumeStepStore.resumeStep else { return }
+//        currentIntroStep = resumeStep
+//    }
+//
+//    func persistPendingOnboardingStep(for step: OnboardingIntroStep) {
+//        onboardingResumeStepStore.resumeStep = step
+//    }
+
 }
+
+import Persistence
+
+enum OnboardingStorageKeys: String, StorageKeyDescribing {
+    case resumeStep = "com-duckduckgo-tutorials-onboardingResumeStep"
+    case resumePrompt = "com-duckduckgo-tutorials-onboardingResumePrompt"
+}
+
+struct LinearOnboardingStoringKeys: StoringKeys {
+    let resumeStep = StorageKey<OnboardingIntroStep>(OnboardingStorageKeys.resumeStep)
+    let resumeInterludePrompt = StorageKey<String>(OnboardingStorageKeys.resumePrompt)
+}
+
+//enum OnboardingResumeCheckpointStore {
+//    static func clearAll(in store: any KeyedStoring<OnboardingStorageKeys>) {
+//        store.resumeStep = nil
+//        store.resumePrompt = nil
+//    }
+//}
