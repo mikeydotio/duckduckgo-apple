@@ -46,6 +46,45 @@ private enum ComparisonTableMetrics {
     static let separatorWidth: CGFloat = 1
 }
 
+struct RebrandedComparisonTableDisplayModel {
+    enum Header {
+        case icons(leftIcon: Image, rightIcon: Image)
+        case iconsAndText(leftIcon: Image, title: Text, rightIcon: Image)
+    }
+
+    struct Row {
+        enum AvailabilityStatus {
+            case unavailable(Image)   // ❌ or other "not available" icon
+            case partial(Image)       // ⚠️ or "partially available" icon
+            case available(Image)     // ✓ checkmark (animated based on global config)
+
+            var image: Image {
+                switch self {
+                case let .unavailable(image): return image
+                case let .partial(image): return image
+                case let .available(image): return image
+                }
+            }
+
+            var isFullySupported: Bool {
+                switch self {
+                case .unavailable: return false
+                case .partial: return false
+                case .available: return true
+                }
+            }
+        }
+
+        let icon: Image
+        let title: String
+        let leftStatus: AvailabilityStatus
+        let rightStatus: AvailabilityStatus
+    }
+
+    let header: Header
+    let rows: [Row]
+}
+
 struct RebrandedBrowsersComparisonTable: View {
     enum AvailableFeatureAnimation: Equatable {
         /// Display available features with a static checkmark icon (no animation)
@@ -57,14 +96,15 @@ struct RebrandedBrowsersComparisonTable: View {
         case animated(startAnimation: Bool, staggeredDelay: TimeInterval = 0.1)
     }
 
+    let displayModel: RebrandedComparisonTableDisplayModel
     let availableFeatureAnimation: AvailableFeatureAnimation
 
     var body: some View {
         VStack(spacing: ComparisonTableMetrics.rowSpacing) {
-            ComparisonHeader()
+            ComparisonHeader(header: displayModel.header)
 
-            ForEach(Array(RebrandedBrowsersComparisonModel.features.enumerated()), id: \.element.type) { index, feature in
-                FeatureRow(feature: feature, index: index, availableFeatureAnimation: availableFeatureAnimation)
+            ForEach(Array(displayModel.rows.enumerated()), id: \.offset) { index, row in
+                ComparisonTableRow(row: row, index: index, availableFeatureAnimation: availableFeatureAnimation)
             }
         }
     }
@@ -73,32 +113,68 @@ struct RebrandedBrowsersComparisonTable: View {
 // MARK: - Header
 
 private struct ComparisonHeader: View {
+    @Environment(\.onboardingTheme) private var onboardingTheme
+
+    let header: RebrandedComparisonTableDisplayModel.Header
 
     var body: some View {
+        switch header {
+        case .icons(let leftIcon, let rightIcon):
+            iconsOnlyHeader(leftIcon: leftIcon, rightIcon: rightIcon)
+        case .iconsAndText(let leftIcon, let title, let rightIcon):
+            iconsAndTextHeader(leftIcon: leftIcon, title: title, rightIcon: rightIcon)
+        }
+    }
+
+    @ViewBuilder
+    private func iconsOnlyHeader(leftIcon: Image, rightIcon: Image) -> some View {
         // NOTE: Negative spacing/padding compensates for built-in padding in the icon PDFs (shadow regions from export).
         HStack(spacing: -10) {
             Spacer()
 
-            OnboardingRebrandingImages.Comparison.safariIcon
+            leftIcon
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: ComparisonTableMetrics.headerIconSize, height: ComparisonTableMetrics.headerIconSize)
 
-            OnboardingRebrandingImages.Comparison.ddgIcon
+            rightIcon
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: ComparisonTableMetrics.headerIconSize, height: ComparisonTableMetrics.headerIconSize)
         }
         .padding(.trailing, -10)
     }
+
+    @ViewBuilder
+    private func iconsAndTextHeader(leftIcon: Image, title: Text, rightIcon: Image) -> some View {
+        HStack(spacing: 8) {
+            Spacer()
+
+            title
+                .font(onboardingTheme.typography.body)
+                .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+
+            leftIcon
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: ComparisonTableMetrics.headerIconSize, height: ComparisonTableMetrics.headerIconSize)
+
+            rightIcon
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: ComparisonTableMetrics.headerIconSize, height: ComparisonTableMetrics.headerIconSize)
+
+            Spacer()
+        }
+    }
 }
 
 // MARK: - Feature Row
 
-private struct FeatureRow: View {
+private struct ComparisonTableRow: View {
     @Environment(\.onboardingTheme) private var onboardingTheme
 
-    let feature: RebrandedBrowsersComparisonModel.Feature
+    let row: RebrandedComparisonTableDisplayModel.Row
     let index: Int
     let availableFeatureAnimation: RebrandedBrowsersComparisonTable.AvailableFeatureAnimation
 
@@ -113,13 +189,13 @@ private struct FeatureRow: View {
 
             HStack {
                 HStack(alignment: .center, spacing: ComparisonTableMetrics.featureTextSpacing) {
-                    feature.type.icon
+                    row.icon
                         .resizable()
                         .frame(width: 24.0, height: 24.0)
                         .aspectRatio(contentMode: .fit)
                         .frame(width: ComparisonTableMetrics.featureIconSize, height: ComparisonTableMetrics.featureIconSize)
 
-                    Text(feature.type.title)
+                    Text(row.title)
                         .font(onboardingTheme.typography.rowDetails)
                         .foregroundColor(onboardingTheme.colorPalette.textPrimary)
                         .multilineTextAlignment(.leading)
@@ -128,7 +204,7 @@ private struct FeatureRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: ComparisonTableMetrics.statusColumnSpacing) {
-                    feature.safariAvailability.image
+                    row.leftStatus.image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: ComparisonTableMetrics.availabilityIconSize, height: ComparisonTableMetrics.availabilityIconSize)
@@ -138,7 +214,7 @@ private struct FeatureRow: View {
                         .fill(ComparisonTableMetrics.separatorColor)
                         .frame(width: ComparisonTableMetrics.separatorWidth)
 
-                    ddgAvailableFeature
+                    rightView(forStatus: row.rightStatus)
                         .frame(width: ComparisonTableMetrics.availabilityIconSize, height: ComparisonTableMetrics.availabilityIconSize)
                         .frame(width: ComparisonTableMetrics.statusColumnWidth)
                 }
@@ -150,16 +226,16 @@ private struct FeatureRow: View {
     }
 
     @ViewBuilder
-    private var ddgAvailableFeature: some View {
+    private func rightView(forStatus status: RebrandedComparisonTableDisplayModel.Row.AvailabilityStatus) -> some View {
         switch availableFeatureAnimation {
-        case let .animated(startAnimation, staggeredDelay) where feature.ddgAvailability == .available:
+        case let .animated(startAnimation, staggeredDelay) where status.isFullySupported:
             CircleCheckView(
                 size: ComparisonTableMetrics.circleCheckViewSize,
                 shouldAnimate: startAnimation,
                 staggerDelay: staggeredDelay * Double(index + 1)
             )
         default:
-            feature.ddgAvailability.image
+            status.image
                 .resizable()
                 .aspectRatio(contentMode: .fit)
         }

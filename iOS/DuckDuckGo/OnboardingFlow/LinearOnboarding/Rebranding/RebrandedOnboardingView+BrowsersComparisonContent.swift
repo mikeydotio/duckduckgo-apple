@@ -21,6 +21,21 @@ import SwiftUI
 import DuckUI
 import Onboarding
 
+// MARK: - Model Mapping
+
+extension RebrandedBrowsersComparisonModel.Feature.Availability {
+    func toDisplayStatus() -> RebrandedComparisonTableDisplayModel.Row.AvailabilityStatus {
+        switch self {
+        case .available:
+            return .available(self.image)
+        case .partial:
+            return .partial(self.image)
+        case .unavailable:
+            return .unavailable(self.image)
+        }
+    }
+}
+
 extension OnboardingRebranding.OnboardingView {
 
     struct BrowsersComparisonContent: View {
@@ -43,6 +58,26 @@ extension OnboardingRebranding.OnboardingView {
             self.cancelAction = cancelAction
         }
 
+        // MARK: - Display Model Mapping
+
+        private static let comparisonDisplayModel: RebrandedComparisonTableDisplayModel = {
+            let header = RebrandedComparisonTableDisplayModel.Header.icons(
+                leftIcon: OnboardingRebrandingImages.Comparison.safariIcon,
+                rightIcon: OnboardingRebrandingImages.Comparison.ddgIcon
+            )
+
+            let rows = RebrandedBrowsersComparisonModel.features.map { feature in
+                RebrandedComparisonTableDisplayModel.Row(
+                    icon: feature.type.icon,
+                    title: feature.type.title,
+                    leftStatus: feature.safariAvailability.toDisplayStatus(),
+                    rightStatus: feature.ddgAvailability.toDisplayStatus()
+                )
+            }
+
+            return RebrandedComparisonTableDisplayModel(header: header, rows: rows)
+        }()
+
         var body: some View {
             VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
                 Text(title)
@@ -51,7 +86,10 @@ extension OnboardingRebranding.OnboardingView {
                     .multilineTextAlignment(.center)
 
                 VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
-                    RebrandedBrowsersComparisonTable(availableFeatureAnimation: .animated(startAnimation: showContent))
+                    RebrandedBrowsersComparisonTable(
+                        displayModel: Self.comparisonDisplayModel,
+                        availableFeatureAnimation: .animated(startAnimation: showContent)
+                    )
 
                     VStack(spacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing) {
                         Button(action: setAsDefaultBrowserAction) {
