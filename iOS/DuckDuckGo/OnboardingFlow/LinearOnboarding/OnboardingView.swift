@@ -87,7 +87,7 @@ struct OnboardingView: View {
                             switch state.type {
                             case let .startOnboardingDialog(dialogType, _):
                                 introView(dialogType: dialogType)
-                            case .browsersComparisonDialog:
+                            case .browsersComparisonDialog, .aiComparisonDialog:
                                 browsersComparisonView
                             case .addToDockPromoDialog:
                                 addToDockPromoView
@@ -340,6 +340,7 @@ extension OnboardingView.ViewState.Intro {
     enum IntroType: Equatable {
         case startOnboardingDialog(type: IntroDialogType, copy: OnboardingIntroStepCopy)
         case browsersComparisonDialog
+        case aiComparisonDialog
         case addToDockPromoDialog(copy: OnboardingAddToDockPromoStepCopy)
         case chooseAppIconDialog
         case chooseAddressBarPositionDialog

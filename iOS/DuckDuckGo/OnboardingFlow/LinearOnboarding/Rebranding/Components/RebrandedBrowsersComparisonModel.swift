@@ -98,3 +98,72 @@ struct RebrandedBrowsersComparisonModel {
         ]
     }
 }
+
+struct RebrandedAIComparisonModel {
+
+    struct Feature: Equatable {
+        let type: FeatureType
+        let otherAvailability: Availability
+        let ddgAvailability: Availability
+
+        enum FeatureType: Equatable {
+            case anonymousChat
+            case noAccounts
+            case noLLMTraining
+            case onePlace
+
+            var title: String {
+                switch self {
+                case .anonymousChat:
+                    return "All chats are anonymized"
+                case .noAccounts:
+                    return "No account needed to access all AI features"
+                case .noLLMTraining:
+                    return "Never uses your chats to train AI"
+                case .onePlace:
+                    return "Access ChatGPT, Claude, and more, all in one place"
+
+                }
+            }
+
+            var icon: Image {
+                switch self {
+                case .anonymousChat:
+                    return OnboardingRebrandingImages.Comparison.privateSearchIcon
+                case .noAccounts:
+                    return OnboardingRebrandingImages.Comparison.privateAIChatIcon
+                case .noLLMTraining:
+                    return OnboardingRebrandingImages.Comparison.blockTrackersIcon
+                case .onePlace:
+                    return OnboardingRebrandingImages.Comparison.blockCookiesIcon
+                }
+            }
+        }
+
+        enum Availability {
+            case available
+            case partial
+            case unavailable
+
+            var image: Image {
+                switch self {
+                case .available:
+                    return OnboardingRebrandingImages.Comparison.availableIcon
+                case .partial:
+                    return OnboardingRebrandingImages.Comparison.partialIcon
+                case .unavailable:
+                    return OnboardingRebrandingImages.Comparison.unavailableIcon
+                }
+            }
+        }
+    }
+
+    static var features: [Feature] {
+        return [
+            Feature(type: .anonymousChat, otherAvailability: .unavailable, ddgAvailability: .available),
+            Feature(type: .noAccounts, otherAvailability: .unavailable, ddgAvailability: .available),
+            Feature(type: .noLLMTraining, otherAvailability: .partial, ddgAvailability: .available),
+            Feature(type: .onePlace, otherAvailability: .unavailable, ddgAvailability: .available),
+        ]
+    }
+}

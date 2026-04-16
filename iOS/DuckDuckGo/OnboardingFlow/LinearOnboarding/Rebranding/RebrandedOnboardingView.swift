@@ -342,6 +342,18 @@ extension OnboardingRebranding {
             )
         }
 
+        private var aiComparisonView: some View {
+            AIComparisonContent(
+                showContent: $showBubbleContent,
+                title: "AI protections activated!",
+                continueAction: {
+                    animateContentTransition {
+                        model.cancelSetDefaultBrowserAction()
+                    }
+                }
+            )
+        }
+
         private func bubbleBackedDialogView(
             state: ViewState.Intro,
             configuration: BubbleBackedDialogConfiguration
@@ -387,6 +399,8 @@ extension OnboardingRebranding {
                 introView(dialogType: dialogType, copy: copy)
             case .browsersComparisonDialog:
                 browsersComparisonView
+            case .aiComparisonDialog:
+                aiComparisonView
             case let .addToDockPromoDialog(copy):
                 addToDockPromoView(copy: copy)
             case .chooseAppIconDialog:
@@ -411,6 +425,14 @@ extension OnboardingRebranding {
                     showsStepCounter: false
                 )
             case .browsersComparisonDialog:
+                BubbleBackedDialogConfiguration(
+                    tailOffset: onboardingTheme.linearOnboardingMetrics.bubbleTailOffset,
+                    tailDirection: .leading,
+                    additionalTopMargin: BubbleBackedDialogMetrics.browsersComparisonAdditionalTopMargin,
+                    isVisible: true,
+                    showsStepCounter: true
+                )
+            case .aiComparisonDialog:
                 BubbleBackedDialogConfiguration(
                     tailOffset: onboardingTheme.linearOnboardingMetrics.bubbleTailOffset,
                     tailDirection: .leading,

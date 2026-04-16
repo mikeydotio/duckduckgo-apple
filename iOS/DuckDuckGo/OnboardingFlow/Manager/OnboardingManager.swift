@@ -164,6 +164,7 @@ extension OnboardingManager: OnboardingNewUserProviderDebugging {
 
 enum OnboardingIntroStep: Equatable, Codable {
     case introDialog(isReturningUser: Bool)
+    case aiComparison
     case browserComparison
     case appIconSelection
     case addToDockPromo
@@ -241,7 +242,7 @@ extension OnboardingManager: OnboardingExperienceManager {
         switch type {
         case .duckAI:
             let firstStep = OnboardingIntroStep.introDialog(isReturningUser: !isNewUser)
-            return [firstStep] + [.appIconSelection, .addToDockPromo, .browserComparison]
+            return [firstStep] + [.aiComparison, .duckAIQueryExperimentSelection, .addToDockPromo, .browserComparison, .addressBarPositionSelection]
         }
     }
 
@@ -261,7 +262,7 @@ extension OnboardingManager: OnboardingInterludeProvider {
     private func tailoredInterludeStep(for type: OnboardingFlowType.TailoredType) -> OnboardingIntroStep? {
         switch type {
         case .duckAI:
-            return .appIconSelection
+            return .duckAIQueryExperimentSelection
         }
     }
 

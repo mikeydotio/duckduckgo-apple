@@ -36,6 +36,19 @@ extension RebrandedBrowsersComparisonModel.Feature.Availability {
     }
 }
 
+extension RebrandedAIComparisonModel.Feature.Availability {
+    func toDisplayStatus() -> RebrandedComparisonTableDisplayModel.Row.AvailabilityStatus {
+        switch self {
+        case .available:
+            return .available(self.image)
+        case .partial:
+            return .partial(self.image)
+        case .unavailable:
+            return .unavailable(self.image)
+        }
+    }
+}
+
 extension OnboardingRebranding.OnboardingView {
 
     struct BrowsersComparisonContent: View {
@@ -101,6 +114,69 @@ extension OnboardingRebranding.OnboardingView {
                             Text(UserText.onboardingSkip)
                         }
                         .buttonStyle(onboardingTheme.secondaryButtonStyle.style)
+                    }
+                }
+            }
+        }
+
+    }
+
+    struct AIComparisonContent: View {
+        @Environment(\.onboardingTheme) private var onboardingTheme
+
+        @Binding var showContent: Bool
+        private let title: String
+        private let continueAction: () -> Void
+
+        init(
+            showContent: Binding<Bool>,
+            title: String,
+            continueAction: @escaping () -> Void
+        ) {
+            self._showContent = showContent
+            self.title = title
+            self.continueAction = continueAction
+        }
+
+        // MARK: - Display Model Mapping
+
+        private static let comparisonDisplayModel: RebrandedComparisonTableDisplayModel = {
+            let header = RebrandedComparisonTableDisplayModel.Header.iconsAndText(
+                leftIcon: Image(systemName: "sparkles"),
+                title: Text("Popular AIs"),
+                rightIcon: OnboardingRebrandingImages.Comparison.ddgIcon
+            )
+
+            let rows = RebrandedAIComparisonModel.features.map { feature in
+                RebrandedComparisonTableDisplayModel.Row(
+                    icon: feature.type.icon,
+                    title: feature.type.title,
+                    leftStatus: feature.otherAvailability.toDisplayStatus(),
+                    rightStatus: feature.ddgAvailability.toDisplayStatus()
+                )
+            }
+
+            return RebrandedComparisonTableDisplayModel(header: header, rows: rows)
+        }()
+
+        var body: some View {
+            VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
+                Text(title)
+                    .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                    .font(onboardingTheme.typography.title)
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: onboardingTheme.linearOnboardingMetrics.contentInnerSpacing) {
+                    RebrandedBrowsersComparisonTable(
+                        displayModel: Self.comparisonDisplayModel,
+                        availableFeatureAnimation: .animated(startAnimation: showContent)
+                    )
+
+                    VStack(spacing: onboardingTheme.linearOnboardingMetrics.buttonSpacing) {
+                        Button(action: continueAction) {
+                            Text(verbatim: "Give Duck.ai a try!")
+                        }
+                        .buttonStyle(onboardingTheme.primaryButtonStyle.style)
                     }
                 }
             }

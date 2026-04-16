@@ -352,6 +352,13 @@ private extension OnboardingIntroViewModel {
                     step: stepInfo()
                 )
             )
+        case .aiComparison:
+            OnboardingView.ViewState.onboarding(
+                .init(
+                    type: .aiComparisonDialog,
+                    step: stepInfo()
+                )
+            )
         case .addToDockPromo:
             OnboardingView.ViewState.onboarding(
                 .init(
@@ -461,6 +468,8 @@ private extension OnboardingIntroViewModel {
             measureAutoRestorePromptImpressionIfNeeded(dialogType: dialogType)
         case .browsersComparisonDialog:
             pixelReporter.measureBrowserComparisonImpression()
+        case .aiComparisonDialog:
+            break
         case .addToDockPromoDialog:
             pixelReporter.measureAddToDockPromoImpression()
         case .chooseAppIconDialog:
