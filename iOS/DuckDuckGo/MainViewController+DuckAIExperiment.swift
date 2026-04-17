@@ -47,11 +47,23 @@ enum ExperimentDuckAIFireOnboardingState: Equatable {
     case completed
 }
 
+enum DuckAIOnboardingFlowType {
+    case standard
+    case tailored
+}
+
+struct DuckAIOnboardingCompletionDialog {
+    let message: String
+    let shouldActivateOmnibar: Bool  // false for tailored
+}
+
 /// Stores transient state needed to coordinate the Fire onboarding across
 /// async AI responses, delayed retries, and post-fire cleanup.
 struct ExperimentDuckAIFireOnboardingFlowContext {
+    var flowType: DuckAIOnboardingFlowType = .tailored
     /// Current position in the Fire onboarding state machine.
     var state: ExperimentDuckAIFireOnboardingState = .idle
+    var pendingCompletionDialog: DuckAIOnboardingCompletionDialog?
     /// Restores the address bar picker after the Fire dialog if the experiment moved it.
     var shouldForcePostFireAddressBarPickerRestore = false
     /// Prevents user interaction with experiment-owned controls while the dialog is active.
@@ -193,10 +205,10 @@ extension MainViewController {
             return
         }
 
-        ensureExperimentCompletionDialogPresentationPrerequisites()
-        DispatchQueue.main.async {
-            newTabPageViewController.showDuckAIOnboardingCompletionWithActiveAddressBar(message: message)
-        }
+//        ensureExperimentCompletionDialogPresentationPrerequisites()
+//        DispatchQueue.main.async {
+//            newTabPageViewController.showDuckAIOnboardingCompletionWithActiveAddressBar(message: message)
+//        }
     }
 
     func markSearchContextualOnboardingAsSeenForExperiment() {
@@ -209,7 +221,7 @@ extension MainViewController {
 
     private func ensureExperimentCompletionDialogPresentationPrerequisites() {
         daxDialogsManager.disableContextualDaxDialogs()
-        if !aiChatSettings.isAIChatSearchInputUserSettingsEnabled {
+        if !aiChatSettings.isAIChatSearchInputUserSettingsEnabled && experimentDuckAIFireOnboardingFlow.flowType == .standard {
             aiChatSettings.enableAIChatSearchInputUserSettings(enable: true)
         }
     }
@@ -299,7 +311,9 @@ extension MainViewController {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         self?.refreshOmniBar()
                     }
-                    self?.completeExperimentDuckAIFireOnboarding()
+                    self?.finishOnboardingInterlude {
+                        self?.completeExperimentDuckAIFireOnboarding()
+                    }
                 }
             },
             onCancel: { [weak self] in
@@ -359,6 +373,7 @@ extension MainViewController {
         experimentDuckAIFireOnboardingFlow.triggerWorkItem = nil
 
         if shouldArmExperimentFireOnboarding {
+            // TODO: Set Onboarding Flow type here.
             experimentDuckAIFireOnboardingFlow.state = .awaitingFirstResponse
             duckAIOnboardingResumeStepStore.resumeStep = .duckAIAnswerStep
             duckAIOnboardingResumeStepStore.resumeExperimentPrompt = query

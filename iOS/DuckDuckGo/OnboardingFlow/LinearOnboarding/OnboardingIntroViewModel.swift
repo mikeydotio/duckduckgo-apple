@@ -98,7 +98,7 @@ final class OnboardingIntroViewModel: ObservableObject {
 
     let copy: Copy
     var onCompletingOnboardingIntro: (() -> Void)?
-    var onOpenAIChatFromOnboarding: ((String?, Bool) -> Void)?
+    var onOpenAIChatFromOnboarding: ((String?, Bool, Bool) -> Void)?
     var onSearchFromOnboarding: ((String) -> Void)?
     private var introSteps: [OnboardingIntroStep]
     weak var interludeDelegate: OnboardingInterludeDelegate?
@@ -283,7 +283,8 @@ final class OnboardingIntroViewModel: ObservableObject {
     }
 
     func openAIChatFromOnboarding(prompt: String?, autoSend: Bool) {
-        onOpenAIChatFromOnboarding?(prompt, autoSend)
+        let shouldDismissOnboarding = interludeStep == currentIntroStep
+        onOpenAIChatFromOnboarding?(prompt, autoSend, false)
     }
 
     func searchFromOnboarding(query: String) {
@@ -505,7 +506,7 @@ private extension OnboardingIntroViewModel {
 
     func resolveDuckAIQueryExperimentCohortID() -> FeatureFlag.DuckAIQueryExperimentCohort? {
         guard featureFlagger.isFeatureOn(.onboardingDuckAIQueryExperiment) else { return nil }
-        return featureFlagger.resolveCohort(for: FeatureFlag.onboardingDuckAIQueryExperiment) as? FeatureFlag.DuckAIQueryExperimentCohort
+        return .treatmentA//featureFlagger.resolveCohort(for: FeatureFlag.onboardingDuckAIQueryExperiment) as? FeatureFlag.DuckAIQueryExperimentCohort
     }
 
     func introDialogType(isReturningUser: Bool) -> OnboardingView.ViewState.Intro.IntroDialogType {

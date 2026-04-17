@@ -4997,7 +4997,6 @@ extension MainViewController {
             }
 
             self.daxDialogsManager.clearedBrowserData()
-            self.finishOnboardingInterlude()
         }
     }
     
@@ -5357,9 +5356,16 @@ extension MainViewController: OnboardingDelegate {
         }
 
         controller.modalTransitionStyle = .crossDissolve
-        controller.dismiss(animated: true)
-        newTabPageViewController?.onboardingCompleted()
-        linearOnboardingContext = nil
+        controller.dismiss(animated: true) {
+            self.linearOnboardingContext = nil
+
+            if self.experimentDuckAIFireOnboardingFlow.state == .completed && !self.aiChatSettings.isAIChatSearchInputUserSettingsEnabled && self.experimentDuckAIFireOnboardingFlow.flowType == .tailored {
+                self.aiChatSettings.enableAIChatSearchInputUserSettings(enable: true)
+            }
+
+            self.newTabPageViewController?.onboardingCompleted()
+        }
+
     }
 
     func markOnboardingSeen() {
@@ -5929,7 +5935,7 @@ extension MainViewController: OnboardingInterludeDelegate {
         }
     }
 
-    func finishOnboardingInterlude() {
+    func finishOnboardingInterlude(completion: @escaping () -> Void) {
         guard let viewModel = linearOnboardingContext?.onboardingViewModel else { return }
 
         // Re-create and present the onboarding controller
@@ -5949,7 +5955,7 @@ extension MainViewController: OnboardingInterludeDelegate {
         controller.modalPresentationStyle = .overFullScreen
         controller.isModalInPresentation = true
         controller.modalTransitionStyle = .crossDissolve
-        present(controller, animated: true)
+        present(controller, animated: true, completion: completion)
     }
 
 }

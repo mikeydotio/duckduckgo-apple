@@ -258,16 +258,18 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
     }
 
     func onboardingCompleted() {
-        presentNextDaxDialog()
+        //presentNextDaxDialog()
+        showDuckAIOnboardingCompletionWithActiveAddressBar(message: "Test Alessandro")
+
         // Show Keyboard when showing the first Dax tip
-        chromeDelegate?.omniBar.beginEditing(animated: true)
+        //chromeDelegate?.omniBar.beginEditing(animated: true)
     }
 
     func showDuckAIOnboardingCompletionWithActiveAddressBar(message: String) {
         chromeDelegate?.omniBar.beginEditing(animated: true)
-        DispatchQueue.main.async { [weak self] in
-            self?.showDuckAIOnboardingCompletionDialog(message: message)
-        }
+       // DispatchQueue.main.async { [weak self] in
+            self.showDuckAIOnboardingCompletionDialog(message: message)
+       // }
     }
 
     // MARK: - Onboarding
@@ -298,7 +300,47 @@ extension NewTabPageViewController: HomeScreenTransitionSource {
 
 extension NewTabPageViewController {
 
+    var shouldShowSubscriptionDialog: Bool {
+        true
+    }
+
     func showDuckAIOnboardingCompletionDialog(message: String) {
+
+        func showSubscriptionDialog() {
+            let onDismiss: (_ activateSearch: Bool) -> Void = { [weak self] activateSearch in
+                guard let self else { return }
+                self.dismissHostingController(didFinishNTPOnboarding: true)
+                daxDialogsManager.dismiss()
+                self.chromeDelegate?.omniBar.beginEditing(animated: true)
+            }
+
+            let onManualDismiss: () -> Void = { [weak self] in
+                guard let self else { return }
+                self.dismissHostingController(didFinishNTPOnboarding: true)
+                self.daxDialogsManager.dismiss()
+                self.chromeDelegate?.omniBar.beginEditing(animated: true)
+            }
+
+            let daxDialogView = AnyView(newTabDialogFactory.createDaxDialog(for: .subscriptionPromotion, onCompletion: onDismiss, onManualDismiss: onManualDismiss))
+            let hostingController = UIHostingController(rootView: daxDialogView)
+            self.hostingController = hostingController
+
+            hostingController.view.backgroundColor = .clear
+            addChild(hostingController)
+            view.addSubview(hostingController.view)
+            hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+
+            NSLayoutConstraint.activate([
+                hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
+                hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+
+            hostingController.didMove(toParent: self)
+        }
+
+
         dismissHostingController(didFinishNTPOnboarding: false)
         // Completion dialog should not hide NTP background state.
         newTabPageViewModel.finishOnboarding()
@@ -314,23 +356,29 @@ extension NewTabPageViewController {
 
         let onDismiss = { [weak self, weak editingController] in
             guard let self else { return }
-            let finishDismissal = {
-                editingController?.setLogoHidden(false)
-                self.daxDialogsManager.dismiss()
-                self.dismissHostingController(didFinishNTPOnboarding: true)
-                ViewHighlighter.hideAll()
-            }
 
-            guard let hostingView = self.hostingController?.view else {
-                finishDismissal()
-                return
+            if shouldShowSubscriptionDialog {
+                chromeDelegate?.omniBar.endEditing()
+                showSubscriptionDialog()
+            } else {
+                let finishDismissal = {
+                    editingController?.setLogoHidden(false)
+                    self.daxDialogsManager.dismiss()
+                    self.dismissHostingController(didFinishNTPOnboarding: true)
+                    ViewHighlighter.hideAll()
+                }
+
+                guard let hostingView = self.hostingController?.view else {
+                    finishDismissal()
+                    return
+                }
+                hostingView.isUserInteractionEnabled = false
+                UIView.animate(withDuration: 0.2, animations: {
+                    hostingView.alpha = 0
+                }, completion: { _ in
+                    finishDismissal()
+                })
             }
-            hostingView.isUserInteractionEnabled = false
-            UIView.animate(withDuration: 0.2, animations: {
-                hostingView.alpha = 0
-            }, completion: { _ in
-                finishDismissal()
-            })
         }
 
         let root = newTabDialogFactory.createExperimentCompletionDialog(message: message, onDismiss: onDismiss)
@@ -446,3 +494,83 @@ extension NewTabPageViewController {
         delegate?.newTabPageDidDismissDuckAIExperimentCompletion(self)
     }
 }
+
+//----------------------------------------------------
+
+//enum NewTabOnboardingDialogEvent {
+//    case newTabPageAppeared
+//    case onboardingCompleted
+//}
+//
+//enum NewTabOnboardingDialog {
+//
+//}
+//
+//protocol DuckAIOnboardingDialogProviding {
+//    func dialogToPresent(on event: NewTabOnboardingDialogEvent) -> NewTabOnboardingDialog?
+//    func clearPendingDialog()
+//}
+//
+//final class DuckAIFireOnboardingDialogProvider: DuckAIOnboardingDialogProviding {
+//    var flowContext: ExperimentDuckAIFireOnboardingFlowContext?
+//
+//    func dialogToPresent(on event: NewTabOnboardingDialogEvent) -> NewTabOnboardingDialog? {
+//        guard let flowContext,
+//              flowContext.state == .completed,
+//              let pendingDialog = flowContext.pendingCompletionDialog else {
+//            return nil
+//        }
+//
+//        // Experiment flow: show on newTabPageAppeared
+//        if case .standard = flowContext.flowType,
+//           case .newTabPageAppeared = event {
+//            return .duckAIExperimentCompletion(message: pendingDialog.message)
+//        }
+//
+//        // Tailored flow: show on onboardingCompleted
+//        if case .tailoredOnboarding = flowContext.flowType,
+//           case .onboardingCompleted = event {
+//            return .duckAITailoredCompletion(message: pendingDialog.message)
+//        }
+//
+//        return nil
+//    }
+//
+//    func clearPendingDialog() {
+//        flowContext?.pendingCompletionDialog = nil
+//    }
+//}
+//
+//protocol OnboardingDialogProviding {
+//    func dialogToPresent(on event: NewTabOnboardingDialogEvent) -> NewTabOnboardingDialog?
+//}
+//
+//final class NewTabOnboardingDialogCoordinator: OnboardingDialogProviding {
+//    private let standardOnboardingDaxDialogsProvider: NewTabDialogSpecProvider
+//    private let duckAIOnboardingDaxDialogsProvider: DuckAIOnboardingDialogProviding
+//    private let tutorialSettings: TutorialSettings
+//
+//
+//    func dialogToPresent(on event: NewTabOnboardingDialogEvent) -> NewTabOnboardingDialog? {
+//        // Check if we have Duck.ai Fire completion dialog pending
+//        if let duckAIDialog = duckAIOnboardingDaxDialogsProvider.dialogToPresent(on: event) {
+//            return duckAIDialog
+//        }
+//
+//        // Otherwise check standard Dax dialogs (only for standard flow)
+//        if tutorialSettings.hasSeenOnboarding,
+//           case .newTabPageAppeared = event,
+//           let spec = daxDialogsManager.nextHomeScreenMessageNew() {
+//            return .daxContextual(spec)
+//        }
+//
+//        return nil
+//    }
+//
+//    func dialogWasPresented(_ dialog: NewTabOnboardingDialog) {
+//        if case .duckAIExperimentCompletion = dialog,
+//           case .duckAITailoredCompletion = dialog {
+//            duckAIFireFlowProvider.clearPendingDialog()
+//        }
+//    }
+//}
