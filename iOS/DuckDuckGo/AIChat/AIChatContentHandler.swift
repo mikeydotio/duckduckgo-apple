@@ -266,7 +266,7 @@ extension AIChatContentHandler: AIChatUserScriptDelegate {
             delegate?.aiChatContentHandlerDidReceivePageContextRequest(self)
         }
 
-        if message == .getAIChatNativeConfigValues {
+        if message != .getAIChatNativeConfigValues {
             isFrontendReady = true
         }
 
