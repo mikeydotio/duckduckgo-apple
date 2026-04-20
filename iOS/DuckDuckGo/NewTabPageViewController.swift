@@ -102,9 +102,9 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
                                             favoritesViewModel: self.favoritesModel))
 
         assignFavoriteModelActions()
-        messagesModel.onFireModeRequested = { [weak self] in
+        messagesModel.onTryFireModeRequested = { [weak self] in
             guard let self else { return }
-            self.delegate?.newTabPageDidRequestFireMode(self)
+            self.delegate?.newTabPageDidRequestTryFireMode(self)
         }
     }
 
