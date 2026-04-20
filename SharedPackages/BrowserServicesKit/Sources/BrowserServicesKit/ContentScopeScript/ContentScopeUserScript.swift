@@ -140,6 +140,23 @@ public final class ContentScopeProperties: Encodable {
         case surrogateTrackerData = "trackerData"
     }
 
+    fileprivate func copyForScriptContext(_ scriptContext: ContentScopeScriptContext) -> ContentScopeProperties {
+        guard let featureToggles = features["autofill"]?.settings["featureToggles"] else {
+            fatalError("Missing autofill feature toggles in ContentScopeProperties")
+        }
+
+        return ContentScopeProperties(
+            gpcEnabled: globalPrivacyControlValue,
+            sessionKey: sessionKey,
+            messageSecret: messageSecret,
+            isInternalUser: platform.internal,
+            debug: debug,
+            featureToggles: featureToggles,
+            currentCohorts: currentCohorts,
+            themeVariant: themeVariant,
+            surrogateTrackerData: scriptContext == .contentScope ? surrogateTrackerData : nil)
+    }
+
 }
 
 public struct ContentScopeFeature: Encodable {
@@ -285,15 +302,13 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
                                       config: WebkitMessagingConfig,
                                       privacyConfigurationJSONGenerator: (any CustomisedPrivacyConfigurationJSONGenerating)? = nil
     ) throws -> String {
-        if scriptContext != .contentScope {
-            properties.surrogateTrackerData = nil
-        }
+        let propertiesForScriptContext = properties.copyForScriptContext(scriptContext)
 
         let privacyConfigJsonData = privacyConfigurationJSONGenerator?.privacyConfiguration ?? privacyConfigurationManager.currentConfig
         guard let privacyConfigJson = String(data: privacyConfigJsonData, encoding: .utf8),
               let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
               let userUnprotectedDomainsString = String(data: userUnprotectedDomains, encoding: .utf8),
-              let jsonPropertiesString = try? encodeProperties(properties, messagingContextName: scriptContext.messagingContextName),
+              let jsonPropertiesString = try? encodeProperties(propertiesForScriptContext, messagingContextName: scriptContext.messagingContextName),
               let jsonConfig = try? JSONEncoder().encode(config),
               let jsonConfigString = String(data: jsonConfig, encoding: .utf8)
         else {

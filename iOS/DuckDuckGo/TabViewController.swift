@@ -3250,11 +3250,12 @@ extension TabViewController: TrackerProtectionSubfeatureDelegate {
 
         let tld = AppDependencyProvider.shared.storageCache.tld
         let privacyConfig = ContentBlocking.shared.privacyConfigurationManager.privacyConfig
+        let tempList = privacyConfig.tempUnprotectedDomains + privacyConfig.exceptionsList(forFeature: .contentBlocking)
         let mapper = TrackerProtectionEventMapper(tld: tld,
                                                   mainTrackerData: mainTrackerData,
                                                   supplementaryTrackerData: supplementary,
                                                   unprotectedSites: privacyConfig.userUnprotectedDomains,
-                                                  tempList: privacyConfig.tempUnprotectedDomains,
+                                                  tempList: tempList,
                                                   contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking),
                                                   trackerAllowlist: privacyConfig.trackerAllowlist.entries)
         cachedMapper = mapper

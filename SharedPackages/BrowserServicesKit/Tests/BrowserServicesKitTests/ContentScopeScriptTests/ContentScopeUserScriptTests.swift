@@ -19,6 +19,7 @@
 import BrowserServicesKitTestsUtils
 import PrivacyConfig
 import PrivacyConfigTestsUtils
+import TrackerRadarKit
 import WebKit
 import XCTest
 @testable import BrowserServicesKit
@@ -181,6 +182,21 @@ final class ContentScopeUserScriptTests: XCTestCase {
         XCTAssertTrue(source.contains(experimentData.cohort))
         XCTAssertTrue(source.contains(experimentData.feature))
         XCTAssertTrue(source.contains(experimentData.subfeature))
+    }
+
+    func testGenerateSourceForIsolatedContextDoesNotMutateOriginalProperties() throws {
+        let surrogateTrackerData = TrackerData(trackers: [:], entities: [:], domains: [:], cnames: nil)
+        properties.surrogateTrackerData = surrogateTrackerData
+
+        _ = try ContentScopeUserScript.generateSource(
+            mockPrivacyConfigurationManager,
+            properties: properties,
+            scriptContext: .contentScopeIsolated,
+            config: WebkitMessagingConfig(webkitMessageHandlerNames: [], secret: "", hasModernWebkitAPI: true),
+            privacyConfigurationJSONGenerator: configGenerator
+        )
+
+        XCTAssertTrue(properties.surrogateTrackerData === surrogateTrackerData)
     }
 
     // MARK: - ContentScopeScriptContext Tests

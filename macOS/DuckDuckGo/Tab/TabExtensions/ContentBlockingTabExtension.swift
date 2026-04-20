@@ -95,11 +95,12 @@ final class ContentBlockingTabExtension: NSObject {
         }
 
         let privacyConfig = privacyConfigurationManager.privacyConfig
+        let tempList = privacyConfig.tempUnprotectedDomains + privacyConfig.exceptionsList(forFeature: .contentBlocking)
         return TrackerProtectionEventMapper(tld: tld,
                                             mainTrackerData: mainTrackerData,
                                             supplementaryTrackerData: supplementary,
                                             unprotectedSites: privacyConfig.userUnprotectedDomains,
-                                            tempList: privacyConfig.tempUnprotectedDomains,
+                                            tempList: tempList,
                                             contentBlockingEnabled: privacyConfig.isEnabled(featureKey: .contentBlocking),
                                             trackerAllowlist: privacyConfig.trackerAllowlist.entries)
     }
