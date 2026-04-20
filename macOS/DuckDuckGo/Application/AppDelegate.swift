@@ -1742,8 +1742,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Don't show if no window is open
         let hasWindow = windowControllersManager.lastKeyMainWindowController?.window != nil
 
-        guard featureFlagger.isFeatureOn(.warnBeforeQuit),
-              !willShowAutoClearWarning,
+        guard !willShowAutoClearWarning,
               hasWindow,
               let currentEvent = NSApp.currentEvent else { return nil }
 

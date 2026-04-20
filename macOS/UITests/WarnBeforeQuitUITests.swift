@@ -23,7 +23,6 @@ class WarnBeforeQuitUITests: UITestCase {
 
     var featureFlags: [String: Bool] {
         [
-            "warnBeforeQuit": true,
             "firstTimeQuitSurvey": false
         ]
     }

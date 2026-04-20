@@ -1074,8 +1074,7 @@ extension MainViewController {
         if sender is NSMenuItem,
            let currentEvent,
            currentEvent.keyEquivalent == [.command, "w"] {
-            if featureFlagger.isFeatureOn(.warnBeforeQuit),
-               aiChatCoordinator.isChatFloating(for: tab.uuid) {
+            if aiChatCoordinator.isChatFloating(for: tab.uuid) {
                 showFloatingAIChatShortcutCloseConfirmation(at: index, currentEvent: currentEvent) { [weak self] in
                     guard let self else { return }
                     self.aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
@@ -1085,27 +1084,17 @@ extension MainViewController {
             }
 
             if case .pinned(let pinnedIndex) = index {
-                if featureFlagger.isFeatureOn(.warnBeforeQuit) {
-                    if tabsPreferences.warnBeforeClosingPinnedTabs {
-                        showPinnedTabCloseConfirmation(atPinnedIndex: pinnedIndex, currentEvent: currentEvent) { [weak self] in
-                            guard let self else { return }
-                            self.aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
-                            self.tabCollectionViewModel.remove(at: .pinned(pinnedIndex))
-                        }
-                        return
+                if tabsPreferences.warnBeforeClosingPinnedTabs {
+                    showPinnedTabCloseConfirmation(atPinnedIndex: pinnedIndex, currentEvent: currentEvent) { [weak self] in
+                        guard let self else { return }
+                        self.aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
+                        self.tabCollectionViewModel.remove(at: .pinned(pinnedIndex))
                     }
-
-                    aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
-                    tabCollectionViewModel.remove(at: index)
                     return
                 }
 
-                if tabCollectionViewModel.tabCollection.tabs.isEmpty {
-                    view.window?.performClose(sender)
-                } else {
-                    tab.stopAllMediaAndLoading()
-                    tabCollectionViewModel.select(at: .unpinned(0))
-                }
+                aiChatCoordinator.closeFloatingWindow(for: tab.uuid)
+                tabCollectionViewModel.remove(at: index)
                 return
             }
         }

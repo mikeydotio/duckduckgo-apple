@@ -224,10 +224,6 @@ public enum FeatureFlag: String, CaseIterable {
     /// Controls visibility of the Passwords menu bar feature
     case autofillPasswordsStatusBar
 
-    /// Warn before quit confirmation overlay
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212444166689969
-    case warnBeforeQuit
-
     /// https://app.asana.com/1/137249556945/project/1201899738287924/task/1212437820560561?focus=true
     case memoryUsageMonitor
 
@@ -526,8 +522,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(AutofillSubfeature.autofillPasswordSearchPrioritizeDomain)))
         case .autofillPasswordsStatusBar:
             Config(defaultValue: .internalOnly, source: .remoteReleasable(.subfeature(AutofillSubfeature.autofillPasswordsStatusBar)))
-        case .warnBeforeQuit:
-            Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.warnBeforeQuit)))
         case .memoryUsageMonitor:
             Config(source: .disabled)
         case .memoryUsageReporting:

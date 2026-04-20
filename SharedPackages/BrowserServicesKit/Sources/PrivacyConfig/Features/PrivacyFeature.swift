@@ -137,10 +137,6 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// Hide manual update option and always use automatic updates
     case automaticUpdatesOnly
 
-    /// Warn before quit confirmation overlay
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212444166689969
-    case warnBeforeQuit
-
     /// Feature flag for a macOS Tahoe fix only
     /// https://app.asana.com/1/137249556945/project/1204006570077678/task/1211448334620171?focus=true
     case blurryAddressBarTahoeFix
