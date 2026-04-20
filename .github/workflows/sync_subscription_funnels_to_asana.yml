@@ -1,0 +1,92 @@
+name: Sync new subscription funnels to Asana
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'iOS/DuckDuckGo/Subscription/SubscriptionFunnelOrigin.swift'
+      - 'macOS/DuckDuckGo/Subscription/SubscriptionFunnelOrigin.swift'
+
+jobs:
+  sync-funnels:
+    if: github.event.pull_request.merged == true
+    name: "Create Asana tasks for new subscription funnels"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Asana tasks for new funnel names
+        env:
+          ASANA_ACCESS_TOKEN: ${{ secrets.ASANA_ACCESS_TOKEN }}
+          ASANA_PARENT_TASK_GID: "1209784982258586"
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          create_task() {
+            local funnel_name="$1"
+            local platform="$2"
+
+            local notes
+            notes=$(printf 'New funnel added: %s\nAuthor: %s\nPR: %s\nPlatform: %s\nDescription: %s' \
+              "$funnel_name" "$PR_AUTHOR" "$PR_URL" "$platform" "$PR_TITLE")
+
+            local payload
+            payload=$(jq -n \
+              --arg name "New subscription funnel on ${platform}: ${funnel_name}" \
+              --arg notes "$notes" \
+              --arg parent "$ASANA_PARENT_TASK_GID" \
+              '{data: {name: $name, notes: $notes, parent: $parent}}')
+
+            local response http_code
+            response=$(curl -s -w "\n%{http_code}" -X POST \
+              "https://app.asana.com/api/1.0/tasks" \
+              -H "Authorization: Bearer $ASANA_ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$payload")
+            http_code=$(echo "$response" | tail -n1)
+
+            if [ "$http_code" -eq 201 ]; then
+              echo "✅ Created Asana task: New subscription funnel on ${platform}: ${funnel_name}"
+            else
+              echo "❌ Failed to create task for ${funnel_name} (${platform}): HTTP ${http_code}"
+              echo "$response" | head -n -1
+              exit 1
+            fi
+          }
+
+          process_file() {
+            local file="$1"
+            local platform="$2"
+
+            local new_funnels
+            new_funnels=$(
+              git diff "$BASE_SHA" HEAD -- "$file" \
+                | grep '^+' \
+                | grep -v '^+++' \
+                | grep -oP '"funnel_[^"]+"' \
+                | tr -d '"'
+            )
+
+            if [ -z "$new_funnels" ]; then
+              echo "No new funnel names detected in $file"
+              return
+            fi
+
+            while IFS= read -r funnel_name; do
+              [ -n "$funnel_name" ] && create_task "$funnel_name" "$platform"
+            done <<< "$new_funnels"
+          }
+
+          process_file \
+            "iOS/DuckDuckGo/Subscription/SubscriptionFunnelOrigin.swift" \
+            "iOS"
+
+          process_file \
+            "macOS/DuckDuckGo/Subscription/SubscriptionFunnelOrigin.swift" \
+            "macOS"
