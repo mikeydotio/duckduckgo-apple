@@ -375,9 +375,6 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213433942918287?focus=true
     case duckAIVoiceShortcut
 
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213687255181524
-    case fireproofingETLDPlus1
-
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213813585476250?focus=true
     case screenTimeCleaning
 
@@ -677,8 +674,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(AIChatSubfeature.omnibarDefaultPosition)))
         case .duckAIVoiceShortcut:
             Config(source: .remoteReleasable(.subfeature(AIChatSubfeature.voiceShortcut)))
-        case .fireproofingETLDPlus1:
-            Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.fireproofingETLDPlus1)))
         case .screenTimeCleaning:
             Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.screenTimeCleaning)))
         case .aiChatContextualFireButton:
