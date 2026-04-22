@@ -161,6 +161,7 @@ class SwitchBarTextEntryView: UIView {
         textView.delegate = self
         textView.isScrollEnabled = false
         textView.showsVerticalScrollIndicator = false
+        textView.accessibilityIdentifier = "searchEntry"
 
         placeholderLabel.font = textFont
         placeholderLabel.adjustsFontForContentSizeCategory = true
@@ -588,7 +589,7 @@ extension SwitchBarTextEntryView: UITextViewDelegate {
         updatePlaceholderVisibility()
         updateButtonState()
         updateTextViewHeight()
-        handler.updateCurrentText(textView.text ?? "")
+        handler.updateCurrentText((textView.text ?? "").strippingDictationPlaceholder)
         handler.markUserInteraction()
 
         // On iPad, reload input views on each keystroke (old behavior, without fade-out animation)
