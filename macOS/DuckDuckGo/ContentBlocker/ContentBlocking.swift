@@ -217,9 +217,7 @@ final class AppContentBlocking {
                                                   contentScopePreferences: contentScopePreferences,
                                                   syncErrorHandler: syncErrorHandler,
                                                   webExtensionAvailability: webExtensionAvailability,
-                                                  dockCustomization: dockCustomization,
-                                                  reinstallUserDetection: reinstallUserDetection,
-                                                  installDateProvider: installDateProvider)
+                                                  dockCustomization: dockCustomization)
 
         adClickAttributionRulesProvider = AdClickAttributionRulesProvider(config: adClickAttribution,
                                                                           compiledRulesSource: contentBlockingManager,

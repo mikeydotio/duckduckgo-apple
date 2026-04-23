@@ -109,9 +109,7 @@ final class UserContentUpdating {
          contentScopePreferences: ContentScopePreferences,
          syncErrorHandler: SyncErrorHandling,
          webExtensionAvailability: WebExtensionAvailabilityProviding?,
-         dockCustomization: DockCustomization,
-         reinstallUserDetection: ReinstallingUserDetecting,
-         installDateProvider: @escaping () -> Date
+         dockCustomization: DockCustomization
     ) {
         func onNotificationWithInitial(_ name: Notification.Name) -> AnyPublisher<Notification, Never> {
             return NotificationCenter.default.publisher(for: name)
@@ -157,9 +155,7 @@ final class UserContentUpdating {
                                                           syncServiceProvider: syncServiceProvider,
                                                           syncErrorHandler: syncErrorHandler,
                                                           webExtensionAvailability: webExtensionAvailability,
-                                                          dockCustomization: dockCustomization,
-                                                          reinstallUserDetection: reinstallUserDetection,
-                                                          installDateProvider: installDateProvider)
+                                                          dockCustomization: dockCustomization)
                 return NewContent(rulesUpdate: rulesUpdate, sourceProvider: sourceProvider, contentScopePreferences: contentScopePreferences)
             }
             return await newContentTask.value
