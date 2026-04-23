@@ -60,7 +60,7 @@ final class ContentBlockingTabExtension: NSObject {
     /// Cached mapper and the attribution vendor string used to build it.
     /// Invalidated when the vendor changes (attribution activates/deactivates/changes vendor).
     private var cachedMapper: TrackerProtectionEventMapper?
-    private var cachedMapperVendor: String??
+    private var cachedMapperVendor: String?
 
     private func mapper(forAttributionTrackerData attributionTrackerData: TrackerData?,
                         vendor: String?) -> TrackerProtectionEventMapper? {
