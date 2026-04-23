@@ -3408,13 +3408,11 @@ extension TabViewController: AdClickAttributionLogicDelegate {
         else {
             userContentController.removeLocalContentRuleList(withIdentifier: attributedTempListName)
             userScripts?.trackerProtectionSubfeature.currentAdClickAttributionVendor = nil
-            userScripts?.trackerProtectionSubfeature.currentAdClickAttributionAllowlistHosts = []
             userScripts?.trackerProtectionSubfeature.currentAttributionTrackerData = nil
             return
         }
 
         userScripts?.trackerProtectionSubfeature.currentAdClickAttributionVendor = vendor
-        userScripts?.trackerProtectionSubfeature.currentAdClickAttributionAllowlistHosts = vendor != nil ? ContentBlocking.shared.adClickAttribution.allowlist.map(\.host) : []
         userScripts?.trackerProtectionSubfeature.currentAttributionTrackerData = rules?.trackerData
 
         if let rules = rules {
