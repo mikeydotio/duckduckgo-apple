@@ -91,8 +91,8 @@ public struct UserText {
 
     // MARK: Fire Mode Tab Switcher Tip
 
-    public static let fireModeTabSwitcherTipTitle = NotLocalizedString("fire.mode.tab.switcher.tip.title", value: "New: Fire Tabs", comment: "Title for the Fire Tabs popover tip shown on the tab switcher picker")
-    public static let fireModeTabSwitcherTipDescription = NotLocalizedString("fire.mode.tab.switcher.tip.description", value: "Try Fire Tabs to browse without saving local history.", comment: "Description for the Fire Tabs popover tip shown on the tab switcher picker")
+    public static let fireModeTabSwitcherTipTitle = NSLocalizedString("fire.mode.tab.switcher.tip.title", value: "New: Fire Tabs", comment: "Title for the Fire Tabs popover tip shown on the tab switcher picker")
+    public static let fireModeTabSwitcherTipDescription = NSLocalizedString("fire.mode.tab.switcher.tip.description", value: "Try Fire Tabs to browse without saving local history.", comment: "Description for the Fire Tabs popover tip shown on the tab switcher picker")
 
     // MARK: Fire Mode Menu Promotion
 
