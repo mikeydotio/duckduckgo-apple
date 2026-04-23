@@ -24,10 +24,6 @@ import WebKit
 @MainActor
 final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
 
-    private let helper = ContentBlockingRulesHelper()
-
-    // MARK: - Tracker data fixtures
-
     private func mainTDS() -> TrackerData {
         let surrogateRule = KnownTracker.Rule(rule: "tracker\\.com/analytics\\.js",
                                               surrogate: "tracker-surrogate.js",
@@ -62,21 +58,6 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
                            cnames: nil)
     }
 
-    private func attributionTDS() -> TrackerData {
-        let tracker = KnownTracker(domain: "ad-attribution.example",
-                                   defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Ad Attribution Inc", displayName: "Ad Attribution", ownedBy: nil),
-                                   prevalence: 0.05,
-                                   subdomains: nil,
-                                   categories: nil,
-                                   rules: nil)
-        let entity = Entity(displayName: "Ad Attribution", domains: ["ad-attribution.example"], prevalence: 0.05)
-        return TrackerData(trackers: ["ad-attribution.example": tracker],
-                           entities: ["Ad Attribution Inc": entity],
-                           domains: ["ad-attribution.example": "Ad Attribution Inc"],
-                           cnames: nil)
-    }
-
     private func makeFakeRules(name: String, trackerData: TrackerData) async -> ContentBlockerRulesManager.Rules? {
         let identifier = ContentBlockerRulesIdentifier(name: name,
                                                        tdsEtag: UUID().uuidString,
@@ -95,37 +76,7 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
                      etag: "", identifier: identifier)
     }
 
-    // MARK: - Merge behavior
-
-    func testMergedTrackerData_includesCTLTrackers() async {
-        let mainRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
-            trackerData: mainTDS()
-        )!
-        let ctlRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
-            trackerData: ctlTDS()
-        )!
-        let mock = StubCompiledRuleListsSource(rules: [mainRules, ctlRules])
-
-        let dataSource = DefaultTrackerProtectionDataSource(
-            contentBlockingManager: mock,
-            additionalRuleLists: [DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName]
-        )
-
-        let merged = dataSource.trackerData
-        XCTAssertNotNil(merged)
-        XCTAssertNotNil(merged?.trackers["tracker.com"], "Main TDS trackers should be present")
-        XCTAssertNotNil(merged?.trackers["facebook.net"], "CTL trackers should be merged in")
-        XCTAssertNotNil(merged?.entities["Facebook Inc"], "CTL entities should be merged in")
-        XCTAssertEqual(merged?.domains["facebook.net"], "Facebook Inc")
-
-        let fbTracker = merged?.trackers["facebook.net"]
-        XCTAssertNotNil(fbTracker?.rules?.first(where: { $0.action == .blockCTLFB }),
-                        "block-ctl-fb rule should be present in merged data")
-    }
-
-    func testMergedTrackerData_mainOnlyWhenNoAdditionalLists() async {
+    func testTrackerData_usesMainDatasetEvenWhenCTLDatasetExists() async {
         let mainRules = await makeFakeRules(
             name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
             trackerData: mainTDS()
@@ -138,31 +89,12 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
 
         let dataSource = DefaultTrackerProtectionDataSource(contentBlockingManager: mock)
 
-        let data = dataSource.trackerData
-        XCTAssertNotNil(data?.trackers["tracker.com"])
-        XCTAssertNil(data?.trackers["facebook.net"],
-                     "CTL trackers should NOT be present when no additional lists specified")
+        XCTAssertNotNil(dataSource.trackerData)
+        XCTAssertNotNil(dataSource.trackerData?.trackers["tracker.com"], "Main tracker should be present")
+        XCTAssertNil(dataSource.trackerData?.trackers["facebook.net"], "Non-main trackers should not be merged for surrogate injection")
     }
 
-    func testMergedTrackerData_handlesAbsentClickToLoadList() async {
-        let mainRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
-            trackerData: mainTDS()
-        )!
-        let mock = StubCompiledRuleListsSource(rules: [mainRules])
-
-        let dataSource = DefaultTrackerProtectionDataSource(
-            contentBlockingManager: mock,
-            additionalRuleLists: [DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName]
-        )
-
-        let data = dataSource.trackerData
-        XCTAssertNotNil(data, "Should still return main tracker data when additional list is absent")
-        XCTAssertNotNil(data?.trackers["tracker.com"])
-        XCTAssertNil(data?.trackers["facebook.net"])
-    }
-
-    func testEncodedTrackerData_includesCTLRules() async {
+    func testSurrogateFilteredTrackerData_derivedFromMainDatasetOnly() async {
         let mainRules = await makeFakeRules(
             name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
             trackerData: mainTDS()
@@ -172,130 +104,45 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
             trackerData: ctlTDS()
         )!
         let mock = StubCompiledRuleListsSource(rules: [mainRules, ctlRules])
-
-        let dataSource = DefaultTrackerProtectionDataSource(
-            contentBlockingManager: mock,
-            additionalRuleLists: [DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName]
-        )
-
-        guard let encoded = dataSource.encodedTrackerData else {
-            XCTFail("encodedTrackerData should not be nil")
-            return
-        }
-        XCTAssertTrue(encoded.contains("facebook.net"), "Encoded data should contain CTL tracker domain")
-        XCTAssertTrue(encoded.contains("tracker.com"), "Encoded data should contain main tracker domain")
-    }
-
-    func testEncodedTrackerData_unchangedWhenNoAdditionalLists() async {
-        let mainRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
-            trackerData: mainTDS()
-        )!
-        let mock = StubCompiledRuleListsSource(rules: [mainRules])
 
         let dataSource = DefaultTrackerProtectionDataSource(contentBlockingManager: mock)
 
-        guard let encoded = dataSource.encodedTrackerData else {
-            XCTFail("encodedTrackerData should not be nil")
-            return
-        }
-        XCTAssertTrue(encoded.contains("tracker.com"))
-        XCTAssertFalse(encoded.contains("facebook.net"),
-                       "Encoded data should not include CTL data when no additional lists")
+        XCTAssertNotNil(dataSource.surrogateFilteredTrackerData)
+        XCTAssertNotNil(dataSource.surrogateFilteredTrackerData?.trackers["tracker.com"])
+        XCTAssertNil(dataSource.surrogateFilteredTrackerData?.trackers["facebook.net"])
     }
 
-    func testMergedTrackerData_includesBothCTLAndAttributionTrackers() async {
-        let mainRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
-            trackerData: mainTDS()
-        )!
+    func testWhenMainDatasetMissing_thenValuesAreNil() async {
         let ctlRules = await makeFakeRules(
             name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
             trackerData: ctlTDS()
         )!
-        let attrRules = await makeFakeRules(
-            name: AdClickAttributionRulesSplitter.blockingAttributionRuleListName(
-                forListNamed: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
-            ),
-            trackerData: attributionTDS()
-        )!
-        let mock = StubCompiledRuleListsSource(rules: [mainRules, ctlRules, attrRules])
+        let mock = StubCompiledRuleListsSource(rules: [ctlRules])
 
-        let dataSource = DefaultTrackerProtectionDataSource(
-            contentBlockingManager: mock,
-            additionalRuleLists: [
-                DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
-                AdClickAttributionRulesSplitter.blockingAttributionRuleListName(
-                    forListNamed: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
-                ),
-            ]
-        )
+        let dataSource = DefaultTrackerProtectionDataSource(contentBlockingManager: mock)
 
-        let merged = dataSource.trackerData
-        XCTAssertNotNil(merged)
-        XCTAssertNotNil(merged?.trackers["tracker.com"], "Main TDS tracker should be present")
-        XCTAssertNotNil(merged?.trackers["facebook.net"], "CTL tracker should be merged in")
-        XCTAssertNotNil(merged?.trackers["ad-attribution.example"], "Attribution tracker should be merged in")
-        XCTAssertEqual(merged?.domains["ad-attribution.example"], "Ad Attribution Inc")
-        XCTAssertNotNil(merged?.entities["Ad Attribution Inc"])
+        XCTAssertNil(dataSource.trackerData)
+        XCTAssertNil(dataSource.surrogateFilteredTrackerData)
     }
 
-    func testMergedTrackerData_attributionAbsent_noError() async {
+    func testMainTrackerData_usesSingleSnapshot() async {
         let mainRules = await makeFakeRules(
             name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
             trackerData: mainTDS()
-        )!
-        let ctlRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
-            trackerData: ctlTDS()
-        )!
-        let mock = StubCompiledRuleListsSource(rules: [mainRules, ctlRules])
-
-        let dataSource = DefaultTrackerProtectionDataSource(
-            contentBlockingManager: mock,
-            additionalRuleLists: [
-                DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
-                AdClickAttributionRulesSplitter.blockingAttributionRuleListName(
-                    forListNamed: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
-                ),
-            ]
-        )
-
-        let merged = dataSource.trackerData
-        XCTAssertNotNil(merged, "Should still return merged data when attribution list is absent")
-        XCTAssertNotNil(merged?.trackers["tracker.com"])
-        XCTAssertNotNil(merged?.trackers["facebook.net"], "CTL trackers should still merge")
-        XCTAssertNil(merged?.trackers["ad-attribution.example"],
-                     "Attribution tracker should not appear when list is absent")
-    }
-
-    func testMergedTrackerData_usesSnapshotForAllLookups() async {
-        let mainRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
-            trackerData: mainTDS()
-        )!
-        let ctlRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
-            trackerData: ctlTDS()
         )!
 
         let mutatingMock = MutatingStubCompiledRuleListsSource(
-            firstSnapshot: [mainRules, ctlRules],
-            subsequentSnapshot: [mainRules]
+            firstSnapshot: [mainRules],
+            subsequentSnapshot: []
         )
 
-        let dataSource = DefaultTrackerProtectionDataSource(
-            contentBlockingManager: mutatingMock,
-            additionalRuleLists: [DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName]
-        )
+        let dataSource = DefaultTrackerProtectionDataSource(contentBlockingManager: mutatingMock)
 
-        let merged = dataSource.trackerData
-        XCTAssertNotNil(merged?.trackers["facebook.net"],
-                        "CTL tracker should be present because mergedTrackerData uses the first snapshot")
-        XCTAssertGreaterThanOrEqual(mutatingMock.accessCount, 1)
+        XCTAssertNotNil(dataSource.trackerData?.trackers["tracker.com"])
+        XCTAssertEqual(mutatingMock.accessCount, 1)
     }
 
-    func testMergedTrackerData_preservesCnamesFromMainSet() async {
+    func testTrackerData_preservesCnamesFromMainSet() async {
         var mainData = mainTDS()
         mainData = TrackerData(trackers: mainData.trackers,
                                entities: mainData.entities,
@@ -305,19 +152,10 @@ final class DefaultTrackerProtectionDataSourceTests: XCTestCase {
             name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
             trackerData: mainData
         )!
-        let ctlRules = await makeFakeRules(
-            name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
-            trackerData: ctlTDS()
-        )!
-        let mock = StubCompiledRuleListsSource(rules: [mainRules, ctlRules])
+        let mock = StubCompiledRuleListsSource(rules: [mainRules])
 
-        let dataSource = DefaultTrackerProtectionDataSource(
-            contentBlockingManager: mock,
-            additionalRuleLists: [DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName]
-        )
-
-        let merged = dataSource.trackerData
-        XCTAssertEqual(merged?.cnames?["cname.example.com"], "tracker.com",
+        let dataSource = DefaultTrackerProtectionDataSource(contentBlockingManager: mock)
+        XCTAssertEqual(dataSource.trackerData?.cnames?["cname.example.com"], "tracker.com",
                        "Cnames from main TDS should be preserved in merge")
     }
 }

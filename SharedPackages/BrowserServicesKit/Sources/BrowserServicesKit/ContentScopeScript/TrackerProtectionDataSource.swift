@@ -23,82 +23,39 @@ import TrackerRadarKit
 
 /// Source of tracker data for the C-S-S trackerProtection feature.
 ///
-/// `trackerData` provides the full merged TDS for native classification.
+/// `trackerData` provides the main TDS used for native classification.
 /// `surrogateFilteredTrackerData` provides the surrogate-only subset for ContentScopeProperties.
-/// `encodedTrackerData` provides the surrogate-filtered JSON for C-S-S injection.
 ///
-/// All values are computed once at construction from a `currentRules` snapshot,
-/// eliminating per-access merging and encoding overhead.
+/// Values are computed once at construction from a `currentRules` snapshot.
 public protocol TrackerProtectionDataSource {
     var trackerData: TrackerData? { get }
     var surrogateFilteredTrackerData: TrackerData? { get }
-    var encodedTrackerData: String? { get }
 }
 
-/// Default implementation that pre-computes all tracker data from a rules snapshot.
-///
-/// On macOS, ClickToLoad rules are compiled into a separate rule list.
-/// Pass the list name via `additionalRuleLists` so the merged tracker data
-/// includes CTL rules (e.g. `block-ctl-fb`), making them visible to the
-/// C-S-S TrackerResolver for blocking decisions and dashboard reporting.
-///
-/// All values are computed eagerly at init and cached as stored properties,
-/// avoiding repeated merging/encoding on every access.
+/// Default implementation that pre-computes tracker data from a rules snapshot.
 public struct DefaultTrackerProtectionDataSource: TrackerProtectionDataSource {
 
     public let trackerData: TrackerData?
     public let surrogateFilteredTrackerData: TrackerData?
-    public let encodedTrackerData: String?
 
-    public init(contentBlockingManager: CompiledRuleListsSource,
-                additionalRuleLists: [String] = []) {
-        let merged = Self.computeMergedTrackerData(from: contentBlockingManager, additionalRuleLists: additionalRuleLists)
-        self.trackerData = merged
+    public init(contentBlockingManager: CompiledRuleListsSource) {
+        let mainTrackerData = Self.mainTrackerData(from: contentBlockingManager)
+        self.trackerData = mainTrackerData
 
-        if let merged {
-            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: merged)
+        if let mainTrackerData {
+            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: mainTrackerData)
             self.surrogateFilteredTrackerData = surrogateTDS
-
-            if let encodedData = try? JSONEncoder().encode(surrogateTDS),
-               let encodedString = String(data: encodedData, encoding: .utf8) {
-                self.encodedTrackerData = encodedString
-            } else {
-                Logger.contentBlocking.warning("TrackerProtectionDataSource: Failed to encode surrogate TDS")
-                self.encodedTrackerData = nil
-            }
         } else {
             Logger.contentBlocking.warning("TrackerProtectionDataSource: no tracker data available at init")
             self.surrogateFilteredTrackerData = nil
-            self.encodedTrackerData = nil
         }
     }
 
-    /// Merge main TDS tracker data with any additional compiled rule lists
-    /// (e.g. ClickToLoad).  Takes a single snapshot of `currentRules` to
-    /// avoid torn reads while rules are recompiling.
-    private static func computeMergedTrackerData(from contentBlockingManager: CompiledRuleListsSource,
-                                                 additionalRuleLists: [String]) -> TrackerData? {
+    /// Read from a single `currentRules` snapshot to avoid torn reads while rules are recompiling.
+    private static func mainTrackerData(from contentBlockingManager: CompiledRuleListsSource) -> TrackerData? {
         let rulesSnapshot = contentBlockingManager.currentRules
-        guard let main = rulesSnapshot.first(where: {
+        return rulesSnapshot.first(where: {
             $0.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
-        }) else {
-            return nil
-        }
-
-        guard !additionalRuleLists.isEmpty else { return main.trackerData }
-
-        var trackers = main.trackerData.trackers
-        var entities = main.trackerData.entities
-        var domains = main.trackerData.domains
-
-        for name in additionalRuleLists {
-            guard let rules = rulesSnapshot.first(where: { $0.name == name }) else { continue }
-            trackers.merge(rules.trackerData.trackers) { _, new in new }
-            entities.merge(rules.trackerData.entities) { _, new in new }
-            domains.merge(rules.trackerData.domains) { _, new in new }
-        }
-
-        return TrackerData(trackers: trackers, entities: entities, domains: domains,
-                           cnames: main.trackerData.cnames)
+        })?.trackerData
     }
 }
