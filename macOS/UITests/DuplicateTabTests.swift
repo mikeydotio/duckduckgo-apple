@@ -37,8 +37,7 @@ class DuplicateTabTests: UITestCase {
     }
 
     func test_duplicateTab_appearsInTabBar_viaWindowMenu() throws {
-        let pageURL = UITests.simpleServedPage(titled: "DuplicateTabTest")
-        app.openURL(pageURL)
+        app.openSite(pageTitle: "DuplicateTabTest")
 
         let tabs = app.tabGroups.matching(identifier: "Tabs").radioButtons
         XCTAssertTrue(

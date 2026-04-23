@@ -487,7 +487,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         do {
-            let encryptionKey = AppVersion.runType.requiresEnvironment ? try keyStore.readKey() : nil
+            let needsKeychainKey = AppVersion.runType.requiresEnvironment
+                && ![.uiTests, .uiTestsOnboarding, .uiTestsStartupPerformance].contains(AppVersion.runType)
+            let encryptionKey = needsKeychainKey ? try keyStore.readKey() : nil
             fileStore = EncryptedFileStore(encryptionKey: encryptionKey)
         } catch {
             Logger.general.error("App Encryption Key could not be read: \(error.localizedDescription)")
