@@ -88,7 +88,6 @@ public final class TrackerProtectionSubfeature: NSObject, Subfeature {
     public weak var broker: UserScriptMessageBroker?
     public weak var delegate: TrackerProtectionSubfeatureDelegate?
     public var currentAdClickAttributionVendor: String?
-    public var currentAdClickAttributionAllowlistHosts: [String] = []
     public var currentAttributionTrackerData: TrackerData?
 
     // MARK: - Subfeature
