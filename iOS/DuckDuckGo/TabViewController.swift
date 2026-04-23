@@ -490,6 +490,23 @@ class TabViewController: UIViewController {
 
 
     let historyManager: HistoryManaging
+    private(set) lazy var adBlockingNavigationHandler: AdBlockingNavigationHandling = {
+        let youTubeAdBlockingStorage: any ThrowingKeyedStoring<YouTubeAdBlockingKeys> = keyValueStore.throwingKeyedStoring()
+        let availability = AdBlockingAvailability(
+            featureFlagger: featureFlagger,
+            isEnabledByUserProvider: {
+                (try? youTubeAdBlockingStorage.value(for: \.youTubeAdBlockingEnabled)) ?? false
+            }
+        )
+        return AdBlockingNavigationHandler(
+            availability: availability,
+            onShouldShowAdBlockingAnimation: { [weak self] in
+                guard let self else { return }
+                self.delegate?.tabDidRequestPresentingYouTubeAdBlockAnimation(tab: self)
+            }
+        )
+    }()
+
     private lazy var duckPlayerNavigationHandler: DuckPlayerNavigationHandling = {
         let duckPlayer = DuckPlayer(settings: DuckPlayerSettingsDefault(),
                                     featureFlagger: AppDependencyProvider.shared.featureFlagger,
@@ -1121,7 +1138,9 @@ class TabViewController: UIViewController {
     
     func webViewUrlHasChanged(previousURL: URL? = nil, newURL: URL? = nil) {
         // Handle DuckPlayer Navigation URL changes
-        if let currentURL = newURL ?? webView.url {
+        if let currentURL = newURL ?? webView.url,
+           shouldHandleUpdate(previousURL, newURL) {
+            adBlockingNavigationHandler.handleURLChange(previousURL: previousURL, newURL: currentURL)
             _ = duckPlayerNavigationHandler.handleURLChange(webView: webView, previousURL: previousURL, newURL: currentURL, isNavigationError: lastError != nil)
         }
 
@@ -1169,6 +1188,17 @@ class TabViewController: UIViewController {
 
     func presentExperimentContextualDaxFireDialog() {
         contextualOnboardingPresenter.presentContextualOnboarding(for: .fireDuckAIOnboarding, in: self)
+    }
+
+    private func shouldHandleUpdate(_ previousURL: URL?, _ newURL: URL?) -> Bool {
+        guard let previousURL, let newURL,
+              previousURL.isYoutube,
+              newURL.isYoutube,
+              previousURL.youtubeVideoID == newURL.youtubeVideoID,
+              newURL.getParameter(named: "ra") != nil
+        else { return true }
+
+        return previousURL != newURL.removingParameters(named: ["ra"])
     }
 
     private func checkForReloadOnError() {
@@ -1227,6 +1257,7 @@ class TabViewController: UIViewController {
         addressBarURLFilter.beginUserReload()
         updateContentMode()
         cachedRuntimeConfigurationForDomain = [:]
+        adBlockingNavigationHandler.handleReload()
         duckPlayerNavigationHandler.handleReload(webView: webView)
         delegate?.tabLoadingStateDidChange(tab: self)
         resetCreditCardPrompt()
@@ -1832,6 +1863,7 @@ extension TabViewController: WKNavigationDelegate {
         adClickAttributionLogic.onDidFinishNavigation(host: webView.url?.host)
         hideProgressIndicator()
         onWebpageDidFinishLoading()
+        adBlockingNavigationHandler.handleURLChange(previousURL: nil, newURL: webView.url)
         extractDaxEasterEggLogoIfDuckDuckGoSearch(webView)
         instrumentation.didLoadURL()
         checkLoginDetectionAfterNavigation()
