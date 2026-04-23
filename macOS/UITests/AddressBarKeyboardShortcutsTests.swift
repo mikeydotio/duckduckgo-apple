@@ -149,6 +149,57 @@ class AddressBarKeyboardShortcutsTests: UITestCase {
         )
     }
 
+    /// Regression test for: Opt+Shift+Left when address bar has a full downstream selection (e.g. after Cmd+A or focusing
+    /// a loaded URL) should CONTRACT the selection by one word from the right end — not collapse the cursor to position 0.
+    func test_addressBar_optShiftLeft_contractsSelectionWordByWord_whenFullySelected() throws {
+        // Start: URL typed with cursor at end (setUp typed the URL without pressing Enter)
+        // Select the entire URL (downstream selection — same state as focusing a loaded address bar)
+        addressBarTextField.typeKey("a", modifierFlags: .command)
+
+        // Opt+Shift+Left: must contract the selection from the right end by one word ("translation/")
+        // leaving the rest of the URL selected. This is the behaviour under test.
+        addressBarTextField.typeKey(.leftArrow, modifierFlags: [.option, .shift])
+
+        // Delete the selection that should now be everything EXCEPT "translation/"
+        addressBarTextField.typeKey(.delete, modifierFlags: [])
+        let remaining = try XCTUnwrap(addressBarTextField.value as? String).removingTagLine()
+
+        // If the bug is present, Opt+Shift+Left collapses the cursor to position 0 (no selection),
+        // so nothing is deleted and the full URL is still in the field.
+        XCTAssertEqual(
+            remaining,
+            "translation/",
+            "Opt+Shift+Left with a fully-selected URL should contract the selection by one word from the right end, leaving only the last word component. If the full URL is present, the selection was not contracted — the cursor was collapsed to position 0 instead."
+        )
+    }
+
+    /// Regression test for: Opt+Shift+Right when address bar has a full upstream selection should CONTRACT
+    /// the selection by one word from the left end — not collapse the cursor to the right end.
+    func test_addressBar_optShiftRight_contractsSelectionWordByWord_whenFullySelected() throws {
+        // Select the entire URL, then reverse to upstream affinity by pressing Shift+Left once
+        // (so we have an upstream selection anchored at the end, cursor at start)
+        addressBarTextField.typeKey("a", modifierFlags: .command)   // downstream: cursor at end
+        addressBarTextField.typeKey(.rightArrow, modifierFlags: .shift) // no-op (already at end), keeps downstream
+        // Re-select upstream: go to end, then Shift+Cmd+Left to select all from the right
+        addressBarTextField.typeKey(.rightArrow, modifierFlags: .command) // cursor to end
+        addressBarTextField.typeKey(.leftArrow, modifierFlags: [.command, .shift]) // Shift+Cmd+Left → select all upstream
+
+        // Opt+Shift+Right: must contract the upstream selection from the left end by one word ("https")
+        addressBarTextField.typeKey(.rightArrow, modifierFlags: [.option, .shift])
+
+        // Delete the remaining selection
+        addressBarTextField.typeKey(.delete, modifierFlags: [])
+        let remaining = try XCTUnwrap(addressBarTextField.value as? String).removingTagLine()
+
+        // If working correctly, "https" (first word) is no longer in the selection and survives.
+        // The rest was selected and deleted.
+        XCTAssertEqual(
+            remaining,
+            "https",
+            "Opt+Shift+Right with a fully upstream-selected URL should contract the selection by one word from the left end."
+        )
+    }
+
     func test_addressBar_url_word_canBeSelectedByDoubleClick() throws {
         addressBarTextField
             .typeKey(.leftArrow,
