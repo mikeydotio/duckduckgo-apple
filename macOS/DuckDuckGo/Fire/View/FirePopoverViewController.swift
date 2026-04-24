@@ -230,7 +230,9 @@ final class FirePopoverViewController: NSViewController {
             assertionFailure("No TabCollectionViewModel or MainWindowController")
             return
         }
-        windowController.window?.close()
+        // Use performClose so that windowShouldClose is invoked on the delegate,
+        // which triggers the fire animation before the window actually closes.
+        windowController.window?.performClose(nil)
     }
 }
 

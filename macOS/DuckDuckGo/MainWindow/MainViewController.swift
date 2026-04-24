@@ -1316,7 +1316,14 @@ extension MainViewController: BrowserTabViewControllerDelegate {
         }()
 
         if noPinnedTabs || (isSharedPinnedTabsMode && areOtherWindowsWithPinnedTabsAvailable) {
-            window.close()
+            // For Fire Windows, use performClose so that windowShouldClose is invoked,
+            // which triggers the fire animation before the window actually closes.
+            // Direct window.close() bypasses the delegate and skips the animation.
+            if isBurner {
+                window.performClose(self)
+            } else {
+                window.close()
+            }
             return true
         }
         return false

@@ -122,6 +122,37 @@ class FireWindowTests: UITestCase {
         assertDeveloperToolsEnabled(true)
     }
 
+    /// Regression test for: Fire Window animation not played when closing with Cmd+W
+    /// https://app.asana.com/1/137249556945/project/1199230911884351/task/1213760440471324
+    ///
+    /// Root cause: `closeWindowIfNeeded()` called `window.close()` directly for fire windows,
+    /// bypassing `windowShouldClose(_:)` and thus skipping the fire animation.
+    /// Fix: use `window.performClose(_:)` for burner windows so the delegate is invoked.
+    ///
+    /// Note: the Lottie animation view is only set up in .normal run type, so the visible
+    /// animation delay cannot be verified in this (review-build) test environment.
+    /// This test verifies the end-to-end Cmd+W close path: the fire window must close
+    /// cleanly and the regular window must survive.
+    func test_fireWindowCmdW_closesFireWindowCleanly() {
+        app.enforceSingleWindow()
+        app.openFireWindow()
+
+        XCTAssertEqual(app.windows.count, 2, "Expected 2 windows after opening Fire Window")
+
+        // Close the fire window's only tab via Cmd+W.
+        // With the bug: closeWindowIfNeeded() called window.close() directly, bypassing windowShouldClose.
+        // With the fix: closeWindowIfNeeded() calls window.performClose() so the delegate fires first.
+        app.typeKey("w", modifierFlags: .command)
+
+        // Fire window should close (animation is instant in review build, ~1.3s in production).
+        let fireWindowClosedPredicate = NSPredicate(format: "count == 1")
+        let closedExpectation = expectation(for: fireWindowClosedPredicate, evaluatedWith: app.windows)
+        wait(for: [closedExpectation], timeout: 5.0)
+
+        XCTAssertEqual(app.windows.count, 1,
+                       "Fire Window should have closed after Cmd+W; regular window should remain")
+    }
+
     // MARK: - Utilities
 
     private func hoverMouseOutsideTabSoPreviewIsNotShown() {
