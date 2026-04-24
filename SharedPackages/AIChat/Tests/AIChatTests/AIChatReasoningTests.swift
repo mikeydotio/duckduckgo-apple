@@ -33,6 +33,23 @@ final class AIChatReasoningTests: XCTestCase {
         XCTAssertEqual(model.availableReasoningModes, [.fast, .reasoning, .extendedReasoning])
     }
 
+    func testWhenModelSupportsFourReasoningEfforts_ThenThreeModesAreAvailable() {
+        let model = makeModel(supportedReasoningEffort: [.none, .low, .medium, .high])
+
+        XCTAssertEqual(model.availableReasoningModes, [.fast, .reasoning, .extendedReasoning])
+        XCTAssertEqual(model.reasoningEffort(for: .fast), .none)
+        XCTAssertEqual(model.reasoningEffort(for: .reasoning), .low)
+        XCTAssertEqual(model.reasoningEffort(for: .extendedReasoning), .high)
+    }
+
+    func testWhenModelSupportsMinimalAndMedium_ThenModesMapByMeaning() {
+        let model = makeModel(supportedReasoningEffort: [.minimal, .medium])
+
+        XCTAssertEqual(model.availableReasoningModes, [.fast, .reasoning])
+        XCTAssertEqual(model.reasoningEffort(for: .fast), .minimal)
+        XCTAssertEqual(model.reasoningEffort(for: .reasoning), .medium)
+    }
+
     func testWhenPreferredModeExceedsSupportedModes_ThenResolvedModeClampsToHighestAvailable() {
         let model = makeModel(supportedReasoningEffort: [.none, .low])
 

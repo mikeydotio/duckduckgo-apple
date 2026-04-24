@@ -158,6 +158,7 @@ private final class MockUnifiedToggleInputReasoningDelegate: UnifiedToggleInputD
 private final class MockAIChatReasoningPreferences: AIChatPreferencesPersisting {
     var selectedModelId: String?
     var selectedModelShortName: String?
+    var selectedReasoningEffort: String?
     var selectedReasoningMode: AIChatReasoningMode?
     var selectedModelIdPublisher: AnyPublisher<String?, Never> { Empty().eraseToAnyPublisher() }
 }

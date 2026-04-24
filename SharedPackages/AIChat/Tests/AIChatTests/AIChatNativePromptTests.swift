@@ -264,7 +264,7 @@ struct AIChatNativePromptTests {
         #expect(imagesArray[0]["format"] == "png")
     }
 
-    @Test
+    @Test(.timeLimit(.minutes(1)))
     func encodingQueryWithReasoningEffort() throws {
         let prompt = AIChatNativePrompt.queryPrompt("Describe this", autoSubmit: true, modelId: "gpt-5.2", reasoningEffort: .medium)
         let jsonDict = try encodePrompt(prompt)
@@ -312,7 +312,7 @@ struct AIChatNativePromptTests {
         #expect(prompt == expected)
     }
 
-    @Test
+    @Test(.timeLimit(.minutes(1)))
     func decodingQueryWithReasoningEffort() throws {
         let json = """
             {

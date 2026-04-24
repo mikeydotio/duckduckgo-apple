@@ -104,7 +104,31 @@ final class AIChatModelsServiceTests: XCTestCase {
 
         let response = try JSONDecoder().decode(AIChatModelsResponse.self, from: data)
 
-        XCTAssertEqual(response.models[0].supportedReasoningEffort, ["none", "low", "medium"])
+        XCTAssertEqual(response.models[0].supportedReasoningEffort, [.none, .low, .medium])
+    }
+
+    func testWhenJSONIncludesUnknownSupportedReasoningEffort_ThenUnknownValueIsIgnored() throws {
+        let json = """
+        {
+            "models": [
+                {
+                    "id": "future-model",
+                    "name": "Future Model",
+                    "provider": "openai",
+                    "entityHasAccess": true,
+                    "supportsImageUpload": false,
+                    "supportedTools": [],
+                    "supportedReasoningEffort": ["none", "future", "high"],
+                    "accessTier": ["free"]
+                }
+            ]
+        }
+        """
+        let data = try XCTUnwrap(json.data(using: .utf8))
+
+        let response = try JSONDecoder().decode(AIChatModelsResponse.self, from: data)
+
+        XCTAssertEqual(response.models[0].supportedReasoningEffort, [.none, .high])
     }
 
     func testWhenMultipleModelsAreDecoded_ThenAllAreParsed() throws {
