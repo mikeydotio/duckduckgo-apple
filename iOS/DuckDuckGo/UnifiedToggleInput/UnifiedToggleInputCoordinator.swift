@@ -808,7 +808,10 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
         guard let selectedModel, selectedModel.supportsReasoningPicker else { return nil }
 
         let selectedMode = resolvedSelectedReasoningMode
-        let actions = selectedModel.availableReasoningModes.map { mode in
+        let modes = viewController.cardPosition == .bottom
+            ? Array(selectedModel.availableReasoningModes.reversed())
+            : selectedModel.availableReasoningModes
+        let actions = modes.map { mode in
             UIAction(
                 title: mode.unifiedToggleInputTitle,
                 subtitle: mode.unifiedToggleInputSubtitle,

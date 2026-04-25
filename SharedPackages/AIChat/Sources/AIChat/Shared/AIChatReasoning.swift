@@ -47,7 +47,7 @@ public extension AIChatModel {
         guard let preferredMode else { return modes.first }
         if modes.contains(preferredMode) { return preferredMode }
 
-        return modes[min(preferredMode.preferredIndex, modes.count - 1)]
+        return modes.first { $0.preferredIndex >= preferredMode.preferredIndex } ?? modes.last
     }
 
     func reasoningEffort(for preferredMode: AIChatReasoningMode?) -> AIChatReasoningEffort? {

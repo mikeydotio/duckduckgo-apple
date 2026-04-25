@@ -249,14 +249,6 @@ final class AIChatUserScript: NSObject, Subfeature {
     private func subscribeToInputBoxEvents() {
         inputBoxCancellables.removeAll()
 
-        inputBoxHandler?.didSubmitPrompt
-            .sink(receiveValue: { [weak self] prompt in
-                let modelId = self?.inputBoxHandler?.persistedModelId
-                let reasoningEffort = self?.inputBoxHandler?.persistedReasoningEffort
-                self?.submitPrompt(prompt, modelId: modelId, reasoningEffort: reasoningEffort)
-            })
-            .store(in: &inputBoxCancellables)
-
         inputBoxHandler?.didPressNewChatButton
             .sink(receiveValue: { [weak self] _ in self?.push(.newChatAction) })
             .store(in: &inputBoxCancellables)
