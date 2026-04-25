@@ -26,7 +26,7 @@ public enum AIChatReasoningEffort: String, Codable, Equatable {
     case high
 }
 
-public enum AIChatReasoningMode: String, Codable, Equatable {
+public enum AIChatReasoningMode: String, CaseIterable, Codable, Equatable {
     case fast
     case reasoning
     case extendedReasoning = "extended_reasoning"
@@ -38,13 +38,14 @@ public extension AIChatModel {
     }
 
     var supportsReasoningPicker: Bool {
-        !availableReasoningModes.isEmpty
+        availableReasoningModes.count > 1
     }
 
     func resolvedReasoningMode(from preferredMode: AIChatReasoningMode?) -> AIChatReasoningMode? {
         let modes = availableReasoningModes
         guard !modes.isEmpty else { return nil }
         guard let preferredMode else { return modes.first }
+        if modes.contains(preferredMode) { return preferredMode }
 
         return modes[min(preferredMode.preferredIndex, modes.count - 1)]
     }
@@ -58,35 +59,29 @@ public extension AIChatModel {
 
 private extension AIChatModel {
     var reasoningModeMappings: [(mode: AIChatReasoningMode, effort: AIChatReasoningEffort)] {
-        guard let fastEffort = firstSupportedReasoningEffort(in: [.none, .minimal]),
-              let reasoningEffort = firstSupportedReasoningEffort(in: [.low, .medium, .high]) else {
-            return []
+        AIChatReasoningMode.allCases.compactMap { mode in
+            guard let effort = firstSupportedReasoningEffort(in: mode.supportedEfforts) else { return nil }
+            return (mode, effort)
         }
-
-        var mappings: [(mode: AIChatReasoningMode, effort: AIChatReasoningEffort)] = [
-            (.fast, fastEffort),
-            (.reasoning, reasoningEffort)
-        ]
-
-        if let extendedReasoningEffort = extendedReasoningEffort(after: reasoningEffort) {
-            mappings.append((.extendedReasoning, extendedReasoningEffort))
-        }
-
-        return mappings
     }
 
     func firstSupportedReasoningEffort(in candidates: [AIChatReasoningEffort]) -> AIChatReasoningEffort? {
         candidates.first { supportedReasoningEffort.contains($0) }
     }
-
-    func extendedReasoningEffort(after reasoningEffort: AIChatReasoningEffort) -> AIChatReasoningEffort? {
-        [.high, .medium]
-            .filter { supportedReasoningEffort.contains($0) }
-            .first { $0 != reasoningEffort }
-    }
 }
 
 private extension AIChatReasoningMode {
+    var supportedEfforts: [AIChatReasoningEffort] {
+        switch self {
+        case .fast:
+            return [.none, .minimal]
+        case .reasoning:
+            return [.low]
+        case .extendedReasoning:
+            return [.high, .medium]
+        }
+    }
+
     var preferredIndex: Int {
         switch self {
         case .fast:

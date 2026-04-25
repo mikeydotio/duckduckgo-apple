@@ -42,12 +42,38 @@ final class AIChatReasoningTests: XCTestCase {
         XCTAssertEqual(model.reasoningEffort(for: .extendedReasoning), .high)
     }
 
+    func testWhenBackendReturnsReasoningEffortsOutOfOrder_ThenModesStayInDesignOrder() {
+        let model = makeModel(supportedReasoningEffort: [.medium, .low, .none])
+
+        XCTAssertEqual(model.availableReasoningModes, [.fast, .reasoning, .extendedReasoning])
+        XCTAssertEqual(model.reasoningEffort(for: .fast), .none)
+        XCTAssertEqual(model.reasoningEffort(for: .reasoning), .low)
+        XCTAssertEqual(model.reasoningEffort(for: .extendedReasoning), .medium)
+    }
+
     func testWhenModelSupportsMinimalAndMedium_ThenModesMapByMeaning() {
         let model = makeModel(supportedReasoningEffort: [.minimal, .medium])
 
-        XCTAssertEqual(model.availableReasoningModes, [.fast, .reasoning])
+        XCTAssertEqual(model.availableReasoningModes, [.fast, .extendedReasoning])
         XCTAssertEqual(model.reasoningEffort(for: .fast), .minimal)
-        XCTAssertEqual(model.reasoningEffort(for: .reasoning), .medium)
+        XCTAssertEqual(model.reasoningEffort(for: .extendedReasoning), .medium)
+    }
+
+    func testWhenModelSupportsLowAndMediumWithoutFastEffort_ThenModesStayInDesignOrder() {
+        let model = makeModel(supportedReasoningEffort: [.medium, .low])
+
+        XCTAssertEqual(model.availableReasoningModes, [.reasoning, .extendedReasoning])
+        XCTAssertEqual(model.reasoningEffort(for: nil), .low)
+        XCTAssertEqual(model.reasoningEffort(for: .reasoning), .low)
+        XCTAssertEqual(model.reasoningEffort(for: .extendedReasoning), .medium)
+    }
+
+    func testWhenModelSupportsOneReasoningMode_ThenReasoningPickerIsUnavailable() {
+        let model = makeModel(supportedReasoningEffort: [.low])
+
+        XCTAssertEqual(model.availableReasoningModes, [.reasoning])
+        XCTAssertFalse(model.supportsReasoningPicker)
+        XCTAssertEqual(model.reasoningEffort(for: nil), .low)
     }
 
     func testWhenPreferredModeExceedsSupportedModes_ThenResolvedModeClampsToHighestAvailable() {
