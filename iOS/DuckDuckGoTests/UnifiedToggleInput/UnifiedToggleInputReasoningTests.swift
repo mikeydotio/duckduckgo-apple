@@ -100,16 +100,18 @@ final class UnifiedToggleInputReasoningTests: XCTestCase {
         XCTAssertNil(sut.viewController.reasoningPickerMenu)
     }
 
-    func testUpdateSelectedModelWhenReasoningModeUnavailableClampsToHighestAvailable() {
+    func testUpdateSelectedModelWhenReasoningModeUnavailableClearsPersistedSelection() {
         mockPreferences.selectedReasoningMode = .extendedReasoning
         sut.modelStore.models = [makeReasoningModel(id: "claude-opus-4-6", provider: .anthropic, supportedReasoningEffort: [.none, .low])]
 
         sut.updateSelectedModel("claude-opus-4-6")
 
-        XCTAssertEqual(sut.persistedReasoningEffort, .low)
+        XCTAssertNil(mockPreferences.selectedReasoningMode)
+        XCTAssertEqual(sut.viewController.selectedReasoningMode, .fast)
+        XCTAssertNil(sut.persistedReasoningEffort)
     }
 
-    func testUpdateSelectedModelWhenReasoningModeUnavailablePreservesPersistedMode() {
+    func testUpdateSelectedModelWhenReasoningModeUnavailableDoesNotRestoreStaleMode() {
         mockPreferences.selectedReasoningMode = .extendedReasoning
         sut.modelStore.models = [
             makeReasoningModel(id: "gpt-5.2", supportedReasoningEffort: [.none, .low, .medium]),
@@ -118,15 +120,45 @@ final class UnifiedToggleInputReasoningTests: XCTestCase {
 
         sut.updateSelectedModel("claude-opus-4-6")
 
-        XCTAssertEqual(mockPreferences.selectedReasoningMode, .extendedReasoning)
-        XCTAssertEqual(sut.viewController.selectedReasoningMode, .reasoning)
-        XCTAssertEqual(sut.persistedReasoningEffort, .low)
+        XCTAssertNil(mockPreferences.selectedReasoningMode)
+        XCTAssertEqual(sut.viewController.selectedReasoningMode, .fast)
+        XCTAssertNil(sut.persistedReasoningEffort)
 
         sut.updateSelectedModel("gpt-5.2")
 
-        XCTAssertEqual(mockPreferences.selectedReasoningMode, .extendedReasoning)
-        XCTAssertEqual(sut.viewController.selectedReasoningMode, .extendedReasoning)
-        XCTAssertEqual(sut.persistedReasoningEffort, .medium)
+        XCTAssertNil(mockPreferences.selectedReasoningMode)
+        XCTAssertEqual(sut.viewController.selectedReasoningMode, .fast)
+        XCTAssertNil(sut.persistedReasoningEffort)
+    }
+
+    func testUpdateSelectedReasoningModeWhenModeUnavailableDoesNotPersistInvalidSelection() {
+        mockPreferences.selectedReasoningMode = .fast
+        sut.modelStore.models = [makeReasoningModel(id: "claude-opus-4-6", provider: .anthropic, supportedReasoningEffort: [.none, .low])]
+        sut.updateSelectedModel("claude-opus-4-6")
+
+        sut.updateSelectedReasoningMode(.extendedReasoning)
+
+        XCTAssertEqual(mockPreferences.selectedReasoningMode, .fast)
+        XCTAssertEqual(sut.persistedReasoningEffort, AIChatReasoningEffort.none)
+    }
+
+    func testSubmitAIChatWhenOnlyOneReasoningModeAndNoSelectionOmitsReasoningEffort() {
+        mockPreferences.selectedModelId = "gpt-oss"
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-oss", supportedReasoningEffort: [.low])]
+
+        sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "hello AI", mode: .aiChat)
+
+        XCTAssertNil(mockDelegate.submittedReasoningEffort)
+    }
+
+    func testSubmitAIChatWhenOnlyOneReasoningModeAndSelectionIsValidPassesReasoningEffort() {
+        mockPreferences.selectedModelId = "gpt-oss"
+        mockPreferences.selectedReasoningMode = .reasoning
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-oss", supportedReasoningEffort: [.low])]
+
+        sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "hello AI", mode: .aiChat)
+
+        XCTAssertEqual(mockDelegate.submittedReasoningEffort, .low)
     }
 
     func testSubmitAIChatAfterFirstPromptStillPassesReasoningEffort() {

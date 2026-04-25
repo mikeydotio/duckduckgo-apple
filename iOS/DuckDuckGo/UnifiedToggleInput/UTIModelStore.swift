@@ -93,6 +93,7 @@ final class UTIModelStore {
                 guard !Task.isCancelled else { return }
                 self.models = Self.resolveModels(from: remoteModels, userTier: state.userTier)
                 self.clearStaleModelSelectionIfNeeded()
+                self.clearStaleReasoningModeIfNeeded()
                 self.onModelsUpdated?()
             } catch {
                 os_log(.error, "Failed to fetch models: %{public}@", error.localizedDescription)
@@ -103,9 +104,11 @@ final class UTIModelStore {
     func updateSelectedModel(_ modelId: String) {
         preferences.selectedModelId = modelId
         preferences.selectedModelShortName = models.first(where: { $0.id == modelId })?.shortName
+        clearStaleReasoningModeIfNeeded()
     }
 
     func updateSelectedReasoningMode(_ mode: AIChatReasoningMode) {
+        guard selectedModel?.availableReasoningModes.contains(mode) == true else { return }
         preferences.selectedReasoningMode = mode
     }
 
@@ -159,6 +162,19 @@ final class UTIModelStore {
         if isStale {
             preferences.selectedModelId = nil
             preferences.selectedModelShortName = nil
+        }
+    }
+
+    func clearStaleReasoningModeIfNeeded() {
+        guard let selectedReasoningMode = preferences.selectedReasoningMode else { return }
+
+        guard let selectedModel else {
+            preferences.selectedReasoningMode = nil
+            return
+        }
+
+        if !selectedModel.availableReasoningModes.contains(selectedReasoningMode) {
+            preferences.selectedReasoningMode = nil
         }
     }
 }

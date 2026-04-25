@@ -63,7 +63,8 @@ final class AIChatReasoningTests: XCTestCase {
         let model = makeModel(supportedReasoningEffort: [.medium, .low])
 
         XCTAssertEqual(model.availableReasoningModes, [.reasoning, .extendedReasoning])
-        XCTAssertEqual(model.reasoningEffort(for: nil), .low)
+        XCTAssertEqual(model.resolvedReasoningMode(from: nil), .reasoning)
+        XCTAssertNil(model.reasoningEffort(for: nil))
         XCTAssertEqual(model.reasoningEffort(for: .reasoning), .low)
         XCTAssertEqual(model.reasoningEffort(for: .extendedReasoning), .medium)
     }
@@ -73,37 +74,38 @@ final class AIChatReasoningTests: XCTestCase {
 
         XCTAssertEqual(model.availableReasoningModes, [.reasoning])
         XCTAssertFalse(model.supportsReasoningPicker)
-        XCTAssertEqual(model.reasoningEffort(for: nil), .low)
+        XCTAssertEqual(model.resolvedReasoningMode(from: nil), .reasoning)
+        XCTAssertNil(model.reasoningEffort(for: nil))
     }
 
-    func testWhenPreferredModeExceedsSupportedModes_ThenResolvedModeClampsToHighestAvailable() {
+    func testWhenPreferredModeIsUnsupported_ThenResolvedModeUsesDefaultAvailableMode() {
         let model = makeModel(supportedReasoningEffort: [.none, .low])
 
-        XCTAssertEqual(model.resolvedReasoningMode(from: .extendedReasoning), .reasoning)
-        XCTAssertEqual(model.reasoningEffort(for: .extendedReasoning), .low)
+        XCTAssertEqual(model.resolvedReasoningMode(from: .extendedReasoning), .fast)
+        XCTAssertNil(model.reasoningEffort(for: .extendedReasoning))
     }
 
-    func testWhenPreferredReasoningModeIsMissing_ThenResolvedModeFallsForwardToExtendedReasoning() {
+    func testWhenPreferredReasoningModeIsMissing_ThenResolvedModeUsesDefaultAvailableMode() {
         let model = makeModel(supportedReasoningEffort: [.none, .medium])
 
         XCTAssertEqual(model.availableReasoningModes, [.fast, .extendedReasoning])
-        XCTAssertEqual(model.resolvedReasoningMode(from: .reasoning), .extendedReasoning)
-        XCTAssertEqual(model.reasoningEffort(for: .reasoning), .medium)
+        XCTAssertEqual(model.resolvedReasoningMode(from: .reasoning), .fast)
+        XCTAssertNil(model.reasoningEffort(for: .reasoning))
     }
 
-    func testWhenPreferredFastModeIsMissing_ThenResolvedModeFallsForwardToReasoning() {
+    func testWhenPreferredFastModeIsMissing_ThenResolvedModeUsesDefaultAvailableMode() {
         let model = makeModel(supportedReasoningEffort: [.low, .medium])
 
         XCTAssertEqual(model.availableReasoningModes, [.reasoning, .extendedReasoning])
         XCTAssertEqual(model.resolvedReasoningMode(from: .fast), .reasoning)
-        XCTAssertEqual(model.reasoningEffort(for: .fast), .low)
+        XCTAssertNil(model.reasoningEffort(for: .fast))
     }
 
-    func testWhenNoPreferredMode_ThenFastReasoningModeIsUsed() {
+    func testWhenNoPreferredMode_ThenDefaultReasoningModeIsUsedForDisplayOnly() {
         let model = makeModel(supportedReasoningEffort: [.none, .low, .medium])
 
         XCTAssertEqual(model.resolvedReasoningMode(from: nil), .fast)
-        XCTAssertEqual(model.reasoningEffort(for: nil), AIChatReasoningEffort.none)
+        XCTAssertNil(model.reasoningEffort(for: nil))
     }
 
     func testWhenModelDoesNotSupportReasoning_ThenNoReasoningModeIsAvailable() {

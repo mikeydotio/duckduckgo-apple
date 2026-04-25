@@ -45,15 +45,14 @@ public extension AIChatModel {
         let modes = availableReasoningModes
         guard !modes.isEmpty else { return nil }
         guard let preferredMode else { return modes.first }
-        if modes.contains(preferredMode) { return preferredMode }
 
-        return modes.first { $0.preferredIndex >= preferredMode.preferredIndex } ?? modes.last
+        return modes.contains(preferredMode) ? preferredMode : modes.first
     }
 
-    func reasoningEffort(for preferredMode: AIChatReasoningMode?) -> AIChatReasoningEffort? {
-        guard let mode = resolvedReasoningMode(from: preferredMode) else { return nil }
+    func reasoningEffort(for selectedMode: AIChatReasoningMode?) -> AIChatReasoningEffort? {
+        guard let selectedMode, availableReasoningModes.contains(selectedMode) else { return nil }
 
-        return reasoningModeMappings.first { $0.mode == mode }?.effort
+        return reasoningModeMappings.first { $0.mode == selectedMode }?.effort
     }
 }
 
@@ -79,17 +78,6 @@ private extension AIChatReasoningMode {
             return [.low]
         case .extendedReasoning:
             return [.high, .medium]
-        }
-    }
-
-    var preferredIndex: Int {
-        switch self {
-        case .fast:
-            return 0
-        case .reasoning:
-            return 1
-        case .extendedReasoning:
-            return 2
         }
     }
 }
