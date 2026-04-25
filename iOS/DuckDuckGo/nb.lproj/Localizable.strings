@@ -116,7 +116,8 @@
 "action.title.newFireTabAction" = "Ny Fire-fane";
 
 /* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Åpne i en Fire-fane";
+"action.title.newFireTabForUrl" = "Åpne i Fire-fanen";
+
 /* Create New Tab action */
 "action.title.newTabAction" = "Ny fane";
 
@@ -1506,11 +1507,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "AI-funksjonene i DuckDuckGo er private og valgfrie. Dataene dine brukes ikke til å trene AI.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Legg ved sideinnhold";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Spør om siden";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Legg ved sideinnhold";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Oppsummer denne siden";
@@ -1862,6 +1863,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Sist brukte Fire-fane";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Gå tilbake til %@";
 
@@ -2181,7 +2183,7 @@
 "fire.mode.empty.state.bullet.troubleshoot" = "Feilsøk nettsteder";
 
 /* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Fire-faner er isolert fra andre nettleserdata, og dataene i dem blir brent når du lukker alle sammen. De har samme sporingsbeskyttelse som andre faner.";
+"fire.mode.empty.state.description" = "Fire-faner er isolert fra andre nettleserdata. Dataene deres blir slettet når du lukker alle sammen. De gir deg samme sporingsbeskyttelse som andre faner.";
 
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Ny Fire-fane";
@@ -2193,7 +2195,7 @@
 "fire.mode.menu.promotion.badge" = "Ny";
 
 /* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Surf uten å lagre lokal historikk eller logg inn på nettsteder med en annen konto.";
+"fire.mode.ntp.promotion.description" = "Nyhet! Surf uten å lagre lokal historikk eller logg inn på nettsteder med en annen konto.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Ikke nå";
@@ -2204,8 +2206,15 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Prøv Fire-faner";
 
+/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.description" = "Prøv Fire-faner for å surfe uten å lagre lokal historikk.";
+
+/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.title" = "Nyhet: Fire-faner";
+
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Fire-fane";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Luftstrøm";
 
@@ -3222,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Vil du slette Fire-faner og dataene i dem?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Vil du slette faner og nettstedsdata?";
 
@@ -4274,6 +4284,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Lukk fane";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Lukk hjem-fane";
 
@@ -4285,6 +4296,7 @@
 
 /* New tab title */
 "tab.new.title" = "Ny fane";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Åpne hjem-fane";
 
@@ -4293,6 +4305,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Åpne Fire-fane";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Åpne \"%1$@\" på %2$@";
 

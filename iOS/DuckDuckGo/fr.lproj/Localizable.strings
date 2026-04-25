@@ -116,7 +116,8 @@
 "action.title.newFireTabAction" = "Nouveau Fire Tab";
 
 /* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Ouvrir dans un nouvel onglet Fire";
+"action.title.newFireTabForUrl" = "Ouvrir dans l'onglet Fire";
+
 /* Create New Tab action */
 "action.title.newTabAction" = "Nouvel onglet";
 
@@ -1506,11 +1507,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "Les fonctionnalités de DuckDuckGo AI sont privées et facultatives. Vos données ne servent pas à entraîner l'IA.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Joindre le contenu de la page";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Poser des questions sur la page";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Joindre le contenu de la page";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Résumer cette page";
@@ -1862,6 +1863,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Dernier Onglet Fire utilisé";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Retour à %@";
 
@@ -2181,7 +2183,7 @@
 "fire.mode.empty.state.bullet.troubleshoot" = "Résoudre les problèmes des sites Web";
 
 /* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Les onglets Fire Tabs sont isolés des autres données du navigateur, et leurs données sont supprimées lorsque vous les fermez tous. Ils sont dotés de la même protection contre le pistage que les autres onglets.";
+"fire.mode.empty.state.description" = "Les onglets Fire sont isolés des autres données du navigateur. Leurs données sont supprimées lorsque vous les fermez tous. Ils sont dotés de la même protection contre le pistage que les autres onglets.";
 
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Nouveau Fire Tab";
@@ -2193,7 +2195,7 @@
 "fire.mode.menu.promotion.badge" = "Nouveau";
 
 /* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Naviguez sans enregistrer l’historique local ni vous connecter à des sites avec un autre compte.";
+"fire.mode.ntp.promotion.description" = "Nouveau ! Naviguez sans enregistrer l'historique local ni vous connecter à des sites avec un autre compte.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Pas maintenant";
@@ -2204,8 +2206,15 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Essayez les Onglets Fire";
 
+/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.description" = "Essayez les onglets Fire pour naviguer sans enregistrer l'historique local.";
+
+/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.title" = "Nouveau : les onglets Fire";
+
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Onglet Fire";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Courant d'air";
 
@@ -3222,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Supprimer les onglets Fire et leurs données ?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Supprimer les onglets et les données du site ?";
 
@@ -4274,6 +4284,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Fermer l'onglet";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Fermer l'onglet d'accueil";
 
@@ -4285,6 +4296,7 @@
 
 /* New tab title */
 "tab.new.title" = "Nouvel onglet";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Ouvrir l'onglet d'accueil";
 
@@ -4293,6 +4305,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Ouvrir l'Onglet Fire";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Ouvrir « %1$@ » via %2$@";
 

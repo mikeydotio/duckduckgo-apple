@@ -117,6 +117,7 @@
 
 /* Open in New Fire Tab action */
 "action.title.newFireTabForUrl" = "Ava Fire vahekaardil";
+
 /* Create New Tab action */
 "action.title.newTabAction" = "Uus vaheleht";
 
@@ -1506,11 +1507,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "DuckDuckGo tehisintellekti funktsioonid on privaatsed ja valikulised. Sinu andmeid ei kasutata tehisintellekti treenimiseks.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Lisa lehe sisu";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Küsi lehe kohta";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Lisa lehe sisu";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Loo lehekülje kokkuvõte";
@@ -1862,6 +1863,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Viimati kasutatud Fire vahekaart";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Tagasi %@ juurde";
 
@@ -2181,7 +2183,7 @@
 "fire.mode.empty.state.bullet.troubleshoot" = "Tõrkeotsing veebilehtedel";
 
 /* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Fire vahekaardid on teistest brauseriandmetest isoleeritud ja nende andmed põletatakse pärast seda, kui sa need kõik sulged. Neil on sama jälgimiskaitse kui teistel vahekaardil.";
+"fire.mode.empty.state.description" = "Fire vahekaardid on teistest brauseriandmetest isoleeritud. Nende andmed põletatakse, kui sa need kõik sulged. Need pakuvad sulle sama jälgimiskaitset kui teisedki vahekaardid.";
 
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Uus Fire vahekaart";
@@ -2193,7 +2195,7 @@
 "fire.mode.menu.promotion.badge" = "Uus";
 
 /* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Sirvi kohalikku ajalugu salvestamata või logi saitidele sisse teise kontoga.";
+"fire.mode.ntp.promotion.description" = "Uus! Sirvi kohalikku ajalugu salvestamata või logi saitidele sisse teise kontoga.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Mitte praegu";
@@ -2204,8 +2206,15 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Proovi Fire vahekaarte";
 
+/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.description" = "Proovi Fire vahekaarte, et sirvida ilma kohalikku ajalugu salvestamata.";
+
+/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.title" = "Uus: Fire vahekaardid";
+
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Fire vahekaart";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Airstream";
 
@@ -3222,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Kas kustutada Fire vahekaardid ja nende andmed?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Kas kustutada vahekaardid ja saidi andmed?";
 
@@ -4274,6 +4284,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Sulge vaheleht";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Sulge avalehe vahekaart";
 
@@ -4285,6 +4296,7 @@
 
 /* New tab title */
 "tab.new.title" = "Uus vaheleht";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Ava avalehe vahekaart";
 
@@ -4293,6 +4305,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Ava Fire vahekaart";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Ava \"%1$@\" aadressil %2$@";
 

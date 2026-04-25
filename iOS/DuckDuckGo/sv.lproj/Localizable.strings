@@ -116,7 +116,8 @@
 "action.title.newFireTabAction" = "Ny Fire-flik";
 
 /* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Öppna på en ny Fire-flik";
+"action.title.newFireTabForUrl" = "Öppna på en Fire-flik";
+
 /* Create New Tab action */
 "action.title.newTabAction" = "Ny flik";
 
@@ -1506,11 +1507,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "DuckDuckGos AI-funktioner är privata och valfria. Dina data används inte för att träna AI.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Bifoga sidans innehåll";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Fråga om sidan";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Bifoga sidans innehåll";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Sammanfatta denna sida";
@@ -1862,6 +1863,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Senast använda Fire Tab";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Gå tillbaka till %@";
 
@@ -2181,7 +2183,7 @@
 "fire.mode.empty.state.bullet.troubleshoot" = "Felsöka webbplatser";
 
 /* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Fire-flikar är isolerade från andra webbläsardata, och deras data bränns när du stänger dem alla. De har samma spårningsskydd som andra flikar.";
+"fire.mode.empty.state.description" = "Fire-flikar är isolerade från andra webbläsardata. Deras data rensas när du stänger dem alla. De ger dig samma spårningsskydd som andra flikar.";
 
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Ny Fire-flik";
@@ -2193,7 +2195,7 @@
 "fire.mode.menu.promotion.badge" = "Ny";
 
 /* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Surfa utan att spara lokal historik eller logga in på webbplatser med ett annat konto.";
+"fire.mode.ntp.promotion.description" = "Nytt! Surfa utan att spara lokal historik eller logga in på webbplatser med ett annat konto.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Inte nu";
@@ -2204,8 +2206,15 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Prova Fire-flikar";
 
+/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.description" = "Testa Fire-flikar för att bläddra utan att spara lokal historik.";
+
+/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
+"fire.mode.tab.switcher.tip.title" = "Nya: Fire-flikar";
+
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Fire-flik";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Luftström";
 
@@ -3222,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Ta bort Fire Tabs och deras data?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Ta bort flikar och webbplatsdata?";
 
@@ -4274,6 +4284,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Stäng flik";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Stäng hemfliken";
 
@@ -4285,6 +4296,7 @@
 
 /* New tab title */
 "tab.new.title" = "Ny flik";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Öppna hemfliken";
 
@@ -4293,6 +4305,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Öppna Fire-flik";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Öppna %1$@ på %2$@";
 
