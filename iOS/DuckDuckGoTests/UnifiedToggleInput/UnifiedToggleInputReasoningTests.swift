@@ -175,6 +175,16 @@ final class UnifiedToggleInputReasoningTests: XCTestCase {
         XCTAssertNil(mockDelegate.submittedModelId)
     }
 
+    func testPrepareExternalPromptSubmissionPassesResolvedReasoningEffort() {
+        mockPreferences.selectedModelId = "gpt-5.2"
+        mockPreferences.selectedReasoningMode = .extendedReasoning
+        sut.modelStore.models = [makeReasoningModel(id: "gpt-5.2", supportedReasoningEffort: [.none, .low, .medium])]
+
+        let submission = sut.prepareExternalPromptSubmission()
+
+        XCTAssertEqual(submission.reasoningEffort, .medium)
+    }
+
     func testSubmitAIChatAfterChangingToFastPassesNoReasoningEffort() {
         mockPreferences.selectedModelId = "gpt-5.2"
         mockPreferences.selectedReasoningMode = .reasoning

@@ -623,9 +623,16 @@ extension MainViewController: UnifiedInputContentContainerViewControllerDelegate
     }
 
     func unifiedInputEditingStateDidSubmitPrompt(_ query: String, tools: [AIChatRAGTool]?) {
+        let submissionConfiguration = unifiedToggleInputCoordinator?.prepareExternalPromptSubmission()
         unifiedToggleInputCoordinator?.clearText()
         unifiedToggleInputCoordinator?.handleExternalSubmission(.prompt)
-        openAIChat(query, autoSend: true, tools: tools)
+        openAIChat(
+            query,
+            autoSend: true,
+            tools: tools,
+            modelId: submissionConfiguration?.modelId,
+            reasoningEffort: submissionConfiguration?.reasoningEffort
+        )
     }
 
     func unifiedInputEditingStateDidSelectFavorite(_ favorite: BookmarkEntity) {

@@ -1029,6 +1029,23 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
         XCTAssertEqual(mockDelegate.submittedModelId, "free")
     }
 
+    func test_prepareExternalPromptSubmission_passesModelIdForFirstPrompt() {
+        mockPreferences.selectedModelId = "gpt-5"
+
+        let submission = sut.prepareExternalPromptSubmission()
+
+        XCTAssertEqual(submission.modelId, "gpt-5")
+    }
+
+    func test_prepareExternalPromptSubmission_omitsModelIdAfterFirstPrompt() {
+        mockPreferences.selectedModelId = "gpt-5"
+        _ = sut.prepareExternalPromptSubmission()
+
+        let submission = sut.prepareExternalPromptSubmission()
+
+        XCTAssertNil(submission.modelId)
+    }
+
     // MARK: - Model Chip Visibility
 
     func test_modelChip_visibleByDefault() {
@@ -1038,6 +1055,12 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
 
     func test_modelChip_hiddenAfterPromptSubmit() {
         sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "hello", mode: .aiChat)
+        XCTAssertTrue(sut.hasSubmittedPrompt)
+        XCTAssertTrue(sut.viewController.isModelChipHidden)
+    }
+
+    func test_modelChip_hiddenAfterPreparingExternalPromptSubmission() {
+        sut.prepareExternalPromptSubmission()
         XCTAssertTrue(sut.hasSubmittedPrompt)
         XCTAssertTrue(sut.viewController.isModelChipHidden)
     }

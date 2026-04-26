@@ -626,6 +626,14 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
         userScript.submitPrompt(text, images: nil, modelId: modelId, reasoningEffort: nil)
     }
 
+    func prepareExternalPromptSubmission() -> (modelId: String?, reasoningEffort: AIChatReasoningEffort?) {
+        let configuration = promptSubmissionConfiguration
+        hasSubmittedPrompt = true
+        updateModelChipVisibility()
+        syncHasSubmittedPromptToHandler()
+        return (configuration.modelId, configuration.reasoningEffort)
+    }
+
     func handleExternalSubmission(_ type: ExternalSubmissionType) {
         commitCurrentToggleState()
         switch displayState {
