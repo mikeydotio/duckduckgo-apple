@@ -87,7 +87,7 @@ jobs:
 
   create-variants-1:
 
-    name: Create Variant
+    name: ${{ matrix.variant }} (${{ matrix.origin }})
     needs: [set-up-variants, download-dmg-and-upload-artifact]
 
     strategy:
@@ -101,7 +101,7 @@ jobs:
 
   create-variants-2:
 
-    name: Create Variant
+    name: ${{ matrix.variant }} (${{ matrix.origin }})
     needs: [set-up-variants, download-dmg-and-upload-artifact]
 
     strategy:
