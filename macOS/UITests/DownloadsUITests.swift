@@ -935,10 +935,8 @@ class DownloadsUITests: UITestCase {
 
     @discardableResult
     private func downloadLargeFile(onFireWindow: Bool = false) -> String {
-        if onFireWindow {
-            let fireWindow = burnerWindow()
-            fireWindow.click()
-        } else {
+        let fireWindow = onFireWindow ? burnerWindow() : nil
+        if fireWindow == nil {
             app.openNewTab()
             // wait for the New Tab page to load
             XCTAssertTrue(webView.popUpButtons["Customize"].waitForExistence(timeout: UITests.Timeouts.elementExistence))
@@ -946,7 +944,7 @@ class DownloadsUITests: UITestCase {
 
         let filename = "ui-large-\(UUID().uuidString).bin"
         let url = URL.testsDownload(size: "5GB", filename: filename).absoluteString
-        openSiteForDownloadingFile(url: url, in: onFireWindow ? burnerWindow() : nil)
+        openSiteForDownloadingFile(url: url, in: fireWindow)
 
         // Track both the final file and the temporary .duckload file
         let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
