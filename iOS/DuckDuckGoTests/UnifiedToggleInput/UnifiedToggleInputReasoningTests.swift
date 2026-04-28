@@ -275,4 +275,5 @@ private final class MockAIChatReasoningPreferences: AIChatPreferencesPersisting 
     var selectedReasoningEffort: String?
     var selectedReasoningMode: AIChatReasoningMode?
     var selectedModelIdPublisher: AnyPublisher<String?, Never> { Empty().eraseToAnyPublisher() }
+    var selectedReasoningEffortPublisher: AnyPublisher<String?, Never> { Empty().eraseToAnyPublisher() }
 }
