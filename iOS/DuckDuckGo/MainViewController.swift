@@ -1860,6 +1860,7 @@ class MainViewController: UIViewController {
                       flowType: AIChatOnboardingFlowType = .default,
                       tools: [AIChatRAGTool]? = nil,
                       modelId: String? = nil,
+                      reasoningEffort: AIChatReasoningEffort? = nil,
                       images: [AIChatNativePrompt.NativePromptImage]? = nil) {
         guard let currentTab else {
             assertionFailure("load called with no current tab")
@@ -1876,6 +1877,7 @@ class MainViewController: UIViewController {
                 flowType: flowType,
                 tools: tools,
                 modelId: modelId,
+                reasoningEffort: reasoningEffort,
                 images: images
             )
         }
@@ -3074,6 +3076,7 @@ class MainViewController: UIViewController {
                     flowType: AIChatOnboardingFlowType = .default,
                     tools: [AIChatRAGTool]? = nil,
                     modelId: String? = nil,
+                    reasoningEffort: AIChatReasoningEffort? = nil,
                     images: [AIChatNativePrompt.NativePromptImage]? = nil,
                     fromDeepLink: Bool = false) {
 
@@ -3085,6 +3088,7 @@ class MainViewController: UIViewController {
                 flowType: flowType,
                 tools: tools,
                 modelId: modelId,
+                reasoningEffort: reasoningEffort,
                 images: images,
                 fromDeepLink: fromDeepLink
             )
@@ -3095,6 +3099,8 @@ class MainViewController: UIViewController {
                 autoSend: autoSend,
                 flowType: flowType,
                 tools: tools,
+                modelId: modelId,
+                reasoningEffort: reasoningEffort,
                 on: self
             )
         }
@@ -3157,6 +3163,7 @@ class MainViewController: UIViewController {
                                  flowType: AIChatOnboardingFlowType = .default,
                                  tools: [AIChatRAGTool]? = nil,
                                  modelId: String? = nil,
+                                 reasoningEffort: AIChatReasoningEffort? = nil,
                                  images: [AIChatNativePrompt.NativePromptImage]? = nil,
                                  fromDeepLink: Bool = false) {
         guard tabManager.current(createIfNeeded: true) != nil else {
@@ -3170,7 +3177,7 @@ class MainViewController: UIViewController {
             return
         }
 
-        load(query, autoSend: autoSend, payload: payload, flowType: flowType, tools: tools, modelId: modelId, images: images)
+        load(query, autoSend: autoSend, payload: payload, flowType: flowType, tools: tools, modelId: modelId, reasoningEffort: reasoningEffort, images: images)
     }
     
     /// Executes the closure if the current tab is an AI tab
