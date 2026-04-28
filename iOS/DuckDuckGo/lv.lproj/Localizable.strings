@@ -115,8 +115,6 @@
 /* Create New Fire Tab action */
 "action.title.newFireTabAction" = "Jauna Fire cilne";
 
-/* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Atvērt Fire cilnē";
 /* Create New Tab action */
 "action.title.newTabAction" = "Jauna cilne";
 
@@ -214,22 +212,22 @@
 "aichat.attachment.option.take.photo" = "Uzņemt fotoattēlu";
 
 /* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.subtitle" = "For analytical tasks";
+"aichat.reasoning.extended.subtitle" = "Analītiskiem uzdevumiem";
 
 /* Title for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.title" = "Extended Reasoning";
+"aichat.reasoning.extended.title" = "Paplašinātas spriešanas iespējas";
 
 /* Subtitle for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.subtitle" = "Answers quickly";
+"aichat.reasoning.fast.subtitle" = "Atbild ātri";
 
 /* Title for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.title" = "Fast";
+"aichat.reasoning.fast.title" = "Ātri";
 
 /* Subtitle for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.subtitle" = "For complex tasks";
+"aichat.reasoning.reasoning.subtitle" = "Sarežģītiem uzdevumiem";
 
 /* Title for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.title" = "Reasoning";
+"aichat.reasoning.reasoning.title" = "Spriešana";
 
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Pielāgo atbildes";
@@ -1410,9 +1408,6 @@
 /* No comment provided by engineer. */
 "Debug" = "Atkļūdošana";
 
-/* No comment provided by engineer. */
-"Delete" = "Dzēst";
-
 /* Default string used if users device is not iPhone or iPad */
 "device.type.default" = "ierīcē";
 
@@ -1524,11 +1519,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "DuckDuckGo MI funkcijas ir privātas un nav obligātas. Tavi dati netiek izmantoti mākslīgā intelekta apmācībai.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Pievienot lapas saturu";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Jautā par lapu";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Pievienot lapas saturu";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Apkopot šo lapu";
@@ -1597,7 +1592,7 @@
 "duckai.welcome.message" = "Visas tērzēšanas sarunas ir %@ privātas";
 
 /* The word 'private' in the Duck.ai welcome message, displayed in green to emphasize privacy. Must match the word used in duckai.welcome.message. */
-"duckai.welcome.private.word" = "privātas";
+"duckai.welcome.private.word" = "privāta";
 
 /* No comment provided by engineer. */
 "DuckDuckGo for iOS" = "DuckDuckGo operētājsistēmai iOS";
@@ -1880,6 +1875,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Pēdējo reizi izmantotā Fire cilne";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Atgriezties pie %@";
 
@@ -2198,9 +2194,6 @@
 /* Bullet point describing Fire Tab benefit on the empty state screen */
 "fire.mode.empty.state.bullet.troubleshoot" = "Tīmekļa vietņu problēmu novēršana";
 
-/* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Fire cilnes ir izolētas no citiem pārlūkprogrammas datiem. Tās visas aizverot, to dati tiek iznīcināti. Tām ir tāda pati izsekošanas aizsardzība kā citām cilnēm.";
-
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Jauna Fire cilne";
 
@@ -2209,9 +2202,6 @@
 
 /* Badge label on the Fire Mode promotion entry in the browsing menu */
 "fire.mode.menu.promotion.badge" = "Jauns";
-
-/* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Jaunums! Pārlūko vietnes, nesaglabājot vietējo vēsturi, vai pieraksties tajās, izmantojot citu kontu.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Ne tagad";
@@ -2222,14 +2212,9 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Izmēģini Fire cilnes";
 
-/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.description" = "Izmēģini Fire Tabs, lai pārlūkotu, nesaglabājot vietējo vēsturi.";
-
-/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.title" = "Jaunums: Fire cilnes";
-
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Fire cilne";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Gaisa plūsma";
 
@@ -2352,9 +2337,6 @@
 
 /* No comment provided by engineer. */
 "keyCommandLocation" = "Meklē vai ievadi adresi";
-
-/* Discoverability title for the keyboard command that opens a new Fire Tab */
-"keyCommandNewFireTab" = "Jauna Fire cilne";
 
 /* No comment provided by engineer. */
 "keyCommandNewTab" = "Jauna cilne";
@@ -3249,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Vai dzēst Fire cilnes un to datus?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Vai dzēst cilnes un vietņu datus?";
 
@@ -4203,12 +4186,6 @@
 /* Caption for a button to delete Sync server data */
 "sync.delete.all.confirm.action" = "Dzēst servera datus";
 
-/* Message for the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.message" = "Tavs dublējums tiks dzēsts no servera. Visas ierīces tiks atvienotas no sinhronizācijas, bet nekas netiks dzēsts ne no vienas ierīces.";
-
-/* Title of the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.title" = "Dzēst servera datus?";
-
 /* Message for the Sync Promotion banner when user has bookmarks that can be synced */
 "sync.promo.bookmarks.message" = "Nav nepieciešams konts. Pilnīga šifrēšana nozīmē, ka tavas grāmatzīmes vari redzēt tikai tu, un pat mēs tās neredzam.";
 
@@ -4301,6 +4278,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Aizvērt cilni";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Aizvērt sākuma cilni";
 
@@ -4312,6 +4290,7 @@
 
 /* New tab title */
 "tab.new.title" = "Jauna cilne";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Atvērt sākuma cilni";
 
@@ -4320,6 +4299,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Atvērt Fire cilni";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Atvērt “%1$@” vietnē %2$@";
 

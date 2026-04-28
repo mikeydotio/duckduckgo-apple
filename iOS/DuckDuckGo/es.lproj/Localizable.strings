@@ -115,8 +115,6 @@
 /* Create New Fire Tab action */
 "action.title.newFireTabAction" = "Nueva Fire Tab";
 
-/* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Abrir en una Fire Tab";
 /* Create New Tab action */
 "action.title.newTabAction" = "Nueva pestaña";
 
@@ -214,22 +212,22 @@
 "aichat.attachment.option.take.photo" = "Hacer una foto";
 
 /* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.subtitle" = "For analytical tasks";
+"aichat.reasoning.extended.subtitle" = "Para tareas de análisis";
 
 /* Title for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.title" = "Extended Reasoning";
+"aichat.reasoning.extended.title" = "Razonamiento ampliado";
 
 /* Subtitle for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.subtitle" = "Answers quickly";
+"aichat.reasoning.fast.subtitle" = "Responde rápidamente";
 
 /* Title for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.title" = "Fast";
+"aichat.reasoning.fast.title" = "Rápido";
 
 /* Subtitle for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.subtitle" = "For complex tasks";
+"aichat.reasoning.reasoning.subtitle" = "Para tareas complejas";
 
 /* Title for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.title" = "Reasoning";
+"aichat.reasoning.reasoning.title" = "Razonamiento";
 
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Personaliza las respuestas";
@@ -1410,9 +1408,6 @@
 /* No comment provided by engineer. */
 "Debug" = "Depurar";
 
-/* No comment provided by engineer. */
-"Delete" = "Eliminar";
-
 /* Default string used if users device is not iPhone or iPad */
 "device.type.default" = "dispositivo";
 
@@ -1524,11 +1519,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "Las funciones de IA de DuckDuckGo son privadas y opcionales. Tus datos no se utilizan para entrenar a la IA.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Adjuntar contenido de la página";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Preguntar sobre la página";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Adjuntar contenido de la página";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Resumir esta página";
@@ -1880,6 +1875,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Última Fire Tab utilizada";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Volver a %@";
 
@@ -2198,9 +2194,6 @@
 /* Bullet point describing Fire Tab benefit on the empty state screen */
 "fire.mode.empty.state.bullet.troubleshoot" = "Solucionar problemas de sitios web";
 
-/* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Las Fire Tabs están aisladas de otros datos del navegador. Sus datos se queman cuando las cierras todas. Tienen la misma protección contra el rastreo que otras pestañas.";
-
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Nueva Fire Tab";
 
@@ -2209,9 +2202,6 @@
 
 /* Badge label on the Fire Mode promotion entry in the browsing menu */
 "fire.mode.menu.promotion.badge" = "Nuevo";
-
-/* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "¡Nuevo! Navega sin guardar el historial local o inicia sesión en sitios con una cuenta diferente.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Ahora no";
@@ -2222,14 +2212,9 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Prueba Fire Tabs";
 
-/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.description" = "Prueba Fire Tabs para navegar sin guardar el historial local.";
-
-/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.title" = "Nuevas: Pestañas Fire";
-
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Fire tab";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Corriente de aire";
 
@@ -2352,9 +2337,6 @@
 
 /* No comment provided by engineer. */
 "keyCommandLocation" = "Buscar o introducir dirección";
-
-/* Discoverability title for the keyboard command that opens a new Fire Tab */
-"keyCommandNewFireTab" = "Nueva Fire Tab";
 
 /* No comment provided by engineer. */
 "keyCommandNewTab" = "Nueva pestaña";
@@ -3249,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "¿Eliminar Fire Tabs y sus datos?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "¿Eliminar pestañas y datos del sitio?";
 
@@ -4203,12 +4186,6 @@
 /* Caption for a button to delete Sync server data */
 "sync.delete.all.confirm.action" = "Eliminar datos del servidor";
 
-/* Message for the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.message" = "Tu copia de seguridad se eliminará del servidor. Todos los dispositivos se desconectarán de la sincronización, pero no se eliminará nada de ningún dispositivo.";
-
-/* Title of the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.title" = "¿Eliminar datos del servidor?";
-
 /* Message for the Sync Promotion banner when user has bookmarks that can be synced */
 "sync.promo.bookmarks.message" = "No necesitas ninguna cuenta. El cifrado de extremo a extremo significa que nadie más que tú puede ver tus marcadores, ni siquiera nosotros.";
 
@@ -4301,6 +4278,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Cerrar pestaña";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Cerrar la pestaña inicio";
 
@@ -4312,6 +4290,7 @@
 
 /* New tab title */
 "tab.new.title" = "Nueva pestaña";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Abrir la pestaña inicio";
 
@@ -4320,6 +4299,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Abrir fire tab";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Abrir \"%1$@\" en %2$@";
 

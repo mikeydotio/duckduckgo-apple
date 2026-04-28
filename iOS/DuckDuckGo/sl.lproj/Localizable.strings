@@ -115,8 +115,6 @@
 /* Create New Fire Tab action */
 "action.title.newFireTabAction" = "Nov zavihek Fire";
 
-/* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Odpri v zavihku Fire";
 /* Create New Tab action */
 "action.title.newTabAction" = "Nov zavihek";
 
@@ -214,22 +212,22 @@
 "aichat.attachment.option.take.photo" = "Posnemite fotografijo";
 
 /* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.subtitle" = "For analytical tasks";
+"aichat.reasoning.extended.subtitle" = "Za analitične naloge";
 
 /* Title for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.title" = "Extended Reasoning";
+"aichat.reasoning.extended.title" = "Razširjeno razmišljanje";
 
 /* Subtitle for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.subtitle" = "Answers quickly";
+"aichat.reasoning.fast.subtitle" = "Hitro odgovarjanje";
 
 /* Title for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.title" = "Fast";
+"aichat.reasoning.fast.title" = "Hitro";
 
 /* Subtitle for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.subtitle" = "For complex tasks";
+"aichat.reasoning.reasoning.subtitle" = "Za zapletena opravila";
 
 /* Title for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.title" = "Reasoning";
+"aichat.reasoning.reasoning.title" = "Razmišljanje";
 
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Prilagodi odzive";
@@ -1410,9 +1408,6 @@
 /* No comment provided by engineer. */
 "Debug" = "Odpravljanje napak";
 
-/* No comment provided by engineer. */
-"Delete" = "Izbriši";
-
 /* Default string used if users device is not iPhone or iPad */
 "device.type.default" = "naprava";
 
@@ -1524,11 +1519,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "Funkcije umetne inteligence DuckDuckGo so zasebne in neobvezne. Vaši podatki se ne uporabljajo za usposabljanje umetne inteligence.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Priloži vsebino strani";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Vprašajte o strani";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Priloži vsebino strani";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Povzemi to stran";
@@ -1880,6 +1875,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Zadnja uporaba zavihka Fire";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Vrnitev na zavihek %@";
 
@@ -2198,9 +2194,6 @@
 /* Bullet point describing Fire Tab benefit on the empty state screen */
 "fire.mode.empty.state.bullet.troubleshoot" = "Odpravljanje težav s spletnimi mesti";
 
-/* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Zavihki Fire so ločeni od drugih podatkov brskanja. Njihovi podatki se izbrišejo, ko jih vse zaprete. Imajo enako zaščito pred sledenjem kot drugi zavihki.";
-
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Nov zavihek Fire";
 
@@ -2209,9 +2202,6 @@
 
 /* Badge label on the Fire Mode promotion entry in the browsing menu */
 "fire.mode.menu.promotion.badge" = "Nov";
-
-/* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Novo! Brskajte brez shranjevanja lokalne zgodovine ali se prijavite na spletna mesta z drugim računom.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Ne zdaj";
@@ -2222,14 +2212,9 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Preizkusite zavihke Fire";
 
-/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.description" = "Preizkusite zavihke Fire za brskanje brez shranjevanja lokalne zgodovine.";
-
-/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.title" = "Novo: zavihki Fire";
-
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Zavihek Fire";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Zračni tok";
 
@@ -2352,9 +2337,6 @@
 
 /* No comment provided by engineer. */
 "keyCommandLocation" = "Poišči ali vnesi naslov";
-
-/* Discoverability title for the keyboard command that opens a new Fire Tab */
-"keyCommandNewFireTab" = "Nov zavihek Fire";
 
 /* No comment provided by engineer. */
 "keyCommandNewTab" = "Nov zavihek";
@@ -3249,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Želite izbrisati zavihke Fire in njihove podatke?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Želiš izbrisati zavihke in podatke spletnega mesta?";
 
@@ -4203,12 +4186,6 @@
 /* Caption for a button to delete Sync server data */
 "sync.delete.all.confirm.action" = "Izbriši podatke strežnika";
 
-/* Message for the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.message" = "Vaša varnostna kopija bo izbrisana s strežnika. Za vse naprave bo sinhronizacija prekinjena, vendar iz nobene naprave ne bo nič izbrisano.";
-
-/* Title of the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.title" = "Želite izbrisati podatke strežnika?";
-
 /* Message for the Sync Promotion banner when user has bookmarks that can be synced */
 "sync.promo.bookmarks.message" = "Račun ni potreben. Celovito šifriranje pomeni, da nihče (niti mi) razen vas ne more videti vaših zaznamkov.";
 
@@ -4301,6 +4278,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Zapri zavihek";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Zapri zavihek Domov";
 
@@ -4312,6 +4290,7 @@
 
 /* New tab title */
 "tab.new.title" = "Nov zavihek";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Odpri zavihek Domov";
 
@@ -4320,6 +4299,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Odpri zavihek Fire";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Odpri \"%1$@\" ob %2$@";
 

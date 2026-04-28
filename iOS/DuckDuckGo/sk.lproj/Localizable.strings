@@ -115,8 +115,6 @@
 /* Create New Fire Tab action */
 "action.title.newFireTabAction" = "Nová karta Fire";
 
-/* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Otvoriť na karte Fire";
 /* Create New Tab action */
 "action.title.newTabAction" = "Nová karta";
 
@@ -214,22 +212,22 @@
 "aichat.attachment.option.take.photo" = "Urobiť fotografiu";
 
 /* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.subtitle" = "For analytical tasks";
+"aichat.reasoning.extended.subtitle" = "Pre analytické úlohy";
 
 /* Title for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.title" = "Extended Reasoning";
+"aichat.reasoning.extended.title" = "Rozšírené odôvodnenie";
 
 /* Subtitle for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.subtitle" = "Answers quickly";
+"aichat.reasoning.fast.subtitle" = "Rýchle odpovede";
 
 /* Title for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.title" = "Fast";
+"aichat.reasoning.fast.title" = "Rýchle";
 
 /* Subtitle for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.subtitle" = "For complex tasks";
+"aichat.reasoning.reasoning.subtitle" = "Pre komplexné úlohy";
 
 /* Title for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.title" = "Reasoning";
+"aichat.reasoning.reasoning.title" = "Odôvodnenie";
 
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Prispôsobiť odpovede";
@@ -1410,9 +1408,6 @@
 /* No comment provided by engineer. */
 "Debug" = "Ladenie (debug)";
 
-/* No comment provided by engineer. */
-"Delete" = "Vymazať";
-
 /* Default string used if users device is not iPhone or iPad */
 "device.type.default" = "zariadenie";
 
@@ -1524,11 +1519,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "Funkcie DuckDuckGo AI sú súkromné a voliteľné. Tvoje údaje sa nepoužívajú na trénovanie AI.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Pripoj obsah stránky";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Opýtaj sa na stránku";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Pripoj obsah stránky";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Zhrň túto stránku";
@@ -1597,7 +1592,7 @@
 "duckai.welcome.message" = "Všetky chaty sú %@ súkromné";
 
 /* The word 'private' in the Duck.ai welcome message, displayed in green to emphasize privacy. Must match the word used in duckai.welcome.message. */
-"duckai.welcome.private.word" = "súkromné";
+"duckai.welcome.private.word" = "súkromná";
 
 /* No comment provided by engineer. */
 "DuckDuckGo for iOS" = "DuckDuckGo pre iOS";
@@ -1880,6 +1875,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Naposledy použitá karta Fire";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Vráť sa na %@";
 
@@ -2198,9 +2194,6 @@
 /* Bullet point describing Fire Tab benefit on the empty state screen */
 "fire.mode.empty.state.bullet.troubleshoot" = "Riešenie problémov s webovými stránkami";
 
-/* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Karty Fire sú izolované od ostatných údajov prehliadača. Ich údaje sa vymažú, keď ich všetky zatvoríš. Poskytujú ti rovnakú ochranu proti sledovaniu ako ostatné karty.";
-
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Nová karta Fire";
 
@@ -2209,9 +2202,6 @@
 
 /* Badge label on the Fire Mode promotion entry in the browsing menu */
 "fire.mode.menu.promotion.badge" = "Nové";
-
-/* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Novinka! Prehliadaj bez ukladania miestnej histórie alebo sa prihlás na stránky pomocou iného účtu.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Teraz nie";
@@ -2222,14 +2212,9 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Vyskúšaj karty Fire";
 
-/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.description" = "Vyskúšaj karty Fire na prehliadanie bez ukladania do lokálnej histórie.";
-
-/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.title" = "Nové: Karty Fire";
-
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Karta Fire";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Prúd vzduchu";
 
@@ -2352,9 +2337,6 @@
 
 /* No comment provided by engineer. */
 "keyCommandLocation" = "Vyhľadajte alebo zadajte adresu";
-
-/* Discoverability title for the keyboard command that opens a new Fire Tab */
-"keyCommandNewFireTab" = "Nová karta Fire";
 
 /* No comment provided by engineer. */
 "keyCommandNewTab" = "Nová karta";
@@ -3249,6 +3231,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Vymazať karty Fire a ich údaje?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Odstrániť karty a údaje stránok?";
 
@@ -4203,12 +4186,6 @@
 /* Caption for a button to delete Sync server data */
 "sync.delete.all.confirm.action" = "Zmazanie údajov servera";
 
-/* Message for the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.message" = "Tvoja záloha bude vymazaná zo servera. Všetky zariadenia budú odpojené od synchronizácie, ale zo žiadneho zariadenia sa nič neodstráni.";
-
-/* Title of the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.title" = "Zmazať údaje servera?";
-
 /* Message for the Sync Promotion banner when user has bookmarks that can be synced */
 "sync.promo.bookmarks.message" = "Účet nie je potrebný. Šifrovanie end-to-end znamená, že vaše záložky nevidí nikto okrem vás, dokonca ani my.";
 
@@ -4301,6 +4278,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Zatvoriť karta";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Zatvorte kartu domovskej stránky";
 
@@ -4312,6 +4290,7 @@
 
 /* New tab title */
 "tab.new.title" = "Nová karta";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Otvorte kartu Domovská stránka";
 
@@ -4320,6 +4299,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Otvoriť kartu Fire";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Otvoriť „%1$@“ na adrese %2$@";
 
