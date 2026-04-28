@@ -127,7 +127,10 @@ class FireWindowTests: UITestCase {
     ///
     /// Root cause: `closeWindowIfNeeded()` called `window.close()` directly for fire windows,
     /// bypassing `windowShouldClose(_:)` and thus skipping the fire animation.
-    /// Fix: use `window.performClose(_:)` for burner windows so the delegate is invoked.
+    /// Fix: invoke `windowShouldClose(_:)` on the delegate so the burn animation is triggered.
+    /// (We can't use `performClose(_:)` because it plays the system alert beep when the
+    /// delegate returns false — which it does for burner windows, since closing is handled
+    /// asynchronously via `animateBurningIfNeededAndClose`.)
     ///
     /// Note: the Lottie animation view is only set up in .normal run type, so the visible
     /// animation delay cannot be verified in this (review-build) test environment.
@@ -141,7 +144,8 @@ class FireWindowTests: UITestCase {
 
         // Close the fire window's only tab via Cmd+W.
         // With the bug: closeWindowIfNeeded() called window.close() directly, bypassing windowShouldClose.
-        // With the fix: closeWindowIfNeeded() calls window.performClose() so the delegate fires first.
+        // With the fix: closeWindowIfNeeded() invokes windowShouldClose on the delegate,
+        // which triggers animateBurningIfNeededAndClose.
         app.typeKey("w", modifierFlags: .command)
 
         // Fire window should close (animation is instant in review build, ~1.3s in production).
