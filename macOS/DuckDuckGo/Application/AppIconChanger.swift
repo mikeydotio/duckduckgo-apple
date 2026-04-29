@@ -101,7 +101,7 @@ final class AppIconChanger {
 
         switch themeName {
         case .default:
-            iconName = "Browser-Theme-Default"
+            return nil
         case .coolGray:
             iconName = "Browser-Theme-CoolGray"
         case .desert:
