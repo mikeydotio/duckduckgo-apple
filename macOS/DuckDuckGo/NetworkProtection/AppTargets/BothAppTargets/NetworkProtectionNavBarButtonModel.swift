@@ -115,7 +115,7 @@ final class NetworkProtectionNavBarButtonModel: NSObject, ObservableObject {
         iconPublisherCancellable = iconPublisher.$icon
             .receive(on: DispatchQueue.main)
             .sink { [weak self] icon in
-                self?.buttonImage = .image(for: icon)
+                self?.buttonImage = .image(for: icon)!
             }
     }
 
