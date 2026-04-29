@@ -471,12 +471,12 @@ struct ColumnData: Identifiable {
 
 #Preview {
     let fakeRows1 = (1...10).map { index in
-        DataBrokerDatabaseBrowserData.Row(data: ["Name": "John Doe", "Age": Int.random(in: 20…60), "Email": "john.doe\(index)@example.com"])
+        DataBrokerDatabaseBrowserData.Row(data: ["Name": "John Doe", "Age": Int.random(in: 20...60), "Email": "john.doe\(index)@example.com"])
     }
     let fakeTable1 = DataBrokerDatabaseBrowserData.Table(name: "Users", rows: fakeRows1)
 
     let fakeRows2 = (1...10).map { index in
-        DataBrokerDatabaseBrowserData.Row(data: ["Product": "Product \(index)", "Price": Double.random(in: 10…100), "Quantity": Int.random(in: 1...10)])
+        DataBrokerDatabaseBrowserData.Row(data: ["Product": "Product \(index)", "Price": Double.random(in: 10...100), "Quantity": Int.random(in: 1...10)])
     }
     let fakeTable2 = DataBrokerDatabaseBrowserData.Table(name: "Products", rows: fakeRows2)
 
