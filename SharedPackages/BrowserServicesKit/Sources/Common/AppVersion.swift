@@ -186,4 +186,15 @@ public struct AppVersion: OSVersionProviding {
         return bundleId.hasPrefix("com.duckduckgo.mobile.ios")
     }()
 
+    public static let isLiquidGlassSupported: Bool = {
+        guard #available(macOS 26.0, *) else {
+            return false
+        }
+        guard let infoDictionary = Bundle.main.infoDictionary,
+              let compatbilityFlag = infoDictionary["UIDesignRequiresCompatibility"] as? Bool
+        else {
+            return false
+        }
+        return !compatbilityFlag
+    }()
 }
