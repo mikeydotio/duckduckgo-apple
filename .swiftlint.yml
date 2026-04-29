@@ -29,6 +29,10 @@ custom_rules:
   prefer_unicode_ellipsis:
     name: "Prefer Unicode ellipsis"
     included: ".*\\.swift"
+    # Skip `UserText*.swift` files \u2014 those are localization sources whose
+    # `value:` strings are owned by the translation pipeline, and changing
+    # `...` \u2192 `\u2026` there would invalidate every existing translation.
+    excluded: ".*UserText.*\\.swift"
     # Match a single-line string literal that contains `...`. Anchoring the
     # regex on the surrounding quotes (and combining with `match_kinds:
     # [string]`) ensures we only fire inside actual string literals \u2014 so

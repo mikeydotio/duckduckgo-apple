@@ -183,7 +183,10 @@ final class TunnelControllerViewModelTests: XCTestCase {
         XCTAssertEqual(model.featureStatusDescription, UserText.networkProtectionStatusViewFeatureOn)
         XCTAssertFalse(model.showServerDetails)
         XCTAssertEqual(model.serverAddress, "Unknown")
-        XCTAssertEqual(model.serverLocation, "Unknown…")
+        // Mirrors `UserText.networkProtectionServerLocationUnknown`; that
+        // localized value is owned by the translation pipeline and stays ASCII.
+        // swiftlint:disable:next prefer_unicode_ellipsis
+        XCTAssertEqual(model.serverLocation, "Unknown...")
     }
 
     /// We expect the model to properly reflect the connected status.
@@ -222,7 +225,10 @@ final class TunnelControllerViewModelTests: XCTestCase {
         XCTAssertEqual(model.featureStatusDescription, UserText.networkProtectionStatusViewFeatureOn)
         XCTAssertTrue(model.showServerDetails)
         XCTAssertEqual(model.serverAddress, mockServerIP)
-        XCTAssertEqual(model.serverLocation, "El Segundo, United States…")
+        // The trailing `...` mirrors the appended `networkProtectionServerLocationLink`
+        // localized value, which the translation pipeline owns and keeps ASCII.
+        // swiftlint:disable:next prefer_unicode_ellipsis
+        XCTAssertEqual(model.serverLocation, "El Segundo, United States...")
     }
 
     /// We expect the model to properly reflect the connecting status.
