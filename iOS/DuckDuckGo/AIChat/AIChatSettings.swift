@@ -132,6 +132,10 @@ final class AIChatSettings: AIChatSettingsProvider {
                             && isAIChatEnabled && featureFlagger.isFeatureOn(.experimentalAddressBar)
     }
 
+    var isAIChatSearchInputUserSettingsDisabledByUser: Bool {
+        keyValueStore.bool(.showAIChatExperimentalSearchInputKey) == false
+    }
+
     var isChatSuggestionsEnabled: Bool {
         keyValueStore.bool(.showChatSuggestionsKey, defaultValue: .showChatSuggestionsDefaultValue)
             && isAIChatEnabled
@@ -336,6 +340,9 @@ private extension KeyValueStoring {
         return (object(forKey: key) as? Bool) ?? defaultValue
     }
 
+    func bool(_ key: String) -> Bool? {
+        return object(forKey: key) as? Bool
+    }
 }
 
 extension DefaultOmnibarMode {

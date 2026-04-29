@@ -82,6 +82,9 @@ struct NewAddressBarPickerDisplayValidator: NewAddressBarPickerDisplayValidating
         guard !isAIChatSearchInputEnabled else { return false }
         Logger.addressBarPicker.info("✓ AIChat address bar is disabled")
 
+        guard !isAIChatSearchInputDisabledByUser else { return false }
+        Logger.addressBarPicker.info("✓ AIChat address bar was NOT explicitly disabled by the user")
+
         guard !isAddressBarPositionBottom else { return false }
         Logger.addressBarPicker.info("✓ Address bar position is not bottom")
 
@@ -103,7 +106,11 @@ struct NewAddressBarPickerDisplayValidator: NewAddressBarPickerDisplayValidating
     }
     
     // MARK: - Exclusion Criteria Variables
-    
+
+    private var isAIChatSearchInputDisabledByUser: Bool {
+        aiChatSettings.isAIChatSearchInputUserSettingsDisabledByUser
+    }
+
     private var isAIChatSearchInputEnabled: Bool {
         aiChatSettings.isAIChatSearchInputUserSettingsEnabled
     }
