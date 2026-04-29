@@ -69,64 +69,6 @@ struct ConfigurationIntent: WidgetConfigurationIntent {
 }
 
 @available(iOS 17.0, *)
-enum ShortcutOption: String, CaseIterable, Identifiable, AppEnum {
-    case passwords
-    case duckAI
-    case duckAIVoice
-    case voiceSearch
-    case favorites
-    case emailProtection
-    case vpn
-    case bookmarks
-
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Shortcut Option"
-    static var caseDisplayRepresentations: [ShortcutOption: DisplayRepresentation] = [
-        .passwords: "Passwords",
-        .duckAI: "Duck.ai",
-        .duckAIVoice: "Duck.ai Voice",
-        .voiceSearch: "Voice Search",
-        .favorites: "Favorites",
-        .emailProtection: "Duck Address",
-        .vpn: "VPN",
-        .bookmarks: "Bookmarks"
-    ]
-
-    var id: String { self.rawValue }
-
-    var icon: Image {
-        switch self {
-        case .passwords: return Image(uiImage: DesignSystemImages.Glyphs.Size24.key)
-        case .duckAI: return Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChat)
-        case .duckAIVoice: return Image(uiImage: DesignSystemImages.Glyphs.Size24.voice)
-        case .voiceSearch: return Image(uiImage: DesignSystemImages.Glyphs.Size24.microphone)
-        case .favorites: return Image(uiImage: DesignSystemImages.Glyphs.Size24.favorite)
-        case .emailProtection: return Image(uiImage: DesignSystemImages.Glyphs.Size24.email)
-        case .vpn: return Image(uiImage: DesignSystemImages.Glyphs.Size24.vpn)
-        case .bookmarks: return Image(uiImage: DesignSystemImages.Glyphs.Size24.bookmarks)
-        }
-    }
-
-    func destination(for source: WidgetSourceType) -> URL {
-        baseURL
-            .appendingParameter(name: WidgetSourceType.sourceKey, value: source.rawValue)
-            .appendingParameter(name: WidgetSourceType.shortcutKey, value: rawValue)
-    }
-
-    private var baseURL: URL {
-        switch self {
-        case .passwords: return DeepLinks.openPasswords
-        case .duckAI: return DeepLinks.openAIChat
-        case .duckAIVoice: return DeepLinks.openAIVoiceChat
-        case .voiceSearch: return DeepLinks.voiceSearch
-        case .favorites: return DeepLinks.favorites
-        case .emailProtection: return DeepLinks.newEmail
-        case .vpn: return DeepLinks.openVPN
-        case .bookmarks: return DeepLinks.openBookmarks
-        }
-    }
-}
-
-@available(iOS 17.0, *)
 struct QuickActionsSmallWidget: Widget {
     let kind: String = "QuickActionsWidget"
 
