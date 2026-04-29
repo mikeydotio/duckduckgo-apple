@@ -44,6 +44,13 @@ final class BookmarksBarViewController: NSViewController {
 
     private var bookmarkMenuPopover: BookmarksBarMenuPopover?
 
+    /// Monitor + saved state used while a bookmarks bar menu is open so cursor moves
+    /// over the bar (now the parent of a key NSPanel popover) still trigger menu
+    /// switching. The hover tracking areas in the bar items use `.activeInKeyWindow`,
+    /// which stops firing when our popover takes key focus.
+    private var bookmarksBarHoverMonitor: Any?
+    private var savedAcceptsMouseMovedEvents: Bool?
+
     private let bookmarkManager: BookmarkManager
     private let dragDropManager: BookmarkDragDropManager
     private let pinningManager: PinningManager
@@ -511,6 +518,7 @@ private extension BookmarksBarViewController {
 
         view.window?.makeKeyAndOrderFront(nil)
         bookmarkMenuPopover.show(positionedBelow: view)
+        startBookmarksBarHoverTracking()
 
         if view === clippedItemsIndicator {
             // display pressed state
@@ -548,7 +556,7 @@ extension BookmarksBarViewController: NSMenuDelegate {
 // MARK: - BookmarkListPopoverDelegate
 extension BookmarksBarViewController: BookmarksBarMenuPopoverDelegate {
 
-    func popoverShouldClose(_ popover: NSPopover) -> Bool {
+    func popoverShouldClose(_ popover: BookmarksBarMenuPopover) -> Bool {
         if NSApp.currentEvent?.type == .leftMouseUp {
            if let point = bookmarksBarCollectionView.mouseLocationInsideBounds(),
               let indexPath = bookmarksBarCollectionView.indexPathForItem(at: point),
@@ -563,15 +571,58 @@ extension BookmarksBarViewController: BookmarksBarMenuPopoverDelegate {
         return true
     }
 
-    func popoverDidClose(_ notification: Notification) {
-        guard let bookmarkMenuPopover = notification.object as? BookmarksBarMenuPopover,
-              let positioningView = bookmarkMenuPopover.positioningView else { return }
+    func popoverDidClose(_ popover: BookmarksBarMenuPopover) {
+        stopBookmarksBarHoverTracking()
+
+        guard let positioningView = popover.positioningView else { return }
 
         if positioningView === clippedItemsIndicator {
             clippedItemsIndicator.backgroundColor = .clear
             clippedItemsIndicator.mouseOverColor = .buttonMouseOver
         } else if let collectionViewItem = positioningView.nextResponder as? BookmarksBarCollectionViewItem {
             collectionViewItem.isDisplayingMouseDownState = false
+        }
+    }
+
+    private func startBookmarksBarHoverTracking() {
+        if savedAcceptsMouseMovedEvents == nil, let mainWindow = view.window {
+            savedAcceptsMouseMovedEvents = mainWindow.acceptsMouseMovedEvents
+            mainWindow.acceptsMouseMovedEvents = true
+        }
+        if bookmarksBarHoverMonitor == nil {
+            bookmarksBarHoverMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+                self?.dispatchBookmarksBarHover()
+                return event
+            }
+        }
+    }
+
+    private func stopBookmarksBarHoverTracking() {
+        if let monitor = bookmarksBarHoverMonitor {
+            NSEvent.removeMonitor(monitor)
+            bookmarksBarHoverMonitor = nil
+        }
+        if let saved = savedAcceptsMouseMovedEvents, let mainWindow = view.window {
+            mainWindow.acceptsMouseMovedEvents = saved
+        }
+        savedAcceptsMouseMovedEvents = nil
+    }
+
+    private func dispatchBookmarksBarHover() {
+        guard let mainWindow = view.window else { return }
+        let windowPoint = mainWindow.convertPoint(fromScreen: NSEvent.mouseLocation)
+        let cvPoint = bookmarksBarCollectionView.convert(windowPoint, from: nil)
+        if bookmarksBarCollectionView.bounds.contains(cvPoint),
+           let indexPath = bookmarksBarCollectionView.indexPathForItem(at: cvPoint),
+           let item = bookmarksBarCollectionView.item(at: indexPath) as? BookmarksBarCollectionViewItem {
+            mouseDidHover(over: item)
+            return
+        }
+        if let indicatorSuper = clippedItemsIndicator.superview {
+            let indicatorPoint = indicatorSuper.convert(windowPoint, from: nil)
+            if clippedItemsIndicator.frame.contains(indicatorPoint), !clippedItemsIndicator.isHidden {
+                mouseDidHover(over: clippedItemsIndicator)
+            }
         }
     }
 

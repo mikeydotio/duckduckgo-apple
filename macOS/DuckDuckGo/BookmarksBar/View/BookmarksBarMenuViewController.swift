@@ -110,10 +110,28 @@ final class BookmarksBarMenuViewController: NSViewController {
         fatalError("\(type(of: self)): Bad initializer")
     }
 
+    private static let popoverCornerRadius: CGFloat = 8
+
     // MARK: View Lifecycle
     override func loadView() {
         view = NSView()
         view.autoresizesSubviews = false
+        view.wantsLayer = true
+        view.layer?.cornerRadius = Self.popoverCornerRadius
+        view.layer?.masksToBounds = true
+
+        let backdrop = NSVisualEffectView()
+        backdrop.material = .popover
+        backdrop.blendingMode = .behindWindow
+        backdrop.state = .active
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(backdrop)
+        NSLayoutConstraint.activate([
+            backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: view.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.drawsBackground = false
@@ -605,6 +623,7 @@ final class BookmarksBarMenuViewController: NSViewController {
         }
 
         preferredContentSize = contentSize
+        (nextResponder as? BookmarksBarMenuPopover)?.updateWindowFrame()
         updateScrollButtons()
     }
 
@@ -658,7 +677,7 @@ final class BookmarksBarMenuViewController: NSViewController {
         case kVK_LeftArrow:
             // if in submenu: close this submenu
             if view.window?.parent?.contentViewController is Self,
-               let popover = nextResponder as? NSPopover {
+               let popover = nextResponder as? BookmarksBarMenuPopover {
                 popover.close()
             } else /* we‘re in root menu */ {
                 // switch between bookmarks menus on left/right
@@ -877,6 +896,7 @@ final class BookmarksBarMenuViewController: NSViewController {
             if popoverHeightIncrement > 0 {
                 preferredContentOffset.y = popoverHeightIncrement
                 preferredContentSize.height += popoverHeightIncrement
+                (nextResponder as? BookmarksBarMenuPopover)?.updateWindowFrame()
                 // decrement scrolling position
                 if preferredContentSize.height + popoverHeightIncrement > contentHeight {
                     scrollView.contentView.bounds.origin.y = 0

@@ -88,9 +88,13 @@ final class BookmarksOutlineView: NSOutlineView {
         disclosureButton?.contentTintColor = allowsDisclosureButtonHighlight && highlighted ? palette.accentContentPrimary : palette.iconsPrimary
     }
 
-    /// popover displaying this Bookmarks Menu
-    private var popover: NSPopover? {
-        window?.contentViewController?.nextResponder as? NSPopover
+    /// popover (NSPopover or `BookmarksBarMenuPopover`) displaying this Bookmarks Menu
+    private var popoverHost: NSResponder? {
+        let next = window?.contentViewController?.nextResponder
+        if next is NSPopover || next is BookmarksBarMenuPopover {
+            return next
+        }
+        return nil
     }
 
     /// return parent level Bookmarks Menu Outline View if this Bookmarks Menu is displayed as its submenu
@@ -106,7 +110,7 @@ final class BookmarksOutlineView: NSOutlineView {
     }
 
     private var isInPopover: Bool {
-        popover != nil
+        popoverHost != nil
     }
     private var isInKeyPopover: Bool {
         guard highlightedRow != nil else { return false }
@@ -344,7 +348,8 @@ final class BookmarksOutlineView: NSOutlineView {
     private func onLeftArrowPress(_ event: NSEvent) {
         if parentMenuOutlineView != nil {
             // when we are in a submenu close the submenu on Left
-            popover?.close()
+            (popoverHost as? NSPopover)?.close()
+            (popoverHost as? BookmarksBarMenuPopover)?.close()
 
         } else if let highlightedRow,
                   let item = self.item(atRow: highlightedRow),
