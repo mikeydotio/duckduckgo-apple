@@ -963,9 +963,9 @@ class DownloadsUITests: UITestCase {
     private func openSiteForDownloadingFile(url: String, in window: XCUIElement? = nil) {
         if let window {
             window.click()
-            let addressBar = window.textFields[XCUIApplication.AccessibilityIdentifiers.addressBarTextField]
+            app.activateAddressBar()
+            let addressBar = app.addressBar
             XCTAssertTrue(addressBar.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-            addressBar.click()
             addressBar.pasteURL(URL(string: url)!, pressingEnter: true)
             return
         }
