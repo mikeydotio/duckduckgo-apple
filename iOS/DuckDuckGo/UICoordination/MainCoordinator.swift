@@ -620,6 +620,8 @@ extension MainCoordinator: URLHandling {
     private func handleAppDeepLink(url: URL, application: UIApplication = UIApplication.shared) -> Bool {
         controller.currentTab?.aiChatContextualSheetCoordinator.dismissSheet()
 
+        fireMediumWidgetPixelIfNeeded(url: url)
+
         if url != AppDeepLinkSchemes.openVPN.url
             && url.scheme != AppDeepLinkSchemes.openAIChat.url.scheme
             && url.scheme != AppDeepLinkSchemes.openAIVoiceChat.url.scheme {
@@ -677,6 +679,20 @@ extension MainCoordinator: URLHandling {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.controller.launchAutofillLogins(openSearch: true, source: source)
         }
+    }
+
+    private func fireMediumWidgetPixelIfNeeded(url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems,
+              queryItems.first(where: { $0.name == WidgetSourceType.sourceKey })?.value
+                  == WidgetSourceType.quickActionsMedium.rawValue,
+              let shortcut = queryItems.first(where: { $0.name == WidgetSourceType.shortcutKey })?.value
+        else { return }
+
+        DailyPixel.fireDailyAndCount(
+            pixel: .widgetMediumLaunch,
+            withAdditionalParameters: [PixelParameters.shortcut: shortcut]
+        )
     }
 
     func handleAIChatAppIconShortuct() {
