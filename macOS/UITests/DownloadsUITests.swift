@@ -108,7 +108,8 @@ class DownloadsUITests: UITestCase {
         let filename = downloadLargeFile(fireWindow: fireWindow)
         // Wait for the download to actually start (Downloads button becomes available)
         let downloadsButton = fireWindow.buttons["NavigationBarViewController.downloadsButton"]
-        _ = downloadsButton.waitForExistence(timeout: UITests.Timeouts.elementExistence)
+        XCTAssertTrue(downloadsButton.waitForExistence(timeout: UITests.Timeouts.elementExistence),
+                      "Downloads button should appear after starting download in Fire window")
         assertDownloadListed(filename: filename, timeout: UITests.Timeouts.navigation)
         app.typeKey(.escape, modifierFlags: [])
 
@@ -935,7 +936,11 @@ class DownloadsUITests: UITestCase {
 
     @discardableResult
     private func downloadLargeFile(fireWindow: XCUIElement? = nil) -> String {
-        if fireWindow == nil {
+        if let fireWindow {
+            fireWindow.click()
+            app.openNewTab()
+            XCTAssertTrue(fireWindow.staticTexts["Fire Window"].waitForExistence(timeout: UITests.Timeouts.elementExistence))
+        } else {
             app.openNewTab()
             // wait for the New Tab page to load
             XCTAssertTrue(webView.popUpButtons["Customize"].waitForExistence(timeout: UITests.Timeouts.elementExistence))
