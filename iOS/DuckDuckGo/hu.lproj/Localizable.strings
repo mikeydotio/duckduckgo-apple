@@ -115,8 +115,6 @@
 /* Create New Fire Tab action */
 "action.title.newFireTabAction" = "Új Fire lap";
 
-/* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Megnyitás Fire lapon";
 /* Create New Tab action */
 "action.title.newTabAction" = "Új lap";
 
@@ -212,24 +210,6 @@
 
 /* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
 "aichat.attachment.option.take.photo" = "Fénykép készítése";
-
-/* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.subtitle" = "Elemezési feladatokhoz";
-
-/* Title for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.title" = "Kibővített érvelés";
-
-/* Subtitle for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.subtitle" = "Gyors válaszok";
-
-/* Title for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.title" = "Gyors";
-
-/* Subtitle for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.subtitle" = "Összetett feladatokhoz";
-
-/* Title for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.title" = "Érvelés";
 
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Válaszok testreszabása";
@@ -1410,9 +1390,6 @@
 /* No comment provided by engineer. */
 "Debug" = "Hibakeresés";
 
-/* No comment provided by engineer. */
-"Delete" = "Törlés";
-
 /* Default string used if users device is not iPhone or iPad */
 "device.type.default" = "eszközön";
 
@@ -1524,11 +1501,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "A DuckDuckGo AI-funkciói privátak és opcionálisak. Az adataidat nem használjuk fel az AI tanítására.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Oldal tartalmának csatolása";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Kérdezz az oldalról";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Oldal tartalmának csatolása";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Oldal összefoglalása";
@@ -1880,6 +1857,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Utoljára használt Fire lap";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Visszalépés erre: %@";
 
@@ -2198,9 +2176,6 @@
 /* Bullet point describing Fire Tab benefit on the empty state screen */
 "fire.mode.empty.state.bullet.troubleshoot" = "Webhelyek hibaelhárítása";
 
-/* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "A Fire lapok a böngésző egyéb adataitól el vannak különítve. Az összes bezárásakor a hozzájuk tartozó adatok törlésre kerülnek. Ugyanolyan nyomkövetés elleni védelmet kínálnak, mint a többi lap.";
-
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Új Fire lap";
 
@@ -2209,9 +2184,6 @@
 
 /* Badge label on the Fire Mode promotion entry in the browsing menu */
 "fire.mode.menu.promotion.badge" = "Új";
-
-/* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Újdonság! Böngészés a helyi előzmények mentése nélkül, vagy bejelentkezés a webhelyekre másik fiókkal.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Most nem";
@@ -2222,14 +2194,9 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Fire lapok kipróbálása";
 
-/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.description" = "Próbáld ki a Fire lapok funkciót, hogy a helyi előzmények mentése nélkül böngészhess.";
-
-/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.title" = "Új: Fire lapok";
-
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "Fire lap";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "Levegő";
 
@@ -3249,6 +3216,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Törlöd a Fire lapokat és azok adatait?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Törlöd a lapokat és a webhelyadatokat?";
 
@@ -4203,12 +4171,6 @@
 /* Caption for a button to delete Sync server data */
 "sync.delete.all.confirm.action" = "Szerveradatok törlése";
 
-/* Message for the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.message" = "A biztonsági mentés törölve lesz a szerverről. A rendszer minden eszközt leválaszt a szinkronizálásról, de semmi sem lesz törölve az eszközökről.";
-
-/* Title of the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.title" = "Szerveradatok törlése?";
-
 /* Message for the Sync Promotion banner when user has bookmarks that can be synced */
 "sync.promo.bookmarks.message" = "Nincs szükség fiókra. A végpontok közötti titkosítás azt jelenti, hogy rajtad kívül senki sem láthatja a könyvjelzőidet, még mi sem.";
 
@@ -4272,6 +4234,27 @@
 /* Title of the dialog to remove device from Sync */
 "sync.remove-device.title" = "Eszköz eltávolítása?";
 
+/* Toast message shown after copying sync code to clipboard */
+"sync.simplified.code.copied.toast" = "Kód másolva";
+
+/* Toast message shown after sync is successfully enabled */
+"sync.simplified.enabled.toast" = "Sync & Backup engedélyezve";
+
+/* Toast message shown after copying recovery code to clipboard from settings */
+"sync.simplified.recovery.code.copied.toast" = "Helyreállítási kód másolva";
+
+/* Toast message shown when sync setup fails */
+"sync.simplified.setup.failed.toast" = "Sync & Backup engedélyezése sikertelen";
+
+/* Alert button to confirm turning off sync */
+"sync.simplified.turn.off.action" = "Kikapcsolás";
+
+/* Alert message when turning off sync */
+"sync.simplified.turn.off.message" = "Az eszközön található könyvjelzőidet és jelszavaidat ez nem érinti.";
+
+/* Alert title when turning off sync */
+"sync.simplified.turn.off.title" = "Kikapcsolod a Sync & Backup funkciót?";
+
 /* Caption for a button to remove current device from Sync */
 "sync.turn.off.confirm.action" = "Eltávolítás";
 
@@ -4301,6 +4284,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Lap bezárása";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Kezdőlap bezárása";
 
@@ -4312,6 +4296,7 @@
 
 /* New tab title */
 "tab.new.title" = "Új lap";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Kezdőlap megnyitása";
 
@@ -4320,6 +4305,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Fire lap megnyitása";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "\"%1$@\" megnyitása itt: %2$@";
 

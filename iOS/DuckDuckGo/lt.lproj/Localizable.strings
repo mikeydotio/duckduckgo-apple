@@ -115,8 +115,6 @@
 /* Create New Fire Tab action */
 "action.title.newFireTabAction" = "Nauja „Fire“ kortelė";
 
-/* Open in New Fire Tab action */
-"action.title.newFireTabForUrl" = "Atidaryk „Fire“ kortelėje";
 /* Create New Tab action */
 "action.title.newTabAction" = "Nauja kortelė";
 
@@ -212,24 +210,6 @@
 
 /* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
 "aichat.attachment.option.take.photo" = "Fotografuoti";
-
-/* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.subtitle" = "Analitinėms užduotims";
-
-/* Title for the extended reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.extended.title" = "Išplėstinis samprotavimas";
-
-/* Subtitle for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.subtitle" = "Greitai atsako";
-
-/* Title for the fast reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.fast.title" = "Greitas";
-
-/* Subtitle for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.subtitle" = "Sudėtingoms užduotims";
-
-/* Title for the reasoning mode in the Duck.ai reasoning picker */
-"aichat.reasoning.reasoning.title" = "Samprotavimas";
 
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Tinkinti atsakymus";
@@ -1410,9 +1390,6 @@
 /* No comment provided by engineer. */
 "Debug" = "Derinimas";
 
-/* No comment provided by engineer. */
-"Delete" = "Trinti";
-
 /* Default string used if users device is not iPhone or iPad */
 "device.type.default" = "įrenginys";
 
@@ -1524,11 +1501,11 @@
 /* AI features settings explanation */
 "duckai.preferences.text.markdown" = "„DuckDuckGo“ DI funkcijos yra privačios ir neprivalomos. Tavo duomenys nenaudojami dirbtinio intelekto mokymui.";
 
-/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
-"duckai.quick.action.attach" = "Pridėkite puslapio turinį";
-
 /* Title for the ask about page quick action chip in Duck.ai contextual sheet. Tapping attaches the current page content. */
 "duckai.quick.action.ask.about.page" = "Klausti apie puslapį";
+
+/* Title for the attach page content quick action chip in Duck.ai contextual sheet */
+"duckai.quick.action.attach" = "Pridėkite puslapio turinį";
 
 /* Title for the summarize quick action chip in Duck.ai contextual sheet */
 "duckai.quick.action.summarize" = "Apibendrinti šį puslapį";
@@ -1880,6 +1857,7 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Paskutinį kartą naudota „Fire“ kortelė";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Grįžti į %@";
 
@@ -2198,9 +2176,6 @@
 /* Bullet point describing Fire Tab benefit on the empty state screen */
 "fire.mode.empty.state.bullet.troubleshoot" = "Šalink interneto svetainių triktis";
 
-/* Description explaining how Fire Tabs work on the empty state screen */
-"fire.mode.empty.state.description" = "Skirtukai „Fire“ yra izoliuoti nuo kitų naršyklės duomenų. Jų duomenys sunaikinami, kai tik juos visus uždarote. Jie suteikia tokią pačią apsaugą nuo sekimo kaip ir kiti skirtukai.";
-
 /* Button label to create a new Fire Tab on the empty state screen */
 "fire.mode.empty.state.new.fire.tab" = "Nauja „Fire“ kortelė";
 
@@ -2209,9 +2184,6 @@
 
 /* Badge label on the Fire Mode promotion entry in the browsing menu */
 "fire.mode.menu.promotion.badge" = "Naujas";
-
-/* Description for the Fire Mode promotion card shown on the new tab page */
-"fire.mode.ntp.promotion.description" = "Naujiena! Naršyk nesaugant vietinės istorijos arba prisijunk prie svetainių su kita paskyra.";
 
 /* Dismiss button on the Fire Mode promotion card on the new tab page */
 "fire.mode.ntp.promotion.dismiss" = "Ne dabar";
@@ -2222,14 +2194,9 @@
 /* Title for promotion element for pushing users to try fire mode. */
 "fire.mode.promotion.title" = "Išbandyk „Fire“ korteles";
 
-/* Description for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.description" = "Išbandyk skirtukus „Fire Tabs“, kad naršytum nesaugodamas vietinės istorijos.";
-
-/* Title for the Fire Tabs popover tip shown on the tab switcher picker */
-"fire.mode.tab.switcher.tip.title" = "Naujiena: skirtukai „Fire Tabs“";
-
 /* Title shown on the Fire tab empty state screen */
 "fire.tab.empty.state.title" = "„Fire“ kortelė";
+
 /* No comment provided by engineer. */
 "fireButtonAnimation.airstream.name" = "„Airstream“";
 
@@ -3249,6 +3216,7 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Ištrinti „Fire“ korteles ir jų duomenis?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Ištrinti skirtukus ir svetainės duomenis?";
 
@@ -4203,12 +4171,6 @@
 /* Caption for a button to delete Sync server data */
 "sync.delete.all.confirm.action" = "Ištrinti serverio duomenis";
 
-/* Message for the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.message" = "Jūsų atsarginė kopija bus ištrinta iš serverio. Visi įrenginiai bus atjungti nuo sinchronizavimo, bet iš nė vieno įrenginio niekas nebus ištrinta.";
-
-/* Title of the dialog to confirm deleting Sync server data */
-"sync.delete.all.confirm.title" = "Ištrinti serverio duomenis?";
-
 /* Message for the Sync Promotion banner when user has bookmarks that can be synced */
 "sync.promo.bookmarks.message" = "Paskyros nereikia. Galutinis šifravimas (angl. „end-to-end encryption“) reiškia, kad niekas, išskyrus jus, negali pamatyti jūsų žymių, net mes.";
 
@@ -4272,6 +4234,27 @@
 /* Title of the dialog to remove device from Sync */
 "sync.remove-device.title" = "Pašalinti įrenginį?";
 
+/* Toast message shown after copying sync code to clipboard */
+"sync.simplified.code.copied.toast" = "Kodas nukopijuotas";
+
+/* Toast message shown after sync is successfully enabled */
+"sync.simplified.enabled.toast" = "Sinchronizavimas ir atsarginis kopijavimas įjungtas";
+
+/* Toast message shown after copying recovery code to clipboard from settings */
+"sync.simplified.recovery.code.copied.toast" = "Atkūrimo kodas nukopijuotas";
+
+/* Toast message shown when sync setup fails */
+"sync.simplified.setup.failed.toast" = "Nepavyko įjungti sinchronizavimo ir atsarginio kopijavimo";
+
+/* Alert button to confirm turning off sync */
+"sync.simplified.turn.off.action" = "Išjungti";
+
+/* Alert message when turning off sync */
+"sync.simplified.turn.off.message" = "Tai neturės įtakos tavo parankinėms ir slaptažodžiams šiame įrenginyje.";
+
+/* Alert title when turning off sync */
+"sync.simplified.turn.off.title" = "Išjungti sinchronizavimą ir atsarginį kopijavimą?";
+
 /* Caption for a button to remove current device from Sync */
 "sync.turn.off.confirm.action" = "Pašalinti";
 
@@ -4301,6 +4284,7 @@
 
 /* Accessibility label on tab cell */
 "tab.close.closeNewTab" = "Uždaryti kortelę";
+
 /* Accessibility label on remove button */
 "tab.close.home" = "Uždaryti pagrindinio puslapio skirtuką";
 
@@ -4312,6 +4296,7 @@
 
 /* New tab title */
 "tab.new.title" = "Nauja kortelė";
+
 /* Accessibility label on tab cell */
 "tab.open.home" = "Atidaryti pagrindinio puslapio skirtuką";
 
@@ -4320,6 +4305,7 @@
 
 /* Accessibility label on tab cell */
 "tab.open.newFireTab" = "Atidaryk „Fire“ kortelę";
+
 /* Accesibility label: first string is website title, second is address */
 "tab.open.with.title.and.address" = "Atidaryti „%1$@“ adresu %2$@";
 
