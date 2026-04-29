@@ -19,10 +19,8 @@
 import AVFoundation
 import Combine
 import CoreLocation
-import FeatureFlags
 import Foundation
 import Navigation
-import PrivacyConfig
 import UserNotifications
 import WebKit
 import os.log
@@ -48,7 +46,6 @@ final class PermissionModel {
     private let permissionManager: PermissionManagerProtocol
     private let geolocationService: GeolocationServiceProtocol
     private let systemPermissionManager: SystemPermissionManagerProtocol
-    private let featureFlagger: FeatureFlagger
     /// `true` if this model belongs to a Fire Window (burner) tab. When set, permission
     /// authorization decisions are never persisted to the global permission store —
     /// preserving the privacy promise that Fire Windows leave no trace.
@@ -77,13 +74,11 @@ final class PermissionModel {
          permissionManager: PermissionManagerProtocol,
          geolocationService: GeolocationServiceProtocol = GeolocationService.shared,
          systemPermissionManager: SystemPermissionManagerProtocol = SystemPermissionManager(),
-         featureFlagger: FeatureFlagger,
          isBurner: Bool = false) {
 
         self.permissionManager = permissionManager
         self.geolocationService = geolocationService
         self.systemPermissionManager = systemPermissionManager
-        self.featureFlagger = featureFlagger
         self.isBurner = isBurner
         if let webView {
             self.webView = webView
@@ -160,10 +155,9 @@ final class PermissionModel {
                 } else {
                     let currentState = webView.geolocationState
 
-                    // With new permission view, keep geolocation as active once it's been granted/used
+                    // Keep geolocation as active once it's been granted/used
                     // (.active or .inactive means it was granted or actively used)
-                    if featureFlagger.isFeatureOn(.newPermissionView),
-                       currentState == .none,
+                    if currentState == .none,
                        permissions.geolocation == .active || permissions.geolocation == .inactive {
                         permissions.geolocation = .active
                     } else {
@@ -225,7 +219,7 @@ final class PermissionModel {
                             let isPersisting = remember == true || persistsWhen(permission: permission, domain: domain)
                             if isPersisting {
                                 self.permissionManager.setPermission(granted ? .allow : .deny, forDomain: domain, permissionType: permission)
-                            } else if self.featureFlagger.isFeatureOn(.newPermissionView) {
+                            } else {
                                 // Other permissions: one-time decisions store .ask for permission center visibility
                                 self.permissionManager.setPermission(.ask, forDomain: domain, permissionType: permission)
                             }
@@ -238,17 +232,6 @@ final class PermissionModel {
         }
         // "unowned" query reference to be able to use the pointer when the callback is called on query deinit
         queryPtr = Unmanaged.passUnretained(query).toOpaque()
-
-        // When Geolocation queried by a website but System Permission is denied: switch to `disabled`
-        // Only apply this behavior when new permission view is disabled (old behavior)
-        // When new permission view is enabled, the dialog handles showing the two-step authorization flow
-        if !featureFlagger.isFeatureOn(.newPermissionView),
-           permissions.contains(.geolocation),
-           [.denied, .restricted].contains(self.geolocationService.authorizationStatus)
-            || !geolocationService.locationServicesEnabled() {
-            self.permissions.geolocation
-                .systemAuthorizationDenied(systemWide: !geolocationService.locationServicesEnabled())
-        }
 
         // Set state to .requested so the authorization popover can be shown
         permissions.forEach { self.permissions[$0].authorizationQueried(query, updateQueryIfAlreadyRequested: $0 == .popups) }
@@ -422,9 +405,9 @@ final class PermissionModel {
         for permission in permissions {
             var grant: PersistedPermissionDecision
             let stored = permissionManager.permission(forDomain: domain, permissionType: permission)
-            if case .allow = stored, permission.canPersistGrantedDecision(featureFlagger: featureFlagger) {
+            if case .allow = stored, permission.canPersistGrantedDecision {
                 grant = .allow
-            } else if case .deny = stored, permission.canPersistDeniedDecision(featureFlagger: featureFlagger) {
+            } else if case .deny = stored, permission.canPersistDeniedDecision {
                 grant = .deny
             } else if let state = self.permissions[permission] {
                 switch state {
@@ -446,7 +429,7 @@ final class PermissionModel {
                 return false
             case .allow:
                 // User has "Always Allow" stored - but check system permission first
-                if featureFlagger.isFeatureOn(.newPermissionView), isSystemPermissionDisabled(for: permission) {
+                if isSystemPermissionDisabled(for: permission) {
                     return nil
                 }
             case .ask:
@@ -487,8 +470,7 @@ final class PermissionModel {
             // Check if this is "app=allow but system=disabled" case
             let isSystemDisabled: Bool = {
                 guard let permission = permissions.first,
-                      permission.requiresSystemPermission,
-                      self.featureFlagger.isFeatureOn(.newPermissionView) else { return false }
+                      permission.requiresSystemPermission else { return false }
                 return self.permissionManager.permission(forDomain: domain, permissionType: permission) == .allow
             }()
 

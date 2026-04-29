@@ -29,8 +29,8 @@
     ],
     "targetForVariableExpansion" : {
       "containerPath" : "container:DuckDuckGo-macOS.xcodeproj",
-      "identifier" : "AA585D7D248FD31100E9A3E2",
-      "name" : "DuckDuckGo Privacy Browser"
+      "identifier" : "3706FA6A293F65D500E42796",
+      "name" : "DuckDuckGo Privacy Browser App Store"
     }
   },
   "testTargets" : [
@@ -41,7 +41,8 @@
         "BookmarkSearchTests\/testShowInFolderFunctionalityOnBookmarksPanel()",
         "FireWindowTests\/testCrendentialsAreAutoFilledInFireWindows()",
         "NewPermissionViewTests\/test_locationPermissions_whenAccepted_showCorrectStateInBrowser()",
-        "NewPermissionViewTests\/test_locationPermissions_whenNeverAllowIsSelected_alwaysDenies()"
+        "NewPermissionViewTests\/test_locationPermissions_whenNeverAllowIsSelected_alwaysDenies()",
+        "PermissionsTests"
       ],
       "target" : {
         "containerPath" : "container:DuckDuckGo-macOS.xcodeproj",

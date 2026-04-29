@@ -321,7 +321,6 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
 
         permissions = PermissionModel(permissionManager: permissionManager,
                                       geolocationService: geolocationService,
-                                      featureFlagger: featureFlagger,
                                       isBurner: burnerMode.isBurner)
 
         let userContentControllerPromise = Future<UserContentController, Never>.promise()

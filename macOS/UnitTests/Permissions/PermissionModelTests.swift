@@ -19,7 +19,7 @@
 import AVFoundation
 import Combine
 import CommonObjCExtensions
-import FeatureFlags
+
 import Foundation
 import OSLog
 import PrivacyConfig
@@ -36,7 +36,6 @@ final class PermissionModelTests: XCTestCase {
     var geolocationServiceMock: GeolocationServiceMock!
     var geolocationProviderMock: GeolocationProviderMock!
     var systemPermissionManagerMock: SystemPermissionManagerMock!
-    var featureFlaggerMock: MockFeatureFlagger!
     static var processPool: WKProcessPool!
     var webView: WebViewMock!
     var model: PermissionModel!
@@ -65,7 +64,6 @@ final class PermissionModelTests: XCTestCase {
         permissionManagerMock = PermissionManagerMock()
         geolocationServiceMock = GeolocationServiceMock()
         systemPermissionManagerMock = SystemPermissionManagerMock()
-        featureFlaggerMock = MockFeatureFlagger()
 
         let configuration = WKWebViewConfiguration(processPool: Self.processPool)
         webView = WebViewMock(frame: NSRect(x: 0, y: 0, width: 50, height: 50), configuration: configuration)
@@ -76,8 +74,7 @@ final class PermissionModelTests: XCTestCase {
         model = PermissionModel(webView: webView,
                                 permissionManager: permissionManagerMock,
                                 geolocationService: geolocationServiceMock,
-                                systemPermissionManager: systemPermissionManagerMock,
-                                featureFlagger: featureFlaggerMock)
+                                systemPermissionManager: systemPermissionManagerMock)
 
         AVCaptureDeviceMock.authorizationStatuses = nil
     }
@@ -88,7 +85,6 @@ final class PermissionModelTests: XCTestCase {
         permissionManagerMock = nil
         geolocationServiceMock = nil
         systemPermissionManagerMock = nil
-        featureFlaggerMock = nil
         pixelKit = nil
         geolocationProviderMock = nil
         model = nil
@@ -149,12 +145,13 @@ final class PermissionModelTests: XCTestCase {
                                            .camera: .inactive])
     }
 
-    func testWhenLocationIsDeactivatedThenStateChangesToInactive() {
+    func testWhenLocationIsDeactivatedThenStateStaysActive() {
         geolocationServiceMock.authorizationStatus = .authorized
         geolocationProviderMock.isActive = true
         geolocationProviderMock.isActive = false
 
-        XCTAssertEqual(model.permissions, [.geolocation: .inactive])
+        // Geolocation stays .active once granted/used (for permission center visibility)
+        XCTAssertEqual(model.permissions, [.geolocation: .active])
     }
 
     func testWhenPermissionIsQueriedThenQueryIsPublished() {
@@ -277,7 +274,6 @@ final class PermissionModelTests: XCTestCase {
                                 permissionManager: permissionManagerMock,
                                 geolocationService: geolocationServiceMock,
                                 systemPermissionManager: systemPermissionManagerMock,
-                                featureFlagger: featureFlaggerMock,
                                 isBurner: true)
 
         let c = model.$authorizationQuery.sink {
@@ -315,16 +311,14 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertEqual(permissionManagerMock.permission(forDomain: URL.duckDuckGo.host!, permissionType: .microphone), .ask)
     }
 
-    /// Fire Window: a one-time deny must not be persisted either. Without the burner guard,
-    /// the new-permission-view code path implicitly writes `.ask` to the global store so
-    /// the Permission Center can list the domain — that's a leak we must suppress.
+    /// Fire Window: a one-time deny must not be persisted either. The Permission Center
+    /// flow writes an implicit `.ask` to the global store so the domain can be listed —
+    /// that's a leak we must suppress in burner tabs.
     func testWhenBurnerTabDeniesPermissionThenNothingIsPersisted() {
-        featureFlaggerMock.enabledFeatureFlags = [.newPermissionView]
         model = PermissionModel(webView: webView,
                                 permissionManager: permissionManagerMock,
                                 geolocationService: geolocationServiceMock,
                                 systemPermissionManager: systemPermissionManagerMock,
-                                featureFlagger: featureFlaggerMock,
                                 isBurner: true)
 
         let c = model.$authorizationQuery.sink {
@@ -426,7 +420,8 @@ final class PermissionModelTests: XCTestCase {
         withExtendedLifetime(c) {
             waitForExpectations(timeout: 1)
         }
-        XCTAssertEqual(model.permissions, [:])
+        // After navigation reset, geolocation transitions to .reloading (awaiting deactivation)
+        XCTAssertEqual(model.permissions, [.geolocation: .reloading])
     }
 
     func testWhenExternalSchemePermissionQueryIsResetThenItTriggersDecisionHandler() {
@@ -557,7 +552,7 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertEqual(model.permissions, [:])
     }
 
-    func testWhenSystemLocationIsDisabledAndLocationQueriedThenStateIsDisabled() {
+    func testWhenSystemLocationIsDisabledAndLocationQueriedThenQueryIsShownForTwoStepFlow() {
         geolocationServiceMock.authorizationStatus = .denied
 
         // Wait for authorizationQuery to be set by async Task
@@ -581,11 +576,14 @@ final class PermissionModelTests: XCTestCase {
         }
 
         wait(for: [queryExpectation], timeout: 1)
-        XCTAssertEqual(model.permissions, [.geolocation: .disabled(systemWide: false)])
+        // The two-step authorization dialog handles system permission state,
+        // so geolocation stays in .requested state (not immediately .disabled)
+        XCTAssertEqual(model.permissions, [.geolocation: .requested(model.authorizationQuery!)])
 
         e = expectation(description: "permission granted")
         geolocationServiceMock.authorizationStatus = .authorizedAlways
-        XCTAssertEqual(model.permissions, [.geolocation: .requested(model.authorizationQuery!)])
+        // System authorization granted triggers updatePermissions() which transitions from .requested to .inactive
+        XCTAssertEqual(model.permissions, [.geolocation: .inactive])
         model.authorizationQuery!.handleDecision(grant: true)
         withExtendedLifetime(c) {
             waitForExpectations(timeout: 1)
@@ -1403,12 +1401,9 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertFalse(model.isPermissionGranted(.notification, forDomain: domain))
     }
 
-    // MARK: - System Permission Disabled Tests (New Permission View)
+    // MARK: - System Permission Disabled Tests
 
-    func testWhenNewPermissionViewEnabledAndSystemPermissionDeniedThenQueryIsShown() {
-        // Enable new permission view feature flag
-        featureFlaggerMock.featuresStub[FeatureFlag.newPermissionView.rawValue] = true
-
+    func testWhenSystemPermissionDeniedThenQueryIsShown() {
         // Set system permission as denied
         systemPermissionManagerMock.authorizationStates[.geolocation] = .denied
 
@@ -1434,10 +1429,7 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertEqual(model.permissions.geolocation, .requested(model.authorizationQuery!))
     }
 
-    func testWhenNewPermissionViewEnabledAndSystemPermissionRestrictedThenQueryIsShown() {
-        // Enable new permission view feature flag
-        featureFlaggerMock.featuresStub[FeatureFlag.newPermissionView.rawValue] = true
-
+    func testWhenSystemPermissionRestrictedThenQueryIsShown() {
         // Set system permission as restricted
         systemPermissionManagerMock.authorizationStates[.geolocation] = .restricted
 
@@ -1461,10 +1453,7 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertNotNil(model.authorizationQuery)
     }
 
-    func testWhenNewPermissionViewEnabledAndSystemPermissionDisabledSystemWideThenQueryIsShown() {
-        // Enable new permission view feature flag
-        featureFlaggerMock.featuresStub[FeatureFlag.newPermissionView.rawValue] = true
-
+    func testWhenSystemPermissionDisabledSystemWideThenQueryIsShown() {
         // Set system permission as system disabled (Location Services off)
         systemPermissionManagerMock.authorizationStates[.geolocation] = .systemDisabled
 
@@ -1488,10 +1477,7 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertNotNil(model.authorizationQuery)
     }
 
-    func testWhenNewPermissionViewEnabledAndSystemPermissionAuthorizedThenStoredPermissionIsUsed() {
-        // Enable new permission view feature flag
-        featureFlaggerMock.featuresStub[FeatureFlag.newPermissionView.rawValue] = true
-
+    func testWhenSystemPermissionAuthorizedThenStoredPermissionIsUsed() {
         // Set system permission as authorized
         systemPermissionManagerMock.authorizationStates[.geolocation] = .authorized
 
@@ -1527,10 +1513,7 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertFalse(queryShown)
     }
 
-    func testWhenNewPermissionViewEnabledAndSystemPermissionDeniedThenStoredAllowDeniesAndShowsInfoPopover() {
-        // Enable new permission view feature flag
-        featureFlaggerMock.featuresStub[FeatureFlag.newPermissionView.rawValue] = true
-
+    func testWhenSystemPermissionDeniedThenStoredAllowDeniesAndShowsInfoPopover() {
         // Set system permission as denied
         systemPermissionManagerMock.authorizationStates[.geolocation] = .denied
 
@@ -1569,10 +1552,7 @@ final class PermissionModelTests: XCTestCase {
         XCTAssertEqual(receivedPermissionType, .geolocation)
     }
 
-    func testWhenNewPermissionViewEnabledAndSystemPermissionDeniedButUserSetNeverAllowThenDenyDirectly() {
-        // Enable new permission view feature flag
-        featureFlaggerMock.featuresStub[FeatureFlag.newPermissionView.rawValue] = true
-
+    func testWhenSystemPermissionDeniedButUserSetNeverAllowThenDenyDirectly() {
         // Set system permission as denied
         systemPermissionManagerMock.authorizationStates[.geolocation] = .denied
 
