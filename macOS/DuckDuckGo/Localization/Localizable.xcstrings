@@ -88328,6 +88328,54 @@
         }
       }
     },
+    "preferences.youtube-ad-blocking.opt-in-alert.cancel" : {
+      "comment" : "Cancel button label of the alert shown when the user is enabling YouTube ad blocking",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Thanks"
+          }
+        }
+      }
+    },
+    "preferences.youtube-ad-blocking.opt-in-alert.confirm" : {
+      "comment" : "Confirm button label of the alert shown when the user is enabling YouTube ad blocking",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Send Anonymous Reports"
+          }
+        }
+      }
+    },
+    "preferences.youtube-ad-blocking.opt-in-alert.message" : {
+      "comment" : "Description of the alert shown when the user is enabling YouTube ad blocking",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Auto-send anonymous breakage reports to DuckDuckGo when YouTube Ad Block is on."
+          }
+        }
+      }
+    },
+    "preferences.youtube-ad-blocking.opt-in-alert.title" : {
+      "comment" : "Title of the alert shown when the user is enabling YouTube ad blocking",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Help make YouTube Ad Blocking better for everyone"
+          }
+        }
+      }
+    },
     "preferences.youtube-ad-blocking.toggle" : {
       "comment" : "Toggle label for enabling YouTube ad blocking",
       "extractionState" : "extracted_with_value",
