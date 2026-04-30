@@ -10,16 +10,7 @@
                 "key": "shortcut",
                 "description": "Identifier of the shortcut that triggered the launch.",
                 "type": "string",
-                "enum": [
-                    "passwords",
-                    "duckAI",
-                    "duckAIVoice",
-                    "voiceSearch",
-                    "favorites",
-                    "emailProtection",
-                    "vpn",
-                    "bookmarks"
-                ]
+                "enum": ["passwords", "duckAI", "duckAIVoice", "voiceSearch", "favorites", "emailProtection", "vpn", "bookmarks"]
             }
         ]
     }
