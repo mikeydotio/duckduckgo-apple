@@ -2023,6 +2023,10 @@ public struct UserText {
     public static let youTubeAdBlockingTitle = NSLocalizedString("youtube.ad.blocking.title", value: "YouTube Ad Blocking", comment: "Settings screen title for YouTube Ad Blocking")
     public static let youTubeAdBlockingExplanation = NSLocalizedString("youtube.ad.blocking.explanation", value: "DuckDuckGo removes video ads on YouTube, so you can watch videos without interruption.", comment: "Explanation text for YouTube Ad Blocking feature")
     public static let youTubeAdBlockingToggle = NSLocalizedString("youtube.ad.blocking.toggle", value: "Block ads on YouTube", comment: "Toggle label for enabling/disabling YouTube ad blocking")
+    public static let youTubeAdBlockingAnalyticsOptInAlertTitle = NSLocalizedString("youtube.ad.blocking.analytics-opt-in-alert.title", value: "Help make YouTube Ad Blocking better for everyone", comment: "Title of the alert shown when the user is enabling YouTube ad blocking")
+    public static let youTubeAdBlockingAnalyticsOptInAlertMessage = NSLocalizedString("youtube.ad.blocking.analytics-opt-in-alert.message", value: "Auto-send anonymous breakage reports to DuckDuckGo when YouTube Ad Block is on.", comment: "Description of the alert shown when the user is enabling YouTube ad blocking")
+    public static let youTubeAdBlockingAnalyticsOptInAlertConfirmButton = NSLocalizedString("youtube.ad.blocking.analytics-opt-in-alert.confirm", value: "Send Anonymous Reports", comment: "Confirm button label of the alert shown when the user is enabling YouTube ad blocking")
+    public static let youTubeAdBlockingAnalyticsOptInAlertCancelButton = NSLocalizedString("youtube.ad.blocking.analytics-opt-in-alert.cancel", value: "No Thanks", comment: "Cancel button label of the alert shown when the user is enabling YouTube ad blocking")
 
     // Duck Player View
     public static let duckPlayerWatchOnYoutube = NSLocalizedString("duckplayer.watch.on.youtube", value: "Watch on YouTube", comment: "Button text to watch video on YouTube")
