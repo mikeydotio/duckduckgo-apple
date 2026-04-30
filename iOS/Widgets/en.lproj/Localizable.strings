@@ -85,9 +85,6 @@
 /* Title for editing custom shortcuts */
 "widget.gallery.customshortcuts.edit.title" = "Configure Shortcuts";
 
-/* Description for editing medium widget custom shortcuts */
-"widget.gallery.medium.customshortcuts.edit.description" = "Choose your shortcuts";
-
 /* Label for first shortcut slot in medium widget configuration */
 "widget.gallery.medium.customshortcuts.edit.shortcut1" = "Shortcut 1";
 
@@ -100,20 +97,11 @@
 /* Label for fourth shortcut slot in medium widget configuration */
 "widget.gallery.medium.customshortcuts.edit.shortcut4" = "Shortcut 4";
 
-/* Title for editing medium widget custom shortcuts */
-"widget.gallery.medium.customshortcuts.edit.title" = "Configure Shortcuts";
-
 /* Description of search passwords widget in widget gallery */
 "widget.gallery.passwords.description" = "Quickly search your saved DuckDuckGo passwords.";
 
 /* Display name for search passwords widget in widget gallery */
 "widget.gallery.passwords.display.name" = "Search Passwords";
-
-/* Description of medium quickActions widget in widget gallery */
-"widget.gallery.quickactions.medium.display.description" = "Shortcuts to your favorite actions.";
-
-/* Display name for medium quick actions widget in widget gallery */
-"widget.gallery.quickactions.medium.display.name" = "Shortcuts";
 
 /* Description of search and favorites widget in widget gallery */
 "widget.gallery.search.and.favorites.description" = "Search or visit your favorite sites privately with just one tap.";

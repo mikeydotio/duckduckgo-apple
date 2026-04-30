@@ -25,8 +25,8 @@ import DesignResourcesKitIcons
 
 @available(iOS 17.0, *)
 struct MediumConfigurationIntent: WidgetConfigurationIntent {
-    static var title = LocalizedStringResource("widget.gallery.medium.customshortcuts.edit.title")
-    static var description = IntentDescription(LocalizedStringResource("widget.gallery.medium.customshortcuts.edit.description"))
+    static var title = LocalizedStringResource("widget.gallery.customshortcuts.edit.title")
+    static var description = IntentDescription(LocalizedStringResource("widget.gallery.customshortcuts.edit.description"))
 
     @Parameter(title: LocalizedStringResource("widget.gallery.medium.customshortcuts.edit.shortcut1"), default: .voiceSearch)
     var shortcut1: ShortcutOption
@@ -62,8 +62,8 @@ struct QuickActionsMediumWidget: Widget {
         ) { entry in
             QuickActionsMediumWidgetView(entry: entry)
         }
-        .configurationDisplayName(UserText.quickActionsMediumWidgetGalleryDisplayName)
-        .description(UserText.quickActionsMediumWidgetGalleryDescription)
+        .configurationDisplayName(UserText.quickActionsWidgetGalleryDisplayName)
+        .description(UserText.quickActionsWidgetGalleryDescription)
         .supportedFamilies([.systemMedium])
         .contentMarginsDisabled()
     }

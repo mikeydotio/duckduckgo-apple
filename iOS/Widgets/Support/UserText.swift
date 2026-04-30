@@ -257,25 +257,7 @@ struct UserText {
                                                                   value: "Choose your shortcuts",
                                                                   comment: "Description for editing custom shortcuts")
 
-    // MARK: - Quick Actions Medium
-
-    static let quickActionsMediumWidgetGalleryDisplayName = NSLocalizedString("widget.gallery.quickactions.medium.display.name",
-                                                                  value: "Shortcuts",
-                                                                  comment: "Display name for medium quick actions widget in widget gallery")
-
-    static let quickActionsMediumWidgetGalleryDescription = NSLocalizedString("widget.gallery.quickactions.medium.display.description",
-                                                                  value: "Shortcuts to your favorite actions.",
-                                                                  comment: "Description of medium quickActions widget in widget gallery")
-
     // MARK: - Quick Actions Medium Configuration
-
-    static let quickActionsMediumWidgetEditShortcutsTitle = NSLocalizedString("widget.gallery.medium.customshortcuts.edit.title",
-                                                                  value: "Configure Shortcuts",
-                                                                  comment: "Title for editing medium widget custom shortcuts")
-
-    static let quickActionsMediumWidgetEditShortcutsDescription = NSLocalizedString("widget.gallery.medium.customshortcuts.edit.description",
-                                                                  value: "Choose your shortcuts",
-                                                                  comment: "Description for editing medium widget custom shortcuts")
 
     static let quickActionsMediumWidgetEditShortcut1Label = NSLocalizedString("widget.gallery.medium.customshortcuts.edit.shortcut1",
                                                                   value: "Shortcut 1",
