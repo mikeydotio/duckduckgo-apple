@@ -42,7 +42,7 @@ struct TabSwitcherPill: View {
             .frame(width: Metrics.size, height: Metrics.size)
             .background(
                 Circle()
-                    .fill(Color(designSystemColor: .controlsFillPrimary))
+                    .fill(Color(designSystemColor: .controlsFillSecondary))
             )
         }
         .buttonStyle(.plain)

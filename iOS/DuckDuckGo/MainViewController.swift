@@ -1586,7 +1586,7 @@ class MainViewController: UIViewController {
                 },
                 onTabSwitcherTapped: { [weak self] in
                     guard let self else { return }
-                    viewCoordinator.omniBar.endEditing()
+                    unifiedToggleInputCoordinator?.contentViewController.dismissAnimated()
                     showTabSwitcher()
                 }
             )

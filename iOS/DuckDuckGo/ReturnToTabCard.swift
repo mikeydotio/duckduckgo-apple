@@ -49,7 +49,7 @@ struct ReturnToTabCard: View {
             .frame(height: Metrics.height)
             .background(
                 Capsule()
-                    .fill(Color(designSystemColor: .controlsFillPrimary))
+                    .fill(Color(designSystemColor: .controlsFillSecondary))
             )
         }
         .buttonStyle(.plain)
