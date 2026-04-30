@@ -32,5 +32,4 @@ protocol NewTabPageControllerDelegate: AnyObject {
 
 extension NewTabPageControllerDelegate {
     func newTabPageDidDismissDuckAIExperimentCompletion(_ controller: NewTabPageViewController) { }
-    func newTabPageDidRequestTabSwitcher(_ controller: NewTabPageViewController) { }
 }
