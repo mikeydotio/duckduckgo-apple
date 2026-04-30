@@ -105,7 +105,6 @@ final class AIChatHistoryListViewController: UIViewController {
     }
 
     private var currentEscapeHatchModel: EscapeHatchModel?
-    private var currentOpenTabCount: Int = 0
     private var escapeHatchHostingController: UIHostingController<EscapeHatchView>?
 
     var additionalTopInset: CGFloat = 0 {
@@ -258,20 +257,10 @@ final class AIChatHistoryListViewController: UIViewController {
                         onTapped: (() -> Void)?,
                         onTabSwitcherTapped: (() -> Void)?) {
         let modelChanged = model != currentEscapeHatchModel
-        let countChanged = openTabCount != currentOpenTabCount
         currentEscapeHatchModel = model
-        currentOpenTabCount = openTabCount
 
         if let model, let onTapped, let onTabSwitcherTapped {
-            if let existingHosting = escapeHatchHostingController, !modelChanged {
-                if countChanged {
-                    existingHosting.rootView = EscapeHatchView(
-                        model: model,
-                        openTabCount: openTabCount,
-                        onCardTap: onTapped,
-                        onTabSwitcherTap: onTabSwitcherTapped
-                    )
-                }
+            if escapeHatchHostingController != nil, !modelChanged {
                 return
             }
             if let existingHosting = escapeHatchHostingController {
