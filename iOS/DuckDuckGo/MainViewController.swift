@@ -1557,6 +1557,7 @@ class MainViewController: UIViewController {
 
         let hatch = buildEscapeHatch(openedAfterIdle: openedAfterIdle)
         controller.setEscapeHatch(hatch)
+        controller.setOpenTabCount(tabManager.currentTabsModel.count)
         currentNTPEscapeHatch = hatch
         
         if hasCompletedInitialLoad {
@@ -1565,14 +1566,23 @@ class MainViewController: UIViewController {
 
         if let hatch {
             let targetTab = hatch.targetTab
-            unifiedToggleInputCoordinator?.setEscapeHatch(hatch, onTapped: { [weak self] in
-                guard let self else { return }
-                guard tabManager.tabsModel(for: targetTab.mode).tabExists(tab: targetTab) else {
-                    clearEscapeHatch()
-                    return
+            unifiedToggleInputCoordinator?.setEscapeHatch(
+                hatch,
+                openTabCount: tabManager.currentTabsModel.count,
+                onTapped: { [weak self] in
+                    guard let self else { return }
+                    guard tabManager.tabsModel(for: targetTab.mode).tabExists(tab: targetTab) else {
+                        clearEscapeHatch()
+                        return
+                    }
+                    onSwitchToTab(targetTab)
+                },
+                onTabSwitcherTapped: { [weak self] in
+                    guard let self else { return }
+                    viewCoordinator.omniBar.endEditing()
+                    showTabSwitcher()
                 }
-                onSwitchToTab(targetTab)
-            })
+            )
         } else {
             clearEscapeHatch()
         }
@@ -4195,7 +4205,7 @@ extension MainViewController: OmniBarDelegate {
     private func clearEscapeHatch() {
         newTabPageViewController?.setEscapeHatch(nil)
         currentNTPEscapeHatch = nil
-        unifiedToggleInputCoordinator?.setEscapeHatch(nil, onTapped: nil)
+        unifiedToggleInputCoordinator?.setEscapeHatch(nil, openTabCount: 0, onTapped: nil, onTabSwitcherTapped: nil)
     }
 
     func useNewOmnibarTransitionBehaviour() -> Bool {
@@ -4221,6 +4231,11 @@ extension MainViewController: OmniBarDelegate {
             closeTab(currentTab)
         }
         selectTab(tab)
+    }
+
+    func onTabSwitcherRequested() {
+        viewCoordinator.omniBar.endEditing()
+        showTabSwitcher()
     }
 
     func onToggleModeSwitched() {
@@ -4385,6 +4400,10 @@ extension MainViewController: NewTabPageControllerDelegate {
         }
         selectTab(tab)
         clearEscapeHatch()
+    }
+
+    func newTabPageDidRequestTabSwitcher(_ controller: NewTabPageViewController) {
+        showTabSwitcher()
     }
 
     func newTabPageDidDismissDuckAIExperimentCompletion(_ controller: NewTabPageViewController) {

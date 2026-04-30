@@ -37,6 +37,7 @@ protocol UnifiedInputContentContainerViewControllerDelegate: AnyObject {
     func unifiedInputEditingStateDidSelectSuggestion(_ suggestion: Suggestion)
     func unifiedInputEditingStateDidSelectChatHistory(url: URL)
     func unifiedInputEditingStateDidRequestSwitchTab(_ tab: Tab)
+    func unifiedInputEditingStateDidRequestTabSwitcher()
     func unifiedInputEditingStateDidRequestTryFireMode()
     func unifiedInputEditingStateDidChangeMode(_ mode: TextEntryMode)
 }
@@ -119,7 +120,9 @@ final class UnifiedInputContentContainerViewController: UIViewController {
     private var needsVisibleRefresh = true
     private var requestedContentInset: (top: CGFloat, bottom: CGFloat) = (0, 0)
     private var escapeHatchModel: EscapeHatchModel?
+    private var escapeHatchOpenTabCount: Int = 0
     private var escapeHatchTapHandler: (() -> Void)?
+    private var escapeHatchTabSwitcherTapHandler: (() -> Void)?
 
     private var chatHasSuggestions: Bool {
         aiChatHistoryManager?.hasSuggestions ?? false
@@ -259,11 +262,21 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         )
     }
 
-    func setEscapeHatch(_ model: EscapeHatchModel?, onTapped: (() -> Void)?) {
+    func setEscapeHatch(_ model: EscapeHatchModel?,
+                        openTabCount: Int,
+                        onTapped: (() -> Void)?,
+                        onTabSwitcherTapped: (() -> Void)?) {
         escapeHatchModel = model
+        escapeHatchOpenTabCount = openTabCount
         escapeHatchTapHandler = onTapped
+        escapeHatchTabSwitcherTapHandler = onTabSwitcherTapped
         suggestionTrayManager?.setEscapeHatch(model)
-        aiChatHistoryManager?.setEscapeHatch(model, onTapped: onTapped)
+        aiChatHistoryManager?.setEscapeHatch(
+            model,
+            openTabCount: openTabCount,
+            onTapped: onTapped,
+            onTabSwitcherTapped: onTabSwitcherTapped
+        )
         updateEscapeHatchTopInset()
     }
 
@@ -505,7 +518,12 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         }
         aiChatHistoryManager = manager
         if let escapeHatchModel, !switchBarHandler.isFireTab {
-            manager.setEscapeHatch(escapeHatchModel, onTapped: escapeHatchTapHandler)
+            manager.setEscapeHatch(
+                escapeHatchModel,
+                openTabCount: escapeHatchOpenTabCount,
+                onTapped: escapeHatchTapHandler,
+                onTabSwitcherTapped: escapeHatchTabSwitcherTapHandler
+            )
         }
 
         manager.hasSuggestionsPublisher
@@ -892,6 +910,10 @@ extension UnifiedInputContentContainerViewController: SuggestionTrayManagerDeleg
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsSwitchToTab tab: Tab) {
         delegate?.unifiedInputEditingStateDidRequestSwitchTab(tab)
+    }
+
+    func suggestionTrayManagerDidRequestTabSwitcher(_ manager: SuggestionTrayManager) {
+        delegate?.unifiedInputEditingStateDidRequestTabSwitcher()
     }
 
     func suggestionTrayManagerDidRequestTryFireMode(_ manager: SuggestionTrayManager) {

@@ -170,9 +170,12 @@ private extension NewTabPageView {
     @ViewBuilder
     private var escapeHatchSectionView: some View {
         if let escapeHatch = viewModel.escapeHatch {
-            ReturnToTabCard(model: escapeHatch) {
-                viewModel.onEscapeHatchTap?()
-            }
+            EscapeHatchView(
+                model: escapeHatch,
+                openTabCount: viewModel.openTabCount,
+                onCardTap: { viewModel.onEscapeHatchTap?() },
+                onTabSwitcherTap: { viewModel.onTabSwitcherTap?() }
+            )
             .frame(maxWidth: horizontalSizeClass == .regular ? Metrics.messageMaximumWidthPad : Metrics.messageMaximumWidth)
             .padding(.top, Metrics.nonGridSectionTopPadding)
             .padding(.horizontal, Metrics.updatedNonGridSectionHorizontalPadding)

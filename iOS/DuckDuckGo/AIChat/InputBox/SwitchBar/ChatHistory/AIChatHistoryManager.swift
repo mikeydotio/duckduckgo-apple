@@ -125,8 +125,16 @@ final class AIChatHistoryManager {
         }
     }
 
-    func setEscapeHatch(_ model: EscapeHatchModel?, onTapped: (() -> Void)?) {
-        historyViewController?.setEscapeHatch(model, onTapped: onTapped)
+    func setEscapeHatch(_ model: EscapeHatchModel?,
+                        openTabCount: Int,
+                        onTapped: (() -> Void)?,
+                        onTabSwitcherTapped: (() -> Void)?) {
+        historyViewController?.setEscapeHatch(
+            model,
+            openTabCount: openTabCount,
+            onTapped: onTapped,
+            onTabSwitcherTapped: onTabSwitcherTapped
+        )
     }
 
     func setAdditionalTopInset(_ inset: CGFloat) {

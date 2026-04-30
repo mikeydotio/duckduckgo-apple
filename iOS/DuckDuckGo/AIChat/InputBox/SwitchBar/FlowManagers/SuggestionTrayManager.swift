@@ -50,6 +50,7 @@ protocol SuggestionTrayManagerDelegate: AnyObject {
     func suggestionTrayManager(_ manager: SuggestionTrayManager, shouldUpdateTextTo text: String)
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsEditFavorite favorite: BookmarkEntity)
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsSwitchToTab tab: Tab)
+    func suggestionTrayManagerDidRequestTabSwitcher(_ manager: SuggestionTrayManager)
     func suggestionTrayManagerDidRequestTryFireMode(_ manager: SuggestionTrayManager)
     func suggestionTrayManagerDidUpdateVisibility(_ manager: SuggestionTrayManager)
 }
@@ -127,6 +128,7 @@ final class SuggestionTrayManager: NSObject {
 
     func setEscapeHatch(_ model: EscapeHatchModel?) {
         suggestionTrayViewController?.setEscapeHatch(model)
+        suggestionTrayViewController?.setOpenTabCount(dependencies.tabsModelProvider().count)
     }
 
     func setAdditionalTopInset(_ inset: CGFloat) {
@@ -177,6 +179,7 @@ final class SuggestionTrayManager: NSObject {
         }
         controller.didMove(toParent: parentViewController)
         controller.setEscapeHatch(escapeHatch)
+        controller.setOpenTabCount(dependencies.tabsModelProvider().count)
 
         showInitialSuggestions()
         containerView.layoutIfNeeded()
@@ -347,6 +350,10 @@ extension SuggestionTrayManager: NewTabPageControllerDelegate {
 
     func newTabPageDidRequestSwitchToTab(_ controller: NewTabPageViewController, tab: Tab) {
         delegate?.suggestionTrayManager(self, requestsSwitchToTab: tab)
+    }
+
+    func newTabPageDidRequestTabSwitcher(_ controller: NewTabPageViewController) {
+        delegate?.suggestionTrayManagerDidRequestTabSwitcher(self)
     }
 
     func newTabPageDidRequestTryFireMode(_ controller: NewTabPageViewController) {
