@@ -299,6 +299,11 @@
                 "key": "is_enabled",
                 "type": "string",
                 "description": "Whether ad blocking is currently enabled (true/false)"
+            },
+            {
+                "key": "analytics_enabled",
+                "type": "string",
+                "description": "Whether the user opted in to anonymous breakage reports for YouTube ad blocking (true/false)"
             }
         ]
     }

@@ -70,7 +70,7 @@ enum WebExtensionPixel: PixelKitEvent {
 
     // MARK: - Daily State
 
-    case dailyAdBlockingState(isEnabled: Bool)
+    case dailyAdBlockingState(isEnabled: Bool, analyticsEnabled: Bool)
 
     // MARK: - PixelKitEvent
 
@@ -154,8 +154,11 @@ enum WebExtensionPixel: PixelKitEvent {
             return ["extension_type": extensionType]
         case .scriptletInstalled(let extensionType, let version):
             return ["extension_type": extensionType, "version": version]
-        case .dailyAdBlockingState(let isEnabled):
-            return ["is_enabled": isEnabled ? "true" : "false"]
+        case .dailyAdBlockingState(let isEnabled, let analyticsEnabled):
+            return [
+                "is_enabled": isEnabled ? "true" : "false",
+                "analytics_enabled": analyticsEnabled ? "true" : "false"
+            ]
         default:
             return nil
         }
