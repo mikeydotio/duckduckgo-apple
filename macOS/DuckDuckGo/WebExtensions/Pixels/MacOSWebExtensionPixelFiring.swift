@@ -78,6 +78,7 @@ enum WebExtensionPixel: PixelKitEvent {
     case adBlockingDetectedPlayabilityError(loginState: String?)
     case adBlockingDetectedVideoAd(loginState: String?)
     case adBlockingDetectedStaticAd(loginState: String?)
+    case adBlockingDetectedBuffering(loginState: String?)
 
     // MARK: - PixelKitEvent
 
@@ -145,6 +146,8 @@ enum WebExtensionPixel: PixelKitEvent {
             return "m_mac_web_extension_adblocking_detected_video_ad"
         case .adBlockingDetectedStaticAd:
             return "m_mac_web_extension_adblocking_detected_static_ad"
+        case .adBlockingDetectedBuffering:
+            return "m_mac_web_extension_adblocking_detected_buffering"
         }
     }
 
@@ -177,7 +180,8 @@ enum WebExtensionPixel: PixelKitEvent {
         case .adBlockingDetectedAdBlocker(let loginState),
              .adBlockingDetectedPlayabilityError(let loginState),
              .adBlockingDetectedVideoAd(let loginState),
-             .adBlockingDetectedStaticAd(let loginState):
+             .adBlockingDetectedStaticAd(let loginState),
+             .adBlockingDetectedBuffering(let loginState):
             return loginState.map { ["loginState": $0] }
         default:
             return nil
@@ -196,6 +200,7 @@ enum WebExtensionPixel: PixelKitEvent {
         case "youtube_playabilityError": return .adBlockingDetectedPlayabilityError(loginState: loginState)
         case "youtube_videoAd": return .adBlockingDetectedVideoAd(loginState: loginState)
         case "youtube_staticAd": return .adBlockingDetectedStaticAd(loginState: loginState)
+        case "youtube_buffering": return .adBlockingDetectedBuffering(loginState: loginState)
         default: return nil
         }
     }

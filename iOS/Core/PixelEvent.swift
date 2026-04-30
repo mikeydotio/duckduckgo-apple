@@ -1779,6 +1779,7 @@ extension Pixel {
         case webExtensionAdBlockingDetectedPlayabilityError
         case webExtensionAdBlockingDetectedVideoAd
         case webExtensionAdBlockingDetectedStaticAd
+        case webExtensionAdBlockingDetectedBuffering
 
         // MARK: - Fire Mode
         case fireModeNTPPromotionShown
@@ -1813,6 +1814,7 @@ extension Pixel.Event {
         case "youtube_playabilityError": return .webExtensionAdBlockingDetectedPlayabilityError
         case "youtube_videoAd": return .webExtensionAdBlockingDetectedVideoAd
         case "youtube_staticAd": return .webExtensionAdBlockingDetectedStaticAd
+        case "youtube_buffering": return .webExtensionAdBlockingDetectedBuffering
         default: return nil
         }
     }
@@ -3501,6 +3503,7 @@ extension Pixel.Event {
         case .webExtensionAdBlockingDetectedPlayabilityError: return "m_web_extension_adblocking_detected_playability_error"
         case .webExtensionAdBlockingDetectedVideoAd: return "m_web_extension_adblocking_detected_video_ad"
         case .webExtensionAdBlockingDetectedStaticAd: return "m_web_extension_adblocking_detected_static_ad"
+        case .webExtensionAdBlockingDetectedBuffering: return "m_web_extension_adblocking_detected_buffering"
 
         // MARK: - Fire Mode
         case .fireModeNTPPromotionShown: return "m_fire-mode_ntp-promotion_shown"

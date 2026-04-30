@@ -366,5 +366,20 @@
                 "description": "User's YouTube login state at the time of detection"
             }
         ]
+    },
+    "m_mac_web_extension_adblocking_detected_buffering": {
+        "description": "Fires once daily when content-scope-scripts detects YouTube playback buffering.",
+        "owners": ["miasma13"],
+        "triggers": ["other"],
+        "suffixes": ["daily"],
+        "parameters": [
+            "appVersion",
+            "pixelSource",
+            {
+                "key": "loginState",
+                "type": "string",
+                "description": "User's YouTube login state at the time of detection"
+            }
+        ]
     }
 }
