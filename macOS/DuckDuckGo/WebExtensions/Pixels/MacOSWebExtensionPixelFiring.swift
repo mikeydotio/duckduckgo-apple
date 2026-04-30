@@ -72,6 +72,13 @@ enum WebExtensionPixel: PixelKitEvent {
 
     case dailyAdBlockingState(isEnabled: Bool, analyticsEnabled: Bool)
 
+    // MARK: - Ad Blocking Detection Events
+
+    case adBlockingDetectedAdBlocker(loginState: String?)
+    case adBlockingDetectedPlayabilityError(loginState: String?)
+    case adBlockingDetectedVideoAd(loginState: String?)
+    case adBlockingDetectedStaticAd(loginState: String?)
+
     // MARK: - PixelKitEvent
 
     var name: String {
@@ -130,6 +137,14 @@ enum WebExtensionPixel: PixelKitEvent {
             return "m_mac_web_extension_scriptlet_install_error"
         case .dailyAdBlockingState:
             return "m_mac_web_extension_daily_ad_blocking_state"
+        case .adBlockingDetectedAdBlocker:
+            return "m_mac_web_extension_adblocking_detected_ad_blocker"
+        case .adBlockingDetectedPlayabilityError:
+            return "m_mac_web_extension_adblocking_detected_playability_error"
+        case .adBlockingDetectedVideoAd:
+            return "m_mac_web_extension_adblocking_detected_video_ad"
+        case .adBlockingDetectedStaticAd:
+            return "m_mac_web_extension_adblocking_detected_static_ad"
         }
     }
 
@@ -159,6 +174,11 @@ enum WebExtensionPixel: PixelKitEvent {
                 "is_enabled": isEnabled ? "true" : "false",
                 "analytics_enabled": analyticsEnabled ? "true" : "false"
             ]
+        case .adBlockingDetectedAdBlocker(let loginState),
+             .adBlockingDetectedPlayabilityError(let loginState),
+             .adBlockingDetectedVideoAd(let loginState),
+             .adBlockingDetectedStaticAd(let loginState):
+            return loginState.map { ["loginState": $0] }
         default:
             return nil
         }
@@ -166,6 +186,18 @@ enum WebExtensionPixel: PixelKitEvent {
 
     var standardParameters: [PixelKitStandardParameter]? {
         return [.pixelSource]
+    }
+
+    /// Maps a C-S-S `webEvent` `type` string to the matching pixel case.
+    /// Returns `nil` for unknown types so the caller can no-op.
+    static func adBlockingDetectedEvent(type: String, loginState: String?) -> WebExtensionPixel? {
+        switch type {
+        case "youtube_adBlocker": return .adBlockingDetectedAdBlocker(loginState: loginState)
+        case "youtube_playabilityError": return .adBlockingDetectedPlayabilityError(loginState: loginState)
+        case "youtube_videoAd": return .adBlockingDetectedVideoAd(loginState: loginState)
+        case "youtube_staticAd": return .adBlockingDetectedStaticAd(loginState: loginState)
+        default: return nil
+        }
     }
 }
 

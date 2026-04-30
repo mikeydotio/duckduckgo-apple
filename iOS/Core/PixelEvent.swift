@@ -1775,6 +1775,11 @@ extension Pixel {
 
         case webExtensionDailyAdBlockingState
 
+        case webExtensionAdBlockingDetectedAdBlocker
+        case webExtensionAdBlockingDetectedPlayabilityError
+        case webExtensionAdBlockingDetectedVideoAd
+        case webExtensionAdBlockingDetectedStaticAd
+
         // MARK: - Fire Mode
         case fireModeNTPPromotionShown
         case fireModeNTPPromotionDismissed
@@ -1800,7 +1805,21 @@ extension Pixel {
 extension Pixel.Event: Equatable {}
 
 extension Pixel.Event {
-    
+    /// Maps a C-S-S `webEvent` `type` string to the matching pixel case.
+    /// Returns `nil` for unknown types so the caller can no-op.
+    public static func adBlockingDetectedEvent(type: String) -> Pixel.Event? {
+        switch type {
+        case "youtube_adBlocker": return .webExtensionAdBlockingDetectedAdBlocker
+        case "youtube_playabilityError": return .webExtensionAdBlockingDetectedPlayabilityError
+        case "youtube_videoAd": return .webExtensionAdBlockingDetectedVideoAd
+        case "youtube_staticAd": return .webExtensionAdBlockingDetectedStaticAd
+        default: return nil
+        }
+    }
+}
+
+extension Pixel.Event {
+
     public var name: String {
         switch self {
         case .appInstall: return "m_install"
@@ -3477,6 +3496,11 @@ extension Pixel.Event {
         case .webExtensionAdBlockingSettingsOpen: return "m_web_extension_ad_blocking_settings_open"
         case .webExtensionAdBlockingEnabled: return "m_web_extension_ad_blocking_enabled"
         case .webExtensionAdBlockingDisabled: return "m_web_extension_ad_blocking_disabled"
+
+        case .webExtensionAdBlockingDetectedAdBlocker: return "m_web_extension_adblocking_detected_ad_blocker"
+        case .webExtensionAdBlockingDetectedPlayabilityError: return "m_web_extension_adblocking_detected_playability_error"
+        case .webExtensionAdBlockingDetectedVideoAd: return "m_web_extension_adblocking_detected_video_ad"
+        case .webExtensionAdBlockingDetectedStaticAd: return "m_web_extension_adblocking_detected_static_ad"
 
         // MARK: - Fire Mode
         case .fireModeNTPPromotionShown: return "m_fire-mode_ntp-promotion_shown"

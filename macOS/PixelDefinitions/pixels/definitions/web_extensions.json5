@@ -306,5 +306,65 @@
                 "description": "Whether the user opted in to anonymous breakage reports for YouTube ad blocking (true/false)"
             }
         ]
+    },
+    "m_mac_web_extension_adblocking_detected_ad_blocker": {
+        "description": "Fires once daily when content-scope-scripts detects an ad blocker challenge while playing a YouTube video.",
+        "owners": ["miasma13"],
+        "triggers": ["other"],
+        "suffixes": ["daily"],
+        "parameters": [
+            "appVersion",
+            "pixelSource",
+            {
+                "key": "loginState",
+                "type": "string",
+                "description": "User's YouTube login state at the time of detection"
+            }
+        ]
+    },
+    "m_mac_web_extension_adblocking_detected_playability_error": {
+        "description": "Fires once daily when content-scope-scripts detects a YouTube playability error.",
+        "owners": ["miasma13"],
+        "triggers": ["other"],
+        "suffixes": ["daily"],
+        "parameters": [
+            "appVersion",
+            "pixelSource",
+            {
+                "key": "loginState",
+                "type": "string",
+                "description": "User's YouTube login state at the time of detection"
+            }
+        ]
+    },
+    "m_mac_web_extension_adblocking_detected_video_ad": {
+        "description": "Fires once daily when content-scope-scripts detects a YouTube video ad.",
+        "owners": ["miasma13"],
+        "triggers": ["other"],
+        "suffixes": ["daily"],
+        "parameters": [
+            "appVersion",
+            "pixelSource",
+            {
+                "key": "loginState",
+                "type": "string",
+                "description": "User's YouTube login state at the time of detection"
+            }
+        ]
+    },
+    "m_mac_web_extension_adblocking_detected_static_ad": {
+        "description": "Fires once daily when content-scope-scripts detects a YouTube static (non-video) ad.",
+        "owners": ["miasma13"],
+        "triggers": ["other"],
+        "suffixes": ["daily"],
+        "parameters": [
+            "appVersion",
+            "pixelSource",
+            {
+                "key": "loginState",
+                "type": "string",
+                "description": "User's YouTube login state at the time of detection"
+            }
+        ]
     }
 }
