@@ -25,7 +25,7 @@ import Foundation
 @Suite("Quick Actions Medium Widget")
 struct QuickActionsMediumWidgetTests {
 
-    @Test("When destination is built for the medium source then URL carries quickActionsMedium and the shortcut identifier")
+    @Test("When destination is built for the medium source then URL carries quickActionsMedium and the shortcut identifier", .timeLimit(.minutes(1)))
     @available(iOS 17.0, *)
     func whenMediumDestinationBuiltThenURLCarriesSourceAndShortcut() {
         let url = ShortcutOption.duckAI.destination(for: .quickActionsMedium)
@@ -34,7 +34,7 @@ struct QuickActionsMediumWidgetTests {
         #expect(url.getParameter(named: WidgetSourceType.shortcutKey) == ShortcutOption.duckAI.rawValue)
     }
 
-    @Test("When destination is built for the small widget source then URL carries quickActions and the shortcut identifier")
+    @Test("When destination is built for the small widget source then URL carries quickActions and the shortcut identifier", .timeLimit(.minutes(1)))
     @available(iOS 17.0, *)
     func whenSmallDestinationBuiltThenURLCarriesSourceAndShortcut() {
         let url = ShortcutOption.passwords.destination(for: .quickActions)
@@ -44,6 +44,7 @@ struct QuickActionsMediumWidgetTests {
     }
 
     @Test("When bookmarks destination is built then it routes to ddgOpenBookmarks rather than ddgFavorites",
+          .timeLimit(.minutes(1)),
           arguments: [WidgetSourceType.quickActions, WidgetSourceType.quickActionsMedium])
     @available(iOS 17.0, *)
     func whenBookmarksDestinationBuiltThenRoutesToOpenBookmarks(source: WidgetSourceType) {
@@ -53,7 +54,7 @@ struct QuickActionsMediumWidgetTests {
         #expect(url.getParameter(named: WidgetSourceType.shortcutKey) == ShortcutOption.bookmarks.rawValue)
     }
 
-    @Test("Every shortcut option yields a unique shortcut parameter so they remain distinguishable in pixels")
+    @Test("Every shortcut option yields a unique shortcut parameter so they remain distinguishable in pixels", .timeLimit(.minutes(1)))
     @available(iOS 17.0, *)
     func everyShortcutOptionYieldsUniqueShortcutParameter() {
         let shortcutValues = ShortcutOption.allCases.map { option in

@@ -3,7 +3,7 @@
         "description": "Fires daily and counts when the user taps any shortcut in the medium quick-actions widget. The shortcut parameter identifies which shortcut was tapped, allowing per-shortcut analysis and inference of customisation usage.",
         "owners": ["edulpn"],
         "triggers": ["other"],
-        "suffixes": ["platform", "form_factor"],
+        "suffixes": ["first_daily_count", "platform", "form_factor"],
         "parameters": [
             "appVersion",
             {

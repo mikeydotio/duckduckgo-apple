@@ -622,7 +622,7 @@ extension MainCoordinator: URLHandling {
 
         fireMediumWidgetPixelIfNeeded(url: url)
 
-        if url != AppDeepLinkSchemes.openVPN.url
+        if url.scheme != AppDeepLinkSchemes.openVPN.url.scheme
             && url.scheme != AppDeepLinkSchemes.openAIChat.url.scheme
             && url.scheme != AppDeepLinkSchemes.openAIVoiceChat.url.scheme {
             controller.clearNavigationStack()
