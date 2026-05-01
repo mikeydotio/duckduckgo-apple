@@ -22,48 +22,60 @@ import UIComponents
 import DesignResourcesKit
 import DesignResourcesKitIcons
 import DuckUI
-import AIChat
-import Core
 import Onboarding
 
 struct NewAddressBarPickerRefreshContentView: View {
     @ObservedObject var viewModel: NewAddressBarPickerViewModel
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: Metrics.stackSpacing) {
                 Header()
                 PickerCard(viewModel: viewModel)
             }
-            .frame(maxWidth: horizontalSizeClass == .regular ? 420 : 360)
-            .padding(.top, 24)
-            .padding(.horizontal, 16)
+            .frame(maxWidth: cardMaxWidth)
+            .frame(maxWidth: .infinity)
+            .padding(.top, Metrics.topPadding)
+            .padding(.horizontal, Metrics.horizontalPadding)
         }
-        .background(
-            BackgroundIllustration()
-        )
+        .background(BackgroundIllustration())
         .modifier(ScrollBounceBehaviorModifier())
+    }
+
+    private var cardMaxWidth: CGFloat {
+        UIDevice.current.userInterfaceIdiom == .pad ? Metrics.cardMaxWidthPad : Metrics.cardMaxWidth
+    }
+
+    private enum Metrics {
+        static let cardMaxWidth: CGFloat = 360
+        static let cardMaxWidthPad: CGFloat = 420
+        static let stackSpacing: CGFloat = 24
+        static let topPadding: CGFloat = 24
+        static let horizontalPadding: CGFloat = 16
     }
 }
 
 private struct Header: View {
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Metrics.spacing) {
             Image(uiImage: DesignSystemImages.Color.Size32.duckDuckAI)
-                .resizable()
-                .frame(width: 32, height: 32)
 
-            HStack(spacing: 8) {
+            HStack(spacing: Metrics.badgeSpacing) {
                 BadgeView(text: UserText.settingsItemNewBadge)
-                    .cornerRadius(8)
+                    .cornerRadius(Metrics.badgeCornerRadius)
 
                 Text(UserText.newAddressBarPickerTitle)
                     .textCase(.uppercase)
-                    .font(.system(size: 12, weight: .semibold))
+                    .daxFootnoteSemibold()
                     .foregroundColor(Color(designSystemColor: .textSecondary))
             }
         }
+    }
+
+    private enum Metrics {
+        static let spacing: CGFloat = 12
+        static let badgeSpacing: CGFloat = 8
+        static let badgeCornerRadius: CGFloat = 16
     }
 }
 
@@ -72,7 +84,7 @@ private struct PickerCard: View {
     @Environment(\.onboardingTheme) private var onboardingTheme
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: Metrics.spacing) {
             Text(UserText.newAddressBarPickerRefreshHeadline)
                 .daxTitle2()
                 .foregroundColor(.primary)
@@ -94,15 +106,22 @@ private struct PickerCard: View {
             }
             .buttonStyle(onboardingTheme.primaryButtonStyle.style)
         }
-        .padding(20)
+        .padding(Metrics.padding)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: Metrics.cornerRadius)
                 .fill(Color(designSystemColor: .surface))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color(designSystemColor: .accent).opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Metrics.cornerRadius)
+                .strokeBorder(Color(designSystemColor: .accent).opacity(Metrics.borderOpacity), lineWidth: 1)
         )
+    }
+
+    private enum Metrics {
+        static let spacing: CGFloat = 20
+        static let padding: CGFloat = 20
+        static let cornerRadius: CGFloat = 16
+        static let borderOpacity: CGFloat = 0.3
     }
 }
 
@@ -116,10 +135,10 @@ private struct BackgroundIllustration: View {
                 .modifier(SizeModifier())
                 .onPreferenceChange(SizePreferenceKey.self) { imageSize = $0 }
                 .position(
-                    x: 0,
-                    y: proxy.size.height - imageSize.height / 2
+                    x: imageSize.width * 0.5,
+                    y: proxy.size.height - imageSize.height * 0.5
                 )
         }
-        .ignoresSafeArea(edges: [.bottom, .leading, .trailing])
+        .ignoresSafeArea()
     }
 }
