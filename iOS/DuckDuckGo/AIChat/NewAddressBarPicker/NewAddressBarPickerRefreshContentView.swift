@@ -62,7 +62,7 @@ private struct Header: View {
 
             HStack(spacing: Metrics.badgeSpacing) {
                 BadgeView(text: UserText.settingsItemNewBadge)
-                    .cornerRadius(Metrics.badgeCornerRadius)
+                    .clipShape(Capsule())
 
                 Text(UserText.newAddressBarPickerTitle)
                     .textCase(.uppercase)
@@ -75,7 +75,6 @@ private struct Header: View {
     private enum Metrics {
         static let spacing: CGFloat = 12
         static let badgeSpacing: CGFloat = 8
-        static let badgeCornerRadius: CGFloat = 16
     }
 }
 
@@ -84,7 +83,7 @@ private struct PickerCard: View {
     @Environment(\.onboardingTheme) private var onboardingTheme
 
     var body: some View {
-        VStack(spacing: Metrics.spacing) {
+        VStack(spacing: Metrics.padding) {
             Text(UserText.newAddressBarPickerRefreshHeadline)
                 .daxTitle2()
                 .foregroundColor(.primary)
@@ -118,7 +117,6 @@ private struct PickerCard: View {
     }
 
     private enum Metrics {
-        static let spacing: CGFloat = 20
         static let padding: CGFloat = 20
         static let cornerRadius: CGFloat = 16
         static let borderOpacity: CGFloat = 0.3
@@ -158,15 +156,19 @@ private struct SearchExperiencePicker: View {
                     .scaledToFit()
                     .frame(height: Metrics.imageHeight)
 
-                measuredTitleBlock {
-                    Text(title)
-                        .font(onboardingTheme.typography.small)
-                        .foregroundColor(onboardingTheme.colorPalette.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(minHeight: maxOptionTitleHeight, alignment: .top)
+                Text(title)
+                    .font(onboardingTheme.typography.small)
+                    .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .background(
+                        GeometryReader { geometry in
+                            Color.clear.preference(key: OptionTitleHeightPreferenceKey.self, value: geometry.size.height)
+                        }
+                    )
+                    .frame(minHeight: maxOptionTitleHeight, alignment: .top)
 
                 OnboardingRebranding.RadioIndicator(
                     isSelected: isSelected,
@@ -177,16 +179,6 @@ private struct SearchExperiencePicker: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private func measuredTitleBlock<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .frame(maxWidth: .infinity, alignment: .center)
-            .background(
-                GeometryReader { geometry in
-                    Color.clear.preference(key: OptionTitleHeightPreferenceKey.self, value: geometry.size.height)
-                }
-            )
     }
 
     private enum Metrics {
