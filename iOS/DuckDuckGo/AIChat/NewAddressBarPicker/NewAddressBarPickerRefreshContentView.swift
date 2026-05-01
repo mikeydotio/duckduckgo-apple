@@ -91,7 +91,7 @@ private struct PickerCard: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
-            SettingsAIExperimentalPickerView(isDuckAISelected: $viewModel.isDuckAISelected)
+            SearchExperiencePicker(isDuckAISelected: $viewModel.isDuckAISelected)
 
             Text(UserText.newAddressBarPickerRefreshFooter)
                 .daxFootnoteRegular()
@@ -122,6 +122,83 @@ private struct PickerCard: View {
         static let padding: CGFloat = 20
         static let cornerRadius: CGFloat = 16
         static let borderOpacity: CGFloat = 0.3
+    }
+}
+
+private struct SearchExperiencePicker: View {
+    @Binding var isDuckAISelected: Bool
+    @Environment(\.onboardingTheme) private var onboardingTheme
+    @State private var maxOptionTitleHeight: CGFloat = 0
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Metrics.spacing) {
+            option(
+                isSelected: !isDuckAISelected,
+                selectedImage: OnboardingRebrandingImages.SearchExperience.searchOn,
+                unselectedImage: OnboardingRebrandingImages.SearchExperience.searchOff,
+                title: UserText.Onboarding.SearchExperience.searchOnlyOption
+            ) { isDuckAISelected = false }
+
+            option(
+                isSelected: isDuckAISelected,
+                selectedImage: OnboardingRebrandingImages.SearchExperience.searchAIOn,
+                unselectedImage: OnboardingRebrandingImages.SearchExperience.searchAIOff,
+                title: UserText.Onboarding.SearchExperience.searchAndDuckAIOption
+            ) { isDuckAISelected = true }
+        }
+        .onPreferenceChange(OptionTitleHeightPreferenceKey.self) { maxOptionTitleHeight = $0 }
+    }
+
+    private func option(isSelected: Bool, selectedImage: Image, unselectedImage: Image, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: Metrics.spacing) {
+                (isSelected ? selectedImage : unselectedImage)
+                    .renderingMode(.original)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: Metrics.imageHeight)
+
+                measuredTitleBlock {
+                    Text(title)
+                        .font(onboardingTheme.typography.small)
+                        .foregroundColor(onboardingTheme.colorPalette.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(minHeight: maxOptionTitleHeight, alignment: .top)
+
+                OnboardingRebranding.RadioIndicator(
+                    isSelected: isSelected,
+                    accentColor: onboardingTheme.colorPalette.optionsListIconColor
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func measuredTitleBlock<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, alignment: .center)
+            .background(
+                GeometryReader { geometry in
+                    Color.clear.preference(key: OptionTitleHeightPreferenceKey.self, value: geometry.size.height)
+                }
+            )
+    }
+
+    private enum Metrics {
+        static let spacing: CGFloat = 8
+        static let imageHeight: CGFloat = 72
+    }
+}
+
+private struct OptionTitleHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
