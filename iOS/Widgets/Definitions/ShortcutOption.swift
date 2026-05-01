@@ -32,16 +32,18 @@ enum ShortcutOption: String, CaseIterable, Identifiable, AppEnum {
     case vpn
     case bookmarks
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Shortcut Option"
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(
+        name: LocalizedStringResource("widget.shortcut.option.type-name")
+    )
     static var caseDisplayRepresentations: [ShortcutOption: DisplayRepresentation] = [
-        .passwords: "Passwords",
-        .duckAI: "Duck.ai",
-        .duckAIVoice: "Duck.ai Voice",
-        .voiceSearch: "Voice Search",
-        .favorites: "Favorites",
-        .emailProtection: "Duck Address",
-        .vpn: "VPN",
-        .bookmarks: "Bookmarks"
+        .passwords: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.passwords")),
+        .duckAI: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.duck-ai")),
+        .duckAIVoice: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.duck-ai-voice")),
+        .voiceSearch: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.voice-search")),
+        .favorites: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.favorites")),
+        .emailProtection: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.duck-address")),
+        .vpn: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.vpn")),
+        .bookmarks: DisplayRepresentation(title: LocalizedStringResource("widget.shortcut.option.bookmarks"))
     ]
 
     var id: String { self.rawValue }
