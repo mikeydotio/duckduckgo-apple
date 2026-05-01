@@ -28,6 +28,7 @@ import Onboarding
 
 struct NewAddressBarPickerRefreshContentView: View {
     @ObservedObject var viewModel: NewAddressBarPickerViewModel
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     var body: some View {
         ScrollView {
@@ -35,17 +36,12 @@ struct NewAddressBarPickerRefreshContentView: View {
                 Header()
                 PickerCard(viewModel: viewModel)
             }
-            .frame(maxWidth: 440)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 420 : 360)
             .padding(.top, 24)
             .padding(.horizontal, 16)
         }
         .background(
-            ZStack(alignment: .bottom) {
-                Color(designSystemColor: .background)
-                BackgroundIllustration()
-            }
-            .ignoresSafeArea()
+            BackgroundIllustration()
         )
         .modifier(ScrollBounceBehaviorModifier())
     }
@@ -111,14 +107,18 @@ private struct PickerCard: View {
 }
 
 private struct BackgroundIllustration: View {
+
+    @State private var imageSize: CGSize = .zero
+
     var body: some View {
-        VStack {
-            Spacer()
-            Image("ab-picker-background")
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .fixedSize(horizontal: false, vertical: true)
+        GeometryReader { proxy in
+            OnboardingRebrandingImages.Linear.addressBarSearchPreferenceBackground
+                .modifier(SizeModifier())
+                .onPreferenceChange(SizePreferenceKey.self) { imageSize = $0 }
+                .position(
+                    x: 0,
+                    y: proxy.size.height - imageSize.height / 2
+                )
         }
         .ignoresSafeArea(edges: [.bottom, .leading, .trailing])
     }
