@@ -877,4 +877,94 @@ final class BrokerProfileJobActionTests: XCTestCase {
         XCTAssertFalse(mockStageCalculator.fireOptOutConditionFoundCalled)
         XCTAssertTrue(mockStageCalculator.fireOptOutConditionNotFoundCalled)
     }
+
+    // MARK: - generateEmail + fillForm fallback
+
+    private func makeOptOutRunner(step: Step, extractedProfileId: Int64? = nil) -> BrokerProfileOptOutSubJobWebRunner {
+        let runner = BrokerProfileOptOutSubJobWebRunner(
+            privacyConfig: PrivacyConfigurationManagingMock(),
+            prefs: ContentScopeProperties.mock,
+            context: BrokerProfileQueryData.mock(with: [step]),
+            emailConfirmationDataService: emailConfirmationDataService,
+            captchaService: captchaService,
+            featureFlagger: MockDBPFeatureFlagger(),
+            applicationNameForUserAgent: nil,
+            operationAwaitTime: 0,
+            stageCalculator: stageCalculator,
+            pixelHandler: pixelHandler,
+            executionConfig: BrokerJobExecutionConfig(),
+            actionsHandlerMode: .optOut,
+            shouldRunNextStep: { true }
+        )
+        runner.webViewHandler = webViewHandler
+        runner.extractedProfile = ExtractedProfile(id: extractedProfileId)
+        return runner
+    }
+
+    private func makeScanRunner(step: Step) -> BrokerProfileScanSubJobWebRunner {
+        let runner = BrokerProfileScanSubJobWebRunner(
+            privacyConfig: PrivacyConfigurationManagingMock(),
+            prefs: ContentScopeProperties.mock,
+            context: BrokerProfileQueryData.mock(with: [step]),
+            emailConfirmationDataService: emailConfirmationDataService,
+            captchaService: captchaService,
+            featureFlagger: MockDBPFeatureFlagger(),
+            applicationNameForUserAgent: nil,
+            operationAwaitTime: 0,
+            stageDurationCalculator: stageCalculator,
+            pixelHandler: pixelHandler,
+            executionConfig: BrokerJobExecutionConfig(),
+            shouldRunNextStep: { true }
+        )
+        runner.webViewHandler = webViewHandler
+        return runner
+    }
+
+    // Regression guard: the legacy fillForm email-fetch path is unchanged when no prior
+    // generateEmail has run.
+    func testWhenFillFormNeedsEmailAndNoCachedEmail_thenServiceIsCalled() async {
+        let fillFormAction = FillFormAction(id: "1", actionType: .fillForm, elements: [.init(type: "email")])
+        let sut = makeOptOutRunner(step: Step(type: .optOut, actions: [fillFormAction]))
+
+        await sut.runNextAction(fillFormAction)
+
+        XCTAssertEqual(emailConfirmationDataService.getEmailAndSaveCallCount, 1)
+        XCTAssertEqual(sut.extractedProfile?.email, "test@duck.com")
+    }
+
+    func testWhenGenerateEmailActionRunsOnOptOut_thenSaveCapableHelperIsUsedWithExtractedProfileId() async {
+        let generateEmailAction = GenerateEmailAction(id: "1", actionType: .generateEmail)
+        let sut = makeOptOutRunner(step: Step(type: .optOut, actions: [generateEmailAction]),
+                                   extractedProfileId: 42)
+
+        await sut.runNextAction(generateEmailAction)
+
+        XCTAssertEqual(sut.fetchedEmail, "test@duck.com")
+        XCTAssertEqual(emailConfirmationDataService.getEmailAndSaveCallCount, 1)
+        XCTAssertEqual(emailConfirmationDataService.getEmailCallCount, 0)
+        XCTAssertEqual(emailConfirmationDataService.lastExtractedProfileIdPassed, 42)
+    }
+
+    func testWhenGenerateEmailActionRunsOnScan_thenFetchOnlyPathIsUsed() async {
+        let generateEmailAction = GenerateEmailAction(id: "1", actionType: .generateEmail)
+        let sut = makeScanRunner(step: Step(type: .scan, actions: [generateEmailAction]))
+
+        await sut.runNextAction(generateEmailAction)
+
+        // Scan skips the save-capable helper entirely — no store row, no risk of the helper's
+        // missing-ID throw. Only the fetch-only `getEmail` path runs.
+        XCTAssertEqual(sut.fetchedEmail, "test@duck.com")
+        XCTAssertEqual(emailConfirmationDataService.getEmailCallCount, 1)
+        XCTAssertEqual(emailConfirmationDataService.getEmailAndSaveCallCount, 0)
+    }
+
+    func testWhenGenerateEmailServiceThrows_thenFetchedEmailRemainsNil() async {
+        let generateEmailAction = GenerateEmailAction(id: "1", actionType: .generateEmail)
+        let sut = makeOptOutRunner(step: Step(type: .optOut, actions: [generateEmailAction]))
+        emailConfirmationDataService.shouldThrow = true
+
+        await sut.runNextAction(generateEmailAction)
+
+        XCTAssertNil(sut.fetchedEmail)
+    }
 }
