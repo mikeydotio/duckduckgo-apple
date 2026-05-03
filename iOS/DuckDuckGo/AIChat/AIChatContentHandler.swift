@@ -51,6 +51,7 @@ extension AIChatUserScriptProviding {
 extension AIChatUserScript: AIChatUserScriptProviding { }
 
 /// Delegate for AIChatContentHandling navigation and UI actions.
+@MainActor
 protocol AIChatContentHandlingDelegate: AnyObject {
     /// Called when the content handler receives a request to open AIChat settings.
     func aiChatContentHandlerDidReceiveOpenSettingsRequest(_ handler: AIChatContentHandling)
@@ -251,21 +252,19 @@ final class AIChatContentHandler: AIChatContentHandling {
 extension AIChatContentHandler: AIChatUserScriptDelegate {
     
     func aiChatUserScript(_ userScript: AIChatUserScript, didReceiveMessage message: AIChatUserScriptMessages) {
-        DispatchQueue.main.async { [self] in
-            if message == .getAIChatPageContext {
-                delegate?.aiChatContentHandlerDidReceivePageContextRequest(self)
-            }
+        if message == .getAIChatPageContext {
+            delegate?.aiChatContentHandlerDidReceivePageContextRequest(self)
+        }
 
-            switch message {
-            case .openAIChatSettings:
-                delegate?.aiChatContentHandlerDidReceiveOpenSettingsRequest(self)
-            case .closeAIChat:
-                delegate?.aiChatContentHandlerDidReceiveCloseChatRequest(self)
-            case .sendToSyncSettings, .sendToSetupSync:
-                delegate?.aiChatContentHandlerDidReceiveOpenSyncSettingsRequest(self)
-            default:
-                break
-            }
+        switch message {
+        case .openAIChatSettings:
+            delegate?.aiChatContentHandlerDidReceiveOpenSettingsRequest(self)
+        case .closeAIChat:
+            delegate?.aiChatContentHandlerDidReceiveCloseChatRequest(self)
+        case .sendToSyncSettings, .sendToSetupSync:
+            delegate?.aiChatContentHandlerDidReceiveOpenSyncSettingsRequest(self)
+        default:
+            break
         }
     }
 
