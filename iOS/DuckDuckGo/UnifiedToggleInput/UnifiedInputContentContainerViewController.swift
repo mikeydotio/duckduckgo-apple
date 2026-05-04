@@ -270,7 +270,7 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         escapeHatchOpenTabCount = openTabCount
         escapeHatchTapHandler = onTapped
         escapeHatchTabSwitcherTapHandler = onTabSwitcherTapped
-        suggestionTrayManager?.setEscapeHatch(model)
+        suggestionTrayManager?.setEscapeHatch(model, openTabCount: openTabCount)
         aiChatHistoryManager?.setEscapeHatch(
             model,
             openTabCount: openTabCount,
@@ -483,7 +483,7 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         let manager = SuggestionTrayManager(switchBarHandler: switchBarHandler, dependencies: dependencies)
         manager.delegate = self
         let trayEscapeHatch = switchBarHandler.isFireTab ? nil : escapeHatchModel
-        manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatch: trayEscapeHatch)
+        manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatch: trayEscapeHatch, openTabCount: escapeHatchOpenTabCount)
         suggestionTrayManager = manager
     }
 
