@@ -287,7 +287,6 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         let insets = Self.computeEscapeHatchInsets(
             hasEscapeHatch: escapeHatchModel != nil,
             isBottomBar: !isUsingTopBarPosition,
-            chatHasSuggestions: chatHasSuggestions,
             isLandscape: isLandscapeOrientation
         )
         suggestionTrayManager?.setAdditionalTopInset(insets.tray)
@@ -296,7 +295,6 @@ final class UnifiedInputContentContainerViewController: UIViewController {
 
     static func computeEscapeHatchInsets(hasEscapeHatch: Bool,
                                          isBottomBar: Bool,
-                                         chatHasSuggestions: Bool,
                                          isLandscape: Bool) -> (tray: CGFloat, chat: CGFloat) {
         // Tray: bottom bar needs space for dismiss button; top bar gets a small pull-up.
         let suggestionInsetBase: CGFloat = hasEscapeHatch && isBottomBar ? Metrics.escapeHatchBaseTopInset : 0
