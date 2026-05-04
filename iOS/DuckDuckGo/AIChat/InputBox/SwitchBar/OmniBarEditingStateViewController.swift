@@ -197,7 +197,7 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        if aiChatHistoryManager == nil && featureFlagger.isFeatureOn(.aiChatSuggestions) && aiChatSettings.isChatSuggestionsEnabled {
+        if aiChatHistoryManager == nil {
             installChatHistoryList()
         }
 
@@ -303,6 +303,7 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         installSwitchBarVC()
         installSwipeContainer()
         installSuggestionsTray()
+        installChatHistoryList()
         installDaxLogoView()
         installNavigationActionBar()
 
@@ -367,7 +368,11 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
     }
 
     private func installChatHistoryList() {
-        guard let swipeContainerManager else { return }
+        guard featureFlagger.isFeatureOn(.aiChatSuggestions),
+              aiChatSettings.isChatSuggestionsEnabled,
+              let swipeContainerManager else { return }
+        aiChatHistoryManager?.tearDown()
+        aiChatHistoryManager = nil
         let manager = makeAIChatHistoryManager()
         
         manager.delegate = self
@@ -564,20 +569,9 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         navigationActionBarManager?.navigationActionBarViewController?.view.removeFromSuperview()
         navigationActionBarManager?.navigationActionBarViewController?.removeFromParent()
 
-        // The chat history view was just detached when contentContainerView's subviews were
-        // removed; tear down the orphaned manager so installChatHistoryList below sets up a
-        // fresh one in the new swipe container. Without this, the chat history (and its escape
-        // hatch) silently disappear after a layout-change like a portrait↔landscape rotation.
-        aiChatHistoryManager?.tearDown()
-        aiChatHistoryManager = nil
-
         switchBarVC.showsSeparator = !isUsingTopBarPosition
 
         installComponents()
-
-        if featureFlagger.isFeatureOn(.aiChatSuggestions) && aiChatSettings.isChatSuggestionsEnabled {
-            installChatHistoryList()
-        }
 
         if let currentSelection {
             switchBarVC.textEntryViewController.focusTextField()
