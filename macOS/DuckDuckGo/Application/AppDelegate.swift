@@ -240,6 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let aiChatMenuConfiguration: AIChatMenuVisibilityConfigurable
     let aiChatSessionStore: AIChatSessionStoring
     let aiChatPreferences: AIChatPreferences
+    private(set) var globalDuckAIController: GlobalDuckAIController?
     private(set) var aiChatHistoryCleaner: AIChatHistoryCleaning!
 
     /// Shared across the native address-bar omnibar and the New Tab Page omnibar so that model-selection
@@ -831,6 +832,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             windowControllersManager: windowControllersManager,
             featureFlagger: featureFlagger
         )
+        globalDuckAIController = GlobalDuckAIController(preferences: aiChatPreferences)
 
         let subscriptionNavigationCoordinator = SubscriptionNavigationCoordinator(
             tabShower: windowControllersManager,

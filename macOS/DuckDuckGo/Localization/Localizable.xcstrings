@@ -29467,6 +29467,30 @@
         }
       }
     },
+    "duckai.status-bar.open" : {
+      "comment" : "Menu item to open Duck.ai from the menu-bar status item",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Duck.ai"
+          }
+        }
+      }
+    },
+    "duckai.status-bar.tooltip" : {
+      "comment" : "Tooltip on the Duck.ai menu-bar status item",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Duck.ai"
+          }
+        }
+      }
+    },
     "duckai.summarize.context-menu-action" : {
       "comment" : "Context menu option that triggers Duck.ai-assisted summarization of selected text",
       "extractionState" : "extracted_with_value",
