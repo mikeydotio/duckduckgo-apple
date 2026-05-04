@@ -4256,7 +4256,7 @@ extension MainViewController: OmniBarDelegate {
     private func clearEscapeHatch() {
         newTabPageViewController?.setEscapeHatch(nil)
         currentNTPEscapeHatch = nil
-        unifiedToggleInputCoordinator?.setEscapeHatch(nil, openTabCount: 0, onTapped: nil, onTabSwitcherTapped: nil)
+        unifiedToggleInputCoordinator?.clearEscapeHatch()
     }
 
     func useNewOmnibarTransitionBehaviour() -> Bool {

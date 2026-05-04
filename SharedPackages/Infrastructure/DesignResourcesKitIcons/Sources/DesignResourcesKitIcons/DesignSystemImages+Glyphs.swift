@@ -56,6 +56,7 @@ public extension DesignSystemImages {
             public static var fire: DesignSystemImage { .init(resource: .fire12) }
             public static var flag: DesignSystemImage { .init(resource: .flag12) }
             public static var globe: DesignSystemImage { .init(resource: .globe12) }
+            public static var goBackCircleRecolorable: DesignSystemImage { .init(resource: .goBackCircleRecolorable12) }
             public static var history: DesignSystemImage { .init(resource: .history12) }
             public static var images: DesignSystemImage { .init(resource: .images12) }
             public static var info: DesignSystemImage { .init(resource: .info12) }
@@ -194,7 +195,6 @@ public extension DesignSystemImages {
             public static var gift: DesignSystemImage { .init(resource: .gift16) }
             public static var globe: DesignSystemImage { .init(resource: .globe16) }
             public static var globeBlocked: DesignSystemImage { .init(resource: .globeBlocked16) }
-            public static var goBackCircleRecolorable: DesignSystemImage { .init(resource: .goBackCircleRecolorable16) }
             public static var help: DesignSystemImage { .init(resource: .help16) }
             public static var history: DesignSystemImage { .init(resource: .history16) }
             public static var home: DesignSystemImage { .init(resource: .home16) }

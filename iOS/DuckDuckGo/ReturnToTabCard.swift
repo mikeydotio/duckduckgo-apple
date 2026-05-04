@@ -101,7 +101,7 @@ struct ReturnToTabCard: View {
     }
 
     private var backArrowOverlay: some View {
-        Image(uiImage: DesignSystemImages.Glyphs.Size16.goBackCircleRecolorable)
+        Image(uiImage: DesignSystemImages.Glyphs.Size12.goBackCircleRecolorable)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: Metrics.overlayContainerSize, height: Metrics.overlayContainerSize)

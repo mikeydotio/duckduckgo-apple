@@ -260,6 +260,9 @@ final class AIChatHistoryListViewController: UIViewController {
         currentEscapeHatchModel = model
 
         if let model, let onTapped, let onTabSwitcherTapped {
+            // The escape hatch is set once when the NTP appears and the open tab count
+            // can't change without dismissing it, so an unchanged model implies the
+            // openTabCount and closures are also still valid — nothing to rebuild.
             if escapeHatchHostingController != nil, !modelChanged {
                 return
             }
