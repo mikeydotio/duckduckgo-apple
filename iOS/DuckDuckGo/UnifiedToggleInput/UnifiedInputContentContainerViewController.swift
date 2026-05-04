@@ -305,13 +305,12 @@ final class UnifiedInputContentContainerViewController: UIViewController {
 
         // Chat history uses the same base, then applies corrections:
         // - compensation: UITableView vs SwiftUI NTP safe-area difference in bottom bar
-        // - emptyListBoost: vertical centering of hatch when chat list is empty (portrait top bar only)
         // - landscapeAlignment: small pull-up so chat hatch aligns with Search tray in landscape
+        // The hatch sits right below the input on Duck.ai (matches Search side); previously a
+        // 165pt empty-list boost vertically centered it, which overlapped the AI Dax branding.
         let compensation: CGFloat = hasEscapeHatch && isBottomBar ? Metrics.chatHistoryBottomBarCompensation : 0
-        let emptyListBoost: CGFloat = hasEscapeHatch && !chatHasSuggestions && !isBottomBar && !isLandscape
-            ? Metrics.escapeHatchEmptyListBoost : 0
         let landscapeAlignment: CGFloat = hasEscapeHatch && isLandscape ? Metrics.landscapeDuckAiAlignmentPullUp : 0
-        let chat = suggestionInsetBase - compensation + emptyListBoost + landscapeAlignment
+        let chat = suggestionInsetBase - compensation + landscapeAlignment
 
         return (tray: tray, chat: chat)
     }
@@ -764,8 +763,6 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         static let escapeHatchBaseTopInset: CGFloat = 44
         static let chatHistoryBottomBarCompensation: CGFloat = 1
         static let escapeHatchLogoOffset: CGFloat = 120
-        // Vertically centers the escape hatch card when the chat history list is empty (no recent chats)
-        static let escapeHatchEmptyListBoost: CGFloat = 165
         // Pulls the suggestion tray (NTP/Favorites) upward in UTI top bar to tighten gap between UTI input and hatch.
         static let escapeHatchTopBarTrayPullUp: CGFloat = -10
         // Landscape-only small alignment pull-up for chat history hatch so it visually matches Search tray position.

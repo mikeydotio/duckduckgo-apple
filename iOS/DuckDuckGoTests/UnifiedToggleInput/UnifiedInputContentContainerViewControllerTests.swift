@@ -33,7 +33,6 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
     //   escapeHatchBaseTopInset              = 44
     //   escapeHatchTopBarTrayPullUp          = -10
     //   chatHistoryBottomBarCompensation     = 1
-    //   escapeHatchEmptyListBoost            = 165
     //   landscapeDuckAiAlignmentPullUp       = -1
 
     // MARK: - No hatch (natural collapse to zero)
@@ -51,7 +50,7 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
 
     // MARK: - Portrait top bar (isBottomBar: false, isLandscape: false)
 
-    func test_computeEscapeHatchInsets_whenPortraitTopBarAndNoChats_returnsTrayPullUpAndEmptyListBoost() {
+    func test_computeEscapeHatchInsets_whenPortraitTopBarAndNoChats_returnsTrayPullUpAndZeroChat() {
         let insets = UnifiedInputContentContainerViewController.computeEscapeHatchInsets(
             hasEscapeHatch: true,
             isBottomBar: false,
@@ -60,8 +59,8 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
         )
         // Tray: 0 (base, no bottom bar) + (-10) (top bar pull-up) = -10
         XCTAssertEqual(insets.tray, -10)
-        // Chat: 0 (base) - 0 (compensation) + 165 (empty list boost) + 0 (no landscape) = 165
-        XCTAssertEqual(insets.chat, 165)
+        // Chat: 0 (base) - 0 (compensation) + 0 (no landscape) = 0 — hatch sits at natural top
+        XCTAssertEqual(insets.chat, 0)
     }
 
     func test_computeEscapeHatchInsets_whenPortraitTopBarAndWithChats_returnsTrayPullUpAndNoBoost() {
@@ -72,7 +71,7 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
             isLandscape: false
         )
         XCTAssertEqual(insets.tray, -10)
-        // Chat: 0 - 0 + 0 (chats present → no boost) + 0 = 0
+        // Chat: 0 (base) - 0 (compensation) + 0 (no landscape) = 0
         XCTAssertEqual(insets.chat, 0)
     }
 
@@ -87,7 +86,7 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
         )
         // Tray: 44 (dismiss button clearance) + 0 (no pull-up in bottom bar) = 44
         XCTAssertEqual(insets.tray, 44)
-        // Chat: 44 - 1 (compensation) + 0 (no boost in bottom bar) + 0 = 43
+        // Chat: 44 - 1 (compensation) + 0 (no landscape) = 43
         XCTAssertEqual(insets.chat, 43)
     }
 
@@ -98,7 +97,6 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
             chatHasSuggestions: true,
             isLandscape: false
         )
-        // In bottom bar, chatHasSuggestions doesn't change anything (empty list boost is gated on !isBottomBar).
         XCTAssertEqual(insets.tray, 44)
         XCTAssertEqual(insets.chat, 43)
     }
@@ -113,8 +111,7 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
             isLandscape: true
         )
         XCTAssertEqual(insets.tray, -10)
-        // Empty list boost is suppressed in landscape (otherwise hatch ends up under UTI/keyboard).
-        // Chat: 0 - 0 + 0 (landscape suppresses boost) + (-1) (landscape alignment) = -1
+        // Chat: 0 - 0 + (-1) (landscape alignment) = -1
         XCTAssertEqual(insets.chat, -1)
     }
 
@@ -126,7 +123,7 @@ final class UnifiedInputContentContainerViewControllerTests: XCTestCase {
             isLandscape: true
         )
         XCTAssertEqual(insets.tray, -10)
-        // Chat: 0 - 0 + 0 + (-1) = -1 (same as no chats, since empty list boost is already 0)
+        // Chat: 0 - 0 + (-1) (landscape alignment) = -1 (same as no chats)
         XCTAssertEqual(insets.chat, -1)
     }
 }
