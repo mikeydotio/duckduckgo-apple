@@ -30,6 +30,16 @@ protocol AIChatOmnibarControllerDelegate: AnyObject {
     func aiChatOmnibarControllerDidSubmit(_ controller: AIChatOmnibarController)
     func aiChatOmnibarController(_ controller: AIChatOmnibarController, didRequestNavigationToURL url: URL)
     func aiChatOmnibarController(_ controller: AIChatOmnibarController, didSelectSuggestion suggestion: AIChatSuggestion)
+    /// Called from `submit()` when the controller is in **global mode** (no tab collection model).
+    /// The host (e.g. the floating omnibar) is expected to focus or create a main browser window
+    /// and route the prompt into a new Duck.ai tab. Address-bar mode never invokes this.
+    func aiChatOmnibarController(_ controller: AIChatOmnibarController, requestsGlobalSubmissionOf prompt: AIChatNativePrompt)
+}
+
+extension AIChatOmnibarControllerDelegate {
+    func aiChatOmnibarController(_ controller: AIChatOmnibarController, requestsGlobalSubmissionOf prompt: AIChatNativePrompt) {
+        // Default no-op; address-bar conformers don't use the global submission path.
+    }
 }
 
 /// Duck.ai omnibar tool selection. Preserved across tab switches via `AddressBarSharedTextState`.
@@ -58,7 +68,11 @@ final class AIChatOmnibarController {
     weak var delegate: AIChatOmnibarControllerDelegate?
     private let aiChatTabOpener: AIChatTabOpening
     private let promptHandler: AIChatPromptHandler
-    private let tabCollectionViewModel: TabCollectionViewModel
+    /// Address-bar mode passes the active window's tab collection so the omnibar persists draft text,
+    /// tool mode, and image attachments per tab via `AddressBarSharedTextState`. Global mode (the
+    /// menu-bar / shortcut entry point) passes `nil` — there is no per-tab state, and `submit()`
+    /// hands off via `aiChatOmnibarController(_:requestsGlobalSubmissionOf:)` instead.
+    private let tabCollectionViewModel: TabCollectionViewModel?
     private let featureFlagger: FeatureFlagger
     private let searchPreferencesPersistor: SearchPreferencesPersistor
     private let suggestionsReader: AIChatSuggestionsReading?
@@ -166,7 +180,7 @@ final class AIChatOmnibarController {
 
     init(
         aiChatTabOpener: AIChatTabOpening,
-        tabCollectionViewModel: TabCollectionViewModel,
+        tabCollectionViewModel: TabCollectionViewModel? = nil,
         promptHandler: AIChatPromptHandler = .shared,
         featureFlagger: FeatureFlagger = NSApp.delegateTyped.featureFlagger,
         searchPreferencesPersistor: SearchPreferencesPersistor = SearchPreferencesUserDefaultsPersistor(),
@@ -196,7 +210,9 @@ final class AIChatOmnibarController {
     /// Opens a new voice-chat tab from the AI chat omnibar. Focuses an existing voice session
     /// in the same window if one is active; otherwise opens a new selected Duck.ai tab and hands
     /// off `mode: voice-mode` via the prompt handler.
+    /// No-op in global mode — voice routes into a specific window's tab collection.
     func openNewVoiceChat() {
+        guard let tabCollectionViewModel else { return }
         aiChatTabOpener.openVoiceSession(
             inSourceCollection: tabCollectionViewModel,
             behavior: .newTab(selected: true)
@@ -587,6 +603,7 @@ final class AIChatOmnibarController {
     // MARK: - Private Methods
 
     private func subscribeToSelectedTabViewModel() {
+        guard let tabCollectionViewModel else { return }
         tabCollectionViewModel.$selectedTabViewModel
             .sink { [weak self] tabViewModel in
                 guard let self else { return }
@@ -686,7 +703,7 @@ final class AIChatOmnibarController {
                 behavior: .currentTab
             )
             // Re-set prompt after tab opener to include images, model selection, and mode (tab opener overwrites with a plain query)
-            let prompt = AIChatNativePrompt.queryPrompt(trimmedText, autoSubmit: true, toolChoice: toolChoice, images: images, modelId: modelId, mode: mode, reasoningEffort: reasoningEffort)
+            let prompt = Self.makeNativePrompt(trimmedText: trimmedText, images: images, modelId: modelId, mode: mode, toolChoice: toolChoice, reasoningEffort: reasoningEffort)
             promptHandler.setData(prompt)
 
             self.activeToolMode = nil
@@ -695,6 +712,28 @@ final class AIChatOmnibarController {
         }
 
         currentText = ""
+    }
+
+    /// Builds the `AIChatNativePrompt` payload sent over the JS bridge from a trimmed prompt
+    /// string plus the per-submission state captured before any async hop. Used by both the
+    /// address-bar submit path (M4) and the global-omnibar handoff (M6+).
+    static func makeNativePrompt(
+        trimmedText: String,
+        images: [AIChatNativePrompt.NativePromptImage]?,
+        modelId: String?,
+        mode: String?,
+        toolChoice: [String]?,
+        reasoningEffort: AIChatReasoningEffort?
+    ) -> AIChatNativePrompt {
+        AIChatNativePrompt.queryPrompt(
+            trimmedText,
+            autoSubmit: true,
+            toolChoice: toolChoice,
+            images: images,
+            modelId: modelId,
+            mode: mode,
+            reasoningEffort: reasoningEffort
+        )
     }
 
     /// Converts image attachments to base64-encoded `NativePromptImage` values for the JS bridge.
