@@ -976,7 +976,8 @@ class DownloadsUITests: UITestCase {
         window.click()
         let addressBar = app.addressBar
         XCTAssertTrue(addressBar.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-        addressBar.pasteURL(pageURL, pressingEnter: true)
+        addressBar.click()
+        app.pasteURL(pageURL, pressingEnter: true)
 
         let webView = window.webViews[pageTitle]
         XCTAssertTrue(webView.waitForExistence(timeout: UITests.Timeouts.localTestServer),
