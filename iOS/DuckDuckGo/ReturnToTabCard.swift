@@ -31,16 +31,16 @@ struct ReturnToTabCard: View {
             HStack(spacing: Metrics.innerSpacing) {
                 iconView
                 VStack(alignment: .leading, spacing: Metrics.titleToSubtitleSpacing) {
+                    Text(UserText.escapeHatchReturnToLabel)
+                        .daxFootnoteRegular()
+                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                        .lineLimit(1)
+                        .frame(height: Metrics.textRowHeight, alignment: .center)
                     Text(model.title)
                         .daxSubheadSemibold()
                         .foregroundColor(Color(designSystemColor: .textPrimary))
                         .lineLimit(1)
-                    if !model.subtitle.isEmpty {
-                        Text(model.subtitle)
-                            .daxSubheadRegular()
-                            .foregroundColor(Color(designSystemColor: .textSecondary))
-                            .lineLimit(1)
-                    }
+                        .frame(height: Metrics.textRowHeight, alignment: .center)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -59,10 +59,7 @@ struct ReturnToTabCard: View {
     }
 
     private var accessibilityLabelText: String {
-        if model.subtitle.isEmpty {
-            return String(format: UserText.escapeHatchReturnToAccessibilityLabelFormat, model.title)
-        }
-        return String(format: UserText.escapeHatchReturnToWithSubtitleAccessibilityLabelFormat, model.title, model.subtitle)
+        String(format: UserText.escapeHatchReturnToAccessibilityLabelFormat, model.title)
     }
 
     /// Favicon from .tabs cache, fire tab icon, Duck.ai logo, or placeholder depending on tab type.
@@ -100,11 +97,23 @@ struct ReturnToTabCard: View {
         }
     }
 
+    /// 1pt translucent ring at `decoration-primary` (rebranded palette = 9% black light /
+    /// 6% white dark) — matches the designer's "inner stroke set to t-decoration-primary"
+    /// spec. Reads as a subtle ring on the favicon and stacks gently with the pill's
+    /// translucency on the pill area, identical to Figma's behaviour.
+    /// Uses the rebranded accessor directly because the default-palette `decorationPrimary`
+    /// is 30% opacity (~3× darker); the rebranded value will become the global default
+    /// once the rebrand rolls out.
     private var backArrowOverlay: some View {
         Image(uiImage: DesignSystemImages.Glyphs.Size12.goBackCircleRecolorable)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: Metrics.overlayContainerSize, height: Metrics.overlayContainerSize)
+            .overlay(
+                Circle()
+                    .strokeBorder(Color(singleUseColor: .rebranding(.decorationPrimary)),
+                                  lineWidth: Metrics.overlayStrokeWidth)
+            )
     }
 }
 
@@ -129,9 +138,11 @@ private enum Metrics {
     static let horizontalPadding: CGFloat = 16
     static let innerSpacing: CGFloat = 8
     static let titleToSubtitleSpacing: CGFloat = 0
+    static let textRowHeight: CGFloat = 20
     static let iconSize: CGFloat = 24
     static let iconCornerRadius: CGFloat = 6
     static let overlayContainerSize: CGFloat = 12
+    static let overlayStrokeWidth: CGFloat = 1
     static let overlayOffset: CGFloat = 3
 }
 
