@@ -98,7 +98,10 @@
                                 "description": "Human-readable error description for bookmarks import failure",
                                 "examples": ["noData", "decryptionError", "dataCorrupted", "keychainError", "other"]
                             },
-                            "underlying_domain": { "type": "string", "description": "Underlying error domain for bookmarks import failure" },
+                            "underlying_domain": {
+                                "type": "string",
+                                "description": "Underlying error domain for bookmarks import failure"
+                            },
                             "underlying_code": { "type": "integer", "description": "Underlying error code for bookmarks import failure" }
                         }
                     },
@@ -113,7 +116,10 @@
                                 "description": "Human-readable error description for passwords import failure",
                                 "examples": ["noData", "decryptionError", "dataCorrupted", "keychainError", "other"]
                             },
-                            "underlying_domain": { "type": "string", "description": "Underlying error domain for passwords import failure" },
+                            "underlying_domain": {
+                                "type": "string",
+                                "description": "Underlying error domain for passwords import failure"
+                            },
                             "underlying_code": { "type": "integer", "description": "Underlying error code for passwords import failure" }
                         }
                     },
@@ -128,7 +134,10 @@
                                 "description": "Human-readable error description for creditCards import failure",
                                 "examples": ["noData", "decryptionError", "dataCorrupted", "keychainError", "other"]
                             },
-                            "underlying_domain": { "type": "string", "description": "Underlying error domain for creditCards import failure" },
+                            "underlying_domain": {
+                                "type": "string",
+                                "description": "Underlying error domain for creditCards import failure"
+                            },
                             "underlying_code": { "type": "integer", "description": "Underlying error code for creditCards import failure" }
                         }
                     }

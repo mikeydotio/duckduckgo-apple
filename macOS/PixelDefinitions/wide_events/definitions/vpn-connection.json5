@@ -67,7 +67,10 @@
                                 "description": "Human-readable error description for browser start step failure",
                                 "examples": ["simulateControllerFailureError", "loadFromPreferencesFailed"]
                             },
-                            "underlying_domain": { "type": "string", "description": "Underlying error domain for browser start step failure" },
+                            "underlying_domain": {
+                                "type": "string",
+                                "description": "Underlying error domain for browser start step failure"
+                            },
                             "underlying_code": { "type": "integer", "description": "Underlying error code for browser start step failure" }
                         }
                     },
@@ -82,8 +85,14 @@
                                 "description": "Human-readable error description for controller start step failure",
                                 "examples": ["simulateControllerFailureError", "loadFromPreferencesFailed"]
                             },
-                            "underlying_domain": { "type": "string", "description": "Underlying error domain for controller start step failure" },
-                            "underlying_code": { "type": "integer", "description": "Underlying error code for controller start step failure" }
+                            "underlying_domain": {
+                                "type": "string",
+                                "description": "Underlying error domain for controller start step failure"
+                            },
+                            "underlying_code": {
+                                "type": "integer",
+                                "description": "Underlying error code for controller start step failure"
+                            }
                         }
                     },
                     "oauth_error": {
@@ -112,7 +121,10 @@
                                 "description": "Human-readable error description for tunnel start step failure",
                                 "examples": ["simulateControllerFailureError", "loadFromPreferencesFailed"]
                             },
-                            "underlying_domain": { "type": "string", "description": "Underlying error domain for tunnel start step failure" },
+                            "underlying_domain": {
+                                "type": "string",
+                                "description": "Underlying error domain for tunnel start step failure"
+                            },
                             "underlying_code": { "type": "integer", "description": "Underlying error code for tunnel start step failure" }
                         }
                     }

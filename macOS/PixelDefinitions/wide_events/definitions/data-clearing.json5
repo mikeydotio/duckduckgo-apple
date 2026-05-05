@@ -56,7 +56,11 @@
                         "type": "integer",
                         "description": "Duration from start of clearing attempt to end state (in ms). Rounded to 10ms precision, capped at 10000ms (10 seconds)."
                     },
-                    "clear_tabs_status": { "type": "string", "description": "Final status of clear_tabs action", "enum": ["SUCCESS", "FAILURE"] },
+                    "clear_tabs_status": {
+                        "type": "string",
+                        "description": "Final status of clear_tabs action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
                     "clear_tabs_latency_ms": { "type": "integer", "description": "Latency for clear_tabs action (in ms)" },
                     "clear_tabs_error": {
                         "type": "object",
@@ -195,7 +199,11 @@
                             }
                         }
                     },
-                    "clear_all_history_status": { "type": "string", "description": "Final status of clear_all_history action", "enum": ["SUCCESS", "FAILURE"] },
+                    "clear_all_history_status": {
+                        "type": "string",
+                        "description": "Final status of clear_all_history action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
                     "clear_all_history_latency_ms": { "type": "integer", "description": "Latency for clear_all_history action (in ms)" },
                     "clear_all_history_error": {
                         "type": "object",
@@ -208,8 +216,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_aiChat_history_status": { "type": "string", "description": "Final status of clear_aiChat_history action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_aiChat_history_latency_ms": { "type": "integer", "description": "Latency for clear_aiChat_history action (in ms)" },
+                    "clear_aiChat_history_status": {
+                        "type": "string",
+                        "description": "Final status of clear_aiChat_history action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_aiChat_history_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_aiChat_history action (in ms)"
+                    },
                     "clear_aiChat_history_error": {
                         "type": "object",
                         "description": "Error details for clear_aiChat_history action",
@@ -241,8 +256,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_favicon_cache_status": { "type": "string", "description": "Final status of clear_favicon_cache action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_favicon_cache_latency_ms": { "type": "integer", "description": "Latency for clear_favicon_cache action (in ms)" },
+                    "clear_favicon_cache_status": {
+                        "type": "string",
+                        "description": "Final status of clear_favicon_cache action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_favicon_cache_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_favicon_cache action (in ms)"
+                    },
                     "clear_favicon_cache_error": {
                         "type": "object",
                         "description": "Error details for clear_favicon_cache action",
@@ -254,8 +276,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "cancel_all_downloads_status": { "type": "string", "description": "Final status of cancel_all_downloads action", "enum": ["SUCCESS", "FAILURE"] },
-                    "cancel_all_downloads_latency_ms": { "type": "integer", "description": "Latency for cancel_all_downloads action (in ms)" },
+                    "cancel_all_downloads_status": {
+                        "type": "string",
+                        "description": "Final status of cancel_all_downloads action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "cancel_all_downloads_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for cancel_all_downloads action (in ms)"
+                    },
                     "cancel_all_downloads_error": {
                         "type": "object",
                         "description": "Error details for cancel_all_downloads action",
@@ -267,8 +296,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_bookmark_database_status": { "type": "string", "description": "Final status of clear_bookmark_database action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_bookmark_database_latency_ms": { "type": "integer", "description": "Latency for clear_bookmark_database action (in ms)" },
+                    "clear_bookmark_database_status": {
+                        "type": "string",
+                        "description": "Final status of clear_bookmark_database action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_bookmark_database_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_bookmark_database action (in ms)"
+                    },
                     "clear_bookmark_database_error": {
                         "type": "object",
                         "description": "Error details for clear_bookmark_database action",
@@ -280,7 +316,11 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "forget_text_zoom_status": { "type": "string", "description": "Final status of forget_text_zoom action", "enum": ["SUCCESS", "FAILURE"] },
+                    "forget_text_zoom_status": {
+                        "type": "string",
+                        "description": "Final status of forget_text_zoom action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
                     "forget_text_zoom_latency_ms": { "type": "integer", "description": "Latency for forget_text_zoom action (in ms)" },
                     "forget_text_zoom_error": {
                         "type": "object",
@@ -293,8 +333,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_privacy_stats_status": { "type": "string", "description": "Final status of clear_privacy_stats action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_privacy_stats_latency_ms": { "type": "integer", "description": "Latency for clear_privacy_stats action (in ms)" },
+                    "clear_privacy_stats_status": {
+                        "type": "string",
+                        "description": "Final status of clear_privacy_stats action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_privacy_stats_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_privacy_stats action (in ms)"
+                    },
                     "clear_privacy_stats_error": {
                         "type": "object",
                         "description": "Error details for clear_privacy_stats action",
@@ -306,7 +353,11 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_permissions_status": { "type": "string", "description": "Final status of clear_permissions action", "enum": ["SUCCESS", "FAILURE"] },
+                    "clear_permissions_status": {
+                        "type": "string",
+                        "description": "Final status of clear_permissions action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
                     "clear_permissions_latency_ms": { "type": "integer", "description": "Latency for clear_permissions action (in ms)" },
                     "clear_permissions_error": {
                         "type": "object",
@@ -319,8 +370,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_visited_links_status": { "type": "string", "description": "Final status of clear_visited_links action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_visited_links_latency_ms": { "type": "integer", "description": "Latency for clear_visited_links action (in ms)" },
+                    "clear_visited_links_status": {
+                        "type": "string",
+                        "description": "Final status of clear_visited_links action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_visited_links_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_visited_links action (in ms)"
+                    },
                     "clear_visited_links_error": {
                         "type": "object",
                         "description": "Error details for clear_visited_links action",
@@ -332,8 +390,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_recently_closed_status": { "type": "string", "description": "Final status of clear_recently_closed action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_recently_closed_latency_ms": { "type": "integer", "description": "Latency for clear_recently_closed action (in ms)" },
+                    "clear_recently_closed_status": {
+                        "type": "string",
+                        "description": "Final status of clear_recently_closed action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_recently_closed_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_recently_closed action (in ms)"
+                    },
                     "clear_recently_closed_error": {
                         "type": "object",
                         "description": "Error details for clear_recently_closed action",
@@ -345,8 +410,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_last_session_state_status": { "type": "string", "description": "Final status of clear_last_session_state action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_last_session_state_latency_ms": { "type": "integer", "description": "Latency for clear_last_session_state action (in ms)" },
+                    "clear_last_session_state_status": {
+                        "type": "string",
+                        "description": "Final status of clear_last_session_state action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_last_session_state_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_last_session_state action (in ms)"
+                    },
                     "clear_last_session_state_error": {
                         "type": "object",
                         "description": "Error details for clear_last_session_state action",
@@ -378,8 +450,15 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_autoconsent_stats_status": { "type": "string", "description": "Final status of clear_autoconsent_stats action", "enum": ["SUCCESS", "FAILURE"] },
-                    "clear_autoconsent_stats_latency_ms": { "type": "integer", "description": "Latency for clear_autoconsent_stats action (in ms)" },
+                    "clear_autoconsent_stats_status": {
+                        "type": "string",
+                        "description": "Final status of clear_autoconsent_stats action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
+                    "clear_autoconsent_stats_latency_ms": {
+                        "type": "integer",
+                        "description": "Latency for clear_autoconsent_stats action (in ms)"
+                    },
                     "clear_autoconsent_stats_error": {
                         "type": "object",
                         "description": "Error details for clear_autoconsent_stats action",
@@ -391,7 +470,11 @@
                             "underlying_code": { "type": "integer", "description": "Underlying error code" }
                         }
                     },
-                    "clear_visits_status": { "type": "string", "description": "Final status of clear_visits action", "enum": ["SUCCESS", "FAILURE"] },
+                    "clear_visits_status": {
+                        "type": "string",
+                        "description": "Final status of clear_visits action",
+                        "enum": ["SUCCESS", "FAILURE"]
+                    },
                     "clear_visits_latency_ms": { "type": "integer", "description": "Latency for clear_visits action (in ms)" },
                     "clear_visits_error": {
                         "type": "object",
