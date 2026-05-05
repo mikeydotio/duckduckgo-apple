@@ -28,6 +28,7 @@ final class GlobalDuckAIController {
 
     private let preferences: AIChatPreferences
     private let statusBar = DuckAIStatusBarController()
+    private let floatingOmnibar = DuckAIFloatingOmnibarWindowController()
     private var cancellables = Set<AnyCancellable>()
 
     init(preferences: AIChatPreferences) {
@@ -55,6 +56,6 @@ final class GlobalDuckAIController {
     }
 
     private func handleOpenRequested() {
-        // Floating omnibar lands in M3. For now this is a placeholder so the click path is wired.
+        floatingOmnibar.toggle()
     }
 }

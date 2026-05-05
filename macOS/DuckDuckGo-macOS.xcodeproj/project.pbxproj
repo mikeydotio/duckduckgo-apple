@@ -429,6 +429,10 @@
 		D0DA01D0A1FFFFFFFFFFFF04 /* DuckAIStatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA01D0A1FFFFFFFFFFFF01 /* DuckAIStatusBarController.swift */; };
 		D0DA01D0A1FFFFFFFFFFFF05 /* GlobalDuckAIController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA01D0A1FFFFFFFFFFFF02 /* GlobalDuckAIController.swift */; };
 		D0DA01D0A1FFFFFFFFFFFF06 /* GlobalDuckAIController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA01D0A1FFFFFFFFFFFF02 /* GlobalDuckAIController.swift */; };
+		D0DA01D0A1FFFFFFFFFFFF09 /* DuckAIFloatingOmnibarWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA01D0A1FFFFFFFFFFFF07 /* DuckAIFloatingOmnibarWindow.swift */; };
+		D0DA01D0A1FFFFFFFFFFFF0A /* DuckAIFloatingOmnibarWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA01D0A1FFFFFFFFFFFF07 /* DuckAIFloatingOmnibarWindow.swift */; };
+		D0DA01D0A1FFFFFFFFFFFF0B /* DuckAIFloatingOmnibarWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA01D0A1FFFFFFFFFFFF08 /* DuckAIFloatingOmnibarWindowController.swift */; };
+		D0DA01D0A1FFFFFFFFFFFF0C /* DuckAIFloatingOmnibarWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA01D0A1FFFFFFFFFFFF08 /* DuckAIFloatingOmnibarWindowController.swift */; };
 		31C26A0A2CBE9D2700FFF462 /* PreferencesAIChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C26A092CBE9D2200FFF462 /* PreferencesAIChat.swift */; };
 		31C26A0B2CBE9D2700FFF462 /* PreferencesAIChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C26A092CBE9D2200FFF462 /* PreferencesAIChat.swift */; };
 		31C26A0D2CBE9DFE00FFF462 /* AIChatPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C26A0C2CBE9DFA00FFF462 /* AIChatPreferences.swift */; };
@@ -4921,6 +4925,8 @@
 		31BFDB782ECA5FCD00ADFABD /* AIChatOmnibarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatOmnibarController.swift; sourceTree = "<group>"; };
 		D0DA01D0A1FFFFFFFFFFFF01 /* DuckAIStatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAIStatusBarController.swift; sourceTree = "<group>"; };
 		D0DA01D0A1FFFFFFFFFFFF02 /* GlobalDuckAIController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalDuckAIController.swift; sourceTree = "<group>"; };
+		D0DA01D0A1FFFFFFFFFFFF07 /* DuckAIFloatingOmnibarWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAIFloatingOmnibarWindow.swift; sourceTree = "<group>"; };
+		D0DA01D0A1FFFFFFFFFFFF08 /* DuckAIFloatingOmnibarWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAIFloatingOmnibarWindowController.swift; sourceTree = "<group>"; };
 		31C26A092CBE9D2200FFF462 /* PreferencesAIChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesAIChat.swift; sourceTree = "<group>"; };
 		31C26A0C2CBE9DFA00FFF462 /* AIChatPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatPreferences.swift; sourceTree = "<group>"; };
 		31C3CE0128EDC1E70002C24A /* CustomRoundedCornersShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRoundedCornersShape.swift; sourceTree = "<group>"; };
@@ -8424,8 +8430,10 @@
 		D0DA01D0A1FFFFFFFFFFFF00 /* GlobalEntryPoint */ = {
 			isa = PBXGroup;
 			children = (
-				D0DA01D0A1FFFFFFFFFFFF01 /* DuckAIStatusBarController.swift */,
 				D0DA01D0A1FFFFFFFFFFFF02 /* GlobalDuckAIController.swift */,
+				D0DA01D0A1FFFFFFFFFFFF01 /* DuckAIStatusBarController.swift */,
+				D0DA01D0A1FFFFFFFFFFFF07 /* DuckAIFloatingOmnibarWindow.swift */,
+				D0DA01D0A1FFFFFFFFFFFF08 /* DuckAIFloatingOmnibarWindowController.swift */,
 			);
 			path = GlobalEntryPoint;
 			sourceTree = "<group>";
@@ -15236,6 +15244,8 @@
 				3713B9E763D3429881172AA2 /* AIChatFloatingWindowController.swift in Sources */,
 				D0DA01D0A1FFFFFFFFFFFF03 /* DuckAIStatusBarController.swift in Sources */,
 				D0DA01D0A1FFFFFFFFFFFF05 /* GlobalDuckAIController.swift in Sources */,
+				D0DA01D0A1FFFFFFFFFFFF09 /* DuckAIFloatingOmnibarWindow.swift in Sources */,
+				D0DA01D0A1FFFFFFFFFFFF0B /* DuckAIFloatingOmnibarWindowController.swift in Sources */,
 				3706FB72293F65D500E42796 /* RecentlyClosedCoordinator.swift in Sources */,
 				ED1B618D2ED8B256008E0935 /* PasswordEntryRetryPromptView.swift in Sources */,
 				3706FB74293F65D500E42796 /* FaviconHostReference.swift in Sources */,
@@ -17326,6 +17336,8 @@
 				541B2C4D448B4C109EF580A3 /* AIChatFloatingWindowController.swift in Sources */,
 				D0DA01D0A1FFFFFFFFFFFF04 /* DuckAIStatusBarController.swift in Sources */,
 				D0DA01D0A1FFFFFFFFFFFF06 /* GlobalDuckAIController.swift in Sources */,
+				D0DA01D0A1FFFFFFFFFFFF0A /* DuckAIFloatingOmnibarWindow.swift in Sources */,
+				D0DA01D0A1FFFFFFFFFFFF0C /* DuckAIFloatingOmnibarWindowController.swift in Sources */,
 				B59AB6452EFB179F00C2F87A /* SearchField.swift in Sources */,
 				EEC4A66D2B2C894F00F7C0AA /* VPNLocationPreferenceItemModel.swift in Sources */,
 				3776582F27F82E62009A6B35 /* AutofillPreferences.swift in Sources */,
