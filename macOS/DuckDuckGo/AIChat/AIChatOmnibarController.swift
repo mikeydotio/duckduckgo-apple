@@ -114,10 +114,17 @@ final class AIChatOmnibarController {
     /// View model for managing chat suggestions. Always initialized, but only populated when feature flag is enabled.
     let suggestionsViewModel: AIChatSuggestionsViewModel
 
+    /// When set, suggestions are forcibly disabled even if the feature flag and the autocomplete
+    /// setting say otherwise. Used by the global Duck.ai floating omnibar to keep the panel a
+    /// pure input surface (no recent-chats list, no panel-resize on text changes).
+    var suggestionsDisabledOverride: Bool = false
+
     /// Whether the suggestions feature is enabled.
     /// Requires both the feature flag and the autocomplete setting to be on.
     var isSuggestionsEnabled: Bool {
-        featureFlagger.isFeatureOn(.aiChatSuggestions) && searchPreferencesPersistor.showAutocompleteSuggestions
+        !suggestionsDisabledOverride
+            && featureFlagger.isFeatureOn(.aiChatSuggestions)
+            && searchPreferencesPersistor.showAutocompleteSuggestions
     }
 
     /// Whether the omnibar tools (customize, search toggle, image upload) are enabled.
@@ -686,6 +693,8 @@ final class AIChatOmnibarController {
         let toolChoice = effectiveToolChoice
         let reasoningEffort = effectiveReasoningEffort
 
+        let isGlobalMode = (tabCollectionViewModel == nil)
+
         Task { @MainActor in
             // Wait for any pending image resizes to complete
             await waitForAttachmentsReady?()
@@ -696,6 +705,15 @@ final class AIChatOmnibarController {
 
             if !attachments.isEmpty {
                 PixelKit.fire(AIChatPixel.aiChatAddressBarSubmitWithImage(imageCount: attachments.count), frequency: .dailyAndCount, includeAppVersionParameter: true)
+            }
+
+            if isGlobalMode {
+                let prompt = Self.makeNativePrompt(trimmedText: trimmedText, images: images, modelId: modelId, mode: mode, toolChoice: toolChoice, reasoningEffort: reasoningEffort)
+                self.activeToolMode = nil
+                onAttachmentsClearRequested?()
+                delegate?.aiChatOmnibarController(self, requestsGlobalSubmissionOf: prompt)
+                delegate?.aiChatOmnibarControllerDidSubmit(self)
+                return
             }
 
             aiChatTabOpener.openAIChatTab(

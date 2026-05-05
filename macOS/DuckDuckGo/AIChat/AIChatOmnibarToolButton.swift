@@ -197,6 +197,10 @@ final class AIChatOmnibarToolButton: NSView {
     }
 
     var onTabPressed: (() -> Void)?
+    /// When `true`, suppresses the keyboard-focus accent ring drawn in `draw(_:)`. Set this for
+    /// hosts that don't tab-cycle through the omnibar's buttons (e.g. the global Duck.ai floating
+    /// panel) so a click doesn't paint a blue outline around the button.
+    var suppressesFocusRing: Bool = false
 
     override var acceptsFirstResponder: Bool { true }
     override var canBecomeKeyView: Bool { true }
@@ -384,7 +388,7 @@ final class AIChatOmnibarToolButton: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        guard window?.firstResponder == self else { return }
+        guard !suppressesFocusRing, window?.firstResponder == self else { return }
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
         context.saveGState()

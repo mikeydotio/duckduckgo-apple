@@ -113,6 +113,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     let themeManager: ThemeManaging
     let omnibarController: AIChatOmnibarController
+    /// When true, the container skips the address-bar-specific top clip mask and external shadow
+    /// view. Set this for hosts that draw their own background/shadow (e.g. the global Duck.ai
+    /// floating panel) so the top edge can show its rounded corners and the host's window-level
+    /// shadow can extend uniformly on all four sides.
+    var disablesAddressBarChrome: Bool = false
     var themeUpdateCancellable: AnyCancellable?
     private var appearanceCancellable: AnyCancellable?
     private var textChangeCancellable: AnyCancellable?
@@ -529,6 +534,10 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     private func applyTopClipMask() {
         view.wantsLayer = true
+        guard !disablesAddressBarChrome else {
+            view.layer?.mask = nil
+            return
+        }
         guard view.bounds.height > 10 else {
             view.layer?.mask = nil
             return
@@ -899,6 +908,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     private func addShadowToWindow() {
+        guard !disablesAddressBarChrome else { return }
         guard shadowView.superview == nil else { return }
         view.window?.contentView?.addSubview(shadowView)
         layoutShadowView()

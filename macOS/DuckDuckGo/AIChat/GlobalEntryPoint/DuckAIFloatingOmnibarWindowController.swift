@@ -16,16 +16,36 @@
 //  limitations under the License.
 //
 
+import AIChat
 import AppKit
 
-/// Owns the global Duck.ai floating omnibar window. M3 hosts a placeholder view; M5
-/// swaps it for the real `AIChatOmnibarContainerViewController`.
+/// Owns the global Duck.ai floating omnibar window. Hosts the existing
+/// `AIChatOmnibarContainerViewController` (background, tools, attachments, suggestions, model
+/// picker) overlaid by `AIChatOmnibarTextContainerViewController` (text input) — same two-VC
+/// pattern as the address-bar Duck.ai mode, but with no tab collection backing it.
 @MainActor
 final class DuckAIFloatingOmnibarWindowController: NSObject, NSWindowDelegate {
 
     private enum Constants {
         static let width: CGFloat = 580
-        static let placeholderHeight: CGFloat = 80
+        /// Match the address-bar omnibar's collapsed height (`MainView.Constants.aiChatOmnibarContainerMinHeight`).
+        static let omnibarContainerMinHeight: CGFloat = 60
+        /// In the address bar, the text container view extends UP into the navigation bar above the
+        /// omnibar container, gaining ~52 pt of vertical space for the text input. The floating panel
+        /// has no navigation bar to extend into, so we explicitly add the same extra height — without
+        /// it, the text scrollView gets squished to ~20 pt and sits on top of the tools row.
+        static let inputAreaExtraHeight: CGFloat = 52
+        /// Initial panel height. Pre-sizing the window at its final collapsed height (omnibar + input
+        /// area extra) avoids a post-show resize from 60 → 112 pt, which on the very first show was
+        /// causing `HoverTrackingArea`s under the text container to evaluate against stale bounds and
+        /// miss the cursor's already-inside position.
+        static let baseContainerHeight: CGFloat = omnibarContainerMinHeight + inputAreaExtraHeight
+        /// Inset values mirror the address-bar `aiChatOmnibarTextContainerView` constraints in `MainView`.
+        /// `textTopInset` is a touch larger than the address-bar's 5 pt because we own the chrome here —
+        /// a bit of headroom keeps the input's first line from kissing the panel's top edge.
+        static let textTopInset: CGFloat = 8
+        static let textLeadingInset: CGFloat = 10
+        static let textTrailingInset: CGFloat = 78
         static let cornerRadius: CGFloat = 16
         /// Fraction of the visible screen height where the panel's top edge anchors.
         /// 1/3 = "centered ~third from the top", matching ChatGPT/Claude desktop apps.
@@ -33,12 +53,29 @@ final class DuckAIFloatingOmnibarWindowController: NSObject, NSWindowDelegate {
     }
 
     private var window: DuckAIFloatingOmnibarWindow?
+    private var omnibarController: AIChatOmnibarController?
+    private var containerVC: AIChatOmnibarContainerViewController?
+    private var textVC: AIChatOmnibarTextContainerViewController?
+    /// Wraps the text VC's view to enable click-through in the bottom strip where the omnibar
+    /// container's tool buttons live. Without this wrapper the text VC's `MouseOverView` swallows
+    /// every click in its full-frame area, blocking the tool buttons / model picker / submit.
+    private var textPassthroughView: PassthroughView?
+    /// The app that was foreground when `show()` was called. Captured so we can re-activate it on
+    /// close instead of letting AppKit promote a DDG browser window to key — important because the
+    /// browser window can live on a different desktop space, and AppKit's auto-promotion would
+    /// force-switch spaces. M6+ will skip this re-activation for the submit path.
+    private var previouslyActiveApp: NSRunningApplication?
     /// When the panel is closed because it lost key status (e.g. status-bar click), AppKit
     /// dispatches `windowDidResignKey` *before* the click action that triggered it lands on
     /// `toggle()`. Without this debounce, the toggle would see `isVisible == false` and re-open
     /// the panel — flipping a "close" gesture into a "leave open" no-op.
     private var lastResignKeyCloseAt: Date?
     private static let resignKeyToggleSuppression: TimeInterval = 0.25
+    /// Global event monitor active while the panel is visible. Catches mouse-downs that land in
+    /// any other app's window so we close even when AppKit's `windowDidResignKey` doesn't fire
+    /// (it can be flaky if the click lands on the Finder desktop or certain non-windowed surfaces).
+    /// Mouse-event global monitors do NOT require Accessibility permission — only keyboard ones do.
+    private var outsideClickMonitor: Any?
 
     var isVisible: Bool { window?.isVisible == true }
 
@@ -56,16 +93,83 @@ final class DuckAIFloatingOmnibarWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        let window = window ?? makeWindow()
-        self.window = window
-
+        let window = ensureWindow()
         positionWindow(window)
-        NSApp.activate(ignoringOtherApps: true)
-        window.makeKeyAndOrderFront(nil)
+        // Remember the foreground app so we can hand focus back on close. Skip if DDG was already
+        // foreground — re-activating ourselves on close would be a no-op.
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        let myBundleID = Bundle.main.bundleIdentifier
+        previouslyActiveApp = (frontmost?.bundleIdentifier != myBundleID) ? frontmost : nil
+
+        // We deliberately do NOT activate DDG here. The panel is a `.nonactivatingPanel` at level
+        // `.popUpMenu`, so it can become the system's key window and accept input without DDG ever
+        // becoming the foreground app — the pattern Claude/ChatGPT desktop apps and `NSStatusItem`
+        // menus use. Net effect: the menu-bar app indicator stays on whatever app the user was in,
+        // open DDG browser windows aren't pulled forward, and no desktop space is force-switched.
+        window.orderFrontRegardless()
+        window.makeKey()
+        installOutsideClickMonitor()
+
+        // App activation is async — on the very first show (DDG not already foreground), the panel
+        // comes up before the activation event lands and AppKit refuses to promote it to key.
+        // Defer the makeKey + first-responder + tracking-refresh follow-up to the next runloop
+        // tick: by then the activation has been processed and the text view can legitimately
+        // become first responder. Already-active shows turn this into a harmless no-op.
+        DispatchQueue.main.async { [weak self, weak window] in
+            guard let self, let window, window.isVisible else { return }
+            if !window.isKeyWindow {
+                window.makeKey()
+            }
+            self.textVC?.focusTextViewWithCursorAtEnd()
+            // `HoverTrackingArea` is `.activeInKeyWindow`-bound. On the very first show the window
+            // isn't key yet when those areas register, and AppKit doesn't auto-fire `mouseEntered`
+            // for the cursor's already-inside position once the window later becomes key — the
+            // user has to nudge the mouse for hover to light up under the text container's overlay.
+            // We refresh tracking areas as a best-effort here; a fully-reliable fix would need a
+            // `CGEvent` injection, which requires Accessibility permission and is out of scope.
+            if let host = window.contentView {
+                Self.updateTrackingAreasRecursively(in: host)
+            }
+        }
+
+        omnibarController?.onOmnibarActivated()
+        textVC?.startEventMonitoring()
+        recalculatePanelHeight(animated: false)
     }
 
     func close() {
-        window?.close()
+        guard let window, window.isVisible else { return }
+        removeOutsideClickMonitor()
+        // Hand focus back BEFORE we tear the panel down. If we let AppKit cycle key away from the
+        // panel after orderOut, it picks the next available DDG window — which can live on a
+        // different desktop space and force-switch the user there. Activating the previous app
+        // first means the system's key window moves to that app's window (on the user's current
+        // space), so the panel's orderOut has nothing left to cycle to.
+        if let previouslyActiveApp, previouslyActiveApp.isTerminated == false {
+            previouslyActiveApp.activate()
+        }
+        previouslyActiveApp = nil
+        textVC?.stopEventMonitoring()
+        // Reset draft / attachments / suggestions so the next show() starts fresh.
+        containerVC?.cleanup()
+        lastResignKeyCloseAt = Date()
+        window.orderOut(nil)
+    }
+
+    private func installOutsideClickMonitor() {
+        guard outsideClickMonitor == nil else { return }
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            // Global monitors only fire for events targeted at *other* apps. Any click here means
+            // the user clicked outside the panel — close it.
+            self?.close()
+        }
+    }
+
+    private func removeOutsideClickMonitor() {
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+        }
+        outsideClickMonitor = nil
     }
 
     // MARK: - NSWindowDelegate
@@ -74,40 +178,166 @@ final class DuckAIFloatingOmnibarWindowController: NSObject, NSWindowDelegate {
         // Dismiss as soon as focus moves elsewhere — matches the dismiss-on-outside-click
         // expectation of a Spotlight-style entry point.
         guard let window, notification.object as AnyObject === window, window.isVisible else { return }
-        lastResignKeyCloseAt = Date()
-        window.close()
+        close()
     }
 
     // MARK: - Private
 
-    private func makeWindow() -> DuckAIFloatingOmnibarWindow {
-        let initialFrame = NSRect(x: 0, y: 0, width: Constants.width, height: Constants.placeholderHeight)
-        let window = DuckAIFloatingOmnibarWindow(contentRect: initialFrame)
-        window.delegate = self
-        window.contentView = makePlaceholderContentView()
-        return window
+    private func ensureWindow() -> DuckAIFloatingOmnibarWindow {
+        if let window { return window }
+
+        let initialFrame = NSRect(x: 0, y: 0, width: Constants.width, height: Constants.baseContainerHeight)
+        let panel = DuckAIFloatingOmnibarWindow(contentRect: initialFrame)
+        panel.delegate = self
+        panel.onCancelRequested = { [weak self] in
+            self?.close()
+        }
+
+        let omnibar = AIChatOmnibarController(
+            aiChatTabOpener: NSApp.delegateTyped.aiChatTabOpener,
+            tabCollectionViewModel: nil,
+            suggestionsReader: NSApp.delegateTyped.aiChatSuggestionsReader,
+            preferences: NSApp.delegateTyped.aiChatPreferencesPersistor
+        )
+        // Spotlight-style entry point: keep the panel a pure input surface, no recent-chats list.
+        omnibar.suggestionsDisabledOverride = true
+        omnibar.delegate = self
+
+        let themeManager = NSApp.delegateTyped.themeManager
+        let container = AIChatOmnibarContainerViewController(themeManager: themeManager, omnibarController: omnibar)
+        // We own the host shadow + rounded corners; ask the container to skip its address-bar-specific
+        // top clip mask and external shadow view so the top edge can render fully and the panel's
+        // own shadow extends evenly on all four sides.
+        container.disablesAddressBarChrome = true
+        let text = AIChatOmnibarTextContainerViewController(omnibarController: omnibar, themeManager: themeManager)
+        text.containerViewController = container
+
+        // Force the child VCs' views to load and run viewDidLoad.
+        _ = container.view
+        _ = text.view
+
+        let contentView = makeContentView(container: container.view, text: text.view)
+        panel.contentView = contentView
+        // The omnibar's tool / model-picker / submit buttons render a default focus ring whenever
+        // they accept first-responder status, which is part of the address-bar tab-cycle UX. The
+        // floating panel doesn't tab-cycle through those buttons, so the ring just shows up as a
+        // blue outline whenever the user clicks one — disable it for the whole subtree.
+        Self.disableFocusRingsRecursively(in: contentView)
+
+        wireHeightCallbacks(container: container, text: text)
+
+        self.window = panel
+        self.omnibarController = omnibar
+        self.containerVC = container
+        self.textVC = text
+        return panel
     }
 
-    private func makePlaceholderContentView() -> NSView {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: Constants.width, height: Constants.placeholderHeight))
-        container.wantsLayer = true
-        container.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        container.layer?.cornerRadius = Constants.cornerRadius
-        container.layer?.masksToBounds = true
+    private func makeContentView(container: NSView, text: NSView) -> NSView {
+        let host = NSView(frame: NSRect(x: 0, y: 0, width: Constants.width, height: Constants.baseContainerHeight))
+        host.wantsLayer = true
+        // Opaque white background so the panel's shadow (panel.hasShadow = true) wraps the full
+        // rounded shape uniformly. masksToBounds clips child content to the rounded corners.
+        host.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        host.layer?.cornerRadius = Constants.cornerRadius
+        host.layer?.masksToBounds = true
 
-        let label = NSTextField(labelWithString: "Duck.ai")
-        label.font = .systemFont(ofSize: 18, weight: .semibold)
-        label.textColor = .labelColor
-        label.alignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(label)
+        // Wrap the text VC's view in a PassthroughView so clicks in the bottom strip (where the
+        // omnibar container's tool buttons sit *behind* the text container) fall through to the
+        // tool buttons. Mirrors the address-bar setup in `MainView` where the text container view
+        // is itself a PassthroughView, except here we only need the wrapper because the text VC's
+        // own view is a `MouseOverView` that doesn't pass clicks.
+        let textPassthrough = PassthroughView()
+        textPassthrough.translatesAutoresizingMaskIntoConstraints = false
+        text.translatesAutoresizingMaskIntoConstraints = false
+        textPassthrough.addSubview(text)
+        NSLayoutConstraint.activate([
+            text.topAnchor.constraint(equalTo: textPassthrough.topAnchor),
+            text.leadingAnchor.constraint(equalTo: textPassthrough.leadingAnchor),
+            text.trailingAnchor.constraint(equalTo: textPassthrough.trailingAnchor),
+            text.bottomAnchor.constraint(equalTo: textPassthrough.bottomAnchor)
+        ])
+        textPassthroughView = textPassthrough
+
+        container.translatesAutoresizingMaskIntoConstraints = false
+
+        host.addSubview(container)
+        host.addSubview(textPassthrough)
 
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+            container.topAnchor.constraint(equalTo: host.topAnchor),
+            container.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            container.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+
+            textPassthrough.topAnchor.constraint(equalTo: host.topAnchor, constant: Constants.textTopInset),
+            textPassthrough.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: Constants.textLeadingInset),
+            textPassthrough.trailingAnchor.constraint(equalTo: host.trailingAnchor, constant: -Constants.textTrailingInset),
+            textPassthrough.bottomAnchor.constraint(equalTo: host.bottomAnchor)
         ])
 
-        return container
+        return host
+    }
+
+    private func wireHeightCallbacks(container: AIChatOmnibarContainerViewController,
+                                     text: AIChatOmnibarTextContainerViewController) {
+        text.heightDidChange = { [weak self] _ in
+            self?.recalculatePanelHeight(animated: true)
+        }
+        container.onSuggestionsHeightChanged = { [weak self] _ in
+            self?.recalculatePanelHeight(animated: false)
+        }
+        container.onPassthroughHeightNeedsUpdate = { [weak self] in
+            self?.recalculatePanelHeight(animated: false)
+        }
+    }
+
+    private func recalculatePanelHeight(animated: Bool) {
+        guard let window, let containerVC, let textVC else { return }
+
+        let textHeight = textVC.calculateDesiredPanelHeight()
+        let suggestionsHeight = containerVC.suggestionsHeight
+        let additionalHeight = containerVC.additionalContentHeight
+        let totalHeight = textHeight + suggestionsHeight + additionalHeight + Constants.inputAreaExtraHeight
+
+        let currentFrame = window.frame
+        // Anchor the top edge so growing/shrinking the panel doesn't make it jump up the screen.
+        let newOriginY = currentFrame.maxY - totalHeight
+        let newFrame = NSRect(x: currentFrame.origin.x, y: newOriginY, width: currentFrame.width, height: totalHeight)
+        window.setFrame(newFrame, display: true, animate: animated)
+
+        // Tell the text container's wrapping PassthroughView to ignore clicks in its bottom strip
+        // (where the omnibar container's tool buttons / suggestions / attachments sit), and tell the
+        // text VC itself so its scroll view doesn't render content into that region. Same pattern as
+        // `MainViewController.wireAIChatOmnibarHeightUpdates`.
+        let passthroughHeight = containerVC.totalPassthroughHeight
+        textPassthroughView?.passthroughBottomHeight = passthroughHeight
+        textVC.setPassthroughBottomHeight(passthroughHeight)
+    }
+
+    private static func updateTrackingAreasRecursively(in view: NSView) {
+        view.updateTrackingAreas()
+        for subview in view.subviews {
+            updateTrackingAreasRecursively(in: subview)
+        }
+    }
+
+    private static func disableFocusRingsRecursively(in view: NSView) {
+        if let control = view as? NSControl {
+            control.focusRingType = .none
+        }
+        // The omnibar's tool / model-picker buttons are NSView subclasses (not NSControl) that draw
+        // their own keyboard-focus accent ring in `draw(_:)`. They're decorative for the address-bar
+        // tab cycle, irrelevant in the floating panel — set the opt-out flag.
+        if let toolButton = view as? AIChatOmnibarToolButton {
+            toolButton.suppressesFocusRing = true
+        }
+        if let modelPicker = view as? AIChatModelPickerButton {
+            modelPicker.suppressesFocusRing = true
+        }
+        for subview in view.subviews {
+            disableFocusRingsRecursively(in: subview)
+        }
     }
 
     private func positionWindow(_ window: NSWindow) {
@@ -118,5 +348,29 @@ final class DuckAIFloatingOmnibarWindowController: NSObject, NSWindowDelegate {
         let originX = visible.midX - size.width / 2
         let originY = visible.maxY - visible.height * Constants.topInsetFraction - size.height
         window.setFrameOrigin(NSPoint(x: originX, y: originY))
+    }
+}
+
+// MARK: - AIChatOmnibarControllerDelegate
+
+extension DuckAIFloatingOmnibarWindowController: AIChatOmnibarControllerDelegate {
+
+    func aiChatOmnibarControllerDidSubmit(_ controller: AIChatOmnibarController) {
+        // M5: simply dismiss the floating panel. M6 wires the actual submit hand-off.
+        close()
+    }
+
+    func aiChatOmnibarController(_ controller: AIChatOmnibarController, didRequestNavigationToURL url: URL) {
+        // M5 stub — URL navigation routing lands with the rest of the global submit flow.
+        close()
+    }
+
+    func aiChatOmnibarController(_ controller: AIChatOmnibarController, didSelectSuggestion suggestion: AIChatSuggestion) {
+        // M5 stub — suggestion selection routing lands with the rest of the global submit flow.
+        close()
+    }
+
+    func aiChatOmnibarController(_ controller: AIChatOmnibarController, requestsGlobalSubmissionOf prompt: AIChatNativePrompt) {
+        // M5 stub — actual hand-off (focus main window, open Duck.ai tab) lands in M6.
     }
 }
