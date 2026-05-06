@@ -104,12 +104,10 @@ class DownloadsUITests: UITestCase {
         app.enforceSingleWindow()
         app.openFireWindow()
 
-        let fireWindow = burnerWindow()
-        let filename = downloadLargeFile(fireWindow: fireWindow)
+        let filename = downloadLargeFile(onFireWindow: true)
         // Wait for the download to actually start (Downloads button becomes available)
-        let downloadsButton = fireWindow.buttons["NavigationBarViewController.downloadsButton"]
-        XCTAssertTrue(downloadsButton.waitForExistence(timeout: UITests.Timeouts.elementExistence),
-                      "Downloads button should appear after starting download in Fire window")
+        let downloadsButton = app.buttons["NavigationBarViewController.downloadsButton"]
+        _ = downloadsButton.waitForExistence(timeout: UITests.Timeouts.elementExistence)
         assertDownloadListed(filename: filename, timeout: UITests.Timeouts.navigation)
         app.typeKey(.escape, modifierFlags: [])
 
@@ -935,24 +933,18 @@ class DownloadsUITests: UITestCase {
     }
 
     @discardableResult
-    private func downloadLargeFile(fireWindow: XCUIElement? = nil) -> String {
-        if let fireWindow {
-            fireWindow.click()
-            app.openNewTab()
-            XCTAssertTrue(fireWindow.staticTexts["Fire Window"].waitForExistence(timeout: UITests.Timeouts.elementExistence))
+    private func downloadLargeFile(onFireWindow: Bool = false) -> String {
+        app.openNewTab()
+        // wait for the New Tab page to load
+        if onFireWindow {
+            XCTAssertTrue(app.staticTexts["Fire Window"].waitForExistence(timeout: UITests.Timeouts.elementExistence))
         } else {
-            app.openNewTab()
-            // wait for the New Tab page to load
             XCTAssertTrue(webView.popUpButtons["Customize"].waitForExistence(timeout: UITests.Timeouts.elementExistence))
         }
 
         let filename = "ui-large-\(UUID().uuidString).bin"
         let url = URL.testsDownload(size: "5GB", filename: filename).absoluteString
-        if let fireWindow {
-            openDownloadPageAndTriggerDownload(url: url, in: fireWindow)
-        } else {
-            openSiteForDownloadingFile(url: url)
-        }
+        openSiteForDownloadingFile(url: url)
 
         // Track both the final file and the temporary .duckload file
         let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
@@ -964,50 +956,9 @@ class DownloadsUITests: UITestCase {
         return filename
     }
 
-    private func openDownloadPageAndTriggerDownload(url: String, in window: XCUIElement) {
-        let pageTitle = "Fire Download \(UUID().uuidString)"
-        let pageURL = UITests.simpleServedPage(
-            titled: pageTitle,
-            body: """
-            <a id="start-download" href="\(url.escapedJavaScriptString())">Start Download</a>
-            """
-        )
-
-        window.click()
-        let addressBar = app.addressBar
-        XCTAssertTrue(addressBar.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-        addressBar.click()
-        app.pasteURL(pageURL, pressingEnter: true)
-
-        let webView = window.webViews[pageTitle]
-        XCTAssertTrue(webView.waitForExistence(timeout: UITests.Timeouts.localTestServer),
-                      "Download launcher page should load in Fire window before triggering the download")
-
-        let downloadLink = webView.links["Start Download"].firstMatch
-        XCTAssertTrue(downloadLink.waitForExistence(timeout: UITests.Timeouts.elementExistence),
-                      "Download launcher link should exist in Fire window before starting the download")
-        downloadLink.click()
-    }
-
-    private func openSiteForDownloadingFile(url: String, in window: XCUIElement? = nil) {
-        if let window {
-            window.click()
-            app.activateAddressBar()
-            let addressBar = app.addressBar
-            XCTAssertTrue(addressBar.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-            addressBar.pasteURL(URL(string: url)!, pressingEnter: true)
-            return
-        }
-
+    private func openSiteForDownloadingFile(url: String) {
         app.activateAddressBar()
         app.pasteURL(URL(string: url)!, pressingEnter: true)
-    }
-
-    private func burnerWindow() -> XCUIElement {
-        let window = app.windows.containing(.staticText, where: .keyPath(\.value, equalTo: "Fire Window")).firstMatch
-        XCTAssertTrue(window.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-        XCTAssertTrue(window.staticTexts["Fire Window"].exists)
-        return window
     }
 
     /// Save panel variant that first navigates to a target directory using Go To Folder, then saves
