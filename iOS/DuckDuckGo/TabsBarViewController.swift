@@ -265,6 +265,9 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
 
     func backgroundTabAdded() {
         recomputeItemSize()
+        // Force the next refresh to take the full reloadData path so the
+        // cache cannot disagree with the collection view we just rebuilt.
+        lastReloadedTabUIDs = []
         reloadData()
         tabSwitcherButton.animateUpdate {
             self.tabSwitcherButton.tabCount = self.tabsCount

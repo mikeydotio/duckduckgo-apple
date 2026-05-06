@@ -49,6 +49,11 @@ class SwipeTabsCoordinator: NSObject {
                 state = .idle
             }
             updateLayout()
+            // Toggling isEnabled changes the data source count
+            // (1 cell when disabled, tabs.count [+1] when enabled), so the
+            // refresh fast path's uid-equality check would otherwise miss
+            // this structural change.
+            lastReloadedTabUIDs = []
             collectionView.reloadData()
         }
     }
@@ -180,6 +185,9 @@ class SwipeTabsCoordinator: NSObject {
         updateLayout()
         scrollToCurrent()
 
+        // Force the next refresh to take the full reloadData path so the
+        // cache cannot disagree with the freshly rebuilt collection view.
+        lastReloadedTabUIDs = []
         collectionView.reloadData()
         collectionView.layoutIfNeeded()
     }
@@ -668,16 +676,24 @@ extension SwipeTabsCoordinator {
         let currentSelectedIndex = tabsModel.currentIndex
         let collectionView = coordinator.navigationBarCollectionView
 
-        if !lastReloadedTabUIDs.isEmpty, currentUIDs == lastReloadedTabUIDs {
+        // The data source count also depends on `isEnabled` and on whether the
+        // last tab has a link (trailing "new tab" placeholder), so a uid-only
+        // equality check is not sufficient to confirm structural sameness.
+        let expectedItemCount = self.collectionView(collectionView, numberOfItemsInSection: 0)
+        let cachedItemCount = collectionView.numberOfItems(inSection: 0)
+        let structureUnchanged = !lastReloadedTabUIDs.isEmpty
+            && currentUIDs == lastReloadedTabUIDs
+            && expectedItemCount == cachedItemCount
+
+        if structureUnchanged {
             // Structure unchanged. Only re-render the previously selected and the
             // newly selected cells, so the other template cells are not torn down
             // and rebuilt on every tab switch.
-            let itemCount = collectionView.numberOfItems(inSection: 0)
             var indexPathsToReload: Set<IndexPath> = []
-            if let last = lastSelectedIndex, last < itemCount {
+            if let last = lastSelectedIndex, last < cachedItemCount {
                 indexPathsToReload.insert(IndexPath(item: last, section: 0))
             }
-            if let current = currentSelectedIndex, current < itemCount {
+            if let current = currentSelectedIndex, current < cachedItemCount {
                 indexPathsToReload.insert(IndexPath(item: current, section: 0))
             }
             if !indexPathsToReload.isEmpty {
