@@ -18,6 +18,7 @@
 		0283A2012C6E46E300508FBD /* BrokenSitePromptLimiterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0283A2002C6E46E300508FBD /* BrokenSitePromptLimiterStore.swift */; };
 		02BA15B126A89ECA00472DD7 /* ios-config.json in Resources */ = {isa = PBXBuildFile; fileRef = 02BA15B026A89ECA00472DD7 /* ios-config.json */; };
 		02F880642AB206740020C2DF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 02ECEC602A965074009F0654 /* PrivacyInfo.xcprivacy */; };
+		067CACE8BC2AA354D969019F /* NewAddressBarPickerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EFAB87418082C5BDE38CE4D /* NewAddressBarPickerViewModelTests.swift */; };
 		0A6CC0EF23904D5400E4F627 /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 0A6CC0EE23904D5400E4F627 /* Settings.bundle */; };
 		1AD965E390AC1B7FDE09D956 /* RebrandedOnboardingView+BrowsersComparisonContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8693FFCAC02CE4A85D0BD62C /* RebrandedOnboardingView+BrowsersComparisonContent.swift */; };
 		1CB7B82123CEA1F800AA24EA /* DateExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB7B82023CEA1F800AA24EA /* DateExtension.swift */; };
@@ -189,7 +190,6 @@
 		319A37152829A55F0079FBCE /* AutofillListItemTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319A37142829A55F0079FBCE /* AutofillListItemTableViewCell.swift */; };
 		319A37172829C8AD0079FBCE /* UITableViewExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319A37162829C8AD0079FBCE /* UITableViewExtension.swift */; };
 		319B49C42E68AF5C00DD265F /* NewAddressBarPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319B49C32E68AF5500DD265F /* NewAddressBarPickerViewController.swift */; };
-		319B49C62E68B64400DD265F /* NewAddressBarPickerContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319B49C52E68B63E00DD265F /* NewAddressBarPickerContentView.swift */; };
 		319BE1092D47EBE300E510A4 /* AIChatUserScriptHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319BE1082D47EBE300E510A4 /* AIChatUserScriptHandlerTests.swift */; };
 		319F68782F27F96200EEBC3D /* AIChatSuggestionsReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319F68762F27F96200EEBC3D /* AIChatSuggestionsReader.swift */; };
 		319F68792F27F96200EEBC3D /* AIChatHistoryListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 319F68742F27F96200EEBC3D /* AIChatHistoryListViewController.swift */; };
@@ -934,6 +934,7 @@
 		85F996D02E54C268006B4641 /* OpenAIChatFromAddressBarHandlingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85F996CF2E54C260006B4641 /* OpenAIChatFromAddressBarHandlingTests.swift */; };
 		8C4724502217A14B004C9B2D /* TabViewControllerSaveBookmarkExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C47244F2217A14B004C9B2D /* TabViewControllerSaveBookmarkExtension.swift */; };
 		8C4838B5221C8F7F008A6739 /* GestureToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4838B4221C8F7F008A6739 /* GestureToolbarButton.swift */; };
+		91B67D60DCF5B9213184F1B9 /* NewAddressBarPickerRefreshContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0466F5E63C5ECC76F75718F8 /* NewAddressBarPickerRefreshContentView.swift */; };
 		9710D4A12ED5B323006C14FF /* FadeOutContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9710D4A02ED5B323006C14FF /* FadeOutContainerViewController.swift */; };
 		9770D4A92F6AFD3F0029361F /* DuckAIVoiceShortcutFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9770D4A82F6AFD3F0029361F /* DuckAIVoiceShortcutFeature.swift */; };
 		9770D4AB2F6AFD600029361F /* NavigationActionBarViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9770D4AA2F6AFD600029361F /* NavigationActionBarViewModelTests.swift */; };
@@ -1681,6 +1682,8 @@
 		ABA18ED2F9373DE1F5B57B66 /* RebrandedOnboardingAddressBarPositionPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 392856D96DBE03E4E18EFCF8 /* RebrandedOnboardingAddressBarPositionPicker.swift */; };
 		B2258FABEA7BDFCEF297DCFE /* RebrandedOnboardingView+SearchExperienceContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF81E0C6EDC46254CF28AFCB /* RebrandedOnboardingView+SearchExperienceContent.swift */; };
 		B39FB0F42E25368100DF2C4E /* AutoconsentPixels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B39FB0F32E25368100DF2C4E /* AutoconsentPixels.swift */; };
+		B54C59B72FA91DF30072ECCE /* DuckAIToggleDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54C59B62FA91DF30072ECCE /* DuckAIToggleDebugView.swift */; };
+		B57702B52FAA6D89007CE868 /* NewAddressBarPickerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57702B42FAA6D89007CE868 /* NewAddressBarPickerViewModel.swift */; };
 		B603974929C19F6F00902A34 /* Assertions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B603974829C19F6F00902A34 /* Assertions.swift */; };
 		B609D5522862EAFF0088CAC2 /* InlineWKDownloadDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B609D5512862EAFF0088CAC2 /* InlineWKDownloadDelegate.swift */; };
 		B60DFF072872B64B0061E7C2 /* JSAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60DFF062872B64B0061E7C2 /* JSAlertController.swift */; };
@@ -2578,6 +2581,7 @@
 		02C4BC3127C3F9B600C40026 /* AppPrivacyConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPrivacyConfigurationTests.swift; sourceTree = "<group>"; };
 		02CA904C24FD2DB000D41DDF /* ContentBlockingRulesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentBlockingRulesTests.swift; sourceTree = "<group>"; };
 		02ECEC602A965074009F0654 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		0466F5E63C5ECC76F75718F8 /* NewAddressBarPickerRefreshContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewAddressBarPickerRefreshContentView.swift; sourceTree = "<group>"; };
 		05C3CB91F3D61FF6CC5527F5 /* RebrandedAddToDockPromoView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RebrandedAddToDockPromoView.swift; sourceTree = "<group>"; };
 		0A6CC0EE23904D5400E4F627 /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
 		0D5BA3FF1041A3BB9396AE65 /* UnifiedToggleInputFloatingSubmitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputFloatingSubmitViewController.swift; sourceTree = "<group>"; };
@@ -2745,7 +2749,6 @@
 		319A37142829A55F0079FBCE /* AutofillListItemTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutofillListItemTableViewCell.swift; sourceTree = "<group>"; };
 		319A37162829C8AD0079FBCE /* UITableViewExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITableViewExtension.swift; sourceTree = "<group>"; };
 		319B49C32E68AF5500DD265F /* NewAddressBarPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewAddressBarPickerViewController.swift; sourceTree = "<group>"; };
-		319B49C52E68B63E00DD265F /* NewAddressBarPickerContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewAddressBarPickerContentView.swift; sourceTree = "<group>"; };
 		319BE1082D47EBE300E510A4 /* AIChatUserScriptHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatUserScriptHandlerTests.swift; sourceTree = "<group>"; };
 		319F68742F27F96200EEBC3D /* AIChatHistoryListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistoryListViewController.swift; sourceTree = "<group>"; };
 		319F68752F27F96200EEBC3D /* AIChatHistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatHistoryManager.swift; sourceTree = "<group>"; };
@@ -2987,6 +2990,7 @@
 		65F4CB452D7A0EFF00E89416 /* DuckPlayerWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckPlayerWebView.swift; sourceTree = "<group>"; };
 		6AC6DAB228804F97002723C0 /* BarsAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarsAnimator.swift; sourceTree = "<group>"; };
 		6AC98418288055C1005FA9CA /* BarsAnimatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarsAnimatorTests.swift; sourceTree = "<group>"; };
+		6EFAB87418082C5BDE38CE4D /* NewAddressBarPickerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewAddressBarPickerViewModelTests.swift; sourceTree = "<group>"; };
 		6F03CAFB2C32C6F6004179A8 /* NewTabPageMessagesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageMessagesModel.swift; sourceTree = "<group>"; };
 		6F03CAFD2C32DD08004179A8 /* HomePageMessagesConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomePageMessagesConfiguration.swift; sourceTree = "<group>"; };
 		6F03CB002C32ED42004179A8 /* NewTabPageMessagesModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageMessagesModelTests.swift; sourceTree = "<group>"; };
@@ -4267,6 +4271,8 @@
 		AD8CF8E4B152CDB3A4ACB14C /* StartupOnboardingCover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupOnboardingCover.swift; sourceTree = "<group>"; };
 		AF81E0C6EDC46254CF28AFCB /* RebrandedOnboardingView+SearchExperienceContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "RebrandedOnboardingView+SearchExperienceContent.swift"; sourceTree = "<group>"; };
 		B39FB0F32E25368100DF2C4E /* AutoconsentPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoconsentPixels.swift; sourceTree = "<group>"; };
+		B54C59B62FA91DF30072ECCE /* DuckAIToggleDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAIToggleDebugView.swift; sourceTree = "<group>"; };
+		B57702B42FAA6D89007CE868 /* NewAddressBarPickerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewAddressBarPickerViewModel.swift; sourceTree = "<group>"; };
 		B603974829C19F6F00902A34 /* Assertions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Assertions.swift; sourceTree = "<group>"; };
 		B609D5512862EAFF0088CAC2 /* InlineWKDownloadDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineWKDownloadDelegate.swift; sourceTree = "<group>"; };
 		B60DFF062872B64B0061E7C2 /* JSAlertController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSAlertController.swift; sourceTree = "<group>"; };
@@ -5674,6 +5680,7 @@
 				319BE1082D47EBE300E510A4 /* AIChatUserScriptHandlerTests.swift */,
 				9770D4AA2F6AFD600029361F /* NavigationActionBarViewModelTests.swift */,
 				312BF6F02E6B4A2500411CF9 /* NewAddressBarPickerDisplayValidatorTests.swift */,
+				6EFAB87418082C5BDE38CE4D /* NewAddressBarPickerViewModelTests.swift */,
 				97C00D052F97ACD100593A53 /* DaxLogoManagerTests.swift */,
 				310EEA2E2CFFCDBF0043CA1A /* AIChatSettingsTests.swift */,
 				C124F0552E6879E7008D0F49 /* SwitchBarFunnelTests.swift */,
@@ -5902,8 +5909,10 @@
 			children = (
 				312BF6F22E6B651500411CF9 /* Resources */,
 				312BF6EE2E6B2C9B00411CF9 /* NewAddressBarPickerDisplayValidator.swift */,
-				319B49C52E68B63E00DD265F /* NewAddressBarPickerContentView.swift */,
+				0466F5E63C5ECC76F75718F8 /* NewAddressBarPickerRefreshContentView.swift */,
 				319B49C32E68AF5500DD265F /* NewAddressBarPickerViewController.swift */,
+				B57702B42FAA6D89007CE868 /* NewAddressBarPickerViewModel.swift */,
+				B54C59B62FA91DF30072ECCE /* DuckAIToggleDebugView.swift */,
 			);
 			path = NewAddressBarPicker;
 			sourceTree = "<group>";
@@ -12466,7 +12475,7 @@
 				37FCAABC2992F592000E420A /* MultilineScrollableTextFix.swift in Sources */,
 				85DFEDED24C7CCA500973FE7 /* AppWidthObserver.swift in Sources */,
 				565AC7462EDE090600639D35 /* SubscriptionTierEventReporter.swift in Sources */,
-				319B49C62E68B64400DD265F /* NewAddressBarPickerContentView.swift in Sources */,
+				91B67D60DCF5B9213184F1B9 /* NewAddressBarPickerRefreshContentView.swift in Sources */,
 				4B6484F327FD1E350050A7A1 /* MenuControllerView.swift in Sources */,
 				7B059F0F2D0387E900371ED0 /* NumberedParagraphView.swift in Sources */,
 				5644419F2D4D205C003C53B8 /* FeatureFlagsSettingViewModel.swift in Sources */,
@@ -13130,6 +13139,7 @@
 				6FD3F8132C3EFDA200DA5797 /* FavoritesPreviewDataSource.swift in Sources */,
 				EE01EB402AFBD0000096AAC9 /* NetworkProtectionVPNSettingsViewModel.swift in Sources */,
 				EE72CA852A862D000043B5B3 /* NetworkProtectionDebugViewController.swift in Sources */,
+				B54C59B72FA91DF30072ECCE /* DuckAIToggleDebugView.swift in Sources */,
 				CBF259B72D49113E00AC63E4 /* RemoteConfigurationService.swift in Sources */,
 				9F012C652DF7BE1F00AE0F43 /* PictureInPictureController.swift in Sources */,
 				CB84C7BD29A3EF530088A5B8 /* AppConfigurationURLProvider.swift in Sources */,
@@ -13163,6 +13173,7 @@
 				31A968152E4E6E1300F4305E /* SettingsAIChatShortcutsView.swift in Sources */,
 				1E8AD1CF27C000A000ABA377 /* CompleteDownloadRow.swift in Sources */,
 				98D98A8F25ED952F00D8E3DF /* BrowsingMenuButton.swift in Sources */,
+				B57702B52FAA6D89007CE868 /* NewAddressBarPickerViewModel.swift in Sources */,
 				31C3149F2D2EEB44009A412A /* AIChatUserScript.swift in Sources */,
 				C13C60DA2E6D7AE100ED2211 /* SwitchBarSubmissionMetrics.swift in Sources */,
 				31C314A02D2EEB44009A412A /* AIChatUserScriptHandling.swift in Sources */,
@@ -13297,6 +13308,7 @@
 				CBAD0F332D02EE50006267B8 /* AfterInactivityEffectiveOptionResolverTests.swift in Sources */,
 				8590CB632684F10F0089F6BF /* ContentBlockerProtectionStoreTests.swift in Sources */,
 				312BF6F12E6B4A2500411CF9 /* NewAddressBarPickerDisplayValidatorTests.swift in Sources */,
+				067CACE8BC2AA354D969019F /* NewAddressBarPickerViewModelTests.swift in Sources */,
 				83EDCC411F86B89C005CDFCD /* StatisticsLoaderTests.swift in Sources */,
 				C14882E327F20D9A00D59F0C /* BookmarksExporterTests.swift in Sources */,
 				C124027E2F2935F600F87332 /* AIChatContextualModePixelHandlerTests.swift in Sources */,
