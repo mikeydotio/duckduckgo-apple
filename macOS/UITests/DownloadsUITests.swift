@@ -942,8 +942,16 @@ class DownloadsUITests: UITestCase {
             XCTAssertTrue(webView.popUpButtons["Customize"].waitForExistence(timeout: UITests.Timeouts.elementExistence))
         }
 
-        let filename = "ui-large-\(UUID().uuidString).bin"
-        let url = URL.testsDownload(size: "5GB", filename: filename).absoluteString
+        let filename: String
+        let url: String
+        if onFireWindow {
+            // Keep the Fire-window flow on the plain download route and only remove the external dependency.
+            filename = "5GB.bin"
+            url = URL.testsDownload(size: "5GB").absoluteString
+        } else {
+            filename = "ui-large-\(UUID().uuidString).bin"
+            url = URL.testsDownload(size: "5GB", filename: filename).absoluteString
+        }
         openSiteForDownloadingFile(url: url)
 
         // Track both the final file and the temporary .duckload file
