@@ -85,7 +85,22 @@ jobs:
         ./install-prerequisites.sh
         ./setup-ci.sh
         cd ..
-        pnpm start:all &
+        nohup pnpm start:all > pir-fake-broker.log 2>&1 &
+
+        for attempt in {1..60}; do
+          if curl --silent --output /dev/null "http://localhost:3001/api/profiles"; then
+            echo "PIR fake broker is reachable on attempt ${attempt}"
+            break
+          fi
+
+          if [[ "${attempt}" == "60" ]]; then
+            echo "PIR fake broker did not become reachable on localhost:3001"
+            sed -n '1,200p' pir-fake-broker.log || true
+            exit 1
+          fi
+
+          sleep 2
+        done
 
     - name: Setup Ruby and dependencies
       uses: ./.github/actions/setup-ruby
@@ -197,6 +212,7 @@ jobs:
         path: |
           macOS/xcodebuild.log
           macOS/pir-process.log
+          macOS/pir-fake-broker/pir-fake-broker.log
           macOS/DerivedData/Logs/Test/*.xcresult
           ~/Library/Logs/DiagnosticReports/*
         retention-days: 7
