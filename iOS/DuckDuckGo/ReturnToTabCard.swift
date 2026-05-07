@@ -97,13 +97,7 @@ struct ReturnToTabCard: View {
         }
     }
 
-    /// 1pt translucent ring at `decoration-primary` (rebranded palette = 9% black light /
-    /// 6% white dark) — matches the designer's "inner stroke set to t-decoration-primary"
-    /// spec. Reads as a subtle ring on the favicon and stacks gently with the pill's
-    /// translucency on the pill area, identical to Figma's behaviour.
-    /// Uses the rebranded accessor directly because the default-palette `decorationPrimary`
-    /// is 30% opacity (~3× darker); the rebranded value will become the global default
-    /// once the rebrand rolls out.
+    /// Uses rebranded `decorationPrimary` (9% vs default 30% opacity); will become global default after rebrand rollout.
     private var backArrowOverlay: some View {
         Image(uiImage: DesignSystemImages.Glyphs.Size12.goBackCircleRecolorable)
             .resizable()
