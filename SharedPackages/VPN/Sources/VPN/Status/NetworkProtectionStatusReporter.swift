@@ -35,7 +35,7 @@ public protocol NetworkProtectionStatusReporter {
 
 /// Convenience struct used to relay server info updates through a reporter.
 ///
-public struct NetworkProtectionStatusServerInfo: Codable, Equatable {
+public struct NetworkProtectionStatusServerInfo: Codable, Equatable, Sendable {
     public static let unknown = NetworkProtectionStatusServerInfo(serverLocation: nil, serverAddress: nil)
 
     /// The server location.  A `nil` location means unknown

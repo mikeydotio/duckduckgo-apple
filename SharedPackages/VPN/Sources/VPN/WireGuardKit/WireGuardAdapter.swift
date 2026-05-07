@@ -33,7 +33,7 @@ public enum WireGuardAdapterEvent {
     case endTemporaryShutdownStateRecoveryFailure(Error)
 }
 
-public enum WireGuardAdapterErrorInvalidStateReason: String {
+public enum WireGuardAdapterErrorInvalidStateReason: String, Sendable {
     case alreadyStarted
     case alreadyStopped
     case updatedTunnelWhileStopped
@@ -538,24 +538,19 @@ final class WireGuardAdapter: WireGuardAdapterProtocol {
             return
         }
 
-        var systemError: Error?
-        let condition = NSCondition()
-
-        // Activate the condition
-        condition.lock()
-        defer { condition.unlock() }
+        let completion = SetNetworkSettingsCompletion()
 
         packetTunnelProvider.setTunnelNetworkSettings(networkSettings) { error in
-            systemError = error
-            condition.signal()
+            completion.complete(with: error)
         }
 
         // Packet tunnel's `setTunnelNetworkSettings` times out in certain
         // scenarios & never calls the given callback.
         let setTunnelNetworkSettingsTimeout: TimeInterval = 5 // seconds
 
-        if condition.wait(until: Date().addingTimeInterval(setTunnelNetworkSettingsTimeout)) {
-            if let systemError = systemError {
+        let result = completion.wait(until: Date().addingTimeInterval(setTunnelNetworkSettingsTimeout))
+        if result.completed {
+            if let systemError = result.error {
                 throw WireGuardAdapterError.setNetworkSettings(systemError)
             }
         } else {
@@ -751,6 +746,32 @@ final class WireGuardAdapter: WireGuardAdapterProtocol {
         #else
         #error("Unsupported")
         #endif
+    }
+}
+
+// The condition lock owns all mutation and reads of the completion result across the NetworkExtension callback boundary.
+private final class SetNetworkSettingsCompletion: @unchecked Sendable {
+    private let condition = NSCondition()
+    private var isCompleted = false
+    private var error: Error?
+
+    func complete(with error: Error?) {
+        condition.lock()
+        self.error = error
+        isCompleted = true
+        condition.signal()
+        condition.unlock()
+    }
+
+    func wait(until deadline: Date) -> (completed: Bool, error: Error?) {
+        condition.lock()
+        defer { condition.unlock() }
+
+        if !isCompleted {
+            _ = condition.wait(until: deadline)
+        }
+
+        return (isCompleted, error)
     }
 }
 

@@ -3,6 +3,10 @@
 
 import PackageDescription
 
+let strictConcurrencySettings: [SwiftSetting] = [
+    .enableExperimentalFeature("StrictConcurrency")
+]
+
 let package = Package(
     name: "VPN",
     platforms: [
@@ -29,7 +33,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ]
+            ] + strictConcurrencySettings
         ),
 
         .target(name: "WireGuardC"),
@@ -38,7 +42,8 @@ let package = Package(
             name: "VPNTestUtils",
             dependencies: [
                 "VPN",
-            ]
+            ],
+            swiftSettings: strictConcurrencySettings
         ),
 
         .testTarget(
@@ -52,7 +57,8 @@ let package = Package(
                 .copy("Resources/servers-original-endpoint.json"),
                 .copy("Resources/servers-updated-endpoint.json"),
                 .copy("Resources/locations-endpoint.json")
-            ]
+            ],
+            swiftSettings: strictConcurrencySettings
         ),
 
     ]

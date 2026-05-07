@@ -22,7 +22,7 @@ import os.log
 import Combine
 
 public actor NetworkProtectionLatencyMonitor: LatencyMonitoring {
-    public enum ConnectionQuality: String {
+    public enum ConnectionQuality: String, Sendable {
         case terrible
         case poor
         case moderate
@@ -48,7 +48,7 @@ public actor NetworkProtectionLatencyMonitor: LatencyMonitoring {
         }
     }
 
-    public enum Result {
+    public enum Result: Sendable {
         case error
         case quality(ConnectionQuality)
     }
@@ -89,7 +89,7 @@ public actor NetworkProtectionLatencyMonitor: LatencyMonitoring {
 
     // MARK: - Start/Stop monitoring
 
-    public func start(serverIP: IPv4Address, callback: @escaping (Result) -> Void) {
+    public func start(serverIP: IPv4Address, callback: @Sendable @escaping (Result) -> Void) {
         Logger.networkProtectionLatencyMonitor.info("⚫️ Starting latency monitor")
 
         lastLatencyReported = Date()

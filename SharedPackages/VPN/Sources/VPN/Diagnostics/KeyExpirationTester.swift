@@ -26,7 +26,7 @@ import os.log
 ///
 final actor KeyExpirationTester: KeyExpirationTesting {
 
-    private let canRekey: @MainActor () async -> Bool
+    private let canRekey: @MainActor @Sendable () async -> Bool
 
     /// The interval of time between the start of each TCP connection test.
     ///
@@ -39,7 +39,7 @@ final actor KeyExpirationTester: KeyExpirationTesting {
     private(set) var isRunning = false
     private var isTestingExpiration = false
     private let keyStore: NetworkProtectionKeyStore
-    private let rekey: @MainActor () async throws -> Void
+    private let rekey: @MainActor @Sendable () async throws -> Void
     private let settings: VPNSettings
     private var task: Task<Never, Error>?
 
@@ -47,8 +47,8 @@ final actor KeyExpirationTester: KeyExpirationTesting {
 
     init(keyStore: NetworkProtectionKeyStore,
          settings: VPNSettings,
-         canRekey: @escaping @MainActor () async -> Bool,
-         rekey: @escaping @MainActor () async throws -> Void) {
+         canRekey: @escaping @MainActor @Sendable () async -> Bool,
+         rekey: @escaping @MainActor @Sendable () async throws -> Void) {
 
         self.keyStore = keyStore
         self.rekey = rekey

@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum ConnectionStatus: Codable, Equatable {
+public enum ConnectionStatus: Codable, Equatable, Sendable {
     case notConfigured
     case disconnected
     case disconnecting
@@ -27,7 +27,7 @@ public enum ConnectionStatus: Codable, Equatable {
     case reasserting
     case snoozing
 
-    public static var `default`: ConnectionStatus = .disconnected
+    public static let `default`: ConnectionStatus = .disconnected
 
     public var description: String {
         switch self {
@@ -55,7 +55,7 @@ public enum ConnectionStatus: Codable, Equatable {
 /// This is useful to know whether we have processed or still need to process the status, in case the notification
 /// is sent out more than once.
 ///
-public struct ConnectionStatusChange: Codable {
+public struct ConnectionStatusChange: Codable, Sendable {
     let status: ConnectionStatus
     let timestamp: Date
 

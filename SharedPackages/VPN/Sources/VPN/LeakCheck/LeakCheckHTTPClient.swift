@@ -116,7 +116,7 @@ public struct DefaultLeakCheckHTTPClient: LeakCheckHTTPClient {
         try await withCheckedThrowingContinuation { continuation in
             let state = HTTPReceiveState(continuation)
 
-            func receiveLoop() {
+            @Sendable func receiveLoop() {
                 connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { data, _, isComplete, error in
                     if let error = error {
                         state.resume(.failure(error))

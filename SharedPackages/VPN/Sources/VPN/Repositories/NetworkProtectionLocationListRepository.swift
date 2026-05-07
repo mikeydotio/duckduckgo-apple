@@ -20,11 +20,11 @@ import Foundation
 import Common
 import Networking
 
-public enum NetworkProtectionLocationListCachePolicy {
+public enum NetworkProtectionLocationListCachePolicy: Sendable {
     case returnCacheElseLoad
     case ignoreCache
 
-    static var `default` = NetworkProtectionLocationListCachePolicy.returnCacheElseLoad
+    static let `default` = NetworkProtectionLocationListCachePolicy.returnCacheElseLoad
 }
 
 public protocol NetworkProtectionLocationListRepository {

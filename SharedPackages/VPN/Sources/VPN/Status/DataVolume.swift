@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct DataVolume: Codable, Equatable {
+public struct DataVolume: Codable, Equatable, Sendable {
     public let bytesSent: Int64
     public let bytesReceived: Int64
 

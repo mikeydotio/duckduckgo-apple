@@ -22,7 +22,7 @@ import NetworkExtension
 import os.log
 import Subscription
 
-public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible {
+public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible, Sendable {
     public var debugDescription: String {
         switch self {
         case .automatic:
@@ -45,7 +45,7 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
     case failureRecovery(serverName: String)
 }
 
-public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConvertible {
+public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConvertible, Sendable {
     case ddg(blockRiskyDomains: Bool)
     case custom([String])
 

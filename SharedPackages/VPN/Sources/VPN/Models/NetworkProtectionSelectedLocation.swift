@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct NetworkProtectionSelectedLocation: Codable, Equatable {
+public struct NetworkProtectionSelectedLocation: Codable, Equatable, Sendable {
     public let country: String
     public let city: String?
 

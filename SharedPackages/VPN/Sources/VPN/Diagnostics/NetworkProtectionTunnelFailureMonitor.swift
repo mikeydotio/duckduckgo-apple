@@ -77,7 +77,7 @@ public actor NetworkProtectionTunnelFailureMonitor: TunnelFailureMonitoring {
 
     // MARK: - Start/Stop monitoring
 
-    public func start(callback: @escaping (Result) -> Void) {
+    public func start(callback: @Sendable @escaping (Result) -> Void) {
         Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Starting tunnel failure monitor")
 
         failureReported = false
@@ -104,7 +104,7 @@ public actor NetworkProtectionTunnelFailureMonitor: TunnelFailureMonitoring {
 
     // MARK: - Handshake monitor
 
-    private func monitorHandshakes(callback: @escaping (Result) -> Void) async {
+    private func monitorHandshakes(callback: @Sendable @escaping (Result) -> Void) async {
         guard firstCheckSkipped else {
             // Avoid running the first tunnel failure check after startup to avoid reading the first handshake after sleep, which will almost always
             // be out of date. In normal operation, the first check will frequently be 0 as WireGuard hasn't had the chance to handshake yet.

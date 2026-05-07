@@ -64,12 +64,10 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
     private func testConnectionLatency(_ timeInterval: TimeInterval, expecting expectedQuality: NetworkProtectionLatencyMonitor.ConnectionQuality) async {
         let monitor = NetworkProtectionLatencyMonitor()
 
-        var reportedQuality = NetworkProtectionLatencyMonitor.ConnectionQuality.unknown
         await monitor.start(serverIP: .init("127.0.0.1")!) { result in
             switch result {
             case .quality(let quality):
-                reportedQuality = quality
-                XCTAssertEqual(expectedQuality, reportedQuality)
+                XCTAssertEqual(expectedQuality, quality)
             case .error:
                 XCTFail("Unexpected result")
             }

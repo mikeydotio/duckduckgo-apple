@@ -249,7 +249,7 @@ public enum ExtensionMessage: RawRepresentable {
 
 }
 
-public struct ExtensionMessageString: RawRepresentable {
+public struct ExtensionMessageString: RawRepresentable, Sendable {
 
     private static let preferredStringEncoding = String.Encoding.utf16
 
@@ -270,7 +270,7 @@ public struct ExtensionMessageString: RawRepresentable {
 
 }
 
-public struct ExtensionMessageBool: RawRepresentable {
+public struct ExtensionMessageBool: RawRepresentable, Sendable {
 
     public let value: Bool
 

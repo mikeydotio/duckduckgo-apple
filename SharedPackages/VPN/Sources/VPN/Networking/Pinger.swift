@@ -107,7 +107,7 @@ public final class Pinger: @unchecked Sendable {
 
 public extension Pinger {
 
-    struct PingResult {
+    struct PingResult: Sendable {
         /// server IP (use .description for String value)
         public let ip: IPv4Address
         /// response size
@@ -120,24 +120,24 @@ public extension Pinger {
         public let time: TimeInterval
     }
 
-    enum PingError: Error {
+    enum PingError: Error, Sendable {
         case socket
         case send(SendError)
         case response(ResponseError)
         case timeout(TimeoutKind)
         case cancelled
 
-        public enum SendError {
+        public enum SendError: Sendable {
             case tooShort(Int)
             case errno(errno_t)
         }
-        public enum ResponseError {
+        public enum ResponseError: Sendable {
             case tooShort(Int)
             case validation(ICMPValidationError)
             case errno(errno_t)
             case connectionClosed
         }
-        public enum TimeoutKind {
+        public enum TimeoutKind: Sendable {
             case send    // timeouted on socket.send
             case select  // timeouted on socket.select
             case intrans // timexceed on socket.recv: ttl==0 in transit
@@ -146,7 +146,7 @@ public extension Pinger {
         }
     }
 
-    enum ICMPValidationError {
+    enum ICMPValidationError: Sendable {
         case invalidChecksum(received: UInt16, calculated: UInt16)
 
         case wrongId(UUID)
@@ -157,10 +157,10 @@ public extension Pinger {
         case unknown(type: u_char, code: u_char)
     }
 
-    enum ICMPTypeCode {
+    enum ICMPTypeCode: Sendable {
         case echoreply                  // 0  echo reply
         case unreach(Unreach)           // 3  dest unreachable, codes:
-        public enum Unreach: u_char {
+        public enum Unreach: u_char, Sendable {
             case net               = 0  // bad net
             case host              = 1  // bad host
             case `protocol`        = 2  // bad protocol
@@ -181,7 +181,7 @@ public extension Pinger {
 
         case sourcequench               // 4  packet lost, slow down
         case redirect(Redirect)         // 5  shorter route, codes:
-        public enum Redirect: u_char {
+        public enum Redirect: u_char, Sendable {
             case net               = 0  // for network
             case host              = 1  // for host
             case tosnet            = 2  // for tos and net
@@ -192,13 +192,13 @@ public extension Pinger {
 
         case routersolicit              // 10 router solicitation
         case timxceed(Timexceed)        // 11 time exceeded, code:
-        public enum Timexceed: u_char {
+        public enum Timexceed: u_char, Sendable {
             case intrans           = 0  // ttl==0 in transit
             case reass             = 1  // ttl==0 in reass
         }
 
         case paramprob(Paramprob)       // 12 ip header bad
-        public enum Paramprob: u_char {
+        public enum Paramprob: u_char, Sendable {
             case erratptr          = 0  // error at param ptr
             case optabsent         = 1  // req. opt. absent
             case length            = 2  // bad length
@@ -219,7 +219,7 @@ public extension Pinger {
         case mobile_regreply            // 36 mobile registration reply
         case skip                       // 39 SKIP
         case photuris(Photuris)         // 40 Photuris
-        public enum Photuris: u_char {
+        public enum Photuris: u_char, Sendable {
             case unknown_index     = 1  // unknown sec index
             case auth_failed       = 2  // auth failed
             case decrypt_failed    = 3  // decrypt failed

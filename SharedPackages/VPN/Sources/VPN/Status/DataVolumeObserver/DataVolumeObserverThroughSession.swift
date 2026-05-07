@@ -78,29 +78,39 @@ public class DataVolumeObserverThroughSession: DataVolumeObserver {
 
     // MARK: - Obtaining the data volume
 
-    private func updateDataVolume(session: NETunnelProviderSession) async {
+    private static func dataVolume(session: NETunnelProviderSession) async -> DataVolume? {
         guard let data: ExtensionMessageString = try? await session.sendProviderMessage(.getDataVolume) else {
-            return
+            return nil
         }
 
         let bytes = data.value.components(separatedBy: ",")
         guard let receivedString = bytes.first, let sentString = bytes.last,
               let received = Int64(receivedString), let sent = Int64(sentString) else {
-            return
+            return nil
         }
 
-        subject.send(DataVolume(bytesSent: sent, bytesReceived: received))
+        return DataVolume(bytesSent: sent, bytesReceived: received)
     }
 
     private func updateDataVolume() {
-        Task {
+        Task { [weak self, tunnelSessionProvider] in
             guard let session = await tunnelSessionProvider.activeSession(),
                 session.status == .connected else {
 
                 return
             }
 
-            await updateDataVolume(session: session)
+            guard let dataVolume = await Self.dataVolume(session: session) else {
+                return
+            }
+
+            guard let self else {
+                return
+            }
+
+            await MainActor.run {
+                self.subject.send(dataVolume)
+            }
         }
     }
 }

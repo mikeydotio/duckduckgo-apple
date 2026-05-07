@@ -23,7 +23,7 @@ import os.log
 
 /// Codable representation of VPN settings that can be passed to the packet tunnel
 ///
-public struct VPNSettingsSnapshot: Codable, Equatable {
+public struct VPNSettingsSnapshot: Codable, Equatable, Sendable {
     let registrationKeyValidity: VPNSettings.RegistrationKeyValidity
     let selectedEnvironment: VPNSettings.SelectedEnvironment
     let selectedServer: VPNSettings.SelectedServer
@@ -69,9 +69,9 @@ public struct VPNSettingsSnapshot: Codable, Equatable {
 
 /// This class handles the proper parsing of the startup options for our tunnel.
 ///
-public struct StartupOptions {
+public struct StartupOptions: Sendable {
 
-    enum StartupMethod: CustomDebugStringConvertible {
+    enum StartupMethod: CustomDebugStringConvertible, Sendable {
         /// Case started up manually from the main app.
         ///
         case manualByMainApp
@@ -101,7 +101,7 @@ public struct StartupOptions {
     ///
     /// Since these options are stored, the logic can allow for
     ///
-    public enum StoredOption<T: Equatable>: Equatable {
+    public enum StoredOption<T: Equatable & Sendable>: Equatable, Sendable {
         case set(_ value: T)
         case reset
         case useExisting

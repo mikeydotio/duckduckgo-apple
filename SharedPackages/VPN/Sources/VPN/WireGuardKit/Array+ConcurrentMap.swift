@@ -3,6 +3,27 @@
 
 import Foundation
 
+private final class ConcurrentMapResults<Value: Sendable>: @unchecked Sendable {
+    private var values: [Value?]
+    private let lock = NSLock()
+
+    init(count: Int) {
+        self.values = [Value?](repeating: nil, count: count)
+    }
+
+    func set(_ value: Value, at index: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        values[index] = value
+    }
+
+    func resolved() -> [Value] {
+        lock.lock()
+        defer { lock.unlock() }
+        return values.map { $0! }
+    }
+}
+
 extension Array {
 
     /// Returns an array containing the results of mapping the given closure over the sequence’s
@@ -14,21 +35,22 @@ extension Array {
     ///            Pass `nil` to perform computations on the current queue.
     ///   - transform: the block to perform concurrent computations over the given element.
     /// - Returns: an array of concurrently computed values.
-    func concurrentMap<U>(queue: DispatchQueue?, _ transform: (Element) -> U) -> [U] {
-        var result = [U?](repeating: nil, count: self.count)
-        let resultQueue = DispatchQueue(label: "ConcurrentMapQueue")
+    func concurrentMap<U: Sendable>(queue: DispatchQueue?, _ transform: @Sendable @escaping (Element) -> U) -> [U] where Element: Sendable {
+        let results = ConcurrentMapResults<U>(count: self.count)
 
-        let execute = queue?.sync ?? { $0() }
-
-        execute {
+        let work: @Sendable () -> Void = {
             DispatchQueue.concurrentPerform(iterations: self.count) { index in
                 let value = transform(self[index])
-                resultQueue.sync {
-                    result[index] = value
-                }
+                results.set(value, at: index)
             }
         }
 
-        return result.map { $0! }
+        if let queue {
+            queue.sync(execute: work)
+        } else {
+            work()
+        }
+
+        return results.resolved()
     }
 }

@@ -31,7 +31,7 @@ public protocol TunnelFailureMonitoring: Actor {
     /// Starts monitoring tunnel failures.
     ///
     /// - Parameter callback: Called when a tunnel failure is detected or recovered
-    func start(callback: @escaping (NetworkProtectionTunnelFailureMonitor.Result) -> Void)
+    func start(callback: @Sendable @escaping (NetworkProtectionTunnelFailureMonitor.Result) -> Void)
 
     /// Stops monitoring tunnel failures.
     func stop()

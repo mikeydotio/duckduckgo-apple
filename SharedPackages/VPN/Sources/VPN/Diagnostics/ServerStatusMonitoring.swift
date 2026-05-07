@@ -34,7 +34,7 @@ public protocol ServerStatusMonitoring: Actor {
     ///   - serverName: The name of the server to monitor
     ///   - callback: Called when server status changes or migration is needed
     func start(serverName: String,
-               callback: @escaping (NetworkProtectionServerStatusMonitor.ServerStatusResult) -> Void)
+               callback: @Sendable @escaping (NetworkProtectionServerStatusMonitor.ServerStatusResult) -> Void)
 
     /// Stops monitoring server status.
     func stop()

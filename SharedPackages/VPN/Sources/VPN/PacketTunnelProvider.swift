@@ -407,7 +407,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let keychainType: KeychainType
     private let debugEvents: EventMapping<NetworkProtectionError>
     private let providerEvents: EventMapping<Event>
-    public let entitlementCheck: (() async -> Result<Bool, Error>)?
+    public let entitlementCheck: (@Sendable () async -> Result<Bool, Error>)?
     public let loopDetector: ConnectionFailureLoopDetector
 
     @MainActor
@@ -436,7 +436,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 keyExpirationTester: KeyExpirationTesting? = nil,
                 tunnelFailureMonitor: TunnelFailureMonitoring? = nil,
                 failureRecoveryHandler: FailureRecoveryHandling? = nil,
-                entitlementCheck: (() async -> Result<Bool, Error>)?,
+                entitlementCheck: (@Sendable () async -> Result<Bool, Error>)?,
                 loopDetector: ConnectionFailureLoopDetector) {
         Logger.networkProtectionMemory.log("[+] PacketTunnelProvider")
 
@@ -1623,31 +1623,33 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await stopMonitors()
 
         self.adapter.snooze { [weak self] error in
-            guard let self else {
-                assertionFailure("Failed to get strong self")
-                return
-            }
+            Task { @MainActor in
+                guard let self else {
+                    assertionFailure("Failed to get strong self")
+                    return
+                }
 
-            if error == nil {
-                self.connectionStatus = .snoozing
-                self.snoozeTimingStore.activeTiming = .init(startDate: Date(), duration: duration)
-                self.notificationsPresenter.showSnoozingNotification(duration: duration)
+                if error == nil {
+                    self.connectionStatus = .snoozing
+                    self.snoozeTimingStore.activeTiming = .init(startDate: Date(), duration: duration)
+                    self.notificationsPresenter.showSnoozingNotification(duration: duration)
 
-                snoozeTimerTask = Task.periodic(interval: .seconds(1)) { [weak self] in
-                    guard let self else { return }
+                    self.snoozeTimerTask = Task.periodic(interval: .seconds(1)) { [weak self] in
+                        guard let self else { return }
 
-                    if self.snoozeTimingStore.hasExpired {
-                        Task.detached {
-                            Logger.networkProtection.log("Snooze mode timer expired, canceling snooze now...")
-                            await self.cancelSnooze()
+                        if self.snoozeTimingStore.hasExpired {
+                            Task { @MainActor in
+                                Logger.networkProtection.log("Snooze mode timer expired, canceling snooze now...")
+                                await self.cancelSnooze()
+                            }
                         }
                     }
+                } else {
+                    self.snoozeTimingStore.reset()
                 }
-            } else {
-                self.snoozeTimingStore.reset()
-            }
 
-            self.snoozeRequestProcessing = false
+                self.snoozeRequestProcessing = false
+            }
         }
     }
 

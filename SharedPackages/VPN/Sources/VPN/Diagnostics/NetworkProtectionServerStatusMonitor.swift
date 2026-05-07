@@ -68,7 +68,7 @@ public actor NetworkProtectionServerStatusMonitor: ServerStatusMonitoring {
 
     // MARK: - Start/Stop monitoring
 
-    public func start(serverName: String, callback: @escaping (ServerStatusResult) -> Void) {
+    public func start(serverName: String, callback: @Sendable @escaping (ServerStatusResult) -> Void) {
         Logger.networkProtectionServerStatusMonitor.log("⚫️ Starting server status monitor for \(serverName, privacy: .public)")
 
         task = Task.periodic(delay: Self.monitoringInterval, interval: Self.monitoringInterval) {

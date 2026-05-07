@@ -19,7 +19,8 @@
 import Foundation
 
 final class MockURLProtocol: URLProtocol {
-    static var stubs: [URL: (response: URLResponse, result: Result<Data, Error>)] = [:]
+    // Test cases install stubs before issuing URL requests.
+    nonisolated(unsafe) static var stubs: [URL: (response: URLResponse, result: Result<Data, Error>)] = [:]
 
     override class func canInit(with request: URLRequest) -> Bool {
         guard let url = request.url else { return false }

@@ -194,12 +194,11 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         endpointURL.appending("/servers/\(serverName)/status")
     }
 
-    private let decoder: JSONDecoder = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate, .withFullTime, .withFractionalSeconds]
-
+    private static func makeDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom({ decoder in
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withFullDate, .withFullTime, .withFractionalSeconds]
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
 
@@ -211,7 +210,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         })
 
         return decoder
-    }()
+    }
 
     private let endpointURL: URL
 
@@ -256,7 +255,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         do {
-            let decodedLocations = try decoder.decode([NetworkProtectionLocation].self, from: downloadedData)
+            let decodedLocations = try Self.makeDecoder().decode([NetworkProtectionLocation].self, from: downloadedData)
             return .success(decodedLocations)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseLocationListResponse(error))
@@ -300,7 +299,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         do {
-            let decodedServers = try decoder.decode([NetworkProtectionServer].self, from: downloadedData)
+            let decodedServers = try Self.makeDecoder().decode([NetworkProtectionServer].self, from: downloadedData)
             return .success(decodedServers)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseServerListResponse(error))
@@ -344,7 +343,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         do {
-            let serverStatus = try decoder.decode(NetworkProtectionServerStatus.self, from: downloadedData)
+            let serverStatus = try Self.makeDecoder().decode(NetworkProtectionServerStatus.self, from: downloadedData)
             return .success(serverStatus)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseServerStatusResponse(error))
@@ -405,7 +404,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         do {
-            let decodedServers = try decoder.decode([NetworkProtectionServer].self, from: responseData)
+            let decodedServers = try Self.makeDecoder().decode([NetworkProtectionServer].self, from: responseData)
             return .success(decodedServers)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseRegisteredServersResponse(error))

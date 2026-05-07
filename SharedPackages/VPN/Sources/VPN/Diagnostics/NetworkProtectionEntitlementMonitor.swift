@@ -52,7 +52,8 @@ public actor NetworkProtectionEntitlementMonitor: EntitlementMonitoring {
 
     // MARK: - Start/Stop monitoring
 
-    public func start(entitlementCheck: @escaping () async -> Swift.Result<Bool, Error>, callback: @escaping (Result) async -> Void) {
+    public func start(entitlementCheck: @Sendable @escaping () async -> Swift.Result<Bool, Error>,
+                      callback: @Sendable @escaping (Result) async -> Void) {
         Logger.networkProtectionEntitlement.log("⚫️ Starting entitlement monitor")
 
         task = Task.periodic(interval: Self.monitoringInterval) {

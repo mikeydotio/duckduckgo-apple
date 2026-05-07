@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum LeakCheckTrigger: String, Codable {
+public enum LeakCheckTrigger: String, Codable, Sendable {
     case tunnelStart = "tunnel_start"
     case reassert
     case periodic
@@ -35,20 +35,20 @@ public struct LeakCheckEgressInfo: Equatable, Sendable {
     }
 }
 
-public enum IPVersion: String {
+public enum IPVersion: String, Sendable {
     case v4 = "ipv4"
     case v6 = "ipv6"
 }
 
-public enum LeakCheckProtocol: String {
+public enum LeakCheckProtocol: String, Sendable {
     case http
     case https
     case stun
 }
 
-public struct LeakCheckPerTestResult: Codable, Equatable {
+public struct LeakCheckPerTestResult: Codable, Equatable, Sendable {
 
-    public enum Status: String, Codable {
+    public enum Status: String, Codable, Sendable {
         case success
         case leak
         case error
@@ -117,7 +117,7 @@ public struct LeakCheckPerTestResult: Codable, Equatable {
     }
 }
 
-public struct LeakCheckConfiguration {
+public struct LeakCheckConfiguration: Sendable {
     public let host: String
     public let httpPort: UInt16
     public let httpsPort: UInt16

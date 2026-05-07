@@ -129,11 +129,10 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
     private func networkInterface(forInterfaceNamed interfaceName: String) async throws -> NWInterface {
         try await withCheckedThrowingContinuation { continuation in
             let monitor = NWPathMonitor()
-            var didResume = false
+            let resumeGate = ConnectionTestResumeGate()
 
             monitor.pathUpdateHandler = { path in
-                guard !didResume else { return }
-                didResume = true
+                guard resumeGate.shouldResume() else { return }
 
                 Logger.networkProtectionConnectionTester.log("All interfaces: \(String(describing: path.availableInterfaces), privacy: .public)")
 
@@ -231,8 +230,9 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
         }
 
         do {
+            let timeout = Self.connectionTimeout
             // await for .ready connection state and consider working
-            return try await withTimeout(Self.connectionTimeout) {
+            return try await withTimeout(timeout) {
                 for await state in stateUpdateStream {
                     if case .ready = state {
                         return true
@@ -262,5 +262,22 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
     private func handleDisconnected() {
         failureCount += 1
         resultHandler?(.disconnected(failureCount: failureCount))
+    }
+}
+
+private final class ConnectionTestResumeGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var didResume = false
+
+    func shouldResume() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard !didResume else {
+            return false
+        }
+
+        didResume = true
+        return true
     }
 }

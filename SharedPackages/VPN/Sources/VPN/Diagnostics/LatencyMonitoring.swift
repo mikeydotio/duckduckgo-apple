@@ -35,7 +35,7 @@ public protocol LatencyMonitoring: Actor {
     ///   - serverIP: The IPv4 address of the server to monitor
     ///   - callback: Called with latency measurements and quality assessments
     func start(serverIP: IPv4Address,
-               callback: @escaping (NetworkProtectionLatencyMonitor.Result) -> Void)
+               callback: @Sendable @escaping (NetworkProtectionLatencyMonitor.Result) -> Void)
 
     /// Stops monitoring latency.
     func stop()

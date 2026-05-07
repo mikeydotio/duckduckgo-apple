@@ -33,8 +33,8 @@ public protocol EntitlementMonitoring: Actor {
     /// - Parameters:
     ///   - entitlementCheck: Closure that performs the entitlement validation
     ///   - callback: Called with entitlement check results
-    func start(entitlementCheck: @escaping () async -> Result<Bool, Error>,
-               callback: @escaping (NetworkProtectionEntitlementMonitor.Result) async -> Void)
+    func start(entitlementCheck: @Sendable @escaping () async -> Result<Bool, Error>,
+               callback: @Sendable @escaping (NetworkProtectionEntitlementMonitor.Result) async -> Void)
 
     /// Stops monitoring entitlement status.
     func stop()

@@ -28,7 +28,7 @@ import Networking
 ///
 public final class VPNSettings {
 
-    public enum Change: Codable {
+    public enum Change: Codable, Sendable {
         case setConnectOnLogin(_ connectOnLogin: Bool)
         case setIncludeAllNetworks(_ includeAllNetworks: Bool)
         case setEnforceRoutes(_ enforceRoutes: Bool)
@@ -46,12 +46,12 @@ public final class VPNSettings {
         case setDisableRekeying(_ disableRekeying: Bool)
     }
 
-    public enum RegistrationKeyValidity: Codable, Equatable {
+    public enum RegistrationKeyValidity: Codable, Equatable, Sendable {
         case automatic
         case custom(_ timeInterval: TimeInterval)
     }
 
-    public enum SelectedServer: Codable, Equatable {
+    public enum SelectedServer: Codable, Equatable, Sendable {
         case automatic
         case endpoint(String)
 
@@ -63,7 +63,7 @@ public final class VPNSettings {
         }
     }
 
-    public enum SelectedLocation: Codable, Equatable {
+    public enum SelectedLocation: Codable, Equatable, Sendable {
         case nearest
         case location(NetworkProtectionSelectedLocation)
 
@@ -82,11 +82,11 @@ public final class VPNSettings {
         }
     }
 
-    public enum SelectedEnvironment: String, Codable {
+    public enum SelectedEnvironment: String, Codable, Sendable {
         case production
         case staging
 
-        public static var `default`: SelectedEnvironment = .production
+        public static let `default`: SelectedEnvironment = .production
 
         public var endpointURL: URL {
             switch self {

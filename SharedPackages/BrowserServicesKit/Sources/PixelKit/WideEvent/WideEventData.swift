@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public struct WideEventMetadata {
+public struct WideEventMetadata: Sendable {
     /// The name used when sending the pixel.
     /// This will be appended to `m_(ios|macos)_wide_`.
     public let pixelName: String

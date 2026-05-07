@@ -97,7 +97,7 @@ final class PacketTunnelMessageHandler {
 
     // MARK: - Message Routing
 
-    func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
+    func handleAppMessage(_ messageData: Data, completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         guard let message = ExtensionMessage(rawValue: messageData) else {
             Logger.networkProtectionIPC.error("🔴 Received unknown app message")
             completionHandler?(nil)
@@ -160,7 +160,7 @@ final class PacketTunnelMessageHandler {
 
     // MARK: - Request Handling
 
-    private func handleRequest(_ request: ExtensionRequest, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleRequest(_ request: ExtensionRequest, completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Logger.networkProtectionIPC.log("⚪️ Handling app request: \(String(describing: request), privacy: .public)")
         switch request {
         case .changeTunnelSetting(let change):
@@ -171,11 +171,11 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func handleSettingChangeAppRequest(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleSettingChangeAppRequest(_ change: VPNSettings.Change, completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         settings.apply(change: change)
     }
 
-    private func handle(_ command: VPNCommand, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handle(_ command: VPNCommand, completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         switch command {
         case .removeSystemExtension:
             // Since the system extension is being removed we may as well reset all state
@@ -214,7 +214,7 @@ final class PacketTunnelMessageHandler {
 
     // MARK: - Individual Handlers
 
-    private func handleExpireRegistrationKey(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleExpireRegistrationKey(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task {
             keyStore.currentExpirationDate = Date()
             await keyExpirationTester.rekeyIfExpired()
@@ -222,24 +222,24 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func handleGetLastErrorMessage(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleGetLastErrorMessage(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         let response = controllerErrorStore.lastErrorMessage.map(ExtensionMessageString.init)
         completionHandler?(response?.rawValue)
     }
 
-    private func handleGetRuntimeConfiguration(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleGetRuntimeConfiguration(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         adapter.getRuntimeConfiguration { settings in
             let response = settings.map(ExtensionMessageString.init)
             completionHandler?(response?.rawValue)
         }
     }
 
-    private func handleIsHavingConnectivityIssues(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleIsHavingConnectivityIssues(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         let response = ExtensionMessageBool(tunnelHealth.isHavingConnectivityIssues)
         completionHandler?(response.rawValue)
     }
 
-    private func handleSetSelectedServer(_ serverName: String?, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleSetSelectedServer(_ serverName: String?, completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task { [weak self] in
             guard let self else {
                 completionHandler?(nil)
@@ -276,7 +276,7 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleGetServerLocation(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         guard let attributes = tunnelState?.lastSelectedServerInfo?.attributes else {
             completionHandler?(nil)
             return
@@ -292,19 +292,19 @@ final class PacketTunnelMessageHandler {
         completionHandler?(ExtensionMessageString(encodedJSONString).rawValue)
     }
 
-    private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleGetServerAddress(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         let response = tunnelState?.lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.host.hostWithoutPort) }
         completionHandler?(response?.rawValue)
     }
 
-    private func handleSetKeyValidity(_ keyValidity: TimeInterval?, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleSetKeyValidity(_ keyValidity: TimeInterval?, completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task {
             await keyExpirationTester.setKeyValidity(keyValidity)
             completionHandler?(nil)
         }
     }
 
-    private func handleResetAllState(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleResetAllState(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         tunnelLifecycle?.resetRegistrationKey()
         Task { [weak self] in
 #if os(macOS)
@@ -316,7 +316,7 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func handleRestartAdapter(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleRestartAdapter(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task { [weak self] in
             do {
                 try await self?.tunnelLifecycle?.restartAdapter()
@@ -327,14 +327,14 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func handleSendTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleSendTestNotification(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
         completionHandler?(nil)
     }
 
     // Used for the iOS debug menu by DuckDuckGo VPN developers
     @available(macOS 12.0, iOS 15.0, *)
-    private func handleCreateLogSnapshot(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleCreateLogSnapshot(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task {
             do {
                 let logCollector = NetworkProtectionDebugLogCollector()
@@ -348,27 +348,29 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func simulateTunnelFailure(completionHandler: ((Data?) -> Void)? = nil) {
+    private func simulateTunnelFailure(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task {
             Logger.networkProtection.log("Simulating tunnel failure")
 
             adapter.stop { [weak self] error in
-                if let error {
-                    self?.debugEvents.fire(error.networkProtectionError)
-                    Logger.networkProtection.error("🔴 Failed to stop WireGuard adapter: \(error.localizedDescription, privacy: .public)")
-                }
+                Task { @MainActor in
+                    if let error {
+                        self?.debugEvents.fire(error.networkProtectionError)
+                        Logger.networkProtection.error("🔴 Failed to stop WireGuard adapter: \(error.localizedDescription, privacy: .public)")
+                    }
 
-                completionHandler?(error.map { ExtensionMessageString($0.localizedDescription).rawValue })
+                    completionHandler?(error.map { ExtensionMessageString($0.localizedDescription).rawValue })
+                }
             }
         }
     }
 
-    private func simulateTunnelFatalError(completionHandler: ((Data?) -> Void)? = nil) {
+    private func simulateTunnelFatalError(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         completionHandler?(nil)
         fatalError("Simulated PacketTunnelProvider crash")
     }
 
-    private func simulateTunnelMemoryOveruse(completionHandler: ((Data?) -> Void)? = nil) {
+    private func simulateTunnelMemoryOveruse(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         completionHandler?(nil)
         var array = [String]()
         while true {
@@ -376,12 +378,12 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func simulateConnectionInterruption(completionHandler: ((Data?) -> Void)? = nil) {
+    private func simulateConnectionInterruption(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         connectionTester.failNextTest()
         completionHandler?(nil)
     }
 
-    private func getDataVolume(completionHandler: ((Data?) -> Void)? = nil) {
+    private func getDataVolume(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task {
             guard let (received, sent) = try? await adapter.getBytesTransmitted() else {
                 completionHandler?(nil)
@@ -393,14 +395,14 @@ final class PacketTunnelMessageHandler {
         }
     }
 
-    private func startSnooze(_ duration: TimeInterval, completionHandler: ((Data?) -> Void)? = nil) {
+    private func startSnooze(_ duration: TimeInterval, completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task { [weak self] in
             await self?.snoozeManager?.startSnooze(duration: duration)
             completionHandler?(nil)
         }
     }
 
-    private func cancelSnooze(completionHandler: ((Data?) -> Void)? = nil) {
+    private func cancelSnooze(completionHandler: (@Sendable (Data?) -> Void)? = nil) {
         Task { [weak self] in
             await self?.snoozeManager?.cancelSnooze()
             completionHandler?(nil)

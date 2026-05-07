@@ -20,8 +20,8 @@ import Foundation
 import Common
 import os.log
 
-public enum FailureRecoveryStep {
-    public enum ServerHealth {
+public enum FailureRecoveryStep: Sendable {
+    public enum ServerHealth: Sendable {
         case healthy
         case unhealthy
     }
@@ -36,7 +36,7 @@ public protocol FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         excludeLocalNetworks: Bool,
         dnsSettings: NetworkProtectionDNSSettings,
-        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
+        updateConfig: @Sendable @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async
 
     func stop() async
@@ -49,13 +49,13 @@ private enum FailureRecoveryResult: Error {
 
 actor FailureRecoveryHandler: FailureRecoveryHandling {
 
-    struct RetryConfig {
+    struct RetryConfig: Sendable {
         let times: Int
         let initialDelay: TimeInterval
         let maxDelay: TimeInterval
         let factor: Double
 
-        static var `default` = RetryConfig(
+        static let `default` = RetryConfig(
             times: 5,
             initialDelay: .seconds(30),
             maxDelay: .minutes(5),
@@ -66,7 +66,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
     private let deviceManager: NetworkProtectionDeviceManagement
     private weak var reassertingControl: Reasserting?
     private let retryConfig: RetryConfig
-    private let eventHandler: (FailureRecoveryStep) -> Void
+    private let eventHandler: @Sendable (FailureRecoveryStep) -> Void
 
     private var task: Task<Void, Never>? {
         willSet {
@@ -74,7 +74,10 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         }
     }
 
-    init(deviceManager: NetworkProtectionDeviceManagement, reassertingControl: Reasserting, retryConfig: RetryConfig = .default, eventHandler: @escaping (FailureRecoveryStep) -> Void) {
+    init(deviceManager: NetworkProtectionDeviceManagement,
+         reassertingControl: Reasserting,
+         retryConfig: RetryConfig = .default,
+         eventHandler: @Sendable @escaping (FailureRecoveryStep) -> Void) {
         self.deviceManager = deviceManager
         self.reassertingControl = reassertingControl
         self.retryConfig = retryConfig
@@ -85,7 +88,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         excludeLocalNetworks: Bool,
         dnsSettings: NetworkProtectionDNSSettings,
-        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
+        updateConfig: @Sendable @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async {
         reassertingControl?.startReasserting()
         defer {
@@ -156,7 +159,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
     private func incrementalPeriodicChecks(
         _ config: RetryConfig,
-        action: @escaping () async throws -> Void
+        action: @Sendable @escaping () async throws -> Void
     ) async {
         let task = Task(priority: .background) {
             var currentDelay = config.initialDelay
