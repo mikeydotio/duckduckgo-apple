@@ -167,6 +167,16 @@ private extension NewTabPageView {
         return true
     }
 
+    /// On iPad regular size class, widen the hatch to match the favorites grid container.
+    /// iPhone (including Plus/Max in landscape, where horizontal size class is regular) keeps
+    /// the original `messageMaximumWidth` because the favorites grid stays compact (4 cols).
+    private var escapeHatchMaxWidth: CGFloat {
+        if UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular {
+            return Metrics.escapeHatchMaximumWidthPad
+        }
+        return Metrics.messageMaximumWidth
+    }
+
     @ViewBuilder
     private var escapeHatchSectionView: some View {
         if let escapeHatch = viewModel.escapeHatch {
@@ -176,7 +186,7 @@ private extension NewTabPageView {
                 onCardTap: { viewModel.onEscapeHatchTap?() },
                 onTabSwitcherTap: { viewModel.onTabSwitcherTap?() }
             )
-            .frame(maxWidth: horizontalSizeClass == .regular ? Metrics.escapeHatchMaximumWidthPad : Metrics.messageMaximumWidth)
+            .frame(maxWidth: escapeHatchMaxWidth)
             .padding(.top, Metrics.nonGridSectionTopPadding)
             .padding(.horizontal, Metrics.updatedNonGridSectionHorizontalPadding)
         }
