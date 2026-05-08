@@ -24,6 +24,12 @@ import Subscription
 
 private let appDistribution = AppVersion.isAppStoreBuild ? "store" : "direct"
 
+enum SubscriptionAppMenuEntryStatus: String {
+    case churned
+    case freeEligible = "free-eligible"
+    case freeIneligible = "free-ineligible"
+}
+
 enum SubscriptionPixel: PixelKitEvent {
     // Subscription
     case subscriptionActive(AuthVersion)
@@ -111,6 +117,12 @@ enum SubscriptionPixel: PixelKitEvent {
     case subscriptionWinBackOfferNewTabPageShown
     case subscriptionWinBackOfferNewTabPageCTAClicked
     case subscriptionWinBackOfferNewTabPageDismissed
+
+    // Subscription Funnel Entry Points (App Menu, Preferences)
+    case subscriptionEntryAppMenuImpression(status: SubscriptionAppMenuEntryStatus)
+    case subscriptionEntryAppMenuSubscriptionClick(status: SubscriptionAppMenuEntryStatus)
+    case subscriptionEntrySettingsImpression
+    case subscriptionEntrySettingsSubscriptionClick
 
     // New Tab Page Next Steps Card
     case subscriptionNewTabPageNextStepsCardClicked
@@ -212,6 +224,11 @@ enum SubscriptionPixel: PixelKitEvent {
 
         case .subscriptionWinBackOfferNewTabPageDismissed: return "m_mac_\(appDistribution)_privacy-pro_winback_new_tab_page_dismissed"
 
+            // Subscription Funnel Entry Points
+        case .subscriptionEntryAppMenuImpression: return "m_mac_\(appDistribution)_subscription_appmenu_impression"
+        case .subscriptionEntryAppMenuSubscriptionClick: return "m_mac_\(appDistribution)_subscription_appmenu_subscription_click"
+        case .subscriptionEntrySettingsImpression: return "m_mac_\(appDistribution)_subscription_settings_impression"
+        case .subscriptionEntrySettingsSubscriptionClick: return "m_mac_\(appDistribution)_subscription_settings_subscription_click"
             // New Tab Page Next Steps Card
         case .subscriptionNewTabPageNextStepsCardClicked: return "m_mac_\(appDistribution)_privacy-pro_new_tab_page_next_steps_card_clicked"
         case .subscriptionNewTabPageNextStepsCardDismissed: return "m_mac_\(appDistribution)_privacy-pro_new_tab_page_next_steps_card_dismissed"
@@ -228,6 +245,7 @@ enum SubscriptionPixel: PixelKitEvent {
         static let sourceKey = "source"
         static let platformKey = "platform"
         static let activationDayKey = "activation_day"
+        static let statusKey = "status"
     }
 
     var parameters: [String: String]? {
@@ -249,6 +267,9 @@ enum SubscriptionPixel: PixelKitEvent {
              .freeTrialPIRActivation(let activationDay),
              .freeTrialDuckAIActivation(let activationDay):
             return [SubscriptionPixelsDefaults.activationDayKey: activationDay.rawValue]
+        case .subscriptionEntryAppMenuImpression(let status),
+             .subscriptionEntryAppMenuSubscriptionClick(let status):
+            return [SubscriptionPixelsDefaults.statusKey: status.rawValue]
         default:
             return nil
         }
@@ -324,6 +345,10 @@ enum SubscriptionPixel: PixelKitEvent {
                 .subscriptionWinBackOfferNewTabPageDismissed,
                 .subscriptionNewTabPageNextStepsCardClicked,
                 .subscriptionNewTabPageNextStepsCardDismissed,
+                .subscriptionEntryAppMenuImpression,
+                .subscriptionEntryAppMenuSubscriptionClick,
+                .subscriptionEntrySettingsImpression,
+                .subscriptionEntrySettingsSubscriptionClick,
                 .subscriptionTierOptionsRequested,
                 .subscriptionTierOptionsSuccess,
                 .subscriptionTierOptionsFailure,

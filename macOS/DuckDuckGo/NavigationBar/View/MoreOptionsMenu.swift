@@ -107,6 +107,8 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
     private weak var updateMenuItem: NSMenuItem?
 
+    private var subscriptionAppMenuStatus: SubscriptionAppMenuEntryStatus?
+
     required init(coder: NSCoder) {
         fatalError("MoreOptionsMenu: Bad initializer")
     }
@@ -429,11 +431,17 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
     @objc func openSubscriptionPurchasePage(_ sender: NSMenuItem) {
         PixelKit.fire(MoreOptionsMenuPixel.subscriptionActionClicked, frequency: .daily)
+        if let status = subscriptionAppMenuStatus {
+            PixelKit.fire(SubscriptionPixel.subscriptionEntryAppMenuSubscriptionClick(status: status))
+        }
         actionDelegate?.optionsButtonMenuRequestedSubscriptionPurchasePage(self)
     }
 
     @objc func openWinBackOfferPurchasePage(_ sender: NSMenuItem) {
         PixelKit.fire(SubscriptionPixel.subscriptionWinBackOfferMainMenuClicked)
+        if let status = subscriptionAppMenuStatus {
+            PixelKit.fire(SubscriptionPixel.subscriptionEntryAppMenuSubscriptionClick(status: status))
+        }
         actionDelegate?.optionsButtonMenuRequestedWinBackOfferPurchasePage(self)
     }
 
@@ -643,6 +651,9 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
         // Check if user is eligible for Win-back Offer
         if winBackOfferVisibilityManager.isOfferAvailable {
             addItem(makeWinBackOfferMenuItem())
+            subscriptionAppMenuStatus = .churned
+            PixelKit.fire(SubscriptionPixel.subscriptionWinBackOfferMainMenuShown)
+            PixelKit.fire(SubscriptionPixel.subscriptionEntryAppMenuImpression(status: .churned))
             return
         }
 
@@ -650,6 +661,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
             var subscriptionItem = NSMenuItem(title: UserText.subscriptionOptionsMenuItem)
                 .withImage(moreOptionsMenuIconsProvider.subscriptionIcon)
+            let status: SubscriptionAppMenuEntryStatus
 
             if subscriptionManager.isUserEligibleForFreeTrial() &&
                !freeTrialBadgePersistor.hasReachedViewLimit {
@@ -661,14 +673,18 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
                     image: moreOptionsMenuIconsProvider.subscriptionIcon,
                     menu: self
                 )
+                status = .freeEligible
             } else {
                 subscriptionItem.target = self
                 subscriptionItem.action = #selector(openSubscriptionPurchasePage(_:))
+                status = .freeIneligible
             }
 
             // Do not add for App Store when purchase not available in the region
             if !shouldHideDueToNoProduct() {
                 addItem(subscriptionItem)
+                subscriptionAppMenuStatus = status
+                PixelKit.fire(SubscriptionPixel.subscriptionEntryAppMenuImpression(status: status))
             }
         } else {
             let subscriptionItem = NSMenuItem(title: UserText.subscriptionOptionsMenuItem)
@@ -687,8 +703,6 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
     }
 
     private func makeWinBackOfferMenuItem() -> NSMenuItem {
-        PixelKit.fire(SubscriptionPixel.subscriptionWinBackOfferMainMenuShown)
-
         return NSMenuItem.createMenuItemWithBadge(
             title: UserText.subscriptionOptionsMenuItem,
             badgeText: UserText.winBackCampaignMenuBadgeText,

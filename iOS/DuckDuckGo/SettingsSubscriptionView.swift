@@ -148,6 +148,7 @@ struct SettingsSubscriptionView: View {
                     .foregroundColor(Color.init(designSystemColor: .accent))
                     .padding(.leading, 32.0)
             }, action: {
+                Pixel.fire(pixel: .subscriptionEntrySettingsSubscriptionClick)
                 subscriptionNavigationCoordinator.shouldPushSubscriptionWebView = true
             }, isButton: true)
 
@@ -161,6 +162,9 @@ struct SettingsSubscriptionView: View {
                            isActive: $isShowingRestoreFlow) {
                 SettingsCellView(label: UserText.settingsPProIHaveASubscription).padding(.leading, 32.0)
             }
+        }
+        .onAppear {
+            Pixel.fire(pixel: .subscriptionEntrySettingsImpression)
         }
     }
 
