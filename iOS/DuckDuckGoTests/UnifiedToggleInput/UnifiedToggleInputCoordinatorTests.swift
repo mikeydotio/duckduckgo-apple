@@ -1029,6 +1029,171 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
         XCTAssertNil(sut.viewController.selectedTool)
     }
 
+    // MARK: - Image Generation Tool
+
+    func test_toolsMenu_containsImageGenerationAction() {
+        sut.showExpanded()
+
+        let actionTitles = toolsMenuActions().map(\.title)
+
+        XCTAssertTrue(actionTitles.contains(UserText.aiChatToolbarImageGenerationToolTitle))
+    }
+
+    func test_toolsMenu_disablesImageGenerationActionWhenModelDoesNotSupportIt() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [])]
+
+        sut.showExpanded()
+
+        let imageGenAction = toolsMenuActions().first { $0.title == UserText.aiChatToolbarImageGenerationToolTitle }
+
+        XCTAssertEqual(imageGenAction?.attributes, .disabled)
+    }
+
+    func test_toolsMenu_enablesImageGenerationActionWhenModelSupportsIt() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+
+        sut.showExpanded()
+
+        let imageGenAction = toolsMenuActions().first { $0.title == UserText.aiChatToolbarImageGenerationToolTitle }
+
+        XCTAssertEqual(imageGenAction?.attributes, [])
+    }
+
+    func test_selectTool_imageGeneration_setsSelectedTool() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+
+        sut.selectTool(.imageGeneration)
+
+        XCTAssertEqual(sut.selectedTool, .imageGeneration)
+        XCTAssertEqual(sut.viewController.selectedTool, .imageGeneration)
+    }
+
+    func test_selectTool_imageGeneration_isIgnoredWhenModelDoesNotSupportIt() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [])]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+
+        sut.selectTool(.imageGeneration)
+
+        XCTAssertNil(sut.selectedTool)
+    }
+
+    func test_toolsController_toggleSelection_togglesOffSelectedImageGenerationTool() {
+        let toolsController = UTIToolsController()
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+        toolsController.select(.imageGeneration, for: sut.modelStore)
+
+        toolsController.toggleSelection(for: .imageGeneration, modelStore: sut.modelStore)
+
+        XCTAssertNil(toolsController.selectedTool)
+    }
+
+    func test_toolsController_selectingImageGeneration_replacesPreviousWebSearchSelection() {
+        let toolsController = UTIToolsController()
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.webSearch, .imageGeneration])]
+        toolsController.select(.webSearch, for: sut.modelStore)
+        XCTAssertEqual(toolsController.selectedTool, .webSearch)
+
+        toolsController.select(.imageGeneration, for: sut.modelStore)
+
+        XCTAssertEqual(toolsController.selectedTool, .imageGeneration)
+    }
+
+    func test_updateSelectedModel_clearsImageGenerationSelectionWhenNewModelDoesNotSupportIt() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [
+            makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration]),
+            makeModel(id: "claude", access: true, supportedTools: [])
+        ]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+        sut.selectTool(.imageGeneration)
+
+        sut.updateSelectedModel("claude")
+
+        XCTAssertNil(sut.selectedTool)
+        XCTAssertNil(sut.viewController.selectedTool)
+    }
+
+    func test_submitAIChat_imageGenerationSelected_forwardsToolChoice() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+        sut.selectTool(.imageGeneration)
+
+        sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "draw a cat", mode: .aiChat)
+
+        XCTAssertEqual(mockDelegate.submittedTools, [.imageGeneration])
+    }
+
+    // MARK: - Image Generation: Model & Reasoning Visibility
+
+    func test_selectImageGeneration_hidesModelChip() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+
+        sut.selectTool(.imageGeneration)
+
+        XCTAssertTrue(sut.viewController.isModelChipHidden)
+    }
+
+    func test_selectImageGeneration_hidesReasoningButton() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(
+            id: "gpt-5", access: true, supportedTools: [.imageGeneration],
+            supportedReasoningEffort: [.low, .medium, .high]
+        )]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+        XCTAssertFalse(sut.viewController.isReasoningButtonHidden)
+
+        sut.selectTool(.imageGeneration)
+
+        XCTAssertTrue(sut.viewController.isReasoningButtonHidden)
+    }
+
+    func test_clearImageGeneration_restoresModelChip() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+        sut.selectTool(.imageGeneration)
+        XCTAssertTrue(sut.viewController.isModelChipHidden)
+
+        sut.clearSelectedTool()
+
+        XCTAssertFalse(sut.viewController.isModelChipHidden)
+    }
+
+    func test_clearImageGeneration_restoresReasoningButton() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(
+            id: "gpt-5", access: true, supportedTools: [.imageGeneration],
+            supportedReasoningEffort: [.low, .medium, .high]
+        )]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+        sut.selectTool(.imageGeneration)
+        XCTAssertTrue(sut.viewController.isReasoningButtonHidden)
+
+        sut.clearSelectedTool()
+
+        XCTAssertFalse(sut.viewController.isReasoningButtonHidden)
+    }
+
+    func test_selectWebSearch_doesNotHideModelChip() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.webSearch])]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+
+        sut.selectTool(.webSearch)
+
+        XCTAssertFalse(sut.viewController.isModelChipHidden)
+    }
+
     // MARK: - Model Selection: persistedModelId
 
     func test_persistedModelId_returnsPreferencesValue() {
@@ -1172,6 +1337,37 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
         sut.unifiedToggleInputVC(sut.viewController, didSubmitText: "query", mode: .search)
         XCTAssertFalse(sut.hasSubmittedPrompt)
         XCTAssertFalse(sut.viewController.isModelChipHidden)
+    }
+
+    func test_modelChip_hiddenWhileImageGenerationSelected_andRestoredAfterDeselect_inNewChat() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+        sut.activateFromOmnibar(inputMode: .aiChat)
+        XCTAssertFalse(sut.viewController.isModelChipHidden)
+
+        sut.selectTool(.imageGeneration)
+        XCTAssertTrue(sut.viewController.isModelChipHidden)
+
+        sut.clearSelectedTool()
+        XCTAssertFalse(sut.viewController.isModelChipHidden)
+    }
+
+    func test_modelChip_remainsHiddenAfterDeselectingImageGeneration_inExistingChat() {
+        // Regression: deselecting the image-gen tool used to clobber the chip's hidden state to false,
+        // making the chip reappear inside an existing chat (where `hasSubmittedPrompt` should keep it hidden).
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.imageGeneration])]
+        let userScript = makeTestUserScript()
+        sut.bindToTab(userScript, hasExistingChat: true)
+        XCTAssertTrue(sut.hasSubmittedPrompt)
+        XCTAssertTrue(sut.viewController.isModelChipHidden)
+
+        sut.selectTool(.imageGeneration)
+        XCTAssertTrue(sut.viewController.isModelChipHidden)
+
+        sut.clearSelectedTool()
+        XCTAssertTrue(sut.hasSubmittedPrompt)
+        XCTAssertTrue(sut.viewController.isModelChipHidden)
     }
 
     // MARK: - Stale Model Selection
@@ -1537,8 +1733,14 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
         sut.modelStore.attachmentLimits = makeLimits()
     }
 
-    private func makeModel(id: String, access: Bool, supportsImageUpload: Bool = false, supportedTools: [AIChatRAGTool] = []) -> AIChatModel {
-        AIChatModel(id: id, name: id, provider: .unknown, supportsImageUpload: supportsImageUpload, supportedTools: supportedTools, entityHasAccess: access)
+    private func makeModel(id: String,
+                           access: Bool,
+                           supportsImageUpload: Bool = false,
+                           supportedTools: [AIChatRAGTool] = [],
+                           supportedReasoningEffort: [AIChatReasoningEffort] = []) -> AIChatModel {
+        AIChatModel(id: id, name: id, provider: .unknown, supportsImageUpload: supportsImageUpload,
+                    supportedTools: supportedTools, entityHasAccess: access,
+                    supportedReasoningEffort: supportedReasoningEffort)
     }
 
     private func makeLimits() -> AIChatAttachmentTierLimits {
@@ -2129,6 +2331,23 @@ final class UnifiedToggleInputCoordinatorPerTabStateTests: XCTestCase {
         XCTAssertNil(store.states["tab-A"]?.selectedTool)
     }
 
+    func test_handleExternalSubmission_prompt_clearsLastUsedSelectedTool() {
+        // Regression: the lastUsed snapshot was not cleared on submission, so a fresh tab seeded
+        // its state from `trackedLastUsed.selectedTool` and inherited the just-consumed tool
+        // selection — surfacing as a sticky chip on the newly-opened chat tab.
+        let store = FakeInputStateStore()
+        let sut = makeSUT(stateStore: store)
+        sut.modelStore.models = [makeModelWithTools(id: "gpt-5", supportedTools: [.imageGeneration])]
+        sut.activateForTab("tab-A")
+        sut.activateFromOmnibar(inputMode: .aiChat)
+        sut.selectTool(.imageGeneration)
+        XCTAssertEqual(store.lastUsed.selectedTool, .imageGeneration)
+
+        sut.handleExternalSubmission(.prompt)
+
+        XCTAssertNil(store.lastUsed.selectedTool)
+    }
+
     // MARK: - Reasoning button visibility on tab switch
 
     func test_activateForTab_reasoningModel_showsReasoningButton() {
@@ -2237,13 +2456,17 @@ final class UnifiedToggleInputCoordinatorPerTabStateTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeModelWithTools(id: String, supportsImageUpload: Bool = false) -> AIChatModel {
+    private func makeModelWithTools(
+        id: String,
+        supportsImageUpload: Bool = false,
+        supportedTools: [AIChatRAGTool] = [.webSearch]
+    ) -> AIChatModel {
         AIChatModel(
             id: id,
             name: id,
             provider: .unknown,
             supportsImageUpload: supportsImageUpload,
-            supportedTools: [.webSearch],
+            supportedTools: supportedTools,
             entityHasAccess: true
         )
     }
