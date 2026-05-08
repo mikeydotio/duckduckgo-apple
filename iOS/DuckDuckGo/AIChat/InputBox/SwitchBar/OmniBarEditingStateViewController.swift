@@ -126,6 +126,9 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
     private var navigationActionBarManager: NavigationActionBarManager?
     private var suggestionTrayManager: SuggestionTrayManager?
     private var aiChatHistoryManager: AIChatHistoryManager?
+    /// Held in a dedicated property (not `cancellables`) so each new chat-history install
+    /// auto-cancels the previous subscription on assignment — avoids stale viewModels firing.
+    private var chatHistoryHasSuggestionsCancellable: AnyCancellable?
     private var isShowingURLFallback = false
 
     private var chatHasResults: Bool {
@@ -379,7 +382,7 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         manager.delegate = self
         swipeContainerManager.installChatHistory(using: manager)
         manager.subscribeToTextChanges(switchBarHandler.currentTextPublisher)
-        manager.hasSuggestionsPublisher
+        chatHistoryHasSuggestionsCancellable = manager.hasSuggestionsPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] hasSuggestions in
                 guard let self else { return }
@@ -389,7 +392,6 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
                     self.view.layoutIfNeeded()
                 }
             }
-            .store(in: &cancellables)
         aiChatHistoryManager = manager
 
         if let escapeHatchModel {

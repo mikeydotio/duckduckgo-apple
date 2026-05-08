@@ -1628,8 +1628,12 @@ class MainViewController: UIViewController {
             },
             onTabSwitcherTapped: { [weak self] in
                 guard let self else { return }
-                unifiedToggleInputCoordinator?.contentViewController.dismissAnimated()
-                showTabSwitcher()
+                // Defer showTabSwitcher() until the UTI dismiss completes; otherwise UIKit
+                // refuses the present-while-dismissing and the UTI session can end up gone
+                // when the user later returns to NTP (old omnibar shows at bottom instead).
+                unifiedToggleInputCoordinator?.contentViewController.dismissAnimated { [weak self] in
+                    self?.showTabSwitcher()
+                }
             }
         )
     }
@@ -4320,7 +4324,10 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onTabSwitcherRequested() {
-        viewCoordinator.omniBar.endEditing()
+        // The upstream `DefaultOmniBarViewController.onTabSwitcherRequested` already calls
+        // `editingStateViewController?.dismissAnimated()`. Calling `endEditing()` here would
+        // trigger a second `dismissAnimated()` while the first is in flight — UIKit logs
+        // "presentation/dismissal in progress" and the result is undefined.
         showTabSwitcher()
     }
 
