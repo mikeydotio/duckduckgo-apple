@@ -1628,12 +1628,12 @@ class MainViewController: UIViewController {
             },
             onTabSwitcherTapped: { [weak self] in
                 guard let self else { return }
-                // Defer showTabSwitcher() until the UTI dismiss completes; otherwise UIKit
-                // refuses the present-while-dismissing and the UTI session can end up gone
-                // when the user later returns to NTP (old omnibar shows at bottom instead).
-                unifiedToggleInputCoordinator?.contentViewController.dismissAnimated { [weak self] in
-                    self?.showTabSwitcher()
-                }
+                // Mirror the toolbar tab switcher button's flow: orchestrated UTI cleanup via
+                // `dismissOmniBar()` -> `deactivateToOmnibar()` resets bar-position constraints,
+                // hide animation, etc. Calling `dismissAnimated()` directly would skip that
+                // orchestration and leave the bar in a stale state on return to NTP.
+                performCancel()
+                showTabSwitcher()
             }
         )
     }

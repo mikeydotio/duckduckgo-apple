@@ -708,12 +708,12 @@ extension MainViewController: UnifiedInputContentContainerViewControllerDelegate
     }
 
     func unifiedInputEditingStateDidRequestTabSwitcher() {
-        // Wait for the dismissal to complete before presenting the tab switcher — UIKit
-        // refuses to present-while-dismissing and the resulting half-finished state can
-        // leave the UTI off after the tab switcher closes (old omnibar reappears at bottom).
-        unifiedToggleInputCoordinator?.contentViewController.dismissAnimated { [weak self] in
-            self?.showTabSwitcher()
-        }
+        // Mirror the toolbar tab switcher button's flow: orchestrated UTI cleanup via
+        // `dismissOmniBar()` -> `deactivateToOmnibar()` resets bar-position constraints,
+        // hide animation, etc. Calling `dismissAnimated()` directly would skip that
+        // orchestration and leave the bar in a stale state on return to NTP.
+        performCancel()
+        showTabSwitcher()
     }
 
     func unifiedInputEditingStateDidRequestTryFireMode() {
