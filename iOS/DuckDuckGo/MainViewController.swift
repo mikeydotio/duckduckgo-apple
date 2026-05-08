@@ -1655,6 +1655,7 @@ class MainViewController: UIViewController {
     }
 
     @IBAction func onFirePressed() {
+        let wasContextualFireOnboardingDialogVisible = daxDialogsManager.isShowingFireDialog
 
         func showFireConfirmation() {
             let presenter = FireConfirmationPresenter()
@@ -1667,9 +1668,18 @@ class MainViewController: UIViewController {
                 fireContext: .default(daxDialogsManager: daxDialogsManager),
                 browsingMode: tabManager.currentBrowsingMode,
                 onConfirm: { [weak self] fireRequest in
-                    self?.forgetAllWithAnimation(request: fireRequest) {}
+                    guard let self else { return }
+                    if wasContextualFireOnboardingDialogVisible {
+                        contextualOnboardingPixelReporter.measureFireButtonOnboardingDeleteConfirmed()
+                    }
+                    forgetAllWithAnimation(request: fireRequest) {}
                 },
-                onCancel: { }
+                onCancel: { [weak self] in
+                    guard let self else { return }
+                    if wasContextualFireOnboardingDialogVisible {
+                        contextualOnboardingPixelReporter.measureFireButtonOnboardingDismissButtonTapped()
+                    }
+                }
             )
         }
 
