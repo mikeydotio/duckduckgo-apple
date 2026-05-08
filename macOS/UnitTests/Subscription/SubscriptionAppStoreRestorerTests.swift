@@ -184,7 +184,7 @@ final class SubscriptionAppStoreRestorerTests: XCTestCase {
                                           .didShowAlert(.subscriptionNotFound),
                                           .didShowTab(.subscription(Constants.purchaseURL))])
 
-        let expectedPixels = Set([SubscriptionPixel.subscriptionOfferScreenImpression.name])
+        let expectedPixels = Set([SubscriptionPixel.subscriptionOfferScreenImpression(origin: nil).name])
         XCTAssertTrue(expectedPixels.isSubset(of: pixelsFired))
 
         XCTAssertTrue(subscriptionEventReporter.reportedActivationErrors.contains(where: { error in
@@ -213,7 +213,7 @@ final class SubscriptionAppStoreRestorerTests: XCTestCase {
                                           .didShowAlert(.subscriptionNotFound),
                                           .didShowTab(.subscription(Constants.purchaseURL))])
 
-        let expectedPixels = Set([SubscriptionPixel.subscriptionOfferScreenImpression.name])
+        let expectedPixels = Set([SubscriptionPixel.subscriptionOfferScreenImpression(origin: nil).name])
 
         XCTAssertTrue(expectedPixels.isSubset(of: pixelsFired))
         XCTAssertTrue(subscriptionEventReporter.reportedActivationErrors.contains(where: { error in
@@ -307,7 +307,7 @@ final class SubscriptionAppStoreRestorerTests: XCTestCase {
                                           .didShowAlert(.subscriptionInactive),
                                           .didShowTab(.subscription(Constants.purchaseURL))])
 
-        let expectedPixels = Set([SubscriptionPixel.subscriptionOfferScreenImpression.name])
+        let expectedPixels = Set([SubscriptionPixel.subscriptionOfferScreenImpression(origin: nil).name])
         XCTAssertTrue(subscriptionEventReporter.reportedActivationErrors.contains(where: { error in
             switch error {
             case SubscriptionError.restoreFailedDueToExpiredSubscription:
