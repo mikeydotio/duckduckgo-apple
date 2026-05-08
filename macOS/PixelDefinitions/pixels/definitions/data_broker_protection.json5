@@ -1,4 +1,21 @@
 {
+    "m_mac_dbp_web_ui_loading_success": {
+        "description": "Fires when the DBP (Personal Information Removal) Web UI loads successfully. The `subscribed` param distinguishes subscriber traffic (Settings → PIR) from non-subscriber freemium traffic.",
+        "owners": ["hanyutang-sandra"],
+        "triggers": ["other"],
+        "suffixes": [],
+        "parameters": [
+            "appVersion",
+            "pixelSource",
+            {
+                "key": "environment",
+                "type": "string",
+                "description": "Whether the WebUI is loading from staging or production",
+                "enum": ["staging", "production"]
+            },
+            "subscribed"
+        ]
+    },
     "m_mac_dbp_secure_vault_database_recreated": {
         "description": "Fired when the DBP secure vault database has been recreated in response to SQLITE_NOTADB or SQLITE_CORRUPT errors",
         "owners": ["quanganhdo"],
