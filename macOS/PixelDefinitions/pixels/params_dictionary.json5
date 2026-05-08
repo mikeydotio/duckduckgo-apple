@@ -302,6 +302,12 @@
         "type": "boolean",
         "description": "Whether the user is eligible for a free trial"
     },
+    "subscriptionEntryStatus": {
+        "key": "status",
+        "type": "string",
+        "description": "Visual state of the subscription entry-point promo at impression time. Indicates which badge variant the user saw on a non-subscriber surface (App Menu, Preferences).",
+        "enum": ["churned", "free-eligible", "free-ineligible"]
+    },
     "onboardingEventType": {
         "key": "e",
         "type": "string",

@@ -259,6 +259,37 @@
         "parameters": ["appVersion", "pixelSource"]
     },
 
+    // Subscription Funnel Entry-Point Pixels (App Menu, App Settings)
+    // Defined in https://app.asana.com/1/137249556945/project/492600419927320/task/1213906049966919
+    "m_subscription_appmenu_impression": {
+        "description": "Fired when the VPN/subscription entry is rendered in the iOS overflow menu to a non-subscriber. Gated on the vpnMenuItem feature flag, App Store products availability, and non-subscribed status. Used to count subscription-funnel entry-point exposure.",
+        "owners": ["hanyutang-sandra"],
+        "triggers": ["other"],
+        "suffixes": ["platform", "form_factor"],
+        "parameters": ["appVersion"]
+    },
+    "m_subscription_appmenu_subscription_click": {
+        "description": "Fired when the user taps the VPN/subscription entry in the iOS overflow menu. Used to count subscription-funnel entry-point click-through.",
+        "owners": ["hanyutang-sandra"],
+        "triggers": ["user_submitted"],
+        "suffixes": ["platform", "form_factor"],
+        "parameters": ["appVersion"]
+    },
+    "m_subscription_settings_impression": {
+        "description": "Fired when the Subscribe-to-DuckDuckGo row is rendered in iOS Settings to a non-subscriber. Used to count subscription-funnel entry-point exposure.",
+        "owners": ["hanyutang-sandra"],
+        "triggers": ["other"],
+        "suffixes": ["platform", "form_factor"],
+        "parameters": ["appVersion"]
+    },
+    "m_subscription_settings_subscription_click": {
+        "description": "Fired when the user taps the Subscribe-to-DuckDuckGo row in iOS Settings. Used to count subscription-funnel entry-point click-through.",
+        "owners": ["hanyutang-sandra"],
+        "triggers": ["user_submitted"],
+        "suffixes": ["platform", "form_factor"],
+        "parameters": ["appVersion"]
+    },
+
     // Onboarding Subscription Promotion Pixels
     "m_privacy-pro_onboarding_promotion_impression": {
         "description": "Fired when the subscription promotion is shown during onboarding",
