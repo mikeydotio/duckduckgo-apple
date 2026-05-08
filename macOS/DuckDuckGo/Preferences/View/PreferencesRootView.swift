@@ -386,7 +386,7 @@ enum Preferences {
                 showTab(.subscription(url))
 
                 if subscriptionURL == .purchase {
-                    pixelHandler(.subscriptionOfferScreenImpression, .standard)
+                    pixelHandler(.subscriptionOfferScreenImpression(origin: SubscriptionFunnelOrigin.appSettings.rawValue), .standard)
                 }
             }
         }

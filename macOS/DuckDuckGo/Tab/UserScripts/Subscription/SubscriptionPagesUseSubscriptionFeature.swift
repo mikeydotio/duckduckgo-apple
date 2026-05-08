@@ -248,7 +248,8 @@ final class SubscriptionPagesUseSubscriptionFeature: Subfeature {
                 subscriptionEventReporter.report(subscriptionTierOptionEvent: SubscriptionPixel.subscriptionTierOptionsUnexpectedProTier)
             }
 
-            subscriptionEventReporter.report(subscriptionTierOptionEvent: SubscriptionPixel.subscriptionTierOptionsSuccess)
+            let origin = await originFrom(originalMessage: original)
+            subscriptionEventReporter.report(subscriptionTierOptionEvent: SubscriptionPixel.subscriptionTierOptionsSuccess(origin: origin))
 
             guard subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed else { return subscriptionTierOptions.withoutPurchaseOptions() }
             return subscriptionTierOptions
@@ -264,7 +265,6 @@ final class SubscriptionPagesUseSubscriptionFeature: Subfeature {
 
     // swiftlint:disable:next cyclomatic_complexity
     func subscriptionSelected(params: Any, original: WKScriptMessage) async throws -> Encodable? {
-        PixelKit.fire(SubscriptionPixel.subscriptionPurchaseAttempt, frequency: .legacyDailyAndCount)
         struct SubscriptionSelection: Decodable {
             let id: String
         }
@@ -272,6 +272,7 @@ final class SubscriptionPagesUseSubscriptionFeature: Subfeature {
         let message = original
 
         let origin = await setPixelOrigin(from: message)
+        PixelKit.fire(SubscriptionPixel.subscriptionPurchaseAttempt(origin: origin), frequency: .legacyDailyAndCount)
 
         if subscriptionManager.currentEnvironment.purchasePlatform == .appStore {
             if #available(macOS 12.0, *) {
@@ -746,7 +747,7 @@ final class SubscriptionPagesUseSubscriptionFeature: Subfeature {
         case .alertFirstButtonReturn:
             let url = subscriptionManager.url(for: .purchase)
             await uiHandler.showTab(with: .subscription(url))
-            PixelKit.fire(SubscriptionPixel.subscriptionOfferScreenImpression)
+            PixelKit.fire(SubscriptionPixel.subscriptionOfferScreenImpression(origin: nil))
         default: return
         }
     }

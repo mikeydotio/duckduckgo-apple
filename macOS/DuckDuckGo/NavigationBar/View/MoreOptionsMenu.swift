@@ -252,6 +252,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
             .withImage(moreOptionsMenuIconsProvider.emailProtectionIcon)
             .withSubmenu(EmailOptionsButtonSubMenu(tabCollectionViewModel: tabCollectionViewModel,
                                                    emailManager: emailManager,
+                                                   subscriptionManager: subscriptionManager,
                                                    moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider))
 
         addItem(NSMenuItem.separator())
@@ -814,13 +815,16 @@ final class EmailOptionsButtonSubMenu: NSMenu {
 
     private let tabCollectionViewModel: TabCollectionViewModel
     private let emailManager: EmailManager
+    private let subscriptionManager: any SubscriptionManager
     private var emailProtectionDidChangeCancellable: AnyCancellable?
 
     init(tabCollectionViewModel: TabCollectionViewModel,
          emailManager: EmailManager,
+         subscriptionManager: any SubscriptionManager,
          moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding) {
         self.tabCollectionViewModel = tabCollectionViewModel
         self.emailManager = emailManager
+        self.subscriptionManager = subscriptionManager
         super.init(title: UserText.emailOptionsMenuItem)
 
         updateMenuItems(moreOptionsMenuIconsProvider: moreOptionsMenuIconsProvider)
@@ -865,7 +869,11 @@ final class EmailOptionsButtonSubMenu: NSMenu {
     }
 
     override func performActionForItem(at index: Int) {
-        PixelKit.fire(MoreOptionsMenuPixel.emailProtectionActionClicked, frequency: .daily)
+        PixelKit.fire(
+            MoreOptionsMenuPixel.emailProtectionActionClicked,
+            frequency: .daily,
+            withAdditionalParameters: ["subscribed": String(subscriptionManager.isUserAuthenticated)]
+        )
         super.performActionForItem(at: index)
     }
 

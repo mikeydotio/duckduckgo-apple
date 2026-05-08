@@ -33,8 +33,8 @@ enum SubscriptionAppMenuEntryStatus: String {
 enum SubscriptionPixel: PixelKitEvent {
     // Subscription
     case subscriptionActive(AuthVersion)
-    case subscriptionOfferScreenImpression
-    case subscriptionPurchaseAttempt
+    case subscriptionOfferScreenImpression(origin: String?)
+    case subscriptionPurchaseAttempt(origin: String?)
     case subscriptionPurchaseFailureOther
     case subscriptionPurchaseFailureStoreError(Error)
     case subscriptionPurchaseFailureBackendError
@@ -76,7 +76,7 @@ enum SubscriptionPixel: PixelKitEvent {
     case subscriptionWelcomeFAQClick
     // Tier Options
     case subscriptionTierOptionsRequested
-    case subscriptionTierOptionsSuccess
+    case subscriptionTierOptionsSuccess(origin: String?)
     case subscriptionTierOptionsFailure(error: Error)
     case subscriptionTierOptionsUnexpectedProTier
     // Plan Change
@@ -270,6 +270,11 @@ enum SubscriptionPixel: PixelKitEvent {
         case .subscriptionEntryAppMenuImpression(let status),
              .subscriptionEntryAppMenuSubscriptionClick(let status):
             return [SubscriptionPixelsDefaults.statusKey: status.rawValue]
+        case .subscriptionOfferScreenImpression(let origin),
+             .subscriptionPurchaseAttempt(let origin),
+             .subscriptionTierOptionsSuccess(let origin):
+            guard let origin else { return nil }
+            return [AttributionParameter.origin: origin]
         default:
             return nil
         }

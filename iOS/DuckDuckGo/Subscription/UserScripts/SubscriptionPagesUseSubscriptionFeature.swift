@@ -394,8 +394,11 @@ final class DefaultSubscriptionPagesUseSubscriptionFeature: SubscriptionPagesUse
     // swiftlint:disable:next cyclomatic_complexity
     func subscriptionSelected(params: Any, original: WKScriptMessage) async -> Encodable? {
 
-        DailyPixel.fireDailyAndCount(pixel: .subscriptionPurchaseAttempt,
-                                     pixelNameSuffixes: DailyPixel.Constant.legacyDailyPixelSuffixes)
+        DailyPixel.fireDailyAndCount(
+            pixel: .subscriptionPurchaseAttempt,
+            pixelNameSuffixes: DailyPixel.Constant.legacyDailyPixelSuffixes,
+            withAdditionalParameters: subscriptionAttributionOrigin.map { [AttributionParameter.origin: $0] } ?? [:]
+        )
         setTransactionError(nil)
         setTransactionStatus(.purchasing)
         resetSubscriptionFlow()
