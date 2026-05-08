@@ -477,6 +477,8 @@
 		365B217A2F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365B21782F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift */; };
 		3689AA742F61F1F300EF7CBA /* DataClearingWideEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3689AA732F61F1F300EF7CBA /* DataClearingWideEventService.swift */; };
 		3689AA752F61F1F300EF7CBA /* DataClearingWideEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3689AA732F61F1F300EF7CBA /* DataClearingWideEventService.swift */; };
+		369A0CE82FAE24FB00494F41 /* URL+SubscriptionAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369A0CE72FAE24FB00494F41 /* URL+SubscriptionAttribution.swift */; };
+		369A0CE92FAE24FB00494F41 /* URL+SubscriptionAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369A0CE72FAE24FB00494F41 /* URL+SubscriptionAttribution.swift */; };
 		369BA9862F31305F0037B56D /* DataClearingPixels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369BA9852F31305C0037B56D /* DataClearingPixels.swift */; };
 		369BA9872F31305F0037B56D /* DataClearingPixels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369BA9852F31305C0037B56D /* DataClearingPixels.swift */; };
 		36E19A022F322D0200556F78 /* DataClearingPixelsReporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36E19A012F322CFE00556F78 /* DataClearingPixelsReporterTests.swift */; };
@@ -4950,6 +4952,7 @@
 		3646AC462F88F0050093AEA7 /* FireWindowSubscriptionPromoDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FireWindowSubscriptionPromoDelegateTests.swift; sourceTree = "<group>"; };
 		365B21782F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingWideEventServiceTests.swift; sourceTree = "<group>"; };
 		3689AA732F61F1F300EF7CBA /* DataClearingWideEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingWideEventService.swift; sourceTree = "<group>"; };
+		369A0CE72FAE24FB00494F41 /* URL+SubscriptionAttribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+SubscriptionAttribution.swift"; sourceTree = "<group>"; };
 		369BA9852F31305C0037B56D /* DataClearingPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingPixels.swift; sourceTree = "<group>"; };
 		36E19A012F322CFE00556F78 /* DataClearingPixelsReporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingPixelsReporterTests.swift; sourceTree = "<group>"; };
 		36E19A042F3230D200556F78 /* DataClearingPixelsReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingPixelsReporter.swift; sourceTree = "<group>"; };
@@ -12974,6 +12977,7 @@
 		F118EA7B2BEA2B8700F77634 /* Subscription */ = {
 			isa = PBXGroup;
 			children = (
+				369A0CE72FAE24FB00494F41 /* URL+SubscriptionAttribution.swift */,
 				BB7C38442F322455008D6FEC /* FreeTrialPixelHandler.swift */,
 				F1C70D7B2BFF510000599292 /* SubscriptionEnvironment+Default.swift */,
 				F1D447222D9EAA950085809A /* SubscriptionPixelHandler.swift */,
@@ -14866,6 +14870,7 @@
 				7BD5049C2E5FA3F3008A0646 /* WebExtensionInternalSiteHandler.swift in Sources */,
 				B696AFFC2AC5924800C93203 /* FileLineError.swift in Sources */,
 				F1D43AEF2B98D8DF00BAB743 /* MainMenuActions+VanillaBrowser.swift in Sources */,
+				369A0CE92FAE24FB00494F41 /* URL+SubscriptionAttribution.swift in Sources */,
 				B6E1491129A5C30A00AAFBE8 /* FBProtectionTabExtension.swift in Sources */,
 				BB6C58692EFF01CA00B07E6B /* BaseURLDebugSettings.swift in Sources */,
 				840B66872F3A023C001E20C6 /* UpdatesDebugMenu.swift in Sources */,
@@ -17118,6 +17123,7 @@
 				EEEE20172E57BE7A0071A566 /* SyncDeviceButtonModel.swift in Sources */,
 				37B11B3928095E6600CBB621 /* TabLazyLoader.swift in Sources */,
 				BBC7BDAC2D5BB0890037A4AE /* BannerView.swift in Sources */,
+				369A0CE82FAE24FB00494F41 /* URL+SubscriptionAttribution.swift in Sources */,
 				4B9DB03B2A983B24000927DB /* InvitedToWaitlistView.swift in Sources */,
 				8589063C267BCDC000D23B0D /* SaveCredentialsViewController.swift in Sources */,
 				CC0DD9172E5DF4B600277E46 /* SessionRestorePromptViewModel.swift in Sources */,
