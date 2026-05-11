@@ -187,7 +187,7 @@ public struct AppVersion: OSVersionProviding {
     }()
 
     public static let isLiquidGlassSupported: Bool = {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             return false
         }
         // Absent key means Liquid Glass is enabled (no compatibility mode), per Apple's semantics.
