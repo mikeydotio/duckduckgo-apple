@@ -25,6 +25,7 @@ import DesignResourcesKitIcons
 struct ReturnToTabCard: View {
     let model: EscapeHatchModel
     let onTap: () -> Void
+    @Environment(\.layoutDirection) private var layoutDirection
 
     var body: some View {
         Button(action: onTap) {
@@ -59,7 +60,10 @@ struct ReturnToTabCard: View {
     }
 
     private var accessibilityLabelText: String {
-        String(format: UserText.escapeHatchReturnToAccessibilityLabelFormat, model.title)
+        if model.subtitle.isEmpty {
+            return String(format: UserText.escapeHatchReturnToAccessibilityLabelFormat, model.title)
+        }
+        return String(format: UserText.escapeHatchReturnToWithSubtitleAccessibilityLabelFormat, model.title, model.subtitle)
     }
 
     /// Favicon from .tabs cache, fire tab icon, Duck.ai logo, or placeholder depending on tab type.
@@ -71,7 +75,10 @@ struct ReturnToTabCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: Metrics.iconCornerRadius))
 
             backArrowOverlay
-                .offset(x: Metrics.overlayOffset, y: Metrics.overlayOffset)
+                // Flip x for RTL so the badge stays at the bottom-trailing visual corner
+                // (which is bottom-left in RTL) and protrudes outward rather than inward.
+                .offset(x: layoutDirection == .rightToLeft ? -Metrics.overlayOffset : Metrics.overlayOffset,
+                        y: Metrics.overlayOffset)
         }
         .frame(width: Metrics.iconSize, height: Metrics.iconSize)
     }
