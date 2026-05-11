@@ -213,9 +213,13 @@ final class BookmarksBarViewController: NSViewController {
     override func removeFromParent() {
         super.removeFromParent()
         unsubscribeFromEvents()
+        stopBookmarksBarHoverTracking()
     }
 
     deinit {
+        if let monitor = bookmarksBarHoverMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
 #if DEBUG
         (bookmarkMenuPopover as? NSObject)?.ensureObjectDeallocated(after: 1.0, do: .interrupt)
 #endif
