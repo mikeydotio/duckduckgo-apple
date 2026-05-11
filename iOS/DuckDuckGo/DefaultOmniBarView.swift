@@ -841,13 +841,13 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
         guard omniBarLongPressInteraction == nil else { return }
 
         let interaction = UIContextMenuInteraction(delegate: self)
-        addInteraction(interaction)
+        searchContainer.addInteraction(interaction)
         omniBarLongPressInteraction = interaction
     }
 
     private func removeOmniBarLongPressInteraction() {
         guard let omniBarLongPressInteraction else { return }
-        removeInteraction(omniBarLongPressInteraction)
+        searchContainer.removeInteraction(omniBarLongPressInteraction)
         self.omniBarLongPressInteraction = nil
     }
 
