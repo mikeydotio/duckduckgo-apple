@@ -3879,10 +3879,33 @@ extension MainViewController: OmniBarDelegate {
     func menuForOmniBarLongPress(in state: OmniBarState) -> UIMenu? {
         guard isSupportedNonEditingOmniBarState(state) else { return nil }
 
-        return UIMenu(title: "", children: [
-            UIAction(title: "PoC Action 1") { _ in },
-            UIAction(title: "PoC Action 2") { _ in }
-        ])
+        var sections = [UIMenuElement]()
+
+        if let url = currentTab?.url {
+            sections.append(UIMenu(title: "", options: .displayInline, children: [
+                UIAction(title: "Share", image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in self?.shareCurrentURLFromAddressBar() },
+                UIAction(title: "Copy Link", image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in },
+                UIAction(title: "Copy Clean Link", image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in },
+            ]))
+        }
+
+        let moveLabel = appSettings.currentAddressBarPosition == .top ? "Move Address Bar to Bottom" : "Move Address Bar to Top"
+        let moveImage = appSettings.currentAddressBarPosition == .top ? DesignSystemImages.Glyphs.Size24.addressBarBottom : DesignSystemImages.Glyphs.Size24.addressBarTop
+        sections.append(UIMenu(title: "", options: .displayInline, children: [
+            UIAction(title: moveLabel, image: moveImage) { [weak self] _ in self?.toggleAddressBarLocation() },
+        ]))
+
+        sections.append(UIMenu(title: "", options: .displayInline, children: [
+            UIAction(title: "Close Tab", image:  DesignSystemImages.Glyphs.Size24.close, attributes: [.destructive]) { [weak self] _ in },
+        ]))
+
+        return UIMenu(title: "", children: sections)
+    }
+
+    private func toggleAddressBarLocation() {
+        let current = appSettings.currentAddressBarPosition
+        appSettings.currentAddressBarPosition = current == .top ? .bottom : .top
+        self.onAddressBarPositionChanged()
     }
 
     private func isSupportedNonEditingOmniBarState(_ state: OmniBarState) -> Bool {

@@ -360,6 +360,8 @@ public extension DesignSystemImages {
             public static var accessibility: DesignSystemImage { .init(resource: .accessibility24) }
             public static var add: DesignSystemImage { .init(resource: .add24) }
             public static var addition: DesignSystemImage { .init(resource: .addition24) }
+            public static var addressBarTop: DesignSystemImage { .init(resource: .addressBarPositionTop24) }
+            public static var addressBarBottom: DesignSystemImage { .init(resource: .addressBarPositionBottom24) }
             public static var aiChat: DesignSystemImage { .init(resource: .aiChat24) }
             public static var aiChatAdd: DesignSystemImage { .init(resource: .aiChatAdd24) }
             public static var aiChatAddSolid: DesignSystemImage { .init(resource: .aiChatAddSolid24) }
@@ -469,6 +471,7 @@ public extension DesignSystemImages {
             public static var infoSolid: DesignSystemImage { .init(resource: .infoSolid24) }
             public static var key: DesignSystemImage { .init(resource: .key24) }
             public static var lightning: DesignSystemImage { .init(resource: .lightning24) }
+            public static var link: DesignSystemImage { .init(resource: .link24) }
             public static var linkSolid: DesignSystemImage { .init(resource: .linkSolid24) }
             public static var list: DesignSystemImage { .init(resource: .list24) }
             public static var location: DesignSystemImage { .init(resource: .location24) }
