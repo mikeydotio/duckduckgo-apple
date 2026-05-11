@@ -2730,4 +2730,10 @@ public struct UserText {
     public static let daxEasterEggSwitchToThisLogo = NSLocalizedString("dax.easter.egg.switch.to.this.logo", value: "Switch to This Logo", comment: "Button to switch to the displayed easter egg logo")
     public static let daxEasterEggResetToDefault = NSLocalizedString("dax.easter.egg.reset.to.default", value: "Reset Search Logo", comment: "Button to reset the search logo to the default Dax logo")
     public static let daxEasterEggLogoSaved = NSLocalizedString("dax.easter.egg.logo.saved", value: "Logo Saved", comment: "Toast message shown when the user saves a custom logo")
+
+
+    // MARK: - OmniBar Long Press Menu
+    public static let omnibarLongPressCopyLink = NotLocalizedString("omnibar.menu.copy", value: "Copy Link", comment: "Label for copy URL / link in long press menu")
+    public static let omnibarLongPressCopyCleanLink = NotLocalizedString("omnibar.menu.clean-copy", value: "Copy CLean Link", comment: "Label for copying a clean version of the URL / link in long press menu")
+
 }

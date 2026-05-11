@@ -3877,29 +3877,49 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func menuForOmniBarLongPress(in state: OmniBarState) -> UIMenu? {
-        guard isSupportedNonEditingOmniBarState(state) else { return nil }
+        guard featureFlagger.isFeatureOn(.omniBarLongPressMenu) else { return nil }
+        guard isSupportedNonEditingOmniBarStateForLongPressMenu(state) else { return nil }
 
         var sections = [UIMenuElement]()
 
         if let url = currentTab?.url {
+            var urlItems = [
+                UIAction(title: UserText.actionShare, image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in self?.shareCurrentURLFromAddressBar() },
+                UIAction(title: UserText.omnibarLongPressCopyLink, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in self?.copyCurrentLink() },
+            ]
+
+            if urlCanBeCleaned(url) {
+                urlItems.append(UIAction(title: UserText.omnibarLongPressCopyCleanLink, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in self?.copyCurrentLink(clean: true) })
+            }
+
+            sections.append(UIMenu(title: "", options: .displayInline, children: urlItems))
+        }
+
+        if !isPad {
+            let moveLabel = appSettings.currentAddressBarPosition == .top ? "Move Address Bar to Bottom" : "Move Address Bar to Top"
+            let moveImage = appSettings.currentAddressBarPosition == .top ? DesignSystemImages.Glyphs.Size24.addressBarBottom : DesignSystemImages.Glyphs.Size24.addressBarTop
             sections.append(UIMenu(title: "", options: .displayInline, children: [
-                UIAction(title: "Share", image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in self?.shareCurrentURLFromAddressBar() },
-                UIAction(title: "Copy Link", image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in },
-                UIAction(title: "Copy Clean Link", image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in },
+                UIAction(title: moveLabel, image: moveImage) { [weak self] _ in self?.toggleAddressBarLocation() },
             ]))
         }
 
-        let moveLabel = appSettings.currentAddressBarPosition == .top ? "Move Address Bar to Bottom" : "Move Address Bar to Top"
-        let moveImage = appSettings.currentAddressBarPosition == .top ? DesignSystemImages.Glyphs.Size24.addressBarBottom : DesignSystemImages.Glyphs.Size24.addressBarTop
         sections.append(UIMenu(title: "", options: .displayInline, children: [
-            UIAction(title: moveLabel, image: moveImage) { [weak self] _ in self?.toggleAddressBarLocation() },
-        ]))
-
-        sections.append(UIMenu(title: "", options: .displayInline, children: [
-            UIAction(title: "Close Tab", image:  DesignSystemImages.Glyphs.Size24.close, attributes: [.destructive]) { [weak self] _ in },
+            UIAction(title: UserText.closeTabs(withCount: 1), image:  DesignSystemImages.Glyphs.Size24.close, attributes: [.destructive]) { [weak self] _ in
+                guard let tab = self?.currentTab else { return }
+                self?.tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true) },
         ]))
 
         return UIMenu(title: "", children: sections)
+    }
+
+    func urlCanBeCleaned(_ url: URL) -> Bool {
+        // TODO Inject privacy config
+        // URLCleaner().containsTrackingParameters(url)
+        return true
+    }
+
+    private func copyCurrentLink(clean: Bool = false) {
+        // TODO
     }
 
     private func toggleAddressBarLocation() {
@@ -3908,12 +3928,14 @@ extension MainViewController: OmniBarDelegate {
         self.onAddressBarPositionChanged()
     }
 
-    private func isSupportedNonEditingOmniBarState(_ state: OmniBarState) -> Bool {
+    private func isSupportedNonEditingOmniBarStateForLongPressMenu(_ state: OmniBarState) -> Bool {
         switch state {
         case is SmallOmniBarState.HomeNonEditingState,
-             is SmallOmniBarState.BrowsingNonEditingState,
-             is LargeOmniBarState.HomeNonEditingState,
-             is LargeOmniBarState.BrowsingNonEditingState:
+            is SmallOmniBarState.BrowsingNonEditingState,
+            is SmallOmniBarState.AIChatModeState,
+            is LargeOmniBarState.HomeNonEditingState,
+            is LargeOmniBarState.BrowsingNonEditingState,
+            is LargeOmniBarState.AIChatModeState:
             return true
         default:
             return false
