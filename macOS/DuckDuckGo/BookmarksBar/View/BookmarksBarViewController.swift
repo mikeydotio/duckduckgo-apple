@@ -22,6 +22,7 @@ import Common
 import Foundation
 import os.log
 import DesignResourcesKitIcons
+import PrivacyConfig
 
 final class BookmarksBarViewController: NSViewController {
 
@@ -59,6 +60,7 @@ final class BookmarksBarViewController: NSViewController {
     private let viewModel: BookmarksBarViewModel
     private let tabCollectionViewModel: TabCollectionViewModel
     private let appereancePreferences: AppearancePreferencesPersistor
+    private let featureFlagger: FeatureFlagger
 
     let themeManager: ThemeManaging
     var themeUpdateCancellable: AnyCancellable?
@@ -79,9 +81,9 @@ final class BookmarksBarViewController: NSViewController {
     @UserDefaultsWrapper(key: .bookmarksBarPromptShown, defaultValue: false)
     var bookmarksBarPromptShown: Bool
 
-    static func create(tabCollectionViewModel: TabCollectionViewModel, bookmarkManager: BookmarkManager, dragDropManager: BookmarkDragDropManager, pinningManager: PinningManager) -> BookmarksBarViewController {
+    static func create(tabCollectionViewModel: TabCollectionViewModel, bookmarkManager: BookmarkManager, dragDropManager: BookmarkDragDropManager, pinningManager: PinningManager, featureFlagger: FeatureFlagger) -> BookmarksBarViewController {
         NSStoryboard(name: "BookmarksBar", bundle: nil).instantiateInitialController { coder in
-            self.init(coder: coder, tabCollectionViewModel: tabCollectionViewModel, bookmarkManager: bookmarkManager, dragDropManager: dragDropManager, pinningManager: pinningManager)
+            self.init(coder: coder, tabCollectionViewModel: tabCollectionViewModel, bookmarkManager: bookmarkManager, dragDropManager: dragDropManager, pinningManager: pinningManager, featureFlagger: featureFlagger)
         }!
     }
 
@@ -90,12 +92,14 @@ final class BookmarksBarViewController: NSViewController {
           bookmarkManager: BookmarkManager,
           dragDropManager: BookmarkDragDropManager,
           pinningManager: PinningManager,
+          featureFlagger: FeatureFlagger,
           appereancePreferences: AppearancePreferencesPersistor = AppearancePreferencesUserDefaultsPersistor(keyValueStore: NSApp.delegateTyped.keyValueStore),
           themeManager: ThemeManaging = NSApp.delegateTyped.themeManager,
     ) {
         self.bookmarkManager = bookmarkManager
         self.dragDropManager = dragDropManager
         self.pinningManager = pinningManager
+        self.featureFlagger = featureFlagger
         self.appereancePreferences = appereancePreferences
         self.themeManager = themeManager
 
@@ -503,7 +507,7 @@ private extension BookmarksBarViewController {
     }
 
     func showSubmenu(for folder: BookmarkFolder, from view: NSView) {
-        let useCustomWindow = Application.appDelegate.featureFlagger.isFeatureOn(.bookmarksBarMenusCustomWindow)
+        let useCustomWindow = featureFlagger.isFeatureOn(.bookmarksBarMenusCustomWindow)
         // Discard the cached popover if the feature flag was toggled since it was created.
         if let popover = self.bookmarkMenuPopover,
            (popover is BookmarksBarMenuCustomPopover) != useCustomWindow {
