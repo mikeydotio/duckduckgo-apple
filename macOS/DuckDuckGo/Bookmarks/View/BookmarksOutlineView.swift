@@ -201,7 +201,13 @@ final class BookmarksOutlineView: NSOutlineView {
 
         scrollView.addTrackingArea(trackingArea)
 
-        NotificationCenter.default.addObserver(self, selector: #selector(popoverDidClose), name: NSPopover.didCloseNotification, object: window?.contentViewController?.nextResponder)
+        // `object: nil` matches any NSPopover.didCloseNotification poster. We can't pin
+        // it to our enclosing popover here because BookmarksBarMenuCustomPopover wires
+        // `contentViewController?.nextResponder = self` *after* assigning the VC to its
+        // window — by the time this fires, the responder chain still points at the
+        // window, not the popover. `updateIsInKeyPopoverState()` is idempotent, so
+        // matching all senders is fine.
+        NotificationCenter.default.addObserver(self, selector: #selector(popoverDidClose), name: NSPopover.didCloseNotification, object: nil)
     }
 
     override func didAdd(_ rowView: NSTableRowView, forRow row: Int) {
