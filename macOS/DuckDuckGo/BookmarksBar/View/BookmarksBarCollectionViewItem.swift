@@ -182,6 +182,12 @@ extension BookmarksBarCollectionViewItem: MouseOverViewDelegate {
         }
     }
 
+    // Toggle the bar menu closed on the click that brings the main window back to key
+    // while the menu panel currently holds key status.
+    func mouseOverView(_ mouseOverView: MouseOverView, acceptsFirstMouseFor event: NSEvent?) -> Bool {
+        true
+    }
+
     func mouseClickView(_ mouseClickView: MouseClickView, otherMouseDownEvent: NSEvent) {
         if case .middle = otherMouseDownEvent.button {
             delegate?.bookmarksBarCollectionViewItemClicked(self)

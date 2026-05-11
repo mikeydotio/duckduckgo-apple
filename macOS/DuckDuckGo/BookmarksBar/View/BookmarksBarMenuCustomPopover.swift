@@ -202,7 +202,6 @@ final class BookmarksBarMenuCustomPopover: NSResponder, BookmarksBarMenuPopoverP
 
     func close() {
         guard let window, window.isVisible else { return }
-        if bookmarksBarMenuDelegate?.bookmarksBarMenuPopoverShouldClose(self) == false { return }
 
         // Close descendant menu popovers first. NSPopover cascaded this via its window
         // hierarchy; our NSPanel-backed children would otherwise remain on screen.
@@ -253,6 +252,8 @@ extension BookmarksBarMenuCustomPopover: BookmarksBarMenuViewControllerDelegate 
             assertionFailure("Expected BookmarksBarMenuCustomPopover as \(window?.debugDescription ?? "<nil>")‘s contentViewController nextResponder")
             return
         }
+        // Mirror NSPopover: shouldClose is consulted only on auto-close, not on programmatic close().
+        if popover.bookmarksBarMenuDelegate?.bookmarksBarMenuPopoverShouldClose(popover) == false { return }
         popover.close()
     }
 
