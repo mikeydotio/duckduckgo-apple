@@ -55,6 +55,7 @@ final class BookmarksBarMenuPopover: NSPopover, BookmarksBarMenuPopoverPresentin
 
     deinit {
 #if DEBUG
+        // Check that our content view controller deallocates
         contentViewController?.ensureObjectDeallocated(after: 1.0, do: .interrupt)
 #endif
     }
@@ -94,6 +95,7 @@ final class BookmarksBarMenuPopover: NSPopover, BookmarksBarMenuPopoverPresentin
         super.show(relativeTo: positioningRect, of: positioningView, preferredEdge: preferredEdge)
     }
 
+    /// Adjust bookmarks bar menu popover frame
     @objc override func adjustFrame(_ frame: NSRect) -> NSRect {
         guard let positioningView, let mainWindow, let screenFrame = mainWindow.screen?.visibleFrame else { return frame }
         let offset = viewController.preferredContentOffset
@@ -103,9 +105,13 @@ final class BookmarksBarMenuPopover: NSPopover, BookmarksBarMenuPopoverPresentin
         let screenPoint = mainWindow.convertPoint(toScreen: windowPoint)
 
         if case .maxX = preferredEdge { // submenu
+            // adjust the menu popover Y 16pt above the positioning view bottom edge
             frame.origin.y = min(max(screenFrame.minY, screenPoint.y - frame.size.height + 36), screenFrame.maxY)
+
         } else { // context menu
+            // align the menu popover content by the left edge of the positioning view but keeping the popover frame inside the screen bounds
             frame.origin.x = min(max(screenFrame.minX, screenPoint.x - Self.popoverInsets.left), screenFrame.maxX - frame.width)
+            // align the menu popover content top edge by the bottom edge of the positioning view but keeping the popover frame inside the screen bounds
             frame.origin.y = min(max(screenFrame.minY, screenPoint.y - frame.size.height - Self.popoverInsets.top), screenFrame.maxY)
         }
         return frame
@@ -114,6 +120,7 @@ final class BookmarksBarMenuPopover: NSPopover, BookmarksBarMenuPopoverPresentin
     /// close other `BookmarksBarMenuPopover`-s shown from the main window when opening a new one
     static func closeBookmarkListPopovers(shownIn window: NSWindow?, except popoverToKeep: BookmarksBarMenuPopover? = nil) {
         guard let window,
+              // ignore when opening a submenu from another BookmarkListPopover
               !(window.contentViewController?.nextResponder is Self) else { return }
         for case let .some(popover as NSPopover) in (window.childWindows ?? []).map(\.contentViewController?.nextResponder) where popover !== popoverToKeep && popover.isShown {
             popover.close()
@@ -121,6 +128,7 @@ final class BookmarksBarMenuPopover: NSPopover, BookmarksBarMenuPopoverPresentin
     }
 
     override func close() {
+        // remove temporary positioning view from bookmarks menu table
         if let positioningView, positioningView.superview is NSTableView {
             positioningView.removeFromSuperview()
         }
