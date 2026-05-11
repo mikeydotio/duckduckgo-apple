@@ -190,11 +190,8 @@ public struct AppVersion: OSVersionProviding {
         guard #available(macOS 26.0, *) else {
             return false
         }
-        guard let infoDictionary = Bundle.main.infoDictionary,
-              let compatbilityFlag = infoDictionary["UIDesignRequiresCompatibility"] as? Bool
-        else {
-            return false
-        }
-        return !compatbilityFlag
+        // Absent key means Liquid Glass is enabled (no compatibility mode), per Apple's semantics.
+        let compatibilityFlag = Bundle.main.infoDictionary?["UIDesignRequiresCompatibility"] as? Bool ?? false
+        return !compatibilityFlag
     }()
 }
