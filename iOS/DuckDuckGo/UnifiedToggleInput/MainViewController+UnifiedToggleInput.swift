@@ -708,12 +708,7 @@ extension MainViewController: UnifiedInputContentContainerViewControllerDelegate
     }
 
     func unifiedInputEditingStateDidRequestTabSwitcher() {
-        // Mirror the toolbar tab switcher button's flow: orchestrated UTI cleanup via
-        // `dismissOmniBar()` -> `deactivateToOmnibar()` resets bar-position constraints,
-        // hide animation, etc. Calling `dismissAnimated()` directly would skip that
-        // orchestration and leave the bar in a stale state on return to NTP.
-        performCancel()
-        showTabSwitcher()
+        requestTabSwitcher()
     }
 
     func unifiedInputEditingStateDidRequestTryFireMode() {

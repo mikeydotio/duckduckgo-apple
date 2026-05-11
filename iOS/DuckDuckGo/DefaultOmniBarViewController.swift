@@ -556,7 +556,9 @@ extension DefaultOmniBarViewController: OmniBarEditingStateViewControllerDelegat
     }
 
     func onTabSwitcherRequested() {
-        editingStateViewController?.dismissAnimated()
+        // Pure forwarder — MVC's handler calls `performCancel()`, which already invokes
+        // `endEditing()` -> `dismissAnimated()` on the editing state. Dismissing here too
+        // would cause UIKit's "presentation/dismissal in progress" error.
         omniDelegate?.onTabSwitcherRequested()
     }
 

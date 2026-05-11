@@ -1636,13 +1636,7 @@ class MainViewController: UIViewController {
                 onSwitchToTab(targetTab)
             },
             onTabSwitcherTapped: { [weak self] in
-                guard let self else { return }
-                // Mirror the toolbar tab switcher button's flow: orchestrated UTI cleanup via
-                // `dismissOmniBar()` -> `deactivateToOmnibar()` resets bar-position constraints,
-                // hide animation, etc. Calling `dismissAnimated()` directly would skip that
-                // orchestration and leave the bar in a stale state on return to NTP.
-                performCancel()
-                showTabSwitcher()
+                self?.requestTabSwitcher()
             }
         )
     }
@@ -4343,11 +4337,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onTabSwitcherRequested() {
-        // The upstream `DefaultOmniBarViewController.onTabSwitcherRequested` already calls
-        // `editingStateViewController?.dismissAnimated()`. Calling `endEditing()` here would
-        // trigger a second `dismissAnimated()` while the first is in flight — UIKit logs
-        // "presentation/dismissal in progress" and the result is undefined.
-        showTabSwitcher()
+        requestTabSwitcher()
     }
 
     func onToggleModeSwitched() {
@@ -4517,7 +4507,7 @@ extension MainViewController: NewTabPageControllerDelegate {
     }
 
     func newTabPageDidRequestTabSwitcher(_ controller: NewTabPageViewController) {
-        openTabSwitcherFromChromeEntry()
+        requestTabSwitcher()
     }
 
     func newTabPageDidDismissDuckAIExperimentCompletion(_ controller: NewTabPageViewController) {
@@ -5097,14 +5087,17 @@ extension MainViewController: TabSwitcherButtonDelegate {
     }
 
     func showTabSwitcher(_ button: TabSwitcherButton) {
-        openTabSwitcherFromChromeEntry()
+        requestTabSwitcher()
     }
 
-    /// Shared entry for "user requested the tab switcher from a chrome control" — fires the
-    /// counted/daily pixels, runs orchestrated cleanup, and segues to the tab switcher.
-    /// Used by the toolbar button and the regular-NTP escape hatch pill so both surfaces
-    /// produce identical instrumentation and teardown.
-    private func openTabSwitcherFromChromeEntry() {
+    /// Single entry point for every tab-switcher request — toolbar button, all five pill
+    /// surfaces (regular NTP, UTI Search/Duck.ai, legacy editing-state Search/Duck.ai).
+    /// Fires the same counted/daily pixels and runs `performCancel()` which handles all
+    /// possible modal states (legacy editing state via `endEditing()`, UTI via
+    /// `deactivateToOmnibar()`), so every entry produces identical behaviour.
+    /// Not `private` because the UTI extension in `MainViewController+UnifiedToggleInput`
+    /// calls it from another file.
+    func requestTabSwitcher() {
         Pixel.fire(pixel: .tabBarTabSwitcherOpened,
                    withAdditionalParameters: [PixelParameters.browsingMode: tabManager.currentBrowsingMode.pixelParamValue])
         var openedDailyParams = TabSwitcherOpenDailyPixel().parameters(with: tabManager.allTabsModel.tabs)
