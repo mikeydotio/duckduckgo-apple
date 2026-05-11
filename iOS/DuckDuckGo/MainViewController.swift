@@ -4517,7 +4517,7 @@ extension MainViewController: NewTabPageControllerDelegate {
     }
 
     func newTabPageDidRequestTabSwitcher(_ controller: NewTabPageViewController) {
-        showTabSwitcher()
+        openTabSwitcherFromChromeEntry()
     }
 
     func newTabPageDidDismissDuckAIExperimentCompletion(_ controller: NewTabPageViewController) {
@@ -5097,6 +5097,14 @@ extension MainViewController: TabSwitcherButtonDelegate {
     }
 
     func showTabSwitcher(_ button: TabSwitcherButton) {
+        openTabSwitcherFromChromeEntry()
+    }
+
+    /// Shared entry for "user requested the tab switcher from a chrome control" — fires the
+    /// counted/daily pixels, runs orchestrated cleanup, and segues to the tab switcher.
+    /// Used by the toolbar button and the regular-NTP escape hatch pill so both surfaces
+    /// produce identical instrumentation and teardown.
+    private func openTabSwitcherFromChromeEntry() {
         Pixel.fire(pixel: .tabBarTabSwitcherOpened,
                    withAdditionalParameters: [PixelParameters.browsingMode: tabManager.currentBrowsingMode.pixelParamValue])
         var openedDailyParams = TabSwitcherOpenDailyPixel().parameters(with: tabManager.allTabsModel.tabs)
