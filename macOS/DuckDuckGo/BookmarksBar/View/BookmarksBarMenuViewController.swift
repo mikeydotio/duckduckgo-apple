@@ -267,6 +267,7 @@ final class BookmarksBarMenuViewController: NSViewController {
     }
 
     override func viewWillAppear() {
+        view.appearance = NSApp.effectiveAppearance
         subscribeToModelEvents()
     }
 
