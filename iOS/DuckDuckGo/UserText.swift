@@ -2733,7 +2733,8 @@ public struct UserText {
 
 
     // MARK: - OmniBar Long Press Menu
-    public static let omnibarLongPressCopyLink = NotLocalizedString("omnibar.menu.copy", value: "Copy Link", comment: "Label for copy URL / link in long press menu")
-    public static let omnibarLongPressCopyCleanLink = NotLocalizedString("omnibar.menu.clean-copy", value: "Copy CLean Link", comment: "Label for copying a clean version of the URL / link in long press menu")
+    public static let omnibarLongPressMoveToBottom = NotLocalizedString("omnibar.menu.move-to-bottom", value: "Move Address Bar to Bottom", comment: "Label for moving the address bar to the bottom of the screen")
+    public static let omnibarLongPressMoveToTop = NotLocalizedString("omnibar.menu.move-to-top", value: "Move Address Bar to Top", comment: "Label for moving the address bar to the top of the screen")
+
 
 }

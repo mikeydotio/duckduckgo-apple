@@ -3883,20 +3883,14 @@ extension MainViewController: OmniBarDelegate {
         var sections = [UIMenuElement]()
 
         if let url = currentTab?.url {
-            var urlItems = [
+            sections.append(UIMenu(title: "", options: .displayInline, children: [
                 UIAction(title: UserText.actionShare, image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in self?.shareCurrentURLFromAddressBar() },
-                UIAction(title: UserText.omnibarLongPressCopyLink, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in self?.copyCurrentLink() },
-            ]
-
-            if urlCanBeCleaned(url) {
-                urlItems.append(UIAction(title: UserText.omnibarLongPressCopyCleanLink, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in self?.copyCurrentLink(clean: true) })
-            }
-
-            sections.append(UIMenu(title: "", options: .displayInline, children: urlItems))
+                UIAction(title: UserText.actionCopy, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in self?.currentTab?.onCopyAction(forUrl: url) },
+            ]))
         }
 
         if !isPad {
-            let moveLabel = appSettings.currentAddressBarPosition == .top ? "Move Address Bar to Bottom" : "Move Address Bar to Top"
+            let moveLabel = appSettings.currentAddressBarPosition == .top ? UserText.omnibarLongPressMoveToBottom : UserText.omnibarLongPressMoveToTop
             let moveImage = appSettings.currentAddressBarPosition == .top ? DesignSystemImages.Glyphs.Size24.addressBarBottom : DesignSystemImages.Glyphs.Size24.addressBarTop
             sections.append(UIMenu(title: "", options: .displayInline, children: [
                 UIAction(title: moveLabel, image: moveImage) { [weak self] _ in self?.toggleAddressBarLocation() },
@@ -3910,16 +3904,6 @@ extension MainViewController: OmniBarDelegate {
         ]))
 
         return UIMenu(title: "", children: sections)
-    }
-
-    func urlCanBeCleaned(_ url: URL) -> Bool {
-        // TODO Inject privacy config
-        // URLCleaner().containsTrackingParameters(url)
-        return true
-    }
-
-    private func copyCurrentLink(clean: Bool = false) {
-        // TODO
     }
 
     private func toggleAddressBarLocation() {
