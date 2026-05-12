@@ -3882,7 +3882,8 @@ extension MainViewController: OmniBarDelegate {
 
         var sections = [UIMenuElement]()
 
-        if let url = currentTab?.url {
+        if let url = currentTab?.url,
+            currentTab?.isAITab == false {
             sections.append(UIMenu(title: "", options: .displayInline, children: [
                 UIAction(title: UserText.actionShare, image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in self?.shareCurrentURLFromAddressBar() },
                 UIAction(title: UserText.actionCopy, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in self?.currentTab?.onCopyAction(forUrl: url) },
