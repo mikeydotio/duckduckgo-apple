@@ -25,8 +25,8 @@ import AppKit
 /// hosted view controller; this window only manages chromeless presentation.
 final class BookmarksBarMenuWindow: NSPanel {
 
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
+//    override var canBecomeKey: Bool { true }
+//    override var canBecomeMain: Bool { false }
 
     init() {
         super.init(
