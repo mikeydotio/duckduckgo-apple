@@ -646,7 +646,7 @@ extension BookmarksBarViewController: BookmarksBarMenuPopoverDelegate {
         if let indicatorSuper = clippedItemsIndicator.superview {
             let indicatorPoint = indicatorSuper.convert(windowPoint, from: nil)
             if clippedItemsIndicator.frame.contains(indicatorPoint), !clippedItemsIndicator.isHidden {
-                mouseDidHover(over: clippedItemsIndicator)
+                mouseDidHover(over: clippedItemsIndicator as Any)
             }
         }
     }

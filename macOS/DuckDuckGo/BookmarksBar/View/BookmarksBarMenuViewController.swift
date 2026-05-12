@@ -154,7 +154,7 @@ final class BookmarksBarMenuViewController: NSViewController {
                 view.layer?.masksToBounds = true
 
                 let backdrop = NSVisualEffectView()
-                backdrop.material = .popover
+                backdrop.material = .menu
                 backdrop.blendingMode = .behindWindow
                 backdrop.state = .active
                 backdrop.translatesAutoresizingMaskIntoConstraints = false
