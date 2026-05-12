@@ -122,50 +122,29 @@ final class BookmarksBarMenuViewController: NSViewController {
     // MARK: View Lifecycle
     override func loadView() {
         if usesCustomWindowChrome {
-            if #available(macOS 26.0, *), AppVersion.isLiquidGlassSupported {
-                // Liquid Glass — matches the look of macOS 26 context menus.
-                // `NSGlassEffectView`'s `cornerRadius` shapes the glass rendering but the
-                // layer's bounds outside that rounded shape stay opaque, which makes
-                // NSWindow draw a rectangular shadow. Wrap it in a layer-clipped host so
-                // the corner pixels are actual alpha-zero and the window shadow follows.
-                let host = NSView()
-                host.wantsLayer = true
-                host.layer?.cornerRadius = Self.popoverCornerRadius
-                host.layer?.masksToBounds = true
+            // Custom panel chrome (no NSPopover) — provide our own clipped corners and a
+            // `.menu` material backdrop. `NSGlassEffectView` was tried here on macOS 26 to
+            // match liquid-glass context menus but its `.regular` style samples the screen
+            // behind the panel and drifts dark over dark content; neither `tintColor`
+            // (any alpha) nor an in-window backdrop suppressed the sampling effectively.
+            view = NSView()
+            view.autoresizesSubviews = false
+            view.wantsLayer = true
+            view.layer?.cornerRadius = Self.popoverCornerRadius
+            view.layer?.masksToBounds = true
 
-                let glass = NSGlassEffectView()
-                glass.cornerRadius = Self.popoverCornerRadius
-                glass.translatesAutoresizingMaskIntoConstraints = false
-                host.addSubview(glass)
-                NSLayoutConstraint.activate([
-                    glass.leadingAnchor.constraint(equalTo: host.leadingAnchor),
-                    glass.trailingAnchor.constraint(equalTo: host.trailingAnchor),
-                    glass.topAnchor.constraint(equalTo: host.topAnchor),
-                    glass.bottomAnchor.constraint(equalTo: host.bottomAnchor),
-                ])
-
-                view = host
-                view.autoresizesSubviews = false
-            } else {
-                view = NSView()
-                view.autoresizesSubviews = false
-                view.wantsLayer = true
-                view.layer?.cornerRadius = Self.popoverCornerRadius
-                view.layer?.masksToBounds = true
-
-                let backdrop = NSVisualEffectView()
-                backdrop.material = .menu
-                backdrop.blendingMode = .behindWindow
-                backdrop.state = .active
-                backdrop.translatesAutoresizingMaskIntoConstraints = false
-                view.addSubview(backdrop)
-                NSLayoutConstraint.activate([
-                    backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                    backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                    backdrop.topAnchor.constraint(equalTo: view.topAnchor),
-                    backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-                ])
-            }
+            let backdrop = NSVisualEffectView()
+            backdrop.material = .menu
+            backdrop.blendingMode = .behindWindow
+            backdrop.state = .active
+            backdrop.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(backdrop)
+            NSLayoutConstraint.activate([
+                backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                backdrop.topAnchor.constraint(equalTo: view.topAnchor),
+                backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            ])
         } else {
             view = NSView()
             view.autoresizesSubviews = false
@@ -267,7 +246,6 @@ final class BookmarksBarMenuViewController: NSViewController {
     }
 
     override func viewWillAppear() {
-        view.appearance = NSApp.effectiveAppearance
         subscribeToModelEvents()
     }
 
