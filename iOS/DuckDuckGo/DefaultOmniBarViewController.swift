@@ -555,6 +555,14 @@ extension DefaultOmniBarViewController: OmniBarEditingStateViewControllerDelegat
         omniDelegate?.onSwitchToTab(tab)
     }
 
+    func onCloseTab(_ tab: Tab) {
+        omniDelegate?.onCloseTab(tab)
+    }
+
+    func onBurnTab(_ tab: Tab) {
+        omniDelegate?.onBurnTab(tab)
+    }
+
     func onTabSwitcherRequested() {
         // Pure forwarder — MVC's handler calls `performCancel()`, which already invokes
         // `endEditing()` -> `dismissAnimated()` on the editing state. Dismissing here too

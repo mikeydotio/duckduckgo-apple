@@ -122,6 +122,8 @@ protocol OmniBarDelegate: AnyObject {
     // MARK: - Escape Hatch
     func escapeHatchForEditingState() -> EscapeHatchModel?
     func onSwitchToTab(_ tab: Tab)
+    func onCloseTab(_ tab: Tab)
+    func onBurnTab(_ tab: Tab)
     func onTabSwitcherRequested()
 
     // MARK: - Toggle
@@ -223,6 +225,10 @@ extension OmniBarDelegate {
     }
 
     func onSwitchToTab(_ tab: Tab) {}
+
+    func onCloseTab(_ tab: Tab) {}
+
+    func onBurnTab(_ tab: Tab) {}
 
     func onTabSwitcherRequested() {}
 

@@ -4426,6 +4426,12 @@ extension MainViewController: OmniBarDelegate {
         selectTab(tab)
     }
 
+    func onCloseTab(_ tab: Tab) {
+    }
+
+    func onBurnTab(_ tab: Tab) {
+    }
+
     func onTabSwitcherRequested() {
         requestTabSwitcher()
     }

@@ -41,6 +41,8 @@ protocol OmniBarEditingStateViewControllerDelegate: AnyObject {
     func onChatHistorySelected(url: URL)
     func onDismissRequested()
     func onSwitchToTab(_ tab: Tab)
+    func onCloseTab(_ tab: Tab)
+    func onBurnTab(_ tab: Tab)
     func onTabSwitcherRequested()
     func onTryFireModeRequested()
     func onToggleModeSwitched(to mode: TextEntryMode)
@@ -815,6 +817,14 @@ extension OmniBarEditingStateViewController: SuggestionTrayManagerDelegate {
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsSwitchToTab tab: Tab) {
         delegate?.onSwitchToTab(tab)
+    }
+
+    func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsCloseTab tab: Tab) {
+        delegate?.onCloseTab(tab)
+    }
+
+    func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsBurnTab tab: Tab) {
+        delegate?.onBurnTab(tab)
     }
 
     func suggestionTrayManagerDidRequestTabSwitcher(_ manager: SuggestionTrayManager) {
