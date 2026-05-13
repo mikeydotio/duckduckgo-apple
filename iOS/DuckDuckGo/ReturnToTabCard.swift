@@ -23,11 +23,31 @@ import DesignResourcesKit
 import DesignResourcesKitIcons
 
 struct ReturnToTabCard: View {
-    let model: EscapeHatchModel
-    let onTap: () -> Void
     @Environment(\.layoutDirection) private var layoutDirection
 
+    let model: EscapeHatchModel
+    let onTap: () -> Void
+    let onCloseTab: () -> Void
+    let onBurnTab: () -> Void
+
     var body: some View {
+        HStack(spacing: Metrics.innerSpacing) {
+            mainView
+            menuView
+        }
+        .padding(.horizontal, Metrics.horizontalPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(height: Metrics.height)
+        .background(
+            Capsule()
+                .fill(Color(designSystemColor: .controlsFillSecondary))
+        )
+        .contextMenu {
+            menuContentView
+        }
+    }
+
+    private var mainView: some View {
         Button(action: onTap) {
             HStack(spacing: Metrics.innerSpacing) {
                 iconView
@@ -45,18 +65,54 @@ struct ReturnToTabCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, Metrics.horizontalPadding)
-            .frame(maxWidth: .infinity)
-            .frame(height: Metrics.height)
-            .background(
-                Capsule()
-                    .fill(Color(designSystemColor: .controlsFillSecondary))
-            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(accessibilityLabelText))
         .accessibilityHint(Text(UserText.escapeHatchAccessibilityHint))
         .accessibilityIdentifier("NTP.escapeHatch.card")
+    }
+
+    private var menuView: some View {
+        Menu {
+            menuContentView
+        } label: {
+            Image(uiImage: DesignSystemImages.Glyphs.Size24.menuDotsHorizontal)
+                .foregroundColor(Color(designSystemColor: .icons))
+                .padding(.horizontal, Metrics.horizontalPadding)
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(Text(UserText.escapeHatchMoreButtonAccessibilityLabel))
+        .accessibilityIdentifier("NTP.escapeHatch.moreButton")
+    }
+
+    @ViewBuilder
+    private var menuContentView: some View {
+        Section(header: Text(model.subtitle)) {
+            Button(action: onTap) {
+                Label {
+                    Text(UserText.escapeHatchMenuReturnToTab)
+                } icon: {
+                    Image(uiImage: DesignSystemImages.Glyphs.Size24.goBackCircle)
+                        .foregroundColor(Color(designSystemColor: .icons))
+                }
+            }
+            Button(role: .destructive, action: onCloseTab) {
+                Label {
+                    Text(UserText.escapeHatchMenuCloseTab)
+                } icon: {
+                    Image(uiImage: DesignSystemImages.Glyphs.Size24.close)
+                }
+            }
+            Button(role: .destructive, action: onBurnTab) {
+                Label {
+                    Text(UserText.escapeHatchMenuBurnTab)
+                } icon: {
+                    Image(uiImage: DesignSystemImages.Glyphs.Size24.fire)
+                }
+            }
+        }
     }
 
     private var accessibilityLabelText: String {
@@ -159,7 +215,9 @@ private enum Metrics {
             domain: "en.wikipedia.org",
             targetTab: Tab(fireTab: false)
         ),
-        onTap: {}
+        onTap: {},
+        onCloseTab: {},
+        onBurnTab: {}
     )
     .padding()
     .frame(width: 360)
@@ -174,7 +232,9 @@ private enum Metrics {
             domain: nil,
             targetTab: Tab(fireTab: false)
         ),
-        onTap: {}
+        onTap: {},
+        onCloseTab: {},
+        onBurnTab: {}
     )
     .padding()
     .frame(width: 360)
@@ -189,7 +249,9 @@ private enum Metrics {
             domain: nil,
             targetTab: Tab(fireTab: true)
         ),
-        onTap: {}
+        onTap: {},
+        onCloseTab: {},
+        onBurnTab: {}
     )
     .padding()
     .frame(width: 360)
