@@ -871,11 +871,11 @@ extension MainViewController: UnifiedInputContentContainerViewControllerDelegate
     }
 
     func unifiedInputEditingStateDidRequestCloseTab(_ tab: Tab) {
-        onCloseTab(tab)
+        onCloseTabRequested(tab)
     }
 
     func unifiedInputEditingStateDidRequestBurnTab(_ tab: Tab) {
-        onBurnTab(tab)
+        onBurnTabRequested(tab)
     }
 
     func unifiedInputEditingStateDidRequestTabSwitcher() {

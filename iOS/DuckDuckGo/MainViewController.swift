@@ -1700,10 +1700,10 @@ class MainViewController: UIViewController {
                 self?.requestTabSwitcher()
             },
             onCloseTab: { [weak self] in
-                self?.onCloseTab(targetTab)
+                self?.onCloseTabRequested(targetTab)
             },
             onBurnTab: { [weak self] in
-                self?.onBurnTab(targetTab)
+                self?.onBurnTabRequested(targetTab)
             }
         )
         unifiedToggleInputCoordinator?.setEscapeHatch(hatch, actions: actions)
@@ -4433,29 +4433,13 @@ extension MainViewController: OmniBarDelegate {
         selectTab(tab)
     }
 
-    func onCloseTab(_ tab: Tab) {
-        let targetTabsModel = tabManager.tabsModel(for: tab.mode)
-        guard targetTabsModel.tabExists(tab: tab) else {
-            clearEscapeHatch()
-            return
-        }
-
-        tabManager.remove(tab: tab, in: targetTabsModel)
-        refreshControls()
-
-        if targetTabsModel.hasActiveTabs {
-            return
-        }
-
-        /// # TODO: Sub-optimal workaround
-        ///     Invoking `clearEscapeHatch` triggers a double DAX, temporarily fixed by dismissing OmniBar
-        clearEscapeHatch()
-        dismissOmniBar()
+    func onCloseTabRequested(_ tab: Tab) {
+        closeTab(tab, behavior: .onlyClose)
     }
 
-    func onBurnTab(_ tab: Tab) {
+    func onBurnTabRequested(_ tab: Tab) {
         /// # TODO: Wire FireConfirmationPresenter
-        onCloseTab(tab)
+        onCloseTabRequested(tab)
     }
 
     func onTabSwitcherRequested() {
@@ -4629,11 +4613,11 @@ extension MainViewController: NewTabPageControllerDelegate {
     }
 
     func newTabPageDidRequestCloseTab(_ controller: NewTabPageViewController, tab: Tab) {
-        onCloseTab(tab)
+        onCloseTabRequested(tab)
     }
 
     func newTabPageDidRequestBurnTab(_ controller: NewTabPageViewController, tab: Tab) {
-        onBurnTab(tab)
+        onBurnTabRequested(tab)
     }
 
     func newTabPageDidRequestTabSwitcher(_ controller: NewTabPageViewController) {

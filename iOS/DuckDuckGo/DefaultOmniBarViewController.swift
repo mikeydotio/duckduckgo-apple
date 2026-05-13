@@ -556,11 +556,11 @@ extension DefaultOmniBarViewController: OmniBarEditingStateViewControllerDelegat
     }
 
     func onCloseTab(_ tab: Tab) {
-        omniDelegate?.onCloseTab(tab)
+        omniDelegate?.onCloseTabRequested(tab)
     }
 
     func onBurnTab(_ tab: Tab) {
-        omniDelegate?.onBurnTab(tab)
+        omniDelegate?.onBurnTabRequested(tab)
     }
 
     func onTabSwitcherRequested() {
