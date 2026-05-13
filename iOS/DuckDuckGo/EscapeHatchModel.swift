@@ -20,15 +20,15 @@
 import Foundation
 import Combine
 
-/// Source for the live open-tab count of a given browsing mode.
+/// Source for the live tabs array of a given browsing mode.
 /// Exists so `EscapeHatchModel` can stay testable / previewable without depending on the whole `TabManaging` surface.
-protocol EscapeHatchTabCountSource {
-    func openTabCountPublisher(for mode: BrowsingMode) -> AnyPublisher<Int, Never>
+protocol EscapeHatchTabsSource {
+    func tabsPublisher(for mode: BrowsingMode) -> AnyPublisher<[Tab], Never>
 }
 
 /// Model for the NTP "Return to..." escape hatch card that navigates to the most recently used tab.
-/// Owns the live open-tab count for `targetTab.mode` — when initialised with an `EscapeHatchTabCountSource`,
-/// it subscribes to that source and keeps `openTabCount` in sync.
+/// Owns the live open-tab count and target-tab presence for `targetTab.mode` — when initialised with an
+/// `EscapeHatchTabsSource`, it subscribes once and derives both fields in a single processing pass per emission.
 final class EscapeHatchModel: ObservableObject {
 
     enum TabType {
@@ -38,55 +38,59 @@ final class EscapeHatchModel: ObservableObject {
     }
 
     @Published private(set) var openTabCount: Int = 0
+    @Published private(set) var isTargetTabPresent: Bool = true
     let title: String
     let subtitle: String
     let tabType: TabType
     let domain: String?
     let targetTab: Tab
 
-    private var openTabCountCancellable: AnyCancellable?
+    private var tabsCancellable: AnyCancellable?
 
-    init(title: String, subtitle: String, tabType: TabType, domain: String?, targetTab: Tab, tabCountSource: EscapeHatchTabCountSource? = nil) {
+    init(title: String, subtitle: String, tabType: TabType, domain: String?, targetTab: Tab, tabsSource: EscapeHatchTabsSource? = nil) {
         self.title = title
         self.subtitle = subtitle
         self.tabType = tabType
         self.domain = domain
         self.targetTab = targetTab
 
-        if let tabCountSource {
-            subscribeToTabsCount(tabCountSource: tabCountSource)
+        if let tabsSource {
+            subscribeToTabsSource(tabsSource)
         }
     }
 
-    private func subscribeToTabsCount(tabCountSource: EscapeHatchTabCountSource) {
-        openTabCountCancellable = tabCountSource.openTabCountPublisher(for: targetTab.mode)
+    private func subscribeToTabsSource(_ tabsSource: EscapeHatchTabsSource) {
+        tabsCancellable = tabsSource.tabsPublisher(for: targetTab.mode)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in
-                self?.openTabCount = $0
+            .sink { [weak self] tabs in
+                guard let self else { return }
+                self.openTabCount = tabs.count
+                self.isTargetTabPresent = tabs.contains { $0 === self.targetTab }
             }
     }
 }
 
-extension TabManager: EscapeHatchTabCountSource {
-    func openTabCountPublisher(for mode: BrowsingMode) -> AnyPublisher<Int, Never> {
+extension TabManager: EscapeHatchTabsSource {
+    func tabsPublisher(for mode: BrowsingMode) -> AnyPublisher<[Tab], Never> {
         tabsModel(for: mode).tabsPublisher
-            .map(\.count)
-            .eraseToAnyPublisher()
     }
 }
 
 #if DEBUG
-/// Preview-only count source — emits a fixed value once and completes.
-struct StaticEscapeHatchTabCountSource: EscapeHatchTabCountSource {
-    let count: Int
-    func openTabCountPublisher(for mode: BrowsingMode) -> AnyPublisher<Int, Never> {
-        Just(count).eraseToAnyPublisher()
+/// Preview-only source — emits a fixed tabs array once. Include the target tab if presence should read `true`.
+struct StaticEscapeHatchTabsSource: EscapeHatchTabsSource {
+    let tabs: [Tab]
+    func tabsPublisher(for mode: BrowsingMode) -> AnyPublisher<[Tab], Never> {
+        Just(tabs).eraseToAnyPublisher()
     }
 }
 
-extension EscapeHatchTabCountSource where Self == StaticEscapeHatchTabCountSource {
-    static func staticTabCountSource(_ count: Int) -> Self {
-        StaticEscapeHatchTabCountSource(count: count)
+extension EscapeHatchTabsSource where Self == StaticEscapeHatchTabsSource {
+    /// Synthesises an array of `count` tabs that includes `targetTab`, so the model reads `isTargetTabPresent == true`.
+    static func staticTabsSource(count: Int, includes targetTab: Tab) -> Self {
+        let padding = max(count - 1, 0)
+        let tabs = (0..<padding).map { _ in Tab(fireTab: false) } + [targetTab]
+        return StaticEscapeHatchTabsSource(tabs: tabs)
     }
 }
 

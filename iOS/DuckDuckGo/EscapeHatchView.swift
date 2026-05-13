@@ -30,24 +30,33 @@ struct EscapeHatchView: View {
     var body: some View {
         HStack(spacing: Metrics.spacing) {
             ReturnToTabCard(model: model, onTap: onCardTap, onCloseTab: onCloseTab, onBurnTab: onBurnTab)
+                .frame(maxWidth: model.isTargetTabPresent ? .infinity : 0)
+                .opacity(model.isTargetTabPresent ? 1 : 0)
+                .clipped()
+
             TabSwitcherPill(count: model.openTabCount, onTap: onTabSwitcherTap)
+                .frame(maxWidth: model.isTargetTabPresent ? TabSwitcherPill.compactSize : .infinity)
+                .frame(height: TabSwitcherPill.compactSize)
         }
+        .animation(.easeInOut(duration: Metrics.collapseDuration), value: model.isTargetTabPresent)
     }
 
     private enum Metrics {
         static let spacing: CGFloat = 8
+        static let collapseDuration: Double = 0.25
     }
 }
 
 #Preview("Escape hatch — regular tab") {
-    EscapeHatchView(
+    let target = Tab(fireTab: false)
+    return EscapeHatchView(
         model: EscapeHatchModel(
             title: "Tokamak - Wikipedia",
             subtitle: "en.wikipedia.org/wiki/Tokamak",
             tabType: .regular,
             domain: "en.wikipedia.org",
-            targetTab: Tab(fireTab: false),
-            tabCountSource: .staticTabCountSource(9)
+            targetTab: target,
+            tabsSource: .staticTabsSource(count: 9, includes: target)
         ),
         onCardTap: {},
         onTabSwitcherTap: {},
@@ -58,14 +67,15 @@ struct EscapeHatchView: View {
 }
 
 #Preview("Escape hatch — duck.ai") {
-    EscapeHatchView(
+    let target = Tab(fireTab: false)
+    return EscapeHatchView(
         model: EscapeHatchModel(
             title: "Good Dog Name Ideas",
             subtitle: "Duck.ai",
             tabType: .aiChat,
             domain: nil,
-            targetTab: Tab(fireTab: false),
-            tabCountSource: .staticTabCountSource(99)
+            targetTab: target,
+            tabsSource: .staticTabsSource(count: 99, includes: target)
         ),
         onCardTap: {},
         onTabSwitcherTap: {},

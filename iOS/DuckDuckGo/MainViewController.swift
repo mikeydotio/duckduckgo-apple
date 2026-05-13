@@ -1524,7 +1524,7 @@ class MainViewController: UIViewController {
                     tabType: .fire,
                     domain: nil,
                     targetTab: targetTab,
-                    tabCountSource: tabManager
+                    tabsSource: tabManager
                 )
             }
             return nil
@@ -1536,7 +1536,7 @@ class MainViewController: UIViewController {
                 tabType: .aiChat,
                 domain: nil,
                 targetTab: targetTab,
-                tabCountSource: tabManager
+                tabsSource: tabManager
             )
         }
         if let link = targetTab.link {
@@ -1547,7 +1547,7 @@ class MainViewController: UIViewController {
                 tabType: .regular,
                 domain: link.url.host,
                 targetTab: targetTab,
-                tabCountSource: tabManager
+                tabsSource: tabManager
             )
         }
         return nil
