@@ -4441,6 +4441,8 @@ extension MainViewController: OmniBarDelegate {
         }
 
         tabManager.remove(tab: tab, in: targetTabsModel)
+        refreshControls()
+
         if targetTabsModel.hasActiveTabs {
             return
         }
