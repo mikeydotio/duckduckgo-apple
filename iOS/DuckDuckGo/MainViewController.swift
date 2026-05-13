@@ -4445,7 +4445,9 @@ extension MainViewController: OmniBarDelegate {
             return
         }
 
-        /// # TODO: Sub-optimal. Invoking `clearEscapeHatch` causes side effects
+        /// # TODO: Sub-optimal workaround
+        ///     Invoking `clearEscapeHatch` triggers a double DAX, temporarily fixed by dismissing OmniBar
+        clearEscapeHatch()
         dismissOmniBar()
     }
 
