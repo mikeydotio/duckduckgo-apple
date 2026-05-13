@@ -4094,6 +4094,10 @@
 		D56A5D9FC3504F15837A0037 /* AutoplayPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4912774B0E942D597229E05 /* AutoplayPreferences.swift */; };
 		D6229C302ED0E213001DAE71 /* shield.new.json in Resources */ = {isa = PBXBuildFile; fileRef = D6229C2F2ED0E213001DAE71 /* shield.new.json */; };
 		D6229C312ED0E213001DAE71 /* shield.new.json in Resources */ = {isa = PBXBuildFile; fileRef = D6229C2F2ED0E213001DAE71 /* shield.new.json */; };
+		7B4659A22FAC000000CCB375 /* AddressBarPerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 7B4659A12FAC000000CCB375 /* AddressBarPerformance */; };
+		7B4659A42FAC000000CCB375 /* AddressBarPerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 7B4659A32FAC000000CCB375 /* AddressBarPerformance */; };
+		7B4659A62FAC000000CCB375 /* AddressBarPerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 7B4659A52FAC000000CCB375 /* AddressBarPerformance */; };
+		7B4659A82FAC000000CCB375 /* AddressBarPerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 7B4659A72FAC000000CCB375 /* AddressBarPerformance */; };
 		D65D0F9F2E7239680075A784 /* NetworkQualityMonitor in Frameworks */ = {isa = PBXBuildFile; productRef = D65D0F9E2E7239680075A784 /* NetworkQualityMonitor */; };
 		D65D0FA12E7239730075A784 /* NetworkQualityMonitor in Frameworks */ = {isa = PBXBuildFile; productRef = D65D0FA02E7239730075A784 /* NetworkQualityMonitor */; };
 		D65D0FA32E7239750075A784 /* PerformanceTest in Frameworks */ = {isa = PBXBuildFile; productRef = D65D0FA42E7239750075A784 /* PerformanceTest */; };
@@ -6678,6 +6682,7 @@
 		D52D5FB72FA16151006B1067 /* AppVersionModelDistributionLabelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionModelDistributionLabelTests.swift; sourceTree = "<group>"; };
 		D52D5FBD2FA26DA3006B1067 /* PinningManagerFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinningManagerFeedbackTests.swift; sourceTree = "<group>"; };
 		D6229C2F2ED0E213001DAE71 /* shield.new.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = shield.new.json; sourceTree = "<group>"; };
+		7B4659A02FAC000000CCB375 /* AddressBarPerformance */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = AddressBarPerformance; sourceTree = "<group>"; };
 		D65D0F9D2E7236D80075A784 /* NetworkQualityMonitor */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = NetworkQualityMonitor; sourceTree = "<group>"; };
 		D65D0FA22E7239740075A784 /* PerformanceTest */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = PerformanceTest; sourceTree = "<group>"; };
 		D6E0ACB02CE36DC4005D3486 /* DuckPlayerOverlayPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckPlayerOverlayPixels.swift; sourceTree = "<group>"; };
@@ -6889,6 +6894,7 @@
 				A1A1A1A12F50000100A0A0A0 /* CrashReportingShared in Frameworks */,
 				31B6493C2DB289B100A7AEE0 /* AIChat in Frameworks */,
 				9DB980162D96AFF000B174B3 /* DataBrokerProtection-macOS in Frameworks */,
+				7B4659A22FAC000000CCB375 /* AddressBarPerformance in Frameworks */,
 				D66840182E82BDED007DAAB2 /* PerformanceTest in Frameworks */,
 				9D9DE5752C63AA0C00D20B15 /* AppKitExtensions in Frameworks */,
 				4B9EE3562D76CA1500DDC75C /* Onboarding in Frameworks */,
@@ -6921,6 +6927,7 @@
 				F124E0E72D6E122F0035C7BA /* NetworkingTestingUtils in Frameworks */,
 				845F57112E97C01D00C7F78A /* SharedSandboxTestUtilities in Frameworks */,
 				845F57172E97CE9300C7F78A /* NoARCObjCTestUtilities in Frameworks */,
+				7B4659A42FAC000000CCB375 /* AddressBarPerformance in Frameworks */,
 				D668401C2E82BE31007DAAB2 /* PerformanceTest in Frameworks */,
 				F124E0E92D6E122F0035C7BA /* PersistenceTestingUtils in Frameworks */,
 				3706FE89293F661700E42796 /* OHHTTPStubsSwift in Frameworks */,
@@ -7269,6 +7276,7 @@
 				9DB9800A2D96AD2B00B174B3 /* DataBrokerProtectionCore in Frameworks */,
 				4B94B7992D4731E80014AAB8 /* SyncUI-macOS in Frameworks */,
 				D65D0F9F2E7239680075A784 /* NetworkQualityMonitor in Frameworks */,
+				7B4659A62FAC000000CCB375 /* AddressBarPerformance in Frameworks */,
 				D65D0FA32E7239750075A784 /* PerformanceTest in Frameworks */,
 				08355A13D28C7D20D863D8DE /* AIChatDebugServer in Frameworks */,
 			);
@@ -7293,6 +7301,7 @@
 				F124E0DD2D6E12190035C7BA /* NetworkingTestingUtils in Frameworks */,
 				845F570F2E97C01800C7F78A /* SharedSandboxTestUtilities in Frameworks */,
 				845F571B2E97CE9B00C7F78A /* NoARCObjCTestUtilities in Frameworks */,
+				7B4659A82FAC000000CCB375 /* AddressBarPerformance in Frameworks */,
 				D668401A2E82BE25007DAAB2 /* PerformanceTest in Frameworks */,
 				F124E0DF2D6E12190035C7BA /* PersistenceTestingUtils in Frameworks */,
 				9F0F46A02E865AFE00A9FC4D /* RemoteMessagingTestsUtils in Frameworks */,
@@ -8024,6 +8033,7 @@
 		378E279C2970217400FCADA2 /* LocalPackages */ = {
 			isa = PBXGroup;
 			children = (
+				7B4659A02FAC000000CCB375 /* AddressBarPerformance */,
 				31B649382DB2899500A7AEE0 /* AIChat */,
 				7B3A16402D4B798000D4C869 /* AppInfoRetriever */,
 				9D9DE5712C63A96400D20B15 /* AppKitExtensions */,
@@ -12978,6 +12988,7 @@
 				7BC26CA92DFC11D800E52480 /* VPN */,
 				D65D0FA02E7239730075A784 /* NetworkQualityMonitor */,
 				379C3E4B2E7238D800058C52 /* URLPredictor */,
+				7B4659A12FAC000000CCB375 /* AddressBarPerformance */,
 				D66840172E82BDED007DAAB2 /* PerformanceTest */,
 				9F50032A2E8D1B7F002F98D1 /* FoundationExtensions */,
 				F1E720B42E9D586700654B4E /* AttributedMetric */,
@@ -13026,6 +13037,7 @@
 				4B9EE3712D76CB5F00DDC75C /* SubscriptionTestingUtilities */,
 				84D6780B2D842DBE0030BC82 /* InlineSnapshotTesting */,
 				8448016D2E3BA42400E8A2C1 /* Clocks */,
+				7B4659A32FAC000000CCB375 /* AddressBarPerformance */,
 				D668401B2E82BE31007DAAB2 /* PerformanceTest */,
 				845F57062E97BFF100C7F78A /* SharedTestUtilities */,
 				845F57102E97C01D00C7F78A /* SharedSandboxTestUtilities */,
@@ -13566,6 +13578,7 @@
 				846F4CDE2E048A0500266DB7 /* BWIntegration */,
 				D65D0F9E2E7239680075A784 /* NetworkQualityMonitor */,
 				379C3E4D2E7238E100058C52 /* URLPredictor */,
+				7B4659A52FAC000000CCB375 /* AddressBarPerformance */,
 				D65D0FA42E7239750075A784 /* PerformanceTest */,
 				9F5003282E8D1B73002F98D1 /* FoundationExtensions */,
 				F1E720B22E9D585E00654B4E /* AttributedMetric */,
@@ -13616,6 +13629,7 @@
 				4B9EE3692D76CB2300DDC75C /* PixelKitTestingUtilities */,
 				84EFBCCF2D817CC400706739 /* InlineSnapshotTesting */,
 				844801692E3BA41A00E8A2C1 /* Clocks */,
+				7B4659A72FAC000000CCB375 /* AddressBarPerformance */,
 				D66840192E82BE25007DAAB2 /* PerformanceTest */,
 				845F56FE2E97BFD100C7F78A /* SharedTestUtilities */,
 				845F570E2E97C01800C7F78A /* SharedSandboxTestUtilities */,
@@ -21266,6 +21280,22 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CCF78AD42F34996900263097 /* XCRemoteSwiftPackageReference "combine-schedulers" */;
 			productName = CombineSchedulers;
+		};
+		7B4659A12FAC000000CCB375 /* AddressBarPerformance */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AddressBarPerformance;
+		};
+		7B4659A32FAC000000CCB375 /* AddressBarPerformance */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AddressBarPerformance;
+		};
+		7B4659A52FAC000000CCB375 /* AddressBarPerformance */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AddressBarPerformance;
+		};
+		7B4659A72FAC000000CCB375 /* AddressBarPerformance */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AddressBarPerformance;
 		};
 		D65D0F9E2E7239680075A784 /* NetworkQualityMonitor */ = {
 			isa = XCSwiftPackageProductDependency;
