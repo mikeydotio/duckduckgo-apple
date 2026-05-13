@@ -493,6 +493,7 @@
 		65F4CB462D7A0EFF00E89416 /* DuckPlayerWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F4CB452D7A0EFF00E89416 /* DuckPlayerWebView.swift */; };
 		6AC6DAB328804F97002723C0 /* BarsAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC6DAB228804F97002723C0 /* BarsAnimator.swift */; };
 		6AC98419288055C1005FA9CA /* BarsAnimatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC98418288055C1005FA9CA /* BarsAnimatorTests.swift */; };
+		6EE9F7F9C41E3A100FBB7C5C /* TabSwipeOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D22C154C1851EFAB573AAE /* TabSwipeOverlayView.swift */; };
 		6F03CAFC2C32C6F6004179A8 /* NewTabPageMessagesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F03CAFB2C32C6F6004179A8 /* NewTabPageMessagesModel.swift */; };
 		6F03CAFE2C32DD08004179A8 /* HomePageMessagesConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F03CAFD2C32DD08004179A8 /* HomePageMessagesConfiguration.swift */; };
 		6F03CB022C32ED47004179A8 /* NewTabPageMessagesModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F03CB002C32ED42004179A8 /* NewTabPageMessagesModelTests.swift */; };
@@ -582,6 +583,7 @@
 		6FF9AD3F2CE63DD800C5A406 /* TabSwitcherOpenDailyPixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF9AD3E2CE63DC200C5A406 /* TabSwitcherOpenDailyPixel.swift */; };
 		6FF9AD412CE6610F00C5A406 /* TabSwitcherOpenDailyPixelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF9AD402CE6610600C5A406 /* TabSwitcherOpenDailyPixelTests.swift */; };
 		71DFABCA706A402AB4B27F50 /* UnifiedToggleInputFloatingSubmitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D5BA3FF1041A3BB9396AE65 /* UnifiedToggleInputFloatingSubmitViewController.swift */; };
+		770F04AEA51E0EF84C52CD53 /* MainViewController+UnifiedToggleInputSwipeTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = D18A7DE942EC889067320A83 /* MainViewController+UnifiedToggleInputSwipeTabs.swift */; };
 		7B020B9A2D11F99D00876178 /* FavoritesDisplayMode+UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373608912ABB430D00629E7F /* FavoritesDisplayMode+UserDefaults.swift */; };
 		7B059F0F2D0387E900371ED0 /* NumberedParagraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B059F0A2D0387E900371ED0 /* NumberedParagraphView.swift */; };
 		7B059F112D0387E900371ED0 /* WidgetEducationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B059F0D2D0387E900371ED0 /* WidgetEducationViewController.swift */; };
@@ -738,6 +740,8 @@
 		85058370219F424500ED4EDB /* SearchBarExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = F143C3451E4AA32D00CFDE3A /* SearchBarExtension.swift */; };
 		8508931F2EA7AF04005F84FD /* MobileCustomization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8508931E2EA7AEFE005F84FD /* MobileCustomization.swift */; };
 		850ABD012AC3961100A733DF /* MainViewController+Segues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850ABD002AC3961100A733DF /* MainViewController+Segues.swift */; };
+		850C63F92FB4B5AA00DA332F /* LongPressBarMenuBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850C63F82FB4B5AA00DA332F /* LongPressBarMenuBuilderTests.swift */; };
+		850C63FB2FB4BB1F00DA332F /* LongPressBarMenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850C63FA2FB4BA5200DA332F /* LongPressBarMenuBuilder.swift */; };
 		850F93DB2B594AB800823EEA /* ZippedPassKitPreviewHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850F93DA2B594AB800823EEA /* ZippedPassKitPreviewHelper.swift */; };
 		8512EA4F24ED30D20073EE19 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8512EA4E24ED30D20073EE19 /* WidgetKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		8512EA5124ED30D20073EE19 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8512EA5024ED30D20073EE19 /* SwiftUI.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
@@ -1752,7 +1756,6 @@
 		BBA0000000000000000C0002 /* UnifiedInputStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA0000000000000000C0001 /* UnifiedInputStateStore.swift */; };
 		BBA0000000000000000D0004 /* UnifiedInputStateStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA0000000000000000D0003 /* UnifiedInputStateStoreTests.swift */; };
 		BBA0000000000000000E0002 /* Logger+UnifiedInputState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA0000000000000000E0001 /* Logger+UnifiedInputState.swift */; };
-		6EE9F7F9C41E3A100FBB7C5C /* TabSwipeOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D22C154C1851EFAB573AAE /* TabSwipeOverlayView.swift */; };
 		BBA0000000000000000F0002 /* UnifiedInputTabState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA0000000000000000F0001 /* UnifiedInputTabState.swift */; };
 		BBAFF02D2F6A93F900029537 /* SubscriptionPromoPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAFF02B2F6A93F900029537 /* SubscriptionPromoPresenter.swift */; };
 		BBAFF02E2F6A93F900029537 /* SubscriptionPromoCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAFF0292F6A93F900029537 /* SubscriptionPromoCoordinator.swift */; };
@@ -2128,9 +2131,9 @@
 		CBAD0F2B2D02EE4E006267B8 /* AfterInactivityEffectiveOptionResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0F2A2D02EE4D006267B8 /* AfterInactivityEffectiveOptionResolver.swift */; };
 		CBAD0F2D2D02EE50006267B8 /* IdleReturnEligibilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0F2C2D02EE4F006267B8 /* IdleReturnEligibilityManager.swift */; };
 		CBAD0F312D02EE50006267B8 /* IdleReturnEligibilityManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0F302D02EE50006267B8 /* IdleReturnEligibilityManagerTests.swift */; };
-		CBAD1A002D02EE45006267B8 /* IdleReturnThresholdResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD1A012D02EE45006267B8 /* IdleReturnThresholdResolverTests.swift */; };
 		CBAD0F332D02EE50006267B8 /* AfterInactivityEffectiveOptionResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0F322D02EE50006267B8 /* AfterInactivityEffectiveOptionResolverTests.swift */; };
 		CBAD0F3B2D02EE5B006267B8 /* IdleReturnCohort.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0F3A2D02EE5B006267B8 /* IdleReturnCohort.swift */; };
+		CBAD1A002D02EE45006267B8 /* IdleReturnThresholdResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD1A012D02EE45006267B8 /* IdleReturnThresholdResolverTests.swift */; };
 		CBC88EE12C7F834300F0F8C5 /* SpecialErrorPageUserScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBC88EE02C7F834300F0F8C5 /* SpecialErrorPageUserScriptTests.swift */; };
 		CBC88EE32C7F8B1700F0F8C5 /* SSLErrorPageNavigationHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBC88EE22C7F8B1700F0F8C5 /* SSLErrorPageNavigationHandlerTests.swift */; };
 		CBC88EE52C8097B500F0F8C5 /* URLCredentialCreator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBC88EE42C8097B500F0F8C5 /* URLCredentialCreator.swift */; };
@@ -2416,7 +2419,6 @@
 		F2B8A10136AA100000C0DE01 /* UnifiedToggleInputAttachmentPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B8A10436AA100000C0DE01 /* UnifiedToggleInputAttachmentPresenter.swift */; };
 		F2B8A10236AA100000C0DE01 /* UnifiedToggleInputModelMenuFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B8A10536AA100000C0DE01 /* UnifiedToggleInputModelMenuFactory.swift */; };
 		F2B8A10336AA100000C0DE01 /* MainViewController+UnifiedToggleInputIntentHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B8A10636AA100000C0DE01 /* MainViewController+UnifiedToggleInputIntentHandling.swift */; };
-		770F04AEA51E0EF84C52CD53 /* MainViewController+UnifiedToggleInputSwipeTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = D18A7DE942EC889067320A83 /* MainViewController+UnifiedToggleInputSwipeTabs.swift */; };
 		F2B8A10736AA100000C0DE01 /* UnifiedToggleInputAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B8A10936AA100000C0DE01 /* UnifiedToggleInputAttachment.swift */; };
 		F2B8A10836AA100000C0DE01 /* UnifiedToggleInputFileEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B8A10A36AA100000C0DE01 /* UnifiedToggleInputFileEncoder.swift */; };
 		F40F843728C939760081AE75 /* AutofillLoginListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40F843528C938370081AE75 /* AutofillLoginListViewModelTests.swift */; };
@@ -3251,6 +3253,8 @@
 		85058365219AE9EA00ED4EDB /* HomePageConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomePageConfiguration.swift; sourceTree = "<group>"; };
 		8508931E2EA7AEFE005F84FD /* MobileCustomization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileCustomization.swift; sourceTree = "<group>"; };
 		850ABD002AC3961100A733DF /* MainViewController+Segues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainViewController+Segues.swift"; sourceTree = "<group>"; };
+		850C63F82FB4B5AA00DA332F /* LongPressBarMenuBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPressBarMenuBuilderTests.swift; sourceTree = "<group>"; };
+		850C63FA2FB4BA5200DA332F /* LongPressBarMenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPressBarMenuBuilder.swift; sourceTree = "<group>"; };
 		850F93DA2B594AB800823EEA /* ZippedPassKitPreviewHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZippedPassKitPreviewHelper.swift; sourceTree = "<group>"; };
 		8512BCBF2061B6110085E862 /* global.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = global.swift; sourceTree = "<group>"; };
 		8512EA4D24ED30D20073EE19 /* WidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3444,6 +3448,7 @@
 		85F996CD2E54ADB9006B4641 /* OpenAIChatFromAddressBarHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIChatFromAddressBarHandling.swift; sourceTree = "<group>"; };
 		85F996CF2E54C260006B4641 /* OpenAIChatFromAddressBarHandlingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIChatFromAddressBarHandlingTests.swift; sourceTree = "<group>"; };
 		8693FFCAC02CE4A85D0BD62C /* RebrandedOnboardingView+BrowsersComparisonContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "RebrandedOnboardingView+BrowsersComparisonContent.swift"; sourceTree = "<group>"; };
+		87D22C154C1851EFAB573AAE /* TabSwipeOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSwipeOverlayView.swift; sourceTree = "<group>"; };
 		8C47244F2217A14B004C9B2D /* TabViewControllerSaveBookmarkExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabViewControllerSaveBookmarkExtension.swift; sourceTree = "<group>"; };
 		8C4838B4221C8F7F008A6739 /* GestureToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureToolbarButton.swift; sourceTree = "<group>"; };
 		970C8DE9831CD77A979A1354 /* RebrandedOnboardingView+SkipOnboardingContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "RebrandedOnboardingView+SkipOnboardingContent.swift"; sourceTree = "<group>"; };
@@ -4350,7 +4355,6 @@
 		BBA0000000000000000C0001 /* UnifiedInputStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedInputStateStore.swift; sourceTree = "<group>"; };
 		BBA0000000000000000D0003 /* UnifiedInputStateStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedInputStateStoreTests.swift; sourceTree = "<group>"; };
 		BBA0000000000000000E0001 /* Logger+UnifiedInputState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+UnifiedInputState.swift"; sourceTree = "<group>"; };
-		87D22C154C1851EFAB573AAE /* TabSwipeOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSwipeOverlayView.swift; sourceTree = "<group>"; };
 		BBA0000000000000000F0001 /* UnifiedInputTabState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedInputTabState.swift; sourceTree = "<group>"; };
 		BBAFF0292F6A93F900029537 /* SubscriptionPromoCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPromoCoordinator.swift; sourceTree = "<group>"; };
 		BBAFF02A2F6A93F900029537 /* SubscriptionPromoLaunchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPromoLaunchView.swift; sourceTree = "<group>"; };
@@ -4768,9 +4772,9 @@
 		CBAD0F2A2D02EE4D006267B8 /* AfterInactivityEffectiveOptionResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AfterInactivityEffectiveOptionResolver.swift; sourceTree = "<group>"; };
 		CBAD0F2C2D02EE4F006267B8 /* IdleReturnEligibilityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleReturnEligibilityManager.swift; sourceTree = "<group>"; };
 		CBAD0F302D02EE50006267B8 /* IdleReturnEligibilityManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleReturnEligibilityManagerTests.swift; sourceTree = "<group>"; };
-		CBAD1A012D02EE45006267B8 /* IdleReturnThresholdResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleReturnThresholdResolverTests.swift; sourceTree = "<group>"; };
 		CBAD0F322D02EE50006267B8 /* AfterInactivityEffectiveOptionResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AfterInactivityEffectiveOptionResolverTests.swift; sourceTree = "<group>"; };
 		CBAD0F3A2D02EE5B006267B8 /* IdleReturnCohort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleReturnCohort.swift; sourceTree = "<group>"; };
+		CBAD1A012D02EE45006267B8 /* IdleReturnThresholdResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleReturnThresholdResolverTests.swift; sourceTree = "<group>"; };
 		CBB6B2542AF6D543006B777C /* lt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = lt; path = lt.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		CBC7AB542AF6D583008CB798 /* ro */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ro; path = ro.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		CBC88EE02C7F834300F0F8C5 /* SpecialErrorPageUserScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpecialErrorPageUserScriptTests.swift; sourceTree = "<group>"; };
@@ -4820,6 +4824,7 @@
 		CCB36B102E5635EB00DBFE3A /* UserScriptError+Pixel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserScriptError+Pixel.swift"; sourceTree = "<group>"; };
 		CCC9F3B92EA66E0F00D442CA /* VPNSubscriptionPromotionHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNSubscriptionPromotionHelperTests.swift; sourceTree = "<group>"; };
 		CCCFFCD42FA3B81F0093CF07 /* OnboardingSharedPixelsStoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingSharedPixelsStoring.swift; sourceTree = "<group>"; };
+		D18A7DE942EC889067320A83 /* MainViewController+UnifiedToggleInputSwipeTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainViewController+UnifiedToggleInputSwipeTabs.swift"; sourceTree = "<group>"; };
 		D1A0B0012F92000100A1B001 /* DataImportEntryPointHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataImportEntryPointHandlerTests.swift; sourceTree = "<group>"; };
 		D1A0B0022F92000100A1B001 /* DataImportUserActivityHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataImportUserActivityHandlerTests.swift; sourceTree = "<group>"; };
 		D1A0B0032F92000100A1B001 /* ImportPasswordSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPasswordSourceTests.swift; sourceTree = "<group>"; };
@@ -5097,7 +5102,6 @@
 		F2B8A10436AA100000C0DE01 /* UnifiedToggleInputAttachmentPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputAttachmentPresenter.swift; sourceTree = "<group>"; };
 		F2B8A10536AA100000C0DE01 /* UnifiedToggleInputModelMenuFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputModelMenuFactory.swift; sourceTree = "<group>"; };
 		F2B8A10636AA100000C0DE01 /* MainViewController+UnifiedToggleInputIntentHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainViewController+UnifiedToggleInputIntentHandling.swift"; sourceTree = "<group>"; };
-		D18A7DE942EC889067320A83 /* MainViewController+UnifiedToggleInputSwipeTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainViewController+UnifiedToggleInputSwipeTabs.swift"; sourceTree = "<group>"; };
 		F2B8A10936AA100000C0DE01 /* UnifiedToggleInputAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputAttachment.swift; sourceTree = "<group>"; };
 		F2B8A10A36AA100000C0DE01 /* UnifiedToggleInputFileEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputFileEncoder.swift; sourceTree = "<group>"; };
 		F40F843528C938370081AE75 /* AutofillLoginListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutofillLoginListViewModelTests.swift; sourceTree = "<group>"; };
@@ -7363,6 +7367,7 @@
 		851DFD88212C5ED600D95F20 /* Main */ = {
 			isa = PBXGroup;
 			children = (
+				850C63F82FB4B5AA00DA332F /* LongPressBarMenuBuilderTests.swift */,
 				98D094822E6AFA6B00D94984 /* InternalUserCommandsTests.swift */,
 				851DFD89212C5EE800D95F20 /* TabSwitcherAnimatedButtonTests.swift */,
 				6F23316D2DD52E1B004D102D /* TabSwitcherStaticButtonTests.swift */,
@@ -10945,6 +10950,7 @@
 				85B9814D2B5EB618009AC9A6 /* SwipeTabsCoordinator.swift */,
 				85DE68192B6A8BB000DED4FE /* MainViewCoordinator.swift */,
 				CBDEDA152D8079E500123E00 /* RoundedCornersMaskView.swift */,
+				850C63FA2FB4BA5200DA332F /* LongPressBarMenuBuilder.swift */,
 			);
 			name = Main;
 			sourceTree = "<group>";
@@ -12977,6 +12983,7 @@
 				BDE91CD82C629A910005CB74 /* UnifiedFeedbackSender.swift in Sources */,
 				7B4DC5C32CB2AF0700EE5CC2 /* WidgetKind.swift in Sources */,
 				F1D477C61F2126CC0031ED49 /* OmniBarState.swift in Sources */,
+				850C63FB2FB4BB1F00DA332F /* LongPressBarMenuBuilder.swift in Sources */,
 				BBFE75F72EA64DBD0055480B /* WinBackOfferDebugMenu.swift in Sources */,
 				85F2FFCD2211F615006BB258 /* MainViewController+KeyCommands.swift in Sources */,
 				6FD3F8192C41252900DA5797 /* NewTabPageControllerDelegate.swift in Sources */,
@@ -13618,6 +13625,7 @@
 				98E563EF2DE8B32D00E6E75F /* MockFireproofing.swift in Sources */,
 				C124F0562E6879E7008D0F49 /* SwitchBarFunnelTests.swift in Sources */,
 				98E563F02DE8B32D00E6E75F /* MockOmnibarDependency.swift in Sources */,
+				850C63F92FB4B5AA00DA332F /* LongPressBarMenuBuilderTests.swift in Sources */,
 				9FFDA83F2DFA907A007923F7 /* MockPictureInPictureController.swift in Sources */,
 				9FF967B92E0E6ADE00E45B54 /* DefaultBrowserPromptFeatureFlagAdapterTests.swift in Sources */,
 				98E563F12DE8B32D00E6E75F /* MockPrivacyConfiguration.swift in Sources */,

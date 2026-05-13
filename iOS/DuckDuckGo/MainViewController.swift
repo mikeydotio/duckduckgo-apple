@@ -182,6 +182,7 @@ class MainViewController: UIViewController {
     private let statisticsStore: StatisticsStore
     let voiceSearchHelper: VoiceSearchHelperProtocol
     let featureFlagger: FeatureFlagger
+    private let longPressBarMenuBuilder = LongPressBarMenuBuilder()
     let idleReturnEligibilityManager: IdleReturnEligibilityManaging
     let ntpAfterIdleInstrumentation: NTPAfterIdleInstrumentation
     let postIdleSessionInstrumentation: PostIdleSessionInstrumentation
@@ -3987,87 +3988,51 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func menuForOmniBarLongPress(in state: OmniBarState) -> UIMenu? {
-        guard featureFlagger.isFeatureOn(.omniBarLongPressMenu) else { return nil }
-        guard isSupportedNonEditingOmniBarStateForLongPressMenu(state) else { return nil }
-
-        var sections = [UIMenuElement]()
-
-        if let url = currentTab?.url,
-            currentTab?.isAITab == false {
-            let copyTitle: String
-            if !url.isDuckDuckGo, privacyConfigurationManager.privacyConfig.isProtected(domain: url.host) {
-                copyTitle = UserText.actionCopyCleanLink
-            } else {
-                copyTitle = UserText.actionCopyLink
-            }
-
-            sections.append(UIMenu(title: "", options: .displayInline, children: [
-                UIAction(title: UserText.actionShare, image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in
-                    DailyPixel.fireDailyAndCount(pixel: .longPressBarActionShare)
-                    self?.shareCurrentURLFromAddressBar()
-                },
-                UIAction(title: copyTitle, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in
-                    DailyPixel.fireDailyAndCount(pixel: .longPressBarActionCopy)
-                    self?.currentTab?.onCopyAction(forUrl: url)
-                },
-            ]))
+        let isPrivacyProtectionEnabled: Bool
+        if let url = currentTab?.url {
+            isPrivacyProtectionEnabled = privacyConfigurationManager.privacyConfig.isProtected(domain: url.host)
+        } else {
+            isPrivacyProtectionEnabled = false
         }
 
-        if !isPad {
-            let moveLabel = appSettings.currentAddressBarPosition == .top ? UserText.omnibarLongPressMoveToBottom : UserText.omnibarLongPressMoveToTop
-            let moveImage = appSettings.currentAddressBarPosition == .top ? DesignSystemImages.Glyphs.Size24.addressBarBottom : DesignSystemImages.Glyphs.Size24.addressBarTop
-            sections.append(UIMenu(title: "", options: .displayInline, children: [
-                UIAction(title: moveLabel, image: moveImage) { [weak self] _ in
-                    DailyPixel.fireDailyAndCount(pixel: .longPressBarActionMove)
-                    self?.toggleAddressBarLocation()
-                },
-            ]))
-        }
-
-        sections.append(UIMenu(title: "", options: .displayInline, children: [
-            UIAction(title: UserText.closeTabs(withCount: 1), image: DesignSystemImages.Glyphs.Size24.close, attributes: [.destructive]) { [weak self] _ in
-                DailyPixel.fireDailyAndCount(pixel: .longPressBarActionCloseTab)
+        return longPressBarMenuBuilder.makeOmniBarMenu(context: .init(
+            state: state,
+            isFeatureEnabled: featureFlagger.isFeatureOn(.omniBarLongPressMenu),
+            currentURL: currentTab?.url,
+            isAITab: currentTab?.isAITab == true,
+            isPad: isPad,
+            addressBarPosition: appSettings.currentAddressBarPosition,
+            isPrivacyProtectionEnabled: isPrivacyProtectionEnabled,
+            onShare: { [weak self] in
+                self?.shareCurrentURLFromAddressBar()
+            },
+            onCopy: { [weak self] url in
+                self?.currentTab?.onCopyAction(forUrl: url)
+            },
+            onMoveAddressBar: { [weak self] in
+                self?.toggleAddressBarLocation()
+            },
+            onCloseTab: { [weak self] in
                 guard let tab = self?.currentTab else { return }
-                self?.tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true) },
-        ]))
-
-        DailyPixel.fireDailyAndCount(pixel: .longPressBarOpen)
-        return UIMenu(title: "", children: sections)
+                self?.tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true)
+            }
+        ))
     }
 
     func menuForUnifiedToggleInputLongPress() -> UIMenu? {
-        guard featureFlagger.isFeatureOn(.omniBarLongPressMenu) else { return nil }
-
-        DailyPixel.fireDailyAndCount(pixel: .longPressBarOpen)
-        return UIMenu(title: "", children: [
-            UIMenu(title: "", options: .displayInline, children: [
-                UIAction(title: UserText.closeTabs(withCount: 1), image: DesignSystemImages.Glyphs.Size24.close, attributes: [.destructive]) { [weak self] _ in
-                    Pixel.fire(pixel: .longPressBarActionCloseTab)
-                    guard let tab = self?.currentTab else { return }
-                    self?.tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true)
-                },
-            ]),
-        ])
+        longPressBarMenuBuilder.makeUnifiedToggleInputMenu(context: .init(
+            isFeatureEnabled: featureFlagger.isFeatureOn(.omniBarLongPressMenu),
+            onCloseTab: { [weak self] in
+                guard let tab = self?.currentTab else { return }
+                self?.tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true)
+            }
+        ))
     }
 
     private func toggleAddressBarLocation() {
         let current = appSettings.currentAddressBarPosition
         appSettings.currentAddressBarPosition = current == .top ? .bottom : .top
         self.onAddressBarPositionChanged()
-    }
-
-    private func isSupportedNonEditingOmniBarStateForLongPressMenu(_ state: OmniBarState) -> Bool {
-        switch state {
-        case is SmallOmniBarState.HomeNonEditingState,
-            is SmallOmniBarState.BrowsingNonEditingState,
-            is SmallOmniBarState.AIChatModeState,
-            is LargeOmniBarState.HomeNonEditingState,
-            is LargeOmniBarState.BrowsingNonEditingState,
-            is LargeOmniBarState.AIChatModeState:
-            return true
-        default:
-            return false
-        }
     }
 
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
