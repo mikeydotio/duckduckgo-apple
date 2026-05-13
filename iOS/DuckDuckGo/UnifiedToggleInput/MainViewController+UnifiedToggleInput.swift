@@ -797,8 +797,11 @@ extension MainViewController: UnifiedToggleInputDelegate {
         onDuckAIVoiceModeRequested()
     }
 
-    func unifiedToggleInputDidRequestAIChat() {
-        onAIChatPressed()
+    func unifiedToggleInputDidRequestAIChat(prefilledText: String) {
+        let trimmed = prefilledText.trimmingWhitespace()
+        unifiedToggleInputCoordinator?.clearText()
+        unifiedToggleInputCoordinator?.handleExternalSubmission(.prompt)
+        onAIChatPressed(prefilledText: trimmed.isEmpty ? nil : trimmed)
     }
 
     func unifiedToggleInputDidChangeHeight() {
