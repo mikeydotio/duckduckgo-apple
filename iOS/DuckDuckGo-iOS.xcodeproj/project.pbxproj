@@ -271,7 +271,6 @@
 		374E760C2EF56D7F00F8AADE /* PrivacyConfigTestsUtils in Frameworks */ = {isa = PBXBuildFile; productRef = 374E760B2EF56D7F00F8AADE /* PrivacyConfigTestsUtils */; };
 		374E760E2EF56D9100F8AADE /* PrivacyConfigTestsUtils in Frameworks */ = {isa = PBXBuildFile; productRef = 374E760D2EF56D9100F8AADE /* PrivacyConfigTestsUtils */; };
 		374E76102EF56FAE00F8AADE /* PrivacyConfigTestsUtils in Frameworks */ = {isa = PBXBuildFile; productRef = 374E760F2EF56FAE00F8AADE /* PrivacyConfigTestsUtils */; };
-		3760DFED299315EF0045A446 /* Waitlist in Frameworks */ = {isa = PBXBuildFile; productRef = 3760DFEC299315EF0045A446 /* Waitlist */; };
 		3768D8472C2CC98C004120AE /* RemoteMessagingConfigMatcherProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3768D8462C2CC98C004120AE /* RemoteMessagingConfigMatcherProvider.swift */; };
 		377D80222AB48554002AF251 /* FavoritesDisplayModeSyncHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 377D80212AB48554002AF251 /* FavoritesDisplayModeSyncHandler.swift */; };
 		379E877429E97C8D001C8BB0 /* BookmarksCleanupErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379E877329E97C8D001C8BB0 /* BookmarksCleanupErrorHandling.swift */; };
@@ -281,7 +280,6 @@
 		37CF91622BB474AA00BADCAE /* CrashCollectionOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CF91612BB474AA00BADCAE /* CrashCollectionOnboardingView.swift */; };
 		37CF91642BB4A82A00BADCAE /* CrashCollectionOnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CF91632BB4A82A00BADCAE /* CrashCollectionOnboardingViewModel.swift */; };
 		37EACB202EF55006002C06F9 /* PrivacyConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 37EACB1F2EF55006002C06F9 /* PrivacyConfig */; };
-		37FCAAAB29911BF1000E420A /* WaitlistExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FCAAAA29911BF1000E420A /* WaitlistExtensions.swift */; };
 		37FCAABC2992F592000E420A /* MultilineScrollableTextFix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FCAABB2992F592000E420A /* MultilineScrollableTextFix.swift */; };
 		37FCAAC029930E26000E420A /* FailedAssertionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FCAABF29930E26000E420A /* FailedAssertionView.swift */; };
 		37FF0A947D7C4E36A6F52B09 /* FireModePromotionsCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8EBB73CB1254EBFA67E5D22 /* FireModePromotionsCoordinator.swift */; };
@@ -2868,7 +2866,6 @@
 		37DF000929F9C416002B7D3E /* SyncMetadataDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncMetadataDatabase.swift; sourceTree = "<group>"; };
 		37DF000E29F9D635002B7D3E /* SyncBookmarksAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncBookmarksAdapter.swift; sourceTree = "<group>"; };
 		37E615742A5F533E00ACD63D /* SyncCredentialsAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCredentialsAdapter.swift; sourceTree = "<group>"; };
-		37FCAAAA29911BF1000E420A /* WaitlistExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitlistExtensions.swift; sourceTree = "<group>"; };
 		37FCAABB2992F592000E420A /* MultilineScrollableTextFix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultilineScrollableTextFix.swift; sourceTree = "<group>"; };
 		37FCAABF29930E26000E420A /* FailedAssertionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FailedAssertionView.swift; sourceTree = "<group>"; };
 		37FCAACB2993149A000E420A /* Waitlist */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Waitlist; sourceTree = "<group>"; };
@@ -5165,7 +5162,6 @@
 				853273B624FFE0BB00E3C778 /* WidgetKit.framework in Frameworks */,
 				0238E44F29C0FAA100615E30 /* FindInPageIOSJSSupport in Frameworks */,
 				56D7792C2CFF476800B619EF /* StoreKit.framework in Frameworks */,
-				3760DFED299315EF0045A446 /* Waitlist in Frameworks */,
 				BB631D162DE0D9020099977D /* DesignResourcesKitIcons in Frameworks */,
 				9FADFC4A2F5FC56400CA16F7 /* DuckSansFont in Frameworks */,
 				F1D43AFA2B99C1D300BAB743 /* BareBonesBrowserKit in Frameworks */,
@@ -6420,7 +6416,6 @@
 		4B6484F427FD1E390050A7A1 /* Waitlist */ = {
 			isa = PBXGroup;
 			children = (
-				37FCAAAA29911BF1000E420A /* WaitlistExtensions.swift */,
 				4BBBBA882B031B3300D965DA /* VPN */,
 				8524AAAB2A3888FE00EEC6D2 /* Waitlist.xcassets */,
 			);
@@ -11274,7 +11269,6 @@
 			packageProductDependencies = (
 				31E69A62280F4CB600478327 /* DuckUI */,
 				F4D7F633298C00C3006C3AE9 /* FindInPageIOSJSSupport */,
-				3760DFEC299315EF0045A446 /* Waitlist */,
 				0238E44E29C0FAA100615E30 /* FindInPageIOSJSSupport */,
 				F1D43AF92B99C1D300BAB743 /* BareBonesBrowserKit */,
 				9F8FE9482BAE50E50071E372 /* Lottie */,
@@ -13172,7 +13166,6 @@
 				1EEF124E2850EADE003DDE57 /* PrivacyIconView.swift in Sources */,
 				CB3B4D442D5F757A006DAD63 /* StatisticsService.swift in Sources */,
 				9FB027122C2526DD009EA190 /* OnboardingView+IntroDialogContent.swift in Sources */,
-				37FCAAAB29911BF1000E420A /* WaitlistExtensions.swift in Sources */,
 				C1DA98EB2E7C653F00F8BED9 /* SyncRecoveryAlternativeView.swift in Sources */,
 				EE4BE0092A740BED00CD6AA8 /* ClearTextField.swift in Sources */,
 				C1E9B8EA2F0D36C000E845AA /* AIChatContextualWebViewController.swift in Sources */,
@@ -17801,10 +17794,6 @@
 		374E760F2EF56FAE00F8AADE /* PrivacyConfigTestsUtils */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PrivacyConfigTestsUtils;
-		};
-		3760DFEC299315EF0045A446 /* Waitlist */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Waitlist;
 		};
 		37EACB1F2EF55006002C06F9 /* PrivacyConfig */ = {
 			isa = XCSwiftPackageProductDependency;
