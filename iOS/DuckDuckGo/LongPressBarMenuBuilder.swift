@@ -18,39 +18,8 @@
 //
 
 
-import AIChat
-import Bookmarks
-import BrokenSitePrompt
-import BrowserServicesKit
-import Combine
-import Common
-import Configuration
 import Core
-import DataBrokerProtection_iOS
-import DDGSync
-import DesignResourcesKit
 import DesignResourcesKitIcons
-import Kingfisher
-import NetworkExtension
-import Networking
-import Onboarding
-import os.log
-import PageRefreshMonitor
-import Persistence
-import PixelKit
-import PrivacyConfig
-import PrivacyDashboard
-import RemoteMessaging
-import Subscription
-import Suggestions
-import SwiftUI
-import SystemSettingsPiPTutorial
-import UIKitExtensions
-import UserScript
-import VPN
-import WebExtensions
-import WebKit
-import WidgetKit
 
 final class LongPressBarMenuBuilder {
 
