@@ -3994,12 +3994,19 @@ extension MainViewController: OmniBarDelegate {
 
         if let url = currentTab?.url,
             currentTab?.isAITab == false {
+            let copyTitle: String
+            if !url.isDuckDuckGo, privacyConfigurationManager.privacyConfig.isProtected(domain: url.host) {
+                copyTitle = UserText.actionCopyCleanLink
+            } else {
+                copyTitle = UserText.actionCopyLink
+            }
+
             sections.append(UIMenu(title: "", options: .displayInline, children: [
                 UIAction(title: UserText.actionShare, image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in
                     DailyPixel.fireDailyAndCount(pixel: .longPressBarActionShare)
                     self?.shareCurrentURLFromAddressBar()
                 },
-                UIAction(title: UserText.actionCopy, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in
+                UIAction(title: copyTitle, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in
                     DailyPixel.fireDailyAndCount(pixel: .longPressBarActionCopy)
                     self?.currentTab?.onCopyAction(forUrl: url)
                 },
