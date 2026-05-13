@@ -54,11 +54,11 @@ final class EscapeHatchModel: ObservableObject {
         self.targetTab = targetTab
 
         if let tabCountSource {
-            subscribeToTasIfPossible(tabCountSource: tabCountSource)
+            subscribeToTabsCount(tabCountSource: tabCountSource)
         }
     }
 
-    private func subscribeToTasIfPossible(tabCountSource: EscapeHatchTabCountSource) {
+    private func subscribeToTabsCount(tabCountSource: EscapeHatchTabCountSource) {
         openTabCountCancellable = tabCountSource.openTabCountPublisher(for: targetTab.mode)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
