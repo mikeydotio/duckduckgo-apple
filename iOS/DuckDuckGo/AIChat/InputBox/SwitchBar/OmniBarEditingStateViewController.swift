@@ -403,6 +403,12 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
                 },
                 onTabSwitcherTapped: { [weak self] in
                     self?.delegate?.onTabSwitcherRequested()
+                },
+                onCloseTab: { [weak self] in
+                    self?.delegate?.onCloseTab(escapeHatchModel.targetTab)
+                },
+                onBurnTab: { [weak self] in
+                    self?.delegate?.onBurnTab(escapeHatchModel.targetTab)
                 }
             )
         }

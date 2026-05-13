@@ -256,11 +256,13 @@ final class AIChatHistoryListViewController: UIViewController {
     /// so this method only needs to swap when the model identity changes.
     func setEscapeHatch(_ model: EscapeHatchModel?,
                         onTapped: (() -> Void)?,
-                        onTabSwitcherTapped: (() -> Void)?) {
+                        onTabSwitcherTapped: (() -> Void)?,
+                        onCloseTab: (() -> Void)?,
+                        onBurnTab: (() -> Void)?) {
         let modelChanged = model !== currentEscapeHatchModel
         currentEscapeHatchModel = model
 
-        if let model, let onTapped, let onTabSwitcherTapped {
+        if let model, let onTapped, let onTabSwitcherTapped, let onCloseTab, let onBurnTab {
             if escapeHatchHostingController != nil, !modelChanged {
                 return
             }
@@ -274,7 +276,9 @@ final class AIChatHistoryListViewController: UIViewController {
             let view = EscapeHatchView(
                 model: model,
                 onCardTap: onTapped,
-                onTabSwitcherTap: onTabSwitcherTapped
+                onTabSwitcherTap: onTabSwitcherTapped,
+                onCloseTab: onCloseTab,
+                onBurnTab: onBurnTab
             )
             let hosting = UIHostingController(rootView: view)
             hosting.view.backgroundColor = .clear

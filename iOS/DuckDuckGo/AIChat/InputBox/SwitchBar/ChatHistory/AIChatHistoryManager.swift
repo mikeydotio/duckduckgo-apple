@@ -131,11 +131,15 @@ final class AIChatHistoryManager {
 
     func setEscapeHatch(_ model: EscapeHatchModel?,
                         onTapped: (() -> Void)?,
-                        onTabSwitcherTapped: (() -> Void)?) {
+                        onTabSwitcherTapped: (() -> Void)?,
+                        onCloseTab: (() -> Void)?,
+                        onBurnTab: (() -> Void)?) {
         historyViewController?.setEscapeHatch(
             model,
             onTapped: onTapped,
-            onTabSwitcherTapped: onTabSwitcherTapped
+            onTabSwitcherTapped: onTabSwitcherTapped,
+            onCloseTab: onCloseTab,
+            onBurnTab: onBurnTab
         )
     }
 
