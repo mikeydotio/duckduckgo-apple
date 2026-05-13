@@ -37,9 +37,16 @@ protocol UnifiedInputContentContainerViewControllerDelegate: AnyObject {
     func unifiedInputEditingStateDidSelectSuggestion(_ suggestion: Suggestion)
     func unifiedInputEditingStateDidSelectChatHistory(url: URL)
     func unifiedInputEditingStateDidRequestSwitchTab(_ tab: Tab)
+    func unifiedInputEditingStateDidRequestCloseTab(_ tab: Tab)
+    func unifiedInputEditingStateDidRequestBurnTab(_ tab: Tab)
     func unifiedInputEditingStateDidRequestTabSwitcher()
     func unifiedInputEditingStateDidRequestTryFireMode()
     func unifiedInputEditingStateDidChangeMode(_ mode: TextEntryMode)
+}
+
+extension UnifiedInputContentContainerViewControllerDelegate {
+    func unifiedInputEditingStateDidRequestCloseTab(_ tab: Tab) {}
+    func unifiedInputEditingStateDidRequestBurnTab(_ tab: Tab) {}
 }
 
 final class UnifiedInputContentContainerViewController: UIViewController {
@@ -849,6 +856,14 @@ extension UnifiedInputContentContainerViewController: SuggestionTrayManagerDeleg
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsSwitchToTab tab: Tab) {
         delegate?.unifiedInputEditingStateDidRequestSwitchTab(tab)
+    }
+
+    func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsCloseTab tab: Tab) {
+        delegate?.unifiedInputEditingStateDidRequestCloseTab(tab)
+    }
+
+    func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsBurnTab tab: Tab) {
+        delegate?.unifiedInputEditingStateDidRequestBurnTab(tab)
     }
 
     func suggestionTrayManagerDidRequestTabSwitcher(_ manager: SuggestionTrayManager) {

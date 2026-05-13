@@ -870,6 +870,14 @@ extension MainViewController: UnifiedInputContentContainerViewControllerDelegate
         onSwitchToTab(tab)
     }
 
+    func unifiedInputEditingStateDidRequestCloseTab(_ tab: Tab) {
+        onCloseTab(tab)
+    }
+
+    func unifiedInputEditingStateDidRequestBurnTab(_ tab: Tab) {
+        onBurnTab(tab)
+    }
+
     func unifiedInputEditingStateDidRequestTabSwitcher() {
         requestTabSwitcher()
     }
