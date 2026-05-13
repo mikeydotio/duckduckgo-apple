@@ -3987,6 +3987,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func menuForOmniBarLongPress(in state: OmniBarState) -> UIMenu? {
+        guard featureFlagger.isFeatureOn(.omniBarLongPressMenu) else { return nil }
         guard isSupportedNonEditingOmniBarStateForLongPressMenu(state) else { return nil }
 
         var sections = [UIMenuElement]()
@@ -3994,8 +3995,14 @@ extension MainViewController: OmniBarDelegate {
         if let url = currentTab?.url,
             currentTab?.isAITab == false {
             sections.append(UIMenu(title: "", options: .displayInline, children: [
-                UIAction(title: UserText.actionShare, image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in self?.shareCurrentURLFromAddressBar() },
-                UIAction(title: UserText.actionCopy, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in self?.currentTab?.onCopyAction(forUrl: url) },
+                UIAction(title: UserText.actionShare, image: DesignSystemImages.Glyphs.Size24.shareApple) { [weak self] _ in
+                    DailyPixel.fireDailyAndCount(pixel: .longPressBarActionShare)
+                    self?.shareCurrentURLFromAddressBar()
+                },
+                UIAction(title: UserText.actionCopy, image: DesignSystemImages.Glyphs.Size24.link) { [weak self] _ in
+                    DailyPixel.fireDailyAndCount(pixel: .longPressBarActionCopy)
+                    self?.currentTab?.onCopyAction(forUrl: url)
+                },
             ]))
         }
 
@@ -4003,23 +4010,32 @@ extension MainViewController: OmniBarDelegate {
             let moveLabel = appSettings.currentAddressBarPosition == .top ? UserText.omnibarLongPressMoveToBottom : UserText.omnibarLongPressMoveToTop
             let moveImage = appSettings.currentAddressBarPosition == .top ? DesignSystemImages.Glyphs.Size24.addressBarBottom : DesignSystemImages.Glyphs.Size24.addressBarTop
             sections.append(UIMenu(title: "", options: .displayInline, children: [
-                UIAction(title: moveLabel, image: moveImage) { [weak self] _ in self?.toggleAddressBarLocation() },
+                UIAction(title: moveLabel, image: moveImage) { [weak self] _ in
+                    DailyPixel.fireDailyAndCount(pixel: .longPressBarActionMove)
+                    self?.toggleAddressBarLocation()
+                },
             ]))
         }
 
         sections.append(UIMenu(title: "", options: .displayInline, children: [
             UIAction(title: UserText.closeTabs(withCount: 1), image: DesignSystemImages.Glyphs.Size24.close, attributes: [.destructive]) { [weak self] _ in
+                DailyPixel.fireDailyAndCount(pixel: .longPressBarActionCloseTab)
                 guard let tab = self?.currentTab else { return }
                 self?.tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true) },
         ]))
 
+        DailyPixel.fireDailyAndCount(pixel: .longPressBarOpen)
         return UIMenu(title: "", children: sections)
     }
 
     func menuForUnifiedToggleInputLongPress() -> UIMenu? {
+        guard featureFlagger.isFeatureOn(.omniBarLongPressMenu) else { return nil }
+
+        DailyPixel.fireDailyAndCount(pixel: .longPressBarOpen)
         return UIMenu(title: "", children: [
             UIMenu(title: "", options: .displayInline, children: [
                 UIAction(title: UserText.closeTabs(withCount: 1), image: DesignSystemImages.Glyphs.Size24.close, attributes: [.destructive]) { [weak self] _ in
+                    Pixel.fire(pixel: .longPressBarActionCloseTab)
                     guard let tab = self?.currentTab else { return }
                     self?.tabDidRequestClose(tab.tabModel, behavior: .onlyClose, clearTabHistory: true)
                 },

@@ -824,12 +824,7 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
     }
 
     func refreshLongPressMenuAvailability() {
-        guard let longPressMenuProvider else {
-            removeOmniBarLongPressInteraction()
-            return
-        }
-
-        if longPressMenuProvider() == nil {
+        guard longPressMenuProvider != nil else {
             removeOmniBarLongPressInteraction()
             return
         }
