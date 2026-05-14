@@ -41,8 +41,6 @@ protocol OmniBarEditingStateViewControllerDelegate: AnyObject {
     func onChatHistorySelected(url: URL)
     func onDismissRequested()
     func onSwitchToTab(_ tab: Tab)
-    func onCloseTab(_ tab: Tab)
-    func onBurnTab(_ tab: Tab)
     func onTabSwitcherRequested()
     func onTryFireModeRequested()
     func onToggleModeSwitched(to mode: TextEntryMode)
@@ -59,6 +57,7 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
     var suggestionTrayDependencies: SuggestionTrayDependencies?
 
     weak var delegate: OmniBarEditingStateViewControllerDelegate?
+    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
     var automaticallySelectsTextOnAppear = false
     var useNewTransitionBehaviour = false
 
@@ -367,6 +366,7 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
         let manager = SuggestionTrayManager(switchBarHandler: switchBarHandler, dependencies: dependencies)
         manager.delegate = self
+        manager.escapeHatchActionRouter = escapeHatchActionRouter
         let suggestionTrayEscapeHatch = switchBarHandler.isFireTab ? nil : escapeHatchModel
         manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatch: suggestionTrayEscapeHatch)
         suggestionTrayManager = manager
@@ -395,21 +395,8 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
             }
         aiChatHistoryManager = manager
 
-        if let escapeHatchModel {
-            let actions = EscapeHatchActions(
-                onCardTap: { [weak self] in
-                    self?.delegate?.onSwitchToTab(escapeHatchModel.targetTab)
-                },
-                onTabSwitcherTap: { [weak self] in
-                    self?.delegate?.onTabSwitcherRequested()
-                },
-                onCloseTab: { [weak self] in
-                    self?.delegate?.onCloseTab(escapeHatchModel.targetTab)
-                },
-                onBurnTab: { [weak self] in
-                    self?.delegate?.onBurnTab(escapeHatchModel.targetTab)
-                }
-            )
+        if let escapeHatchModel, let escapeHatchActionRouter {
+            let actions = EscapeHatchActions(router: escapeHatchActionRouter, targetTab: escapeHatchModel.targetTab)
             manager.setEscapeHatch(escapeHatchModel, actions: actions)
         }
     }
@@ -439,13 +426,8 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
     private func installDaxLogoView() {
         if switchBarHandler.isFireTab {
-            let escapeHatchActions: EscapeHatchActions? = escapeHatchModel.map { model in
-                EscapeHatchActions(
-                    onCardTap: { [weak self] in self?.delegate?.onSwitchToTab(model.targetTab) },
-                    onTabSwitcherTap: { [weak self] in self?.delegate?.onTabSwitcherRequested() },
-                    onCloseTab: { [weak self] in self?.delegate?.onCloseTab(model.targetTab) },
-                    onBurnTab: { [weak self] in self?.delegate?.onBurnTab(model.targetTab) }
-                )
+            let escapeHatchActions: EscapeHatchActions? = escapeHatchModel.flatMap { model in
+                escapeHatchActionRouter.map { EscapeHatchActions(router: $0, targetTab: model.targetTab) }
             }
             daxLogoManager.installInViewController(self,
                                                    asSubviewOf: contentContainerView,
@@ -825,14 +807,6 @@ extension OmniBarEditingStateViewController: SuggestionTrayManagerDelegate {
 
     func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsSwitchToTab tab: Tab) {
         delegate?.onSwitchToTab(tab)
-    }
-
-    func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsCloseTab tab: Tab) {
-        delegate?.onCloseTab(tab)
-    }
-
-    func suggestionTrayManager(_ manager: SuggestionTrayManager, requestsBurnTab tab: Tab) {
-        delegate?.onBurnTab(tab)
     }
 
     func suggestionTrayManagerDidRequestTabSwitcher(_ manager: SuggestionTrayManager) {

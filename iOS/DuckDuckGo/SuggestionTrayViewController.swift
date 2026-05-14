@@ -45,6 +45,7 @@ class SuggestionTrayViewController: UIViewController {
 
     weak var autocompleteDelegate: AutocompleteViewControllerDelegate?
     weak var newTabPageControllerDelegate: NewTabPageControllerDelegate?
+    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
 
     var dismissHandler: (() -> Void)?
 
@@ -387,6 +388,7 @@ class SuggestionTrayViewController: UIViewController {
         )
 
         controller.delegate = newTabPageControllerDelegate
+        controller.escapeHatchActionRouter = escapeHatchActionRouter
         if hideBorder {
             controller.hideBorderView()
         }

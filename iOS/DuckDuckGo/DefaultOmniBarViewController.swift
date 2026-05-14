@@ -312,6 +312,7 @@ final class DefaultOmniBarViewController: OmniBarViewController {
             duckAiNativeStorageHandler: dependencies.duckAiNativeStorageHandler,
             escapeHatch: escapeHatch
         )
+        editingStateViewController.escapeHatchActionRouter = omniDelegate as? EscapeHatchActionRouter
         editingStateViewController.delegate = self
 
         editingStateViewController.modalPresentationStyle = .custom
@@ -553,14 +554,6 @@ extension DefaultOmniBarViewController: OmniBarEditingStateViewControllerDelegat
 
     func onSwitchToTab(_ tab: Tab) {
         omniDelegate?.onSwitchToTab(tab)
-    }
-
-    func onCloseTab(_ tab: Tab) {
-        omniDelegate?.onCloseTabRequested(tab)
-    }
-
-    func onBurnTab(_ tab: Tab) {
-        omniDelegate?.onBurnTabRequested(tab)
     }
 
     func onTabSwitcherRequested() {

@@ -1646,6 +1646,7 @@ class MainViewController: UIViewController {
 
         newTabPageViewController = controller
 
+        controller.escapeHatchActionRouter = self
         controller.setEscapeHatch(hatch)
         controller.setChromeLayoutContext(isBorderSuppressed: isInMinimalChromeLayout)
         currentNTPEscapeHatch = hatch
@@ -1688,26 +1689,7 @@ class MainViewController: UIViewController {
             clearEscapeHatch()
             return
         }
-        let targetTab = hatch.targetTab
-        let actions = EscapeHatchActions(
-            onCardTap: { [weak self] in
-                guard let self else { return }
-                guard tabManager.tabsModel(for: targetTab.mode).tabExists(tab: targetTab) else {
-                    clearEscapeHatch()
-                    return
-                }
-                onSwitchToTab(targetTab)
-            },
-            onTabSwitcherTap: { [weak self] in
-                self?.requestTabSwitcher()
-            },
-            onCloseTab: { [weak self] in
-                self?.onCloseTabRequested(targetTab)
-            },
-            onBurnTab: { [weak self] in
-                self?.onBurnTabRequested(targetTab)
-            }
-        )
+        let actions = EscapeHatchActions(router: self, targetTab: hatch.targetTab)
         unifiedToggleInputCoordinator?.setEscapeHatch(hatch, actions: actions)
     }
 
@@ -4585,6 +4567,29 @@ extension MainViewController {
     }
 }
 
+extension MainViewController: EscapeHatchActionRouter {
+    func escapeHatchDidRequestSwitch(to tab: Tab) {
+        // Pre-existing unified-toggle guard, hoisted here so every router call site gets it for free.
+        guard tabManager.tabsModel(for: tab.mode).tabExists(tab: tab) else {
+            clearEscapeHatch()
+            return
+        }
+        onSwitchToTab(tab)
+    }
+
+    func escapeHatchDidRequestClose(_ tab: Tab) {
+        onCloseTabRequested(tab)
+    }
+
+    func escapeHatchDidRequestBurn(_ tab: Tab) {
+        onBurnTabRequested(tab)
+    }
+
+    func escapeHatchDidRequestTabSwitcher() {
+        requestTabSwitcher()
+    }
+}
+
 extension MainViewController: NewTabPageControllerDelegate {
 
     func newTabPageDidSelectFavorite(_ controller: NewTabPageViewController, favorite: BookmarkEntity) {
@@ -4615,14 +4620,6 @@ extension MainViewController: NewTabPageControllerDelegate {
         }
         selectTab(tab)
         clearEscapeHatch()
-    }
-
-    func newTabPageDidRequestCloseTab(_ controller: NewTabPageViewController, tab: Tab) {
-        onCloseTabRequested(tab)
-    }
-
-    func newTabPageDidRequestBurnTab(_ controller: NewTabPageViewController, tab: Tab) {
-        onBurnTabRequested(tab)
     }
 
     func newTabPageDidRequestTabSwitcher(_ controller: NewTabPageViewController) {

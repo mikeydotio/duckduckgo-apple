@@ -79,6 +79,7 @@ extension MainViewController {
             self.dismissUnifiedToggleInputToOmnibar(coordinator: coordinator)
         }
         self.unifiedToggleInputCoordinator = coordinator
+        coordinator.escapeHatchActionRouter = self
 
         installUnifiedToggleInputViewController(coordinator.viewController)
 
@@ -948,14 +949,6 @@ extension MainViewController: UnifiedInputContentContainerViewControllerDelegate
 
     func unifiedInputEditingStateDidRequestSwitchTab(_ tab: Tab) {
         onSwitchToTab(tab)
-    }
-
-    func unifiedInputEditingStateDidRequestCloseTab(_ tab: Tab) {
-        onCloseTabRequested(tab)
-    }
-
-    func unifiedInputEditingStateDidRequestBurnTab(_ tab: Tab) {
-        onBurnTabRequested(tab)
     }
 
     func unifiedInputEditingStateDidRequestTabSwitcher() {
