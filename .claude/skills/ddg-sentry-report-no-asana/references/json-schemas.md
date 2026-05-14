@@ -120,6 +120,8 @@ All five files carry `schema_version: 1` at the top level. Scripts must reject u
 
 Same shape as `analyze.json`. For each cluster, `existing_asana_task` is filled (or stays `null`). Script #1 also adds two **optional** cross-reference fields per run so the agent in `summary` mode can render semantic links (closed-but-related tasks, recent DRI notes) without needing live Asana access — these fields are absent in older `analyze.augmented.json` files; consumers must treat missing as empty.
 
+**Severity gate.** Script #1 only queries Asana for clusters with `severity in {"high", "medium"}`. LOW and Pre-existing clusters get `existing_asana_task: null` and `related_asana_tasks: []` set directly (no API call). Without the gate, busy releases (100+ pre-existing entries) blow past Asana's HTTP 429 rate limit. See `external-scripts.md` for the contract.
+
 ```jsonc
 "existing_asana_task": {
   "gid": "1207001234567890",

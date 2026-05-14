@@ -44,6 +44,20 @@ _TASK_OPT_FIELDS = (
 )
 _GET_OPT_FIELDS = "tags,tags.name,completed,permalink_url,custom_fields,name"
 
+# Severity tiers eligible for Asana lookup. LOW and Pre-existing are skipped:
+# - LOW (zero first-party frames per a.4) never gets a tracking task.
+# - Pre-existing entries are listed by user count without blame or tracking
+#   link per the main-report rules.
+# Skipping them keeps script #1's Asana call volume bounded by HIGH + MEDIUM
+# cluster count (typically <15 per run) instead of every cluster (often 100+),
+# avoiding rate-limit (HTTP 429) cascades on busy iOS releases.
+_ASANA_LOOKUP_SEVERITIES = {"high", "medium"}
+
+# Cap per-cluster short-ID lookup attempts so a single wide cluster (e.g. a
+# 17-short-ID Jetsam cluster) cannot burst dozens of search calls. Most
+# clusters have ≤2 short-IDs; matches almost always land on the first attempt.
+_MAX_SHORT_ID_LOOKUP_ATTEMPTS = 3
+
 # How many of the most recent <Weekday> status subtasks to pull (today + 3 prior).
 _DRI_STATUS_LIMIT = 4
 
@@ -191,7 +205,7 @@ def _augment_cluster(
         return
 
     matched: dict[str, Any] | None = None
-    for short_id in short_ids:
+    for short_id in short_ids[:_MAX_SHORT_ID_LOOKUP_ATTEMPTS]:
         matched = _lookup_one_short_id(
             client,
             short_id,
@@ -410,8 +424,32 @@ def run(input_path: str, output_path: str | None = None, *, dry_run: bool = Fals
     client = AsanaClient() if not dry_run else None  # type: ignore[assignment]
 
     clusters = data.get("clusters", []) or []
-    logger.info("Augmenting %d clusters (dry_run=%s)", len(clusters), dry_run)
+    eligible_count = sum(
+        1 for c in clusters if (c.get("severity") or "").lower() in _ASANA_LOOKUP_SEVERITIES
+    )
+    logger.info(
+        "Augmenting %d clusters (dry_run=%s); %d eligible for Asana lookup (severity in %s)",
+        len(clusters),
+        dry_run,
+        eligible_count,
+        sorted(_ASANA_LOOKUP_SEVERITIES),
+    )
     for cluster in clusters:
+        severity = (cluster.get("severity") or "").lower()
+        if severity not in _ASANA_LOOKUP_SEVERITIES:
+            # LOW / Pre-existing clusters never get a tracking task and never
+            # carry blame attribution; skip Asana entirely. Keeps total call
+            # volume bounded by HIGH + MEDIUM count, far under Asana's rate
+            # limit even on busy releases (100+ pre-existing entries).
+            cluster["existing_asana_task"] = None
+            cluster["related_asana_tasks"] = []
+            logger.debug(
+                "cluster=%s: skipping Asana lookup (severity=%s)",
+                cluster.get("cluster_id"),
+                severity or "<unset>",
+            )
+            continue
+
         _augment_cluster(
             client,  # type: ignore[arg-type]
             cluster,

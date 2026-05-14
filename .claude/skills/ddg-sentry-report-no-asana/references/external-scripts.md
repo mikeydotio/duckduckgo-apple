@@ -13,9 +13,18 @@ These scripts are not shipped with the skill. This document is the load-bearing 
 **Input:** `analyze.json` path.
 **Output:** `analyze.augmented.json` (same shape; for each cluster, `existing_asana_task` is filled or stays `null`).
 
-### Operations (per cluster)
+### Severity gate (rate-limit budget)
 
-For each cluster in `analyze.json.clusters`:
+Script #1 only queries Asana for clusters with `severity in {"high", "medium"}`. LOW and Pre-existing clusters get `existing_asana_task: null` and `related_asana_tasks: []` set directly without any API call. Rationale:
+
+- LOW (zero first-party frames per `a.4`) never gets a tracking task — surfacing an existing-task link is moot.
+- Pre-existing entries are listed by user count without blame or tracking link per the main-report rules.
+
+The gate bounds total API calls by HIGH+MEDIUM cluster count (typically <15 per run on iOS, fewer on macOS) instead of total cluster count (often 100+ for active iOS releases). Without it, busy releases trigger Asana's HTTP 429 rate limit during the per-cluster `existing_asana_task` + `related_asana_tasks` pair of searches.
+
+### Operations (per HIGH/MEDIUM cluster)
+
+For each cluster in `analyze.json.clusters` whose `severity in {"high", "medium"}`:
 
 1. Run an Asana search keyed on the Sentry Crash Group ID custom field, scoped to the platform section:
    ```
@@ -28,7 +37,7 @@ For each cluster in `analyze.json.clusters`:
      limit=20
    )
    ```
-   Try each `cluster.short_ids` element until a hit is found. The Asana custom-field search is **substring-match** — split the returned `custom_fields` value on `,` and require **exact element match** against the short-ID. Substring hits (`APPLE-IOS-D6N` against `APPLE-IOS-D6N6`) are false positives.
+   Try **the first 3** `cluster.short_ids` elements; stop on first hit. (Cap of 3 bounds the worst-case API spend for clusters with many sibling short-IDs — a 17-short-ID Jetsam cluster would otherwise burst 17 × 2-section searches.) The Asana custom-field search is **substring-match** — split the returned `custom_fields` value on `,` and require **exact element match** against the short-ID. Substring hits (`APPLE-IOS-D6N` against `APPLE-IOS-D6N6`) are false positives.
 2. If the platform section returns nothing, fall back to the `Untitled section` GID `1214294661819891` (pre-platform-split tasks). Never create tasks in this fallback section — that's script #2's concern; here it's read-only.
 3. If the result task name starts with `[Duplicate]`, recurse: read the parent task GID, fetch the parent with the same `opt_fields`, and apply the gating logic to the parent.
 4. Parse `tags`: any tag matching `^<platform>-app-release-(\d+\.\d+\.\d+)$` is a fix-version tag. Take the **highest** version among them and compare against the analysed `version_display` (left-pad each component if needed; numeric comparison).
