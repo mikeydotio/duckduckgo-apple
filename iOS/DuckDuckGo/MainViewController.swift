@@ -4569,12 +4569,26 @@ extension MainViewController: EscapeHatchActionRouter {
     }
 
     func escapeHatchDidRequestClose(_ tab: Tab) {
-        closeTab(tab, behavior: .onlyClose)
+        let targetTabsModel = tabManager.tabsModel(for: tab.mode)
+        guard targetTabsModel.tabExists(tab: tab) else {
+            return
+        }
+
+        tabManager.remove(tab: tab, in: targetTabsModel)
+        refreshControls()
+
+        if targetTabsModel.hasActiveTabs {
+            return
+        }
+
+        /// # TODO: Invoking `closeTab` removes the Escape Hatch from screen
+        clearEscapeHatch()
+        dismissOmniBar()
     }
 
     func escapeHatchDidRequestBurn(_ tab: Tab) {
         // TODO: Wire FireConfirmationPresenter — currently falls back to a plain close.
-        closeTab(tab, behavior: .onlyClose)
+        escapeHatchDidRequestClose(tab)
     }
 
     func escapeHatchDidRequestTabSwitcher() {
