@@ -129,7 +129,11 @@ class AsanaClient:
                 "get_task opt_fields must include 'tags,tags.name' "
                 "(data-protection hook requirement)"
             )
-        return self._request("GET", f"/tasks/{task_gid}", params={"opt_fields": opt_fields})
+        body = self._request("GET", f"/tasks/{task_gid}", params={"opt_fields": opt_fields})
+        # Asana wraps single-task GETs in {"data": {...}} — unwrap to match
+        # create_task/update_task (the rest of the script package expects the
+        # task fields at the top level: ``existing.get("gid")``, etc.).
+        return body["data"]
 
     def search_tasks(
         self,
