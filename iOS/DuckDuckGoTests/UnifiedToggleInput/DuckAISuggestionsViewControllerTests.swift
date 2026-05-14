@@ -188,12 +188,14 @@ final class DuckAISuggestionsViewControllerTests: XCTestCase {
 
 private extension EscapeHatchModel {
     static var testFixture: EscapeHatchModel {
-        EscapeHatchModel(
+        let target = Tab(fireTab: false)
+        return EscapeHatchModel(
             title: "Test tab",
             subtitle: "example.com",
             tabType: .regular,
             domain: "example.com",
-            targetTab: Tab(fireTab: false)
+            targetTab: target,
+            tabsSource: .staticTabsSource(count: 1, includes: target)
         )
     }
 }

@@ -47,16 +47,14 @@ final class EscapeHatchModel: ObservableObject {
 
     private var tabsCancellable: AnyCancellable?
 
-    init(title: String, subtitle: String, tabType: TabType, domain: String?, targetTab: Tab, tabsSource: EscapeHatchTabsSource? = nil) {
+    init(title: String, subtitle: String, tabType: TabType, domain: String?, targetTab: Tab, tabsSource: EscapeHatchTabsSource) {
         self.title = title
         self.subtitle = subtitle
         self.tabType = tabType
         self.domain = domain
         self.targetTab = targetTab
 
-        if let tabsSource {
-            subscribeToTabsSource(tabsSource)
-        }
+        subscribeToTabsSource(tabsSource)
     }
 
     private func subscribeToTabsSource(_ tabsSource: EscapeHatchTabsSource) {

@@ -205,13 +205,15 @@ private enum Metrics {
 // MARK: - Previews
 
 #Preview("Return to tab card") {
+    let target = Tab(fireTab: false)
     ReturnToTabCard(
         model: EscapeHatchModel(
             title: "Tokamak - Wikipedia",
             subtitle: "en.wikipedia.org/wiki/Tokamak",
             tabType: .regular,
             domain: "en.wikipedia.org",
-            targetTab: Tab(fireTab: false)
+            targetTab: target,
+            tabsSource: .staticTabsSource(count: 9, includes: target)
         ),
         actions: .preview
     )
@@ -220,13 +222,15 @@ private enum Metrics {
 }
 
 #Preview("Return to Duck.ai") {
+    let target = Tab(fireTab: false)
     ReturnToTabCard(
         model: EscapeHatchModel(
             title: "Good Dog Name Ideas",
             subtitle: "Duck.ai",
             tabType: .aiChat,
             domain: nil,
-            targetTab: Tab(fireTab: false)
+            targetTab: target,
+            tabsSource: .staticTabsSource(count: 9, includes: target)
         ),
         actions: .preview
     )
@@ -235,13 +239,15 @@ private enum Metrics {
 }
 
 #Preview("Return to Fire Tab") {
+    let target = Tab(fireTab: true)
     ReturnToTabCard(
         model: EscapeHatchModel(
             title: "Last Used Fire Tab",
             subtitle: "",
             tabType: .fire,
             domain: nil,
-            targetTab: Tab(fireTab: true)
+            targetTab: target,
+            tabsSource: .staticTabsSource(count: 1, includes: target)
         ),
         actions: .preview
     )
