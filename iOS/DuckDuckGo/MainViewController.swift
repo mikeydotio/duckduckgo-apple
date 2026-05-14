@@ -4010,7 +4010,19 @@ extension MainViewController: OmniBarDelegate {
                 self?.currentTab?.onCopyAction(forUrl: url)
             },
             onMoveAddressBar: { [weak self] in
-                self?.toggleAddressBarLocation()
+                // Constraint toggles defer the actual layout pass to the next runloop,
+                // which on iOS 26 falls inside the context menu's dismiss animation block
+                // and can animate the change asymmetrically (only one direction). Forcing
+                // the layout to resolve synchronously inside performWithoutAnimation gives
+                // a consistent symmetric animation in both directions.
+                if #available(iOS 18.0, *) {
+                    UIView.animate(.smooth) {
+                        self?.toggleAddressBarLocation()
+                    }
+                } else {
+                    self?.toggleAddressBarLocation()
+                }
+
             },
             onCloseTab: { [weak self] in
                 guard let tab = self?.currentTab else { return }
@@ -4026,6 +4038,7 @@ extension MainViewController: OmniBarDelegate {
     private func toggleAddressBarLocation() {
         let current = appSettings.currentAddressBarPosition
         appSettings.currentAddressBarPosition = current == .top ? .bottom : .top
+        self.view.layoutIfNeeded()
     }
 
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
