@@ -55,7 +55,6 @@ final class UnifiedInputContentContainerViewController: UIViewController {
 
     var suggestionTrayDependencies: SuggestionTrayDependencies?
     weak var delegate: UnifiedInputContentContainerViewControllerDelegate?
-    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
     var onDismissRequested: (() -> Void)?
     var onSwipeDownRequested: (() -> Void)?
 
@@ -235,7 +234,7 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         escapeHatchModel = model
         escapeHatchActions = actions
         // The model self-updates `openTabCount` from `TabManaging.tabsModel(for:).tabsPublisher`, so SwiftUI consumers redraw reactively.
-        suggestionTrayManager?.setEscapeHatch(model)
+        suggestionTrayManager?.setEscapeHatch(model, actions: actions)
         // Fire tabs render their own empty state via DaxLogoManager — suppress the hatch to avoid stacking affordances.
         let duckAIHatchModel = switchBarHandler.isFireTab ? nil : model
         let duckAIActions = switchBarHandler.isFireTab ? nil : actions
@@ -429,9 +428,9 @@ final class UnifiedInputContentContainerViewController: UIViewController {
 
         let manager = SuggestionTrayManager(switchBarHandler: switchBarHandler, dependencies: dependencies)
         manager.delegate = self
-        manager.escapeHatchActionRouter = escapeHatchActionRouter
-        let trayEscapeHatch = switchBarHandler.isFireTab ? nil : escapeHatchModel
-        manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatch: trayEscapeHatch)
+        let trayEscapeHatchModel = switchBarHandler.isFireTab ? nil : escapeHatchModel
+        let trayEscapeHatchActions = switchBarHandler.isFireTab ? nil : escapeHatchActions
+        manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatchModel: trayEscapeHatchModel, escapeHatchActions: trayEscapeHatchActions)
         suggestionTrayManager = manager
     }
 

@@ -118,13 +118,9 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
         }
     }
 
-    func setEscapeHatch(_ model: EscapeHatchModel?) {
+    func setEscapeHatch(_ model: EscapeHatchModel?, actions: EscapeHatchActions?) {
         newTabPageViewModel.escapeHatch = model
-        if let model, let escapeHatchActionRouter {
-            newTabPageViewModel.escapeHatchActions = EscapeHatchActions(router: escapeHatchActionRouter, targetTab: model.targetTab)
-        } else {
-            newTabPageViewModel.escapeHatchActions = nil
-        }
+        newTabPageViewModel.escapeHatchActions = (model != nil) ? actions : nil
         updateBorderView()
     }
 
@@ -252,7 +248,6 @@ final class NewTabPageViewController: UIHostingController<NewTabPageView>, NewTa
 
     weak var chromeDelegate: BrowserChromeDelegate?
     weak var delegate: NewTabPageControllerDelegate?
-    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
 
     private func launchNewSearch() {
         // If we are displaying a Subscription promotion on a new tab, do not activate search

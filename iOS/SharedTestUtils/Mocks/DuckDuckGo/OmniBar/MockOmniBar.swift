@@ -31,7 +31,6 @@ final class MockOmniBar: OmniBar {
     var isBackButtonEnabled: Bool = false
     var isForwardButtonEnabled: Bool = false
     var omniDelegate: (any DuckDuckGo.OmniBarDelegate)?
-    var escapeHatchActionRouter: (any DuckDuckGo.EscapeHatchActionRouter)?
     var isExpandedPhone: Bool = false
     func configureForSwipeTemplate(isExpandedPhone: Bool, tabCount: Int) { }
     var isTextFieldEditing: Bool = false

@@ -1515,7 +1515,6 @@ class MainViewController: UIViewController {
 
     private func attachOmniBar() {
         viewCoordinator.omniBar.omniDelegate = self
-        viewCoordinator.omniBar.escapeHatchActionRouter = self
     }
     
     private func makeEscapeHatchModel(targetTab: Tab) -> EscapeHatchModel? {
@@ -1647,8 +1646,8 @@ class MainViewController: UIViewController {
 
         newTabPageViewController = controller
 
-        controller.escapeHatchActionRouter = self
-        controller.setEscapeHatch(hatch)
+        let hatchActions = hatch.map { EscapeHatchActions(router: self, targetTab: $0.targetTab) }
+        controller.setEscapeHatch(hatch, actions: hatchActions)
         controller.setChromeLayoutContext(isBorderSuppressed: isInMinimalChromeLayout)
         currentNTPEscapeHatch = hatch
         
@@ -4381,16 +4380,17 @@ extension MainViewController: OmniBarDelegate {
         viewCoordinator.omniBar.beginEditing(animated: true, forTextEntryMode: .aiChat)
     }
 
-    func escapeHatchForEditingState() -> EscapeHatchModel? {
+    func escapeHatchForEditingState() -> (model: EscapeHatchModel, actions: EscapeHatchActions)? {
         guard idleReturnEligibilityManager.isEligibleForNTPAfterIdle(),
-              tabManager.currentTabsModel.currentTab?.link == nil else {
+              tabManager.currentTabsModel.currentTab?.link == nil,
+              let model = currentNTPEscapeHatch else {
             return nil
         }
-        return currentNTPEscapeHatch
+        return (model, EscapeHatchActions(router: self, targetTab: model.targetTab))
     }
 
     private func clearEscapeHatch() {
-        newTabPageViewController?.setEscapeHatch(nil)
+        newTabPageViewController?.setEscapeHatch(nil, actions: nil)
         currentNTPEscapeHatch = nil
         unifiedToggleInputCoordinator?.clearEscapeHatch()
     }

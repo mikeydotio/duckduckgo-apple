@@ -227,9 +227,6 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
     private(set) var contentViewController: UnifiedInputContentContainerViewController
     private(set) var floatingReturnKeyViewController: UnifiedToggleInputFloatingReturnKeyViewController
     weak var delegate: UnifiedToggleInputDelegate?
-    weak var escapeHatchActionRouter: EscapeHatchActionRouter? {
-        didSet { contentViewController.escapeHatchActionRouter = escapeHatchActionRouter }
-    }
 
     private(set) var host: UnifiedToggleInputHost
     private(set) var isToggleEnabled: Bool

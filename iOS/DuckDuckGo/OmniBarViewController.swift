@@ -56,7 +56,6 @@ class OmniBarViewController: UIViewController, OmniBar {
 
     let dependencies: OmnibarDependencyProvider
     weak var omniDelegate: OmniBarDelegate?
-    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
 
     // MARK: - State
     private(set) lazy var state: OmniBarState = SmallOmniBarState.HomeNonEditingState(dependencies: dependencies, isLoading: false)

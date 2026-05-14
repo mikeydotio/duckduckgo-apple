@@ -27,7 +27,6 @@ protocol OmniBar: AnyObject {
     var isForwardButtonEnabled: Bool { get set }
 
     var omniDelegate: OmniBarDelegate? { get set }
-    var escapeHatchActionRouter: EscapeHatchActionRouter? { get set }
 
     var isExpandedPhone: Bool { get set }
 

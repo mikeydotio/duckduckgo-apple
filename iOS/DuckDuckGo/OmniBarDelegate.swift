@@ -120,7 +120,7 @@ protocol OmniBarDelegate: AnyObject {
     func dismissContextualSheetIfNeeded(completion: @escaping () -> Void)
 
     // MARK: - Escape Hatch
-    func escapeHatchForEditingState() -> EscapeHatchModel?
+    func escapeHatchForEditingState() -> (model: EscapeHatchModel, actions: EscapeHatchActions)?
     func onSwitchToTab(_ tab: Tab)
     func onTabSwitcherRequested()
 
@@ -232,7 +232,7 @@ extension OmniBarDelegate {
 
     func preferredTextEntryModeForCurrentTab() -> TextEntryMode? { nil }
 
-    func escapeHatchForEditingState() -> EscapeHatchModel? {
+    func escapeHatchForEditingState() -> (model: EscapeHatchModel, actions: EscapeHatchActions)? {
         nil
     }
 

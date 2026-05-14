@@ -45,7 +45,6 @@ class SuggestionTrayViewController: UIViewController {
 
     weak var autocompleteDelegate: AutocompleteViewControllerDelegate?
     weak var newTabPageControllerDelegate: NewTabPageControllerDelegate?
-    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
 
     var dismissHandler: (() -> Void)?
 
@@ -77,6 +76,7 @@ class SuggestionTrayViewController: UIViewController {
     private var newTabPage: NewTabPageViewController?
     private var willRemoveAutocomplete = false
     private var pendingEscapeHatchModel: EscapeHatchModel?
+    private var pendingEscapeHatchActions: EscapeHatchActions?
     private var pendingSuggestionsSectionTitle: String?
     private var pendingFavoritesSectionTitle: String?
     private let bookmarksDatabase: CoreDataDatabase
@@ -341,9 +341,10 @@ class SuggestionTrayViewController: UIViewController {
         return !newTabPageDependencies.homePageMessagesConfiguration.homeMessages.isEmpty
     }
 
-    func setEscapeHatch(_ model: EscapeHatchModel?) {
+    func setEscapeHatch(_ model: EscapeHatchModel?, actions: EscapeHatchActions?) {
         pendingEscapeHatchModel = model
-        newTabPage?.setEscapeHatch(model)
+        pendingEscapeHatchActions = actions
+        newTabPage?.setEscapeHatch(model, actions: actions)
     }
 
     func setSuggestionsSectionTitle(_ title: String?) {
@@ -388,11 +389,10 @@ class SuggestionTrayViewController: UIViewController {
         )
 
         controller.delegate = newTabPageControllerDelegate
-        controller.escapeHatchActionRouter = escapeHatchActionRouter
         if hideBorder {
             controller.hideBorderView()
         }
-        controller.setEscapeHatch(pendingEscapeHatchModel)
+        controller.setEscapeHatch(pendingEscapeHatchModel, actions: pendingEscapeHatchActions)
         if let pendingFavoritesSectionTitle {
             controller.setSectionTitle(pendingFavoritesSectionTitle)
         }

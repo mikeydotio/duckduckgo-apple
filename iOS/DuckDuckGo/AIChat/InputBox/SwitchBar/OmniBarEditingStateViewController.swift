@@ -57,7 +57,6 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
     var suggestionTrayDependencies: SuggestionTrayDependencies?
 
     weak var delegate: OmniBarEditingStateViewControllerDelegate?
-    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
     var automaticallySelectsTextOnAppear = false
     var useNewTransitionBehaviour = false
 
@@ -145,6 +144,7 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
     // MARK: - Escape Hatch
     private var escapeHatchModel: EscapeHatchModel?
+    private var escapeHatchActions: EscapeHatchActions?
 
     private weak var contentAnimator: UIViewPropertyAnimator?
 
@@ -158,7 +158,8 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
                   aiChatSettings: AIChatSettingsProvider = AIChatSettings(),
                   voiceShortcutFeature: DuckAIVoiceShortcutFeatureProviding = DuckAIVoiceShortcutFeature(),
                   duckAiNativeStorageHandler: DuckAiNativeStorageHandling? = nil,
-                  escapeHatch: EscapeHatchModel? = nil) {
+                  escapeHatchModel: EscapeHatchModel? = nil,
+                  escapeHatchActions: EscapeHatchActions? = nil) {
         self.switchBarHandler = switchBarHandler
         self.switchBarSubmissionMetrics = switchBarSubmissionMetrics
         self.daxLogoManager = DaxLogoManager(isFireTab: switchBarHandler.isFireTab)
@@ -168,7 +169,8 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
         self.aiChatSettings = aiChatSettings
         self.voiceShortcutFeature = voiceShortcutFeature
         self.duckAiNativeStorageHandler = duckAiNativeStorageHandler
-        self.escapeHatchModel = escapeHatch
+        self.escapeHatchModel = escapeHatchModel
+        self.escapeHatchActions = escapeHatchActions
         self.isUsingTopBarPosition = appSettings.currentAddressBarPosition == .top || isLandscapeOrientation
         self.isAdjustedForTopBar = self.isUsingTopBarPosition
 
@@ -366,9 +368,9 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
         let manager = SuggestionTrayManager(switchBarHandler: switchBarHandler, dependencies: dependencies)
         manager.delegate = self
-        manager.escapeHatchActionRouter = escapeHatchActionRouter
         let suggestionTrayEscapeHatch = switchBarHandler.isFireTab ? nil : escapeHatchModel
-        manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatch: suggestionTrayEscapeHatch)
+        let suggestionTrayActions = switchBarHandler.isFireTab ? nil : escapeHatchActions
+        manager.installInContainerView(searchContainer, parentViewController: containerViewController, escapeHatch: suggestionTrayEscapeHatch, escapeHatchActions: suggestionTrayActions)
         suggestionTrayManager = manager
     }
 
@@ -395,9 +397,8 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
             }
         aiChatHistoryManager = manager
 
-        if let escapeHatchModel, let escapeHatchActionRouter {
-            let actions = EscapeHatchActions(router: escapeHatchActionRouter, targetTab: escapeHatchModel.targetTab)
-            manager.setEscapeHatch(escapeHatchModel, actions: actions)
+        if let escapeHatchModel, let escapeHatchActions {
+            manager.setEscapeHatch(escapeHatchModel, actions: escapeHatchActions)
         }
     }
     
@@ -426,9 +427,6 @@ final class OmniBarEditingStateViewController: UIViewController, OmniBarEditingS
 
     private func installDaxLogoView() {
         if switchBarHandler.isFireTab {
-            let escapeHatchActions: EscapeHatchActions? = escapeHatchModel.flatMap { model in
-                escapeHatchActionRouter.map { EscapeHatchActions(router: $0, targetTab: model.targetTab) }
-            }
             daxLogoManager.installInViewController(self,
                                                    asSubviewOf: contentContainerView,
                                                    anchorView: switchBarVC.view,

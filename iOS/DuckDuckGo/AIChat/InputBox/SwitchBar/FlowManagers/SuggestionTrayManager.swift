@@ -65,7 +65,6 @@ final class SuggestionTrayManager: NSObject {
     // MARK: - Properties
     
     weak var delegate: SuggestionTrayManagerDelegate?
-    weak var escapeHatchActionRouter: EscapeHatchActionRouter?
 
     private let switchBarHandler: SwitchBarHandling
     private let dependencies: SuggestionTrayDependencies
@@ -127,8 +126,8 @@ final class SuggestionTrayManager: NSObject {
         suggestionTrayViewController?.setFavoritesSectionTitle(title)
     }
 
-    func setEscapeHatch(_ model: EscapeHatchModel?) {
-        suggestionTrayViewController?.setEscapeHatch(model)
+    func setEscapeHatch(_ model: EscapeHatchModel?, actions: EscapeHatchActions?) {
+        suggestionTrayViewController?.setEscapeHatch(model, actions: actions)
     }
 
     func setAdditionalTopInset(_ inset: CGFloat) {
@@ -136,7 +135,7 @@ final class SuggestionTrayManager: NSObject {
     }
 
     /// Installs the suggestion tray in the provided container view
-    func installInContainerView(_ containerView: UIView, parentViewController: UIViewController, escapeHatch: EscapeHatchModel? = nil) {
+    func installInContainerView(_ containerView: UIView, parentViewController: UIViewController, escapeHatchModel: EscapeHatchModel? = nil, escapeHatchActions: EscapeHatchActions? = nil) {
         guard suggestionTrayViewController == nil else { return }
         
 
@@ -154,7 +153,6 @@ final class SuggestionTrayManager: NSObject {
             hideBorder: true)
 
         controller.coversFullScreen = true
-        controller.escapeHatchActionRouter = escapeHatchActionRouter
 
         parentViewController.addChild(controller)
         containerView.addSubview(controller.view)
@@ -179,7 +177,7 @@ final class SuggestionTrayManager: NSObject {
             self.delegate?.suggestionTrayManagerDidUpdateVisibility(self)
         }
         controller.didMove(toParent: parentViewController)
-        controller.setEscapeHatch(escapeHatch)
+        controller.setEscapeHatch(escapeHatchModel, actions: escapeHatchActions)
 
         showInitialSuggestions()
         containerView.layoutIfNeeded()

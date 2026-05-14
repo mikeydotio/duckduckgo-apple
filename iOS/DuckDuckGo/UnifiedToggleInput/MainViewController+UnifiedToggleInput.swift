@@ -79,7 +79,6 @@ extension MainViewController {
             self.dismissUnifiedToggleInputToOmnibar(coordinator: coordinator)
         }
         self.unifiedToggleInputCoordinator = coordinator
-        coordinator.escapeHatchActionRouter = self
 
         installUnifiedToggleInputViewController(coordinator.viewController)
 
