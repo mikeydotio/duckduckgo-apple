@@ -46,7 +46,7 @@ struct EscapeHatchView: View {
 
 #Preview("Escape hatch — regular tab") {
     let target = Tab(fireTab: false)
-    return EscapeHatchView(
+    EscapeHatchView(
         model: EscapeHatchModel(
             title: "Tokamak - Wikipedia",
             subtitle: "en.wikipedia.org/wiki/Tokamak",
@@ -62,7 +62,7 @@ struct EscapeHatchView: View {
 
 #Preview("Escape hatch — duck.ai") {
     let target = Tab(fireTab: false)
-    return EscapeHatchView(
+    EscapeHatchView(
         model: EscapeHatchModel(
             title: "Good Dog Name Ideas",
             subtitle: "Duck.ai",
