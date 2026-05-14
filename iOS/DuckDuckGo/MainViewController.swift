@@ -1515,6 +1515,7 @@ class MainViewController: UIViewController {
 
     private func attachOmniBar() {
         viewCoordinator.omniBar.omniDelegate = self
+        viewCoordinator.omniBar.escapeHatchActionRouter = self
     }
     
     private func makeEscapeHatchModel(targetTab: Tab) -> EscapeHatchModel? {
@@ -4420,15 +4421,6 @@ extension MainViewController: OmniBarDelegate {
         selectTab(tab)
     }
 
-    func onCloseTabRequested(_ tab: Tab) {
-        closeTab(tab, behavior: .onlyClose)
-    }
-
-    func onBurnTabRequested(_ tab: Tab) {
-        /// # TODO: Wire FireConfirmationPresenter
-        onCloseTabRequested(tab)
-    }
-
     func onTabSwitcherRequested() {
         requestTabSwitcher()
     }
@@ -4578,11 +4570,12 @@ extension MainViewController: EscapeHatchActionRouter {
     }
 
     func escapeHatchDidRequestClose(_ tab: Tab) {
-        onCloseTabRequested(tab)
+        closeTab(tab, behavior: .onlyClose)
     }
 
     func escapeHatchDidRequestBurn(_ tab: Tab) {
-        onBurnTabRequested(tab)
+        // TODO: Wire FireConfirmationPresenter — currently falls back to a plain close.
+        closeTab(tab, behavior: .onlyClose)
     }
 
     func escapeHatchDidRequestTabSwitcher() {

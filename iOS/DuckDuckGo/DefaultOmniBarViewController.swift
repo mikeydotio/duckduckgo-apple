@@ -312,7 +312,7 @@ final class DefaultOmniBarViewController: OmniBarViewController {
             duckAiNativeStorageHandler: dependencies.duckAiNativeStorageHandler,
             escapeHatch: escapeHatch
         )
-        editingStateViewController.escapeHatchActionRouter = omniDelegate as? EscapeHatchActionRouter
+        editingStateViewController.escapeHatchActionRouter = escapeHatchActionRouter
         editingStateViewController.delegate = self
 
         editingStateViewController.modalPresentationStyle = .custom
