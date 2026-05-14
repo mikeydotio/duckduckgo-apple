@@ -31,7 +31,9 @@ struct ReturnToTabCard: View {
     var body: some View {
         HStack(spacing: Metrics.innerSpacing) {
             mainView
-            menuView
+            if actions.isActionsEnabled {
+                menuView
+            }
         }
         .padding(.horizontal, Metrics.horizontalPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -40,8 +42,8 @@ struct ReturnToTabCard: View {
             Capsule()
                 .fill(Color(designSystemColor: .controlsFillSecondary))
         )
-        .contextMenu {
-            menuContentView
+        .if(actions.isActionsEnabled) {
+            $0.contextMenu { menuContentView }
         }
     }
 

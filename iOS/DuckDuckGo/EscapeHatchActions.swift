@@ -18,10 +18,13 @@
 //
 
 import Foundation
+import PrivacyConfig
+import Core
 
 /// Bundles the four user-driven actions exposed by the escape-hatch UI so they thread through
 /// the editing-state / NTP / AI-chat stacks as a single value instead of four parallel closures.
 struct EscapeHatchActions {
+    let isActionsEnabled: Bool
     let onCardTap: () -> Void
     let onTabSwitcherTap: () -> Void
     let onCloseTab: () -> Void
@@ -42,8 +45,9 @@ protocol EscapeHatchActionRouter: AnyObject {
 extension EscapeHatchActions {
     /// Builds the four-closure bundle from a router + target tab. The router is captured weakly so
     /// holders of `EscapeHatchActions` don't pin their owner's lifecycle.
-    init(router: EscapeHatchActionRouter, targetTab: Tab) {
+    init(router: EscapeHatchActionRouter, targetTab: Tab, featureFlagger: FeatureFlagger) {
         self.init(
+            isActionsEnabled: featureFlagger.isFeatureOn(.escapeHatchActions),
             onCardTap: { [weak router] in router?.escapeHatchDidRequestSwitch(to: targetTab) },
             onTabSwitcherTap: { [weak router] in router?.escapeHatchDidRequestTabSwitcher() },
             onCloseTab: { [weak router] in router?.escapeHatchDidRequestClose(targetTab) },

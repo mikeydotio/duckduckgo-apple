@@ -1646,7 +1646,7 @@ class MainViewController: UIViewController {
 
         newTabPageViewController = controller
 
-        let hatchActions = hatch.map { EscapeHatchActions(router: self, targetTab: $0.targetTab) }
+        let hatchActions = hatch.map { EscapeHatchActions(router: self, targetTab: $0.targetTab, featureFlagger: featureFlagger) }
         controller.setEscapeHatch(hatch, actions: hatchActions)
         controller.setChromeLayoutContext(isBorderSuppressed: isInMinimalChromeLayout)
         currentNTPEscapeHatch = hatch
@@ -1689,7 +1689,7 @@ class MainViewController: UIViewController {
             clearEscapeHatch()
             return
         }
-        let actions = EscapeHatchActions(router: self, targetTab: hatch.targetTab)
+        let actions = EscapeHatchActions(router: self, targetTab: hatch.targetTab, featureFlagger: featureFlagger)
         unifiedToggleInputCoordinator?.setEscapeHatch(hatch, actions: actions)
     }
 
@@ -4386,7 +4386,7 @@ extension MainViewController: OmniBarDelegate {
               let model = currentNTPEscapeHatch else {
             return nil
         }
-        return (model, EscapeHatchActions(router: self, targetTab: model.targetTab))
+        return (model, EscapeHatchActions(router: self, targetTab: model.targetTab, featureFlagger: featureFlagger))
     }
 
     private func clearEscapeHatch() {

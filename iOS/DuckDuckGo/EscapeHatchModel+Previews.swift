@@ -23,7 +23,7 @@ import Combine
 extension EscapeHatchActions {
 
     static var preview: EscapeHatchActions {
-        EscapeHatchActions(onCardTap: { }, onTabSwitcherTap: { }, onCloseTab: { }, onBurnTab: { })
+        EscapeHatchActions(isActionsEnabled: true, onCardTap: { }, onTabSwitcherTap: { }, onCloseTab: { }, onBurnTab: { })
     }
 }
 
