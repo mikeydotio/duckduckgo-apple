@@ -169,33 +169,6 @@ public final class ContentScopeScriptsService: ContentScopeScriptsServiceProtoco
         return remoteVersion
     }
 
-    // MARK: - Version comparison
-
-    /// Returns true when `remoteVersion` and `currentVersion` share the same major and minor
-    /// components and `remoteVersion`'s patch component is strictly higher, or when there is
-    /// no `currentVersion` yet. A remote with a different major or minor is never auto-applied.
-    /// Throws `Error.invalidVersion` if either string is not in `MAJOR.MINOR.PATCH` form.
-    static func shouldUpdate(currentVersion: String?, remoteVersion: String) throws -> Bool {
-        let remote = try versionComponents(remoteVersion)
-        guard let currentVersion else { return true }
-        let current = try versionComponents(currentVersion)
-        guard current.major == remote.major, current.minor == remote.minor else { return false }
-        return remote.patch > current.patch
-    }
-
-    /// Parses a strict `MAJOR.MINOR.PATCH` version string with non-negative integer components.
-    /// Any deviation (wrong component count, non-numeric, negative) throws `Error.invalidVersion`.
-    static func versionComponents(_ version: String) throws -> (major: Int, minor: Int, patch: Int) {
-        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 3,
-              let major = Int(parts[0]), major >= 0,
-              let minor = Int(parts[1]), minor >= 0,
-              let patch = Int(parts[2]), patch >= 0 else {
-            throw Error.invalidVersion(version)
-        }
-        return (major, minor, patch)
-    }
-
     // MARK: - Network
 
     private func fetchRemoteVersion(accessToken: String) async throws -> String {
@@ -244,5 +217,34 @@ public final class ContentScopeScriptsService: ContentScopeScriptsServiceProtoco
         }
 
         return directory.appendingPathComponent(Self.cachedScriptFileName)
+    }
+}
+
+// MARK: - should update logic
+private extension ContentScopeScriptsService {
+    
+    /// Returns true when `remoteVersion` and `currentVersion` share the same major and minor
+    /// components and `remoteVersion`'s patch component is strictly higher, or when there is
+    /// no `currentVersion` yet. A remote with a different major or minor is never auto-applied.
+    /// Throws `Error.invalidVersion` if either string is not in `MAJOR.MINOR.PATCH` form.
+    static func shouldUpdate(currentVersion: String?, remoteVersion: String) throws -> Bool {
+        let remote = try versionComponents(remoteVersion)
+        guard let currentVersion else { return true }
+        let current = try versionComponents(currentVersion)
+        guard current.major == remote.major, current.minor == remote.minor else { return false }
+        return remote.patch > current.patch
+    }
+
+    /// Parses a strict `MAJOR.MINOR.PATCH` version string with non-negative integer components.
+    /// Any deviation (wrong component count, non-numeric, negative) throws `Error.invalidVersion`.
+    static func versionComponents(_ version: String) throws -> (major: Int, minor: Int, patch: Int) {
+        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3,
+              let major = Int(parts[0]), major >= 0,
+              let minor = Int(parts[1]), minor >= 0,
+              let patch = Int(parts[2]), patch >= 0 else {
+            throw Error.invalidVersion(version)
+        }
+        return (major, minor, patch)
     }
 }
