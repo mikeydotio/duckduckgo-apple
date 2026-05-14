@@ -50,15 +50,20 @@ class AsanaClient:
                 "Create a Personal Access Token at https://app.asana.com/0/my-apps "
                 "and export it before running."
             )
-        try:
-            import requests as _requests
-        except ImportError as e:  # pragma: no cover
-            raise AsanaError(
-                "The `requests` package is required at runtime. "
-                "Install it with: pip install -r scripts/requirements.txt"
-            ) from e
+        # Only import `requests` when we actually need to create a session.
+        # Tests can pass a stand-in (or any object with .request) without
+        # requiring `requests` to be installed system-wide.
+        if session is None:
+            try:
+                import requests as _requests
+            except ImportError as e:  # pragma: no cover
+                raise AsanaError(
+                    "The `requests` package is required at runtime. "
+                    "Install it with: pip install -r scripts/requirements.txt"
+                ) from e
+            session = _requests.Session()
         self._token = token
-        self._session = session or _requests.Session()
+        self._session = session
         self._session.headers.update(
             {
                 "Authorization": f"Bearer {token}",
@@ -141,7 +146,7 @@ class AsanaClient:
         projects_any: str,
         sections_any: str | None = None,
         text: str | None = None,
-        custom_field_value: tuple[str, str] | None = None,
+        custom_field_contains: tuple[str, str] | None = None,
         completed: bool | None = None,
         is_subtask: bool | None = None,
         opt_fields: str,
@@ -149,8 +154,15 @@ class AsanaClient:
     ) -> list[dict[str, Any]]:
         """GET /workspaces/<workspace>/tasks/search.
 
-        custom_field_value is a (custom_field_gid, value) tuple translated to
-        the `custom_fields.<gid>.value` query param.
+        `custom_field_contains` is a (custom_field_gid, value) tuple translated
+        to the `custom_fields.<gid>.contains` query param. We use `.contains`
+        (not `.value`) because the Sentry Crash Group ID field is text-typed
+        with comma-separated values like `APPLE-IOS-DJC0,APPLE-IOS-DJ8M,...`
+        — `.value` on text fields matches the *whole* field string, so it
+        would never find a sibling short-ID embedded in a multi-ID value. The
+        caller must still post-filter for exact element match (see
+        asana_lookup._short_id_is_exact_match) because `.contains` matches
+        substrings inside larger strings.
         """
         params: dict[str, Any] = {
             "projects.any": projects_any,
@@ -165,9 +177,9 @@ class AsanaClient:
             params["completed"] = "true" if completed else "false"
         if is_subtask is not None:
             params["is_subtask"] = "true" if is_subtask else "false"
-        if custom_field_value is not None:
-            cf_gid, value = custom_field_value
-            params[f"custom_fields.{cf_gid}.value"] = value
+        if custom_field_contains is not None:
+            cf_gid, value = custom_field_contains
+            params[f"custom_fields.{cf_gid}.contains"] = value
 
         body = self._request(
             "GET",

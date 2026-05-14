@@ -84,7 +84,7 @@ def _lookup_one_short_id(
         results = client.search_tasks(
             projects_any=sentry_crash_reports_project_gid,
             sections_any=sections_gid,
-            custom_field_value=(custom_field_gid, short_id),
+            custom_field_contains=(custom_field_gid, short_id),
             opt_fields=_TASK_OPT_FIELDS,
             limit=20,
         )

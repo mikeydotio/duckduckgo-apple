@@ -179,7 +179,7 @@ class ShortIdCapTests(unittest.TestCase):
         for name, kw in calls:
             if name != "search_tasks":
                 continue
-            cf = kw.get("custom_field_value")
+            cf = kw.get("custom_field_contains")
             if cf is not None:
                 searched_short_ids.add(cf[1])
 

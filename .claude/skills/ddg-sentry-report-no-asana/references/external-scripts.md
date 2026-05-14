@@ -32,12 +32,14 @@ For each cluster in `analyze.json.clusters` whose `severity in {"high", "medium"
      workspace=137249556945,
      projects.any=analyze.json.sentry_crash_reports_project_gid,
      sections.any=analyze.json.platform_section_gid,
-     custom_fields.<analyze.json.sentry_crash_group_custom_field_gid>.value=<short_id>,
+     custom_fields.<analyze.json.sentry_crash_group_custom_field_gid>.contains=<short_id>,
      opt_fields="name,permalink_url,custom_fields,memberships.section.gid,tags,tags.name,completed",
      limit=20
    )
    ```
-   Try **the first 3** `cluster.short_ids` elements; stop on first hit. (Cap of 3 bounds the worst-case API spend for clusters with many sibling short-IDs — a 17-short-ID Jetsam cluster would otherwise burst 17 × 2-section searches.) The Asana custom-field search is **substring-match** — split the returned `custom_fields` value on `,` and require **exact element match** against the short-ID. Substring hits (`APPLE-IOS-D6N` against `APPLE-IOS-D6N6`) are false positives.
+   **Use `.contains`, not `.value`.** The Sentry Crash Group ID field is text-typed and stores comma-separated short-IDs like `APPLE-IOS-DJC0,APPLE-IOS-DJ8M,APPLE-IOS-DJ6W`. `custom_fields.<gid>.value` on text fields matches the *whole* field string, so it would never find a sibling short-ID inside a multi-ID value — that's the bug that historically produced 4+ duplicate Asana tasks for a single short-ID. `custom_fields.<gid>.contains` does substring matching, which is what we need.
+
+   Try **the first 3** `cluster.short_ids` elements; stop on first hit. (Cap of 3 bounds the worst-case API spend for clusters with many sibling short-IDs — a 17-short-ID Jetsam cluster would otherwise burst 17 × 2-section searches.) Asana's `.contains` is substring-match, so after the API call **split the returned `custom_fields` value on `,` and require exact element match** against the short-ID — substring hits like `APPLE-IOS-D6N` against `APPLE-IOS-D6N6` are false positives the client must reject.
 2. If the platform section returns nothing, fall back to the `Untitled section` GID `1214294661819891` (pre-platform-split tasks). Never create tasks in this fallback section — that's script #2's concern; here it's read-only.
 3. If the result task name starts with `[Duplicate]`, recurse: read the parent task GID, fetch the parent with the same `opt_fields`, and apply the gating logic to the parent.
 4. Parse `tags`: any tag matching `^<platform>-app-release-(\d+\.\d+\.\d+)$` is a fix-version tag. Take the **highest** version among them and compare against the analysed `version_display` (left-pad each component if needed; numeric comparison).
