@@ -1285,6 +1285,167 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
         XCTAssertEqual(mockPreferences.selectedModelId, "gpt-5")
     }
 
+    func test_handleModelSelection_whenModelHasAccess_persistsToPreferences() {
+        sut.modelStore.models = [makeModel(id: "plus-model", access: true, accessTier: ["plus"])]
+
+        sut.handleModelSelection("plus-model")
+
+        XCTAssertEqual(mockPreferences.selectedModelId, "plus-model")
+    }
+
+    func test_handleModelSelection_whenAddressBarFreeUserSelectsPlusGatedModel_routesPurchaseFlowWithoutChangingSelection() {
+        mockPreferences.selectedModelId = "free-model"
+        sut.modelStore.models = [
+            makeModel(id: "free-model", access: true, accessTier: ["free"]),
+            makeModel(id: "plus-model", access: false, accessTier: ["plus"])
+        ]
+        let notificationExpectation = expectation(forNotification: .settingsDeepLinkNotification, object: nil) { notification in
+            guard let deepLink = notification.object as? SettingsViewModel.SettingsDeepLinkSection,
+                  case .subscriptionFlow(let components) = deepLink else {
+                return false
+            }
+            return self.hasQueryItem(in: components, name: "featurePage", value: "duckai")
+                && self.hasQueryItem(in: components, name: "origin", value: "funnel_addressbar_ios__modelpicker")
+        }
+
+        sut.handleModelSelection("plus-model")
+
+        wait(for: [notificationExpectation], timeout: 1.0)
+        XCTAssertEqual(mockPreferences.selectedModelId, "free-model")
+    }
+
+    func test_handleModelSelection_whenAddressBarPlusUserSelectsProGatedModel_routesUpgradeFlowWithoutChangingSelection() {
+        mockPreferences.selectedModelId = "plus-model"
+        sut.modelStore.subscriptionState = SubscriptionState(userTier: .plus, hasActiveSubscription: true)
+        sut.modelStore.models = [
+            makeModel(id: "plus-model", access: true, accessTier: ["plus"]),
+            makeModel(id: "pro-model", access: false, accessTier: ["pro"])
+        ]
+        let notificationExpectation = expectation(forNotification: .settingsDeepLinkNotification, object: nil) { notification in
+            guard let deepLink = notification.object as? SettingsViewModel.SettingsDeepLinkSection,
+                  case .subscriptionPlanChangeFlow(let components) = deepLink else {
+                return false
+            }
+            return self.hasQueryItem(in: components, name: "featurePage", value: "duckai")
+                && self.hasQueryItem(in: components, name: "origin", value: "funnel_addressbar_ios__modelpicker")
+        }
+
+        sut.handleModelSelection("pro-model")
+
+        wait(for: [notificationExpectation], timeout: 1.0)
+        XCTAssertEqual(mockPreferences.selectedModelId, "plus-model")
+    }
+
+    func test_handleModelSelection_whenGatedModelBecomesAccessibleAfterSubscriptionRefresh_selectsPendingModel() {
+        mockPreferences.selectedModelId = "plus-model"
+        sut.modelStore.subscriptionState = SubscriptionState(userTier: .plus, hasActiveSubscription: true)
+        sut.modelStore.models = [
+            makeModel(id: "plus-model", access: true, accessTier: ["plus"]),
+            makeModel(id: "pro-model", access: false, accessTier: ["pro"])
+        ]
+        let notificationExpectation = expectation(forNotification: .settingsDeepLinkNotification, object: nil) { notification in
+            guard let deepLink = notification.object as? SettingsViewModel.SettingsDeepLinkSection,
+                  case .subscriptionPlanChangeFlow = deepLink else {
+                return false
+            }
+            return true
+        }
+
+        sut.handleModelSelection("pro-model")
+        wait(for: [notificationExpectation], timeout: 1.0)
+        XCTAssertEqual(mockPreferences.selectedModelId, "plus-model")
+
+        sut.modelStore.subscriptionState = SubscriptionState(userTier: .pro, hasActiveSubscription: true)
+        sut.modelStore.models = [
+            makeModel(id: "plus-model", access: true, accessTier: ["plus"]),
+            makeModel(id: "pro-model", access: true, accessTier: ["pro"])
+        ]
+        sut.modelStore.onModelsUpdated?()
+
+        XCTAssertEqual(mockPreferences.selectedModelId, "pro-model")
+    }
+
+    func test_handleModelSelection_whenAddressBarFreeUserSelectsProGatedModel_routesPurchaseFlowWithoutChangingSelection() {
+        mockPreferences.selectedModelId = "free-model"
+        sut.modelStore.models = [
+            makeModel(id: "free-model", access: true, accessTier: ["free"]),
+            makeModel(id: "pro-model", access: false, accessTier: ["pro"])
+        ]
+        let notificationExpectation = expectation(forNotification: .settingsDeepLinkNotification, object: nil) { notification in
+            guard let deepLink = notification.object as? SettingsViewModel.SettingsDeepLinkSection,
+                  case .subscriptionFlow(let components) = deepLink else {
+                return false
+            }
+            return self.hasQueryItem(in: components, name: "featurePage", value: "duckai")
+                && self.hasQueryItem(in: components, name: "origin", value: "funnel_addressbar_ios__modelpicker")
+        }
+
+        sut.handleModelSelection("pro-model")
+
+        wait(for: [notificationExpectation], timeout: 1.0)
+        XCTAssertEqual(mockPreferences.selectedModelId, "free-model")
+    }
+
+    func test_handleModelSelection_whenGatedModelHasNoPublicTier_doesNotChangeSelectionOrRouteToSubscriptionFlow() {
+        mockPreferences.selectedModelId = "free-model"
+        sut.modelStore.models = [
+            makeModel(id: "free-model", access: true, accessTier: ["free"]),
+            makeModel(id: "internal-model", access: false, accessTier: ["internal"])
+        ]
+        let notificationExpectation = expectation(forNotification: .settingsDeepLinkNotification, object: nil)
+        notificationExpectation.isInverted = true
+
+        sut.handleModelSelection("internal-model")
+
+        wait(for: [notificationExpectation], timeout: 1.0)
+        XCTAssertEqual(mockPreferences.selectedModelId, "free-model")
+    }
+
+    func test_handleModelSelection_whenDuckAITabFreeUserSelectsPlusGatedModel_routesPurchaseFlowWithDuckAIOrigin() {
+        mockPreferences.selectedModelId = "free-model"
+        sut.modelStore.models = [
+            makeModel(id: "free-model", access: true, accessTier: ["free"]),
+            makeModel(id: "plus-model", access: false, accessTier: ["plus"])
+        ]
+        sut.showCollapsed()
+        let notificationExpectation = expectation(forNotification: .settingsDeepLinkNotification, object: nil) { notification in
+            guard let deepLink = notification.object as? SettingsViewModel.SettingsDeepLinkSection,
+                  case .subscriptionFlow(let components) = deepLink else {
+                return false
+            }
+            return self.hasQueryItem(in: components, name: "featurePage", value: "duckai")
+                && self.hasQueryItem(in: components, name: "origin", value: "funnel_duckai_ios__modelpicker")
+        }
+
+        sut.handleModelSelection("plus-model")
+
+        wait(for: [notificationExpectation], timeout: 1.0)
+        XCTAssertEqual(mockPreferences.selectedModelId, "free-model")
+    }
+
+    func test_handleModelSelection_whenDuckAITabPlusUserSelectsProGatedModel_routesUpgradeFlowWithDuckAIOrigin() {
+        mockPreferences.selectedModelId = "plus-model"
+        sut.modelStore.subscriptionState = SubscriptionState(userTier: .plus, hasActiveSubscription: true)
+        sut.modelStore.models = [
+            makeModel(id: "plus-model", access: true, accessTier: ["plus"]),
+            makeModel(id: "pro-model", access: false, accessTier: ["pro"])
+        ]
+        sut.showCollapsed()
+        let notificationExpectation = expectation(forNotification: .settingsDeepLinkNotification, object: nil) { notification in
+            guard let deepLink = notification.object as? SettingsViewModel.SettingsDeepLinkSection,
+                  case .subscriptionPlanChangeFlow(let components) = deepLink else {
+                return false
+            }
+            return self.hasQueryItem(in: components, name: "featurePage", value: "duckai")
+                && self.hasQueryItem(in: components, name: "origin", value: "funnel_duckai_ios__modelpicker")
+        }
+
+        sut.handleModelSelection("pro-model")
+
+        wait(for: [notificationExpectation], timeout: 1.0)
+        XCTAssertEqual(mockPreferences.selectedModelId, "plus-model")
+    }
+
     // MARK: - Model Selection: supportsImageUpload
 
     func test_selectedModelSupportsImageUpload_returnsFalse_whenModelsEmpty() {
@@ -1814,10 +1975,15 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
                            access: Bool,
                            supportsImageUpload: Bool = false,
                            supportedTools: [AIChatRAGTool] = [],
+                           accessTier: [String] = [],
                            supportedReasoningEffort: [AIChatReasoningEffort] = []) -> AIChatModel {
         AIChatModel(id: id, name: id, provider: .unknown, supportsImageUpload: supportsImageUpload,
                     supportedTools: supportedTools, entityHasAccess: access,
-                    supportedReasoningEffort: supportedReasoningEffort)
+                    accessTier: accessTier, supportedReasoningEffort: supportedReasoningEffort)
+    }
+
+    private func hasQueryItem(in components: URLComponents?, name: String, value: String) -> Bool {
+        components?.queryItems?.contains { $0.name == name && $0.value == value } == true
     }
 
     private func makeLimits() -> AIChatAttachmentTierLimits {
