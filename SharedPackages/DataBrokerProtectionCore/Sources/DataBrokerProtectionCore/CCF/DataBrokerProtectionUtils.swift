@@ -73,9 +73,11 @@ final class DataBrokerUserScript: UserScriptsProvider {
     var dataBrokerFeature: DataBrokerProtectionFeature
 
     init(privacyConfig: PrivacyConfigurationManaging, prefs: ContentScopeProperties, delegate: CCFCommunicationDelegate, executionConfig: BrokerJobExecutionConfig, shouldContinueActionHandler: @escaping () -> Bool) throws {
+        TODO this needs to know what kind of scriptContext to provide
+        //I think the way to go is just a flag that says useRemoteContentScopeScripts, and then up the stack sets that flag
         contentScopeUserScriptIsolated = try ContentScopeUserScript(privacyConfig.withDataBrokerProtectionFeatureOverride,
                                                                     properties: prefs,
-                                                                    scriptContext: .contentScopeIsolated,
+                                                                    scriptContext: .pirBundled,
                                                                     privacyConfigurationJSONGenerator: nil)
         dataBrokerFeature = DataBrokerProtectionFeature(delegate: delegate, executionConfig: executionConfig, shouldContinueActionHandler: shouldContinueActionHandler)
         dataBrokerFeature.broker = contentScopeUserScriptIsolated.broker

@@ -20,6 +20,7 @@ import Foundation
 import os.log
 import Common
 import BrowserServicesKit
+import UserScript
 
 public protocol ContentScopeScriptsServiceProtocol {
     /// Reads the remote manifest; if the remote patch number is higher than the locally-saved
@@ -131,6 +132,11 @@ public final class ContentScopeScriptsService: ContentScopeScriptsServiceProtoco
 
     // MARK: - Public API
 
+    public var shouldUseRemoteContentScopeScript: Bool {
+        //todo feature flagging and compile flagging
+        return true
+    }
+
     public var savedVersion: String? {
         settings.contentScopeScriptsFetchedVersion
     }
@@ -225,6 +231,7 @@ public final class ContentScopeScriptsService: ContentScopeScriptsServiceProtoco
 
         let destinationURL = try cachedScriptURL()
         try data.write(to: destinationURL, options: .atomic)
+        JSFileCache.clearCache(forFile: Self.cachedScriptFileName, in: destinationURL.deletingLastPathComponent())
     }
 
     // MARK: - File handling

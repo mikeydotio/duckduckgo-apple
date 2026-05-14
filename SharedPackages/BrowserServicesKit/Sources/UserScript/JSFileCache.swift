@@ -18,7 +18,7 @@
 
 import Foundation
 
-enum JSFileCache {
+public enum JSFileCache {
 
     private static let lock = NSLock()
     private static var storage = [String: String]()
@@ -75,7 +75,7 @@ enum JSFileCache {
         }
     }
 
-    static func clearCache(forFile file: String, in directoryURL: URL) {
+    public static func clearCache(forFile file: String, in directoryURL: URL) {
         let fileURL = directoryURL.appendingPathComponent(file).appendingPathExtension("js")
         let cacheKey = fileURL.path
         lock.lock()
