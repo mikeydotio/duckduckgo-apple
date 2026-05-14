@@ -87,11 +87,11 @@ Capture the returned GID + permalink. Write to `rca.created.json.results[i]` as 
 ```
 asana_update_task(
   task_id=task.existing_task_gid,
-  custom_fields={ <sentry_crash_group_custom_field_gid>: task.existing_custom_field_value + "," + <missing IDs from rca.json> },
+  custom_fields={ <sentry_crash_group_custom_field_gid>: task.custom_field_value },
 )
 ```
 
-The skill emits the *list of additions*, not the merged value, in `task.custom_field_value` for `create` mode. For `extend_short_ids`, the script reconstructs the full new value by merging `task.existing_custom_field_value` with the additions captured during script #1. (Schema note: `rca.json.tasks[].custom_field_value` for `extend_short_ids` mode is the *full new value* including the existing IDs — the skill builds it from the augmented JSON.)
+`task.custom_field_value` is the **full new value** (existing IDs + missing sibling IDs, deduped, joined with `,`). The skill computes the merge during Mode `rca` using the augmented JSON's `merged_short_ids` and emits the final string; the script writes it verbatim. `task.existing_custom_field_value` is also present in `rca.json` for audit/idempotency — the script may sanity-check that the task's current custom-field value matches before writing.
 
 Write `mode_executed: "extend_short_ids"`, `asana_task_gid: task.existing_task_gid`, `permalink_url`.
 
