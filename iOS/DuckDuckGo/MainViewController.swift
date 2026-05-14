@@ -2156,6 +2156,7 @@ class MainViewController: UIViewController {
         refreshMiddleButton()
         aiChatTabChatHeaderView?.setNavAvailable(canGoBack: currentTab?.canGoBack ?? false,
                                                   canGoForward: currentTab?.canGoForward ?? false)
+        reconcileBackArrowForceVisibility()
         // Belt-and-braces reconciliation. Most explicit transitions also call this directly
         // (NTP attach, AI-tab refresh, etc.); doing it here too means any future state-change
         // hook that fires `refreshControls` self-corrects the toolbar's hidden state without
@@ -3526,7 +3527,9 @@ extension MainViewController: BrowserChromeDelegate {
             bottomHeight += viewCoordinator.navigationBarContainer.frame.height
         }
         bottomHeight += view.safeAreaInsets.bottom
-        let multiplier = viewCoordinator.toolbar.isHidden ? 1.0 : 1.0 - ratio
+        // Minimal chrome owns the toolbar slot as a permanent offscreen spacer for the bottom
+        // address bar; everywhere else the slot tracks `ratio` (chrome-animator visibility).
+        let multiplier = isInMinimalChromeLayout ? 1.0 : 1.0 - ratio
         viewCoordinator.constraints.toolbarBottom.constant = bottomHeight * multiplier
 
         if isInMinimalChromeLayout, viewCoordinator.addressBarPosition.isBottom {
