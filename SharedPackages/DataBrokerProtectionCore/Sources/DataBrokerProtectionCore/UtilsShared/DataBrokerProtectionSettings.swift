@@ -34,6 +34,7 @@ public final class DataBrokerProtectionSettings {
         static let serviceRootKey = "dbp.serviceRoot"
         static let lastBrokerJSONUpdateCheckTimestampKey = "dbp.lastBrokerJSONUpdateCheckTimestamp"
         static let preferredRunDateMigrationKey = "dbp.preferredRunDateMigration"
+        static let contentScopeScriptsFetchedVersionKey = "dbp.contentScopeScriptsFetchedVersion"
     }
 
     public enum SelectedEnvironment: String, Codable {
@@ -96,6 +97,17 @@ public final class DataBrokerProtectionSettings {
         }
         set {
             defaults.set(newValue, forKey: Keys.preferredRunDateMigrationKey)
+        }
+    }
+
+    // MARK: - Content Scope Scripts
+
+    public var contentScopeScriptsFetchedVersion: String? {
+        get {
+            defaults.string(forKey: Keys.contentScopeScriptsFetchedVersionKey)
+        }
+        set {
+            defaults.set(newValue, forKey: Keys.contentScopeScriptsFetchedVersionKey)
         }
     }
 
