@@ -45,8 +45,9 @@ protocol EscapeHatchActionRouter: AnyObject {
 }
 
 /// Model for the NTP "Return to..." escape hatch card that navigates to the most recently used tab.
-/// Owns the live open-tab count and target-tab presence for `targetTab.mode` — when initialised with an
-/// `EscapeHatchTabsSource`, it subscribes once and derives both fields in a single processing pass per emission.
+/// Subscribes to two tab streams from `EscapeHatchTabsSource`: the target tab's mode drives
+/// `isTargetTabPresent`, and the normal-mode stream drives `openTabCount` — the tab-switcher pill
+/// always shows the normal-tab count, even when the hatch targets a fire tab.
 /// Also bundles the four user-driven actions exposed by the escape-hatch UI so consumers thread a single
 /// value through the editing-state / NTP / AI-chat stacks instead of a (model, actions) pair.
 final class EscapeHatchModel: ObservableObject {
@@ -59,7 +60,7 @@ final class EscapeHatchModel: ObservableObject {
 
     @Published private(set) var openTabCount: Int = 0
     @Published private(set) var isTargetTabPresent: Bool = true
-    private var tabsCancellable: AnyCancellable?
+    private var cancellables = [AnyCancellable]()
 
     let title: String
     let subtitle: String
@@ -108,21 +109,51 @@ final class EscapeHatchModel: ObservableObject {
             targetTab: targetTab,
             tabsSource: tabsSource,
             isActionsEnabled: featureFlagger.isFeatureOn(.escapeHatchActions),
-            onCardTap: { [weak router] in router?.escapeHatchDidRequestSwitch(to: targetTab) },
-            onTabSwitcherTap: { [weak router] in router?.escapeHatchDidRequestTabSwitcher() },
-            onCloseTab: { [weak router] in router?.escapeHatchDidRequestClose(targetTab) },
-            onBurnTab: { [weak router] in router?.escapeHatchDidRequestBurn(targetTab) }
+            onCardTap: { [weak router] in
+                router?.escapeHatchDidRequestSwitch(to: targetTab)
+            },
+            onTabSwitcherTap: { [weak router] in
+                router?.escapeHatchDidRequestTabSwitcher()
+            },
+            onCloseTab: { [weak router] in
+                router?.escapeHatchDidRequestClose(targetTab)
+            },
+            onBurnTab: { [weak router] in
+                router?.escapeHatchDidRequestBurn(targetTab)
+            }
         )
     }
+}
 
-    private func subscribeToTabsSource(_ tabsSource: some EscapeHatchTabsSource) {
-        tabsCancellable = tabsSource.tabsPublisher(for: targetTab.mode)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] tabs in
-                guard let self else { return }
-                self.openTabCount = tabs.count
-                self.isTargetTabPresent = tabs.contains { $0 === self.targetTab }
-            }
+private extension EscapeHatchModel {
+
+    func subscribeToTabsSource(_ tabsSource: some EscapeHatchTabsSource) {
+        let targetTab = self.targetTab
+
+        // # Important
+        //      `openTabCount` must reflect the Tabs in `.normal`, but `targetTab.mode` might belong to `.fire`.
+        //      We'll avoid double subscription, when possible
+        //
+        let observedTabModes = Set<BrowsingMode>([targetTab.mode, .normal])
+
+        for tabMode in observedTabModes {
+            tabsSource.tabsPublisher(for: tabMode)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] tabs in
+                    self?.processTabsUpdate(targetTab: targetTab, allTabs: tabs, mode: tabMode)
+                }
+                .store(in: &cancellables)
+        }
+    }
+
+    func processTabsUpdate(targetTab: Tab, allTabs: [Tab], mode: BrowsingMode) {
+        if mode == targetTab.mode {
+            isTargetTabPresent = allTabs.contains { $0 === targetTab }
+        }
+
+        if mode == .normal {
+            openTabCount = allTabs.count
+        }
     }
 }
 
