@@ -29,6 +29,7 @@ extension NSObject {
             self.callback = callback
         }
 
+        @MainActor
         public func disarm() {
             dispatchPrecondition(condition: .onQueue(.main))
             callback = nil
