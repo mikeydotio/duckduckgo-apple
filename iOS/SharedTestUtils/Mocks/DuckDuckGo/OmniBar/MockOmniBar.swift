@@ -73,6 +73,8 @@ final class MockOmniBar: OmniBar {
     func setSelectedTextEntryMode(_ mode: TextEntryMode) { }
     func setDaxEasterEggLogoURL(_ logoURL: String?) { }
     func refreshFireMode(fireMode: Bool) { }
+    func prepareForMoveTransition() { }
+    func moveTransitionCompleted() { }
 
     final class MockOmniBarView: UIView, OmniBarView {
         required init?(coder: NSCoder) {
@@ -117,6 +119,8 @@ final class MockOmniBar: OmniBar {
         func setBookmarksPosition(leading: Bool, hidden: Bool) { }
         func refreshFireMode(fireMode: Bool) { }
         func refreshLongPressMenuAvailability() { }
+        func prepareForMoveTransition() { }
+        func moveTransitionCompleted() { }
 
         var progressView: DuckDuckGo.ProgressView?
         var privacyIconView: UIView?

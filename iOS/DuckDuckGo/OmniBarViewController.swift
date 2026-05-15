@@ -412,6 +412,14 @@ class OmniBarViewController: UIViewController, OmniBar {
         barView.refreshFireMode(fireMode: fireMode)
     }
 
+    func prepareForMoveTransition() {
+        barView.prepareForMoveTransition()
+    }
+
+    func moveTransitionCompleted() {
+        barView.moveTransitionCompleted()
+    }
+
     func configureForSwipeTemplate(isExpandedPhone: Bool, tabCount: Int) {
         self.isExpandedPhone = isExpandedPhone
         barView.configureForSwipeTemplate(

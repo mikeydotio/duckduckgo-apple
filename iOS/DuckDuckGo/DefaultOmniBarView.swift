@@ -406,6 +406,7 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
     private let searchAreaView = DefaultOmniBarSearchView()
     private let searchAreaContainerView = CompositeShadowView.defaultShadowView()
     private var omniBarLongPressInteraction: UIContextMenuInteraction?
+    private let defaultBackgroundColor = UIColor(designSystemColor: .background)
 
     /// Spans to available width of the omni bar and allows the input field to center horizontally
     private let searchAreaAlignmentView = UIView()
@@ -587,7 +588,7 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
         setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         setContentHuggingPriority(.defaultLow, for: .horizontal)
 
-        backgroundColor = UIColor(designSystemColor: .background)
+        backgroundColor = defaultBackgroundColor
 
         searchAreaAlignmentView.setContentHuggingPriority(.defaultLow, for: .horizontal)
         searchAreaAlignmentView.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -833,6 +834,14 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
         addOmniBarLongPressInteractionIfNeeded()
     }
 
+    func prepareForMoveTransition() {
+        backgroundColor = .clear
+    }
+
+    func moveTransitionCompleted() {
+        backgroundColor = defaultBackgroundColor
+    }
+
     private func addOmniBarLongPressInteractionIfNeeded() {
         guard omniBarLongPressInteraction == nil else { return }
 
@@ -1032,6 +1041,8 @@ extension DefaultOmniBarView: UIContextMenuInteractionDelegate {
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
         guard let menu = longPressMenuProvider?() else { return nil }
 
+        let controller = makeLongPressMenuPreviewController()
+
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
             menu
         }
@@ -1041,6 +1052,49 @@ extension DefaultOmniBarView: UIContextMenuInteractionDelegate {
                                 willDisplayMenuFor configuration: UIContextMenuConfiguration,
                                 animator: UIContextMenuInteractionAnimating?) {
         onLongPressMenuDisplayed?()
+    }
+
+    private func makeLongPressMenuPreviewController() -> UIViewController? {
+        OmniBarLongPressPreviewViewController(sourceView: searchContainer)
+    }
+}
+
+private final class OmniBarLongPressPreviewViewController: UIViewController {
+
+    private let sourceView: UIView
+
+    init(sourceView: UIView) {
+        self.sourceView = sourceView
+        super.init(nibName: nil, bundle: nil)
+        preferredContentSize = sourceView.bounds.size
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func loadView() {
+        let containerView = UIView(frame: CGRect(origin: .zero, size: preferredContentSize))
+        containerView.backgroundColor = .clear
+        containerView.clipsToBounds = false
+        view = containerView
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        guard let snapshotView = sourceView.snapshotView(afterScreenUpdates: false) else { return }
+
+        snapshotView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(snapshotView)
+
+        NSLayoutConstraint.activate([
+            snapshotView.topAnchor.constraint(equalTo: view.topAnchor),
+            snapshotView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            snapshotView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            snapshotView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
 }
 
