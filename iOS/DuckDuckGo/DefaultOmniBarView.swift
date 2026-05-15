@@ -1041,9 +1041,9 @@ extension DefaultOmniBarView: UIContextMenuInteractionDelegate {
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
         guard let menu = longPressMenuProvider?() else { return nil }
 
-        let controller = makeLongPressMenuPreviewController()
-
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: { [weak self] in
+            self?.makeLongPressMenuPreviewController()
+        }) { _ in
             menu
         }
     }
