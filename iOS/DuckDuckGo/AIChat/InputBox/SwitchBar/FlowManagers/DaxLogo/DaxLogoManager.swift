@@ -209,8 +209,7 @@ final class DaxLogoManager {
         ])
     }
 
-    private func installFireTabContent(in parentController: UIViewController,
-                                       escapeHatch: EscapeHatchModel?) {
+    private func installFireTabContent(in parentController: UIViewController, escapeHatch: EscapeHatchModel?) {
         let hostingController = UIHostingController(
             rootView: FireModeEmptyStateView(type: .tab,
                                              escapeHatch: escapeHatch))

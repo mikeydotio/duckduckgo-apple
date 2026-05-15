@@ -51,7 +51,7 @@ protocol EscapeHatchActionRouter: AnyObject {
 /// value through the editing-state / NTP / AI-chat stacks instead of a (model, actions) pair.
 final class EscapeHatchModel: ObservableObject {
 
-    enum TabType {
+    enum TabType: Equatable {
         case regular
         case aiChat
         case fire
@@ -59,6 +59,8 @@ final class EscapeHatchModel: ObservableObject {
 
     @Published private(set) var openTabCount: Int = 0
     @Published private(set) var isTargetTabPresent: Bool = true
+    private var tabsCancellable: AnyCancellable?
+
     let title: String
     let subtitle: String
     let tabType: TabType
@@ -69,8 +71,6 @@ final class EscapeHatchModel: ObservableObject {
     let onTabSwitcherTap: () -> Void
     let onCloseTab: () -> Void
     let onBurnTab: () -> Void
-
-    private var tabsCancellable: AnyCancellable?
 
     init(title: String,
          subtitle: String,
@@ -99,14 +99,7 @@ final class EscapeHatchModel: ObservableObject {
 
     /// Builds the model with action closures wired to a router. The router is captured weakly so holders
     /// of `EscapeHatchModel` don't pin its owner's lifecycle.
-    convenience init(title: String,
-                     subtitle: String,
-                     tabType: TabType,
-                     domain: String?,
-                     targetTab: Tab,
-                     tabsSource: some EscapeHatchTabsSource,
-                     router: EscapeHatchActionRouter,
-                     featureFlagger: FeatureFlagger) {
+    convenience init(title: String, subtitle: String, tabType: TabType, domain: String?, targetTab: Tab, tabsSource: some EscapeHatchTabsSource, router: EscapeHatchActionRouter, featureFlagger: FeatureFlagger) {
         self.init(
             title: title,
             subtitle: subtitle,

@@ -65,8 +65,7 @@ struct FireModeEmptyStateView: View {
 
     // MARK: - Initializer
 
-    init(type: ViewType,
-         escapeHatch: EscapeHatchModel? = nil) {
+    init(type: ViewType, escapeHatch: EscapeHatchModel? = nil) {
         self.type = type
         self.escapeHatch = escapeHatch
     }
