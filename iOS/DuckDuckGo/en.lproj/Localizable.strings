@@ -49,6 +49,12 @@
 /* Copy action */
 "action.title.copy" = "Copy";
 
+/* Copy clean link action */
+"action.title.copy.clean.link" = "Copy Clean Link";
+
+/* Copy link action */
+"action.title.copy.link" = "Copy Link";
+
 /* Floating message indicating URL has been copied */
 "action.title.copy.message" = "URL copied";
 
@@ -2760,6 +2766,12 @@ https://duckduckgo.com/mac";
 
 /* Display title for Duck.ai in our address bar */
 "omnibar.full-ai-chat-mode.display.title" = "Duck.ai";
+
+/* Label for moving the address bar to the bottom of the screen */
+"omnibar.menu.move-to-bottom" = "Move Address Bar to Bottom";
+
+/* Label for moving the address bar to the top of the screen */
+"omnibar.menu.move-to-top" = "Move Address Bar to Top";
 
 /* Text displayed on notification appearing in the address bar when the browser  dismissed the cookie popup automatically rejecting it */
 "omnibar.notification.cookies-managed" = "Cookies Managed";
