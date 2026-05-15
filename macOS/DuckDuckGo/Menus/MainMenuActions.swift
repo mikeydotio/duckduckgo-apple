@@ -527,6 +527,25 @@ extension AppDelegate {
             modifiedSince: .distantPast) { }
     }
 
+    @objc func debugSetupWebPushTestingEnvironment(_ sender: Any?) {
+        if #available(macOS 13.0, *) {
+            WebPushDebugHelper.setupWebPushTestingEnvironment()
+        }
+    }
+
+    @objc func debugFireTestWebPush(_ sender: Any?) {
+        if #available(macOS 13.0, *) {
+            WebPushDebugHelper.fireTestPushMessage()
+        }
+    }
+
+    @MainActor
+    @objc func debugFireTestWebPushAtCurrentTab(_ sender: Any?) {
+        if #available(macOS 13.3, *) {
+            WebPushDebugHelper.fireTestPushAtActiveTabOrigin()
+        }
+    }
+
     @MainActor
     @objc func skipOnboarding(_ sender: Any?) {
         UserDefaults.standard.set(true, forKey: UserDefaultsWrapper<Bool>.Key.onboardingFinished.rawValue)
