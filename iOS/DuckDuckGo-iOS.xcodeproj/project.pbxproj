@@ -2115,6 +2115,7 @@
 		CB6D17A82FA39FC900ECD5AE /* AIChatContextualUTIHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6D17A72FA39FC900ECD5AE /* AIChatContextualUTIHost.swift */; };
 		CB6D17AA2FA4B57900ECD5AE /* AIChatContextualUTIHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6D17A92FA4B57900ECD5AE /* AIChatContextualUTIHostTests.swift */; };
 		CB6D17AC2FA8C59900ECD5AE /* DuckAISuggestionsCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6D17AB2FA8C59900ECD5AE /* DuckAISuggestionsCoordinatorTests.swift */; };
+		CB6D17C02FB488BE00ECD5AE /* UTIDismissSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6D17BF2FB488BE00ECD5AE /* UTIDismissSnapshot.swift */; };
 		CB7CF9FA2F9A6C100051BEE9 /* CircularButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7CF9F92F9A6C100051BEE9 /* CircularButton.swift */; };
 		CB7E0A212D5E1D96002A7C0C /* UIInteractionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7E0A202D5E1D96002A7C0C /* UIInteractionManager.swift */; };
 		CB7E0A232D5E1E55002A7C0C /* LaunchActionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7E0A222D5E1E55002A7C0C /* LaunchActionHandler.swift */; };
@@ -4746,6 +4747,7 @@
 		CB6D17A72FA39FC900ECD5AE /* AIChatContextualUTIHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatContextualUTIHost.swift; sourceTree = "<group>"; };
 		CB6D17A92FA4B57900ECD5AE /* AIChatContextualUTIHostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatContextualUTIHostTests.swift; sourceTree = "<group>"; };
 		CB6D17AB2FA8C59900ECD5AE /* DuckAISuggestionsCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAISuggestionsCoordinatorTests.swift; sourceTree = "<group>"; };
+		CB6D17BF2FB488BE00ECD5AE /* UTIDismissSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UTIDismissSnapshot.swift; sourceTree = "<group>"; };
 		CB7407BC2AF6D56D0090A41C /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		CB75AA132AF6D5AA00AED266 /* sl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = sl; path = sl.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		CB7CF9F92F9A6C100051BEE9 /* CircularButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularButton.swift; sourceTree = "<group>"; };
@@ -9276,6 +9278,7 @@
 				C18390D42F50A003001939B9 /* UnifiedToggleInputAttachmentsStripView.swift */,
 				CB6D179E2FA38FAD00ECD5AE /* UnifiedToggleInputHost.swift */,
 				CB6D17A02FA397DC00ECD5AE /* PageContextChip */,
+				CB6D17BF2FB488BE00ECD5AE /* UTIDismissSnapshot.swift */,
 			);
 			path = UnifiedToggleInput;
 			sourceTree = "<group>";
@@ -12668,6 +12671,7 @@
 				83BE9BC3215D69C1009844D9 /* AppConfigurationFetch.swift in Sources */,
 				37CF91622BB474AA00BADCAE /* CrashCollectionOnboardingView.swift in Sources */,
 				1EEC460627A9499600E75FCB /* DownloadsList.swift in Sources */,
+				CB6D17C02FB488BE00ECD5AE /* UTIDismissSnapshot.swift in Sources */,
 				9F387DE22EA891E8006861F8 /* NewAddressBarPickerModalPromptProvider.swift in Sources */,
 				852BCC4D2EC4AEAC0093C753 /* DataAuditDebugScreen.swift in Sources */,
 				31A968192E4F692200F4305E /* SettingsAIExperimentalPickerView.swift in Sources */,
