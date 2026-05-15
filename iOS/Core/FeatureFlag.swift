@@ -393,6 +393,9 @@ public enum FeatureFlag: String {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1214777651593367?focus=true
     case omniBarLongPressMenu
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1214797978179697?focus=true
+    case customProductPageDuckAiChat
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -688,6 +691,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .remoteReleasable(.subfeature(AIChatSubfeature.nativeDataAccess)))
         case .omniBarLongPressMenu:
             Config(defaultValue: .internalOnly, source: .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.omniBarLongPressMenu)))
+        case .customProductPageDuckAiChat:
+            Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.customProductPageDuckAiChat)), supportsLocalOverriding: true)
         }
     }
 
