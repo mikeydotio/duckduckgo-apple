@@ -74,17 +74,13 @@ public final class ContentScopeScriptsService: ContentScopeScriptsServiceProtoco
 
     enum Endpoint {
         static let path = "/dbp/remote/v0"
-        static let scriptFileName = "contentScopeScripts.js"
-        static let manifestFileName = "contentScopeScripts.json"
-        static let type = "css"
+        static let scriptFileName = "contentScopeIsolated.js"
+        static let etagFileName = "ccf_etag.json"
+        static let type = "ccf"
 
         static func manifestRequest(endpointURL: URL, accessToken: String) throws -> URLRequest {
             var components = URLComponents(url: endpointURL, resolvingAgainstBaseURL: true)
-            components?.path += path
-            components?.queryItems = [
-                .init(name: "name", value: manifestFileName),
-                .init(name: "type", value: type)
-            ]
+            components?.path += "\(path)/\(etagFileName)"
             return try makeRequest(components: components, accessToken: accessToken)
         }
 
@@ -110,6 +106,10 @@ public final class ContentScopeScriptsService: ContentScopeScriptsServiceProtoco
 
     struct Manifest: Decodable {
         let version: String
+
+        enum CodingKeys: String, CodingKey {
+            case version = "ccf_release_version"
+        }
     }
 
     private static var cacheDirectoryName = "PIR"
