@@ -77,7 +77,7 @@ final class LongPressBarMenuBuilder {
         }
 
         sections.append(UIMenu(title: "", options: .displayInline, children: [
-            UIAction(title: UserText.closeTabs(withCount: 1), image: Glyphs.close, attributes: [.destructive]) { [weak self] _ in
+            UIAction(title: UserText.closeTabs(withCount: 1), image: Glyphs.closeOutline, attributes: [.destructive]) { [weak self] _ in
                 self?.dailyPixelFiring.fireDailyAndCount(.longPressBarActionCloseTab, error: nil, withAdditionalParameters: [:])
                 context.onCloseTab()
             },
