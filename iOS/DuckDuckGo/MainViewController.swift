@@ -4015,15 +4015,15 @@ extension MainViewController: OmniBarDelegate {
                 self?.currentTab?.onCopyAction(forUrl: url)
             },
             onMoveAddressBar: { [weak self] in
-                // Constraint toggles defer the actual layout pass to the next runloop,
-                // which on iOS 26 falls inside the context menu's dismiss animation block
-                // and can animate the change asymmetrically (only one direction). Forcing
-                // the layout to resolve synchronously inside performWithoutAnimation gives
-                // a consistent symmetric animation in both directions.
+                // iOS 26 has broken something so we have to use an animation
+                //  to get symmetry in the movement (rather than disabling animations
+                //  which doesn't appear to work properly on iOS 26.4,
                 if #available(iOS 18.0, *) {
+
                     UIView.animate(.smooth) {
                         self?.toggleAddressBarLocation()
                     }
+
                 } else {
                     self?.toggleAddressBarLocation()
                 }
