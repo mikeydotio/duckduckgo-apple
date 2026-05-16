@@ -220,7 +220,8 @@ struct HomeMessageViewModelTests {
         #expect(mockActionHandler.capturedPresentationContext?.presenter != nil)
     }
 
-    @Test("Check Dismiss Action In Primary Slot Uses Default Button Style")
+    @available(iOS 16, *)
+    @Test("Check Dismiss Action In Primary Slot Uses Default Button Style", .timeLimit(.minutes(1)))
     func dismissActionInPrimarySlotUsesDefaultButtonStyle() {
         // GIVEN
         let style = RemoteAction.dismiss.actionStyle()
@@ -229,7 +230,8 @@ struct HomeMessageViewModelTests {
         #expect(isDefaultStyle(style))
     }
 
-    @Test("Check Dismiss Action In Secondary Slot Uses Cancel Button Style")
+    @available(iOS 16, *)
+    @Test("Check Dismiss Action In Secondary Slot Uses Cancel Button Style", .timeLimit(.minutes(1)))
     func dismissActionInSecondarySlotUsesCancelButtonStyle() {
         // GIVEN
         let style = RemoteAction.dismiss.actionStyle(isSecondaryAction: true)

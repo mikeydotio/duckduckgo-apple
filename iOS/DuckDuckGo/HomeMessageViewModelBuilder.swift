@@ -94,13 +94,7 @@ extension RemoteAction {
         case .share(let value, let title):
             return .share(value: value, title: title)
 
-        case .appStore, .url, .urlInContext, .survey, .navigation:
-            if isSecondaryAction {
-                return .cancel
-            }
-            return .default
-
-        case .dismiss:
+        case .appStore, .url, .urlInContext, .survey, .navigation, .dismiss:
             if isSecondaryAction {
                 return .cancel
             }
