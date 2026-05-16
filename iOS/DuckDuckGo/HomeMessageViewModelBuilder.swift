@@ -101,7 +101,10 @@ extension RemoteAction {
             return .default
 
         case .dismiss:
-            return .cancel
+            if isSecondaryAction {
+                return .cancel
+            }
+            return .default
         }
     }
 

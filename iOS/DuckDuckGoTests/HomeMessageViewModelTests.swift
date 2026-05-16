@@ -219,4 +219,36 @@ struct HomeMessageViewModelTests {
         #expect(mockActionHandler.capturedPresentationContext?.presentationStyle == .dismissModalsAndPresentFromRoot)
         #expect(mockActionHandler.capturedPresentationContext?.presenter != nil)
     }
+
+    @Test("Check Dismiss Action In Primary Slot Uses Default Button Style")
+    func dismissActionInPrimarySlotUsesDefaultButtonStyle() {
+        // GIVEN
+        let style = RemoteAction.dismiss.actionStyle()
+
+        // THEN
+        #expect(isDefaultStyle(style))
+    }
+
+    @Test("Check Dismiss Action In Secondary Slot Uses Cancel Button Style")
+    func dismissActionInSecondarySlotUsesCancelButtonStyle() {
+        // GIVEN
+        let style = RemoteAction.dismiss.actionStyle(isSecondaryAction: true)
+
+        // THEN
+        #expect(isCancelStyle(style))
+    }
+
+    private func isDefaultStyle(_ style: HomeMessageButtonViewModel.ActionStyle) -> Bool {
+        if case .default = style {
+            return true
+        }
+        return false
+    }
+
+    private func isCancelStyle(_ style: HomeMessageButtonViewModel.ActionStyle) -> Bool {
+        if case .cancel = style {
+            return true
+        }
+        return false
+    }
 }
