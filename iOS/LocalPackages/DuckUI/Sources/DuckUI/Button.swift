@@ -31,8 +31,8 @@ public enum DuckUIAppearance: Sendable {
 }
 
 /// Refresh palette tokens. Hex literals match the Figma spec exactly until the rebrand
-/// is promoted into `DefaultColorPalette` proper. TODO(brand-refresh): replace with
-/// `Color(singleUseColor: .rebranding(...))` once the matching tokens land.
+/// is promoted into `DefaultColorPalette` proper. TODO(brand-refresh): move these
+/// values into `SingleUseColor.Rebranding` once the matching palette tokens land.
 private enum RefreshColors {
     /// Light/Accent/Primary
     static let accent = Color(0x1074CC)
@@ -48,6 +48,11 @@ private enum RefreshColors {
     static let destructivePressed = Color(0xCA2B3D)
     /// Text color on filled accent backgrounds.
     static let onAccentText = Color.white
+}
+
+private enum ButtonShape {
+    case roundedRectangle
+    case capsule
 }
 
 private struct PrimaryButtonColors {
@@ -102,53 +107,61 @@ private struct PrimaryButtonColors {
 }
 
 @ViewBuilder
+private func makeButtonBody(
+    configuration: ButtonStyleConfiguration,
+    foregroundColor: Color,
+    backgroundColor: Color,
+    shape: ButtonShape,
+    compact: Bool,
+    fullWidth: Bool,
+    isFreeform: Bool = false
+) -> some View {
+    let label = configuration.label
+        .fixedSize(horizontal: false, vertical: true)
+        .multilineTextAlignment(.center)
+        .lineLimit(nil)
+        .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
+        .foregroundColor(foregroundColor)
+        .if(!isFreeform) { view in
+            view
+                .padding(.vertical)
+                .padding(.horizontal, fullWidth ? nil : 24)
+                .frame(minWidth: 0, maxWidth: fullWidth ? .infinity : nil, maxHeight: compact ? Consts.height - 10 : Consts.height)
+        }
+
+    switch shape {
+    case .roundedRectangle:
+        label
+            .background(backgroundColor)
+            .cornerRadius(Consts.cornerRadius)
+            .contentShape(Rectangle())
+    case .capsule:
+        label
+            .background(Capsule().fill(backgroundColor))
+            .contentShape(Capsule())
+    }
+}
+
+@ViewBuilder
 private func makePrimaryButtonBody(
     configuration: ButtonStyleConfiguration,
     colors: PrimaryButtonColors,
     disabled: Bool,
     compact: Bool,
-    fullWidth: Bool
+    fullWidth: Bool,
+    shape: ButtonShape
 ) -> some View {
     let backgroundColor = disabled ? colors.disabled : colors.standard
     let foregroundColor = disabled ? colors.textDisabled : colors.text
 
-    configuration.label
-        .fixedSize(horizontal: false, vertical: true)
-        .multilineTextAlignment(.center)
-        .lineLimit(nil)
-        .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-        .foregroundColor(foregroundColor)
-        .padding(.vertical)
-        .padding(.horizontal, fullWidth ? nil : 24)
-        .frame(minWidth: 0, maxWidth: fullWidth ? .infinity : nil, maxHeight: compact ? Consts.height - 10 : Consts.height)
-        .background(configuration.isPressed ? colors.pressed : backgroundColor)
-        .cornerRadius(Consts.cornerRadius)
-}
-
-/// Refresh body: pill shape (corner radius = height/2), refresh palette colors.
-@ViewBuilder
-private func makeRefreshPrimaryButtonBody(
-    configuration: ButtonStyleConfiguration,
-    colors: PrimaryButtonColors,
-    disabled: Bool,
-    compact: Bool,
-    fullWidth: Bool
-) -> some View {
-    let backgroundColor = disabled ? colors.disabled : colors.standard
-    let foregroundColor = disabled ? colors.textDisabled : colors.text
-    let activeBackground = configuration.isPressed ? colors.pressed : backgroundColor
-
-    configuration.label
-        .fixedSize(horizontal: false, vertical: true)
-        .multilineTextAlignment(.center)
-        .lineLimit(nil)
-        .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-        .foregroundColor(foregroundColor)
-        .padding(.vertical)
-        .padding(.horizontal, fullWidth ? nil : 24)
-        .frame(minWidth: 0, maxWidth: fullWidth ? .infinity : nil, maxHeight: compact ? Consts.height - 10 : Consts.height)
-        .background(Capsule().fill(activeBackground))
-        .contentShape(Capsule())
+    makeButtonBody(
+        configuration: configuration,
+        foregroundColor: foregroundColor,
+        backgroundColor: configuration.isPressed ? colors.pressed : backgroundColor,
+        shape: shape,
+        compact: compact,
+        fullWidth: fullWidth
+    )
 }
 
 public struct PrimaryButtonStyle: ButtonStyle {
@@ -186,15 +199,17 @@ public struct PrimaryButtonStyle: ButtonStyle {
                 colors: .primary,
                 disabled: disabled,
                 compact: compact,
-                fullWidth: fullWidth
+                fullWidth: fullWidth,
+                shape: .roundedRectangle
             )
         case .refresh:
-            makeRefreshPrimaryButtonBody(
+            makePrimaryButtonBody(
                 configuration: configuration,
                 colors: accent == .brand ? .refreshBrand : .refreshStandard,
                 disabled: disabled,
                 compact: compact,
-                fullWidth: fullWidth
+                fullWidth: fullWidth,
+                shape: .capsule
             )
         }
     }
@@ -219,15 +234,17 @@ public struct PrimaryDestructiveButtonStyle: ButtonStyle {
                 colors: .destructive,
                 disabled: disabled,
                 compact: compact,
-                fullWidth: fullWidth
+                fullWidth: fullWidth,
+                shape: .roundedRectangle
             )
         case .refresh:
-            makeRefreshPrimaryButtonBody(
+            makePrimaryButtonBody(
                 configuration: configuration,
                 colors: .refreshDestructive,
                 disabled: disabled,
                 compact: compact,
-                fullWidth: fullWidth
+                fullWidth: fullWidth,
+                shape: .capsule
             )
         }
     }
@@ -284,22 +301,18 @@ public struct SecondaryDestructiveButtonStyle: ButtonStyle {
     private func makeRefreshBody(configuration: Configuration) -> some View {
         let standardBackgroundColor = Color(singleUseColor: .rebranding(.controlsFillPrimary))
         let pressedBackgroundColor = Color(singleUseColor: .rebranding(.buttonsSecondaryPressed))
-        let activeBackground = configuration.isPressed ? pressedBackgroundColor : standardBackgroundColor
         let activeForeground: Color = disabled
             ? RefreshColors.destructive.opacity(0.36)
             : (configuration.isPressed ? RefreshColors.destructivePressed : RefreshColors.destructive)
 
-        configuration.label
-            .fixedSize(horizontal: false, vertical: true)
-            .multilineTextAlignment(.center)
-            .lineLimit(nil)
-            .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-            .foregroundColor(activeForeground)
-            .padding(.vertical)
-            .padding(.horizontal, fullWidth ? nil : 24)
-            .frame(minWidth: 0, maxWidth: fullWidth ? .infinity : nil, maxHeight: compact ? Consts.height - 10 : Consts.height)
-            .background(Capsule().fill(activeBackground))
-            .contentShape(Capsule())
+        makeButtonBody(
+            configuration: configuration,
+            foregroundColor: activeForeground,
+            backgroundColor: configuration.isPressed ? pressedBackgroundColor : standardBackgroundColor,
+            shape: .capsule,
+            compact: compact,
+            fullWidth: fullWidth
+        )
     }
 }
 
@@ -342,7 +355,6 @@ public struct SecondaryButtonStyle: ButtonStyle {
 }
 
 public struct SecondaryFillButtonStyle: ButtonStyle {
-    @Environment(\.colorScheme) private var colorScheme
 
     let disabled: Bool
     let compact: Bool
@@ -375,20 +387,15 @@ public struct SecondaryFillButtonStyle: ButtonStyle {
         let backgroundColor = disabled ? disabledBackgroundColor : standardBackgroundColor
         let foregroundColor = disabled ? disabledForegroundColor : defaultForegroundColor
 
-        configuration.label
-            .fixedSize(horizontal: false, vertical: true)
-            .multilineTextAlignment(.center)
-            .lineLimit(nil)
-            .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-            .foregroundColor(configuration.isPressed ? defaultForegroundColor : foregroundColor)
-            .if(!isFreeform) { view in
-                view
-                    .padding(.vertical)
-                    .padding(.horizontal, fullWidth ? nil : 24)
-                    .frame(minWidth: 0, maxWidth: fullWidth ? .infinity : nil, maxHeight: compact ? Consts.height - 10 : Consts.height)
-            }
-            .background(configuration.isPressed ? pressedBackgroundColor : backgroundColor)
-            .cornerRadius(Consts.cornerRadius)
+        makeButtonBody(
+            configuration: configuration,
+            foregroundColor: configuration.isPressed ? defaultForegroundColor : foregroundColor,
+            backgroundColor: configuration.isPressed ? pressedBackgroundColor : backgroundColor,
+            shape: .roundedRectangle,
+            compact: compact,
+            fullWidth: fullWidth,
+            isFreeform: isFreeform
+        )
     }
 
     /// Refresh secondary: Light/Control/Fill-Primary background, near-black text, pill shape.
@@ -397,23 +404,17 @@ public struct SecondaryFillButtonStyle: ButtonStyle {
         let standardBackgroundColor = Color(singleUseColor: .rebranding(.controlsFillPrimary))
         let pressedBackgroundColor = Color(singleUseColor: .rebranding(.buttonsSecondaryPressed))
         let foregroundColor = Color(singleUseColor: .rebranding(.buttonsSecondaryText))
-        let activeBackground = configuration.isPressed ? pressedBackgroundColor : standardBackgroundColor
         let activeForeground = disabled ? foregroundColor.opacity(0.36) : foregroundColor
 
-        configuration.label
-            .fixedSize(horizontal: false, vertical: true)
-            .multilineTextAlignment(.center)
-            .lineLimit(nil)
-            .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-            .foregroundColor(activeForeground)
-            .if(!isFreeform) { view in
-                view
-                    .padding(.vertical)
-                    .padding(.horizontal, fullWidth ? nil : 24)
-                    .frame(minWidth: 0, maxWidth: fullWidth ? .infinity : nil, maxHeight: compact ? Consts.height - 10 : Consts.height)
-            }
-            .background(Capsule().fill(activeBackground))
-            .contentShape(Capsule())
+        makeButtonBody(
+            configuration: configuration,
+            foregroundColor: activeForeground,
+            backgroundColor: configuration.isPressed ? pressedBackgroundColor : standardBackgroundColor,
+            shape: .capsule,
+            compact: compact,
+            fullWidth: fullWidth,
+            isFreeform: isFreeform
+        )
     }
 }
 
@@ -443,14 +444,14 @@ public struct GhostButtonStyle: ButtonStyle {
             ? Color(designSystemColor: .buttonsGhostPressedFill)
             : .clear
 
-        configuration.label
-            .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-            .foregroundColor(foreground)
-            .padding()
-            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: compact ? Consts.height - 10 : Consts.height)
-            .background(background)
-            .cornerRadius(Consts.cornerRadius)
-            .contentShape(Rectangle())
+        makeButtonBody(
+            configuration: configuration,
+            foregroundColor: foreground,
+            backgroundColor: background,
+            shape: .roundedRectangle,
+            compact: compact,
+            fullWidth: true
+        )
     }
 
     /// Refresh ghost: no background, text in Light/Accent/Primary, pill press affordance.
@@ -459,16 +460,16 @@ public struct GhostButtonStyle: ButtonStyle {
         let textDefault = RefreshColors.accent
         let textPressed = RefreshColors.accentPressed
         let pressedFill = RefreshColors.accent.opacity(0.12)
-        let activeBackground: Color = configuration.isPressed ? pressedFill : .clear
         let activeForeground = configuration.isPressed ? textPressed : textDefault
 
-        configuration.label
-            .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-            .foregroundColor(activeForeground)
-            .padding()
-            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: compact ? Consts.height - 10 : Consts.height)
-            .background(Capsule().fill(activeBackground))
-            .contentShape(Capsule())
+        makeButtonBody(
+            configuration: configuration,
+            foregroundColor: activeForeground,
+            backgroundColor: configuration.isPressed ? pressedFill : .clear,
+            shape: .capsule,
+            compact: compact,
+            fullWidth: true
+        )
     }
 }
 
@@ -498,14 +499,14 @@ public struct GhostDestructiveButtonStyle: ButtonStyle {
             ? Color(designSystemColor: .buttonsDeleteGhostPressedFill)
             : .clear
 
-        configuration.label
-            .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-            .foregroundColor(foreground)
-            .padding()
-            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: compact ? Consts.height - 10 : Consts.height)
-            .background(background)
-            .cornerRadius(Consts.cornerRadius)
-            .contentShape(Rectangle())
+        makeButtonBody(
+            configuration: configuration,
+            foregroundColor: foreground,
+            backgroundColor: background,
+            shape: .roundedRectangle,
+            compact: compact,
+            fullWidth: true
+        )
     }
 
     /// Refresh ghost destructive: no background, destructive text color, pill press affordance.
@@ -514,16 +515,16 @@ public struct GhostDestructiveButtonStyle: ButtonStyle {
         let textDefault = RefreshColors.destructive
         let textPressed = RefreshColors.destructivePressed
         let pressedFill = RefreshColors.destructive.opacity(0.12)
-        let activeBackground: Color = configuration.isPressed ? pressedFill : .clear
         let activeForeground = configuration.isPressed ? textPressed : textDefault
 
-        configuration.label
-            .font(Font(UIFont.boldAppFont(ofSize: Consts.fontSize)))
-            .foregroundColor(activeForeground)
-            .padding()
-            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: compact ? Consts.height - 10 : Consts.height)
-            .background(Capsule().fill(activeBackground))
-            .contentShape(Capsule())
+        makeButtonBody(
+            configuration: configuration,
+            foregroundColor: activeForeground,
+            backgroundColor: configuration.isPressed ? pressedFill : .clear,
+            shape: .capsule,
+            compact: compact,
+            fullWidth: true
+        )
     }
 }
 
