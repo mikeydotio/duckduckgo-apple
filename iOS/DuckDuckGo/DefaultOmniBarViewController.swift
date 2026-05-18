@@ -306,11 +306,11 @@ final class DefaultOmniBarViewController: OmniBarViewController {
         let switchBarHandler = createSwitchBarHandler(for: textField, initialToggleState: textEntryMode)
         let shouldAutoSelectText = shouldAutoSelectTextForUrl(textField)
 
-        let escapeHatch = omniDelegate?.escapeHatchForEditingState()
+        let escapeHatchModel = omniDelegate?.escapeHatchForEditingState()
         let editingStateViewController = OmniBarEditingStateViewController(
             switchBarHandler: switchBarHandler,
             duckAiNativeStorageHandler: dependencies.duckAiNativeStorageHandler,
-            escapeHatch: escapeHatch
+            escapeHatchModel: escapeHatchModel
         )
         editingStateViewController.delegate = self
 
@@ -553,6 +553,13 @@ extension DefaultOmniBarViewController: OmniBarEditingStateViewControllerDelegat
 
     func onSwitchToTab(_ tab: Tab) {
         omniDelegate?.onSwitchToTab(tab)
+    }
+
+    func onTabSwitcherRequested() {
+        // Pure forwarder — MVC's handler calls `performCancel()`, which already invokes
+        // `endEditing()` -> `dismissAnimated()` on the editing state. Dismissing here too
+        // would cause UIKit's "presentation/dismissal in progress" error.
+        omniDelegate?.onTabSwitcherRequested()
     }
 
     func onTryFireModeRequested() {
