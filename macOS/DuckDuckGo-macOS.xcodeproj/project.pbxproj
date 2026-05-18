@@ -464,6 +464,8 @@
 		3646AC482F88F0050093AEA7 /* FireWindowSubscriptionPromoDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3646AC462F88F0050093AEA7 /* FireWindowSubscriptionPromoDelegateTests.swift */; };
 		365B21792F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365B21782F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift */; };
 		365B217A2F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365B21782F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift */; };
+		36763A052FBB930600383BAE /* URL+SubscriptionAttributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36763A042FBB930600383BAE /* URL+SubscriptionAttributionTests.swift */; };
+		36763A062FBB930600383BAE /* URL+SubscriptionAttributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36763A042FBB930600383BAE /* URL+SubscriptionAttributionTests.swift */; };
 		3689AA742F61F1F300EF7CBA /* DataClearingWideEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3689AA732F61F1F300EF7CBA /* DataClearingWideEventService.swift */; };
 		3689AA752F61F1F300EF7CBA /* DataClearingWideEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3689AA732F61F1F300EF7CBA /* DataClearingWideEventService.swift */; };
 		369A0CE82FAE24FB00494F41 /* URL+SubscriptionAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369A0CE72FAE24FB00494F41 /* URL+SubscriptionAttribution.swift */; };
@@ -4932,6 +4934,7 @@
 		3646AC3F2F88EC880093AEA7 /* PromoServiceFactory+SubscriptionPromo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PromoServiceFactory+SubscriptionPromo.swift"; sourceTree = "<group>"; };
 		3646AC462F88F0050093AEA7 /* FireWindowSubscriptionPromoDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FireWindowSubscriptionPromoDelegateTests.swift; sourceTree = "<group>"; };
 		365B21782F64460D00DE0CB0 /* DataClearingWideEventServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingWideEventServiceTests.swift; sourceTree = "<group>"; };
+		36763A042FBB930600383BAE /* URL+SubscriptionAttributionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+SubscriptionAttributionTests.swift"; sourceTree = "<group>"; };
 		3689AA732F61F1F300EF7CBA /* DataClearingWideEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingWideEventService.swift; sourceTree = "<group>"; };
 		369A0CE72FAE24FB00494F41 /* URL+SubscriptionAttribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+SubscriptionAttribution.swift"; sourceTree = "<group>"; };
 		369BA9852F31305C0037B56D /* DataClearingPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataClearingPixels.swift; sourceTree = "<group>"; };
@@ -10245,6 +10248,7 @@
 		9F64346E2BECB9FB00D2D8A0 /* Subscription */ = {
 			isa = PBXGroup;
 			children = (
+				36763A042FBB930600383BAE /* URL+SubscriptionAttributionTests.swift */,
 				F14B813E2F323C5200C39E26 /* SubscriptionPixelHandlerTests.swift */,
 				BBB819102EC493750064977E /* PreferencesPurchaseSubscriptionModelTests.swift */,
 				BBB819122EC493750064977E /* PreferencesSubscriptionSettingsModelTests.swift */,
@@ -15990,6 +15994,7 @@
 				CC87770D2E1FF5CA00113863 /* FirefoxHistoryReaderTests.swift in Sources */,
 				3706FDEF293F661700E42796 /* PinnedTabsManagerTests.swift in Sources */,
 				CC951AD82EB524240047E245 /* MockDefaultBrowserAndDockPromptUserActivityStore.swift in Sources */,
+				36763A052FBB930600383BAE /* URL+SubscriptionAttributionTests.swift in Sources */,
 				56A054292C201D05007D8FAB /* MockSchemeTask.swift in Sources */,
 				3706FDF0293F661700E42796 /* WebKitVersionProviderTests.swift in Sources */,
 				37A0BA302D747C7000130447 /* CapturingHistoryViewTabOpener.swift in Sources */,
@@ -18645,6 +18650,7 @@
 				CCB2EBE12F62001600C65813 /* MockPromoDelegate.swift in Sources */,
 				311309792ECE77BC00FCD220 /* AddressBarSharedTextStateTests.swift in Sources */,
 				56BC8F022D312B320046059D /* ConfigurationManagerTests.swift in Sources */,
+				36763A062FBB930600383BAE /* URL+SubscriptionAttributionTests.swift in Sources */,
 				CCD89A132ECE2C01008E738B /* DefaultBrowserAndDockPromptNotificationPresenterTests.swift in Sources */,
 				56A214AF2CB583BF00E5BC0E /* TrackerMessageProviderTests.swift in Sources */,
 				CC6E89802E5F0DE100F6BED0 /* SessionRestorePromptCoordinatorMock.swift in Sources */,
