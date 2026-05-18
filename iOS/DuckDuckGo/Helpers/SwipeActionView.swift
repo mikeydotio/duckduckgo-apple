@@ -20,9 +20,13 @@
 import SwiftUI
 import Common
 
+private final class SwipeActionViewState: ObservableObject {
+    let haptics = UIImpactFeedbackGenerator(style: .light)
+    let enclosingTouchHandle = ExclusiveTouchHandle()
+}
+
 struct SwipeActionView<Content: View, Actions: View>: View {
-    @State private var haptics = UIImpactFeedbackGenerator(style: .light)
-    @State private var enclosingTouchHandle = ExclusiveTouchHandle()
+    @StateObject private var state = SwipeActionViewState()
 
     @State private var contentOffset: CGFloat = 0
     @State private var swipeThresholdExceeded: Bool = false
@@ -65,13 +69,13 @@ struct SwipeActionView<Content: View, Actions: View>: View {
                 value: contentOffset
             )
             .background(
-                ExclusiveTouchView(handle: enclosingTouchHandle)
+                ExclusiveTouchView(handle: state.enclosingTouchHandle)
             )
             .highPriorityGesture(
                 dragGesture(in: availableWidth)
             )
             .onAppear {
-                haptics.prepare()
+                state.haptics.prepare()
             }
         }
         .clipped()
@@ -152,8 +156,8 @@ private extension SwipeActionView {
             return
         }
 
-        haptics.impactOccurred()
-        haptics.prepare()
+        state.haptics.impactOccurred()
+        state.haptics.prepare()
         swipeThresholdExceeded = pastCommit
     }
 
@@ -174,7 +178,7 @@ private extension SwipeActionView {
             return
         }
 
-        enclosingTouchHandle.cancel()
+        state.enclosingTouchHandle.cancel()
         swipeCancelledEnclosingRecognizers = true
     }
 

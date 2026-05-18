@@ -102,6 +102,8 @@ struct TabSwitcherPill: View {
 
 // MARK: - Previews
 
+#if DEBUG
+
 #Preview("Tab switcher pill — compact") {
     HStack(spacing: 8) {
         TabSwitcherPill(count: 1, onTap: {})
@@ -130,3 +132,5 @@ struct TabSwitcherPill: View {
     }
     .padding()
 }
+
+#endif
