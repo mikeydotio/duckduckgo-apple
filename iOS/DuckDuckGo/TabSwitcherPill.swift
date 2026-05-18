@@ -91,7 +91,6 @@ struct TabSwitcherPill: View {
             .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .trailing)))
     }
 
-
     private enum Metrics {
         static let compactWidthEpsilon: CGFloat = 1
         static let contentSpacing: CGFloat = 12
