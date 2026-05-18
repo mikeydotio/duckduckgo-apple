@@ -27,12 +27,14 @@ struct TabSwitcherPill: View {
     static let compactSize: CGFloat = 56
 
     let count: Int
+    let isExpanded: Bool
     let onTap: () -> Void
 
     @StateObject private var tabCountModel: TabCountModel
 
-    init(count: Int, onTap: @escaping () -> Void) {
+    init(count: Int, isExpanded: Bool = false, onTap: @escaping () -> Void) {
         self.count = count
+        self.isExpanded = isExpanded
         self.onTap = onTap
         // Seed the model with the correct count up front so the badge
         // renders with the number on the first frame instead of flashing empty.
@@ -41,21 +43,16 @@ struct TabSwitcherPill: View {
 
     var body: some View {
         Button(action: onTap) {
-            GeometryReader { proxy in
-                // Anything beyond the circular footprint is treated as the expanded capsule.
-                let isExpanded = proxy.size.width > Self.compactSize + Metrics.compactWidthEpsilon
-
-                content(isExpanded: isExpanded)
-                    .padding(.horizontal, isExpanded ? Metrics.expandedHorizontalPadding : 0)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipShape(Capsule())
-            }
-            .background(
-                // Capsule degenerates to a circle when width == height,
-                // so it covers both the compact and expanded shapes.
-                Capsule()
-                    .fill(Color(designSystemColor: .controlsFillSecondary))
-            )
+            content
+                .padding(.horizontal, isExpanded ? Metrics.expandedHorizontalPadding : 0)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipShape(Capsule())
+                .background(
+                    // Capsule degenerates to a circle when width == height,
+                    // so it covers both the compact and expanded shapes.
+                    Capsule()
+                        .fill(Color(designSystemColor: .controlsFillSecondary))
+                )
         }
         .buttonStyle(.plain)
         .onChange(of: count) { newValue in tabCountModel.count = newValue }
@@ -64,7 +61,7 @@ struct TabSwitcherPill: View {
         .accessibilityIdentifier("NTP.escapeHatch.tabSwitcher")
     }
 
-    private func content(isExpanded: Bool) -> some View {
+    private var content: some View {
         HStack(spacing: isExpanded ? Metrics.contentSpacing : Metrics.contentSpacingCompact) {
             TabCountBadge(model: tabCountModel)
                 .foregroundColor(Color(designSystemColor: .icons))
@@ -73,7 +70,6 @@ struct TabSwitcherPill: View {
                 expandedContent
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isExpanded)
     }
 
     @ViewBuilder
@@ -92,7 +88,6 @@ struct TabSwitcherPill: View {
     }
 
     private enum Metrics {
-        static let compactWidthEpsilon: CGFloat = 1
         static let contentSpacing: CGFloat = 12
         static let contentSpacingCompact: CGFloat = 0
         static let expandedHorizontalPadding: CGFloat = 16
@@ -119,13 +114,13 @@ struct TabSwitcherPill: View {
 
 #Preview("Tab switcher pill — expanded") {
     VStack(spacing: 12) {
-        TabSwitcherPill(count: 1, onTap: {})
+        TabSwitcherPill(count: 1, isExpanded: true, onTap: {})
             .frame(maxWidth: .infinity)
             .frame(height: TabSwitcherPill.compactSize)
-        TabSwitcherPill(count: 42, onTap: {})
+        TabSwitcherPill(count: 42, isExpanded: true, onTap: {})
             .frame(maxWidth: .infinity)
             .frame(height: TabSwitcherPill.compactSize)
-        TabSwitcherPill(count: 100, onTap: {})
+        TabSwitcherPill(count: 100, isExpanded: true, onTap: {})
             .frame(maxWidth: .infinity)
             .frame(height: TabSwitcherPill.compactSize)
     }

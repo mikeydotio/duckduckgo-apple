@@ -37,7 +37,9 @@ struct EscapeHatchView: View {
                     .opacity(model.isTargetTabPresent ? 1 : 0)
                     .allowsHitTesting(model.isTargetTabPresent)
 
-                TabSwitcherPill(count: model.openTabCount, onTap: model.onTabSwitcherTap)
+                TabSwitcherPill(count: model.openTabCount,
+                                isExpanded: !model.isTargetTabPresent,
+                                onTap: model.onTabSwitcherTap)
                     .frame(maxWidth: model.isTargetTabPresent ? TabSwitcherPill.compactSize : .infinity)
                     .frame(height: TabSwitcherPill.compactSize)
             }
