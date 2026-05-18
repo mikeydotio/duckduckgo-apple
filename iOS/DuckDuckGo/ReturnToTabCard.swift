@@ -28,23 +28,24 @@ struct ReturnToTabCard: View {
     let model: EscapeHatchModel
 
     var body: some View {
-        SwipeActionView(onCommit: model.onCloseTab) {
-            contentView
-        } actions: {
-            swipeableActionsView
+        Group {
+            if model.isActionsEnabled {
+                SwipeActionView(onCommit: model.onCloseTab) {
+                    contentView
+                } actions: {
+                    swipeableActionsView
+                }
+                .contextMenu {
+                    menuContentView
+                }
+                // We're Clipping with the shape `( ]` as the `swipeableActionsView` subview is not expected to be a perfect pill, on its right hand side during Swipe
+                .clipShape(LeftCapsuleShape())
+            } else {
+                contentView
+            }
         }
         .id(model.targetTab.uid)
         .frame(height: Metrics.height)
-        .if(model.isActionsEnabled) { body in
-            body.contextMenu {
-                menuContentView
-            }
-        }
-        .if(model.isActionsEnabled) { body in
-            /// # Clipping:
-            ///     We're using the shape `( ]`  ("Left Capsule"), as the `swipeableActionsView` subview is not expected to be a perfect pill, while Sliding In
-            body.clipShape(LeftCapsuleShape())
-        }
     }
 
     private var contentView: some View {
