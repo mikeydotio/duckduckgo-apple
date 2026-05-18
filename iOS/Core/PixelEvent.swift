@@ -1606,6 +1606,7 @@ extension Pixel {
         
         case aiChatTabSwitcherOpened
         case aiChatFireButtonTapped
+        case aiChatTabDidTerminate
 
         // MARK: AI Chat Sync
 
@@ -3350,6 +3351,7 @@ extension Pixel.Event {
             
         case .aiChatTabSwitcherOpened: return "m_aichat_tab_switcher_opened"
         case .aiChatFireButtonTapped: return "m_aichat_fire_button_tapped"
+        case .aiChatTabDidTerminate: return "m_aichat_tab_did_terminate"
 
         // MARK: New Address Bar Picker
         case .aiChatNewAddressBarPickerDisplayed: return "m_aichat_new_address_bar_picker_displayed"
