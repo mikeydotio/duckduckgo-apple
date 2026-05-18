@@ -147,17 +147,17 @@ struct DesktopDownloadView: View {
     
     @ViewBuilder
     private var headerView: some View {
-            VStack(spacing: 18) {
-                Image(viewModel.browserDetails.imageName)
+        VStack(spacing: 18) {
+            Image(asset: viewModel.browserDetails.image)
 
-                Text(viewModel.browserDetails.title)
-                    .daxTitle3()
-                    .foregroundColor(.waitlistTextPrimary)
-                    .multilineTextAlignment(.center)
-                    .fixMultilineScrollableText()
-            }
-            .padding(.top, 24)
-            .padding(.bottom, 12)
+            Text(viewModel.browserDetails.title)
+                .daxTitle3()
+                .foregroundColor(.waitlistTextPrimary)
+                .multilineTextAlignment(.center)
+                .fixMultilineScrollableText()
+        }
+        .padding(.top, 24)
+        .padding(.bottom, 12)
     }
     
     @ViewBuilder

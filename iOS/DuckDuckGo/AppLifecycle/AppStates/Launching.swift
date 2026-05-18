@@ -19,6 +19,7 @@
 
 import AIChat
 import Core
+import DesignResourcesKitIcons
 import DuckAiDataStore
 import DuckUI
 import Persistence
@@ -68,6 +69,7 @@ struct Launching: LaunchingHandling {
         Logger.lifecycle.info("Launching: \(#function)")
 
         DuckUIAppearance.current = featureFlagger.isFeatureOn(.brandRefreshButtons) ? .refresh : .legacy
+        DesignResourcesKitIconsAppearance.current = featureFlagger.isFeatureOn(.brandRefreshIcons) ? .refresh : .legacy
 
         favicons = Favicons(fireproofing: fireproofing)
 

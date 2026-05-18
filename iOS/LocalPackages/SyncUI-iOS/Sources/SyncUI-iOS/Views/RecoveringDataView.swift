@@ -20,6 +20,7 @@
 import SwiftUI
 import DuckUI
 import DesignResourcesKit
+import DesignResourcesKitIcons
 
 public struct RecoveringDataView: View {
 
@@ -28,7 +29,7 @@ public struct RecoveringDataView: View {
     public var body: some View {
         UnderflowContainer {
             VStack(spacing: 0) {
-                Image("Sync-128")
+                Image(asset: .sync128)
                     .padding(20)
                     .padding(.top, 56)
 

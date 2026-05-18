@@ -19,6 +19,7 @@
 
 import Foundation
 import SwiftUI
+import DesignResourcesKitIcons
 
 struct SyncPromoViewModel {
 
@@ -49,8 +50,8 @@ struct SyncPromoViewModel {
         }
     }
 
-    var image: String {
-        return "Sync-Pending-96"
+    var image: BrandRefreshableImage {
+        .syncPending96
     }
 
     var primaryButtonTitle: String {

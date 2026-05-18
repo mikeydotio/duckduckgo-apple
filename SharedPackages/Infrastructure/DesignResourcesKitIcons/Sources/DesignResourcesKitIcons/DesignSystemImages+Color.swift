@@ -218,36 +218,36 @@ public extension DesignSystemImages {
         }
 
         public enum Size42 {
-            public static var shieldUtility: DesignSystemImage { .init(resource: .shieldUtilityColor42) }
+            public static var shieldUtility: DesignSystemImage { .brandRefreshable(legacy: .shieldUtilityColor42, refresh: .shieldUtilityColor42Refresh) }
         }
 
         public enum Size32 {
-            public static var duckDuckGo: DesignSystemImage { .init(resource: .duckDuckGoColor32) }
+            public static var duckDuckGo: DesignSystemImage { .brandRefreshable(legacy: .duckDuckGoColor32, refresh: .duckDuckGoColor32Refresh) }
             public static var document: DesignSystemImage { .init(resource: .documentColor32) }
         }
 
         public enum Size72 {
-            public static var fire: DesignSystemImage { .init(resource: .fireColor72) }
+            public static var fire: DesignSystemImage { .brandRefreshable(legacy: .fireColor72, refresh: .fireColor72Refresh) }
         }
 
         public enum Size96 {
-            public static var announcement: DesignSystemImage { .init(resource: .announcement96) }
-            public static var extensionChrome: DesignSystemImage { .init(resource: .extensionChrome96) }
-            public static var extensionSafari: DesignSystemImage { .init(resource: .extensionSafari96) }
-            public static var fireTab: DesignSystemImage { .init(resource: .fireTabColor96) }
-            public static var passwordsAppFeature: DesignSystemImage { .init(resource: .passwordsAppFeature96) }
-            public static var passwordsKeychainFeature: DesignSystemImage { .init(resource: .passwordsKeychainFeature96) }
-            public static var syncPasswordsDesktop: DesignSystemImage { .init(resource: .syncPasswordsDesktop96) }
+            public static var announcement: DesignSystemImage { .brandRefreshable(legacy: .announcement96, refresh: .announcement96Refresh) }
+            public static var extensionChrome: DesignSystemImage { .brandRefreshable(legacy: .extensionChrome96, refresh: .extensionChrome96Refresh) }
+            public static var extensionSafari: DesignSystemImage { .brandRefreshable(legacy: .extensionSafari96, refresh: .extensionSafari96Refresh) }
+            public static var fireTab: DesignSystemImage { .brandRefreshable(legacy: .fireTabColor96, refresh: .fireTabColor96Refresh) }
+            public static var passwordsAppFeature: DesignSystemImage { .brandRefreshable(legacy: .passwordsAppFeature96, refresh: .passwordsAppFeature96Refresh) }
+            public static var passwordsKeychainFeature: DesignSystemImage { .brandRefreshable(legacy: .passwordsKeychainFeature96, refresh: .passwordsKeychainFeature96Refresh) }
+            public static var syncPasswordsDesktop: DesignSystemImage { .brandRefreshable(legacy: .syncPasswordsDesktop96, refresh: .syncPasswordsDesktop96Refresh) }
         }
 
         public enum Size128 {
-            public static var duckAIPaid: DesignSystemImage { .init(resource: .duckAIPaid128) }
-            public static var success: DesignSystemImage { .init(resource: .success128) }
+            public static var duckAIPaid: DesignSystemImage { .brandRefreshable(legacy: .duckAIPaid128, refresh: .duckAIPaid128Refresh) }
+            public static var success: DesignSystemImage { .brandRefreshable(legacy: .success128, refresh: .success128Refresh) }
             public static var fileDrag: DesignSystemImage { .init(resource: .fileDrag128) }
             public static var fileDrop: DesignSystemImage { .init(resource: .fileDrop128) }
             public static var fileIssue: DesignSystemImage { .init(resource: .fileIssue128) }
-            public static var bringStuff: DesignSystemImage { .init(resource: .bringStuff128) }
-            public static var fire: DesignSystemImage { .init(resource: .fire128) }
+            public static var bringStuff: DesignSystemImage { .brandRefreshable(legacy: .bringStuff128, refresh: .bringStuff128Refresh) }
+            public static var fire: DesignSystemImage { .brandRefreshable(legacy: .fire128, refresh: .fire128Refresh) }
         }
     }
 }

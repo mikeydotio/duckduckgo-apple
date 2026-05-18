@@ -19,6 +19,7 @@
 
 import SwiftUI
 import DesignResourcesKit
+import DesignResourcesKitIcons
 import DuckUI
 
 struct BookmarksEmptyView: View {
@@ -27,47 +28,47 @@ struct BookmarksEmptyView: View {
     var importDocumentButtonAction: (() -> Void)?
 
     var body: some View {
-            VStack(spacing: 0) {
-                Image(.bookmarks96)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 96, height: 96)
+        VStack(spacing: 0) {
+            Image(asset: .bookmarks96)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 96, height: 96)
 
-                Text(UserText.emptyBookmarks)
-                    .daxTitle3()
-                    .foregroundColor(Color(designSystemColor: .textPrimary))
-                    .padding(.top, 16)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(nil)
+            Text(UserText.emptyBookmarks)
+                .daxTitle3()
+                .foregroundColor(Color(designSystemColor: .textPrimary))
+                .padding(.top, 16)
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
 
-                Text(UserText.emptyBookmarksSubtitle)
-                    .daxBodyRegular()
-                    .foregroundColor(Color.init(designSystemColor: .textSecondary))
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 8)
-                    .lineLimit(nil)
+            Text(UserText.emptyBookmarksSubtitle)
+                .daxBodyRegular()
+                .foregroundColor(Color.init(designSystemColor: .textSecondary))
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
+                .lineLimit(nil)
 
-                if #available(iOS 18.2, *) {
-                    Button {
-                        importViaSafariButtonAction?()
-                    } label: {
-                        Text(UserText.importBookmarksActionTitle)
-                            .frame(width: maxButtonWidth())
-                    }
-                    .buttonStyle(PrimaryButtonStyle(fullWidth: false))
-                    .padding(.top, 24)
-                } else {
-                    Button {
-                        importDocumentButtonAction?()
-                    } label: {
-                        Text(UserText.importBookmarksActionHtmlTitle)
-                    }
-                    .buttonStyle(PrimaryButtonStyle(fullWidth: false))
-                    .padding(.top, 24)
+            if #available(iOS 18.2, *) {
+                Button {
+                    importViaSafariButtonAction?()
+                } label: {
+                    Text(UserText.importBookmarksActionTitle)
+                        .frame(width: maxButtonWidth())
                 }
+                .buttonStyle(PrimaryButtonStyle(fullWidth: false))
+                .padding(.top, 24)
+            } else {
+                Button {
+                    importDocumentButtonAction?()
+                } label: {
+                    Text(UserText.importBookmarksActionHtmlTitle)
+                }
+                .buttonStyle(PrimaryButtonStyle(fullWidth: false))
+                .padding(.top, 24)
             }
-            .frame(maxWidth: 300.0)
-            .padding(.top, 16)
+        }
+        .frame(maxWidth: 300.0)
+        .padding(.top, 16)
     }
 
     private func maxButtonWidth() -> CGFloat {

@@ -80,7 +80,7 @@ enum ImportPasswordSource: CaseIterable, Identifiable {
         case .chrome:
             return Image(.chromeMulticolor)
         case .syncFromDuckDuckGo:
-            return Image(.appDuckDuckGo32)
+            return Image(asset: .appDuckDuckGo32)
         }
     }
 

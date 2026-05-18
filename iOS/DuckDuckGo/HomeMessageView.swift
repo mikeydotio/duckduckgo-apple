@@ -105,12 +105,12 @@ struct HomeMessageView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxHeight: Const.Size.imageMaxHeight)
-        } else if let placeholderName = viewModel.image {
-            Image(placeholderName)
-                    .scaledToFit()
+        } else if let placeholderImage = viewModel.placeholderImage {
+            Image(asset: placeholderImage.brandRefreshableImage)
+                .scaledToFit()
                 .task {
                     loadedImage = await viewModel.loadRemoteImage?()
-            }
+                }
         }
     }
 

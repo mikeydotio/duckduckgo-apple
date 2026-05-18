@@ -19,6 +19,7 @@
 
 import SwiftUI
 import DesignResourcesKit
+import DesignResourcesKitIcons
 
 struct EmptyView: View {
     
@@ -26,7 +27,7 @@ struct EmptyView: View {
         
         VStack(spacing: 0) {
             
-            Image(.passwordsAdd96X96)
+            Image(asset: .passwordsAdd96X96)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 96, height: 96)
@@ -52,4 +53,8 @@ struct EmptyView: View {
 
 #Preview {
     EmptyView()
+}
+
+private extension BrandRefreshableImage {
+    static let passwordsAdd96X96 = BrandRefreshableImage(.passwordsAdd96X96, refresh: .passwordsAdd96X96Refresh)
 }

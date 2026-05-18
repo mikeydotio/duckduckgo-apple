@@ -18,6 +18,7 @@
 //
 
 import UIKit
+import DesignResourcesKitIcons
 
 extension UIImage {
     
@@ -53,4 +54,32 @@ extension UIImage {
         return icon
     }
     
+}
+
+extension BrandRefreshableImage {
+    static let appDownload128 = Self(.appDownload128, refresh: .appDownload128Refresh)
+    static let appDuckDuckGo32 = Self(.appDuckDuckGo32, refresh: .appDuckDuckGo32Refresh)
+    static let bookmarks96 = Self(.bookmarks96, refresh: .bookmarks96Refresh)
+    static let bookmarksImport96 = Self(.bookmarksImport96, refresh: .bookmarksImport96Refresh)
+    static let breakage128 = Self(.breakage128, refresh: .breakage128Refresh)
+    static let creditCardsAdd96 = Self(.creditCardsAdd96, refresh: .creditCardsAdd96Refresh)
+    static let passwordsAdd96X96 = Self(.passwordsAdd96X96, refresh: .passwordsAdd96X96Refresh)
+    static let passwordsDDG96X96 = Self(.passwordsDDG96X96, refresh: .passwordsDDG96X96Refresh)
+    static let personalInformationHero = Self(.personalInformationHero, refresh: .personalInformationHeroRefresh)
+    static let privacyProAddDevice128 = Self(.privacyProAddDevice128, refresh: .privacyProAddDevice128Refresh)
+    static let privacyProHeader = Self(.privacyProHeader, refresh: .privacyProHeaderRefresh)
+    static let privacyProHeaderAlert = Self(.privacyProHeaderAlert, refresh: .privacyProHeaderAlertRefresh)
+    static let remoteDuckAI = Self(.remoteDuckAi, refresh: .remoteDuckAiRefresh)
+    static let remoteMessageAnnouncement = Self(.remoteMessageAnnouncement, refresh: .remoteMessageAnnouncementRefresh)
+    static let remoteMessageCriticalAppUpdate = Self(.remoteMessageCriticalAppUpdate, refresh: .remoteMessageCriticalAppUpdateRefresh)
+    static let remoteMessageMacComputer = Self(.remoteMessageMacComputer, refresh: .remoteMessageMacComputerRefresh)
+    static let remoteMessagePIR = Self(.remoteMessagePIR, refresh: .remoteMessagePIRRefresh)
+    static let remoteMessagePrivacyShield = Self(.remoteMessagePrivacyShield, refresh: .remoteMessagePrivacyShieldRefresh)
+    static let remoteMessageSubscription = Self(.remoteMessageSubscription, refresh: .remoteMessageSubscriptionRefresh)
+    static let sync128 = Self(.sync128, refresh: .sync128Refresh)
+    static let syncDesktopNew128 = Self(.syncDesktopNew128, refresh: .syncDesktopNew128Refresh)
+    static let syncPending96 = Self(.syncPending96, refresh: .syncPending96Refresh)
+    static let syncRecover128 = Self(.syncRecover128, refresh: .syncRecover128Refresh)
+    static let waitlistMacComputer = Self(named: "WaitlistMacComputer")
+    static let windowsWaitlistJoinWaitlist = Self(named: "WindowsWaitlistJoinWaitlist")
 }

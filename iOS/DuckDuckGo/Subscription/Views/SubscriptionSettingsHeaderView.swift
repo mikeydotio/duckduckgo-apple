@@ -18,6 +18,7 @@
 //
 
 import SwiftUI
+import DesignResourcesKitIcons
 
 struct SubscriptionSettingsHeaderView: View {
 
@@ -40,9 +41,9 @@ struct SubscriptionSettingsHeaderView: View {
         VStack(alignment: .center, spacing: 8) {
             switch state {
             case .expired:
-                Image(.privacyProHeaderAlert)
+                Image(asset: .privacyProHeaderAlert)
             default:
-                Image(.privacyProHeader)
+                Image(asset: .privacyProHeader)
             }
             Text(UserText.subscriptionTitle)
                 .daxTitle2()

@@ -90,28 +90,28 @@ struct HomeMessageViewModelTests {
             ),
             (
                 .medium(titleText: "", descriptionText: "", placeholder: .announce, imageUrl: nil),
-                RemotePlaceholder.announce.rawValue
+                RemotePlaceholder.announce
             ),
             (
                 .bigSingleAction(titleText: "", descriptionText: "", placeholder: .criticalUpdate, imageUrl: nil, primaryActionText: "", primaryAction: .dismiss),
-                RemotePlaceholder.criticalUpdate.rawValue
+                RemotePlaceholder.criticalUpdate
             ),
             (
                 .bigTwoAction(titleText: "", descriptionText: "", placeholder: .ddgAnnounce, imageUrl: nil, primaryActionText: "", primaryAction: .dismiss, secondaryActionText: "", secondaryAction: .dismiss),
-                RemotePlaceholder.ddgAnnounce.rawValue
+                RemotePlaceholder.ddgAnnounce
             ),
             (
                 .promoSingleAction(titleText: "", descriptionText: "", placeholder: .macComputer, imageUrl: nil, actionText: "", action: .dismiss),
-                RemotePlaceholder.macComputer.rawValue
+                RemotePlaceholder.macComputer
             )
-        ] as [(HomeSupportedMessageDisplayType, String?)]
+        ] as [(HomeSupportedMessageDisplayType, RemotePlaceholder?)]
     )
-    func imagePropertyReturnsCorrectValues(modelType: HomeSupportedMessageDisplayType, expectedImage: String?) throws {
+    func imagePropertyReturnsCorrectValues(modelType: HomeSupportedMessageDisplayType, expectedImage: RemotePlaceholder?) throws {
         // GIVEN
         let sut = makeSUT(modelType: modelType)
 
         // WHEN
-        let result = sut.image
+        let result = sut.placeholderImage
 
         // THEN
         #expect(result == expectedImage)

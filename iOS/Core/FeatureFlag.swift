@@ -392,6 +392,10 @@ public enum FeatureFlag: String {
     /// Switches shared DuckUI button styles to the brand-refresh visual treatment. Resolved once at launch.
     /// https://app.asana.com/1/137249556945/task/1213721086987167
     case brandRefreshButtons
+
+    /// Switches illustration icons to the 2026 pictogram set. Resolved once at launch.
+    /// https://app.asana.com/1/137249556945/task/1213721086987167
+    case brandRefreshIcons
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -684,6 +688,8 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .filterAddressBarUpdates:
             Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(iOSBrowserConfigSubfeature.filterAddressBarUpdates)))
         case .brandRefreshButtons:
+            Config(source: .disabled)
+        case .brandRefreshIcons:
             Config(source: .disabled)
         }
     }

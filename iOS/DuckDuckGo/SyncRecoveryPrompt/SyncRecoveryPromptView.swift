@@ -19,6 +19,7 @@
 
 import SwiftUI
 import DuckUI
+import DesignResourcesKitIcons
 
 struct SyncRecoveryPromptView: View {
     let onSyncWithAnotherDevice: () -> Void
@@ -37,7 +38,7 @@ struct SyncRecoveryPromptView: View {
                     }
                     .frame(height: 56)
 
-                    Image(.sync128)
+                    Image(asset: .sync128)
                         .padding(24)
 
                     Text(UserText.syncRecoveryPromptTitle(deviceName: deviceDisplayName))

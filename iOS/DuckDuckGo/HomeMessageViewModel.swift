@@ -19,6 +19,7 @@
 
 import Foundation
 import BrowserServicesKit
+import DesignResourcesKitIcons
 import RemoteMessaging
 import UIKit
 
@@ -66,18 +67,18 @@ struct HomeMessageViewModel {
     let preloadedImage: UIImage?
     let loadRemoteImage: (() async -> UIImage?)?
 
-    var image: String? {
+    var placeholderImage: RemotePlaceholder? {
         switch modelType {
         case .small:
             return nil
         case .medium(_, _, let placeholder, _):
-            return placeholder.rawValue
+            return placeholder
         case .bigSingleAction(_, _, let placeholder, _, _, _):
-            return placeholder.rawValue
+            return placeholder
         case .bigTwoAction(_, _, let placeholder, _, _, _, _, _):
-            return placeholder.rawValue
+            return placeholder
         case .promoSingleAction(_, _, let placeholder, _, _, _):
-            return placeholder.rawValue
+            return placeholder
         }
     }
 
@@ -191,5 +192,54 @@ private extension RemoteAction {
             return true
         }
         return false
+    }
+}
+
+extension RemotePlaceholder {
+    var brandRefreshableImage: BrandRefreshableImage {
+        switch self {
+        case .announce:
+            return .remoteMessageAnnouncement
+        case .ddgAnnounce:
+            return BrandRefreshableImage(named: "RemoteMessageDDGAnnouncement")
+        case .criticalUpdate:
+            return .remoteMessageCriticalAppUpdate
+        case .appUpdate:
+            return BrandRefreshableImage(named: "RemoteMessageAppUpdate")
+        case .macComputer:
+            return .remoteMessageMacComputer
+        case .newForMacAndWindows:
+            return BrandRefreshableImage(named: "RemoteMessageNewForMacAndWindows")
+        case .macAndWindows:
+            return BrandRefreshableImage(named: "RemoteMessageForMacAndWindows")
+        case .privacyShield:
+            return .remoteMessagePrivacyShield
+        case .aiChat:
+            return .remoteDuckAI
+        case .visualDesignUpdate:
+            return BrandRefreshableImage(named: "RemoteVisualDesignUpdate")
+        case .imageAI:
+            return BrandRefreshableImage(named: "RemoteImageAI")
+        case .radar:
+            return BrandRefreshableImage(named: "RemoteMessageRadar")
+        case .radarCheckGreen:
+            return BrandRefreshableImage(named: "RemoteRadar")
+        case .radarCheckPurple:
+            return BrandRefreshableImage(named: "RemoteMessageRadarCheck")
+        case .keyImport:
+            return BrandRefreshableImage(named: "RemoteKeyImport")
+        case .mobileCustomization:
+            return BrandRefreshableImage(named: "RemoteMobileCustomization")
+        case .pir:
+            return .remoteMessagePIR
+        case .subscription:
+            return .remoteMessageSubscription
+        case .veryCriticalUpdate:
+            return BrandRefreshableImage(named: "RemoteMessageVeryCriticalUpdate")
+        case .newTabOptions:
+            return BrandRefreshableImage(named: "RemoteMessageNewTabOptions")
+        case .splitBarMobile:
+            return BrandRefreshableImage(named: "RemoteMessageSplitBarMobile")
+        }
     }
 }

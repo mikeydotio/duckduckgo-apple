@@ -24,6 +24,7 @@ import Core
 import BrowserServicesKit
 import Common
 import DesignResourcesKit
+import DesignResourcesKitIcons
 import PixelKit
 
 enum DataImportFileError {
@@ -194,7 +195,7 @@ final class DataImportViewModel: ObservableObject {
         var image: Image {
             switch importScreen {
             case .bookmarks:
-                return Image(.bookmarksImport96)
+                return Image(asset: .bookmarksImport96)
             default:
                 return Image(.passwordsImport128)
             }

@@ -19,6 +19,7 @@
 
 import SwiftUI
 import DuckUI
+import DesignResourcesKitIcons
 
 public struct DeviceConnectedView: View {
 
@@ -34,7 +35,7 @@ public struct DeviceConnectedView: View {
     func deviceSyncedView() -> some View {
         UnderflowContainer {
             VStack(spacing: 0) {
-                Image("Sync-Start-128")
+                Image(asset: .syncStart128)
                     .padding(20)
 
                 Text(UserText.deviceSyncedSheetTitle)

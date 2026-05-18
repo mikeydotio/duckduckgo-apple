@@ -20,6 +20,7 @@
 import SwiftUI
 import UIKit
 import DesignResourcesKit
+import DesignResourcesKitIcons
 import DuckUI
 import SyncUI_iOS
 
@@ -40,7 +41,7 @@ struct SyncRecoveryAlternativeView: View {
                     }
                     .frame(height: 56)
 
-                    Image(.syncRecover128)
+                    Image(asset: .syncRecover128)
                         .padding(24)
 
                     Text(UserText.syncRecoveryAlternativePromptTitle)
