@@ -357,14 +357,14 @@
         "description": "Fired when the user clicks the Subscribe CTA on the subscription offer page (App Store distribution). Mid-funnel pixel preceding the purchase attempt outcome.",
         "owners": ["hanyutang-sandra"],
         "triggers": ["user_submitted"],
-        "suffixes": [],
+        "suffixes": ["daily"],
         "parameters": ["appVersion", "pixelSource", "subscriptionFunnelOrigin"]
     },
     "m_mac_direct_privacy-pro_terms-conditions_subscribe_click": {
         "description": "Fired when the user clicks the Subscribe CTA on the subscription offer page (direct distribution). Mid-funnel pixel preceding the purchase attempt outcome.",
         "owners": ["hanyutang-sandra"],
         "triggers": ["user_submitted"],
-        "suffixes": [],
+        "suffixes": ["daily"],
         "parameters": ["appVersion", "pixelSource", "subscriptionFunnelOrigin"]
     },
 

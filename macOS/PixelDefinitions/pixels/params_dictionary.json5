@@ -304,9 +304,8 @@
     },
     "subscribed": {
         "key": "subscribed",
-        "type": "string",
-        "description": "Whether the user has an active subscription at the time the pixel fires.",
-        "enum": ["true", "false"]
+        "type": "boolean",
+        "description": "Whether the user has an active subscription at the time the pixel fires."
     },
     "subscriptionEntryStatus": {
         "key": "status",
