@@ -26,6 +26,10 @@ public class DataBrokerProtectionFreemiumPixelHandler: EventMapping<DataBrokerPr
             switch event {
             case .subscription:
                 PixelKit.fire(event, frequency: .uniqueByName, withAdditionalParameters: params)
+            case .newTabScanClickCount,
+                    .newTabResultsClickCount,
+                    .newTabNoResultsClickCount:
+                PixelKit.fire(event, frequency: .standard)
             default:
                 PixelKit.fire(event, frequency: .uniqueByName)
             }
@@ -43,14 +47,17 @@ public enum DataBrokerProtectionFreemiumPixels: PixelKitEvent {
     // Before the first scan
     case newTabScanImpression
     case newTabScanClick
+    case newTabScanClickCount
     case newTabScanDismiss
     // When receiving results
     case newTabResultsImpression
     case newTabResultsClick
+    case newTabResultsClickCount
     case newTabResultsDismiss
     // When receiving no results
     case newTabNoResultsImpression
     case newTabNoResultsClick
+    case newTabNoResultsClickCount
     case newTabNoResultsDismiss
     // Overflow menu
     case overFlowScan
@@ -67,18 +74,24 @@ public enum DataBrokerProtectionFreemiumPixels: PixelKitEvent {
             return "dbp-free_newtab_scan_impression_u"
         case .newTabScanClick:
             return "dbp-free_newtab_scan_click_u"
+        case .newTabScanClickCount:
+            return "dbp-free_newtab_scan_click_c"
         case .newTabScanDismiss:
             return "dbp-free_newtab_scan_dismiss_u"
         case .newTabResultsImpression:
             return "dbp-free_newtab_results_impression_u"
         case .newTabResultsClick:
             return "dbp-free_newtab_results_click_u"
+        case .newTabResultsClickCount:
+            return "dbp-free_newtab_results_click_c"
         case .newTabResultsDismiss:
             return "dbp-free_newtab_results_dismiss_u"
         case .newTabNoResultsImpression:
             return "dbp-free_newtab_no-results_impression_u"
         case .newTabNoResultsClick:
             return "dbp-free_newtab_no-results_click_u"
+        case .newTabNoResultsClickCount:
+            return "dbp-free_newtab_no-results_click_c"
         case .newTabNoResultsDismiss:
             return "dbp-free_newtab_no-results_dismiss_u"
         case .overFlowScan:
@@ -100,12 +113,15 @@ public enum DataBrokerProtectionFreemiumPixels: PixelKitEvent {
         switch self {
         case .newTabScanImpression,
                 .newTabScanClick,
+                .newTabScanClickCount,
                 .newTabScanDismiss,
                 .newTabResultsImpression,
                 .newTabResultsClick,
+                .newTabResultsClickCount,
                 .newTabResultsDismiss,
                 .newTabNoResultsImpression,
                 .newTabNoResultsClick,
+                .newTabNoResultsClickCount,
                 .newTabNoResultsDismiss,
                 .overFlowScan,
                 .overFlowResults,
