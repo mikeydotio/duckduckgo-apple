@@ -24,18 +24,25 @@ struct EscapeHatchView: View {
     @ObservedObject var model: EscapeHatchModel
 
     var body: some View {
-        HStack(spacing: model.isTargetTabPresent ? Metrics.spacing : 0) {
-            ReturnToTabCard(model: model)
-                .frame(maxWidth: model.isTargetTabPresent ? .infinity : 0)
-                .opacity(model.isTargetTabPresent ? 1 : 0)
-                .clipped()
-                .allowsHitTesting(model.isTargetTabPresent)
+        GeometryReader { proxy in
+            let cardFullWidth = max(0, proxy.size.width - TabSwitcherPill.compactSize - Metrics.spacing)
+            let cardWidth = model.isTargetTabPresent ? cardFullWidth : 0
 
-            TabSwitcherPill(count: model.openTabCount, onTap: model.onTabSwitcherTap)
-                .frame(maxWidth: model.isTargetTabPresent ? TabSwitcherPill.compactSize : .infinity)
-                .frame(height: TabSwitcherPill.compactSize)
+            HStack(spacing: model.isTargetTabPresent ? Metrics.spacing : 0) {
+                ReturnToTabCard(model: model)
+                    .frame(width: cardFullWidth)
+                    .frame(width: cardWidth, alignment: .leading)
+                    .clipped()
+                    .opacity(model.isTargetTabPresent ? 1 : 0)
+                    .allowsHitTesting(model.isTargetTabPresent)
+
+                TabSwitcherPill(count: model.openTabCount, onTap: model.onTabSwitcherTap)
+                    .frame(maxWidth: model.isTargetTabPresent ? TabSwitcherPill.compactSize : .infinity)
+                    .frame(height: TabSwitcherPill.compactSize)
+            }
+            .animation(.easeInOut(duration: Metrics.collapseDuration), value: model.isTargetTabPresent)
         }
-        .animation(.easeInOut(duration: Metrics.collapseDuration), value: model.isTargetTabPresent)
+        .frame(height: TabSwitcherPill.compactSize)
     }
 
     private enum Metrics {

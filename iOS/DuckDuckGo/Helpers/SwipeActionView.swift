@@ -1,0 +1,190 @@
+//
+//  SwipeActionView.swift
+//  DuckDuckGo
+//
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import SwiftUI
+
+struct SwipeActionView<Content: View, Actions: View>: View {
+    @State private var haptics = UIImpactFeedbackGenerator(style: .light)
+    @State private var enclosingTouchHandle = ExclusiveTouchHandle()
+
+    @State private var contentOffset: CGFloat = 0
+    @State private var swipeThresholdExceeded: Bool = false
+    @State private var swipePendingCommit: Bool = false
+    @State private var swipeCancelledEnclosingRecognizers = false
+
+    let content: Content
+    let actions: Actions
+    let configuration: SwipeActionViewConfiguration
+    let onCommit: () -> Void
+
+    init(
+        configuration: SwipeActionViewConfiguration = .default,
+        onCommit: @escaping () -> Void,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder actions: () -> Actions
+    ) {
+        self.configuration = configuration
+        self.onCommit = onCommit
+        self.content = content()
+        self.actions = actions()
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let availableWidth = proxy.size.width
+
+            ZStack(alignment: .trailing) {
+                content
+                    .offset(x: contentOffset)
+                    .frame(maxWidth: .infinity)
+
+                actions
+                    .frame(width: actionsWidth(in: availableWidth))
+                    .clipShape(Capsule())
+                    .opacity(progress(in: availableWidth))
+            }
+            .animation(
+                .spring(response: configuration.springResponse, dampingFraction: configuration.springDamping),
+                value: contentOffset
+            )
+            .background(
+                ExclusiveTouchView(handle: enclosingTouchHandle)
+            )
+            .highPriorityGesture(
+                dragGesture(in: availableWidth)
+            )
+            .onAppear {
+                haptics.prepare()
+            }
+        }
+        .clipped()
+    }
+}
+
+private extension SwipeActionView {
+
+    func dragGesture(in availableWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: configuration.minimumDragDistance)
+            .onChanged { recognizer in
+                cancelEnclosingGestureRecognizerIfNeeded()
+
+                if swipePendingCommit {
+                    return
+                }
+
+                processDragChanged(in: availableWidth, dragOffset: recognizer.translation.width)
+            }
+            .onEnded { _ in
+                resetEnclosingTouchHandler()
+
+                if swipePendingCommit {
+                    return
+                }
+
+                processDragEnded(in: availableWidth)
+            }
+    }
+
+    func processDragChanged(in availableWidth: CGFloat, dragOffset: CGFloat) {
+        contentOffset = min(dragOffset, 0)
+        performHapticsIfNeeded(in: availableWidth)
+    }
+
+    func processDragEnded(in availableWidth: CGFloat) {
+        contentOffset = isPastCommit(in: availableWidth) ? -availableWidth : .zero
+        performActionIfNeeded(in: availableWidth)
+    }
+}
+
+private extension SwipeActionView {
+
+    /// Opacity ramp tied to the commit point: reaches 1 at the trigger distance so the post-release spring doesn't also have to animate alpha.
+    /// Starts counting after `spacing` so the alpha ramp aligns with the width ramp (which is also offset by `spacing`).
+    ///
+    func progress(in availableWidth: CGFloat) -> CGFloat {
+        if swipePendingCommit {
+            return 1
+        }
+
+        let actionsWidth = actionsWidth(in: availableWidth)
+        let progress = actionsWidth / availableWidth
+
+        return progress.clamped(to: 0...1)
+    }
+
+    func isPastCommit(in availableWidth: CGFloat) -> Bool {
+        progress(in: availableWidth) >= configuration.threshold
+    }
+
+    func actionsWidth(in availableWidth: CGFloat) -> CGFloat {
+        let width = abs(contentOffset) - configuration.spacing
+        return width.clamped(to: 0...availableWidth)
+    }
+}
+
+private extension SwipeActionView {
+
+    func performHapticsIfNeeded(in availableWidth: CGFloat) {
+        let pastCommit = isPastCommit(in: availableWidth)
+        guard pastCommit != swipeThresholdExceeded else {
+            return
+        }
+
+        haptics.impactOccurred()
+        swipeThresholdExceeded = pastCommit
+    }
+
+    func performActionIfNeeded(in availableWidth: CGFloat) {
+        guard isPastCommit(in: availableWidth) else {
+            return
+        }
+
+        swipePendingCommit = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + configuration.commitDelay) {
+            onCommit()
+        }
+    }
+
+    func cancelEnclosingGestureRecognizerIfNeeded() {
+        if swipeCancelledEnclosingRecognizers {
+            return
+        }
+
+        enclosingTouchHandle.cancel()
+        swipeCancelledEnclosingRecognizers = true
+    }
+
+    func resetEnclosingTouchHandler() {
+        swipeCancelledEnclosingRecognizers = false
+    }
+}
+
+struct SwipeActionViewConfiguration {
+    let threshold: CGFloat
+    let spacing: CGFloat
+    let commitDelay: TimeInterval
+    let minimumDragDistance: CGFloat
+    let springResponse: Double
+    let springDamping: Double
+
+    static let `default` = SwipeActionViewConfiguration(
+        threshold: 0.4, spacing: 4, commitDelay: 0.2, minimumDragDistance: 10, springResponse: 0.3, springDamping: 0.8
+    )
+}

@@ -28,6 +28,26 @@ struct ReturnToTabCard: View {
     let model: EscapeHatchModel
 
     var body: some View {
+        SwipeActionView(onCommit: model.onCloseTab) {
+            contentView
+        } actions: {
+            swipeableActionsView
+        }
+        .id(model.targetTab.uid)
+        .frame(height: Metrics.height)
+        .if(model.isActionsEnabled) { body in
+            body.contextMenu {
+                menuContentView
+            }
+        }
+        .if(model.isActionsEnabled) { body in
+            /// # Clipping:
+            ///     We're using the shape `( ]`  ("Left Capsule"), as the `swipeableActionsView` subview is not expected to be a perfect pill, while Sliding In
+            body.clipShape(LeftCapsuleShape())
+        }
+    }
+
+    private var contentView: some View {
         HStack(spacing: Metrics.innerSpacing) {
             mainView
             if model.isActionsEnabled {
@@ -41,9 +61,6 @@ struct ReturnToTabCard: View {
             Capsule()
                 .fill(Color(designSystemColor: .controlsFillSecondary))
         )
-        .if(model.isActionsEnabled) {
-            $0.contextMenu { menuContentView }
-        }
     }
 
     private var mainView: some View {
@@ -111,6 +128,19 @@ struct ReturnToTabCard: View {
                     Image(uiImage: DesignSystemImages.Glyphs.Size24.fire)
                 }
             }
+        }
+    }
+
+    private var swipeableActionsView: some View {
+        ZStack(alignment: .center) {
+            Color(designSystemColor: .destructivePrimary)
+
+            Text(UserText.escapeHatchMenuCloseTab)
+                .daxSubheadRegular()
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, Metrics.horizontalPadding)
         }
     }
 

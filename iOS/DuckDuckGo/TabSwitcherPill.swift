@@ -19,6 +19,7 @@
 
 import SwiftUI
 import DesignResourcesKit
+import DesignResourcesKitIcons
 
 struct TabSwitcherPill: View {
     /// Natural width/height when the pill renders as a circle. Parents typically constrain to this size,
@@ -40,15 +41,20 @@ struct TabSwitcherPill: View {
 
     var body: some View {
         Button(action: onTap) {
-            TabCountBadge(model: tabCountModel)
-                .foregroundColor(Color(designSystemColor: .icons))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(
-                    // Capsule degenerates to a circle when width == height,
-                    // so it covers both the compact and expanded shapes.
-                    Capsule()
-                        .fill(Color(designSystemColor: .controlsFillSecondary))
-                )
+            GeometryReader { proxy in
+                // Anything beyond the circular footprint is treated as the expanded capsule.
+                let isCompact = proxy.size.width <= Self.compactSize + Metrics.compactWidthEpsilon
+
+                content(isCompact: isCompact)
+                    .padding(.horizontal, isCompact ? 0 : Metrics.expandedHorizontalPadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .background(
+                // Capsule degenerates to a circle when width == height,
+                // so it covers both the compact and expanded shapes.
+                Capsule()
+                    .fill(Color(designSystemColor: .controlsFillSecondary))
+            )
         }
         .buttonStyle(.plain)
         .onChange(of: count) { newValue in tabCountModel.count = newValue }
@@ -56,11 +62,35 @@ struct TabSwitcherPill: View {
         .accessibilityValue(Text(UserText.numberOfTabs(count)))
         .accessibilityIdentifier("NTP.escapeHatch.tabSwitcher")
     }
+
+    @ViewBuilder
+    private func content(isCompact: Bool) -> some View {
+        HStack(spacing: Metrics.contentSpacing) {
+            TabCountBadge(model: tabCountModel)
+                .foregroundColor(Color(designSystemColor: .icons))
+
+            if !isCompact {
+                Text(UserText.escapeHatchTabSwitcherPrivateTabsLabel)
+                    .daxSubheadSemibold()
+                    .foregroundColor(Color(designSystemColor: .textPrimary))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Image(uiImage: DesignSystemImages.Glyphs.Size24.arrowRight)
+                    .foregroundColor(Color(designSystemColor: .icons))
+            }
+        }
+    }
+
+    private enum Metrics {
+        static let compactWidthEpsilon: CGFloat = 1
+        static let contentSpacing: CGFloat = 12
+        static let expandedHorizontalPadding: CGFloat = 16
+    }
 }
 
 // MARK: - Previews
 
-#Preview("Tab switcher pill — counts") {
+#Preview("Tab switcher pill — compact") {
     HStack(spacing: 8) {
         TabSwitcherPill(count: 1, onTap: {})
             .frame(width: TabSwitcherPill.compactSize, height: TabSwitcherPill.compactSize)
@@ -70,6 +100,21 @@ struct TabSwitcherPill: View {
             .frame(width: TabSwitcherPill.compactSize, height: TabSwitcherPill.compactSize)
         TabSwitcherPill(count: 100, onTap: {})
             .frame(width: TabSwitcherPill.compactSize, height: TabSwitcherPill.compactSize)
+    }
+    .padding()
+}
+
+#Preview("Tab switcher pill — expanded") {
+    VStack(spacing: 12) {
+        TabSwitcherPill(count: 1, onTap: {})
+            .frame(maxWidth: .infinity)
+            .frame(height: TabSwitcherPill.compactSize)
+        TabSwitcherPill(count: 42, onTap: {})
+            .frame(maxWidth: .infinity)
+            .frame(height: TabSwitcherPill.compactSize)
+        TabSwitcherPill(count: 100, onTap: {})
+            .frame(maxWidth: .infinity)
+            .frame(height: TabSwitcherPill.compactSize)
     }
     .padding()
 }
