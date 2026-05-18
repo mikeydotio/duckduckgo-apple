@@ -43,11 +43,12 @@ struct TabSwitcherPill: View {
         Button(action: onTap) {
             GeometryReader { proxy in
                 // Anything beyond the circular footprint is treated as the expanded capsule.
-                let isCompact = proxy.size.width <= Self.compactSize + Metrics.compactWidthEpsilon
+                let isExpanded = proxy.size.width > Self.compactSize + Metrics.compactWidthEpsilon
 
-                content(isCompact: isCompact)
-                    .padding(.horizontal, isCompact ? 0 : Metrics.expandedHorizontalPadding)
+                content(isExpanded: isExpanded)
+                    .padding(.horizontal, isExpanded ? Metrics.expandedHorizontalPadding : 0)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(Capsule())
             }
             .background(
                 // Capsule degenerates to a circle when width == height,
@@ -63,27 +64,38 @@ struct TabSwitcherPill: View {
         .accessibilityIdentifier("NTP.escapeHatch.tabSwitcher")
     }
 
-    @ViewBuilder
-    private func content(isCompact: Bool) -> some View {
-        HStack(spacing: Metrics.contentSpacing) {
+    private func content(isExpanded: Bool) -> some View {
+        HStack(spacing: isExpanded ? Metrics.contentSpacing : Metrics.contentSpacingCompact) {
             TabCountBadge(model: tabCountModel)
                 .foregroundColor(Color(designSystemColor: .icons))
 
-            if !isCompact {
-                Text(UserText.escapeHatchTabSwitcherPrivateTabsLabel)
-                    .daxSubheadSemibold()
-                    .foregroundColor(Color(designSystemColor: .textPrimary))
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-                Image(uiImage: DesignSystemImages.Glyphs.Size24.arrowRight)
-                    .foregroundColor(Color(designSystemColor: .icons))
+            if isExpanded {
+                expandedContent
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: isExpanded)
     }
+
+    @ViewBuilder
+    private var expandedContent: some View {
+        Text(UserText.escapeHatchTabSwitcherPrivateTabsLabel)
+            .daxSubheadSemibold()
+            .foregroundColor(Color(designSystemColor: .textPrimary))
+            .lineLimit(1)
+            .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .leading)))
+
+        Spacer(minLength: 0)
+
+        Image(uiImage: DesignSystemImages.Glyphs.Size24.arrowRight)
+            .foregroundColor(Color(designSystemColor: .icons))
+            .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .trailing)))
+    }
+
 
     private enum Metrics {
         static let compactWidthEpsilon: CGFloat = 1
         static let contentSpacing: CGFloat = 12
+        static let contentSpacingCompact: CGFloat = 0
         static let expandedHorizontalPadding: CGFloat = 16
     }
 }
