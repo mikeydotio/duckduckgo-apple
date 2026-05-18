@@ -2287,7 +2287,7 @@ class MainViewController: UIViewController {
     func dismissOmniBar() {
         hideSuggestionTray()
         viewCoordinator.omniBar.endEditing()
-        unifiedToggleInputCoordinator?.deactivateToOmnibar()
+        deactivateUnifiedToggleInputOmnibarSession()
         refreshOmniBar()
     }
 
