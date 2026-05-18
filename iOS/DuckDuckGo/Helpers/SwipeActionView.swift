@@ -123,8 +123,12 @@ private extension SwipeActionView {
             return 1
         }
 
-        let actionsWidth = actionsWidth(in: availableWidth)
-        let progress = actionsWidth / availableWidth
+        let commitDistance = availableWidth * configuration.threshold
+        guard commitDistance > 0 else {
+            return 0
+        }
+
+        let progress = actionsWidth(in: availableWidth) / commitDistance
 
         return progress.clamped(to: 0...1)
     }
