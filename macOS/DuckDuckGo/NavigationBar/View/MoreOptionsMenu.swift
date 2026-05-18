@@ -465,6 +465,7 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
         if freemiumDBPUserStateManager.didPostFirstProfileSavedNotification {
             dataBrokerProtectionFreemiumPixelHandler.fire(DataBrokerProtectionFreemiumPixels.overFlowResults)
         } else {
+            dataBrokerProtectionFreemiumPixelHandler.fire(DataBrokerProtectionFreemiumPixels.overFlowScanCount)
             dataBrokerProtectionFreemiumPixelHandler.fire(DataBrokerProtectionFreemiumPixels.overFlowScan)
         }
 
