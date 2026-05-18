@@ -109,6 +109,7 @@ private extension SwipeActionView {
 
     func processDragEnded(in availableWidth: CGFloat) {
         contentOffset = isPastCommit(in: availableWidth) ? -availableWidth : .zero
+        swipeThresholdExceeded = false
         performActionIfNeeded(in: availableWidth)
     }
 }
