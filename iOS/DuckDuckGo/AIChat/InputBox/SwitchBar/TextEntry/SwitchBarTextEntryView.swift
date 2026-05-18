@@ -227,8 +227,8 @@ class SwitchBarTextEntryView: UIView {
     private func setupView() {
         applyFireModeAppearance(isFireTab: handler.isFireTab)
 
-        let fontMetrics = UIFontMetrics(forTextStyle: .body)
-        let textFont = fontMetrics.scaledFont(for: UIFont.systemFont(ofSize: Constants.fontSize))
+        // Match the omnibar's placeholder font so UTI ↔ omnibar transitions don't show a size jump.
+        let textFont = UIFont.daxBodyRegular()
         textView.font = textFont
         textView.adjustsFontForContentSizeCategory = true
         textView.backgroundColor = UIColor.clear
@@ -284,15 +284,15 @@ class SwitchBarTextEntryView: UIView {
             guard let self else { return }
             self.hasBeenInteractedWith = true
             self.fireClearButtonPressedPixel()
-            
+
             self.textView.text = ""
             self.updatePlaceholderVisibility()
-            self.updateButtonState()
+            self.updateButtonState(animated: false)
             self.updateTextViewHeight()
-            
+
             self.handler.clearText()
             self.handler.clearButtonTapped()
-            
+
             self.wasTextEmptyForAutocorrection = false
             self.updateAutoCorrectionSetupForAIChat(for: "")
         }
@@ -348,7 +348,7 @@ class SwitchBarTextEntryView: UIView {
     /// reset happens at dismiss completion via the coordinator's `clearText()`.
     func applyDismissSnapshot(_ snapshot: UTIDismissSnapshot) {
         textView.text = snapshot.text
-        placeholderLabel.text = placeholderText(for: snapshot.placeholderMode)
+        setPlaceholderText(placeholderText(for: snapshot.placeholderMode))
         updatePlaceholderVisibility()
         buttonsView.fadeAIChatShortcutBackdrop(duration: Constants.buttonStateAnimationDuration,
                                                 horizontalOffset: Constants.dismissedChipHorizontalOffset)
@@ -358,11 +358,26 @@ class SwitchBarTextEntryView: UIView {
     /// in sync with the handler — chip backdrop visible, text reflecting `handler.currentText`.
     func clearDismissSnapshot() {
         buttonsView.restoreAIChatShortcutBackdrop(duration: Constants.buttonStateAnimationDuration)
-        placeholderLabel.text = placeholderText(for: currentMode)
+        setPlaceholderText(placeholderText(for: currentMode))
         if textView.text != handler.currentText {
             textView.text = handler.currentText
             updatePlaceholderVisibility()
         }
+    }
+
+    // Keeps in-flight color-transition overlays in sync so their captured text doesn't
+    // composite over the new text mid-animation.
+    private func setPlaceholderText(_ text: String) {
+        placeholderLabel.text = text
+        for case let overlay as UILabel in placeholderLabel.subviews {
+            overlay.text = text
+        }
+    }
+
+    // Sync hook used by the coordinator to beat the async `hasSubmittedPromptPublisher`
+    // sink before the flanked UTI first renders.
+    func refreshPlaceholderForCurrentMode() {
+        setPlaceholderText(placeholderText(for: currentMode))
     }
 
     private func placeholderText(for mode: TextEntryMode) -> String {
@@ -379,7 +394,7 @@ class SwitchBarTextEntryView: UIView {
     private func updateForCurrentMode() {
         wasTextEmptyForAutocorrection = textView.text.isEmpty
 
-        placeholderLabel.text = placeholderText(for: currentMode)
+        setPlaceholderText(placeholderText(for: currentMode))
         switch currentMode {
         case .search:
             textView.autocapitalizationType = .none
@@ -678,7 +693,7 @@ class SwitchBarTextEntryView: UIView {
             .removeDuplicates()
             .sink { [weak self] _ in
                 guard let self, self.currentMode == .aiChat else { return }
-                self.placeholderLabel.text = self.placeholderText(for: .aiChat)
+                self.setPlaceholderText(self.placeholderText(for: .aiChat))
                 self.updateKeyboardConfiguration()
             }
             .store(in: &cancellables)
