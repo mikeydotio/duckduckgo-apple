@@ -163,7 +163,7 @@ struct SettingsSubscriptionView: View {
                 SettingsCellView(label: UserText.settingsPProIHaveASubscription).padding(.leading, 32.0)
             }
         }
-        .onAppear {
+        .onFirstAppear {
             Pixel.fire(pixel: .subscriptionEntrySettingsImpression)
         }
     }
