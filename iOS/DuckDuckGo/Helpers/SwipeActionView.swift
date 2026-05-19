@@ -33,6 +33,7 @@ private enum SwipeState {
 
 struct SwipeActionView<Content: View, Actions: View>: View {
     @StateObject private var state = SwipeActionViewState()
+    @Environment(\.layoutDirection) private var layoutDirection
 
     @State private var contentOffset: CGFloat = 0
     @State private var swipeState: SwipeState = .idle
@@ -90,14 +91,22 @@ struct SwipeActionView<Content: View, Actions: View>: View {
 
 private extension SwipeActionView {
 
-    /// Trailing while the user is dragging so actions emerge from the right edge.
-    /// Flips to leading on commit so the spring grows `actionsWidth` rightward from `x = 0`, filling the row from the leading edge rather than chasing the exit.
+    /// Trailing while the user is dragging so actions emerge from the trailing edge.
+    /// Flips to leading on commit so the post-commit spring fills the row from the leading edge rather than chasing the exit.
     var actionsAlignment: Alignment {
         if case .pendingCommit = swipeState {
             return .leading
         }
 
-        return .trailing
+        return isRTL ? .leading : .trailing
+    }
+
+    var isRTL: Bool {
+        layoutDirection == .rightToLeft
+    }
+
+    var directionalMultiplier: CGFloat {
+        isRTL ? 1 : -1
     }
 }
 
@@ -133,8 +142,10 @@ private extension SwipeActionView {
         swipeState = .dragging(thresholdCrossed: false)
     }
 
+    /// Only accept drags toward the trailing edge: leftward (negative) in LTR, rightward (positive) in RTL.
+    /// SwiftUI mirrors `.trailing` to the physical left in RTL, so the reveal direction flips with `layoutDirection`.
     func processDragChanged(in availableWidth: CGFloat, dragOffset: CGFloat) {
-        contentOffset = min(dragOffset, 0)
+        contentOffset = isRTL ? max(dragOffset, 0) : min(dragOffset, 0)
         performHapticsIfNeeded(in: availableWidth)
     }
 
@@ -145,7 +156,8 @@ private extension SwipeActionView {
             return
         }
 
-        contentOffset = -availableWidth
+        let directionalMultiplier: CGFloat = isRTL ? 1 : -1
+        contentOffset = availableWidth * directionalMultiplier
         commit()
     }
 }
