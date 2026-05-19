@@ -337,7 +337,7 @@ final class VPNUpsellVisibilityManager: ObservableObject {
 
         // Fire pixel when transitioning to visible state
         if previousState != .visible {
-            pixelHandler(.subscriptionToolbarButtonShown(subscribed: false))
+            pixelHandler(.subscriptionToolbarButtonShown)
         }
 
         state = newState

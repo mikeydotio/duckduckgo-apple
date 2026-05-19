@@ -71,18 +71,21 @@ final class NetworkProtectionNavBarPopoverManager: NetPPopoverManager {
     private var cancellables = Set<AnyCancellable>()
 
     private let freeTrialConversionService: FreeTrialConversionInstrumentationService
+    private let pixelHandler: (SubscriptionPixel) -> Void
 
     init(ipcClient: VPNControllerXPCClient,
          vpnUninstaller: VPNUninstalling,
          vpnUIPresenting: VPNUIPresenting,
          proxySettings: TransparentProxySettings = .init(defaults: .netP),
-         freeTrialConversionService: FreeTrialConversionInstrumentationService) {
+         freeTrialConversionService: FreeTrialConversionInstrumentationService,
+         pixelHandler: @escaping (SubscriptionPixel) -> Void = { PixelKit.fire($0) }) {
 
         self.ipcClient = ipcClient
         self.vpnUninstaller = vpnUninstaller
         self.vpnUIPresenting = vpnUIPresenting
         self.proxySettings = proxySettings
         self.freeTrialConversionService = freeTrialConversionService
+        self.pixelHandler = pixelHandler
 
         let activeDomainPublisher = ActiveDomainPublisher(windowControllersManager: Application.appDelegate.windowControllersManager)
 
@@ -167,7 +170,7 @@ final class NetworkProtectionNavBarPopoverManager: NetPPopoverManager {
             try? await ipcClient.refreshSystemState()
         }
 
-        PixelKit.fire(SubscriptionPixel.subscriptionToolbarButtonPopoverShown)
+        pixelHandler(.subscriptionToolbarVPNPopoverShown)
 
         let popover: NSPopover = {
             let vpnAppState = VPNAppState(defaults: .netP)
@@ -226,6 +229,7 @@ final class NetworkProtectionNavBarPopoverManager: NetPPopoverManager {
                 CurrentValuePublisher(initialValue: false, publisher: Just(false).eraseToAnyPublisher())
             }
 
+            let pixelHandler = self.pixelHandler
             let statusViewModel = NetworkProtectionStatusView.Model(
                 controller: controller,
                 onboardingStatusPublisher: onboardingStatusPublisher,
@@ -244,10 +248,16 @@ final class NetworkProtectionNavBarPopoverManager: NetPPopoverManager {
                     try? await self?.vpnUninstaller.uninstall(
                         removeSystemExtension: true,
                         showNotification: showNotification)
+                },
+                subscriptionExpiredViewAppearHandler: {
+                    pixelHandler(.subscriptionToolbarButtonPopoverExpiredViewShown)
+                },
+                subscriptionExpiredViewSubscribeButtonHandler: {
+                    pixelHandler(.subscriptionToolbarButtonPopoverExpiredViewSubscribeButtonClicked)
+                    Task { @MainActor in
+                        vpnURLEventHandler.showSubscription(origin: SubscriptionFunnelOrigin.vpnToolbarRevoked.rawValue)
+                    }
                 })
-            statusViewModel.subscriptionExpiredViewAppearHandler = {
-                PixelKit.fire(SubscriptionPixel.subscriptionToolbarButtonPopoverExpiredViewShown)
-            }
 
             let tipsModel = VPNTipsModel(statusObserver: statusReporter.statusObserver,
                                          activeSitePublisher: activeSitePublisher,

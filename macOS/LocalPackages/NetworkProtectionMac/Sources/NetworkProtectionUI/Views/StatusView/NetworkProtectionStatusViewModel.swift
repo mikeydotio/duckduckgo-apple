@@ -69,9 +69,8 @@ extension NetworkProtectionStatusView {
 
         public typealias UninstallHandler = (UninstallReason) async -> Void
 
-        /// Closure invoked when the subscription-expired view appears inside the popover.
-        /// Set by the consumer to fire an impression pixel.
-        public var subscriptionExpiredViewAppearHandler: (() -> Void)?
+        private let subscriptionExpiredViewAppearHandler: (() -> Void)?
+        private let subscriptionExpiredViewSubscribeButtonHandler: (() -> Void)?
 
         /// The NetP service.
         ///
@@ -146,12 +145,16 @@ extension NetworkProtectionStatusView {
                     runLoopMode: RunLoop.Mode? = nil,
                     userDefaults: UserDefaults,
                     locationFormatter: VPNLocationFormatting,
-                    uninstallHandler: @escaping UninstallHandler) {
+                    uninstallHandler: @escaping UninstallHandler,
+                    subscriptionExpiredViewAppearHandler: (() -> Void)? = nil,
+                    subscriptionExpiredViewSubscribeButtonHandler: (() -> Void)? = nil) {
 
             self.tunnelController = controller
             self.onboardingStatusPublisher = onboardingStatusPublisher
             self.statusReporter = statusReporter
             self.menuItems = menuItems
+            self.subscriptionExpiredViewAppearHandler = subscriptionExpiredViewAppearHandler
+            self.subscriptionExpiredViewSubscribeButtonHandler = subscriptionExpiredViewSubscribeButtonHandler
             self.agentLoginItem = agentLoginItem
             self.isExtensionUpdateOffered = isExtensionUpdateOfferedPublisher.value
             self.isMenuBarStatusView = isMenuBarStatusView
@@ -212,9 +215,17 @@ extension NetworkProtectionStatusView {
         }
 
         func openSubscription() {
-            Task {
-                await uiActionHandler.showSubscription()
+            if let subscriptionExpiredViewSubscribeButtonHandler {
+                subscriptionExpiredViewSubscribeButtonHandler()
+            } else {
+                Task {
+                    await uiActionHandler.showSubscription()
+                }
             }
+        }
+
+        func subscriptionExpiredViewDidAppear() {
+            subscriptionExpiredViewAppearHandler?()
         }
 
         func openFeedbackForm() {

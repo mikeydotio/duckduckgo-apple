@@ -58,7 +58,7 @@ public struct NetworkProtectionStatusView: View {
                 }
                 .padding(5)
                 .onAppear {
-                    model.subscriptionExpiredViewAppearHandler?()
+                    model.subscriptionExpiredViewDidAppear()
                 }
             } else if let promptActionViewModel = model.promptActionViewModel {
                 PromptActionView(model: promptActionViewModel)

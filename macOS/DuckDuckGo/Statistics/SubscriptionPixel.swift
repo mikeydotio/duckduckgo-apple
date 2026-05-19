@@ -97,9 +97,10 @@ enum SubscriptionPixel: PixelKitEvent {
     case subscriptionKeychainManagerDataWroteFromBacklog(SubscriptionPixelHandler.Source)
     case subscriptionKeychainManagerFailedToWriteDataFromBacklog(SubscriptionPixelHandler.Source)
     // Toolbar Button
-    case subscriptionToolbarButtonShown(subscribed: Bool)
-    case subscriptionToolbarButtonUpsellPopoverShown
+    case subscriptionToolbarButtonShown
+    case subscriptionToolbarVPNButtonShown
     case subscriptionToolbarButtonPopoverShown
+    case subscriptionToolbarVPNPopoverShown
     case subscriptionToolbarButtonPopoverDismissButtonClicked
     case subscriptionToolbarButtonPopoverProceedButtonClicked
     case subscriptionToolbarButtonPopoverExpiredViewShown
@@ -203,10 +204,11 @@ enum SubscriptionPixel: PixelKitEvent {
         case .subscriptionKeychainManagerDeallocatedWithBacklog: return "m_mac_privacy-pro_keychain_manager_deallocated_with_backlog"
         case .subscriptionKeychainManagerDataWroteFromBacklog: return "m_mac_privacy-pro_keychain_manager_data_wrote_from_backlog"
         case .subscriptionKeychainManagerFailedToWriteDataFromBacklog: return "m_mac_privacy-pro_keychain_manager_failed_to_write_data_from_backlog"
-            // Toolbar Button Upsell
+            // Toolbar Button
         case .subscriptionToolbarButtonShown: return "m_mac_privacy-pro_toolbar_button_shown"
-        case .subscriptionToolbarButtonUpsellPopoverShown: return "m_mac_privacy-pro_toolbar_button_upsell_popover_shown"
+        case .subscriptionToolbarVPNButtonShown: return "m_mac_subscription_toolbar_vpn_button_shown"
         case .subscriptionToolbarButtonPopoverShown: return "m_mac_privacy-pro_toolbar_button_popover_shown"
+        case .subscriptionToolbarVPNPopoverShown: return "m_mac_subscription_toolbar_vpn_popover_shown"
         case .subscriptionToolbarButtonPopoverDismissButtonClicked: return "m_mac_privacy-pro_toolbar_button_popover_dismiss_button_clicked"
         case .subscriptionToolbarButtonPopoverProceedButtonClicked: return "m_mac_privacy-pro_toolbar_button_popover_proceed_button_clicked"
         case .subscriptionToolbarButtonPopoverExpiredViewShown: return "m_mac_privacy-pro_toolbar_button_popover_expired_view_shown"
@@ -252,7 +254,6 @@ enum SubscriptionPixel: PixelKitEvent {
         static let platformKey = "platform"
         static let activationDayKey = "activation_day"
         static let statusKey = "status"
-        static let subscribedKey = "subscribed"
     }
 
     var parameters: [String: String]? {
@@ -282,8 +283,6 @@ enum SubscriptionPixel: PixelKitEvent {
              .subscriptionTierOptionsSuccess(let origin):
             guard let origin else { return nil }
             return [AttributionParameter.origin: origin]
-        case .subscriptionToolbarButtonShown(let subscribed):
-            return [SubscriptionPixelsDefaults.subscribedKey: subscribed ? "true" : "false"]
         default:
             return nil
         }
@@ -343,8 +342,9 @@ enum SubscriptionPixel: PixelKitEvent {
                 .subscriptionKeychainManagerDataWroteFromBacklog,
                 .subscriptionKeychainManagerFailedToWriteDataFromBacklog,
                 .subscriptionToolbarButtonShown,
-                .subscriptionToolbarButtonUpsellPopoverShown,
+                .subscriptionToolbarVPNButtonShown,
                 .subscriptionToolbarButtonPopoverShown,
+                .subscriptionToolbarVPNPopoverShown,
                 .subscriptionToolbarButtonPopoverDismissButtonClicked,
                 .subscriptionToolbarButtonPopoverProceedButtonClicked,
                 .subscriptionToolbarButtonPopoverExpiredViewShown,

@@ -33,12 +33,14 @@ final class NetworkProtectionNavBarButtonModelTests: XCTestCase {
     fileprivate var mockPersistor: MockVPNUpsellUserDefaultsPersistor!
     var mockSubscriptionManager: SubscriptionManagerMock!
     var cancellable: AnyCancellable?
+    var firedPixels: [SubscriptionPixel] = []
 
     override func setUp() {
         super.setUp()
         mockPersistor = MockVPNUpsellUserDefaultsPersistor()
         mockSubscriptionManager = SubscriptionManagerMock()
         mockSubscriptionManager.currentEnvironment = .init(serviceEnvironment: .staging, purchasePlatform: .stripe)
+        firedPixels = []
     }
 
     override func tearDown() {
@@ -47,6 +49,7 @@ final class NetworkProtectionNavBarButtonModelTests: XCTestCase {
         cancellable = nil
         mockPersistor = nil
         mockSubscriptionManager = nil
+        firedPixels = []
         super.tearDown()
     }
 
@@ -223,6 +226,44 @@ final class NetworkProtectionNavBarButtonModelTests: XCTestCase {
         wait(for: [expectation], timeout: 2.0)
         XCTAssertFalse(sut.shouldShowNotificationDot)
     }
+
+    func testWhenButtonBecomesVisibleAndUserIsNotInUpsell_ItFiresSubscribedButtonShownPixel() {
+        // Given
+        let upsellManager = createUpsellManager(shouldShowUpsell: false)
+        sut = createButtonModel(with: upsellManager)
+        let expectation = XCTestExpectation(description: "subscribed button shown pixel should be fired")
+
+        cancellable = sut.$showVPNButton
+            .dropFirst()
+            .filter { $0 }
+            .sink { _ in expectation.fulfill() }
+
+        // When
+        sut.updateVisibility()
+
+        // Then
+        wait(for: [expectation], timeout: 2.0)
+        XCTAssertEqual(firedPixels.first?.name, SubscriptionPixel.subscriptionToolbarVPNButtonShown.name)
+    }
+
+    func testWhenButtonBecomesVisibleAndUserIsInUpsell_ItDoesNotFireSubscribedButtonShownPixel() {
+        // Given
+        let upsellManager = createUpsellManager(shouldShowUpsell: true)
+        sut = createButtonModel(with: upsellManager)
+        let expectation = XCTestExpectation(description: "showVPNButton should become true")
+
+        cancellable = sut.$showVPNButton
+            .dropFirst()
+            .filter { $0 }
+            .sink { _ in expectation.fulfill() }
+
+        // When
+        sut.updateVisibility()
+
+        // Then
+        wait(for: [expectation], timeout: 2.0)
+        XCTAssertFalse(firedPixels.contains { $0.name == SubscriptionPixel.subscriptionToolbarVPNButtonShown.name })
+    }
 }
 
 // MARK: - Helpers
@@ -266,7 +307,10 @@ extension NetworkProtectionNavBarButtonModelTests {
             vpnGatekeeper: vpnGatekeeper,
             statusReporter: statusReporter,
             themeManager: themeManager,
-            vpnUpsellVisibilityManager: upsellManager
+            vpnUpsellVisibilityManager: upsellManager,
+            pixelHandler: { [weak self] pixel in
+                self?.firedPixels.append(pixel)
+            }
         )
     }
 }
