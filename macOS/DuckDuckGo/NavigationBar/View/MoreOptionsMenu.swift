@@ -460,12 +460,11 @@ final class MoreOptionsMenu: NSMenu, NSMenuDelegate {
 
     @MainActor
     @objc func openFreemiumDBP(_ sender: NSMenuItem) {
-        PixelKit.fire(MoreOptionsMenuPixel.dataBrokerProtectionActionClicked, frequency: .daily)
+        PixelKit.fire(MoreOptionsMenuPixel.dataBrokerProtectionActionClicked, frequency: .dailyAndStandard)
 
         if freemiumDBPUserStateManager.didPostFirstProfileSavedNotification {
             dataBrokerProtectionFreemiumPixelHandler.fire(DataBrokerProtectionFreemiumPixels.overFlowResults)
         } else {
-            dataBrokerProtectionFreemiumPixelHandler.fire(DataBrokerProtectionFreemiumPixels.overFlowScanCount)
             dataBrokerProtectionFreemiumPixelHandler.fire(DataBrokerProtectionFreemiumPixels.overFlowScan)
         }
 
