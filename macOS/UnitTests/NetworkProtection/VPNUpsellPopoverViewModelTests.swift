@@ -111,22 +111,6 @@ final class VPNUpsellPopoverViewModelTests: XCTestCase {
         XCTAssertEqual(firedPixels.first?.name, SubscriptionPixel.subscriptionToolbarButtonPopoverDismissButtonClicked.name)
     }
 
-    func testWhenPrimaryCTAIsClicked_SubscriptionLandingPageIsOpened_AndOriginIsSet() throws {
-        // Given
-        let baseURL = URL(string: "https://duckduckgo.com/pro/purchase")!
-        mockSubscriptionManager.resultURL = baseURL
-
-        // When
-        sut.showSubscriptionLandingPage()
-
-        // Then
-        let receivedURL = try XCTUnwrap(lastReceivedURL)
-        let components = try XCTUnwrap(URLComponents(url: receivedURL, resolvingAgainstBaseURL: false))
-        let originQueryItem = try XCTUnwrap(components.queryItems?.first { $0.name == "origin" })
-        XCTAssertEqual(originQueryItem.value, SubscriptionFunnelOrigin.vpnUpsell.rawValue)
-        XCTAssertEqual(originQueryItem.value, "funnel_toolbar_macos")
-    }
-
     func testWhenPrimaryCTAIsClicked_ThenProceedPixelIsFired() throws {
         // Given
         let baseURL = URL(string: "https://duckduckgo.com/pro/purchase")!

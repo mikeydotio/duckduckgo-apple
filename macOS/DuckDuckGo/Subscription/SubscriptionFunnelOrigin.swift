@@ -29,9 +29,6 @@ enum SubscriptionFunnelOrigin: String {
     /// User entered the funnel via the Free Scan feature.
     case freeScan = "funnel_freescan_macos"
 
-    /// User entered the funnel via the VPN upsell.
-    case vpnUpsell = "funnel_toolbar_macos"
-
     // MARK: - Win-Back Offer Origins
 
     /// User entered via win-back offer launch prompt
