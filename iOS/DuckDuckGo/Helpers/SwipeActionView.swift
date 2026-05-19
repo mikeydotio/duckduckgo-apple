@@ -58,7 +58,7 @@ struct SwipeActionView<Content: View, Actions: View>: View {
         GeometryReader { proxy in
             let availableWidth = proxy.size.width
 
-            ZStack(alignment: .trailing) {
+            ZStack(alignment: actionsAlignment) {
                 content
                     .offset(x: contentOffset)
                     .frame(maxWidth: .infinity)
@@ -85,6 +85,23 @@ struct SwipeActionView<Content: View, Actions: View>: View {
         .clipped()
     }
 }
+
+// MARK: - Calculated Properties
+
+private extension SwipeActionView {
+
+    /// Trailing while the user is dragging so actions emerge from the right edge.
+    /// Flips to leading on commit so the spring grows `actionsWidth` rightward from `x = 0`, filling the row from the leading edge rather than chasing the exit.
+    var actionsAlignment: Alignment {
+        if case .pendingCommit = swipeState {
+            return .leading
+        }
+
+        return .trailing
+    }
+}
+
+// MARK: - Recognizer
 
 private extension SwipeActionView {
 
@@ -133,6 +150,8 @@ private extension SwipeActionView {
     }
 }
 
+// MARK: - Helpers
+
 private extension SwipeActionView {
 
     /// Opacity ramp tied to the commit point: reaches 1 at the trigger distance so the post-release spring doesn't also have to animate alpha.
@@ -161,6 +180,8 @@ private extension SwipeActionView {
         return width.clamped(to: 0...availableWidth)
     }
 }
+
+// MARK: - Haptics
 
 private extension SwipeActionView {
 
