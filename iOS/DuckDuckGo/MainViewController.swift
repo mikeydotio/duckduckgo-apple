@@ -4667,7 +4667,7 @@ extension MainViewController: EscapeHatchActionRouter {
         let tabViewModel = tabManager.viewModel(for: tab)
         let presenter = FireConfirmationPresenter()
         presenter.presentFireConfirmation(
-            on: self,
+            on: topPresentedViewController,
             sourceRect: .zero,
             tabViewModel: tabViewModel,
             pixelSource: .escapeHatch,
