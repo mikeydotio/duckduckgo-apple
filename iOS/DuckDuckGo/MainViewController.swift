@@ -4647,7 +4647,7 @@ extension MainViewController: EscapeHatchActionRouter {
         }
 
         tabManager.remove(tab: tab, in: targetTabsModel)
-        refreshControls()
+        refreshTabIcon()
 
         if targetTabsModel.hasActiveTabs {
             return
