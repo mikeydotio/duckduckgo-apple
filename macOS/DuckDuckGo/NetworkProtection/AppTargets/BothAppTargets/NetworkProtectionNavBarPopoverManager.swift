@@ -252,11 +252,8 @@ final class NetworkProtectionNavBarPopoverManager: NetPPopoverManager {
                 subscriptionExpiredViewAppearHandler: {
                     pixelHandler(.subscriptionToolbarVPNPopoverExpiredViewShown)
                 },
-                subscriptionExpiredViewSubscribeButtonHandler: {
+                subscriptionExpiredViewSubscribeButtonClickPixelHandler: {
                     pixelHandler(.subscriptionToolbarVPNPopoverExpiredViewSubscribeButtonClicked)
-                    Task { @MainActor in
-                        vpnURLEventHandler.showSubscription(origin: SubscriptionFunnelOrigin.vpnToolbarRevoked.rawValue)
-                    }
                 })
 
             let tipsModel = VPNTipsModel(statusObserver: statusReporter.statusObserver,

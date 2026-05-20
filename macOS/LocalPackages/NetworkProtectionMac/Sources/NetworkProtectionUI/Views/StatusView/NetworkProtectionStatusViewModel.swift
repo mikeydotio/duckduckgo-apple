@@ -70,7 +70,7 @@ extension NetworkProtectionStatusView {
         public typealias UninstallHandler = (UninstallReason) async -> Void
 
         private let subscriptionExpiredViewAppearHandler: (() -> Void)?
-        private let subscriptionExpiredViewSubscribeButtonHandler: (() -> Void)?
+        private let subscriptionExpiredViewSubscribeButtonClickPixelHandler: (() -> Void)?
 
         /// The NetP service.
         ///
@@ -147,14 +147,14 @@ extension NetworkProtectionStatusView {
                     locationFormatter: VPNLocationFormatting,
                     uninstallHandler: @escaping UninstallHandler,
                     subscriptionExpiredViewAppearHandler: (() -> Void)? = nil,
-                    subscriptionExpiredViewSubscribeButtonHandler: (() -> Void)? = nil) {
+                    subscriptionExpiredViewSubscribeButtonClickPixelHandler: (() -> Void)? = nil) {
 
             self.tunnelController = controller
             self.onboardingStatusPublisher = onboardingStatusPublisher
             self.statusReporter = statusReporter
             self.menuItems = menuItems
             self.subscriptionExpiredViewAppearHandler = subscriptionExpiredViewAppearHandler
-            self.subscriptionExpiredViewSubscribeButtonHandler = subscriptionExpiredViewSubscribeButtonHandler
+            self.subscriptionExpiredViewSubscribeButtonClickPixelHandler = subscriptionExpiredViewSubscribeButtonClickPixelHandler
             self.agentLoginItem = agentLoginItem
             self.isExtensionUpdateOffered = isExtensionUpdateOfferedPublisher.value
             self.isMenuBarStatusView = isMenuBarStatusView
@@ -215,12 +215,9 @@ extension NetworkProtectionStatusView {
         }
 
         func openSubscription() {
-            if let subscriptionExpiredViewSubscribeButtonHandler {
-                subscriptionExpiredViewSubscribeButtonHandler()
-            } else {
-                Task {
-                    await uiActionHandler.showSubscription()
-                }
+            subscriptionExpiredViewSubscribeButtonClickPixelHandler?()
+            Task {
+                await uiActionHandler.showSubscription()
             }
         }
 
