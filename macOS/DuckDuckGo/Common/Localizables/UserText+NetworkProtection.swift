@@ -242,7 +242,7 @@ extension UserText {
 
     static let vpnLocationCustomSectionTitle = NSLocalizedString("vpn.location.custom.section.title", value: "Custom", comment: "Title of the VPN location list custom section")
 
-    static let vpnLocationSubmitButtonTitle = NSLocalizedString("vpn.location.submit.button.title", value: "Submit", comment: "Title of the VPN location list submit button")
+    static let vpnLocationSubmitButtonTitle = NSLocalizedString("vpn.location.submit.button.title", value: "Done", comment: "Title of the VPN location list confirm button (confirms the user's location selection)")
 
     static let vpnLocationCancelButtonTitle = NSLocalizedString("vpn.location.cancel.button.title", value: "Cancel", comment: "Title of the VPN location list cancel button (Note: seems like a duplicate key with a different purpose, please check)")
 
