@@ -111389,7 +111389,7 @@
         }
       }
     },
-    "vpn.location.submit.button.title" : {
+    "vpn.location.done.button.title" : {
       "comment" : "Title of the VPN location list confirm button (confirms the user's location selection)",
       "extractionState" : "extracted_with_value",
       "localizations" : {

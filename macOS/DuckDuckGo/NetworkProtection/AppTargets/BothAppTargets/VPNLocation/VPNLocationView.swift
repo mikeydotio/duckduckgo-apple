@@ -265,7 +265,7 @@ private struct VPNLocationViewButtons: View {
                     .keyboardShortcut(.cancelAction)
                     .buttonStyle(DismissActionButtonStyle())
 
-                button(text: UserText.vpnLocationSubmitButtonTitle, action: onDone)
+                button(text: UserText.vpnLocationDoneButtonTitle, action: onDone)
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(DefaultActionButtonStyle(enabled: true))
             }
