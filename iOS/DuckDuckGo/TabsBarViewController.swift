@@ -87,8 +87,15 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
     private lazy var tabSwitcherButton: TabSwitcherStaticButton = TabSwitcherStaticButton(showMenuOnLongPress: false)
 
     private let longPressTabGesture = UILongPressGestureRecognizer()
-    
+
     private weak var pressedCell: TabsBarCell?
+
+    // Tracks the structural shape of the last refresh so we can perform a
+    // selective `reloadItems(at:)` when only the selected tab changed.
+    // See iPad-perf investigation: avoids re-resolving favicons for every
+    // visible cell on every tab switch.
+    private var lastReloadedTabUIDs: [String] = []
+    private var lastSelectedIndex: Int?
     
     var tabsCount: Int {
         return tabsModel?.count ?? 0
@@ -196,7 +203,30 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
         tabSwitcherButton.accessibilityHint = UserText.numberOfTabs(tabsCount)
 
         recomputeItemSize()
-        reloadData()
+
+        let currentUIDs = tabsModel?.tabs.map { $0.uid } ?? []
+        let currentSelectedIndex = self.currentIndex
+
+        if !lastReloadedTabUIDs.isEmpty, currentUIDs == lastReloadedTabUIDs {
+            // Structure unchanged. Only re-render the previously selected and the
+            // newly selected cells, so unaffected cells avoid re-resolving favicons.
+            var indexPathsToReload: Set<IndexPath> = []
+            if let last = lastSelectedIndex, last < currentUIDs.count {
+                indexPathsToReload.insert(IndexPath(item: last, section: 0))
+            }
+            if let current = currentSelectedIndex, current < currentUIDs.count {
+                indexPathsToReload.insert(IndexPath(item: current, section: 0))
+            }
+            if !indexPathsToReload.isEmpty {
+                collectionView.reloadItems(at: Array(indexPathsToReload))
+            }
+            updateTabSwitcherButtonState()
+        } else {
+            reloadData()
+        }
+
+        lastReloadedTabUIDs = currentUIDs
+        lastSelectedIndex = currentSelectedIndex
 
         if scrollToSelected {
             DispatchQueue.main.async {
@@ -224,6 +254,10 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
 
     private func reloadData() {
         collectionView.reloadData()
+        updateTabSwitcherButtonState()
+    }
+
+    private func updateTabSwitcherButtonState() {
         tabSwitcherButton.tabCount = tabsCount
         tabSwitcherButton.isFireMode = (tabManager?.currentBrowsingMode ?? .normal) == .fire
         tabSwitcherButton.hasUnread = hasUnread

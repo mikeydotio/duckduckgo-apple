@@ -133,6 +133,13 @@ class SwipeTabsCoordinator: NSObject {
     weak var preview: UIView?
     weak var currentView: UIView?
 
+    // Tracks the structural shape of the last refresh so we can perform a
+    // selective `reloadItems(at:)` when only the selected tab changed.
+    // See iPad-perf investigation: avoids re-creating omnibar template cells
+    // on every tab switch.
+    private var lastReloadedTabUIDs: [String] = []
+    private var lastSelectedIndex: Int?
+
     /// The overlay that hosts per-tab full-screen snapshots during a swipe. Set by the host.
     /// When present, all visual rendering of the swipe is delegated to the overlay and the
     /// legacy mechanisms (cell-based omnibar slide, auxiliary view translation, chromePreview
@@ -656,10 +663,35 @@ extension SwipeTabsCoordinator {
 
     func refresh(tabsModel: TabsModelManaging, scrollToSelected: Bool = false) {
         self.tabsModel = tabsModel
-        coordinator.navigationBarCollectionView.reloadData()
-        
+
+        let currentUIDs = tabsModel.tabs.map { $0.uid }
+        let currentSelectedIndex = tabsModel.currentIndex
+        let collectionView = coordinator.navigationBarCollectionView
+
+        if !lastReloadedTabUIDs.isEmpty, currentUIDs == lastReloadedTabUIDs {
+            // Structure unchanged. Only re-render the previously selected and the
+            // newly selected cells, so the other template cells are not torn down
+            // and rebuilt on every tab switch.
+            let itemCount = collectionView.numberOfItems(inSection: 0)
+            var indexPathsToReload: Set<IndexPath> = []
+            if let last = lastSelectedIndex, last < itemCount {
+                indexPathsToReload.insert(IndexPath(item: last, section: 0))
+            }
+            if let current = currentSelectedIndex, current < itemCount {
+                indexPathsToReload.insert(IndexPath(item: current, section: 0))
+            }
+            if !indexPathsToReload.isEmpty {
+                collectionView.reloadItems(at: Array(indexPathsToReload))
+            }
+        } else {
+            collectionView.reloadData()
+        }
+
+        lastReloadedTabUIDs = currentUIDs
+        lastSelectedIndex = currentSelectedIndex
+
         updateLayout()
-        
+
         if scrollToSelected {
             scrollToCurrent()
         }
