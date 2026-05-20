@@ -44,7 +44,7 @@ extension SyncSettingsView {
             HStack {
                 Spacer()
                 VStack(alignment: .center, spacing: 8) {
-                    Image("Sync-Pair-96")
+                    Image("Desktop-Mobile-Sync-Pair-128")
                     Text(UserText.syncWithAnotherDeviceTitle)
                         .daxTitle3()
                     Text(syncWithAnotherDeviceMessage)

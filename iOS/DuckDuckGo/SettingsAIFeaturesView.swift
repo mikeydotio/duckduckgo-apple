@@ -34,7 +34,7 @@ struct SettingsAIFeaturesView: View {
         List {
 
             VStack(alignment: .center) {
-                Image(.settingAIFeaturesHero)
+                Image(.AI_128)
                     .padding(.top, -20)
 
                 Text(UserText.settingsAiFeatures)

@@ -33,7 +33,7 @@ struct DesktopDownloadPlatformConstants {
         case .mac:
             return "WaitlistMacComputer"
         case .desktop:
-            return "App-Download-128"
+            return "DDG-App-Download-128"
         }
     }
     var title: String {

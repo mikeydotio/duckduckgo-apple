@@ -43,7 +43,7 @@ public struct RecoverSyncedDataView: View {
                     Spacer()
                 }
                 .frame(height: 56)
-                Image("Sync-Recover-128")
+                Image("Clipboard-Sync-Recover-128")
                     .padding(20)
 
                 Text(UserText.recoverSyncedDataTitle)

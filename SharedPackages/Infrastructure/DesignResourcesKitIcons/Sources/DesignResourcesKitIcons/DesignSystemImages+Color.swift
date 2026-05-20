@@ -235,7 +235,8 @@ public extension DesignSystemImages {
             public static var announcement: DesignSystemImage { .init(resource: .announcement96) }
             public static var extensionChrome: DesignSystemImage { .init(resource: .extensionChrome96) }
             public static var extensionSafari: DesignSystemImage { .init(resource: .extensionSafari96) }
-            public static var fireTab: DesignSystemImage { .init(resource: .fireTabColor96) }
+            public static var fire: DesignSystemImage { .init(resource: .fire96) }
+            public static var fireTab: DesignSystemImage { .init(resource: .fireWindowLightPhone96) }
             public static var passwordsAppFeature: DesignSystemImage { .init(resource: .passwordsAppFeature96) }
             public static var passwordsKeychainFeature: DesignSystemImage { .init(resource: .passwordsKeychainFeature96) }
             public static var syncPasswordsDesktop: DesignSystemImage { .init(resource: .syncPasswordsDesktop96) }
@@ -247,7 +248,7 @@ public extension DesignSystemImages {
             public static var fileDrag: DesignSystemImage { .init(resource: .fileDrag128) }
             public static var fileDrop: DesignSystemImage { .init(resource: .fileDrop128) }
             public static var fileIssue: DesignSystemImage { .init(resource: .fileIssue128) }
-            public static var bringStuff: DesignSystemImage { .init(resource: .bringStuff128) }
+            public static var bringStuff: DesignSystemImage { .init(resource: .bringStuffDownload128) }
             public static var fire: DesignSystemImage { .init(resource: .fire128) }
         }
     }

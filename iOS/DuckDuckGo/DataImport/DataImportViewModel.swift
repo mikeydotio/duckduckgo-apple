@@ -194,9 +194,9 @@ final class DataImportViewModel: ObservableObject {
         var image: Image {
             switch importScreen {
             case .bookmarks:
-                return Image(.bookmarksImport96)
+                return Image(.bookmarksImport128)
             default:
-                return Image(.passwordsImport128)
+                return Image(.passwordsDelete1281)
             }
         }
 

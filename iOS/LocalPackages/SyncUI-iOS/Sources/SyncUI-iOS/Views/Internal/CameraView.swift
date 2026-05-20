@@ -90,7 +90,7 @@ public struct CameraView: View {
         if model.videoPermission == .denied {
             VStack(spacing: 0) {
 
-                Image("SyncCameraPermission")
+                Image("Camera-Permission-128")
                     .padding(.top, 40)
                     .padding(.bottom, 20)
 

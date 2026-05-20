@@ -43,7 +43,7 @@ public struct SyncWithServerView: View {
                 }
                 .frame(height: 56)
                 .padding(.bottom, 20)
-                Image("Sync-Server-128")
+                Image("VPN-Sync-Server-128")
                     .padding(.bottom, 20)
 
                 Text(UserText.connectWithServerSheetTitle)

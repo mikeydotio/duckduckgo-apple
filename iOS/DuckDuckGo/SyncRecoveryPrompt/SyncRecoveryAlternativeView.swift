@@ -40,7 +40,7 @@ struct SyncRecoveryAlternativeView: View {
                     }
                     .frame(height: 56)
 
-                    Image(.syncRecover128)
+                    Image(.clipboardSyncRecover128)
                         .padding(24)
 
                     Text(UserText.syncRecoveryAlternativePromptTitle)

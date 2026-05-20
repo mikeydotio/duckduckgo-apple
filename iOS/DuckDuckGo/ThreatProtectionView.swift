@@ -26,7 +26,7 @@ struct ThreatProtectionView: View {
     @EnvironmentObject var viewModel: SettingsViewModel
 
     var description: SettingsDescription {
-        SettingsDescription(imageName: "Radar-Check",
+        SettingsDescription(imageName: "Radar-Check-128",
                                      title: UserText.threatProtection,
                                      status: .on,
                                      explanation: UserText.threatProtectionCaption)

@@ -26,7 +26,7 @@ struct EmptyView: View {
         
         VStack(spacing: 0) {
             
-            Image(.passwordsAdd96X96)
+            Image(.passwordsAdd128)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 96, height: 96)

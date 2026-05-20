@@ -40,7 +40,7 @@ struct SubscriptionRestoreView: View {
     let featureFlagger: FeatureFlagger
 
     private enum Constants {
-        static let heroImage = "Privacy-Pro-Add-Device-128"
+        static let heroImage = "Desktop-Mobile-Subscription-Add-Device-128"
 
         static let viewPadding = EdgeInsets(top: 10, leading: 30, bottom: 0, trailing: 30)
         static let sectionSpacing: CGFloat = 16

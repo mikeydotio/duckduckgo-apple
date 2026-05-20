@@ -25,7 +25,7 @@ struct LockScreenView: View {
         GeometryReader { geometry in
             VStack {
                 Spacer()
-                Image(.autofillLock128X96)
+                Image(.lockLocked128)
                     .position(x: geometry.size.width / 2,
                               y: shouldCenterVerticallyInLandscape(on: geometry) ? geometry.size.height / 2 : geometry.size.height * 0.8)
             }
