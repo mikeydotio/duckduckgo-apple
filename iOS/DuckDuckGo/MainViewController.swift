@@ -4658,7 +4658,7 @@ extension MainViewController: EscapeHatchActionRouter {
         dismissOmniBar()
     }
 
-    func escapeHatchDidRequestBurn(_ tab: Tab) {
+    func escapeHatchDidRequestBurn(_ tab: Tab, sourceRect: CGRect) {
         let targetTabsModel = tabManager.tabsModel(for: tab.mode)
         guard targetTabsModel.tabExists(tab: tab) else {
             clearEscapeHatch()
@@ -4669,7 +4669,7 @@ extension MainViewController: EscapeHatchActionRouter {
         let presenter = FireConfirmationPresenter()
         presenter.presentFireConfirmation(
             on: topPresentedViewController,
-            sourceRect: .zero,
+            sourceRect: sourceRect,
             tabViewModel: tabViewModel,
             pixelSource: .escapeHatch,
             fireContext: .singleTab,
