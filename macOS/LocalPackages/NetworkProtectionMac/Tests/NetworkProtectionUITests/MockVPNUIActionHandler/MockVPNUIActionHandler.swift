@@ -24,6 +24,9 @@ public final class MockVPNUIActionHandler: VPNUIActionHandling {
     public var didStartVPNCalled = false
     public var didStartVPNCallback: (() -> Void)?
 
+    public var showSubscriptionCalled = false
+    public var showSubscriptionCallback: (() -> Void)?
+
     public func setExclusion(_ exclude: Bool, forDomain domain: String) async {
         // placeholder
     }
@@ -41,7 +44,8 @@ public final class MockVPNUIActionHandler: VPNUIActionHandling {
     }
 
     public func showSubscription() async {
-        // placeholder
+        showSubscriptionCalled = true
+        showSubscriptionCallback?()
     }
 
     public func willStopVPN() async -> Bool {

@@ -250,10 +250,10 @@ final class NetworkProtectionNavBarPopoverManager: NetPPopoverManager {
                         showNotification: showNotification)
                 },
                 subscriptionExpiredViewAppearHandler: {
-                    pixelHandler(.subscriptionToolbarButtonPopoverExpiredViewShown)
+                    pixelHandler(.subscriptionToolbarVPNPopoverExpiredViewShown)
                 },
                 subscriptionExpiredViewSubscribeButtonHandler: {
-                    pixelHandler(.subscriptionToolbarButtonPopoverExpiredViewSubscribeButtonClicked)
+                    pixelHandler(.subscriptionToolbarVPNPopoverExpiredViewSubscribeButtonClicked)
                     Task { @MainActor in
                         vpnURLEventHandler.showSubscription(origin: SubscriptionFunnelOrigin.vpnToolbarRevoked.rawValue)
                     }

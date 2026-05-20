@@ -77,6 +77,7 @@ final class NetworkProtectionNavBarButtonModel: NSObject, ObservableObject {
     private(set) var shouldShowNotificationDot = false
 
     private let pixelHandler: (SubscriptionPixel) -> Void
+    private var hasFiredSubscribedVPNButtonShown = false
 
     // MARK: - Initialization
 
@@ -86,7 +87,7 @@ final class NetworkProtectionNavBarButtonModel: NSObject, ObservableObject {
          statusReporter: NetworkProtectionStatusReporter,
          themeManager: ThemeManaging,
          vpnUpsellVisibilityManager: VPNUpsellVisibilityManager,
-         pixelHandler: @escaping (SubscriptionPixel) -> Void = { PixelKit.fire($0, frequency: .daily) }) {
+         pixelHandler: @escaping (SubscriptionPixel) -> Void = { PixelKit.fire($0) }) {
 
         let iconsProvider = themeManager.theme.iconsProvider
 
@@ -122,7 +123,10 @@ final class NetworkProtectionNavBarButtonModel: NSObject, ObservableObject {
             .filter { $0 }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self, !self.shouldShowUpsell else { return }
+                guard let self,
+                      !self.shouldShowUpsell,
+                      !self.hasFiredSubscribedVPNButtonShown else { return }
+                self.hasFiredSubscribedVPNButtonShown = true
                 self.pixelHandler(.subscriptionToolbarVPNButtonShown)
             }
             .store(in: &cancellables)

@@ -10,10 +10,9 @@
     },
 
     "m_mac_subscription_toolbar_vpn_button_shown": {
-        "description": "Fired once per day when the Privacy Pro toolbar button is displayed to a subscribed user (either with an active subscription or in the subscription-revoked state). Use the expired-view-shown pixel to distinguish the revoked sub-case.",
+        "description": "Fired at most once per browser window, when the subscription VPN toolbar button first becomes visible to a subscribed user (either with an active subscription or in the subscription-revoked state). Use the expired-view-shown pixel to distinguish the revoked sub-case.",
         "owners": ["hanyutang-sandra"],
         "triggers": ["other"],
-        "suffixes": ["daily"],
         "parameters": ["appVersion", "pixelSource"]
     },
 
@@ -25,7 +24,7 @@
     },
 
     "m_mac_subscription_toolbar_vpn_popover_shown": {
-        "description": "Fired when the Privacy Pro toolbar button popover is displayed to a subscribed user (either active subscription or revoked state). Use the expired-view-shown pixel to distinguish the revoked sub-case.",
+        "description": "Fired when the subscription VPN toolbar popover is displayed to a subscribed user (either active subscription or revoked state). Use the expired-view-shown pixel to distinguish the revoked sub-case.",
         "owners": ["hanyutang-sandra"],
         "triggers": ["other"],
         "parameters": ["appVersion", "pixelSource"]
@@ -45,15 +44,15 @@
         "parameters": ["appVersion", "pixelSource"]
     },
 
-    "m_mac_privacy-pro_toolbar_button_popover_expired_view_shown": {
-        "description": "Fired when the subscription-expired view is displayed inside the Privacy Pro toolbar button popover (revoked subscription case)",
+    "m_mac_subscription_toolbar_vpn_popover_expired_view_shown": {
+        "description": "Fired when the subscription-expired view is displayed inside the subscription VPN toolbar popover (revoked subscription case)",
         "owners": ["hanyutang-sandra"],
         "triggers": ["other"],
         "parameters": ["appVersion", "pixelSource"]
     },
 
-    "m_mac_privacy-pro_toolbar_button_popover_expired_view_subscribe_button_clicked": {
-        "description": "Fired when the subscribe button is clicked in the subscription-expired view inside the Privacy Pro toolbar button popover",
+    "m_mac_subscription_toolbar_vpn_popover_expired_view_subscribe_button_clicked": {
+        "description": "Fired when the subscribe button is clicked in the subscription-expired view inside the subscription VPN toolbar popover",
         "owners": ["hanyutang-sandra"],
         "triggers": ["user_submitted"],
         "parameters": ["appVersion", "pixelSource"]
