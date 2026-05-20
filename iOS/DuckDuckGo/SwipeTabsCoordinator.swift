@@ -674,7 +674,7 @@ extension SwipeTabsCoordinator {
 
         let currentUIDs = tabsModel.tabs.map { $0.uid }
         let currentSelectedIndex = tabsModel.currentIndex
-        let collectionView = coordinator.navigationBarCollectionView
+        let collectionView = self.collectionView
 
         // The data source count also depends on `isEnabled` and on whether the
         // last tab has a link (trailing "new tab" placeholder), so a uid-only
