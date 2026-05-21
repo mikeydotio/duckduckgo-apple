@@ -3061,8 +3061,8 @@ class MainViewController: UIViewController {
             self?.segueToDuckDuckGoSubscription(origin: SubscriptionFunnelOrigin.vpnAccessRevokedAlert.rawValue)
         }
         dismiss(animated: true) {
+            Pixel.fire(pixel: .vpnAccessRevokedAlertShown)
             self.present(alertController, animated: true) {
-                Pixel.fire(pixel: .vpnAccessRevokedAlertShown)
                 self.tunnelDefaults.showEntitlementAlert = false
             }
         }

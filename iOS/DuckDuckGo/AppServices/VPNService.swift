@@ -93,8 +93,9 @@ final class VPNService: NSObject {
             Pixel.fire(pixel: .vpnAccessRevokedAlertSubscribeButtonClicked)
             self.mainCoordinator.segueToDuckDuckGoSubscription(origin: SubscriptionFunnelOrigin.vpnAccessRevokedAlert.rawValue)
         }
-        application.firstKeyWindow?.rootViewController?.present(alertController, animated: true) {
-            Pixel.fire(pixel: .vpnAccessRevokedAlertShown)
+        guard let rootViewController = application.firstKeyWindow?.rootViewController else { return }
+        Pixel.fire(pixel: .vpnAccessRevokedAlertShown)
+        rootViewController.present(alertController, animated: true) {
             self.tunnelDefaults.showEntitlementAlert = false
         }
     }

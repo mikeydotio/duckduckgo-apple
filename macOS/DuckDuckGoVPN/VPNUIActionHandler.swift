@@ -54,6 +54,7 @@ final class VPNUIActionHandler: VPNUIActionHandling {
         try? await appLauncher.launchApp(withCommand: VPNAppLaunchCommand.showVPNLocations)
     }
 
+    // `origin` value pending review.
     public func showSubscription(origin _: String?) async {
         try? await appLauncher.launchApp(withCommand: VPNAppLaunchCommand.showSubscription)
     }
