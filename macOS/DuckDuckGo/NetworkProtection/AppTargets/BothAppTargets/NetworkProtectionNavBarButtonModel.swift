@@ -125,6 +125,7 @@ final class NetworkProtectionNavBarButtonModel: NSObject, ObservableObject {
             .sink { [weak self] _ in
                 guard let self,
                       !self.shouldShowUpsell,
+                      self.vpnUpsellVisibilityManager.state != .visible,
                       !self.hasFiredSubscribedVPNButtonShown else { return }
                 self.hasFiredSubscribedVPNButtonShown = true
                 self.pixelHandler(.subscriptionToolbarVPNButtonShown)

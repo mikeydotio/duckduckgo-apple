@@ -76,6 +76,11 @@ final class FreemiumDBPPromotionViewCoordinator: ObservableObject {
     /// A set of cancellables for managing Combine subscriptions.
     var cancellables = Set<AnyCancellable>()
 
+    /// Per-window cancellables for banner-impression observers. Keyed by `ObjectIdentifier(windowController)`
+    /// so the subscription — which retains the `@Published` subject and therefore the last emitted
+    /// `TabViewModel` → `Tab` → `WebView` — is dropped when the window closes.
+    private var perWindowBannerImpressionCancellables: [ObjectIdentifier: AnyCancellable] = [:]
+
     /// The `NotificationCenter` instance used when subscribing to notifications
     private let notificationCenter: NotificationCenter
 
@@ -287,6 +292,12 @@ private extension FreemiumDBPPromotionViewCoordinator {
                 self?.observeFreemiumDBPBannerImpressions(in: windowController, opened: true)
             }
             .store(in: &cancellables)
+
+        manager.didUnregisterWindowController
+            .sink { [weak self] windowController in
+                self?.perWindowBannerImpressionCancellables.removeValue(forKey: ObjectIdentifier(windowController))
+            }
+            .store(in: &cancellables)
     }
 
     @MainActor
@@ -306,11 +317,10 @@ private extension FreemiumDBPPromotionViewCoordinator {
             ? selectedTabPublisher.eraseToAnyPublisher()
             : selectedTabPublisher.dropFirst().eraseToAnyPublisher()
 
-        pipeline
+        perWindowBannerImpressionCancellables[ObjectIdentifier(windowController)] = pipeline
             .sink { [weak self] selectedTabViewModel in
                 self?.handleSelectedTabChanged(selectedTabViewModel)
             }
-            .store(in: &cancellables)
     }
 
     @MainActor
