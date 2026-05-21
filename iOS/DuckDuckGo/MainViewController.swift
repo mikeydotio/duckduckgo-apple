@@ -2761,7 +2761,12 @@ class MainViewController: UIViewController {
         }
         daxDialogsManager.fireButtonPulseCancelled()
         // Reset omnibar editing state before creating a new tab.
-        dismissOmniBar()
+        // On idle-return with keyboard-on-NTP enabled, preserve any presented editing state —
+        // otherwise the animated dismiss races the new present and the editing state can't be restored.
+        // When the setting is off, fall through to dismiss so the keyboard ends up down as expected.
+        if !(openedAfterIdle && KeyboardSettings().onNewTab) {
+            dismissOmniBar()
+        }
         hideNotificationBarIfBrokenSitePromptShown()
         currentTab?.aiChatContextualSheetCoordinator.dismissSheet()
         currentTab?.dismiss()
