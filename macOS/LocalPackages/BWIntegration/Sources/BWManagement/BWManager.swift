@@ -248,19 +248,30 @@ final class BWManager: BWManagement, ObservableObject {
         }
     }
 
+    private static let statusResponseTimeoutInterval: TimeInterval = 15
+    private static let maxStatusResponseRetries = 1
+
     private var verificationTimer: Timer?
+    private var statusResponseRetries = 0
 
     private func verifyBitwardenIsResponding() {
-        verificationTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
+        verificationTimer = Timer.scheduledTimer(withTimeInterval: Self.statusResponseTimeoutInterval, repeats: false) { [weak self] _ in
             guard let self else { return }
             verificationTimer?.invalidate()
             verificationTimer = nil
 
-            if status == .waitingForStatusResponse {
-                pixelFiring?.fire(DebugEvent(BWManagementPixels.bitwardenNotResponding))
-                showRestartBitwardenAlert { [weak self] in
-                    self?.restartBitwarden()
-                }
+            guard status == .waitingForStatusResponse else { return }
+
+            if statusResponseRetries < Self.maxStatusResponseRetries {
+                statusResponseRetries += 1
+                sendStatus()
+                verifyBitwardenIsResponding()
+                return
+            }
+
+            pixelFiring?.fire(DebugEvent(BWManagementPixels.bitwardenNotResponding))
+            showRestartBitwardenAlert { [weak self] in
+                self?.restartBitwarden()
             }
         }
     }
@@ -583,6 +594,7 @@ final class BWManager: BWManagement, ObservableObject {
             }
             verificationTimer?.invalidate()
             verificationTimer = nil
+            statusResponseRetries = 0
         }
     }
     var statusPublisher: Published<BWStatus>.Publisher { $status }
