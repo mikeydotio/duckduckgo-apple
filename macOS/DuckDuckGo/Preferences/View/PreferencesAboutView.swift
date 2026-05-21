@@ -526,11 +526,7 @@ extension Preferences {
             let versionText = Text(versionText)
 
             let contentView: some View = HStack(alignment: .center, spacing: 0) {
-                if #available(macOS 12.0, *) {
-                    Text(combinedTextAttributedAttributed)
-                } else {
-                    NSAttributedTextView(attributedString: legacyCombinedTextAttributed)
-                }
+                NSAttributedTextView(attributedString: legacyCombinedTextAttributed)
 
                 // Added to prevent bouncy animation when resizing the parent view
                 // caused by the text width being a bit jumpy.

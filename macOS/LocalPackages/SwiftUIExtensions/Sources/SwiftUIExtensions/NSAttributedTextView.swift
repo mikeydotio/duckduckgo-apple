@@ -48,6 +48,9 @@ public struct NSAttributedTextView: NSViewRepresentable {
     }
 
     public func updateNSView(_ textView: SelfSizingTextView, context: Context) {
+        let previousLength = textView.textStorage?.length ?? -1
+        let sameString = textView.textStorage?.string == attributedString.string
+        print("🛟 [AboutAlert] updateNSView called — bounds=\(textView.bounds) previousLen=\(previousLength) sameString=\(sameString)")
         textView.textStorage?.setAttributedString(attributedString)
         textView.invalidateIntrinsicContentSize()
     }
@@ -58,6 +61,7 @@ public struct NSAttributedTextView: NSViewRepresentable {
 
     public class Coordinator: NSObject, NSTextViewDelegate {
         public func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+            print("🛟 [AboutAlert] clickedOnLink link=\(link) charIndex=\(charIndex) bounds=\(textView.bounds)")
             if let url = link as? URL {
                 NSWorkspace.shared.open(url)
                 return true
@@ -76,6 +80,7 @@ public class SelfSizingTextView: NSTextView {
         // Calculate height for the given width
         let height = heightForWidth(constrainedWidth)
 
+        print("🛟 [AboutAlert] intrinsicContentSize bounds.width=\(bounds.width) constrainedWidth=\(constrainedWidth) returnedHeight=\(height)")
         return NSSize(width: NSView.noIntrinsicMetric, height: height)
     }
 
@@ -102,6 +107,7 @@ public class SelfSizingTextView: NSTextView {
     }
 
     public override func setFrameSize(_ newSize: NSSize) {
+        print("🛟 [AboutAlert] setFrameSize newSize=\(newSize) previousFrame=\(frame)")
         super.setFrameSize(newSize)
         // Invalidate intrinsic content size when frame changes
         // This ensures proper height recalculation when width changes
