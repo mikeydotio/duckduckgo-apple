@@ -1474,11 +1474,13 @@ final class NavigationBarViewController: NSViewController {
 
     private func toggleNetworkProtectionPopover() {
         guard Application.appDelegate.subscriptionManager.isUserAuthenticated else {
+            PixelKit.fire(SubscriptionPixel.subscriptionToolbarButtonClicked)
             popovers.toggleVPNUpsellPopover(from: networkProtectionButton)
             vpnUpsellVisibilityManager.dismissNotificationDot()
             return
         }
 
+        PixelKit.fire(SubscriptionPixel.subscriptionToolbarVPNButtonClicked)
         popovers.toggleNetworkProtectionPopover(from: networkProtectionButton, withDelegate: networkProtectionButtonModel)
     }
 

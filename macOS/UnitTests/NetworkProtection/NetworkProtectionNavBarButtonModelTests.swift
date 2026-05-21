@@ -33,14 +33,12 @@ final class NetworkProtectionNavBarButtonModelTests: XCTestCase {
     fileprivate var mockPersistor: MockVPNUpsellUserDefaultsPersistor!
     var mockSubscriptionManager: SubscriptionManagerMock!
     var cancellable: AnyCancellable?
-    var firedPixels: [SubscriptionPixel] = []
 
     override func setUp() {
         super.setUp()
         mockPersistor = MockVPNUpsellUserDefaultsPersistor()
         mockSubscriptionManager = SubscriptionManagerMock()
         mockSubscriptionManager.currentEnvironment = .init(serviceEnvironment: .staging, purchasePlatform: .stripe)
-        firedPixels = []
     }
 
     override func tearDown() {
@@ -49,7 +47,6 @@ final class NetworkProtectionNavBarButtonModelTests: XCTestCase {
         cancellable = nil
         mockPersistor = nil
         mockSubscriptionManager = nil
-        firedPixels = []
         super.tearDown()
     }
 
@@ -253,8 +250,7 @@ extension NetworkProtectionNavBarButtonModelTests {
     }
 
     private func createButtonModel(
-        with upsellManager: VPNUpsellVisibilityManager,
-        onPixelFired: ((SubscriptionPixel) -> Void)? = nil
+        with upsellManager: VPNUpsellVisibilityManager
     ) -> NetworkProtectionNavBarButtonModel {
         let popoverManager = NetPPopoverManagerMock()
         let pinningManager = TestPinningManager()
@@ -273,11 +269,7 @@ extension NetworkProtectionNavBarButtonModelTests {
             vpnGatekeeper: vpnGatekeeper,
             statusReporter: statusReporter,
             themeManager: themeManager,
-            vpnUpsellVisibilityManager: upsellManager,
-            pixelHandler: { [weak self] pixel in
-                self?.firedPixels.append(pixel)
-                onPixelFired?(pixel)
-            }
+            vpnUpsellVisibilityManager: upsellManager
         )
     }
 }

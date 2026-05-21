@@ -9,10 +9,17 @@
         "parameters": ["appVersion", "pixelSource"]
     },
 
-    "m_mac_subscription_toolbar_vpn_button_shown": {
-        "description": "Fired at most once per browser window, when the subscription VPN toolbar button first becomes visible to a subscribed user (either with an active subscription or in the subscription-revoked state). Use the expired-view-shown pixel to distinguish the revoked sub-case.",
+    "m_mac_privacy-pro_toolbar_button_clicked": {
+        "description": "Fired when a non-subscriber user clicks the Privacy Pro toolbar button (opening the upsell popover).",
         "owners": ["hanyutang-sandra"],
-        "triggers": ["other"],
+        "triggers": ["user_submitted"],
+        "parameters": ["appVersion", "pixelSource"]
+    },
+
+    "m_mac_subscription_toolbar_vpn_button_clicked": {
+        "description": "Fired when a subscribed user clicks the subscription VPN toolbar button (with either an active subscription or in the subscription-revoked state). Use the expired-view-shown pixel to distinguish the revoked sub-case.",
+        "owners": ["hanyutang-sandra"],
+        "triggers": ["user_submitted"],
         "parameters": ["appVersion", "pixelSource"]
     },
 
