@@ -17,7 +17,10 @@
 //
 
 import AppKit
+import OSLog
 import SwiftUI
+
+private let aboutAlertLog = Logger(subsystem: "com.duckduckgo.macos.browser", category: "AboutAlert")
 
 public struct NSAttributedTextView: NSViewRepresentable {
     let attributedString: NSAttributedString
@@ -50,7 +53,7 @@ public struct NSAttributedTextView: NSViewRepresentable {
     public func updateNSView(_ textView: SelfSizingTextView, context: Context) {
         let previousLength = textView.textStorage?.length ?? -1
         let sameString = textView.textStorage?.string == attributedString.string
-        print("🛟 [AboutAlert] updateNSView called — bounds=\(textView.bounds) previousLen=\(previousLength) sameString=\(sameString)")
+        aboutAlertLog.info("updateNSView called — bounds=\(String(describing: textView.bounds), privacy: .public) previousLen=\(previousLength, privacy: .public) sameString=\(sameString, privacy: .public)")
         textView.textStorage?.setAttributedString(attributedString)
         textView.invalidateIntrinsicContentSize()
     }
@@ -61,7 +64,7 @@ public struct NSAttributedTextView: NSViewRepresentable {
 
     public class Coordinator: NSObject, NSTextViewDelegate {
         public func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
-            print("🛟 [AboutAlert] clickedOnLink link=\(link) charIndex=\(charIndex) bounds=\(textView.bounds)")
+            aboutAlertLog.info("clickedOnLink link=\(String(describing: link), privacy: .public) charIndex=\(charIndex, privacy: .public) bounds=\(String(describing: textView.bounds), privacy: .public)")
             if let url = link as? URL {
                 NSWorkspace.shared.open(url)
                 return true
@@ -80,7 +83,7 @@ public class SelfSizingTextView: NSTextView {
         // Calculate height for the given width
         let height = heightForWidth(constrainedWidth)
 
-        print("🛟 [AboutAlert] intrinsicContentSize bounds.width=\(bounds.width) constrainedWidth=\(constrainedWidth) returnedHeight=\(height)")
+        aboutAlertLog.info("intrinsicContentSize bounds.width=\(self.bounds.width, privacy: .public) constrainedWidth=\(constrainedWidth, privacy: .public) returnedHeight=\(height, privacy: .public)")
         return NSSize(width: NSView.noIntrinsicMetric, height: height)
     }
 
@@ -107,7 +110,7 @@ public class SelfSizingTextView: NSTextView {
     }
 
     public override func setFrameSize(_ newSize: NSSize) {
-        print("🛟 [AboutAlert] setFrameSize newSize=\(newSize) previousFrame=\(frame)")
+        aboutAlertLog.info("setFrameSize newSize=\(String(describing: newSize), privacy: .public) previousFrame=\(String(describing: self.frame), privacy: .public)")
         super.setFrameSize(newSize)
         // Invalidate intrinsic content size when frame changes
         // This ensures proper height recalculation when width changes
