@@ -4691,7 +4691,7 @@ extension MainViewController: EscapeHatchActionRouter {
         dismissOmniBar()
     }
 
-    func escapeHatchDidRequestBurn(_ tab: Tab, sourceRect: CGRect) {
+    func escapeHatchDidRequestBurnWithConfirmation(_ tab: Tab, sourceRect: CGRect) {
         let targetTabsModel = tabManager.tabsModel(for: tab.mode)
         guard targetTabsModel.tabExists(tab: tab) else {
             clearEscapeHatch()
@@ -4713,6 +4713,25 @@ extension MainViewController: EscapeHatchActionRouter {
             },
             onCancel: { }
         )
+    }
+
+    func escapeHatchDidRequestBurnImmediately(_ tab: Tab) {
+        let targetTabsModel = tabManager.tabsModel(for: tab.mode)
+        guard targetTabsModel.tabExists(tab: tab) else {
+            clearEscapeHatch()
+            return
+        }
+
+        let tabViewModel = tabManager.viewModel(for: tab)
+        let request = FireRequest(
+            options: .all,
+            trigger: .manualFire,
+            scope: .tab(viewModel: tabViewModel),
+            source: .escapeHatch
+        )
+
+        forgetAllWithAnimation(request: request) {}
+        clearEscapeHatch()
     }
 
     func escapeHatchDidRequestTabSwitcher() {
@@ -5623,6 +5642,13 @@ extension MainViewController {
 extension MainViewController: TabManagerFireModeDelegate {
 
     func tabManagerDidCloseLastFireTab() {
+        // # Prevent re-entrant calls
+        // Burn Fire Tab, triggered from the Escape Hatch, effectively triggers a Burn sequence.
+        // When burning the last Tab, we'd end up here. Purpose of this safety check is to prevent re-entrant Burn sequences
+        if fireExecutor.burnInProgress {
+            return
+        }
+
         DailyPixel.fireDailyAndCount(pixel: .fireModeLastTabClosedBurn)
         Task {
             let request = FireRequest(options: [.data, .aiChats],
