@@ -25,6 +25,7 @@ enum FirefoxBerkeleyDatabaseReader {
         guard let db = databasePath.withCString({ pathPointer in
             dbopen(pathPointer, O_RDONLY, O_RDONLY, DB_HASH, nil)
         }) else { throw NSError(domain: "FirefoxBerkeleyDatabaseReaderError", code: Int(errno)) }
+        defer { _ = db.pointee.close(db) }
 
         var results: [String: Data] = [:]
 
