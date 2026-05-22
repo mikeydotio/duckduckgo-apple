@@ -52,16 +52,18 @@ struct ExchangeRecoveryKeyTransmitter: ExchangeRecoveryKeyTransmitting {
     let api: RemoteAPIRequestCreating
     let crypter: CryptingInternal
     let storage: SecureStoring
+    let isScopedAccessCredentialsEnabled: () -> Bool
     let exchangeMessage: ExchangeMessage
 
     func send() async throws {
-        guard let recoveryCode = try storage.account()?.recoveryCode else {
+        guard let account = try storage.account() else {
             throw SyncError.accountNotFound
         }
 
-        guard let recoveryCodeData = Data(base64Encoded: recoveryCode) else {
-            throw SyncError.unableToEncodeRequestBody("Base64 encoding failed")
-        }
+        let recoveryCodeData = try account.nativeRecoveryPayloadData(
+            usesV2Payload: isScopedAccessCredentialsEnabled(),
+            credentialId: SyncCode.RecoveryKeyV2.nativeCredentialId
+        )
 
         let encryptedRecoveryKey = try crypter.seal(recoveryCodeData, secretKey: exchangeMessage.publicKey)
         let encodedRecoveryKey = encryptedRecoveryKey.base64EncodedString()

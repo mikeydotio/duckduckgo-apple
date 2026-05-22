@@ -31,6 +31,7 @@ protocol SyncDependencies: SyncDependenciesDebuggingSupport {
 
     var endpoints: Endpoints { get }
     var account: AccountManaging { get }
+    var scopedAccess: ScopedAccessCredentialManaging { get }
     var api: RemoteAPIRequestCreating { get }
     var payloadCompressor: SyncPayloadCompressing { get }
     var keyValueStore: ThrowingKeyValueStoring { get }
@@ -41,6 +42,7 @@ protocol SyncDependencies: SyncDependenciesDebuggingSupport {
     var privacyConfigurationManager: PrivacyConfigurationManaging { get }
     var errorEvents: EventMapping<SyncError> { get }
     var shouldPreserveAccountWhenSyncDisabled: () -> Bool { get }
+    var isScopedAccessCredentialsEnabled: () -> Bool { get }
 
     func createRemoteConnector() throws -> RemoteConnecting
     func createRemoteKeyExchanger() throws -> any RemoteKeyExchanging
@@ -63,13 +65,33 @@ protocol AccountManaging {
     func logout(deviceId: String, token: String) async throws
 
     func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice]
+}
 
+protocol ScopedAccessCredentialManaging {
+    func recoverScopedPassword(from accessCredentials: [AccessCredential]?,
+                               primaryKey: Data,
+                               userID: String) throws -> Data?
+    func ensureThirdPartyAccessCredential(for account: SyncAccount,
+                                          scopedPassword: Data,
+                                          keys: [ProtectedKey],
+                                          includesNewDefaultKeys: Bool) async throws -> Data
+    func fetchAccessCredentials(_ account: SyncAccount) async throws -> [AccessCredential]
+    func fetchProtectedKeys(_ account: SyncAccount) async throws -> [ProtectedKey]
+    func setKeyIfAbsent(purpose: String,
+                        key: ProtectedKey,
+                        for account: SyncAccount) async throws -> ProtectedKey?
 }
 
 protocol SecureStoring {
     func persistAccount(_ account: SyncAccount) throws
     func account() throws -> SyncAccount?
     func removeAccount() throws
+    func persistScopedPassword(_ scopedPassword: Data) throws
+    func scopedPassword() throws -> Data?
+    func removeScopedPassword() throws
+    func persistProtectedKeys(_ data: Data) throws
+    func protectedKeys() throws -> Data?
+    func removeProtectedKeys() throws
 }
 
 protocol CryptingInternal: Crypting {

@@ -188,7 +188,9 @@ final class RemoteExchangeRecoverer: RemoteExchangeRecovering {
                                                           publicKey: exchangeInfo.publicKey,
                                                           secretKey: exchangeInfo.secretKey)
 
-        guard let recoveryKey = try JSONDecoder.snakeCaseKeys.decode(SyncCode.self, from: decryptedRecoveryKeyData).recovery else {
+        guard let recovery = try JSONDecoder.snakeCaseKeys.decode(SyncCode.self, from: decryptedRecoveryKeyData).recovery,
+            let recoveryKey = recovery.nativeRecoveryKey(using: crypter)
+        else {
             throw SyncError.failedToDecryptValue("Invalid recovery key in connect response")
         }
 

@@ -76,6 +76,11 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     var account: SyncAccount? { get }
 
     /**
+     Recovery code for the currently logged in sync account.
+     */
+    var recoveryCode: String? { get }
+
+    /**
      Used to trigger Sync by the client app.
 
      Sync is not started directly, but instead its schedule is handled internally based on input events.
@@ -262,6 +267,30 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
 public protocol DDGSyncingDebuggingSupport {
     var serverEnvironment: ServerEnvironment { get }
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
+    func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String
+    func fetchProtectedKeys() async throws -> [ProtectedKey]
+    func fetchAccessCredentials() async throws -> [AccessCredential]
+}
+
+public extension DDGSyncingDebuggingSupport {
+    func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
+        _ = purpose
+        throw SyncError.failedToEncryptValue("Debug scoped access credentials are not implemented for this sync service")
+    }
+
+    func fetchProtectedKeys() async throws -> [ProtectedKey] {
+        throw SyncError.failedToEncryptValue("Debug scoped access credentials are not implemented for this sync service")
+    }
+
+    func fetchAccessCredentials() async throws -> [AccessCredential] {
+        throw SyncError.failedToEncryptValue("Debug scoped access credentials are not implemented for this sync service")
+    }
+}
+
+public extension DDGSyncing {
+    var recoveryCode: String? {
+        account?.recoveryCode
+    }
 }
 
 public enum ServerEnvironment: LosslessStringConvertible {

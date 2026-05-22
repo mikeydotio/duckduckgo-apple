@@ -83,6 +83,9 @@ final class SyncService {
             privacyConfigurationManager: privacyConfigurationManager,
             keyValueStore: keyValueStore,
             environment: environment,
+            isScopedAccessCredentialsEnabled: {
+                featureFlagger.isFeatureOn(for: FeatureFlag.syncScopedAccessCredentials)
+            },
             shouldPreserveAccountWhenSyncDisabled: {
                 autoRestoreDecisionManager.shouldPreserveAccountWhenSyncDisabled()
             }

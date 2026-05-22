@@ -216,6 +216,14 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
     var privacyConfigurationManager: PrivacyConfigurationManaging = MockPrivacyConfigurationManager(privacyConfig: MockPrivacyConfiguration())
     var errorEvents: EventMapping<SyncError> = MockErrorHandler()
     var shouldPreserveAccountWhenSyncDisabled: () -> Bool = { false }
+    var isScopedAccessCredentialsEnabled: () -> Bool = { true }
+    var isPairingV2ScanningEnabled: () -> Bool = { true }
+    var isPairingV2CodeEnabled: () -> Bool = { false }
+    var syncFeatureFlags: any SyncFeatureFlagProviding {
+        SyncFeatureFlagProvider(isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled,
+                                isPairingV2ScanningEnabled: isPairingV2ScanningEnabled,
+                                isPairingV2CodeEnabled: isPairingV2CodeEnabled)
+    }
     var keyValueStore: ThrowingKeyValueStoring = try! MockKeyValueFileStore()
     var legacyKeyValueStore: KeyValueStoring = MockKeyValueStore()
 
@@ -255,6 +263,13 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
         createExchangeRecoveryKeyTransmitterStub ?? MockExchangeRecoveryKeyTransmitting()
     }
 
+    var createPairingV2TransportStub: PairingV2Transporting?
+    var createPairingV2TransportCallCount = 0
+    func createPairingV2Transport() -> PairingV2Transporting {
+        createPairingV2TransportCallCount += 1
+        createPairingV2TransportStub ?? MockPairingV2Transporting()
+    }
+
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
 
     var createTokenRescopeStub: TokenRescoping?
@@ -267,6 +282,31 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
         createAIChatsStub ?? MockAIChatsHandling()
     }
 
+}
+
+final class MockPairingV2Transporting: PairingV2Transporting {
+    var openedChannelIDs: [String] = []
+    var sentMessages: [(messages: [PairingV2EncryptedMessage], channelID: String)] = []
+    var fetchedMessages: [PairingV2SequencedMessage] = []
+    var fetchCalls: [(channelID: String, sequence: Int)] = []
+    var closedChannelIDs: [String] = []
+
+    func openChannel(_ channelID: String) async throws {
+        openedChannelIDs.append(channelID)
+    }
+
+    func send(_ messages: [PairingV2EncryptedMessage], to channelID: String) async throws {
+        sentMessages.append((messages, channelID))
+    }
+
+    func fetchMessages(from channelID: String, after sequence: Int) async throws -> [PairingV2SequencedMessage] {
+        fetchCalls.append((channelID, sequence))
+        return fetchedMessages
+    }
+
+    func closeChannel(_ channelID: String) async throws {
+        closedChannelIDs.append(channelID)
+    }
 }
 
 final class MockRemoteConnecting: RemoteConnecting {

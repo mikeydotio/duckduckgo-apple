@@ -26,6 +26,7 @@ struct ProductionDependencies: SyncDependencies {
     let fileStorageUrl: URL
     let endpoints: Endpoints
     let account: AccountManaging
+    let scopedAccess: ScopedAccessCredentialManaging
     let api: RemoteAPIRequestCreating
     let payloadCompressor: SyncPayloadCompressing
     var keyValueStore: ThrowingKeyValueStoring
@@ -36,12 +37,14 @@ struct ProductionDependencies: SyncDependencies {
     let privacyConfigurationManager: PrivacyConfigurationManaging
     let errorEvents: EventMapping<SyncError>
     let shouldPreserveAccountWhenSyncDisabled: () -> Bool
+    let isScopedAccessCredentialsEnabled: () -> Bool
 
     init(
         serverEnvironment: ServerEnvironment,
         privacyConfigurationManager: PrivacyConfigurationManaging,
         keyValueStore: ThrowingKeyValueStoring,
         errorEvents: EventMapping<SyncError>,
+        isScopedAccessCredentialsEnabled: (() -> Bool)? = nil,
         shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool = { false }
     ) {
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
@@ -51,6 +54,7 @@ struct ProductionDependencies: SyncDependencies {
                   secureStore: SecureStorage(),
                   privacyConfigurationManager: privacyConfigurationManager,
                   errorEvents: errorEvents,
+                  isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled,
                   shouldPreserveAccountWhenSyncDisabled: shouldPreserveAccountWhenSyncDisabled)
     }
 
@@ -62,6 +66,7 @@ struct ProductionDependencies: SyncDependencies {
         secureStore: SecureStoring,
         privacyConfigurationManager: PrivacyConfigurationManaging,
         errorEvents: EventMapping<SyncError>,
+        isScopedAccessCredentialsEnabled: (() -> Bool)? = nil,
         shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool
     ) {
         self.fileStorageUrl = fileStorageUrl
@@ -76,8 +81,23 @@ struct ProductionDependencies: SyncDependencies {
         api = RemoteAPIRequestCreator()
         payloadCompressor = SyncGzipPayloadCompressor()
 
+        let isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled ?? {
+            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.scopedAccessCredentials)
+        }
+        self.isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled
+
         crypter = Crypter(secureStore: secureStore)
-        account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
+        account = AccountManager(
+            endpoints: endpoints,
+            api: api,
+            crypter: crypter,
+            isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled
+        )
+        scopedAccess = ScopedAccessCredentialManager(
+            endpoints: endpoints,
+            api: api,
+            crypter: crypter
+        )
         scheduler = SyncScheduler()
     }
 
@@ -103,7 +123,13 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {
-        return RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
+        return RecoveryKeyTransmitter(
+            endpoints: endpoints,
+            api: api,
+            storage: secureStore,
+            crypter: crypter,
+            isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled
+        )
     }
 
     func createExchangePublicKeyTransmitter() throws -> any ExchangePublicKeyTransmitting {
@@ -111,7 +137,14 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     func createExchangeRecoveryKeyTransmitter(exchangeMessage: ExchangeMessage) throws -> any ExchangeRecoveryKeyTransmitting {
-        return ExchangeRecoveryKeyTransmitter(endpoints: endpoints, api: api, crypter: crypter, storage: secureStore, exchangeMessage: exchangeMessage)
+        return ExchangeRecoveryKeyTransmitter(
+            endpoints: endpoints,
+            api: api,
+            crypter: crypter,
+            storage: secureStore,
+            isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled,
+            exchangeMessage: exchangeMessage
+        )
     }
 
     func createTokenRescope() -> TokenRescoping {

@@ -24,6 +24,7 @@ struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
     let api: RemoteAPIRequestCreating
     let storage: SecureStoring
     let crypter: CryptingInternal
+    let isScopedAccessCredentialsEnabled: () -> Bool
 
     func send(_ code: SyncCode.ConnectCode) async throws {
         guard let account = try storage.account() else {
@@ -34,8 +35,9 @@ struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
             throw SyncError.noToken
         }
 
-        let recoveryKey = try JSONEncoder.snakeCaseKeys.encode(
-            SyncCode(recovery: SyncCode.RecoveryKey(userId: account.userId, primaryKey: account.primaryKey))
+        let recoveryKey = try account.nativeRecoveryPayloadData(
+            usesV2Payload: isScopedAccessCredentialsEnabled(),
+            credentialId: SyncCode.RecoveryKeyV2.nativeCredentialId
         )
 
         let encryptedRecoveryKey = try crypter.seal(recoveryKey, secretKey: code.secretKey)
