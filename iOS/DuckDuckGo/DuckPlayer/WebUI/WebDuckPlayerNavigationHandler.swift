@@ -82,7 +82,7 @@ final class WebDuckPlayerNavigationHandler: NSObject {
     /// Cancellable for observing DuckPlayer Navigation Request
     private var duckPlayerNavigationRequestCancellable: AnyCancellable?
 
-    private struct Constants {
+    struct Constants {
         static let SERPURL =  "duckduckgo.com/"
         static let refererHeader = "Referer"
         static let templateDirectory = "pages/duckplayer"
