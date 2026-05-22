@@ -3116,23 +3116,8 @@ extension TabViewController {
         }
         ActionMessageView.present(
             message: message,
-            actionTitle: UserText.actionGenericShow,
             presentationLocation: .withBottomBar(andAddressBarBottom: appSettings.currentAddressBarPosition.isBottom),
-            duration: 10,
-            onAction: { [weak self] in
-                guard let self else { return }
-                Pixel.fire(pixel: .downloadsListOpened,
-                           withAdditionalParameters: [PixelParameters.originatedFromMenu: "0"])
-                let openDownloads = { [weak self] in
-                    guard let self else { return }
-                    self.delegate?.tabDidRequestDownloads(tab: self)
-                }
-                if let presented = self.presentedViewController {
-                    presented.dismiss(animated: true, completion: openDownloads)
-                } else {
-                    openDownloads()
-                }
-            }
+            duration: 10
         )
     }
 }

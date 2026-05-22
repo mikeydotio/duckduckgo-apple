@@ -2819,9 +2819,9 @@ public struct UserText {
     // MARK: - ICS Calendar Links
     // Not localized while the feature ships internal-only; swap to NSLocalizedString in the
     // follow-up PR that flips the flag to enabled.
-    public static let icsAddToCalendarMultipleEvents = NotLocalizedString("ics.add-to-calendar.multiple-events", value: "Multiple events aren't supported. Try opening the downloaded file instead.", comment: "Toast shown when a tapped .ics calendar link contains more than one event, which we can't auto-add")
-    public static let icsAddToCalendarUnrecognizedTimeZone = NotLocalizedString("ics.add-to-calendar.unrecognized-time-zone", value: "Unsupported time zone. Try opening the downloaded file instead.", comment: "Toast shown when a tapped .ics calendar link uses a time zone identifier we can't resolve")
-    public static let icsAddToCalendarParseFailure = NotLocalizedString("ics.add-to-calendar.parse-failure", value: "This file can't be processed. Try opening the downloaded file instead.", comment: "Toast shown when a tapped .ics calendar link can't be parsed (e.g. malformed RFC 5545 content)")
+    public static let icsAddToCalendarMultipleEvents = NotLocalizedString("ics.add-to-calendar.multiple-events", value: "Multiple events aren't supported.", comment: "Toast shown when a tapped .ics calendar link contains more than one event, which we can't auto-add")
+    public static let icsAddToCalendarUnrecognizedTimeZone = NotLocalizedString("ics.add-to-calendar.unrecognized-time-zone", value: "Unsupported time zone.", comment: "Toast shown when a tapped .ics calendar link uses a time zone identifier we can't resolve")
+    public static let icsAddToCalendarParseFailure = NotLocalizedString("ics.add-to-calendar.parse-failure", value: "This file can't be processed.", comment: "Toast shown when a tapped .ics calendar link can't be parsed (e.g. malformed RFC 5545 content)")
     public static let icsEventAddedToCalendar = NotLocalizedString("ics.event-added-to-calendar", value: "Event added to Apple Calendar", comment: "Toast shown after the user successfully adds an event from a .ics calendar link to their Apple Calendar")
 
     // MARK: - OmniBar Long Press Menu
