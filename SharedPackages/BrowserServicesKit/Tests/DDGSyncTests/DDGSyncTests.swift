@@ -525,66 +525,6 @@ final class DDGSyncTests: XCTestCase {
         XCTAssertEqual((dependencies.errorEvents as! MockErrorHandler).handledErrors, [])
     }
 
-    func testWhenNativeRecoveryCodeFeatureFlagIsDisabledThenRecoveryCodeUsesV1Payload() throws {
-        dependencies.isScopedAccessCredentialsEnabled = { false }
-        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-
-        guard let code = syncService.recoveryCode else {
-            XCTFail("Expected native recovery code")
-            return
-        }
-
-        let decoded = try SyncCode.decodeBase64String(code)
-        guard case .v1(let payload) = decoded.recovery else {
-            XCTFail("Expected v1 native recovery payload")
-            return
-        }
-
-        XCTAssertEqual(payload.userId, SyncAccount.mock.userId)
-        XCTAssertEqual(payload.primaryKey, SyncAccount.mock.primaryKey)
-    }
-
-    func testWhenNativeRecoveryCodeFeatureFlagIsEnabledThenRecoveryCodeUsesV2Payload() throws {
-        dependencies.isScopedAccessCredentialsEnabled = { true }
-        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-
-        guard let code = syncService.recoveryCode else {
-            XCTFail("Expected native recovery code")
-            return
-        }
-
-        let decoded = try SyncCode.decodeBase64String(code)
-        guard case .v2(let payload) = decoded.recovery else {
-            XCTFail("Expected v2 native recovery payload")
-            return
-        }
-
-        XCTAssertEqual(payload.userId, SyncAccount.mock.userId)
-        XCTAssertEqual(payload.cid, SyncCode.RecoveryKeyV2.nativeCredentialId)
-        XCTAssertEqual(payload.v, SyncCode.RecoveryKeyV2.currentVersion)
-        XCTAssertEqual(payload.secret, try XCTUnwrap(SyncAccount.mock.nativeCredentialSecret))
-    }
-
-    func testWhenNativeRecoveryCodeFeatureFlagIsEnabledButNativeSecretIsMissingThenV2PayloadFallsBackToPrimaryKeyBytes() throws {
-        dependencies.isScopedAccessCredentialsEnabled = { true }
-        (dependencies.secureStore as? SecureStorageStub)?.theAccount = SyncAccount.mock.updatingNativeCredentialSecret(nil)
-        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-
-        guard let code = syncService.recoveryCode else {
-            XCTFail("Expected native recovery code")
-            return
-        }
-
-        let decoded = try SyncCode.decodeBase64String(code)
-        guard case .v2(let payload) = decoded.recovery else {
-            XCTFail("Expected v2 native recovery payload")
-            return
-        }
-
-        XCTAssertEqual(payload.cid, SyncCode.RecoveryKeyV2.nativeCredentialId)
-        XCTAssertEqual(Base64URL.decode(payload.secret), SyncAccount.mock.primaryKey)
-    }
-
     func testWhenLoginResponseContainsProtectedKeysThenAllKeysAreCached() async throws {
         (dependencies.secureStore as? SecureStorageStub)?.theAccount = nil
         let protectedKeys = [

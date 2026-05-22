@@ -52,7 +52,6 @@ struct ExchangeRecoveryKeyTransmitter: ExchangeRecoveryKeyTransmitting {
     let api: RemoteAPIRequestCreating
     let crypter: CryptingInternal
     let storage: SecureStoring
-    let isScopedAccessCredentialsEnabled: () -> Bool
     let exchangeMessage: ExchangeMessage
 
     func send() async throws {
@@ -60,10 +59,7 @@ struct ExchangeRecoveryKeyTransmitter: ExchangeRecoveryKeyTransmitting {
             throw SyncError.accountNotFound
         }
 
-        let recoveryCodeData = try account.nativeRecoveryPayloadData(
-            usesV2Payload: isScopedAccessCredentialsEnabled(),
-            credentialId: SyncCode.RecoveryKeyV2.nativeCredentialId
-        )
+        let recoveryCodeData = try SyncCode(recovery: .v1(.init(userId: account.userId, primaryKey: account.primaryKey))).toJSON()
 
         let encryptedRecoveryKey = try crypter.seal(recoveryCodeData, secretKey: exchangeMessage.publicKey)
         let encodedRecoveryKey = encryptedRecoveryKey.base64EncodedString()

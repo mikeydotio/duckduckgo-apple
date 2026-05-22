@@ -995,7 +995,7 @@ private extension SyncCode.RecoveryKey {
     init(base64Code: String?) throws {
         let contents = try Data(base64Encoded: try XCTUnwrap(base64Code))
             .flatMap { try JSONDecoder.snakeCaseKeys.decode(SyncCode.self, from: $0) }
-        self = try XCTUnwrap(contents?.recovery)
+        self = try XCTUnwrap(contents?.recovery?.legacyRecoveryKey())
     }
 }
 

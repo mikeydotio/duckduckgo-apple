@@ -63,13 +63,7 @@ public class DDGSync: DDGSyncing {
     }
 
     public var recoveryCode: String? {
-        guard let account else {
-            return nil
-        }
-        return account.nativeRecoveryCode(
-            usesV2Payload: dependencies.isScopedAccessCredentialsEnabled(),
-            credentialId: SyncCode.RecoveryKeyV2.nativeCredentialId
-        )
+        account?.recoveryCode
     }
 
     public var scheduler: Scheduling {

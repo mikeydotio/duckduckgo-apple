@@ -127,8 +127,7 @@ struct ProductionDependencies: SyncDependencies {
             endpoints: endpoints,
             api: api,
             storage: secureStore,
-            crypter: crypter,
-            isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled
+            crypter: crypter
         )
     }
 
@@ -142,7 +141,6 @@ struct ProductionDependencies: SyncDependencies {
             api: api,
             crypter: crypter,
             storage: secureStore,
-            isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled,
             exchangeMessage: exchangeMessage
         )
     }

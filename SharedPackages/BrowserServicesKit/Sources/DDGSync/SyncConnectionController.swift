@@ -239,7 +239,12 @@ public class SyncConnectionController: SyncConnectionControlling {
                 return false
             }
             return await handleExchangeKey(exchangeKey, codeSource: codeSource)
-        } else if let recoveryKey = syncCode.recovery {
+        } else if let recovery = syncCode.recovery {
+            guard let recoveryKey = recovery.legacyRecoveryKey() else {
+                await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: .receiver(.unknown, codeSource))
+                return false
+            }
+
             let setupRole: SyncSetupRole = .receiver(.recovery, codeSource)
             await delegate?.controllerDidRecognizeCode(setupSource: .recovery, codeSource: codeSource)
             guard await shouldContinueServerSyncOperation(setupRole: setupRole) else {

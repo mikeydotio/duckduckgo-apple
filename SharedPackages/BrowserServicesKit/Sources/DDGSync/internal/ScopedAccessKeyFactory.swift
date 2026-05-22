@@ -32,7 +32,6 @@ enum ScopedAccessKeyFactoryError: Error {
 enum ScopedAccessKeyFactory {
 
     private static let scopedPasswordLength = 32
-    private static let nativeCredentialSecretLength = 32
     private static let rsaKeySizeInBits = 2048
 
     struct RSAKeyMaterial {
@@ -42,10 +41,6 @@ enum ScopedAccessKeyFactory {
 
     static func makeScopedPassword() throws -> Data {
         try randomBytes(count: scopedPasswordLength)
-    }
-
-    static func makeNativeCredentialSecret() throws -> String {
-        Base64URL.encode(try randomBytes(count: nativeCredentialSecretLength))
     }
 
     static func makeRSAKeyMaterial() throws -> RSAKeyMaterial {

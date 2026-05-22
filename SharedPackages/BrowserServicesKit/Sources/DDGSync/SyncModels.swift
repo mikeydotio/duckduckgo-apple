@@ -25,13 +25,15 @@ public struct SyncAccount: Codable, Sendable {
     public let userId: String
     public let primaryKey: Data
     public let secretKey: Data
-    public let nativeCredentialSecret: String?
     public let token: String?
     public let state: SyncAuthState
 
     /// Convenience var which calls `SyncCode().toJSON().base64EncodedString()`
     public var recoveryCode: String? {
-        nativeRecoveryCode(usesV2Payload: false)
+        guard let data = try? SyncCode(recovery: .v1(.init(userId: userId, primaryKey: primaryKey))).toJSON() else {
+            return nil
+        }
+        return data.base64EncodedString()
     }
 
     init(
@@ -41,7 +43,6 @@ public struct SyncAccount: Codable, Sendable {
         userId: String,
         primaryKey: Data,
         secretKey: Data,
-        nativeCredentialSecret: String? = nil,
         token: String?,
         state: SyncAuthState
     ) {
@@ -51,7 +52,6 @@ public struct SyncAccount: Codable, Sendable {
         self.userId = userId
         self.primaryKey = primaryKey
         self.secretKey = secretKey
-        self.nativeCredentialSecret = nativeCredentialSecret
         self.token = token
         self.state = state
     }
@@ -64,7 +64,6 @@ public struct SyncAccount: Codable, Sendable {
         self.userId = try container.decode(String.self, forKey: .userId)
         self.primaryKey = try container.decode(Data.self, forKey: .primaryKey)
         self.secretKey = try container.decode(Data.self, forKey: .secretKey)
-        self.nativeCredentialSecret = try container.decodeIfPresent(String.self, forKey: .nativeCredentialSecret)
         self.token = try container.decodeIfPresent(String.self, forKey: .token)
         if let state: SyncAuthState = try container.decodeIfPresent(SyncAuthState.self, forKey: .state) {
             self.state = state
@@ -81,7 +80,6 @@ public struct SyncAccount: Codable, Sendable {
         try container.encode(self.userId, forKey: .userId)
         try container.encode(self.primaryKey, forKey: .primaryKey)
         try container.encode(self.secretKey, forKey: .secretKey)
-        try container.encodeIfPresent(self.nativeCredentialSecret, forKey: .nativeCredentialSecret)
         try container.encodeIfPresent(self.token, forKey: .token)
         try container.encode(self.state, forKey: .state)
     }
@@ -93,58 +91,12 @@ public struct SyncAccount: Codable, Sendable {
         case userId
         case primaryKey
         case secretKey
-        case nativeCredentialSecret
         case token
         case state
     }
 }
 
 extension SyncAccount {
-    func nativeRecoveryCode(usesV2Payload: Bool,
-                            credentialId: String = SyncCode.RecoveryKeyV2.nativeCredentialId) -> String? {
-        do {
-            let payloadData = try nativeRecoveryPayloadData(
-                usesV2Payload: usesV2Payload,
-                credentialId: credentialId
-            )
-            if usesV2Payload {
-                return Base64URL.encode(payloadData)
-            }
-            return payloadData.base64EncodedString()
-        } catch {
-            assertionFailure(error.localizedDescription)
-            return nil
-        }
-    }
-
-    func nativeRecoveryPayloadData(usesV2Payload: Bool,
-                                   credentialId: String = SyncCode.RecoveryKeyV2.nativeCredentialId) throws -> Data {
-        let recoveryPayload: SyncCode.Recovery
-        if usesV2Payload {
-            let secret: String
-            if credentialId == SyncCode.RecoveryKeyV2.nativeCredentialId {
-                // Migration fallback for pre-seed accounts created before `nativeCredentialSecret`
-                // was persisted. Keep existing recoverability by emitting legacy primary-key bytes.
-                if let nativeCredentialSecret, !nativeCredentialSecret.isEmpty {
-                    secret = nativeCredentialSecret
-                } else {
-                    secret = Base64URL.encode(primaryKey)
-                }
-            } else {
-                secret = Base64URL.encode(primaryKey)
-            }
-            recoveryPayload = .v2(.init(
-                userId: userId,
-                secret: secret,
-                cid: credentialId,
-                v: SyncCode.RecoveryKeyV2.currentVersion
-            ))
-        } else {
-            recoveryPayload = .v1(.init(userId: userId, primaryKey: primaryKey))
-        }
-        return try SyncCode(recovery: recoveryPayload).toJSON()
-    }
-
     /// Builds the V2 recovery code payload:
     /// `{ "recovery": { "user_id", "secret", "cid", "v": "2.0" } }`, JSON-encoded,
     /// then base64URL-encoded (no padding, `-`/`_` alphabet).
@@ -166,18 +118,6 @@ extension SyncAccount {
             assertionFailure(error.localizedDescription)
             return nil
         }
-    }
-
-    func updatingNativeCredentialSecret(_ nativeCredentialSecret: String?) -> SyncAccount {
-        SyncAccount(deviceId: self.deviceId,
-                    deviceName: self.deviceName,
-                    deviceType: self.deviceType,
-                    userId: self.userId,
-                    primaryKey: self.primaryKey,
-                    secretKey: self.secretKey,
-                    nativeCredentialSecret: nativeCredentialSecret,
-                    token: self.token,
-                    state: self.state)
     }
 }
 
@@ -348,17 +288,10 @@ public struct SyncCode: Codable {
     public struct RecoveryKey: Codable, Sendable, Equatable {
         let userId: String
         let primaryKey: Data
-        let fallbackPrimaryKey: Data?
-        let nativeCredentialSecret: String?
 
-        init(userId: String,
-             primaryKey: Data,
-             fallbackPrimaryKey: Data? = nil,
-             nativeCredentialSecret: String? = nil) {
+        init(userId: String, primaryKey: Data) {
             self.userId = userId
             self.primaryKey = primaryKey
-            self.fallbackPrimaryKey = fallbackPrimaryKey
-            self.nativeCredentialSecret = nativeCredentialSecret
         }
 
         enum CodingKeys: CodingKey {
@@ -370,8 +303,6 @@ public struct SyncCode: Codable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             self.userId = try container.decode(String.self, forKey: .userId)
             self.primaryKey = try container.decode(Data.self, forKey: .primaryKey)
-            self.fallbackPrimaryKey = nil
-            self.nativeCredentialSecret = nil
         }
 
         public func encode(to encoder: Encoder) throws {
@@ -392,13 +323,10 @@ public struct SyncCode: Codable {
     }
 
     /// V2 recovery code payload. All fields are snake_case on the wire.
-    /// `secret` semantics are credential-specific:
-    /// - `cid == "ddg"`: native credential secret seed string (base64URL).
-    /// - `cid == "3party"`: base64URL of raw scoped-password bytes.
+    /// For `cid == "3party"`, `secret` is base64URL of raw scoped-password bytes.
     /// `v` is `"major.minor"` for compatibility across minor schema changes.
     public struct RecoveryKeyV2: Codable, Sendable, Equatable {
         static let currentVersion = "2.0"
-        static let nativeCredentialId = "ddg"
         static let thirdPartyCredentialId = "3party"
 
         let userId: String
@@ -450,50 +378,12 @@ public struct SyncCode: Codable {
             }
         }
 
-        /// Legacy conversion helper that interprets v2 `secret` as base64URL(primaryKey).
-        /// Internal native login paths should prefer `nativeRecoveryKey(using:)`.
-        public func nativeRecoveryKey() -> RecoveryKey? {
+        public func legacyRecoveryKey() -> RecoveryKey? {
             switch self {
             case .v1(let recoveryKey):
                 return recoveryKey
-            case .v2(let payload):
-                guard payload.cid == RecoveryKeyV2.nativeCredentialId,
-                      let primaryKey = Base64URL.decode(payload.secret) else {
-                    return nil
-                }
-                return RecoveryKey(userId: payload.userId,
-                                   primaryKey: primaryKey,
-                                   nativeCredentialSecret: payload.secret)
-            }
-        }
-
-        func nativeRecoveryKey(using crypter: CryptingInternal) -> RecoveryKey? {
-            switch self {
-            case .v1(let recoveryKey):
-                return recoveryKey
-            case .v2(let payload):
-                guard payload.cid == RecoveryKeyV2.nativeCredentialId else {
-                    return nil
-                }
-
-                let legacyPrimaryKey = Base64URL.decode(payload.secret)
-                guard let accountCreationKeys = try? crypter.createAccountCreationKeys(userId: payload.userId, password: payload.secret) else {
-                    guard let legacyPrimaryKey else {
-                        return nil
-                    }
-                    return RecoveryKey(userId: payload.userId,
-                                       primaryKey: legacyPrimaryKey,
-                                       nativeCredentialSecret: payload.secret)
-                }
-
-                let derivedPrimaryKey = accountCreationKeys.primaryKey
-                let fallbackPrimaryKey = legacyPrimaryKey == derivedPrimaryKey ? nil : legacyPrimaryKey
-                // Migration compatibility: pre-fix native v2 payloads stored primary-key bytes in
-                // `secret`. Keep that candidate so login can retry if the new seed-based path fails.
-                return RecoveryKey(userId: payload.userId,
-                                   primaryKey: derivedPrimaryKey,
-                                   fallbackPrimaryKey: fallbackPrimaryKey,
-                                   nativeCredentialSecret: payload.secret)
+            case .v2:
+                return nil
             }
         }
 

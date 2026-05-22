@@ -73,7 +73,7 @@ final class RemoteConnector: RemoteConnecting {
                                       secretKey: connectInfo.secretKey)
 
         guard let recovery = try JSONDecoder.snakeCaseKeys.decode(SyncCode.self, from: data).recovery,
-              let recoveryKey = recovery.nativeRecoveryKey(using: crypter)
+              let recoveryKey = recovery.legacyRecoveryKey()
         else {
             throw SyncError.failedToDecryptValue("Invalid recovery key in connect response")
         }

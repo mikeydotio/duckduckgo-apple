@@ -22,7 +22,6 @@ import Networking
 
 struct AccountManager: AccountManaging {
 
-    static let defaultCredentialId = "ddg"
     private static let defaultLoginScope = "sync"
 
     let endpoints: Endpoints
@@ -43,9 +42,7 @@ struct AccountManager: AccountManaging {
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount {
         let deviceId = UUID().uuidString
         let userId = UUID().uuidString
-        let isScopedAccessEnabled = isScopedAccessCredentialsEnabled()
-        let nativeCredentialSecret = isScopedAccessEnabled ? try ScopedAccessKeyFactory.makeNativeCredentialSecret() : nil
-        let password = nativeCredentialSecret ?? UUID().uuidString
+        let password = UUID().uuidString
 
         let accountKeys = try crypter.createAccountCreationKeys(userId: userId, password: password)
         let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: accountKeys.primaryKey)
@@ -57,7 +54,6 @@ struct AccountManager: AccountManaging {
         let params = Signup.Parameters(
             userId: userId,
             hashedPassword: hashedPassword,
-            credentialId: isScopedAccessEnabled ? Self.defaultCredentialId : nil,
             protectedEncryptionKey: protectedEncryptionKey,
             deviceId: deviceId,
             deviceName: encryptedDeviceName,
@@ -86,46 +82,17 @@ struct AccountManager: AccountManaging {
                            userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
-                           nativeCredentialSecret: nativeCredentialSecret,
                            token: result.token,
                            state: .active)
     }
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {
         let deviceId = UUID().uuidString
-        do {
-            let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
-            return try await login(recoveryInfo,
-                                   deviceId: deviceId,
-                                   deviceName: deviceName,
-                                   deviceType: deviceType,
-                                   nativeCredentialSecret: recoveryKey.nativeCredentialSecret)
-        } catch {
-            guard let fallbackPrimaryKey = recoveryKey.fallbackPrimaryKey,
-                  fallbackPrimaryKey != recoveryKey.primaryKey,
-                  shouldRetryWithLegacyPrimaryKey(for: error) else {
-                throw error
-            }
-
-            // Pre-fix native v2 payloads encoded `secret` as base64URL(primaryKey).
-            // Retry with that legacy candidate so older accounts remain recoverable.
-            let fallbackRecoveryKey = SyncCode.RecoveryKey(userId: recoveryKey.userId,
-                                                           primaryKey: fallbackPrimaryKey,
-                                                           nativeCredentialSecret: recoveryKey.nativeCredentialSecret)
-            let fallbackRecoveryInfo = try crypter.extractLoginInfo(recoveryKey: fallbackRecoveryKey)
-            return try await login(fallbackRecoveryInfo,
-                                   deviceId: deviceId,
-                                   deviceName: deviceName,
-                                   deviceType: deviceType,
-                                   nativeCredentialSecret: recoveryKey.nativeCredentialSecret)
-        }
-    }
-
-    private func shouldRetryWithLegacyPrimaryKey(for error: Error) -> Bool {
-        guard case SyncError.unexpectedStatusCode(let statusCode) = error else {
-            return false
-        }
-        return statusCode == 400 || statusCode == 401 || statusCode == 403
+        let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
+        return try await login(recoveryInfo,
+                               deviceId: deviceId,
+                               deviceName: deviceName,
+                               deviceType: deviceType)
     }
 
     func logout(deviceId: String, token: String) async throws {
@@ -191,8 +158,7 @@ struct AccountManager: AccountManaging {
         return try await login(info,
                                deviceId: account.deviceId,
                                deviceName: deviceName,
-                               deviceType: account.deviceType,
-                               nativeCredentialSecret: account.nativeCredentialSecret)
+                               deviceType: account.deviceType)
     }
 
     func deleteAccount(_ account: SyncAccount) async throws {
@@ -212,8 +178,7 @@ struct AccountManager: AccountManaging {
     private func login(_ info: ExtractedLoginInfo,
                        deviceId: String,
                        deviceName: String,
-                       deviceType: String,
-                       nativeCredentialSecret: String? = nil) async throws -> LoginResult {
+                       deviceType: String) async throws -> LoginResult {
 
         let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: info.primaryKey)
         let encryptedDeviceType = try crypter.encryptAndBase64Encode(deviceType, using: info.primaryKey)
@@ -258,7 +223,6 @@ struct AccountManager: AccountManaging {
                 userId: info.userId,
                 primaryKey: info.primaryKey,
                 secretKey: secretKey,
-                nativeCredentialSecret: nativeCredentialSecret,
                 token: token,
                 state: .addingNewDevice
             ),
@@ -285,7 +249,6 @@ struct AccountManager: AccountManaging {
         struct Parameters: Encodable {
             let userId: String
             let hashedPassword: String
-            let credentialId: String?
             let protectedEncryptionKey: String
             let deviceId: String
             let deviceName: String
@@ -344,7 +307,6 @@ extension SyncAccount {
                     userId: self.userId,
                     primaryKey: self.primaryKey,
                     secretKey: self.secretKey,
-                    nativeCredentialSecret: self.nativeCredentialSecret,
                     token: self.token,
                     state: state)
     }
