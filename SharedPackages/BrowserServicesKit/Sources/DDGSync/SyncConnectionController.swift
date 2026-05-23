@@ -86,6 +86,7 @@ private actor SyncConnectionState {
     private var _isCodeHandlingInFlight: Bool = false
     private var _exchanger: RemoteKeyExchanging?
     private var _connector: RemoteConnecting?
+    private var _pairingV2Coordinator: PairingV2Coordinator?
 
     func setCodeHandlingInFlight(_ value: Bool) {
         _isCodeHandlingInFlight = value
@@ -111,6 +112,10 @@ private actor SyncConnectionState {
         return _connector
     }
 
+    func setPairingV2Coordinator(_ coordinator: PairingV2Coordinator?) {
+        _pairingV2Coordinator = coordinator
+    }
+
     func stopConnectMode() {
         _connector?.stopPolling()
         _connector = nil
@@ -119,6 +124,11 @@ private actor SyncConnectionState {
     func stopExchangeMode() {
         _exchanger?.stopPolling()
         _exchanger = nil
+    }
+
+    func cancelPairingV2() async {
+        await _pairingV2Coordinator?.cancel()
+        _pairingV2Coordinator = nil
     }
 }
 
@@ -131,14 +141,6 @@ public class SyncConnectionController: SyncConnectionControlling {
     private weak var delegate: SyncConnectionControllerDelegate?
 
     private let state = SyncConnectionState()
-
-    private var recoveryCode: String {
-        guard let code = syncService.account?.recoveryCode else {
-            return ""
-        }
-
-        return code
-    }
 
     init(deviceName: String, deviceType: String, delegate: SyncConnectionControllerDelegate? = nil, syncService: DDGSyncing, dependencies: SyncDependencies) {
         self.deviceName = deviceName
@@ -168,6 +170,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         await state.setCodeHandlingInFlight(false)
         await state.stopConnectMode()
         await state.stopExchangeMode()
+        await state.cancelPairingV2()
     }
 
     @discardableResult
@@ -220,16 +223,23 @@ public class SyncConnectionController: SyncConnectionControlling {
 
         let syncCode: SyncCode
         do {
-            if canScanURLBarcodes, let url = URL(string: code), let pairingInfo = PairingInfo(url: url) {
-                return await startPairingMode(pairingInfo, codeSource: codeSource)
-            } else {
-                syncCode = try SyncCode.decodeBase64String(code)
+            if canScanURLBarcodes, let url = URL(string: code) {
+                if let pairingV2Payload = PairingV2QRCodePayload(url: url) {
+                    return await handlePairingV2(qrPayload: pairingV2Payload, codeSource: codeSource)
+                }
+                if let pairingInfo = PairingInfo(url: url) {
+                    return await startPairingMode(pairingInfo, codeSource: codeSource)
+                }
             }
-        } catch {
-            // Very important that this returning blocks further execution as it could be a camera scanning continuously
-            // and therefore call this multiple times.
-            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: .receiver(.unknown, codeSource))
-            return false
+
+            do {
+                syncCode = try SyncCode.decodeBase64String(code)
+            } catch {
+                // Very important that this returning blocks further execution as it could be a camera scanning continuously
+                // and therefore call this multiple times.
+                await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: .receiver(.unknown, codeSource))
+                return false
+            }
         }
 
         if let exchangeKey = syncCode.exchangeKey {
@@ -239,18 +249,16 @@ public class SyncConnectionController: SyncConnectionControlling {
                 return false
             }
             return await handleExchangeKey(exchangeKey, codeSource: codeSource)
-        } else if let recovery = syncCode.recovery {
-            guard let recoveryKey = recovery.legacyRecoveryKey() else {
-                await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: .receiver(.unknown, codeSource))
-                return false
-            }
-
+        } else if let recovery = syncCode.recovery, let recoveryKey = recovery.legacyRecoveryKey() {
             let setupRole: SyncSetupRole = .receiver(.recovery, codeSource)
             await delegate?.controllerDidRecognizeCode(setupSource: .recovery, codeSource: codeSource)
             guard await shouldContinueServerSyncOperation(setupRole: setupRole) else {
                 return false
             }
             return await handleRecoveryKey(recoveryKey, isRecovery: true, setupRole: .receiver(.recovery, codeSource))
+        } else if syncCode.recovery != nil {
+            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: .receiver(.unknown, codeSource))
+            return false
         } else if let connectKey = syncCode.connect {
             let setupRole: SyncSetupRole = .receiver(.connect, codeSource)
             await delegate?.controllerDidRecognizeCode(setupSource: .connect, codeSource: codeSource)
@@ -262,6 +270,69 @@ public class SyncConnectionController: SyncConnectionControlling {
             // We shouldn't ever really reach this point
             assertionFailure("Shouldn't be able to parse SyncCode without any of the supported keys")
             await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: .receiver(.unknown, codeSource))
+            return false
+        }
+    }
+
+    private func handlePairingV2(qrPayload: PairingV2QRCodePayload, codeSource: SyncCodeSource) async -> Bool {
+        let setupRole: SyncSetupRole = .receiver(.exchange, codeSource)
+        let isPairingV2ScanningEnabled = dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
+        guard isPairingV2ScanningEnabled else {
+            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: PairingV2Error.v2ScanningDisabled, setupRole: setupRole)
+            return false
+        }
+        guard syncService.account != nil else {
+            await delegate?.controllerDidError(.failedToLogIn,
+                                               underlyingError: PairingV2Error.unsupportedFlow("Native V2 scanning requires an existing native account"),
+                                               setupRole: setupRole)
+            return false
+        }
+
+        await delegate?.controllerDidRecognizeCode(setupSource: .exchange, codeSource: codeSource)
+        guard await shouldContinueServerSyncOperation(setupRole: setupRole) else {
+            return false
+        }
+
+        let coordinator = PairingV2Coordinator(
+            syncService: syncService,
+            transport: dependencies.createPairingV2Transport(),
+            deviceName: deviceName,
+            deviceType: deviceType,
+            flags: PairingV2RolloutFlags(isV2ScanningEnabled: isPairingV2ScanningEnabled,
+                                         isV2CodeEnabled: dependencies.syncFeatureFlags.isPairingV2CodeEnabled())
+        )
+        await state.setPairingV2Coordinator(coordinator)
+        defer {
+            Task {
+                await self.state.setPairingV2Coordinator(nil)
+            }
+        }
+
+        do {
+            try await coordinator.startScanning(qrPayload: qrPayload)
+            let completion = try await coordinator.pollUntilFinished()
+            switch completion {
+            case .loggedIn:
+                await delegate?.controllerDidCompleteLogin(registeredDevices: coordinator.completedRegisteredDevices ?? [], isRecovery: false, setupRole: setupRole)
+            case .recoveryCodeSent:
+                await delegate?.controllerDidFinishTransmittingRecoveryKey()
+            }
+            return true
+        } catch SyncError.pollingDidTimeOut {
+            await delegate?.controllerDidError(.pollingForRecoveryKeyTimedOut, underlyingError: nil, setupRole: setupRole)
+            await coordinator.cancel()
+            return false
+        } catch SyncError.accountAlreadyExists {
+            if let recoveryKey = coordinator.pendingRecoveryKey {
+                await delegate?.controllerDidFindTwoAccountsDuringRecovery(recoveryKey, setupRole: setupRole)
+            } else {
+                await delegate?.controllerDidError(.failedToLogIn, underlyingError: SyncError.accountAlreadyExists, setupRole: setupRole)
+            }
+            await coordinator.cancel()
+            return false
+        } catch {
+            await delegate?.controllerDidError(.failedToFetchExchangeRecoveryKey, underlyingError: error, setupRole: setupRole)
+            await coordinator.cancel()
             return false
         }
     }

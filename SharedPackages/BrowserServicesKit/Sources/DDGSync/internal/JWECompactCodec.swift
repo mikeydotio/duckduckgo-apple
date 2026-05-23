@@ -16,9 +16,7 @@
 //  limitations under the License.
 //
 
-import CryptoKit
 import Foundation
-import Security
 
 enum JWECompactCodecError: Error, Equatable {
     case invalidTokenPartCount(Int)
@@ -122,17 +120,13 @@ final class JWECompactCodec {
     }
 
     private func randomBytes(count: Int) throws -> Data {
-        var data = Data(count: count)
-        let status = data.withUnsafeMutableBytes { bytes in
-            guard let baseAddress = bytes.baseAddress else {
-                return errSecParam
-            }
-            return SecRandomCopyBytes(kSecRandomDefault, count, baseAddress)
-        }
-        guard status == errSecSuccess else {
+        do {
+            return try JWEA256GCMCipher.randomBytes(count: count)
+        } catch JWEA256GCMCipherError.randomBytesGenerationFailed(let status) {
             throw JWECompactCodecError.randomBytesGenerationFailed(status)
+        } catch {
+            throw error
         }
-        return data
     }
 
     private func aesGCMEncrypt(plaintext: Data,
@@ -140,15 +134,14 @@ final class JWECompactCodec {
                                iv: Data,
                                additionalAuthenticatedData: Data) throws -> (ciphertext: Data, authenticationTag: Data) {
         do {
-            let symmetricKey = SymmetricKey(data: contentEncryptionKey)
-            let nonce = try AES.GCM.Nonce(data: iv)
-            let sealedBox = try AES.GCM.seal(plaintext,
-                                             using: symmetricKey,
-                                             nonce: nonce,
-                                             authenticating: additionalAuthenticatedData)
-            return (sealedBox.ciphertext, sealedBox.tag)
-        } catch {
+            return try JWEA256GCMCipher.aesGCMEncrypt(plaintext: plaintext,
+                                                      contentEncryptionKey: contentEncryptionKey,
+                                                      iv: iv,
+                                                      additionalAuthenticatedData: additionalAuthenticatedData)
+        } catch JWEA256GCMCipherError.aesGCMEncryptionFailed {
             throw JWECompactCodecError.aesGCMEncryptionFailed
+        } catch {
+            throw error
         }
     }
 
@@ -158,12 +151,15 @@ final class JWECompactCodec {
                                iv: Data,
                                additionalAuthenticatedData: Data) throws -> Data {
         do {
-            let symmetricKey = SymmetricKey(data: contentEncryptionKey)
-            let nonce = try AES.GCM.Nonce(data: iv)
-            let sealedBox = try AES.GCM.SealedBox(nonce: nonce, ciphertext: ciphertext, tag: authenticationTag)
-            return try AES.GCM.open(sealedBox, using: symmetricKey, authenticating: additionalAuthenticatedData)
-        } catch {
+            return try JWEA256GCMCipher.aesGCMDecrypt(ciphertext: ciphertext,
+                                                      authenticationTag: authenticationTag,
+                                                      contentEncryptionKey: contentEncryptionKey,
+                                                      iv: iv,
+                                                      additionalAuthenticatedData: additionalAuthenticatedData)
+        } catch JWEA256GCMCipherError.aesGCMDecryptionFailed {
             throw JWECompactCodecError.aesGCMDecryptionFailed
+        } catch {
+            throw error
         }
     }
 

@@ -425,6 +425,12 @@ public enum FeatureFlag: String {
 
     /// TODO: Add Asana task URL once final naming decided
     case syncScopedAccessCredentials
+
+    /// TODO: Add Asana task URL once final naming decided
+    case syncCanUseV2ConnectFlow
+
+    /// TODO: Add Asana task URL once final naming decided
+    case syncCanShowV2ConnectCode
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -739,6 +745,10 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .internalOnly, source: .remoteReleasable(AIChatSubfeature.iPadChromeShortcut))
         case .syncScopedAccessCredentials:
             Config(source: .remoteReleasable(SyncSubfeature.scopedAccessCredentials))
+        case .syncCanUseV2ConnectFlow:
+            Config(source: .remoteReleasable(SyncSubfeature.canUseV2ConnectFlow))
+        case .syncCanShowV2ConnectCode:
+            Config(source: .remoteReleasable(SyncSubfeature.canShowV2ConnectCode))
         }
     }
 

@@ -360,6 +360,17 @@ final class SyncConnectionControllerTests: XCTestCase {
         PairingInfo(base64Code: code, deviceName: deviceName)
     }
 
+    private static func makeRecoveryCodeV2(credentialId: String,
+                                           secret: String = "rUzlGqLLlbonAC_zIeh1nrCmuDsDAn6UooUUDz-6x3o") throws -> String {
+        let payload = SyncCode.RecoveryKeyV2(
+            userId: "test-user-id",
+            secret: secret,
+            cid: credentialId,
+            v: SyncCode.RecoveryKeyV2.currentVersion
+        )
+        return Base64URL.encode(try SyncCode(recovery: .v2(payload)).toJSON())
+    }
+
     // MARK: - startPairingMode Tests
 
     func test_startPairingMode_whenAlreadyInFlight_returnsFalse() async {
@@ -532,6 +543,59 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     @MainActor
+    func test_syncCodeEntered_withV2UrlAndUrlScanningDisabled_doesNotStartPairingV2() async throws {
+        let payload = PairingV2QRCodePayload(channelID: "channel-1", publicKey: "public-key")
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: false, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withV2UrlAndNoAccount_returnsFailureBeforeStartingPairingV2() async throws {
+        let payload = PairingV2QRCodePayload(channelID: "channel-1", publicKey: "public-key")
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .failedToLogIn)
+        XCTAssertTrue(delegate.didErrorErrors?.underlyingError is PairingV2Error)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withV2UrlAndPairingV2ScanningDisabled_returnsFailureBeforeStartingPairingV2() async throws {
+        dependencies.isPairingV2ScanningEnabled = { false }
+        let payload = PairingV2QRCodePayload(channelID: "channel-1", publicKey: "public-key")
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .v2ScanningDisabled)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withV2UrlAndScopedAccessCredentialsDisabled_returnsFailureBeforeStartingPairingV2() async throws {
+        dependencies.isScopedAccessCredentialsEnabled = { false }
+        let payload = PairingV2QRCodePayload(channelID: "channel-1", publicKey: "public-key")
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .v2ScanningDisabled)
+    }
+
+    @MainActor
     func test_syncCodeEntered_withValidExchangeCode_notifiesDelegate() async {
         let expectation = self.expectation(description: "Exchanger poll completes")
         delegate.didRecognizeScannedCodeCalled = {
@@ -698,6 +762,18 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         let twoAccountsKey = await delegate.didFindTwoAccountsDuringRecoveryCalled
         XCTAssertNotNil(twoAccountsKey)
+    }
+
+    func test_syncCodeEntered_withThirdPartyV2RecoveryCode_returnsFailure() async throws {
+        let mockAccountManager = AccountManagingMock()
+        dependencies.account = mockAccountManager
+
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCode.RecoveryKeyV2.thirdPartyCredentialId)
+        let result = await controller.syncCodeEntered(code: recoveryCode, canScanURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertFalse(mockAccountManager.loginCalled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
     }
 
     // MARK: - syncCodeEntered connect

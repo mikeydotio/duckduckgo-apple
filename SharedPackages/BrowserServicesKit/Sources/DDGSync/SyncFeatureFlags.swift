@@ -99,3 +99,57 @@ public struct SyncFeatureFlags: OptionSet {
         }
     }
 }
+
+public protocol SyncFeatureFlagProviding {
+    func isScopedAccessCredentialsEnabled() -> Bool
+    func isPairingV2ScanningEnabled() -> Bool
+    func isPairingV2CodeEnabled() -> Bool
+}
+
+public struct PrivacyConfigSyncFeatureFlagProvider: SyncFeatureFlagProviding {
+
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
+
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+    }
+
+    public func isScopedAccessCredentialsEnabled() -> Bool {
+        privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.scopedAccessCredentials)
+    }
+
+    public func isPairingV2ScanningEnabled() -> Bool {
+        privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.canUseV2ConnectFlow)
+    }
+
+    public func isPairingV2CodeEnabled() -> Bool {
+        privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.canShowV2ConnectCode)
+    }
+}
+
+public struct SyncFeatureFlagProvider: SyncFeatureFlagProviding {
+
+    private let isScopedAccessCredentialsEnabledCallback: () -> Bool
+    private let isPairingV2ScanningEnabledCallback: () -> Bool
+    private let isPairingV2CodeEnabledCallback: () -> Bool
+
+    public init(isScopedAccessCredentialsEnabled: @escaping () -> Bool,
+                isPairingV2ScanningEnabled: @escaping () -> Bool,
+                isPairingV2CodeEnabled: @escaping () -> Bool) {
+        self.isScopedAccessCredentialsEnabledCallback = isScopedAccessCredentialsEnabled
+        self.isPairingV2ScanningEnabledCallback = isPairingV2ScanningEnabled
+        self.isPairingV2CodeEnabledCallback = isPairingV2CodeEnabled
+    }
+
+    public func isScopedAccessCredentialsEnabled() -> Bool {
+        isScopedAccessCredentialsEnabledCallback()
+    }
+
+    public func isPairingV2ScanningEnabled() -> Bool {
+        isPairingV2ScanningEnabledCallback()
+    }
+
+    public func isPairingV2CodeEnabled() -> Bool {
+        isPairingV2CodeEnabledCallback()
+    }
+}

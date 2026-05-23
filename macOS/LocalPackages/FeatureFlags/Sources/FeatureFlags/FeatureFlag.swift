@@ -101,6 +101,12 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866613117546
     case canScanUrlBasedSyncSetupBarcodes
 
+    case syncScopedAccessCredentials
+
+    case syncCanUseV2ConnectFlow
+
+    case syncCanShowV2ConnectCode
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866617269950
     case paidAIChat
 
@@ -492,6 +498,10 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .remoteReleasable(SyncSubfeature.exchangeKeysToSyncWithAnotherDevice), category: .sync)
         case .canScanUrlBasedSyncSetupBarcodes:
             Config(source: .remoteReleasable(SyncSubfeature.canScanUrlBasedSyncSetupBarcodes), category: .sync)
+        case .syncCanUseV2ConnectFlow:
+            Config(source: .remoteReleasable(.subfeature(SyncSubfeature.canUseV2ConnectFlow)), category: .sync)
+        case .syncCanShowV2ConnectCode:
+            Config(source: .remoteReleasable(.subfeature(SyncSubfeature.canShowV2ConnectCode)), category: .sync)
         case .paidAIChat:
             Config(source: .remoteReleasable(PrivacyProSubfeature.paidAIChat), category: .subscription)
         case .aiChatPageContext:

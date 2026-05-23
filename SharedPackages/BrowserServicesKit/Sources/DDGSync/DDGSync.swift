@@ -85,14 +85,15 @@ public class DDGSync: DDGSyncing {
                             privacyConfigurationManager: PrivacyConfigurationManaging,
                             keyValueStore: ThrowingKeyValueStoring,
                             environment: ServerEnvironment = .production,
-                            isScopedAccessCredentialsEnabled: @escaping () -> Bool = { false },
+                            syncFeatureFlags: (any SyncFeatureFlagProviding)? = nil,
                             shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool = { false }) {
+        let syncFeatureFlags = syncFeatureFlags ?? PrivacyConfigSyncFeatureFlagProvider(privacyConfigurationManager: privacyConfigurationManager)
         let dependencies = ProductionDependencies(
             serverEnvironment: environment,
             privacyConfigurationManager: privacyConfigurationManager,
             keyValueStore: keyValueStore,
             errorEvents: errorEvents,
-            isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled,
+            syncFeatureFlags: syncFeatureFlags,
             shouldPreserveAccountWhenSyncDisabled: shouldPreserveAccountWhenSyncDisabled
         )
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
@@ -277,7 +278,7 @@ public class DDGSync: DDGSyncing {
     }
 
     public func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
-        guard dependencies.isScopedAccessCredentialsEnabled() else {
+        guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() else {
             throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
         }
         guard let account else {

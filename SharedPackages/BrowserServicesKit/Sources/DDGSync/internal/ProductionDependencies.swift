@@ -37,14 +37,14 @@ struct ProductionDependencies: SyncDependencies {
     let privacyConfigurationManager: PrivacyConfigurationManaging
     let errorEvents: EventMapping<SyncError>
     let shouldPreserveAccountWhenSyncDisabled: () -> Bool
-    let isScopedAccessCredentialsEnabled: () -> Bool
+    let syncFeatureFlags: any SyncFeatureFlagProviding
 
     init(
         serverEnvironment: ServerEnvironment,
         privacyConfigurationManager: PrivacyConfigurationManaging,
         keyValueStore: ThrowingKeyValueStoring,
         errorEvents: EventMapping<SyncError>,
-        isScopedAccessCredentialsEnabled: @escaping () -> Bool = { false },
+        syncFeatureFlags: (any SyncFeatureFlagProviding)? = nil,
         shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool = { false }
     ) {
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
@@ -54,7 +54,7 @@ struct ProductionDependencies: SyncDependencies {
                   secureStore: SecureStorage(),
                   privacyConfigurationManager: privacyConfigurationManager,
                   errorEvents: errorEvents,
-                  isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled,
+                  syncFeatureFlags: syncFeatureFlags,
                   shouldPreserveAccountWhenSyncDisabled: shouldPreserveAccountWhenSyncDisabled)
     }
 
@@ -66,7 +66,7 @@ struct ProductionDependencies: SyncDependencies {
         secureStore: SecureStoring,
         privacyConfigurationManager: PrivacyConfigurationManaging,
         errorEvents: EventMapping<SyncError>,
-        isScopedAccessCredentialsEnabled: @escaping () -> Bool,
+        syncFeatureFlags: (any SyncFeatureFlagProviding)? = nil,
         shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool
     ) {
         self.fileStorageUrl = fileStorageUrl
@@ -76,14 +76,15 @@ struct ProductionDependencies: SyncDependencies {
         self.secureStore = secureStore
         self.privacyConfigurationManager = privacyConfigurationManager
         self.errorEvents = errorEvents
-        self.isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled
         self.shouldPreserveAccountWhenSyncDisabled = shouldPreserveAccountWhenSyncDisabled
+        let syncFeatureFlags = syncFeatureFlags ?? PrivacyConfigSyncFeatureFlagProvider(privacyConfigurationManager: privacyConfigurationManager)
+        self.syncFeatureFlags = syncFeatureFlags
 
         api = RemoteAPIRequestCreator()
         payloadCompressor = SyncGzipPayloadCompressor()
 
         crypter = Crypter(secureStore: secureStore)
-        account = AccountManager(endpoints: endpoints, api: api, crypter: crypter, isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled)
+        account = AccountManager(endpoints: endpoints, api: api, crypter: crypter, isScopedAccessCredentialsEnabled: { syncFeatureFlags.isScopedAccessCredentialsEnabled() })
         scopedAccess = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: crypter)
         scheduler = SyncScheduler()
     }
@@ -119,6 +120,10 @@ struct ProductionDependencies: SyncDependencies {
 
     func createExchangeRecoveryKeyTransmitter(exchangeMessage: ExchangeMessage) throws -> any ExchangeRecoveryKeyTransmitting {
         return ExchangeRecoveryKeyTransmitter(endpoints: endpoints, api: api, crypter: crypter, storage: secureStore, exchangeMessage: exchangeMessage)
+    }
+
+    func createPairingV2Transport() -> PairingV2Transporting {
+        PairingV2Transport(endpoints: endpoints, api: api)
     }
 
     func createTokenRescope() -> TokenRescoping {

@@ -42,7 +42,7 @@ protocol SyncDependencies: SyncDependenciesDebuggingSupport {
     var privacyConfigurationManager: PrivacyConfigurationManaging { get }
     var errorEvents: EventMapping<SyncError> { get }
     var shouldPreserveAccountWhenSyncDisabled: () -> Bool { get }
-    var isScopedAccessCredentialsEnabled: () -> Bool { get }
+    var syncFeatureFlags: any SyncFeatureFlagProviding { get }
 
     func createRemoteConnector() throws -> RemoteConnecting
     func createRemoteKeyExchanger() throws -> any RemoteKeyExchanging
@@ -50,6 +50,7 @@ protocol SyncDependencies: SyncDependenciesDebuggingSupport {
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
     func createExchangePublicKeyTransmitter() throws -> ExchangePublicKeyTransmitting
     func createExchangeRecoveryKeyTransmitter(exchangeMessage: ExchangeMessage) throws -> ExchangeRecoveryKeyTransmitting
+    func createPairingV2Transport() -> PairingV2Transporting
     func createTokenRescope() -> TokenRescoping
     func createAIChats() -> AIChatsHandling
 }

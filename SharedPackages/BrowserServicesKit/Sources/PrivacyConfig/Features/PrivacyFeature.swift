@@ -599,6 +599,8 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case simplifiedSyncSetupExperiment
     case allowSingleDeviceOnConnectScreen
     case scopedAccessCredentials
+    case canUseV2ConnectFlow
+    case canShowV2ConnectCode
 }
 
 public enum AutoconsentSubfeature: String, PrivacySubfeature {
