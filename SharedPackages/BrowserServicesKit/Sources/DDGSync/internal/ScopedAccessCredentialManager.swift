@@ -30,31 +30,23 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
     private let jweCompactCodec = JWECompactCodec()
     private let scopedAccessCredentialEnvelope = ScopedAccessCredentialEnvelope()
 
-    func recoverScopedPassword(from accessCredentials: [AccessCredential]?,
-                               primaryKey: Data,
-                               userID: String) throws -> Data? {
+    func recoverScopedPassword(from accessCredentials: [AccessCredential]?, primaryKey: Data, userID: String) throws -> Data? {
         guard let thirdPartyCredential = accessCredentials?.first(where: { $0.id == Self.thirdPartyCredentialId }) else {
             return nil
         }
         guard let encryptedCredential = thirdPartyCredential.encrypted3PartyCredential, !encryptedCredential.isEmpty else {
-            throw SyncError.invalidDataInResponse("3P access credential missing encrypted_3party_credential")
+            throw SyncError.invalidDataInResponse("3P access credential missing encrypted3_party_credential")
         }
         let defaultCredentialMainKey = ScopedAccessKeyDerivation.mainKey(from: primaryKey, userID: userID)
-        return try scopedAccessCredentialEnvelope.decryptScopedPassword(from: encryptedCredential,
-                                                                        using: defaultCredentialMainKey)
+        return try scopedAccessCredentialEnvelope.decryptScopedPassword(from: encryptedCredential, using: defaultCredentialMainKey)
     }
 
-    func ensureThirdPartyAccessCredential(for account: SyncAccount,
-                                          scopedPassword: Data,
-                                          keys: [ProtectedKey],
-                                          includesNewDefaultKeys: Bool) async throws -> Data {
+    func ensureThirdPartyAccessCredential(for account: SyncAccount, scopedPassword: Data, keys: [ProtectedKey], includesNewDefaultKeys: Bool) async throws -> Data {
         guard let token = account.token else {
             throw SyncError.noToken
         }
 
-        let existingCredentialInfo = try crypter.extractLoginInfo(
-            recoveryKey: SyncCode.RecoveryKey(userId: account.userId, primaryKey: account.primaryKey)
-        )
+        let existingCredentialInfo = try crypter.extractLoginInfo(recoveryKey: SyncCode.RecoveryKey(userId: account.userId, primaryKey: account.primaryKey))
         let hashedPassword = existingCredentialInfo.passwordHash.base64EncodedString()
         let credentialHashedPassword = ScopedAccessKeyDerivation.hashedPassword(from: scopedPassword, userID: account.userId)
         let defaultCredentialMainKey = ScopedAccessKeyDerivation.mainKey(from: account.primaryKey, userID: account.userId)
@@ -117,29 +109,20 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         }
     }
 
-    func setKeyIfAbsent(purpose: String,
-                        key: ProtectedKey,
-                        for account: SyncAccount) async throws -> ProtectedKey? {
-        try await setKeysIfAbsent(purpose: purpose,
-                                  keys: [key],
-                                  for: account)
+    func setKeyIfAbsent(purpose: String, key: ProtectedKey, for account: SyncAccount) async throws -> ProtectedKey? {
+        try await setKeysIfAbsent(purpose: purpose, keys: [key], for: account)
             .first
     }
 
-    private func setKeysIfAbsent(purpose: String,
-                                 keys: [ProtectedKey],
-                                 for account: SyncAccount) async throws -> [ProtectedKey] {
+    private func setKeysIfAbsent(purpose: String, keys: [ProtectedKey], for account: SyncAccount) async throws -> [ProtectedKey] {
         guard let token = account.token else {
             throw SyncError.noToken
         }
 
         let deduplicatedKeys = keys.removingDuplicateWrappingIdentities()
-        let params = try SetKeyIfAbsentParameters(keys: deduplicatedKeys)
+        let params = SetKeyIfAbsentParameters(keys: deduplicatedKeys)
         let requestJSON = try JSONEncoder.snakeCaseKeys.encode(params)
-        let request = api.createAuthenticatedJSONRequest(url: endpoints.setKeyIfAbsent(purpose: purpose),
-                                                         method: .post,
-                                                         authToken: token,
-                                                         json: requestJSON)
+        let request = api.createAuthenticatedJSONRequest(url: setKeyIfAbsentURL(purpose: purpose), method: .post, authToken: token, json: requestJSON)
         do {
             let result = try await request.execute()
             guard result.response.statusCode == 201 else {
@@ -151,9 +134,7 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
             return try decodeProtectedKeys(from: body, expectedKeys: deduplicatedKeys)
         } catch SyncError.unexpectedStatusCode(let statusCode) {
             if statusCode == 409 {
-                return try await reconcileConflictingProtectedKeys(purpose: purpose,
-                                                                   expectedKeys: deduplicatedKeys,
-                                                                   account: account)
+                return try await reconcileConflictingProtectedKeys(purpose: purpose, expectedKeys: deduplicatedKeys, account: account)
             }
             throw SyncError.unexpectedStatusCode(statusCode)
         }
@@ -171,10 +152,7 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
             keys: keys
         )
         let requestJson = try JSONEncoder.snakeCaseKeys.encode(params)
-        let request = api.createAuthenticatedJSONRequest(url: endpoints.accessCredential(Self.thirdPartyCredentialId),
-                                                         method: .post,
-                                                         authToken: token,
-                                                         json: requestJson)
+        let request = api.createAuthenticatedJSONRequest(url: accessCredentialURL(id: Self.thirdPartyCredentialId), method: .post, authToken: token, json: requestJson)
         let result = try await request.execute()
         guard result.response.statusCode == 201 else {
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
@@ -197,17 +175,13 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         return keys
     }
 
-    private func reconcileConflictingProtectedKeys(purpose: String,
-                                                   expectedKeys: [ProtectedKey],
-                                                   account: SyncAccount) async throws -> [ProtectedKey] {
+    private func reconcileConflictingProtectedKeys(purpose: String, expectedKeys: [ProtectedKey], account: SyncAccount) async throws -> [ProtectedKey] {
         let keys = try await fetchProtectedKeys(account)
         let matchingKeys = selectBestMatchingKeys(in: keys, expectedKeys: expectedKeys)
         if matchingKeys.count == expectedKeys.count {
             return matchingKeys
         }
-        throw SyncError.invalidDataInResponse(
-            "set-if-absent returned 409 for purpose=\(purpose), but no matching keys were found after refetch"
-        )
+        throw SyncError.invalidDataInResponse("set-if-absent returned 409 for purpose=\(purpose), but no matching keys were found after refetch")
     }
 
     private func decodeProtectedKeys(from data: Data, expectedKeys: [ProtectedKey]) throws -> [ProtectedKey] {
@@ -216,6 +190,17 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
             throw SyncError.unableToDecodeResponse("Failed to decode protected keys")
         }
         return selectBestMatchingKeys(in: keys, expectedKeys: expectedKeys)
+    }
+
+    private func accessCredentialURL(id: String) -> URL {
+        endpoints.accessCredentials.appendingPathComponent(id)
+    }
+
+    private func setKeyIfAbsentURL(purpose: String) -> URL {
+        endpoints.keys
+            .appendingPathComponent("purpose")
+            .appendingPathComponent(purpose)
+            .appendingPathComponent("set-if-absent")
     }
 
     private func selectBestMatchingKeys(in keys: [ProtectedKey],
@@ -246,17 +231,14 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
                 }
             }
         let defaultKeysToUpload = includesNewDefaultKeys ? defaultKeysToRewrap : []
-        let defaultCredentialMainKey = ScopedAccessKeyDerivation.mainKey(from: account.primaryKey, userID: account.userId)
         let thirdPartyMainKey = ScopedAccessKeyDerivation.mainKey(from: scopedPassword, userID: account.userId)
         let rewrappedKeys = try rewrapProtectedKeys(defaultKeysToRewrap,
-                                                    fromWrappingKey: defaultCredentialMainKey,
                                                     toWrappingKey: thirdPartyMainKey,
                                                     accountSecretKey: account.secretKey)
         return defaultKeysToUpload + rewrappedKeys + existingThirdPartyKeys
     }
 
     private func rewrapProtectedKeys(_ keys: [ProtectedKey],
-                                     fromWrappingKey: Data,
                                      toWrappingKey: Data,
                                      accountSecretKey: Data) throws -> [ProtectedKey] {
         let keysToRewrap = keys
@@ -265,7 +247,6 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         return try keysToRewrap.map { key in
             let decryptedPrivateKey = try decryptDefaultCredentialPrivateKeyForRewrap(
                 key,
-                fromWrappingKey: fromWrappingKey,
                 accountSecretKey: accountSecretKey
             )
             let rewrappedEncryptedPrivateKey = try jweCompactCodec.encryptDirect(payload: decryptedPrivateKey,
@@ -280,18 +261,12 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
     }
 
     private func decryptDefaultCredentialPrivateKeyForRewrap(_ key: ProtectedKey,
-                                                             fromWrappingKey: Data,
                                                              accountSecretKey: Data) throws -> Data {
-        if let encryptedPrivateKeyBytes = Base64URL.decode(key.encryptedPrivateKey) {
-            do {
-                return try crypter.decryptData(encryptedPrivateKeyBytes, using: accountSecretKey)
-            } catch {
-                // Legacy iOS rows stored ddg source keys as direct JWE; keep backward compatibility.
-            }
+        guard let encryptedPrivateKeyBytes = Base64URL.decode(key.encryptedPrivateKey) else {
+            throw SyncError.invalidDataInResponse("ddg protected key has invalid encrypted_private_key encoding")
         }
 
-        return try jweCompactCodec.decryptDirect(token: key.encryptedPrivateKey,
-                                                 contentEncryptionKey: fromWrappingKey)
+        return try crypter.decryptData(encryptedPrivateKeyBytes, using: accountSecretKey)
     }
 
     struct FetchProtectedKeysResult: Decodable {
@@ -309,7 +284,7 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         let publicKey: ProtectedKeyPublicKey
         let encryptedWith: String
 
-        init(key: ProtectedKey) throws {
+        init(key: ProtectedKey) {
             self.kid = key.kid
             self.purpose = key.purpose
             self.encryptedPrivateKey = key.encryptedPrivateKey
@@ -335,12 +310,12 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
     struct SetKeyIfAbsentParameters: Encodable {
         let keys: [ProtectedKeyPayload]
 
-        init(keys: [ProtectedKey]) throws {
-            self.keys = try keys.map(ProtectedKeyPayload.init)
+        init(keys: [ProtectedKey]) {
+            self.keys = keys.map(ProtectedKeyPayload.init)
         }
 
-        init(key: ProtectedKey) throws {
-            try self.init(keys: [key])
+        init(key: ProtectedKey) {
+            self.init(keys: [key])
         }
     }
 

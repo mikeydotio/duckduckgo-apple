@@ -44,17 +44,6 @@ final class Endpoints {
         return syncGet.appendingPathComponent(features.joined(separator: ","))
     }
 
-    func accessCredential(_ id: String) -> URL {
-        accessCredentials.appendingPathComponent(id)
-    }
-
-    func setKeyIfAbsent(purpose: String) -> URL {
-        keys
-            .appendingPathComponent("purpose")
-            .appendingPathComponent(purpose)
-            .appendingPathComponent("set-if-absent")
-    }
-
     convenience init(serverEnvironment: ServerEnvironment) {
         self.init(baseURL: serverEnvironment.baseURL)
     }

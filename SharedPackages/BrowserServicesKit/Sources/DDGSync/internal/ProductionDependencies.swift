@@ -87,17 +87,8 @@ struct ProductionDependencies: SyncDependencies {
         self.isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled
 
         crypter = Crypter(secureStore: secureStore)
-        account = AccountManager(
-            endpoints: endpoints,
-            api: api,
-            crypter: crypter,
-            isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled
-        )
-        scopedAccess = ScopedAccessCredentialManager(
-            endpoints: endpoints,
-            api: api,
-            crypter: crypter
-        )
+        account = AccountManager(endpoints: endpoints, api: api, crypter: crypter, isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled)
+        scopedAccess = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: crypter)
         scheduler = SyncScheduler()
     }
 
@@ -123,12 +114,7 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {
-        return RecoveryKeyTransmitter(
-            endpoints: endpoints,
-            api: api,
-            storage: secureStore,
-            crypter: crypter
-        )
+        return RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
     }
 
     func createExchangePublicKeyTransmitter() throws -> any ExchangePublicKeyTransmitting {
@@ -136,13 +122,7 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     func createExchangeRecoveryKeyTransmitter(exchangeMessage: ExchangeMessage) throws -> any ExchangeRecoveryKeyTransmitting {
-        return ExchangeRecoveryKeyTransmitter(
-            endpoints: endpoints,
-            api: api,
-            crypter: crypter,
-            storage: secureStore,
-            exchangeMessage: exchangeMessage
-        )
+        return ExchangeRecoveryKeyTransmitter(endpoints: endpoints, api: api, crypter: crypter, storage: secureStore, exchangeMessage: exchangeMessage)
     }
 
     func createTokenRescope() -> TokenRescoping {

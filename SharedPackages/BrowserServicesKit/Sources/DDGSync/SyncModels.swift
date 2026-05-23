@@ -324,7 +324,7 @@ public struct SyncCode: Codable {
 
     /// V2 recovery code payload. All fields are snake_case on the wire.
     /// For `cid == "3party"`, `secret` is base64URL of raw scoped-password bytes.
-    /// `v` is `"major.minor"` for compatibility across minor schema changes.
+    /// `v` is `"major.minor"` to allow additive minor schema changes.
     public struct RecoveryKeyV2: Codable, Sendable, Equatable {
         static let currentVersion = "2.0"
         static let thirdPartyCredentialId = "3party"
@@ -336,11 +336,11 @@ public struct SyncCode: Codable {
     }
 
     /// Versioned `recovery` payload. Distinguishes v1 (no `v` field — current native shape
-    /// with `primary_key`) from v2 (`v: "2.0"` — new shape with `secret`/`cid`).
+    /// with `primary_key`) from v2 (`v: "2.0"` — scoped credential payload with `secret`/`cid`).
     ///
     /// Per versioning rules:
     /// - missing `v` field is treated as v1
-    /// - `v` major == `Self.supportedMajor` is accepted; unknown fields ignored (minor compat)
+    /// - `v` major == `Self.supportedMajor` is accepted; unknown fields are ignored for minor versions
     /// - `v` major > `Self.supportedMajor` is rejected with `RecoveryCodeVersionError.unsupported`,
     ///   even if the payload is otherwise structurally parseable
     public enum Recovery: Codable, Sendable, Equatable {
@@ -411,8 +411,8 @@ public struct SyncCode: Codable {
     }
 
     /// Decodes a `SyncCode` payload from either encoding. Tries standard base64
-    /// first (the v1 wire format), then falls back to base64URL (the v2 wire
-    /// format). The fallback is unambiguous because Foundation's
+    /// first (the v1 wire format), then tries base64URL (the v2 wire format).
+    /// The second decode attempt is unambiguous because Foundation's
     /// `Data(base64Encoded:)` strictly rejects the URL-safe alphabet (`-`/`_`),
     /// so the second branch only matches inputs the first one couldn't decode.
     public static func decodeBase64String(_ string: String) throws -> Self {

@@ -42,10 +42,7 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         let scopedPassword = Data((32..<64).map(UInt8.init))
         let account = makeAccount(primaryKey: accountPrimaryKey)
         let defaultCredentialMainKey = hkdf(input: accountPrimaryKey, salt: account.userId, info: "Main Key")
-
-        let ddgWrappedProtectedKey = try ScopedAccessKeyFactory.makeJWEProtectedKey(wrappingKey: defaultCredentialMainKey,
-                                                                                    encryptedWith: "ddg",
-                                                                                    purpose: "ai_chats")
+        let ddgWrappedProtectedKey = try makeNativeEncryptedProtectedKey(privateKey: Data("default-private-key".utf8), account: account, crypter: crypter)
         let thirdPartyWrappedProtectedKey = ProtectedKey(kid: ddgWrappedProtectedKey.kid,
                                                          encryptedPrivateKey: "rewrapped-private-key",
                                                          publicKey: ddgWrappedProtectedKey.publicKey,
@@ -94,11 +91,9 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         let accountPrimaryKey = Data((0..<32).map(UInt8.init))
         let scopedPassword = Data((32..<64).map(UInt8.init))
         let account = makeAccount(primaryKey: accountPrimaryKey)
-        let defaultCredentialMainKey = hkdf(input: accountPrimaryKey, salt: account.userId, info: "Main Key")
         let thirdPartyMainKey = hkdf(input: scopedPassword, salt: account.userId, info: "Main Key")
-        let ddgWrappedProtectedKey = try ScopedAccessKeyFactory.makeJWEProtectedKey(wrappingKey: defaultCredentialMainKey,
-                                                                                    encryptedWith: "ddg",
-                                                                                    purpose: "ai_chats")
+        let originalPrivateKey = Data("default-private-key".utf8)
+        let ddgWrappedProtectedKey = try makeNativeEncryptedProtectedKey(privateKey: originalPrivateKey, account: account, crypter: crypter)
         api.fakeRequests[endpoints.accessCredential("3party")] = makeRequest(statusCode: 201)
 
         _ = try await manager.ensureThirdPartyAccessCredential(for: account,
@@ -121,8 +116,40 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
 
         let rewrappedEncryptedPrivateKey = try XCTUnwrap(rewrappedKeyPayload["encrypted_private_key"] as? String)
         let decryptedRewrappedPrivateKey = try JWECompactCodec().decryptDirect(token: rewrappedEncryptedPrivateKey, contentEncryptionKey: thirdPartyMainKey)
-        let originalPrivateKey = try JWECompactCodec().decryptDirect(token: ddgWrappedProtectedKey.encryptedPrivateKey, contentEncryptionKey: defaultCredentialMainKey)
         XCTAssertEqual(decryptedRewrappedPrivateKey, originalPrivateKey)
+    }
+
+    func testWhenDefaultCredentialProtectedKeyIsDirectJWEThenThrowsInvalidDataInResponse() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        var crypter = CryptingMock()
+        crypter._extractLoginInfo = { recoveryKey in
+            ExtractedLoginInfo(userId: recoveryKey.userId,
+                               primaryKey: recoveryKey.primaryKey,
+                               passwordHash: Data([0xAB]),
+                               stretchedPrimaryKey: Data())
+        }
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: crypter)
+
+        let accountPrimaryKey = Data((0..<32).map(UInt8.init))
+        let scopedPassword = Data((32..<64).map(UInt8.init))
+        let account = makeAccount(primaryKey: accountPrimaryKey)
+        let defaultCredentialMainKey = hkdf(input: accountPrimaryKey, salt: account.userId, info: "Main Key")
+        let ddgWrappedProtectedKey = try ScopedAccessKeyFactory.makeJWEProtectedKey(wrappingKey: defaultCredentialMainKey,
+                                                                                    encryptedWith: "ddg",
+                                                                                    purpose: "ai_chats")
+
+        do {
+            _ = try await manager.ensureThirdPartyAccessCredential(for: account,
+                                                                   scopedPassword: scopedPassword,
+                                                                   keys: [ddgWrappedProtectedKey],
+                                                                   includesNewDefaultKeys: false)
+            XCTFail("Expected direct-JWE ddg source key to be rejected")
+        } catch SyncError.invalidDataInResponse(let message) {
+            XCTAssertTrue(message.contains("encrypted_private_key"))
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 
     func testWhenSetKeyIfAbsentReturns409ThenRefetchesAndReconciles() async throws {
@@ -321,6 +348,17 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
                      publicKey: publicKey,
                      encryptedWith: encryptedWith,
                      purpose: purpose)
+    }
+
+    private func makeNativeEncryptedProtectedKey(privateKey: Data,
+                                                 account: SyncAccount,
+                                                 crypter: CryptingInternal) throws -> ProtectedKey {
+        let encryptedPrivateKey = try crypter.encrypt(privateKey, using: account.secretKey)
+        return ProtectedKey(kid: UUID().uuidString,
+                            encryptedPrivateKey: Base64URL.encode(encryptedPrivateKey),
+                            publicKey: .mock,
+                            encryptedWith: "ddg",
+                            purpose: "ai_chats")
     }
 
     private func makeRequest(statusCode: Int, body: String? = nil) -> HTTPRequestingMock {

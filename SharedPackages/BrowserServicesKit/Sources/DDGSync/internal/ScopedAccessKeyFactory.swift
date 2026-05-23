@@ -60,8 +60,7 @@ enum ScopedAccessKeyFactory {
     /// (`alg=dir`, `enc=A256GCM`).
     ///
     /// Native `ddg` key creation in current flows uses libsodium wrapping in DDGSync.
-    /// Keep this helper for
-    /// JWE-based wrapping use cases, including 3party keys and legacy/debug fixtures.
+    /// Keep this helper for JWE-based wrapping use cases, including 3party keys and test fixtures.
     static func makeJWEProtectedKey(wrappingKey: Data,
                                     encryptedWith: String,
                                     purpose: String) throws -> ProtectedKey {

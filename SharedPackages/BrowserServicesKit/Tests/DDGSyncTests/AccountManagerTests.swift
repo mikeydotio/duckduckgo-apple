@@ -39,6 +39,42 @@ final class AccountManagerTests: XCTestCase {
         XCTAssertEqual(result.token, "token-1")
     }
 
+    func testWhenCreatingAccountWithScopedAccessCredentialsEnabledThenSignupRequestIncludesCredentialId() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let accountManager = AccountManager(endpoints: endpoints, api: api, crypter: CryptingMock(),
+                                            isScopedAccessCredentialsEnabled: { true })
+        api.fakeRequests[endpoints.signup] = makeJSONRequest("""
+        {
+            "user_id": "user-1",
+            "token": "token-1"
+        }
+        """)
+
+        _ = try await accountManager.createAccount(deviceName: "iPhone", deviceType: "iOS")
+
+        let signupBody = try makeSignupBody(from: api)
+        XCTAssertEqual(signupBody["credential_id"] as? String, "ddg")
+    }
+
+    func testWhenCreatingAccountWithScopedAccessCredentialsDisabledThenSignupRequestOmitsCredentialId() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let accountManager = AccountManager(endpoints: endpoints, api: api, crypter: CryptingMock(),
+                                            isScopedAccessCredentialsEnabled: { false })
+        api.fakeRequests[endpoints.signup] = makeJSONRequest("""
+        {
+            "user_id": "user-1",
+            "token": "token-1"
+        }
+        """)
+
+        _ = try await accountManager.createAccount(deviceName: "iPhone", deviceType: "iOS")
+
+        let signupBody = try makeSignupBody(from: api)
+        XCTAssertNil(signupBody["credential_id"])
+    }
+
     func testWhenDecodingLoginResultWithoutScopedFieldsThenDecodingSucceeds() throws {
         let json = """
         {
@@ -122,12 +158,12 @@ final class AccountManagerTests: XCTestCase {
         XCTAssertThrowsError(try JSONDecoder.snakeCaseKeys.decode(ProtectedKey.self, from: Data(json.utf8)))
     }
 
-    func testWhenDecodingAccessCredentialWithNewShapeThenFieldsAreMapped() throws {
+    func testWhenDecodingAccessCredentialFromServerResponseThenFieldsAreMapped() throws {
         let json = """
         {
             "id": "credential-1",
             "scope": "sync",
-            "encrypted_3party_credential": "encrypted-credential"
+            "encrypted3_party_credential": "encrypted-credential"
         }
         """
 
@@ -138,7 +174,7 @@ final class AccountManagerTests: XCTestCase {
         XCTAssertEqual(credential.encrypted3PartyCredential, "encrypted-credential")
     }
 
-    func testWhenDecodingAccessCredentialWithPartialShapeThenOptionalFieldsAreNil() throws {
+    func testWhenDecodingAccessCredentialFromMinimalServerResponseThenOptionalFieldsAreNil() throws {
         let json = """
         {
             "id": "ddg"
@@ -168,7 +204,7 @@ final class AccountManagerTests: XCTestCase {
                 {
                     "id": "3party",
                     "scope": "sync",
-                    "encrypted_3party_credential": "encrypted"
+                    "encrypted3_party_credential": "encrypted"
                 }
             ]
         }
@@ -215,6 +251,12 @@ final class AccountManagerTests: XCTestCase {
 
     private func makeJSONRequest(_ json: String) -> HTTPRequestingMock {
         HTTPRequestingMock(result: .init(data: Data(json.utf8), response: .init()))
+    }
+
+    private func makeSignupBody(from api: RemoteAPIRequestCreatingMock) throws -> [String: Any] {
+        let requestBody = try XCTUnwrap(api.createRequestCallArgs.last?.body)
+        let json = try JSONSerialization.jsonObject(with: requestBody)
+        return try XCTUnwrap(json as? [String: Any])
     }
 
 }

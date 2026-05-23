@@ -23,6 +23,7 @@ import Networking
 struct AccountManager: AccountManaging {
 
     private static let defaultLoginScope = "sync"
+    private static let defaultCredentialId = "ddg"
 
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
@@ -57,7 +58,8 @@ struct AccountManager: AccountManaging {
             protectedEncryptionKey: protectedEncryptionKey,
             deviceId: deviceId,
             deviceName: encryptedDeviceName,
-            deviceType: encryptedDeviceType
+            deviceType: encryptedDeviceType,
+            credentialId: isScopedAccessCredentialsEnabled() ? Self.defaultCredentialId : nil
         )
 
         guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
@@ -253,6 +255,7 @@ struct AccountManager: AccountManaging {
             let deviceId: String
             let deviceName: String
             let deviceType: String
+            let credentialId: String?
         }
     }
 
