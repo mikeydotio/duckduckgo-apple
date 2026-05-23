@@ -838,7 +838,8 @@ extension LegacySyncPreferences: ManagementDialogModelDelegate {
 
     func userConfirmedSwitchAccounts(recoveryCode: String) {
         PixelKit.fire(SyncSwitchAccountPixelKitEvent.syncUserAcceptedSwitchingAccount, doNotEnforcePrefix: true)
-        guard let recoveryKey = try? SyncCode.decodeBase64String(recoveryCode).recovery else {
+        guard let syncCode = try? SyncCode.decodeBase64String(recoveryCode),
+              let recoveryKey = syncCode.recovery?.legacyRecoveryKey() else {
             return
         }
         Task {

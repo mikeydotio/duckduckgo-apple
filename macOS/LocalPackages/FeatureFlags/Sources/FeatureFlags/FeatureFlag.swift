@@ -364,6 +364,8 @@ public enum FeatureFlag: String, CaseIterable {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1214025222413375
     case aiChatNativeDataAccess
+
+    case syncScopedAccessCredentials
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -536,6 +538,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(.subfeature(MacOSBrowserConfigSubfeature.memoryUsageReporting)))
         case .aiChatSync:
             Config(source: .remoteReleasable(.subfeature(SyncSubfeature.aiChatSync)))
+        case .syncScopedAccessCredentials:
+            Config(source: .remoteReleasable(.subfeature(SyncSubfeature.scopedAccessCredentials)), category: .sync)
         case .heuristicAction:
             Config(source: .remoteReleasable(.subfeature(AutoconsentSubfeature.heuristicAction)), cohortType: HeuristicActionCohort.self)
         case .nextStepsListWidget:

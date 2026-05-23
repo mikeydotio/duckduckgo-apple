@@ -57,7 +57,7 @@ final class SyncDialogControllerTests: XCTestCase {
     private var featureFlagger: MockSyncFeatureFlagger!
     private var syncDialogController: SyncDialogController!
     var testRecoveryCode = "eyJyZWNvdmVyeSI6eyJ1c2VyX2lkIjoiMDZGODhFNzEtNDFBRS00RTUxLUE2UkRtRkEwOTcwMDE5QkYwIiwicHJpbWFyeV9rZXkiOiI1QTk3U3dsQVI5RjhZakJaU09FVXBzTktnSnJEYnE3aWxtUmxDZVBWazgwPSJ9fQ=="
-    lazy var testRecoveryKey = try! SyncCode.decodeBase64String(testRecoveryCode).recovery!
+    lazy var testRecoveryKey = try! SyncCode.decodeBase64String(testRecoveryCode).recovery!.legacyRecoveryKey()!
     var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
