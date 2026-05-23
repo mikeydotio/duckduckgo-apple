@@ -101,12 +101,6 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866613117546
     case canScanUrlBasedSyncSetupBarcodes
 
-    case syncScopedAccessCredentials
-
-    case syncCanUseV2ConnectFlow
-
-    case syncCanShowV2ConnectCode
-
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866617269950
     case paidAIChat
 
@@ -408,8 +402,13 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/task/1214533186882448
     case aiChatSettingsLinkInAiFeatures
 
-    // TODO - add Asana task
+    // TODO - create asana tasks for these
     case syncScopedAccessCredentials
+
+    case syncCanUseV2ConnectFlow
+
+    case syncCanShowV2ConnectCode
+
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -498,10 +497,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .remoteReleasable(SyncSubfeature.exchangeKeysToSyncWithAnotherDevice), category: .sync)
         case .canScanUrlBasedSyncSetupBarcodes:
             Config(source: .remoteReleasable(SyncSubfeature.canScanUrlBasedSyncSetupBarcodes), category: .sync)
-        case .syncCanUseV2ConnectFlow:
-            Config(source: .remoteReleasable(.subfeature(SyncSubfeature.canUseV2ConnectFlow)), category: .sync)
-        case .syncCanShowV2ConnectCode:
-            Config(source: .remoteReleasable(.subfeature(SyncSubfeature.canShowV2ConnectCode)), category: .sync)
         case .paidAIChat:
             Config(source: .remoteReleasable(PrivacyProSubfeature.paidAIChat), category: .subscription)
         case .aiChatPageContext:
@@ -687,6 +682,10 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(AIChatSubfeature.settingsLinkInAiFeatures), category: .duckAI)
         case .syncScopedAccessCredentials:
             Config(source: .remoteReleasable(SyncSubfeature.scopedAccessCredentials), category: .sync)
+        case .syncCanUseV2ConnectFlow:
+            Config(source: .remoteReleasable(SyncSubfeature.canUseV2ConnectFlow), category: .sync)
+        case .syncCanShowV2ConnectCode:
+            Config(source: .remoteReleasable(SyncSubfeature.canShowV2ConnectCode), category: .sync)
         }
     }
 
