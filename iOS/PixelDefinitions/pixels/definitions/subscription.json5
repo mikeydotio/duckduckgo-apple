@@ -423,7 +423,7 @@
             {
                 "key": "feature.data.ext.status_reason",
                 "type": "string",
-                "description": "Reason string for the current status, when applicable - currently applied to UNKNOWN status pixels",
+                "description": "Reason attached to non-default outcomes. UNKNOWN uses partial_data when the flow was recovered without enough state to classify, or missing_entitlements when the activation timeout elapsed without entitlements being granted. SUCCESS uses missing_entitlements_delayed_activation when entitlements were granted on a later app launch rather than within the original session.",
                 "enum": ["partial_data", "missing_entitlements", "missing_entitlements_delayed_activation"]
             },
             {

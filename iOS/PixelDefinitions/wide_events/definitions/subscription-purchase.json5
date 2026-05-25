@@ -1,0 +1,62 @@
+{
+    "ios-subscription-purchase": {
+        "description": "Sent at the end of a subscription purchase flow (App Store or Stripe), capturing the outcome, the step that failed when applicable, per-step latencies, and the funnel that initiated the purchase. Activations that don't resolve in-session can be completed on a later app launch.",
+        "owners": ["samsymons"],
+        "meta": {
+            "type": "ios-subscription-purchase",
+            "version": "1.0"
+        },
+        "feature": {
+            "name": "subscription-purchase",
+            "status": ["SUCCESS", "FAILURE", "UNKNOWN"],
+            "data": {
+                "ext": {
+                    "status_reason": {
+                        "type": "string",
+                        "description": "Reason attached to non-default outcomes. UNKNOWN uses partial_data when the flow was recovered without enough state to classify, or missing_entitlements when the activation timeout elapsed without entitlements being granted. SUCCESS uses missing_entitlements_delayed_activation when entitlements were granted on a later app launch rather than within the original session.",
+                        "enum": ["partial_data", "missing_entitlements", "missing_entitlements_delayed_activation"]
+                    },
+                    "purchase_platform": {
+                        "type": "string",
+                        "description": "Platform used to complete the purchase",
+                        "enum": ["app_store", "stripe"]
+                    },
+                    "failing_step": {
+                        "type": "string",
+                        "description": "The step the purchase flow failed on, when status is FAILURE",
+                        "enum": ["FLOW_START", "ACCOUNT_CREATE", "ACCOUNT_PAYMENT", "ACCOUNT_ACTIVATION"]
+                    },
+                    "subscription_identifier": {
+                        "type": "string",
+                        "description": "Subscription product identifier from the payment provider, e.g. ddg.privacy.pro.monthly.renews.us"
+                    },
+                    "free_trial_eligible": {
+                        "type": "boolean",
+                        "description": "Whether a free trial was available at the start of the flow"
+                    },
+                    "funnel_name": {
+                        "type": "string",
+                        "description": "Identifier for the funnel that led into the subscription flow",
+                        "pattern": "^funnel_"
+                    },
+                    "account_creation_latency_ms_bucketed": {
+                        "type": "integer",
+                        "description": "Bucketed latency for the account creation step (ms)",
+                        "enum": [1000, 5000, 10000, 30000, 60000, 300000, 600000]
+                    },
+                    "account_payment_latency_ms_bucketed": {
+                        "type": "integer",
+                        "description": "Bucketed latency for the purchase completion step (ms)",
+                        "enum": [1000, 5000, 10000, 30000, 60000, 300000, 600000]
+                    },
+                    "account_activation_latency_ms_bucketed": {
+                        "type": "integer",
+                        "description": "Bucketed latency for the account activation step (ms)",
+                        "enum": [1000, 5000, 10000, 30000, 60000, 300000, 600000]
+                    },
+                    "error": "errorParameters"
+                }
+            }
+        }
+    }
+}
