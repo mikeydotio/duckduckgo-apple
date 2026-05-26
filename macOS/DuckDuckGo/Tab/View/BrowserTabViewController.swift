@@ -711,7 +711,18 @@ final class BrowserTabViewController: NSViewController {
             onSuggestionPressed: { [weak onboardingPixelReporter] in
                 onboardingPixelReporter?.measureSuggestionPressed()
             })
-        let hostingController = NSHostingController(rootView: AnyView(daxView))
+        // Pin the dialog to its natural SwiftUI height. The legacy contextual onboarding
+        // worked because its SwiftUI rootView didn't use greedy modifiers and so reported
+        // a clean intrinsic content size. The rebranded panel uses `.frame(maxWidth: .infinity)`
+        // plus a full-bleed `.background()`, which makes `NSHostingController` infer an
+        // inflated height on macOS 12 and lets the dialog cover the web view. Wrapping in
+        // `.fixedSize(horizontal: false, vertical: true)` tells SwiftUI to use the vertical
+        // intrinsic size regardless of how much height the host view offers — the same
+        // behavior the legacy dialog had implicitly. This also keeps in-place transitions
+        // (searchDone→tryASite, trackers→fire) working because SwiftUI continues to drive
+        // the intrinsic size as content changes.
+        let sizedDaxView = daxView.fixedSize(horizontal: false, vertical: true)
+        let hostingController = NSHostingController(rootView: AnyView(sizedDaxView))
         insertChild(hostingController, in: containerStackView, at: 0)
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
