@@ -2898,7 +2898,7 @@ class MainViewController: UIViewController {
             .sink { [weak self] notification in
                 let deepLinkTarget: SettingsViewModel.SettingsDeepLinkSection
                 if let redirectURLComponents = notification.userInfo?[TabURLInterceptorParameter.interceptedURLComponents] as? URLComponents {
-                    if redirectURLComponents.path == "/subscriptions/plans" || redirectURLComponents.path == "/pro/plans" {
+                    if SubscriptionPurchaseFlowPath.isPlansPath(redirectURLComponents.path) {
                         deepLinkTarget = .subscriptionPlanChangeFlow(redirectURLComponents: redirectURLComponents)
                     } else {
                         deepLinkTarget = .subscriptionFlow(redirectURLComponents: redirectURLComponents)
@@ -2906,7 +2906,7 @@ class MainViewController: UIViewController {
                 } else {
                     deepLinkTarget = .subscriptionFlow()
                 }
-                self?.launchSettings(deepLinkTarget: deepLinkTarget)
+                self?.launchSettingsForSubscriptionInterception(deepLinkTarget)
 
             }
             .store(in: &urlInterceptorCancellables)
@@ -2932,6 +2932,13 @@ class MainViewController: UIViewController {
                 }
             }
             .store(in: &urlInterceptorCancellables)
+    }
+
+    private func launchSettingsForSubscriptionInterception(_ deepLinkTarget: SettingsViewModel.SettingsDeepLinkSection) {
+        // If Settings is already presented, launchSettings reuses its view model; trigger the deep link explicitly.
+        launchSettings(completion: {
+            $0.triggerDeepLinkNavigation(to: deepLinkTarget)
+        }, deepLinkTarget: deepLinkTarget)
     }
 
     private func subscribeToSettingsDeeplinkNotifications() {
