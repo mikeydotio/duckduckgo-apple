@@ -284,6 +284,11 @@ public enum iOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// https://app.asana.com/1/137249556945/project/1204186595873227/task/1214830562427843
     case defaultExistingIPhoneUsersToNewTabAfterIdle
 
+    /// Coalesces tabManager.save into a debounced/max-wait window and moves the disk write off-main.
+    /// Kill switch in case the new path regresses persistence reliability or hang counts.
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215099690878849
+    case tabsSaveOptimization
+
     /// https://app.asana.com/1/137249556945/project/715106103902962/task/1213690148091855
     case icsCalendarLinks
 }
@@ -339,12 +344,12 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case remoteBrokerDelivery
     case emailConfirmationDecoupling
     case foregroundRunningOnAppActive
-    case foregroundRunningWhenDashboardOpen
     case continuedProcessing
     case pirRollout
     case goToMarket
     case webViewUserAgent
     case freemiumPIR
+    case contentBlocking
 }
 
 public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
@@ -519,6 +524,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// surfaces a "System microphone disabled" warning when the OS has denied access, and
     /// presents the Permission Center popover when the FE reports `getUserMedia` failure.
     case nativeVoicePermissionFlow
+
+    /// Displays the Duck.ai shortcut in the iPad browser chrome (tabs bar).
+    case iPadChromeShortcut
 }
 
 public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
@@ -766,6 +774,13 @@ public enum WebExtensionsSubfeature: String, PrivacySubfeature {
     case embeddedRollout
 }
 
+public enum AdBlockingExtensionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .adBlockingExtension }
+
+    case featureEnabled
+    case featureEnabledByDefault
+}
+
 public enum ForceDarkModeOnWebsitesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .forceDarkModeOnWebsites }
 
@@ -840,12 +855,6 @@ public enum PageContextSubfeature: String, PrivacySubfeature {
 
 public enum TabSwitcherTrackerCountSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .tabSwitcherTrackerCount }
-
-    case featureEnabled
-}
-
-public enum AdBlockingExtensionSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .adBlockingExtension }
 
     case featureEnabled
 }
