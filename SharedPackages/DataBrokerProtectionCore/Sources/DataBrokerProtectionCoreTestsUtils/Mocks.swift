@@ -24,6 +24,8 @@ import Foundation
 import GRDB
 import SecureStorage
 import PixelKit
+import TrackerRadarKit
+import WebKit
 
 @testable import DataBrokerProtectionCore
 
@@ -881,6 +883,10 @@ public final class DataBrokerProtectionSecureVaultMock: DataBrokerProtectionSecu
     public func save(historyEvent: HistoryEvent, brokerId: Int64, profileQueryId: Int64, extractedProfileId: Int64) throws {
     }
 
+    public func hasScanHistoryEvents() throws -> Bool {
+        scanJobData.contains { !$0.historyEvents.isEmpty }
+    }
+
     public func fetchEvents(brokerId: Int64, profileQueryId: Int64) throws -> [HistoryEvent] {
         return [HistoryEvent]()
     }
@@ -1057,9 +1063,11 @@ public final class MockDatabase: DataBrokerProtectionRepository {
     public var wasUpdateFortyTwoDaysConfirmationPixelFired = false
     public var wasUpdateRemoveDateCalled = false
     public var wasAddHistoryEventCalled = false
+    public var wasHasScanHistoryEventsCalled = false
     public var wasFetchLastHistoryEventCalled = false
 
     public var fetchAllBrokerProfileQueryDataError: Error?
+    public var hasScanHistoryEventsResult: Result<Bool, Error>?
     public var lastHistoryEventToReturn: HistoryEvent?
     public var lastPreferredRunDateOnScan: Date?
     public var lastPreferredRunDateOnOptOut: Date?
@@ -1117,6 +1125,7 @@ public final class MockDatabase: DataBrokerProtectionRepository {
         wasUpdateLastRunDateForOptOutCalled,
         wasUpdateRemoveDateCalled,
         wasAddHistoryEventCalled,
+        wasHasScanHistoryEventsCalled,
         wasFetchLastHistoryEventCalled]
 
     public var wasDatabaseCalled: Bool {
@@ -1317,6 +1326,21 @@ public final class MockDatabase: DataBrokerProtectionRepository {
         }
     }
 
+    public func hasScanHistoryEvents() throws -> Bool {
+        wasHasScanHistoryEventsCalled = true
+
+        if let hasScanHistoryEventsResult {
+            switch hasScanHistoryEventsResult {
+            case .success(let hasScanHistoryEvents):
+                return hasScanHistoryEvents
+            case .failure(let error):
+                throw error
+            }
+        }
+
+        return !scanEvents.isEmpty
+    }
+
     public func fetchLastEvent(brokerId: Int64, profileQueryId: Int64) throws -> HistoryEvent? {
         wasFetchLastHistoryEventCalled = true
         if let event = brokerProfileQueryDataToReturn.first?.events.last {
@@ -1401,8 +1425,10 @@ public final class MockDatabase: DataBrokerProtectionRepository {
         wasUpdateLastRunDateForOptOutCalled = false
         wasUpdateRemoveDateCalled = false
         wasAddHistoryEventCalled = false
+        wasHasScanHistoryEventsCalled = false
         wasFetchLastHistoryEventCalled = false
         fetchAllBrokerProfileQueryDataError = nil
+        hasScanHistoryEventsResult = nil
         lastHistoryEventToReturn = nil
         lastShouldFilterRemovedBrokers = nil
         lastPreferredRunDateOnScan = nil
@@ -2041,22 +2067,20 @@ public final class MockDBPFeatureFlagger: DBPFeatureFlagging, FreemiumPIRFeature
     public let isRemoteBrokerDeliveryFeatureOn: Bool
     public let isEmailConfirmationDecouplingFeatureOn: Bool
     public let isForegroundRunningOnAppActiveFeatureOn: Bool
-    public let isForegroundRunningWhenDashboardOpenFeatureOn: Bool
     public let isContinuedProcessingFeatureOn: Bool
     public let isWebViewUserAgentOn: Bool
+    public var isContentBlockingOn: Bool = false
     public let isFreemiumPIREnabled: Bool
 
     public init(isRemoteBrokerDeliveryFeatureOn: Bool = true,
                 isEmailConfirmationDecouplingFeatureOn: Bool = false,
                 isForegroundRunningOnAppActiveFeatureOn: Bool = true,
-                isForegroundRunningWhenDashboardOpenFeatureOn: Bool = true,
                 isContinuedProcessingFeatureOn: Bool = true,
                 isWebViewUserAgentOn: Bool = false,
                 isFreemiumPIREnabled: Bool = false) {
         self.isRemoteBrokerDeliveryFeatureOn = isRemoteBrokerDeliveryFeatureOn
         self.isEmailConfirmationDecouplingFeatureOn = isEmailConfirmationDecouplingFeatureOn
         self.isForegroundRunningOnAppActiveFeatureOn = isForegroundRunningOnAppActiveFeatureOn
-        self.isForegroundRunningWhenDashboardOpenFeatureOn = isForegroundRunningWhenDashboardOpenFeatureOn
         self.isContinuedProcessingFeatureOn = isContinuedProcessingFeatureOn
         self.isWebViewUserAgentOn = isWebViewUserAgentOn
         self.isFreemiumPIREnabled = isFreemiumPIREnabled
@@ -2124,6 +2148,7 @@ public final class MockBrokerProfileJobDependencies: BrokerProfileJobDependencyP
     public var featureFlagger: DBPFeatureFlagging
     public var applicationNameForUserAgent: String?
     public var wideEvent: WideEventManaging?
+    public var contentBlocking: DBPWebViewContentBlocking?
     public var isAuthenticatedUserProvider: () async -> Bool = { true }
 
     public var mockScanRunner = MockScanSubJobWebRunner()
@@ -3201,6 +3226,18 @@ public final class MockWebViewHandler: NSObject, WebViewHandler {
     }
 
     public func setCookies(_ cookies: [HTTPCookie]) async {
+    }
+}
+
+// MARK: - DBPWebViewContentBlockingMock
+
+public final class DBPWebViewContentBlockingMock: DBPWebViewContentBlocking {
+    public var contentRuleLists: [WKContentRuleList]
+    public var surrogateTrackerData: TrackerData?
+
+    public init(contentRuleLists: [WKContentRuleList] = [], surrogateTrackerData: TrackerData? = nil) {
+        self.contentRuleLists = contentRuleLists
+        self.surrogateTrackerData = surrogateTrackerData
     }
 }
 

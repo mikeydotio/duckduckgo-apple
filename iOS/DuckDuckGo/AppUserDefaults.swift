@@ -108,6 +108,7 @@ public class AppUserDefaults: AppSettings {
         static let autofillDebugScriptEnabledKey = "com.duckduckgo.ios.debug.autofillDebugScriptEnabled"
         static let contentScopeDebugStateEnabledKey = "com.duckduckgo.ios.debug.contentScopeDebugStateEnabled"
         static let onboardingIsNewUserKey = "com.duckduckgo.ios.debug.onboardingIsNewUser"
+        static let onboardingForceRestorePromptEligibleKey = "com.duckduckgo.ios.debug.onboardingForceRestorePromptEligible"
         static let shakeToOpenDebugMenuEnabledKey = "com.duckduckgo.ios.debug.shakeToOpenDebugMenuEnabled"
     }
 
@@ -515,7 +516,7 @@ public class AppUserDefaults: AppSettings {
                let mode = DuckPlayerMode(stringValue: value) {
                 return mode
             }
-            return .alwaysAsk
+            return featureFlagger.isFeatureOn(.adBlockingExtensionEnabledByDefault) ? .disabled : .alwaysAsk
         }
         set {
             userDefaults?.set(newValue.stringValue, forKey: Keys.duckPlayerMode)
@@ -580,7 +581,7 @@ public class AppUserDefaults: AppSettings {
                let mode = NativeDuckPlayerYoutubeMode(stringValue: value) {
                 return mode
             }
-            return .ask
+            return featureFlagger.isFeatureOn(.adBlockingExtensionEnabledByDefault) ? .never : .ask
         }
         set {
             userDefaults?.set(newValue.stringValue, forKey: Keys.duckPlayerNativeYoutubeMode)
@@ -608,6 +609,15 @@ public class AppUserDefaults: AppSettings {
         }
         set {
             userDefaults?.set(newValue.rawValue, forKey: DebugKeys.onboardingIsNewUserKey)
+        }
+    }
+
+    var onboardingForceRestorePromptEligible: Bool {
+        get {
+            userDefaults?.bool(forKey: DebugKeys.onboardingForceRestorePromptEligibleKey) ?? false
+        }
+        set {
+            userDefaults?.set(newValue, forKey: DebugKeys.onboardingForceRestorePromptEligibleKey)
         }
     }
 

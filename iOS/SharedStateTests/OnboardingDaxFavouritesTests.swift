@@ -64,6 +64,7 @@ private final class MockIdleReturnEligibilityManagerForMainVC: IdleReturnEligibi
             bookmarksDatabase: db,
             secureVaultFactory: AutofillSecureVaultFactory,
             secureVaultErrorReporter: SecureVaultReporter(),
+            keyValueStore: keyValueStore,
             settingHandlers: [],
             favoritesDisplayModeStorage: MockFavoritesDisplayModeStoring(),
             syncErrorHandler: SyncErrorHandler(),
@@ -142,7 +143,8 @@ private final class MockIdleReturnEligibilityManagerForMainVC: IdleReturnEligibi
                                     privacyStats: MockPrivacyStats(),
                                     voiceSearchHelper: MockVoiceSearchHelper(),
                                     launchSourceManager: MockLaunchSourceManager(),
-                                    darkReaderFeatureSettings: MockDarkReaderFeatureSettings()
+                                    darkReaderFeatureSettings: MockDarkReaderFeatureSettings(),
+                                    adBlockingAvailability: StubAdBlockingAvailability()
         )
         let fireExecutor = FireExecutor(tabManager: tabManager,
                                         websiteDataManager: mockWebsiteDataManager,
@@ -179,6 +181,7 @@ private final class MockIdleReturnEligibilityManagerForMainVC: IdleReturnEligibi
             voiceSearchHelper: MockVoiceSearchHelper(isSpeechRecognizerAvailable: true, voiceSearchEnabled: true),
             featureFlagger: featureFlagger,
             idleReturnEligibilityManager: MockIdleReturnEligibilityManagerForMainVC(),
+            afterInactivityOptionAdapter: AfterInactivityOptionAdapter(initialOption: .lastUsedTab, keyValueStore: keyValueStore),
             syncAutoRestoreHandler: syncAutoRestoreHandler,
             contentScopeExperimentsManager: MockContentScopeExperimentManager(),
             fireproofing: fireproofing,

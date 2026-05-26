@@ -19,6 +19,7 @@
 
 import AIChat
 import Combine
+import DDGSync
 import Suggestions
 import UIKit
 
@@ -26,6 +27,7 @@ protocol DuckAISuggestionsCoordinatorDelegate: AnyObject {
     func duckAISuggestionsDidSelectChat(_ chat: AIChatSuggestion)
     func duckAISuggestionsDidSelectURL(_ suggestion: Suggestion)
     func duckAISuggestionsDidSelectSearchDuckDuckGo(query: String)
+    func duckAISuggestionsDidRequestSyncSetup()
 }
 
 /// Owns the chat fetcher, URL fetcher, and multi-section VC for Duck.ai mode; container talks to this instead of the fetchers directly.
@@ -40,6 +42,9 @@ final class DuckAISuggestionsCoordinator {
     private let urlLoader: DuckAIURLSuggestionsLoader
     private let chatViewModel: AIChatSuggestionsViewModel
     private let queryProvider: () -> String
+    private let layoutConfiguration: DuckAISuggestionsViewController.LayoutConfiguration
+    private let syncPromoManager: SyncPromoManaging?
+    private let syncService: DDGSyncing?
 
     private var viewController: DuckAISuggestionsViewController?
     private var cancellables = Set<AnyCancellable>()
@@ -64,11 +69,17 @@ final class DuckAISuggestionsCoordinator {
     init(chatManager: AIChatHistoryManager,
          urlLoader: DuckAIURLSuggestionsLoader,
          chatViewModel: AIChatSuggestionsViewModel,
-         queryProvider: @escaping () -> String) {
+         queryProvider: @escaping () -> String,
+         layoutConfiguration: DuckAISuggestionsViewController.LayoutConfiguration = .standard,
+         syncPromoManager: SyncPromoManaging? = nil,
+         syncService: DDGSyncing? = nil) {
         self.chatManager = chatManager
         self.urlLoader = urlLoader
         self.chatViewModel = chatViewModel
         self.queryProvider = queryProvider
+        self.layoutConfiguration = layoutConfiguration
+        self.syncPromoManager = syncPromoManager
+        self.syncService = syncService
     }
 
     func start<P: Publisher>(in containerView: UIView,
@@ -95,7 +106,10 @@ final class DuckAISuggestionsCoordinator {
         let vc = DuckAISuggestionsViewController(
             chatViewModel: chatViewModel,
             urlLoader: urlLoader,
-            queryProvider: queryProvider
+            queryProvider: queryProvider,
+            layoutConfiguration: layoutConfiguration,
+            syncPromoManager: syncPromoManager,
+            syncService: syncService
         )
         vc.delegate = self
 
@@ -128,12 +142,16 @@ final class DuckAISuggestionsCoordinator {
         viewController = vc
     }
 
-    func setEscapeHatch(_ model: EscapeHatchModel?, onTapped: (() -> Void)?) {
-        viewController?.setEscapeHatch(model, onTapped: onTapped)
+    func setEscapeHatch(_ model: EscapeHatchModel?) {
+        viewController?.setEscapeHatch(model)
     }
 
     func setAdditionalTopInset(_ inset: CGFloat) {
         viewController?.setAdditionalTopInset(inset)
+    }
+
+    func setIsVisibleContent(_ visible: Bool) {
+        viewController?.setIsVisibleContent(visible)
     }
 
     func tearDown() {
@@ -162,5 +180,9 @@ extension DuckAISuggestionsCoordinator: DuckAISuggestionsViewControllerDelegate 
 
     func duckAISuggestionsDidSelectSearchDuckDuckGo(query: String) {
         delegate?.duckAISuggestionsDidSelectSearchDuckDuckGo(query: query)
+    }
+
+    func duckAISuggestionsDidRequestSyncSetup() {
+        delegate?.duckAISuggestionsDidRequestSyncSetup()
     }
 }

@@ -140,6 +140,7 @@ final class MainCoordinator {
         self.voiceSessionStateManager = VoiceSessionStateManager()
         self.voiceShortcutFeature = DuckAIVoiceShortcutFeature(featureFlagger: featureFlagger)
         FireModeCapability.resolve(using: featureFlagger)
+        UnifiedToggleInputFeature.resolve(using: featureFlagger)
         let fireModeCapability = FireModeCapability.create()
         let fireModePromotionsCoordinator = FireModePromotionsCoordinator(fireModeCapability: fireModeCapability)
         let homePageConfiguration = HomePageConfiguration(variantManager: AppDependencyProvider.shared.variantManager,
@@ -161,10 +162,15 @@ final class MainCoordinator {
         let websiteDataManager = Self.makeWebsiteDataManager(fireproofing: fireproofing)
         interactionStateSource = TabInteractionStateDiskSource()
         self.launchSourceManager = launchSourceManager
+        let onboardingSearchExperienceProvider = OnboardingSearchExperience()
         onboardingSearchExperienceSelectionHandler = OnboardingSearchExperienceSelectionHandler(
             daxDialogs: daxDialogs,
             aiChatSettings: aiChatSettings,
-            onboardingSearchExperienceProvider: OnboardingSearchExperience()
+            onboardingSearchExperienceProvider: onboardingSearchExperienceProvider
+        )
+        let onboardingSearchExperienceSettingsResolver = OnboardingSearchExperienceSettingsResolver(
+            onboardingProvider: onboardingSearchExperienceProvider,
+            daxDialogsStatusProvider: daxDialogs
         )
         self.privacyStats = PrivacyStats(databaseProvider: PrivacyStatsDatabase())
         let toggleModeStorage: ToggleModeStoring = ToggleModeStorage()
@@ -204,7 +210,8 @@ final class MainCoordinator {
                                 duckAiNativeStorageHandler: contentBlockingService.duckAiNativeStorageHandler,
                                 duckAiFireModeStorageHandler: contentBlockingService.duckAiFireModeStorageHandler,
                                 toggleModeStorage: toggleModeStorage,
-                                fireModePromotionEligibility: fireModePromotionsCoordinator)
+                                fireModePromotionEligibility: fireModePromotionsCoordinator,
+                                adBlockingAvailability: contentBlockingService.adBlockingAvailability)
         let fireExecutor = FireExecutor(tabManager: tabManager,
                                         websiteDataManager: websiteDataManager,
                                         daxDialogsManager: daxDialogsManager,
@@ -234,6 +241,10 @@ final class MainCoordinator {
             privacyConfigurationManager: privacyConfigurationManager,
             isStillOnboarding: { daxDialogsManager.isStillOnboarding() }
         )
+        let afterInactivityOptionAdapter = AfterInactivityOptionAdapter(
+            keyValueStore: keyValueStore,
+            idleReturnEligibilityManager: idleReturnEligibilityManager
+        )
         controller = MainViewController(privacyConfigurationManager: privacyConfigurationManager,
                                         bookmarksDatabase: bookmarksDatabase,
                                         historyManager: historyManager,
@@ -255,6 +266,7 @@ final class MainCoordinator {
                                         voiceSearchHelper: voiceSearchHelper,
                                         featureFlagger: featureFlagger,
                                         idleReturnEligibilityManager: idleReturnEligibilityManager,
+                                        afterInactivityOptionAdapter: afterInactivityOptionAdapter,
                                         syncAutoRestoreHandler: syncAutoRestoreHandler,
                                         contentScopeExperimentsManager: contentScopeExperimentManager,
                                         fireproofing: fireproofing,
@@ -270,6 +282,7 @@ final class MainCoordinator {
                                         customConfigurationURLProvider: customConfigurationURLProvider,
                                         systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
                                         daxDialogsManager: daxDialogsManager,
+                                        onboardingSearchExperienceSettingsResolver: onboardingSearchExperienceSettingsResolver,
                                         dbpIOSPublicInterface: dbpIOSPublicInterface,
                                         freemiumPIREligibilityChecker: freemiumPIREligibilityChecker,
                                         freemiumPIRDebugSettings: freemiumPIRDebugSettings,
@@ -341,6 +354,13 @@ final class MainCoordinator {
             .removeDuplicates()
             .eraseToAnyPublisher()
 
+        let adBlockingDefaultsPublisher = featureFlagger.updatesPublisher
+            .compactMap { [weak featureFlagger] in
+                featureFlagger?.isFeatureOn(.adBlockingExtensionEnabledByDefault)
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+
         youTubeAdBlockingCancellable = NotificationCenter.default
             .publisher(for: YouTubeAdBlockingStorageKeys.youTubeAdBlockingEnabledDidChangeNotification)
             .sink { [weak self] _ in
@@ -354,6 +374,7 @@ final class MainCoordinator {
             featureFlagPublisher: webExtensionsPublisher,
             embeddedExtensionFlagPublisher: embeddedExtensionPublisher,
             adBlockingExtensionFlagPublisher: adBlockingExtensionPublisher,
+            adBlockingDefaultsFlagPublisher: adBlockingDefaultsPublisher,
             onFeatureFlagEnabled: { [weak self] in
                 self?.initializeWebExtensions()
             },
@@ -364,6 +385,9 @@ final class MainCoordinator {
                 await self?.syncEmbeddedExtensions()
             },
             onAdBlockingExtensionFlagEnabled: { [weak self] in
+                await self?.syncEmbeddedExtensions()
+            },
+            onAdBlockingDefaultsFlagChanged: { [weak self] in
                 await self?.syncEmbeddedExtensions()
             }
         )
@@ -597,9 +621,14 @@ final class MainCoordinator {
 
     private func fireDailyAdBlockingPixel() {
         let isEnabled = controller.adBlockingAvailability.isEnabled
+        let storage: any ThrowingKeyedStoring<YouTubeAdBlockingKeys> = keyValueStore.throwingKeyedStoring()
+        let analyticsEnabled = isEnabled && ((try? storage.value(for: \.youTubeAnalyticsEnabled)) ?? false)
         DailyPixel.fire(
             pixel: .webExtensionDailyAdBlockingState,
-            withAdditionalParameters: ["is_enabled": isEnabled ? "true" : "false"]
+            withAdditionalParameters: [
+                "is_enabled": isEnabled ? "true" : "false",
+                "analytics_enabled": analyticsEnabled ? "true" : "false"
+            ]
         )
     }
 
@@ -789,6 +818,17 @@ extension MainCoordinator: IdleReturnLaunchDelegate {
 
     func showNewTabPageAfterIdleReturn() {
         if voiceShortcutFeature.isAvailable, voiceSessionStateManager.isVoiceSessionActive {
+            return
+        }
+
+        // Already on the NTP — no rebuild needed. This preserves any existing
+        // escape hatch state, avoids bouncing the omnibar/keyboard on idle return,
+        // and avoids surfacing a stale hatch when the user has already consumed
+        // the after-idle moment and returned to the NTP.
+        //
+        // We require a non-nil current tab here: if there is no current tab,
+        // we still want to fall through to `newTab(...)` to create one.
+        if let currentTab = tabManager.currentTabsModel.currentTab, currentTab.link == nil {
             return
         }
 

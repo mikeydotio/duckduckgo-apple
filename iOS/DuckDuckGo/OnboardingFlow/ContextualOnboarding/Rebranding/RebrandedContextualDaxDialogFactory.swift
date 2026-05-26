@@ -109,13 +109,13 @@ private extension RebrandedContextualDaxDialogFactory {
         afterSearchPixelEvent: Pixel.Event,
         onSizeUpdate: @escaping () -> Void
     ) -> some View {
-
         let viewModel = OnboardingSiteSuggestionsViewModel(
             title: UserText.Onboarding.ContextualOnboarding.onboardingTryASiteTitle,
             suggestedSitesProvider: contextualOnboardingSiteSuggestionsProvider,
             delegate: delegate,
-            onSuggestionPressed: { [weak self] in
+            onSuggestionPressed: { [weak delegate, weak self] in
                 self?.contextualOnboardingPixelReporter.measureTryVisitSiteDialogSuggestedSiteTapped()
+                delegate?.didNavigateAwayFromContextualOnboardingDialog()
             }
         )
 
@@ -166,14 +166,14 @@ private extension RebrandedContextualDaxDialogFactory {
 
 private extension RebrandedContextualDaxDialogFactory {
 
-    // This could be removed. Originally this was in place to represent the dialog if the user refreshed or quit and relaunched the app.
     func tryVisitingSiteDialog(delegate: ContextualOnboardingDelegate) -> some View {
         let viewModel = OnboardingSiteSuggestionsViewModel(
             title: UserText.Onboarding.ContextualOnboarding.onboardingTryASiteTitle,
             suggestedSitesProvider: contextualOnboardingSiteSuggestionsProvider,
             delegate: delegate,
-            onSuggestionPressed: { [weak self] in
+            onSuggestionPressed: { [weak delegate, weak self] in
                 self?.contextualOnboardingPixelReporter.measureTryVisitSiteDialogSuggestedSiteTapped()
+                delegate?.didNavigateAwayFromContextualOnboardingDialog()
             }
         )
 
@@ -208,7 +208,9 @@ private extension RebrandedContextualDaxDialogFactory {
     ) -> some View {
         let attributedMessage = attributedStringFromLegacyMarkdown(spec.message)
 
-        let onManualDismiss: (_ isShowingFireDialog: Bool) -> Void = { [weak delegate, weak self] isShowingFireDialog in
+        let isChatPath = contextualOnboardingSettings.chatPathPhase == .trackerToEOJ
+
+        let onManualDismiss: ((_ isShowingFireDialog: Bool) -> Void)? = isChatPath ? nil : { [weak delegate, weak self] isShowingFireDialog in
             // Hide Pulsing animation for Privacy Shield or Fire Dialog
             ViewHighlighter.hideAll()
 
@@ -222,32 +224,34 @@ private extension RebrandedContextualDaxDialogFactory {
             delegate?.didTapDismissContextualOnboardingAction()
         }
 
-        return OnboardingConditionalCenteredScrollableContainerView {
-            OnboardingRebranding.OnboardingTrackersBlockedDialog(
-                shouldFollowUp: shouldFollowUpToFireDialog,
-                message: attributedMessage,
-                blockedTrackersCTAAction: { [weak self, weak delegate] in
-                    self?.contextualOnboardingPixelReporter.measureTrackersDialogGotItAction()
+        return OnboardingRebranding.OnboardingTrackersBlockedDialogScreen(
+            shouldFollowUp: shouldFollowUpToFireDialog,
+            message: attributedMessage,
+            blockedTrackersCTAAction: { [weak self, weak delegate] in
+                self?.contextualOnboardingPixelReporter.measureTrackersDialogGotItAction()
 
-                    // If the user has not seen the fire dialog yet proceed to the fire dialog, otherwise dismiss the dialog.
-                    if self?.contextualOnboardingSettings.userHasSeenFireDialog == true {
-                        delegate?.didTapDismissContextualOnboardingAction()
-                    } else {
-                        onSizeUpdate()
-                        delegate?.didAcknowledgeContextualOnboardingTrackersDialog()
-                        self?.contextualOnboardingPixelReporter.measureScreenImpression(event: .daxDialogsFireEducationShownUnique)
-                        self?.contextualOnboardingPixelReporter.measureScreenImpression(.fireButton(.shown))
-                    }
-                },
-                onManualDismiss: onManualDismiss
-            )
-        }
+                if self?.contextualOnboardingSettings.userHasSeenFireDialog == true {
+                    delegate?.didTapDismissContextualOnboardingAction()
+                } else {
+                    onSizeUpdate()
+                    delegate?.didAcknowledgeContextualOnboardingTrackersDialog()
+                    self?.contextualOnboardingPixelReporter.measureScreenImpression(event: .daxDialogsFireEducationShownUnique)
+                    self?.contextualOnboardingPixelReporter.measureScreenImpression(.fireButton(.shown))
+                }
+            },
+            onManualDismiss: onManualDismiss
+        )
         .applyAnimatedContextualOnboardingBackground(backgroundType: .trackers)
         .onAppear { [weak delegate] in
             delegate?.didShowContextualOnboardingTrackersDialog()
         }
         .onFirstAppear { [weak self] in
+            // Fire the general dialog impression pixel for all users, plus an additional
+            // chat-path-specific pixel when the user is in the Duck.ai experiment flow.
             self?.contextualOnboardingPixelReporter.measureScreenImpression(event: spec.pixelName)
+            if self?.contextualOnboardingSettings.chatPathPhase == .trackerToEOJ {
+                self?.contextualOnboardingPixelReporter.measureScreenImpression(event: .onboardingChatPathTrackersBlockedUnique)
+            }
             self?.contextualOnboardingPixelReporter.measureScreenImpression(.trackersBlocked(.shown))
         }
     }
@@ -305,7 +309,7 @@ private extension RebrandedContextualDaxDialogFactory {
         }
 
         return OnboardingConditionalCenteredScrollableContainerView {
-            OnboardingRebranding.OnboardingEndOfJourneyDialog(
+            OnboardingRebranding.OnboardingEndOfJourneyDialog( // Standard search end of journey
                 message: UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenMessage,
                 cta: UserText.Onboarding.ContextualOnboarding.onboardingFinalScreenButton,
                 dismissAction: dismissAction,
@@ -353,5 +357,5 @@ private extension RebrandedContextualDaxDialogFactory {
             return AttributedString(string)
         }
     }
-    
+
 }

@@ -18,6 +18,38 @@
 
 import Foundation
 
+public enum MessageTrigger: String, Codable {
+    case afterIdle = "after_idle"
+}
+
+/// Controls which messages are returned based on their `displayConditions.trigger` value.
+public enum TriggerFilter: Equatable {
+    /// Matches every message regardless of trigger (used by prefetch and cleanup paths).
+    case any
+    /// Matches only messages that have no trigger (i.e. `displayConditions` is nil or its `trigger` is nil).
+    case noTrigger
+    /// Matches only messages whose trigger equals the associated value.
+    case specific(MessageTrigger)
+
+    func matches(_ trigger: MessageTrigger?) -> Bool {
+        switch self {
+        case .any: return true
+        case .noTrigger: return trigger == nil
+        case .specific(let required): return trigger == required
+        }
+    }
+}
+
+public struct DisplayConditions: Codable, Equatable {
+    public let trigger: MessageTrigger?
+    public let dismissAfterDaysShown: Int?
+
+    public init(trigger: MessageTrigger? = nil, dismissAfterDaysShown: Int? = nil) {
+        self.trigger = trigger
+        self.dismissAfterDaysShown = dismissAfterDaysShown
+    }
+}
+
 public struct RemoteMessageModel: Equatable, Codable {
 
     public let id: String
@@ -27,14 +59,22 @@ public struct RemoteMessageModel: Equatable, Codable {
     public let matchingRules: [Int]
     public let exclusionRules: [Int]
     public let isMetricsEnabled: Bool
+    public let displayConditions: DisplayConditions?
 
-    public init(id: String, surfaces: RemoteMessageSurfaceType, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int], isMetricsEnabled: Bool) {
+    public init(id: String,
+                surfaces: RemoteMessageSurfaceType,
+                content: RemoteMessageModelType?,
+                matchingRules: [Int],
+                exclusionRules: [Int],
+                isMetricsEnabled: Bool,
+                displayConditions: DisplayConditions? = nil) {
         self.id = id
         self.surfaces = surfaces
         self.content = content
         self.matchingRules = matchingRules
         self.exclusionRules = exclusionRules
         self.isMetricsEnabled = isMetricsEnabled
+        self.displayConditions = displayConditions
     }
 
     enum CodingKeys: CodingKey {
@@ -44,6 +84,7 @@ public struct RemoteMessageModel: Equatable, Codable {
         case matchingRules
         case exclusionRules
         case isMetricsEnabled
+        case displayConditions
     }
 
     public init(from decoder: Decoder) throws {
@@ -54,6 +95,7 @@ public struct RemoteMessageModel: Equatable, Codable {
         self.matchingRules = try container.decode([Int].self, forKey: .matchingRules)
         self.exclusionRules = try container.decode([Int].self, forKey: .exclusionRules)
         self.isMetricsEnabled = try container.decodeIfPresent(Bool.self, forKey: .isMetricsEnabled) ?? true
+        self.displayConditions = try container.decodeIfPresent(DisplayConditions.self, forKey: .displayConditions)
     }
 
     mutating func localizeContent(translation: RemoteMessageResponse.JsonContentTranslation) {
@@ -282,6 +324,7 @@ public extension RemoteMessageModelType.ListItem {
 public enum NavigationTarget: String, Codable, Equatable {
     case duckAISettings = "duckai.settings"
     case settings
+    case settingsGeneral = "settings.general"
     case feedback
     case sync
     case importPasswords = "import.passwords"
@@ -324,4 +367,5 @@ public enum RemotePlaceholder: String, Codable, CaseIterable {
     case veryCriticalUpdate = "RemoteMessageVeryCriticalUpdate"
     case newTabOptions = "RemoteMessageNewTabOptions"
     case splitBarMobile = "RemoteMessageSplitBarMobile"
+    case youtubeNew = "RemoteMessageYoutubeNew" // macOS only
 }

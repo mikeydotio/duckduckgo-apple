@@ -29,6 +29,7 @@ import SpecialErrorPages
 import Subscription
 import TrackerRadarKit
 import UserScript
+import WebExtensions
 import WebKit
 
 final class UserScripts: UserScriptsProvider {
@@ -60,14 +61,17 @@ final class UserScripts: UserScriptsProvider {
     private(set) var fullScreenVideoScript = FullScreenVideoUserScript()
     private(set) var printingSubfeature = PrintingSubfeature()
     private(set) var trackerProtectionSubfeature = TrackerProtectionSubfeature()
+    let webEventsSubfeature: WebEventsSubfeature
 
     private let isAutoconsentExtensionAvailable: Bool
 
     init(with sourceProvider: ScriptSourceProviding,
          appSettings: AppSettings = AppDependencyProvider.shared.appSettings,
          featureFlagger: FeatureFlagger = AppDependencyProvider.shared.featureFlagger,
+         keyValueStore: ThrowingKeyValueStoring,
          duckAiNativeStorageHandler: DuckAiNativeStorageHandling? = nil,
-         aiChatDebugSettings: AIChatDebugSettingsHandling = AIChatDebugSettings()) {
+         aiChatDebugSettings: AIChatDebugSettingsHandling = AIChatDebugSettings(),
+         adBlockingAvailability: AdBlockingAvailabilityProviding) {
 
         isAutoconsentExtensionAvailable = sourceProvider.webExtensionAvailability?.isAutoconsentExtensionAvailable ?? false
 
@@ -146,7 +150,23 @@ final class UserScripts: UserScriptsProvider {
             featureFlagProvider: subscriptionFeatureFlagAdapter,
             navigationDelegate: subscriptionNavigationHandler,
             debugHost: aiChatDebugSettings.messagePolicyHostname)
+        let youTubeAdBlockingStorage: any ThrowingKeyedStoring<YouTubeAdBlockingKeys> = keyValueStore.throwingKeyedStoring()
+        webEventsSubfeature = WebEventsSubfeature(
+            isUserOptedIn: {
+                let analyticsEnabled = (try? youTubeAdBlockingStorage.value(for: \.youTubeAnalyticsEnabled)) ?? false
+                return adBlockingAvailability.isEnabled && analyticsEnabled
+            },
+            onEvent: { type, loginState in
+                guard let pixel = Pixel.Event.adBlockingDetectedEvent(type: type) else { return }
+                DailyPixel.fire(
+                    pixel: pixel,
+                    withAdditionalParameters: ["loginState": loginState.rawValue]
+                )
+            }
+        )
+
         contentScopeUserScriptIsolated.registerSubfeature(delegate: faviconScript)
+        contentScopeUserScriptIsolated.registerSubfeature(delegate: webEventsSubfeature)
         contentScopeUserScriptIsolated.registerSubfeature(delegate: aiChatUserScript)
         contentScopeUserScriptIsolated.registerSubfeature(delegate: subscriptionUserScript)
         contentScopeUserScriptIsolated.registerSubfeature(delegate: serpSettingsUserScript)

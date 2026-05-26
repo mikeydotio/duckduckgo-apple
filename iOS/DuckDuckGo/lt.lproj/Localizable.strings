@@ -79,6 +79,12 @@
 /* Copy action */
 "action.title.copy" = "Kopijuoti";
 
+/* Copy clean link action */
+"action.title.copy.clean.link" = "Kopijuoti švarią nuorodą";
+
+/* Copy link action */
+"action.title.copy.link" = "Kopijuoti nuorodą";
+
 /* Floating message indicating URL has been copied */
 "action.title.copy.message" = "URL nukopijuotas";
 
@@ -177,6 +183,12 @@
 /* VPN menu item */
 "action.title.vpn" = "VPN";
 
+/* Description of the Ad Blocking feature in settings */
+"ad.blocking.description" = "Blokuoja įkyrias sekimo priemones dar prieš jas įkeliant, todėl veiksmingai pašalina sekimu pagrįstas reklamas";
+
+/* Section header for YouTube-specific ad blocking settings */
+"ad.blocking.youtube.section.header" = "„YouTube“ reklamų blokavimas";
+
 /* Settings label for bottom position for the address bar */
 "address.bar.bottom" = "Apačia";
 
@@ -212,51 +224,6 @@
 /* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
 "aichat.attachment.option.take.photo" = "Fotografuoti";
 
-/* Error message displayed when the user has attached more files than are allowed in a conversation. Parameter is the backend-provided maximum number of files. */
-"aichat.attachment.file.count.limit" = "Vienu metu galima pridėti tik %d failų.";
-
-/* Error message displayed when one or more attached files are encrypted and cannot be read */
-"aichat.attachment.file.encrypted" = "Negalime perskaityti pridėtų failų, nes bent vienas iš jų yra užšifruotas.";
-
-/* Error message displayed when the total size of all attached files in a conversation exceeds the allowed limit. Parameter is the backend-provided combined size limit in megabytes. */
-"aichat.attachment.file.exceeds.conversation.limit" = "Bendras pridėtų failų dydis viršija %d MB ribą.";
-
-/* Error message displayed when the user tries to attach a file that exceeds the maximum allowed size. Parameter is the backend-provided size limit in megabytes. */
-"aichat.attachment.file.too.large" = "Šis failas yra per didelis. Didžiausias failo dydis – %d MB.";
-
-/* Error message displayed when one attached file has more pages than supported. Parameter is the backend-provided maximum supported page count. */
-"aichat.attachment.file.too.many.pages" = "Viename iš pridėtų failų yra daugiau puslapių, nei mes palaikome. Įkelkite failus, kuriuose yra iki %d puslapių.";
-
-/* Error message displayed when one or more attached files cannot be read */
-"aichat.attachment.file.unreadable" = "Negalime nuskaityti vieno iš pridėtų failų. Patikrinkite, ar jis nepažeistas, ir bandyk dar kartą.";
-
-/* Error message displayed when the user has attached more images than are allowed in a conversation. Parameter is the backend-provided maximum number of images. */
-"aichat.attachment.image.count.limit" = "Vienam pokalbiui galima pridėti tik %d paveikslėlių.";
-
-/* Error message displayed when the user has attached more images than are allowed in one message. Parameter is the backend-provided maximum number of images per message. */
-"aichat.attachment.image.turn.limit" = "Vienu metu galima pridėti iki %d paveikslėlių.";
-
-/* Top-level attachment menu option to attach a file to an AI chat message */
-"aichat.attachment.option.attach.file" = "Pridėti failą";
-
-/* Top-level attachment menu option to attach a photo to an AI chat message */
-"aichat.attachment.option.attach.photo" = "Pridėti nuotrauką";
-
-/* Alert message shown when an AI chat message exceeds the allowed length while attachments are included */
-"aichat.attachment.prompt.too.long" = "Šis pranešimas yra per ilgas, kad būtų galima siųsti su priedais.";
-
-/* Generic fallback error message displayed when attachments cannot be validated because the backend-provided attachment limits are unavailable */
-"aichat.attachment.unavailable" = "Priedai laikinai nepasiekiami. Bandykite dar kartą vėliau.";
-
-/* Generic error message displayed when the user tries to upload an unsupported file type and we cannot determine the accepted types */
-"aichat.attachment.unsupported.file.type" = "Šis failo tipas nepalaikomas.";
-
-/* Error message for unsupported file type when multiple types are accepted. First parameter is a comma-separated list of all accepted types except the last. Second parameter is the last accepted type. Full example: This file type is not supported, please attach a PNG, JPG, WebP, GIF or PDF. */
-"aichat.attachment.unsupported.file.type.multiple" = "Šis failo tipas nepalaikomas. Pridėkite %1$@ arba %2$@.";
-
-/* Error message displayed when the user tries to upload an unsupported file type and we know which type is accepted. Parameter is a single accepted type. E.g. This file type is not supported, please attach a PDF. */
-"aichat.attachment.unsupported.file.type.single" = "Šis failo tipas nepalaikomas. Pridėkite %@.";
-
 /* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
 "aichat.reasoning.extended.subtitle" = "Analitinėms užduotims";
 
@@ -278,8 +245,14 @@
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Tinkinti atsakymus";
 
+/* Subtitle for the image generation tool in the unified input tools menu */
+"aichat.toolbar.tools.imagegeneration.subtitle" = "Teksto vertimas vaizdais";
+
+/* Title for the image generation tool in the unified input tools menu */
+"aichat.toolbar.tools.imagegeneration.title" = "Kurti vaizdą";
+
 /* Subtitle for the web search tool in the unified input tools menu */
-"aichat.toolbar.tools.websearch.subtitle" = "Naujausios informacijos paieška";
+"aichat.toolbar.tools.websearch.subtitle" = "Rasti atsakymus internete";
 
 /* Title for the web search tool in the unified input tools menu */
 "aichat.toolbar.tools.websearch.title" = "Žiniatinklio paieška";
@@ -2029,6 +2002,19 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Paskutinį kartą naudota „Fire“ kortelė";
+
+/* Menu item that burns (closes and clears data for) the tab referenced by the escape hatch card */
+"escapeHatch.menu.burnTab" = "Sunaikinti kortelę";
+
+/* Menu item that closes the open tab referenced by the escape hatch card */
+"escapeHatch.menu.closeTab" = "Uždaryti kortelę";
+
+/* Menu item that returns the user to the open tab from the escape hatch card */
+"escapeHatch.menu.returnToTab" = "Grįžti į kortelę";
+
+/* Accessibility label for the more options button on the escape hatch card */
+"escapeHatch.moreButton.accessibility.label" = "Daugiau parinkčių";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Grįžti į %@";
 
@@ -2037,6 +2023,9 @@
 
 /* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
 "escapeHatch.returnTo.withSubtitle.accessibility.label" = "Grįžti į %1$@, %2$@";
+
+/* Label shown next to the tab count when the escape hatch's tab switcher pill is in its expanded form */
+"escapeHatch.tabSwitcher.privateTabs.label" = "Privačios kortelės";
 
 /* No comment provided by engineer. */
 "Experiment:" = "Experiment:";
@@ -2446,7 +2435,7 @@
 "input.field.placeholder.duckai" = "Klausk bet ko privačiai";
 
 /* Placeholder text for the duck.ai input field when a chat is already active */
-"input.field.placeholder.duckai.followup" = "Užduok papildomą klausimą...";
+"input.field.placeholder.duckai.followup" = "Atsakyk...";
 
 /* No comment provided by engineer. */
 "Install Extension" = "Įdiegti plėtinį";
@@ -2946,6 +2935,12 @@
 /* Display title for Duck.ai in our address bar */
 "omnibar.full-ai-chat-mode.display.title" = "Duck.ai";
 
+/* Label for moving the address bar to the bottom of the screen */
+"omnibar.menu.move-to-bottom" = "Perkelti adreso juostą į apačią";
+
+/* Label for moving the address bar to the top of the screen */
+"omnibar.menu.move-to-top" = "Perkelti adreso juostą į viršų";
+
 /* Text displayed on notification appearing in the address bar when the browser  dismissed the cookie popup automatically rejecting it */
 "omnibar.notification.cookies-managed" = "Slapukai valdomi";
 
@@ -3064,7 +3059,7 @@
 "onboarding.rebranding.first-search-done.title" = "Tai – „DuckDuckGo Search“!";
 
 /* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Ar nori greitesnės naršyklės, kuri saugo tave ir leidžia nuspręsti, kada ir kaip naudoti dirbtinį intelektą?";
+"onboarding.rebranding.intro.message" = "Ar nori spartesnės naršyklės, kurią valdai tu?\n\nDI neprivalomas, o privatumo apsauga – visada įjungta.";
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Sveiki.";
@@ -3404,6 +3399,10 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Ištrinti „Fire“ korteles ir jų duomenis?";
+
+/* Title for fire confirmation dialog asking user to delete a single tab and its site data */
+"scoped.fire.confirmation.alert.single.tab.title" = "Ištrinti kortelę ir svetainės duomenis?";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Ištrinti skirtukus ir svetainės duomenis?";
 
@@ -3412,6 +3411,9 @@
 
 /* Button to delete all tabs and data in scoped fire confirmation dialog */
 "scoped.fire.confirmation.delete.all.button" = "Ištrinti viską";
+
+/* Button to delete a single tab and its site data in scoped fire confirmation dialog */
+"scoped.fire.confirmation.delete.tab.button" = "Ištrinti kortelę";
 
 /* Button to delete only the current chat in scoped fire confirmation dialog */
 "scoped.fire.confirmation.delete.this.chat.button" = "Ištrinti šį pokalbį";
@@ -3504,7 +3506,10 @@
 "settings.address.trackers.animation" = "Rodyti adreso juostoje";
 
 /* Section footer; %@ is the idle interval (e.g. 5 minutes) */
-"settings.afterInactivity.footer.format" = "Pasirinkite, ką matysite grįžę po %@ neaktyvumo.";
+"settings.afterInactivity.footer.format" = "Pasirinkite, ką matysite grįžę į „DuckDuckGo“ po %@ neaktyvumo.";
+
+/* Section footer when no inactivity timer is set or the Last Used Tab option is selected */
+"settings.afterInactivity.footer.none" = "Pasirinkite, ką matysite grįžę į „DuckDuckGo“.";
 
 /* Idle interval 1 hour for settings footer */
 "settings.afterInactivity.idle.interval.hour" = "1 val.";
@@ -3518,14 +3523,20 @@
 /* Idle interval in minutes for settings footer (plural) */
 "settings.afterInactivity.idle.interval.minutes" = "%d min.";
 
+/* Idle interval option meaning the New Tab Page is shown every time the user returns (no inactivity threshold) */
+"settings.afterInactivity.idle.interval.none" = "Nėra";
+
 /* Idle interval 1 second for settings footer */
 "settings.afterInactivity.idle.interval.second" = "1 sek.";
 
 /* Idle interval in seconds for settings footer (plural) */
 "settings.afterInactivity.idle.interval.seconds" = "%d sek.";
 
+/* Settings picker label for the inactivity duration before showing New Tab */
+"settings.afterInactivity.interval.label" = "Neaktyvumo laikmatis";
+
 /* Settings picker label for what to show when returning after inactivity */
-"settings.afterInactivity.label" = "Po neaktyvumo";
+"settings.afterInactivity.label" = "Atidarymo ekranas";
 
 /* Option: show last used tab when returning after inactivity */
 "settings.afterInactivity.option.lastUsedTab" = "Paskutinį kartą naudotas skirtukas";
@@ -4250,6 +4261,12 @@
 /* Progress view title when restoring past subscription purchase */
 "subscription.progress.view.restoring.subscription" = "Atkuriama prenumerata...";
 
+/* Dismiss button on the reinstaller subscription promo. */
+"subscription.promo.reinstaller.buttons.notNow" = "Ne dabar";
+
+/* Body text of the reinstaller subscription promo. ** markers indicate bold text and should be preserved in translations. */
+"subscription.promo.reinstaller.message" = "„DuckDuckGo“ taip pat siūlo **pasirenkamą mokamą prenumeratą** su saugiu **VPN** ir **pažangiu, privačiu DI (dirbtiniu intelektu)**.";
+
 /* Remove from this device button */
 "subscription.remove.from.device.button" = "Pašalinti iš šio įrenginio";
 
@@ -4913,14 +4930,59 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Gaukite „DuckDuckGo“, skirtą „Windows“!";
 
-/* Explanation text for YouTube Ad Blocking feature */
-"youtube.ad.blocking.explanation" = "„DuckDuckGo“ pašalina vaizdo įrašų reklamas „YouTube“ platformoje, todėl gali žiūrėti vaizdo įrašus be trikdžių.";
+/* Body text of the bottom sheet asking the user to send an anonymous breakage report */
+"youtube.ad.blocking.breakage-report.message" = "Siųskite anoniminį pranešimą apie triktį „DuckDuckGo“. Padėkite patobulinti reklamų blokavimą visiems!";
 
-/* Settings screen title for YouTube Ad Blocking */
-"youtube.ad.blocking.title" = "„YouTube“ reklamų blokavimas";
+/* Primary action sending an anonymous YouTube ad-blocking breakage report */
+"youtube.ad.blocking.breakage-report.send" = "Siųsti pranešimą apie triktį";
+
+/* Title of the bottom sheet asking the user to send an anonymous breakage report after disabling YouTube ad blocking */
+"youtube.ad.blocking.breakage-report.title" = "Neveikia „YouTube“ reklamų blokavimas?";
+
+/* Settings cell subtitle indicating YouTube ad blocking will re-enable on next app launch */
+"youtube.ad.blocking.disabled-until-relaunch" = "Išjungta iki paleidimo iš naujo";
+
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "„DuckDuckGo“ blokuoja vaizdo įrašų reklamas „YouTube“ platformoje, todėl galite žiūrėti vaizdo įrašus be trukdžių.";
+
+/* Browsing menu row that turns YouTube ad blocking back on after the user has disabled it */
+"youtube.ad.blocking.menu.enable" = "Įjungti „YouTube“ reklamų blokavimą";
+
+/* Browsing menu row that opens the YouTube ad-block mode picker */
+"youtube.ad.blocking.menu.toggle" = "Išjungti „YouTube“ reklamų blokavimą";
+
+/* Picker option keeping YouTube ad blocking always off */
+"youtube.ad.blocking.mode.always-off" = "Visada išjungta";
+
+/* Picker option keeping YouTube ad blocking always on */
+"youtube.ad.blocking.mode.always-on" = "Visada įjungta";
+
+/* Picker option disabling YouTube ad blocking until the next app launch */
+"youtube.ad.blocking.mode.disable-until-relaunch" = "Išjungti iki paleidimo iš naujo";
+
+/* Title of the YouTube ad-block mode picker bottom sheet */
+"youtube.ad.blocking.picker.title" = "„YouTube“ reklamų blokavimas";
+
+/* Settings screen title for Ad Blocking */
+"youtube.ad.blocking.title" = "Reklamų blokavimas";
 
 /* Toggle label for enabling/disabling YouTube ad blocking */
 "youtube.ad.blocking.toggle" = "Blokuoti reklamas „YouTube“";
+
+/* Description shown below the YouTube ad blocking toggle */
+"youtube.ad.blocking.toggle.footer" = "Kai įjungta, „DuckDuckGo“ anonimiškai aptiks skelbimų blokavimo trukdžius arba „YouTube“ klaidas, kad pagerintų patirtį visiems. „DuckDuckGo“ niekada nemato, kokius vaizdo įrašus žiūrite, ar bet kokios asmenį identifikuojančios informacijos.";
+
+/* Learn More link appended after the YouTube ad blocking toggle description */
+"youtube.ad.blocking.toggle.footer.learn-more" = "Sužinoti daugiau";
+
+/* Acknowledgement button on the YouTube ad-blocking unavailable bottom sheet */
+"youtube.ad.blocking.unavailable.got-it" = "Supratau";
+
+/* Body text of the bottom sheet shown when YouTube ad blocking has been remotely disabled */
+"youtube.ad.blocking.unavailable.message" = "Naujausi „YouTube“ pakeitimai paveikė reklamų blokavimą. Sprendžiame šias problemas ir dėkojame už supratingumą";
+
+/* Title of the bottom sheet shown when YouTube ad blocking has been remotely disabled */
+"youtube.ad.blocking.unavailable.title" = "„YouTube“ reklamų blokavimas nepasiekiamas";
 
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Žymės";
@@ -4937,3 +4999,8 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Ką nori importuoti?";
 
+/* Top-level attachment menu option to add a file to an AI chat message */
+"aichat.attachment.option.attach.file" = "Pridėti failą";
+
+/* Top-level attachment menu option to add an image to an AI chat message */
+"aichat.attachment.option.attach.photo" = "Pridėti paveikslėlį";

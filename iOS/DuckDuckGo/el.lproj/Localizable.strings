@@ -79,6 +79,12 @@
 /* Copy action */
 "action.title.copy" = "Αντιγραφή";
 
+/* Copy clean link action */
+"action.title.copy.clean.link" = "Αντιγραφή καθαρού συνδέσμου";
+
+/* Copy link action */
+"action.title.copy.link" = "Αντιγραφή συνδέσμου";
+
 /* Floating message indicating URL has been copied */
 "action.title.copy.message" = "Η διεύθυνση URL αντιγράφτηκε";
 
@@ -177,6 +183,12 @@
 /* VPN menu item */
 "action.title.vpn" = "VPN";
 
+/* Description of the Ad Blocking feature in settings */
+"ad.blocking.description" = "Αποκλείει επεμβατικά προγράμματα παρακολούθησης προτού φορτώσουν, εξαλείφοντας αποτελεσματικά διαφημίσεις που βασίζονται σε παρακολούθηση";
+
+/* Section header for YouTube-specific ad blocking settings */
+"ad.blocking.youtube.section.header" = "Αποκλεισμός διαφημίσεων YouTube";
+
 /* Settings label for bottom position for the address bar */
 "address.bar.bottom" = "Κάτω μέρος";
 
@@ -212,51 +224,6 @@
 /* Action sheet option to take a photo using the device camera for attaching to an AI chat message */
 "aichat.attachment.option.take.photo" = "Τραβήξτε μια φωτογραφία";
 
-/* Error message displayed when the user has attached more files than are allowed in a conversation. Parameter is the backend-provided maximum number of files. */
-"aichat.attachment.file.count.limit" = "Μπορείτε να επισυνάψετε μόνο %d αρχεία ανά συνομιλία.";
-
-/* Error message displayed when one or more attached files are encrypted and cannot be read */
-"aichat.attachment.file.encrypted" = "Δεν μπορούμε να διαβάσουμε τα επισυναπτόμενα αρχεία επειδή τουλάχιστον ένα από αυτά είναι κρυπτογραφημένο.";
-
-/* Error message displayed when the total size of all attached files in a conversation exceeds the allowed limit. Parameter is the backend-provided combined size limit in megabytes. */
-"aichat.attachment.file.exceeds.conversation.limit" = "Τα συνημμένα αρχεία υπερβαίνουν το συνολικό όριο μεγέθους των %d MB.";
-
-/* Error message displayed when the user tries to attach a file that exceeds the maximum allowed size. Parameter is the backend-provided size limit in megabytes. */
-"aichat.attachment.file.too.large" = "Αυτό το αρχείο είναι πολύ μεγάλο. Το μέγιστο μέγεθος αρχείου είναι %d MB.";
-
-/* Error message displayed when one attached file has more pages than supported. Parameter is the backend-provided maximum supported page count. */
-"aichat.attachment.file.too.many.pages" = "Ένα από τα συνημμένα αρχεία έχει περισσότερες σελίδες από όσες υποστηρίζουμε. Μεταφορτώστε αρχεία με %d σελίδες ή λιγότερες.";
-
-/* Error message displayed when one or more attached files cannot be read */
-"aichat.attachment.file.unreadable" = "Δεν μπορούμε να διαβάσουμε ένα από τα συνημμένα αρχεία. Έλεγξε ότι δεν είναι κατεστραμμένο και προσπαθήστε ξανά.";
-
-/* Error message displayed when the user has attached more images than are allowed in a conversation. Parameter is the backend-provided maximum number of images. */
-"aichat.attachment.image.count.limit" = "Μπορείτε να επισυνάψετε μόνο %d εικόνες ανά συνομιλία.";
-
-/* Error message displayed when the user has attached more images than are allowed in one message. Parameter is the backend-provided maximum number of images per message. */
-"aichat.attachment.image.turn.limit" = "Μπορείτε να επισυνάψετε μόνο %d εικόνες κάθε φορά.";
-
-/* Top-level attachment menu option to attach a file to an AI chat message */
-"aichat.attachment.option.attach.file" = "Επισύναψη αρχείου";
-
-/* Top-level attachment menu option to attach a photo to an AI chat message */
-"aichat.attachment.option.attach.photo" = "Επισύναψη φωτογραφίας";
-
-/* Alert message shown when an AI chat message exceeds the allowed length while attachments are included */
-"aichat.attachment.prompt.too.long" = "Αυτό το μήνυμα είναι πολύ μεγάλο για να σταλεί με συνημμένα.";
-
-/* Generic fallback error message displayed when attachments cannot be validated because the backend-provided attachment limits are unavailable */
-"aichat.attachment.unavailable" = "Τα συνημμένα δεν είναι προσωρινά διαθέσιμα. Προσπαθήστε πάλι αργότερα.";
-
-/* Generic error message displayed when the user tries to upload an unsupported file type and we cannot determine the accepted types */
-"aichat.attachment.unsupported.file.type" = "Αυτός ο τύπος αρχείου δεν υποστηρίζεται.";
-
-/* Error message for unsupported file type when multiple types are accepted. First parameter is a comma-separated list of all accepted types except the last. Second parameter is the last accepted type. Full example: This file type is not supported, please attach a PNG, JPG, WebP, GIF or PDF. */
-"aichat.attachment.unsupported.file.type.multiple" = "Αυτός ο τύπος αρχείου δεν υποστηρίζεται, επισύναψε %1$@ ή %2$@.";
-
-/* Error message displayed when the user tries to upload an unsupported file type and we know which type is accepted. Parameter is a single accepted type. E.g. This file type is not supported, please attach a PDF. */
-"aichat.attachment.unsupported.file.type.single" = "Αυτός ο τύπος αρχείου δεν υποστηρίζεται, επισυνάψτε %@.";
-
 /* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
 "aichat.reasoning.extended.subtitle" = "Για εργασίες ανάλυσης";
 
@@ -278,8 +245,14 @@
 /* Title for the customize responses action in the unified input tools menu */
 "aichat.toolbar.tools.customizeResponses.title" = "Προσαρμογή απαντήσεων";
 
+/* Subtitle for the image generation tool in the unified input tools menu */
+"aichat.toolbar.tools.imagegeneration.subtitle" = "Μετατροπή κειμένου σε εικόνες";
+
+/* Title for the image generation tool in the unified input tools menu */
+"aichat.toolbar.tools.imagegeneration.title" = "Δημιουργία εικόνας";
+
 /* Subtitle for the web search tool in the unified input tools menu */
-"aichat.toolbar.tools.websearch.subtitle" = "Βρείτε τρέχουσες πληροφορίες";
+"aichat.toolbar.tools.websearch.subtitle" = "Βρείτε απαντήσεις από το διαδίκτυο";
 
 /* Title for the web search tool in the unified input tools menu */
 "aichat.toolbar.tools.websearch.title" = "Αναζήτηση στο διαδίκτυο";
@@ -2029,6 +2002,19 @@
 
 /* Title shown on the escape hatch card when the target is a fire tab */
 "escapeHatch.fireTab.title" = "Τελευταία χρήση καρτέλας Fire";
+
+/* Menu item that burns (closes and clears data for) the tab referenced by the escape hatch card */
+"escapeHatch.menu.burnTab" = "Κάψιμο καρτέλας";
+
+/* Menu item that closes the open tab referenced by the escape hatch card */
+"escapeHatch.menu.closeTab" = "Κλείσιμο καρτέλας";
+
+/* Menu item that returns the user to the open tab from the escape hatch card */
+"escapeHatch.menu.returnToTab" = "Επιστροφή στην καρτέλα";
+
+/* Accessibility label for the more options button on the escape hatch card */
+"escapeHatch.moreButton.accessibility.label" = "Περισσότερες επιλογές";
+
 /* Accessibility label for escape hatch card; %@ is the tab title */
 "escapeHatch.returnTo.accessibility.label" = "Επιστροφή σε %@";
 
@@ -2037,6 +2023,9 @@
 
 /* Accessibility label for escape hatch card; first %@ is tab title, second %@ is subtitle/domain */
 "escapeHatch.returnTo.withSubtitle.accessibility.label" = "Επιστροφή σε %1$@, %2$@";
+
+/* Label shown next to the tab count when the escape hatch's tab switcher pill is in its expanded form */
+"escapeHatch.tabSwitcher.privateTabs.label" = "Ιδιωτικές καρτέλες";
 
 /* No comment provided by engineer. */
 "Experiment:" = "Experiment:";
@@ -2446,7 +2435,7 @@
 "input.field.placeholder.duckai" = "Ρώτα οτιδήποτε ιδιωτικά";
 
 /* Placeholder text for the duck.ai input field when a chat is already active */
-"input.field.placeholder.duckai.followup" = "Κάντε μια συμπληρωματική ερώτηση...";
+"input.field.placeholder.duckai.followup" = "Απάντηση...";
 
 /* No comment provided by engineer. */
 "Install Extension" = "Εγκατάσταση επέκτασης";
@@ -2946,6 +2935,12 @@
 /* Display title for Duck.ai in our address bar */
 "omnibar.full-ai-chat-mode.display.title" = "Duck.ai";
 
+/* Label for moving the address bar to the bottom of the screen */
+"omnibar.menu.move-to-bottom" = "Μετακίνηση της γραμμής διευθύνσεων στο κάτω μέρος";
+
+/* Label for moving the address bar to the top of the screen */
+"omnibar.menu.move-to-top" = "Μετακίνηση της γραμμής διευθύνσεων στην κορυφή";
+
 /* Text displayed on notification appearing in the address bar when the browser  dismissed the cookie popup automatically rejecting it */
 "omnibar.notification.cookies-managed" = "Διαχειριζόμενα cookies";
 
@@ -3064,7 +3059,7 @@
 "onboarding.rebranding.first-search-done.title" = "Αυτό είναι το DuckDuckGo Search!";
 
 /* The message of the onboarding dialog popup */
-"onboarding.rebranding.intro.message" = "Είστε έτοιμοι για ένα ταχύτερο πρόγραμμα περιήγησης το οποίο σας προστατεύει και σας επιτρέπει να αποφασίζετε πότε και πώς να χρησιμοποιείτε την τεχνητή νοημοσύνη;";
+"onboarding.rebranding.intro.message" = "Είσαι έτοιμος για ένα ταχύτερο πρόγραμμα περιήγησης που σου δίνει τον έλεγχο;\n\nΗ τεχνητή νοημοσύνη είναι πάντα προαιρετική και η προστασία προσωπικών δεδομένων είναι πάντα ενεργοποιημένη.";
 
 /* The title of the onboarding intro */
 "onboarding.rebranding.intro.title" = "Γεια σας.";
@@ -3404,6 +3399,10 @@
 
 /* Title for scoped fire confirmation dialog in fire mode, asking user to delete all fire tabs and their data */
 "scoped.fire.confirmation.alert.fireMode.title" = "Να διαγραφούν οι καρτέλες Fire και τα δεδομένα τους;";
+
+/* Title for fire confirmation dialog asking user to delete a single tab and its site data */
+"scoped.fire.confirmation.alert.single.tab.title" = "Διαγραφή καρτέλας και δεδομένων ιστότοπου;";
+
 /* Title for scoped fire confirmation dialog asking user to delete tabs and site data */
 "scoped.fire.confirmation.alert.title" = "Διαγραφή καρτελών και δεδομένων ιστότοπου;";
 
@@ -3412,6 +3411,9 @@
 
 /* Button to delete all tabs and data in scoped fire confirmation dialog */
 "scoped.fire.confirmation.delete.all.button" = "Διαγραφή όλων";
+
+/* Button to delete a single tab and its site data in scoped fire confirmation dialog */
+"scoped.fire.confirmation.delete.tab.button" = "Διαγραφή καρτέλας";
 
 /* Button to delete only the current chat in scoped fire confirmation dialog */
 "scoped.fire.confirmation.delete.this.chat.button" = "Διαγραφή αυτής της συνομιλίας";
@@ -3504,7 +3506,10 @@
 "settings.address.trackers.animation" = "Εμφάνιση στη Γραμμή διευθύνσεων";
 
 /* Section footer; %@ is the idle interval (e.g. 5 minutes) */
-"settings.afterInactivity.footer.format" = "Επιλέξτε τι θα βλέπετε όταν επιστρέφετε μετά από %@ αδράνειας.";
+"settings.afterInactivity.footer.format" = "Επιλέξτε τι θα βλέπετε όταν επιστρέψετε στο DuckDuckGo μετά από %@ αδράνειας.";
+
+/* Section footer when no inactivity timer is set or the Last Used Tab option is selected */
+"settings.afterInactivity.footer.none" = "Επιλέξτε τι θα βλέπετε όταν επιστρέψετε στο DuckDuckGo.";
 
 /* Idle interval 1 hour for settings footer */
 "settings.afterInactivity.idle.interval.hour" = "1 ώρα";
@@ -3518,14 +3523,20 @@
 /* Idle interval in minutes for settings footer (plural) */
 "settings.afterInactivity.idle.interval.minutes" = "%d λεπτά";
 
+/* Idle interval option meaning the New Tab Page is shown every time the user returns (no inactivity threshold) */
+"settings.afterInactivity.idle.interval.none" = "Κανένα";
+
 /* Idle interval 1 second for settings footer */
 "settings.afterInactivity.idle.interval.second" = "1 δευτερόλεπτο";
 
 /* Idle interval in seconds for settings footer (plural) */
 "settings.afterInactivity.idle.interval.seconds" = "%d δευτερόλεπτα";
 
+/* Settings picker label for the inactivity duration before showing New Tab */
+"settings.afterInactivity.interval.label" = "Χρονόμετρο αδράνειας";
+
 /* Settings picker label for what to show when returning after inactivity */
-"settings.afterInactivity.label" = "Μετά από αδράνεια";
+"settings.afterInactivity.label" = "Οθόνη έναρξης";
 
 /* Option: show last used tab when returning after inactivity */
 "settings.afterInactivity.option.lastUsedTab" = "Τελευταία καρτέλα που χρησιμοποιήθηκε";
@@ -4250,6 +4261,12 @@
 /* Progress view title when restoring past subscription purchase */
 "subscription.progress.view.restoring.subscription" = "Επαναφορά συνδρομής...";
 
+/* Dismiss button on the reinstaller subscription promo. */
+"subscription.promo.reinstaller.buttons.notNow" = "Όχι τώρα";
+
+/* Body text of the reinstaller subscription promo. ** markers indicate bold text and should be preserved in translations. */
+"subscription.promo.reinstaller.message" = "Το DuckDuckGo διαθέτει επίσης μια **προαιρετική επί πληρωμή συνδρομή**, με ασφαλές **VPN** και **προηγμένη, ιδιωτική τεχνητή νοημοσύνη**.";
+
 /* Remove from this device button */
 "subscription.remove.from.device.button" = "Αφαίρεση από αυτήν τη συσκευή";
 
@@ -4913,14 +4930,59 @@
 /* Title for the Windows browser download link page */
 "windows-waitlist.waitlist-download-screen.try-duckduckgo-for-windows" = "Αποκτήστε το DuckDuckGo για Windows!";
 
-/* Explanation text for YouTube Ad Blocking feature */
-"youtube.ad.blocking.explanation" = "Το DuckDuckGo αφαιρεί τις διαφημίσεις βίντεο από το YouTube, ώστε να μπορείτε να παρακολουθείτε βίντεο χωρίς διακοπές.";
+/* Body text of the bottom sheet asking the user to send an anonymous breakage report */
+"youtube.ad.blocking.breakage-report.message" = "Στείλε μια ανώνυμη αναφορά βλάβης στο DuckDuckGo. Βοήθησε να κάνουμε τον αποκλεισμό διαφημίσεων καλύτερο για όλους!";
 
-/* Settings screen title for YouTube Ad Blocking */
-"youtube.ad.blocking.title" = "Αποκλεισμός διαφημίσεων YouTube";
+/* Primary action sending an anonymous YouTube ad-blocking breakage report */
+"youtube.ad.blocking.breakage-report.send" = "Αποστολή Αναφοράς βλάβης";
+
+/* Title of the bottom sheet asking the user to send an anonymous breakage report after disabling YouTube ad blocking */
+"youtube.ad.blocking.breakage-report.title" = "Ο αποκλεισμός διαφημίσεων στο YouTube δεν λειτουργεί;";
+
+/* Settings cell subtitle indicating YouTube ad blocking will re-enable on next app launch */
+"youtube.ad.blocking.disabled-until-relaunch" = "Απενεργοποιημένος μέχρι την επανεκκίνηση";
+
+/* Explanation text for YouTube Ad Blocking feature */
+"youtube.ad.blocking.explanation" = "Το DuckDuckGo αποκλείει τις διαφημίσεις βίντεο στο YouTube, ώστε να μπορείς να βλέπεις βίντεο χωρίς διακοπές.";
+
+/* Browsing menu row that turns YouTube ad blocking back on after the user has disabled it */
+"youtube.ad.blocking.menu.enable" = "Ενεργοποίηση αποκλεισμού διαφημίσεων στο YouTube";
+
+/* Browsing menu row that opens the YouTube ad-block mode picker */
+"youtube.ad.blocking.menu.toggle" = "Απενεργοποίηση αποκλεισμού διαφημίσεων YouTube";
+
+/* Picker option keeping YouTube ad blocking always off */
+"youtube.ad.blocking.mode.always-off" = "Πάντα ανενεργός";
+
+/* Picker option keeping YouTube ad blocking always on */
+"youtube.ad.blocking.mode.always-on" = "Πάντα ενεργός";
+
+/* Picker option disabling YouTube ad blocking until the next app launch */
+"youtube.ad.blocking.mode.disable-until-relaunch" = "Απενεργοποίηση μέχρι την επανεκκίνηση";
+
+/* Title of the YouTube ad-block mode picker bottom sheet */
+"youtube.ad.blocking.picker.title" = "Αποκλεισμός διαφημίσεων YouTube";
+
+/* Settings screen title for Ad Blocking */
+"youtube.ad.blocking.title" = "Αποκλεισμός διαφημίσεων";
 
 /* Toggle label for enabling/disabling YouTube ad blocking */
 "youtube.ad.blocking.toggle" = "Αποκλείστε διαφημίσεις στο YouTube";
+
+/* Description shown below the YouTube ad blocking toggle */
+"youtube.ad.blocking.toggle.footer" = "Όταν είναι ενεργοποιημένο, το DuckDuckGo θα ανιχνεύει ανώνυμα παρεμβολές αποκλεισμού διαφημίσεων ή σφάλματα YouTube, για να βελτιώνει την εμπειρία για όλους. Το DuckDuckGo δεν βλέπει ποτέ ποια βίντεο παρακολουθείτε ούτε τυχόν προσωπικά στοιχεία ταυτοποίησης.";
+
+/* Learn More link appended after the YouTube ad blocking toggle description */
+"youtube.ad.blocking.toggle.footer.learn-more" = "Μάθετε περισσότερα";
+
+/* Acknowledgement button on the YouTube ad-blocking unavailable bottom sheet */
+"youtube.ad.blocking.unavailable.got-it" = "Το κατάλαβα";
+
+/* Body text of the bottom sheet shown when YouTube ad blocking has been remotely disabled */
+"youtube.ad.blocking.unavailable.message" = "Ο αποκλεισμός διαφημίσεων έχει επηρεαστεί από τις πρόσφατες αλλαγές στο YouTube. Προσπαθούμε να διορθώσουμε αυτά τα προβλήματα και εκτιμούμε την κατανόησή σου";
+
+/* Title of the bottom sheet shown when YouTube ad blocking has been remotely disabled */
+"youtube.ad.blocking.unavailable.title" = "Ο αποκλεισμός διαφημίσεων στο YouTube δεν είναι διαθέσιμος";
 
 /* Option to select to import bookmarks */
 "zip.content.import.type.bookmarks" = "Σελιδοδείκτες";
@@ -4937,3 +4999,8 @@
 /* Title for screen to screen confirming what data to import from a zip file (bookmarks and /or passwords) */
 "zip.content.import.types.title" = "Τι θέλετε να εισαγάγετε;";
 
+/* Top-level attachment menu option to add a file to an AI chat message */
+"aichat.attachment.option.attach.file" = "Προσθήκη αρχείου";
+
+/* Top-level attachment menu option to add an image to an AI chat message */
+"aichat.attachment.option.attach.photo" = "Προσθήκη εικόνας";

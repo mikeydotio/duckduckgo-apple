@@ -37,6 +37,12 @@ extension MainViewController {
         }, deepLinkTarget: .appearance)
     }
 
+    func segueToGeneralSettings() {
+        launchSettings(completion: {
+            $0.triggerDeepLinkNavigation(to: .general)
+        }, deepLinkTarget: .general)
+    }
+
     func segueToCustomizeAddressBarSettings() {
         launchSettings(completion: {
             $0.triggerDeepLinkNavigation(to: .customizeAddressBarButton)
@@ -53,25 +59,23 @@ extension MainViewController {
         Logger.lifecycle.debug(#function)
         hideAllHighlightsIfNeeded()
 
-        let controller: Onboarding = if featureFlagger.isFeatureOn(.onboardingRebranding) {
-            OnboardingIntroViewController.rebranded(
-                onboardingPixelReporter: contextualOnboardingPixelReporter,
-                systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
-                daxDialogsManager: daxDialogsManager,
-                syncAutoRestoreHandler: syncAutoRestoreHandler,
-                onboardingManager: onboardingManager
-            )
-        } else {
-            OnboardingIntroViewController.legacy(
-                onboardingPixelReporter: contextualOnboardingPixelReporter,
-                systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
-                daxDialogsManager: daxDialogsManager,
-                syncAutoRestoreHandler: syncAutoRestoreHandler,
-                onboardingManager: onboardingManager
-            )
-        }
-        controller.delegate = self
+        let viewModel = OnboardingIntroFactory.makeViewModel(
+            pixelReporter: contextualOnboardingPixelReporter,
+            systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
+            daxDialogsManager: daxDialogsManager,
+            syncAutoRestoreHandler: syncAutoRestoreHandler,
+            onboardingManager: onboardingManager
+        )
+        let controller = OnboardingIntroFactory.makeController(
+            viewModel: viewModel,
+            isRebranded: featureFlagger.isFeatureOn(.onboardingRebranding),
+            delegate: self
+        )
         controller.modalPresentationStyle = .overFullScreen
+        linearOnboardingContext = OnboardingIntroContext(
+            onboardingViewController: controller,
+            onboardingViewModel: viewModel
+        )
         present(controller, animated: false, completion: completion)
     }
 
@@ -472,6 +476,7 @@ extension MainViewController {
                                                   privacyConfigurationManager: privacyConfigurationManager,
                                                   keyValueStore: keyValueStore,
                                                   idleReturnEligibilityManager: idleReturnEligibilityManager,
+                                                  afterInactivityOptionAdapter: afterInactivityOptionAdapter,
                                                   systemSettingsPiPTutorialManager: systemSettingsPiPTutorialManager,
                                                   runPrerequisitesDelegate: dbpIOSPublicInterface,
                                                   dataBrokerProtectionViewControllerProvider: dbpIOSPublicInterface,

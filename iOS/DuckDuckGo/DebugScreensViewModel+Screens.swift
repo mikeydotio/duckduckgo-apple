@@ -88,6 +88,9 @@ extension DebugScreensViewModel {
             .action(title: "Reset Prompts Cooldown Period", resetModalPromptsCooldownPeriod),
 
             // MARK: SwiftUI Views
+            .view(title: "Ad Blocking", { d in
+                AdBlockingDebugView(keyValueStore: d.keyValueStore)
+            }),
             .view(title: "AI Chat", { dependencies in
                 AIChatDebugView(duckAiNativeStorageHandler: dependencies.duckAiNativeStorageHandler)
             }),
@@ -246,6 +249,9 @@ extension DebugScreensViewModel {
             }),
             .controller(title: "Onboarding", { d in
                 class OnboardingDebugViewController: UIHostingController<OnboardingDebugView>, OnboardingDelegate {
+
+                    func didStartOnboardingInterlude(_ interlude: OnboardingIntroStep.Interlude) {}
+
                     func onboardingCompleted(controller: UIViewController) {
                         controller.presentingViewController?.dismiss(animated: true)
                     }
@@ -262,24 +268,18 @@ extension DebugScreensViewModel {
                 let onboardingController = OnboardingDebugViewController(rootView: OnboardingDebugView(initialFlow: defaultFlow) { flow in
                     guard let capturedController else { return }
 
-                    let controller: Onboarding = if flow.isRebranding {
-                        OnboardingIntroViewController.rebranded(
-                            onboardingPixelReporter: OnboardingPixelReporter(),
-                            systemSettingsPiPTutorialManager: d.systemSettingsPiPTutorialManager,
-                            daxDialogsManager: d.daxDialogManager,
-                            syncAutoRestoreHandler: d.syncAutoRestoreHandler,
-                            onboardingManager: OnboardingManager()
-                        )
-                    } else {
-                        OnboardingIntroViewController.legacy(
-                            onboardingPixelReporter: OnboardingPixelReporter(),
-                            systemSettingsPiPTutorialManager: d.systemSettingsPiPTutorialManager,
-                            daxDialogsManager: d.daxDialogManager,
-                            syncAutoRestoreHandler: d.syncAutoRestoreHandler,
-                            onboardingManager: OnboardingManager()
-                        )
-                    }
-                    controller.delegate = capturedController
+                    let viewModel = OnboardingIntroFactory.makeViewModel(
+                        pixelReporter: OnboardingPixelReporter(),
+                        systemSettingsPiPTutorialManager: d.systemSettingsPiPTutorialManager,
+                        daxDialogsManager: d.daxDialogManager,
+                        syncAutoRestoreHandler: d.syncAutoRestoreHandler,
+                        onboardingManager: OnboardingManager()
+                    )
+                    let controller = OnboardingIntroFactory.makeController(
+                        viewModel: viewModel,
+                        isRebranded: flow.isRebranding,
+                        delegate: capturedController
+                    )
                     controller.modalPresentationStyle = .overFullScreen
                     capturedController.parent?.present(controller: controller, fromView: capturedController.view)
                 })

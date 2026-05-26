@@ -120,23 +120,17 @@
         "description": "Optional reason accompanying the feature status"
     },
     "wideEventErrorDomain": {
-        "key": "feature.data.error.domain",
+        "key": "feature.data.ext.error.domain",
         "type": "string",
         "description": "Error domain for the failure, when applicable, e.g. SKErrorDomain"
     },
     "wideEventErrorCode": {
-        "key": "feature.data.error.code",
+        "key": "feature.data.ext.error.code",
         "type": "integer",
         "description": "Error code for the failure, when applicable"
     },
-    "wideEventErrorDescription": {
-        "key": "feature.data.error.description",
-        "type": "string",
-        "description": "Error description for the failure, when applicable",
-        "examples": ["saveToPreferencesFailed", "startVPNFailed"]
-    },
     "wideEventUnderlyingErrorDomain": {
-        "keyPattern": "feature\\.data\\.error\\.underlying_domain[0-9]?",
+        "keyPattern": "feature\\.data\\.ext\\.error\\.underlying_domain[0-9]?",
         "type": "string",
         "description": "Underlying error domain (supports optional numeric index for nested errors)"
     },
@@ -174,7 +168,7 @@
         ]
     },
     "wideEventUnderlyingErrorCode": {
-        "keyPattern": "feature\\.data\\.error\\.underlying_code[0-9]?",
+        "keyPattern": "feature\\.data\\.ext\\.error\\.underlying_code[0-9]?",
         "type": "integer",
         "description": "Underlying error code (supports optional numeric index for nested errors)"
     },
@@ -286,11 +280,17 @@
         "description": "Location selection for the VPN latency test",
         "enum": ["nearest", "custom"]
     },
+    "connectionAttemptSource": {
+        "key": "source",
+        "type": "string",
+        "description": "The origin of a VPN connection attempt",
+        "enum": ["start", "rekey", "serverChange", "locationChange", "adapterRestart", "failureRecovery", "serverMigration"]
+    },
     "burnSource": {
         "key": "source",
         "type": "string",
         "description": "Source of the burn action",
-        "enum": ["browsing", "tabSwitcher", "settings", "quickFire", "deeplink", "autoClear"]
+        "enum": ["browsing", "tabSwitcher", "settings", "quickFire", "deeplink", "autoClear", "escapeHatch"]
     },
     "tabType": {
         "key": "tabType",
@@ -371,5 +371,41 @@
         "type": "string",
         "description": "Variant of the onboarding flow the user selected after branching on the 'Try a search or AI chat' step",
         "enum": ["search_plus_duckai-search", "search_plus_duckai-chat"]
+    },
+    "tabCount": {
+        "key": "tab_count",
+        "type": "string",
+        "description": "Bucketed total tab count.",
+        "enum": ["1", "2-5", "6-10", "11-20", "21-40", "41-60", "61-80", "81+"]
+    },
+    "newTabCount": {
+        "key": "new_tab_count",
+        "type": "string",
+        "description": "Bucketed count of tabs with no link (blank/new tab pages).",
+        "enum": ["0-1", "2-10", "11+"]
+    },
+    "tabActive7d": {
+        "key": "tab_active_7d",
+        "type": "string",
+        "description": "Bucketed count of tabs last viewed within the past 7 days.",
+        "enum": ["0", "1-5", "6-10", "11-20", "21+"]
+    },
+    "tabInactive1w": {
+        "key": "tab_inactive_1w",
+        "type": "string",
+        "description": "Bucketed count of tabs last viewed 8-14 days ago.",
+        "enum": ["0", "1-5", "6-10", "11-20", "21+"]
+    },
+    "tabInactive2w": {
+        "key": "tab_inactive_2w",
+        "type": "string",
+        "description": "Bucketed count of tabs last viewed 15-21 days ago.",
+        "enum": ["0", "1-5", "6-10", "11-20", "21+"]
+    },
+    "tabInactive3w": {
+        "key": "tab_inactive_3w",
+        "type": "string",
+        "description": "Bucketed count of tabs last viewed 22+ days ago.",
+        "enum": ["0", "1-5", "6-10", "11-20", "21+"]
     }
 }

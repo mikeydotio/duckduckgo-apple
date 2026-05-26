@@ -18,6 +18,7 @@
 //
 
 import AIChat
+import Core
 import DesignResourcesKitIcons
 import PhotosUI
 import UIKit
@@ -30,14 +31,18 @@ final class UnifiedToggleInputAttachmentPresenter: NSObject {
         let fileName: String
         let mimeType: String
         let fileSizeBytes: Int?
-        fileprivate let url: URL
+        let url: URL
     }
 
     var onExpandIfNeeded: (() -> Void)?
     var onImagePicked: ((UIImage, String) -> Void)?
-    var onFilePicked: ((AIChatFileAttachment) -> Void)?
-    var onFileValidationFailed: ((String) -> Void)?
+    var onFilePicked: ((AIChatFileAttachment, FileMetadata) -> Void)?
+    var onFileValidationFailed: ((String, FileMetadata) -> Void)?
     var fileMetadataValidationMessage: ((FileMetadata) -> String?)?
+
+    nonisolated static func recoverFileAttachment(from metadata: FileMetadata, id: UUID = UUID()) -> AIChatFileAttachment? {
+        fileAttachment(from: metadata, id: id)
+    }
 
     func makeAttachmentMenu(
         presenterProvider: @escaping () -> UIViewController?,
@@ -150,7 +155,14 @@ private extension UnifiedToggleInputAttachmentPresenter {
         }
     }
 
-    nonisolated static func fileAttachment(from metadata: FileMetadata) -> AIChatFileAttachment? {
+    nonisolated static func fallbackFileMetadata(from url: URL) -> FileMetadata {
+        let mimeType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+        return FileMetadata(fileName: url.lastPathComponent, mimeType: mimeType, fileSizeBytes: nil, url: url)
+    }
+
+    nonisolated static func fileAttachment(from metadata: FileMetadata, id: UUID = UUID()) -> AIChatFileAttachment? {
+        guard !Task.isCancelled else { return nil }
+
         let hasScopedAccess = metadata.url.startAccessingSecurityScopedResource()
         defer {
             if hasScopedAccess {
@@ -160,9 +172,12 @@ private extension UnifiedToggleInputAttachmentPresenter {
 
         do {
             let data = try Data(contentsOf: metadata.url)
+            guard !Task.isCancelled else { return nil }
+
             let pdfInspection = Self.inspectPDF(data: data, mimeType: metadata.mimeType)
 
             return AIChatFileAttachment(
+                id: id,
                 data: data,
                 fileName: metadata.fileName,
                 mimeType: metadata.mimeType,
@@ -206,6 +221,10 @@ extension UnifiedToggleInputAttachmentPresenter: PHPickerViewControllerDelegate 
                 guard let image = object as? UIImage else { return }
 
                 Task { @MainActor in
+                    DailyPixel.fireDailyAndCount(
+                        pixel: .unifiedToggleInputImageAttached,
+                        withAdditionalParameters: ["source": "photo_library"]
+                    )
                     self?.onImagePicked?(image, suggestedName)
                 }
             }
@@ -219,6 +238,10 @@ extension UnifiedToggleInputAttachmentPresenter: UIImagePickerControllerDelegate
         picker.dismiss(animated: true)
         onExpandIfNeeded?()
         guard let image = info[.originalImage] as? UIImage else { return }
+        DailyPixel.fireDailyAndCount(
+            pixel: .unifiedToggleInputImageAttached,
+            withAdditionalParameters: ["source": "camera"]
+        )
         onImagePicked?(image, "photo")
     }
 
@@ -241,12 +264,12 @@ extension UnifiedToggleInputAttachmentPresenter: UIDocumentPickerDelegate {
                 Self.fileMetadata(from: url)
             }.value
             guard let metadata else {
-                onFileValidationFailed?(UserText.aiChatAttachmentFileUnreadable)
+                onFileValidationFailed?(UserText.aiChatAttachmentFileUnreadable, Self.fallbackFileMetadata(from: url))
                 return
             }
 
             if let validationMessage = fileMetadataValidationMessage?(metadata) {
-                onFileValidationFailed?(validationMessage)
+                onFileValidationFailed?(validationMessage, metadata)
                 return
             }
 
@@ -254,11 +277,11 @@ extension UnifiedToggleInputAttachmentPresenter: UIDocumentPickerDelegate {
                 Self.fileAttachment(from: metadata)
             }.value
             guard let fileAttachment else {
-                onFileValidationFailed?(UserText.aiChatAttachmentFileUnreadable)
+                onFileValidationFailed?(UserText.aiChatAttachmentFileUnreadable, metadata)
                 return
             }
 
-            onFilePicked?(fileAttachment)
+            onFilePicked?(fileAttachment, metadata)
         }
     }
 

@@ -19,8 +19,23 @@
 
 import AIChat
 import Foundation
+import UniformTypeIdentifiers
 
 struct UTIAttachmentPolicy {
+
+    enum FileValidationFailureReason: String {
+        case sizeExceeded = "size_exceeded"
+        case countExceeded = "count_exceeded"
+        case unsupportedType = "unsupported_type"
+        case other
+        case encrypted
+        case unreadable
+    }
+
+    struct FileValidationError {
+        let reason: FileValidationFailureReason
+        let message: String
+    }
 
     let attachmentLimits: AIChatAttachmentTierLimits?
     let attachmentUsage: AIChatAttachmentUsage?
@@ -70,16 +85,19 @@ struct UTIAttachmentPolicy {
     }
 
     func fileValidationMessage(for attachment: AIChatFileAttachment) -> String? {
-        if let metadataValidationMessage = fileMetadataValidationMessage(mimeType: attachment.mimeType, fileSizeBytes: attachment.fileSizeBytes) {
-            return metadataValidationMessage
-        }
-
-        return pageValidationMessage(for: attachment)
+        fileValidationError(for: attachment)?.message
     }
 
-    func fileMetadataValidationMessage(mimeType: String, fileSizeBytes: Int?) -> String? {
+    func fileValidationError(for attachment: AIChatFileAttachment) -> FileValidationError? {
+        if let metadataError = fileMetadataValidationError(mimeType: attachment.mimeType, fileSizeBytes: attachment.fileSizeBytes) {
+            return metadataError
+        }
+        return pageValidationError(for: attachment)
+    }
+
+    func fileMetadataValidationError(mimeType: String, fileSizeBytes: Int?) -> FileValidationError? {
         guard model?.supportsFileUpload == true else {
-            return UserText.aiChatAttachmentUnsupportedFileType
+            return FileValidationError(reason: .unsupportedType, message: UserText.aiChatAttachmentUnsupportedFileType)
         }
 
         guard let maxFilesPerConversation,
@@ -87,11 +105,14 @@ struct UTIAttachmentPolicy {
               let maxFileSizeBytes,
               let maxTotalFileSizeBytes,
               let maxTotalFileSizeMB else {
-            return UserText.aiChatAttachmentUnavailable
+            return FileValidationError(reason: .other, message: UserText.aiChatAttachmentUnavailable)
         }
 
         guard model?.supportedFileTypes.contains(mimeType) == true else {
-            return UserText.aiChatAttachmentUnsupportedFileType(acceptedFileTypes: acceptedFileTypeNames)
+            return FileValidationError(
+                reason: .unsupportedType,
+                message: UserText.aiChatAttachmentUnsupportedFileType(acceptedFileTypes: acceptedFileTypeNames)
+            )
         }
 
         let filesUsed = attachmentUsage?.filesUsed ?? 0
@@ -100,16 +121,25 @@ struct UTIAttachmentPolicy {
         let remainingBytes = maxTotalFileSizeBytes - fileBytesUsed - pendingFileSizeBytes
 
         if remainingConversationSlots <= 0 {
-            return UserText.aiChatAttachmentFileCountLimit(maxFilesPerConversation: maxFilesPerConversation)
+            return FileValidationError(
+                reason: .countExceeded,
+                message: UserText.aiChatAttachmentFileCountLimit(maxFilesPerConversation: maxFilesPerConversation)
+            )
         }
 
         if let fileSizeBytes {
             if fileSizeBytes > maxFileSizeBytes {
-                return UserText.aiChatAttachmentFileTooLarge(maxFileSizeMB: maxFileSizeMB)
+                return FileValidationError(
+                    reason: .sizeExceeded,
+                    message: UserText.aiChatAttachmentFileTooLarge(maxFileSizeMB: maxFileSizeMB)
+                )
             }
 
             if fileSizeBytes > remainingBytes {
-                return UserText.aiChatAttachmentFilesExceedTotalSizeLimit(maxTotalFileSizeMB: maxTotalFileSizeMB)
+                return FileValidationError(
+                    reason: .sizeExceeded,
+                    message: UserText.aiChatAttachmentFilesExceedTotalSizeLimit(maxTotalFileSizeMB: maxTotalFileSizeMB)
+                )
             }
         }
 
@@ -121,10 +151,11 @@ struct UTIAttachmentPolicy {
     }
 
     func fileSubmissionValidationMessage() -> String? {
-        let pendingFiles = pendingAttachments.compactMap { attachment -> AIChatFileAttachment? in
-            guard case .file(let fileAttachment) = attachment else { return nil }
-            return fileAttachment
+        if let invalidAttachment = pendingAttachments.first(where: \.isInvalid) {
+            return invalidAttachment.validationMessage
         }
+
+        let pendingFiles = pendingAttachments.compactMap(\.fileAttachment)
         guard !pendingFiles.isEmpty else { return nil }
         guard model?.supportsFileUpload == true else {
             return UserText.aiChatAttachmentUnsupportedFileType
@@ -156,7 +187,7 @@ struct UTIAttachmentPolicy {
             return UserText.aiChatAttachmentFilesExceedTotalSizeLimit(maxTotalFileSizeMB: maxTotalFileSizeMB)
         }
 
-        return pendingFiles.compactMap { pageValidationMessage(for: $0) }.first
+        return pendingFiles.compactMap { pageValidationError(for: $0)?.message }.first
     }
 
     func imageSubmissionValidationMessage() -> String? {
@@ -188,6 +219,8 @@ struct UTIAttachmentPolicy {
             return model?.supportsImageUpload == true
         case .file(let fileAttachment):
             return model?.supportedFileTypes.contains(fileAttachment.mimeType) == true
+        case .invalidFile(let fileAttachment):
+            return model?.supportedFileTypes.contains(fileAttachment.mimeType) == true
         }
     }
 
@@ -210,11 +243,11 @@ private extension UTIAttachmentPolicy {
     }
 
     var pendingFileCount: Int {
-        pendingAttachments.filter(\.isFile).count
+        pendingAttachments.compactMap(\.fileAttachment).count
     }
 
     var pendingFileSizeBytes: Int {
-        pendingAttachments.reduce(0) { $0 + $1.fileSizeBytes }
+        pendingAttachments.compactMap(\.fileAttachment).reduce(0) { $0 + $1.fileSizeBytes }
     }
 
     var maxImagesPerTurn: Int? {
@@ -253,24 +286,34 @@ private extension UTIAttachmentPolicy {
         maxTotalFileSizeBytes.map { Int(ceil(Double($0) / 1_048_576)) }
     }
 
-    func pageValidationMessage(for attachment: AIChatFileAttachment) -> String? {
+    func pageValidationError(for attachment: AIChatFileAttachment) -> FileValidationError? {
         guard attachment.mimeType == "application/pdf",
               let maxPagesPerFile else {
             return nil
         }
 
         guard let pageCount = attachment.pageCount else {
-            return attachment.isEncrypted ? UserText.aiChatAttachmentFileEncrypted : UserText.aiChatAttachmentFileUnreadable
+            if attachment.isEncrypted {
+                return FileValidationError(reason: .encrypted, message: UserText.aiChatAttachmentFileEncrypted)
+            } else {
+                return FileValidationError(reason: .unreadable, message: UserText.aiChatAttachmentFileUnreadable)
+            }
         }
 
-        return pageCount > maxPagesPerFile ? UserText.aiChatAttachmentFileTooManyPages(maxPagesPerFile: maxPagesPerFile) : nil
+        if pageCount > maxPagesPerFile {
+            return FileValidationError(
+                reason: .countExceeded,
+                message: UserText.aiChatAttachmentFileTooManyPages(maxPagesPerFile: maxPagesPerFile)
+            )
+        }
+        return nil
     }
 
     var acceptedFileTypeNames: [String] {
-        model?.supportedFileTypes.compactMap(Self.fileTypeName(for:)) ?? []
+        model?.supportedFileTypes.map(Self.fileTypeName(for:)) ?? []
     }
 
-    static func fileTypeName(for mimeType: String) -> String? {
+    static func fileTypeName(for mimeType: String) -> String {
         switch mimeType {
         case "application/pdf":
             return "PDF"
@@ -283,7 +326,12 @@ private extension UTIAttachmentPolicy {
         case "image/gif":
             return "GIF"
         default:
-            return nil
+            if let filenameExtension = UTType(mimeType: mimeType)?.preferredFilenameExtension {
+                return filenameExtension.uppercased()
+            }
+
+            let subtype = mimeType.split(separator: "/").last.map(String.init) ?? mimeType
+            return (subtype.split(separator: ".").last.map(String.init) ?? subtype).uppercased()
         }
     }
 }

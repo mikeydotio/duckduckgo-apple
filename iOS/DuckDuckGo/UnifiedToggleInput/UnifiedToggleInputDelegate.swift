@@ -25,7 +25,19 @@ protocol UnifiedToggleInputDelegate: AnyObject {
     func unifiedToggleInputDidSubmitQuery(_ query: String)
     func unifiedToggleInputDidRequestVoiceSearch()
     func unifiedToggleInputDidRequestAIVoiceChat()
-    func unifiedToggleInputDidRequestAIChat()
+    func unifiedToggleInputDidRequestAIChat(prefilledText: String)
     func unifiedToggleInputDidChangeHeight()
     func unifiedToggleInputDidCommitMode(_ mode: TextEntryMode)
+    func unifiedToggleInputDidRequestFire()
+    func unifiedToggleInputDidRequestDuckAIVoiceMode()
+    /// Destination state the UTI should snap to at the start of an inline-dismiss animation.
+    func unifiedToggleInputDismissSnapshot() -> UTIDismissSnapshot
+    func unifiedToggleInputDidTapClearText()
+    func unifiedToggleInputDidTapToActivate()
+}
+
+extension UnifiedToggleInputDelegate {
+    func unifiedToggleInputDismissSnapshot() -> UTIDismissSnapshot { .empty }
+    func unifiedToggleInputDidTapClearText() {}
+    func unifiedToggleInputDidTapToActivate() {}
 }

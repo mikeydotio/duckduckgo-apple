@@ -350,12 +350,8 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
 
     func fireMonitoringPixels() async {
         let isAuthenticated = await authenticationManager.isUserAuthenticated
-        
-        /*
-         Engagement pixels disabled for now as checking for the profile on the main thread was causing an increase in hang rates
-         */
-        // tryToFireEngagementPixels(isAuthenticated: isAuthenticated)
 
+        tryToFireEngagementPixels(isAuthenticated: isAuthenticated)
         tryToFireWeeklyPixels(isAuthenticated: isAuthenticated)
 
         // Stats pixels only fire for authenticated users (they relate to opt-outs)
@@ -370,8 +366,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
 
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.UserEventsDelegate {
     public func dashboardDidOpen() {
-        guard featureFlagger.isForegroundRunningWhenDashboardOpenFeatureOn,
-              !isInitialContinuedProcessingRunActive else { return }
+        guard !isInitialContinuedProcessingRunActive else { return }
 
         if currentRunIsFreeScan == true && canRunFreemiumScans {
             Logger.dataBrokerProtection.log("Starting scan-only operations whilst dashboard open (freemium)")
@@ -387,8 +382,6 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.UserEventsDelegate {
     }
     
     public func dashboardDidClose() {
-        guard featureFlagger.isForegroundRunningWhenDashboardOpenFeatureOn else { return }
-
         Logger.dataBrokerProtection.log("Stopping operations as dashboard closed")
         // We don't want to stop immediate scans if they are running
         self.queueManager.stopScheduledOperationsOnly()
@@ -682,8 +675,9 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.OptOutEmailConfirmatio
 
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.PixelsDelegate {
     func tryToFireEngagementPixels(isAuthenticated: Bool) {
-        Task { @MainActor in
-            engagementPixels.fireEngagementPixel(isAuthenticated: isAuthenticated, needBackgroundAppRefresh: needBackgroundAppRefreshForEngagementPixel())
+        Task {
+            let needBackgroundAppRefresh = await needBackgroundAppRefreshForEngagementPixel()
+            engagementPixels.fireEngagementPixel(isAuthenticated: isAuthenticated, needBackgroundAppRefresh: needBackgroundAppRefresh)
         }
     }
 
