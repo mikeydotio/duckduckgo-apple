@@ -1629,7 +1629,7 @@ class MainViewController: UIViewController {
         tabModel.viewed = true
         tabModel.openedAfterIdle = openedAfterIdle
         if shouldSaveTabs {
-            _ = tabManager.save()
+            tabManager.save()
         }
 
         let newTabDaxDialogFactory = NewTabDaxDialogsProvider(featureFlagger: featureFlagger, delegate: self, daxDialogsFlowCoordinator: daxDialogsManager, onboardingPixelReporter: contextualOnboardingPixelReporter)
@@ -2095,7 +2095,7 @@ class MainViewController: UIViewController {
         let shouldSaveTabs = tab.tabModel.viewed == false
         tab.tabModel.viewed = true
         if shouldSaveTabs {
-            _ = tabManager.save()
+            tabManager.save()
         }
 
         if tab.link == nil {
@@ -5000,7 +5000,7 @@ extension MainViewController: TabDelegate {
         guard currentTab == tab else { return }
         refreshControls()
         themeColorManager.updateThemeColor()
-        _ = tabManager.save()
+        tabManager.save()
         refreshTabBar()
         // note: model in swipeTabsCoordinator doesn't need to be updated here
         // https://app.asana.com/0/414235014887631/1206847376910045/f
@@ -5010,7 +5010,7 @@ extension MainViewController: TabDelegate {
         // For the current tab, `tabLoadingStateDidChange` (called immediately before this)
         // already triggers a save, so skip here to avoid a redundant save in the same run loop.
         guard currentTab != tab else { return }
-        _ = tabManager.save()
+        tabManager.save()
         tabsBarController?.reloadCell(for: tab.tabModel)
     }
 
