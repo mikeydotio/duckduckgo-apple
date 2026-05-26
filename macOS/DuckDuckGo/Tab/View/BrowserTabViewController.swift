@@ -720,6 +720,15 @@ final class BrowserTabViewController: NSViewController {
             hostingController.view.trailingAnchor.constraint(equalTo: containerStackView.trailingAnchor),
         ])
 
+        // Pin an explicit height so NSStackView's .fill distribution can't expand the dialog
+        // beyond its content. `NSHostingController.sizingOptions` propagates SwiftUI's preferred
+        // height to `intrinsicContentSize` on macOS 13+, but on macOS 12 (Monterey) that doesn't
+        // happen and the dialog floods the browsing area.
+        hostingController.view.layoutSubtreeIfNeeded()
+        hostingController.view.heightAnchor
+            .constraint(equalToConstant: hostingController.view.fittingSize.height)
+            .isActive = true
+
         containerStackView.layoutSubtreeIfNeeded()
         webViewContainer?.layoutSubtreeIfNeeded()
 
