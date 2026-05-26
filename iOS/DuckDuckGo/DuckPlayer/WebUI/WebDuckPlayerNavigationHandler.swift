@@ -239,14 +239,6 @@ final class WebDuckPlayerNavigationHandler: NSObject {
         return isEnabled ? duckPlayer.settings.mode : .disabled
     }
 
-    /// Checks if the YouTube app is installed on the device.
-    var isYouTubeAppInstalled: Bool {
-        if let youtubeURL = URL(string: Constants.youtubeScheme) {
-            return UIApplication.shared.canOpenURL(youtubeURL)
-        }
-        return false
-    }
-
     /// Extracts a YouTube URL from a Duck Player "Open in YouTube" link.
     ///
     /// - Parameter url: The URL to parse.
