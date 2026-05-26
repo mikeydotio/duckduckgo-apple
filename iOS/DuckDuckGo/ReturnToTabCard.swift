@@ -70,13 +70,18 @@ struct ReturnToTabCard: View {
                 menuView
             }
         }
-        .padding(.horizontal, Metrics.horizontalPadding)
+        .padding(contentPaddingEdges, Metrics.horizontalPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .frame(height: Metrics.height)
         .background(
             Capsule()
                 .fill(Color(designSystemColor: .controlsFillSecondary))
         )
+    }
+
+    private var contentPaddingEdges: Edge.Set {
+        /// Avoid trailing padding when the Menu is visible
+        model.isActionsEnabled ? .leading : .horizontal
     }
 
     private var mainView: some View {
