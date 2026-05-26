@@ -21,9 +21,6 @@ import Foundation
 
 struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
 
-    private static let defaultCredentialId = "ddg"
-    private static let thirdPartyCredentialId = "3party"
-
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
     let crypter: CryptingInternal
@@ -31,7 +28,7 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
     private let scopedAccessCredentialEnvelope = ScopedAccessCredentialEnvelope()
 
     func recoverScopedPassword(from accessCredentials: [AccessCredential]?, primaryKey: Data, userID: String) throws -> Data? {
-        guard let thirdPartyCredential = accessCredentials?.first(where: { $0.id == Self.thirdPartyCredentialId }) else {
+        guard let thirdPartyCredential = accessCredentials?.first(where: { $0.id == SyncCode.RecoveryKeyV2.thirdPartyCredentialId }) else {
             return nil
         }
         guard let encryptedCredential = thirdPartyCredential.encrypted3PartyCredential, !encryptedCredential.isEmpty else {
@@ -41,7 +38,48 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         return try scopedAccessCredentialEnvelope.decryptScopedPassword(from: encryptedCredential, using: defaultCredentialMainKey)
     }
 
-    func ensureThirdPartyAccessCredential(for account: SyncAccount, scopedPassword: Data, keys: [ProtectedKey], includesNewDefaultKeys: Bool) async throws -> Data {
+    func ensureThirdPartyScopedPassword(for account: SyncAccount,
+                                        purpose: String,
+                                        cachedScopedPassword: () throws -> Data?) async throws -> EnsuredThirdPartyCredential {
+        let accessCredentials = try await fetchAccessCredentials(account)
+        if let scopedPassword = try recoverScopedPassword(from: accessCredentials, primaryKey: account.primaryKey, userID: account.userId) {
+            return EnsuredThirdPartyCredential(scopedPassword: scopedPassword, protectedKeysToCache: [])
+        }
+
+        let scopedPassword = try scopedPasswordForNewThirdPartyCredential(cachedScopedPassword: cachedScopedPassword)
+        let keyPreparation = try await protectedKeysForThirdPartyCredential(purpose: purpose,
+                                                                            account: account)
+        let ensuredScopedPassword = try await ensureThirdPartyAccessCredential(for: account,
+                                                                              scopedPassword: scopedPassword,
+                                                                              keys: keyPreparation.protectedKeys,
+                                                                              shouldUploadDefaultCredentialKeys: keyPreparation.shouldUploadDefaultCredentialKeys)
+        return EnsuredThirdPartyCredential(scopedPassword: ensuredScopedPassword,
+                                           protectedKeysToCache: keyPreparation.protectedKeysToCache)
+    }
+
+    func makeRecoveryCode(for account: SyncAccount, scopedPassword: Data) -> String? {
+        guard !scopedPassword.isEmpty else {
+            return nil
+        }
+        let payload = SyncCode.RecoveryKeyV2(
+            userId: account.userId,
+            secret: Base64URL.encode(scopedPassword),
+            cid: SyncCode.RecoveryKeyV2.thirdPartyCredentialId,
+            v: SyncCode.RecoveryKeyV2.currentVersion
+        )
+        do {
+            let json = try SyncCode(recovery: .v2(payload)).toJSON()
+            return Base64URL.encode(json)
+        } catch {
+            assertionFailure(error.localizedDescription)
+            return nil
+        }
+    }
+
+    private func ensureThirdPartyAccessCredential(for account: SyncAccount,
+                                                  scopedPassword: Data,
+                                                  keys protectedKeys: [ProtectedKey],
+                                                  shouldUploadDefaultCredentialKeys: Bool) async throws -> Data {
         guard let token = account.token else {
             throw SyncError.noToken
         }
@@ -52,20 +90,28 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         let defaultCredentialMainKey = ScopedAccessKeyDerivation.mainKey(from: account.primaryKey, userID: account.userId)
         let encryptedThirdPartyCredentialToken = try scopedAccessCredentialEnvelope.encryptScopedPassword(scopedPassword,
                                                                                                           using: defaultCredentialMainKey,
-                                                                                                          kid: Self.defaultCredentialId)
+                                                                                                          kid: SyncCredentialID.defaultCredential)
 
-        let createCredentialKeys = try accessCredentialProtectedKeys(from: keys,
+        let createCredentialKeys = try accessCredentialProtectedKeys(from: protectedKeys,
                                                                      scopedPassword: scopedPassword,
                                                                      account: account,
-                                                                     includesNewDefaultKeys: includesNewDefaultKeys)
+                                                                     shouldUploadDefaultCredentialKeys: shouldUploadDefaultCredentialKeys)
             .removingDuplicateWrappingIdentities()
             .map(ProtectedKeyPayload.init)
 
-        try await postThirdPartyAccessCredential(token: token,
-                                                 hashedPassword: hashedPassword,
-                                                 credentialHashedPassword: credentialHashedPassword,
-                                                 encryptedThirdPartyCredential: encryptedThirdPartyCredentialToken,
-                                                 keys: createCredentialKeys)
+        do {
+            try await postThirdPartyAccessCredential(token: token,
+                                                     hashedPassword: hashedPassword,
+                                                     credentialHashedPassword: credentialHashedPassword,
+                                                     encryptedThirdPartyCredential: encryptedThirdPartyCredentialToken,
+                                                     keys: createCredentialKeys)
+        } catch SyncError.unexpectedStatusCode(let statusCode) where statusCode == 409 {
+            let accessCredentials = try await fetchAccessCredentials(account)
+            if let scopedPassword = try recoverScopedPassword(from: accessCredentials, primaryKey: account.primaryKey, userID: account.userId) {
+                return scopedPassword
+            }
+            throw SyncError.unexpectedStatusCode(statusCode)
+        }
         return scopedPassword
     }
 
@@ -140,6 +186,54 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         }
     }
 
+    private func protectedKeysForThirdPartyCredential(purpose: String,
+                                                      account: SyncAccount) async throws -> ProtectedKeysForThirdPartyCredential {
+        let fetchedProtectedKeys = try await fetchProtectedKeys(account)
+        let fetchedDefaultCredentialKeys = defaultCredentialKeys(in: fetchedProtectedKeys)
+        if fetchedDefaultCredentialKeys.contains(where: { $0.purpose == purpose }) {
+            return ProtectedKeysForThirdPartyCredential(protectedKeys: protectedKeys(for: purpose, in: fetchedProtectedKeys),
+                                                        shouldUploadDefaultCredentialKeys: false,
+                                                        protectedKeysToCache: fetchedProtectedKeys)
+        }
+
+        let protectedKey = try makeDefaultCredentialProtectedKey(purpose: purpose, account: account)
+        return ProtectedKeysForThirdPartyCredential(protectedKeys: [protectedKey],
+                                                    shouldUploadDefaultCredentialKeys: true,
+                                                    protectedKeysToCache: fetchedProtectedKeys + [protectedKey])
+    }
+
+    private func defaultCredentialKeys(in keys: [ProtectedKey]) -> [ProtectedKey] {
+        keys
+            .filter { $0.encryptedWith == SyncCredentialID.defaultCredential }
+            .removingDuplicateWrappingIdentities()
+    }
+
+    private func protectedKeys(for purpose: String, in keys: [ProtectedKey]) -> [ProtectedKey] {
+        keys
+            .filter { $0.purpose == purpose }
+            .removingDuplicateWrappingIdentities()
+    }
+
+    private func makeDefaultCredentialProtectedKey(purpose: String, account: SyncAccount) throws -> ProtectedKey {
+        let keyMaterial = try ScopedAccessKeyFactory.makeRSAKeyMaterial()
+        let encryptedPrivateKeyBytes = try crypter.encrypt(keyMaterial.privateKeyPKCS8, using: account.secretKey)
+        return ProtectedKey(
+            kid: UUID().uuidString,
+            encryptedPrivateKey: Base64URL.encode(encryptedPrivateKeyBytes),
+            publicKey: keyMaterial.publicKeyJWK,
+            encryptedWith: SyncCredentialID.defaultCredential,
+            purpose: purpose
+        )
+    }
+
+    private func scopedPasswordForNewThirdPartyCredential(cachedScopedPassword: () throws -> Data?) throws -> Data {
+        if let scopedPassword = try cachedScopedPassword(), !scopedPassword.isEmpty {
+            return scopedPassword
+        }
+
+        return try ScopedAccessKeyFactory.makeScopedPassword()
+    }
+
     private func postThirdPartyAccessCredential(token: String,
                                                 hashedPassword: String,
                                                 credentialHashedPassword: String,
@@ -152,7 +246,10 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
             keys: keys
         )
         let requestJson = try JSONEncoder.snakeCaseKeys.encode(params)
-        let request = api.createAuthenticatedJSONRequest(url: accessCredentialURL(id: Self.thirdPartyCredentialId), method: .post, authToken: token, json: requestJson)
+        let request = api.createAuthenticatedJSONRequest(url: accessCredentialURL(id: SyncCode.RecoveryKeyV2.thirdPartyCredentialId),
+                                                         method: .post,
+                                                         authToken: token,
+                                                         json: requestJson)
         let result = try await request.execute()
         guard result.response.statusCode == 201 else {
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
@@ -206,43 +303,37 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
     private func selectBestMatchingKeys(in keys: [ProtectedKey],
                                         expectedKeys: [ProtectedKey]) -> [ProtectedKey] {
         expectedKeys.compactMap { expectedKey in
-            if let key = keys.first(where: { $0.hasSameWrappingIdentity(as: expectedKey) }) {
-                return key
-            }
-            if let key = keys.first(where: { $0.purpose == expectedKey.purpose && $0.encryptedWith == expectedKey.encryptedWith }) {
-                return key
-            }
-            return nil
+            keys.first(where: { $0.hasSameWrappingIdentity(as: expectedKey) })
         }
     }
 
-    private func accessCredentialProtectedKeys(from keys: [ProtectedKey],
+    private func accessCredentialProtectedKeys(from protectedKeys: [ProtectedKey],
                                                scopedPassword: Data,
                                                account: SyncAccount,
-                                               includesNewDefaultKeys: Bool) throws -> [ProtectedKey] {
-        let existingThirdPartyKeys = keys
-            .filter { $0.encryptedWith == Self.thirdPartyCredentialId }
+                                               shouldUploadDefaultCredentialKeys: Bool) throws -> [ProtectedKey] {
+        let existingThirdPartyKeys = protectedKeys
+            .filter { $0.encryptedWith == SyncCode.RecoveryKeyV2.thirdPartyCredentialId }
             .removingDuplicateWrappingIdentities()
-        let defaultKeysToRewrap = keys
+        let defaultCredentialKeysToRewrap = protectedKeys
             .filter { key in
-                key.encryptedWith == Self.defaultCredentialId
+                key.encryptedWith == SyncCredentialID.defaultCredential
                 && !existingThirdPartyKeys.contains { thirdPartyKey in
                     thirdPartyKey.kid == key.kid && thirdPartyKey.purpose == key.purpose
                 }
             }
-        let defaultKeysToUpload = includesNewDefaultKeys ? defaultKeysToRewrap : []
+        let defaultCredentialKeysToUpload = shouldUploadDefaultCredentialKeys ? defaultCredentialKeysToRewrap : []
         let thirdPartyMainKey = ScopedAccessKeyDerivation.mainKey(from: scopedPassword, userID: account.userId)
-        let rewrappedKeys = try rewrapProtectedKeys(defaultKeysToRewrap,
-                                                    toWrappingKey: thirdPartyMainKey,
-                                                    accountSecretKey: account.secretKey)
-        return defaultKeysToUpload + rewrappedKeys + existingThirdPartyKeys
+        let thirdPartyCredentialKeys = try rewrapProtectedKeys(defaultCredentialKeysToRewrap,
+                                                               toWrappingKey: thirdPartyMainKey,
+                                                               accountSecretKey: account.secretKey)
+        return defaultCredentialKeysToUpload + thirdPartyCredentialKeys + existingThirdPartyKeys
     }
 
     private func rewrapProtectedKeys(_ keys: [ProtectedKey],
                                      toWrappingKey: Data,
                                      accountSecretKey: Data) throws -> [ProtectedKey] {
         let keysToRewrap = keys
-            .filter { $0.encryptedWith == Self.defaultCredentialId }
+            .filter { $0.encryptedWith == SyncCredentialID.defaultCredential }
             .removingDuplicateWrappingIdentities()
         return try keysToRewrap.map { key in
             let decryptedPrivateKey = try decryptDefaultCredentialPrivateKeyForRewrap(
@@ -251,11 +342,11 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
             )
             let rewrappedEncryptedPrivateKey = try jweCompactCodec.encryptDirect(payload: decryptedPrivateKey,
                                                                                  contentEncryptionKey: toWrappingKey,
-                                                                                 kid: Self.thirdPartyCredentialId)
+                                                                                 kid: SyncCode.RecoveryKeyV2.thirdPartyCredentialId)
             return ProtectedKey(kid: key.kid,
                                 encryptedPrivateKey: rewrappedEncryptedPrivateKey,
                                 publicKey: key.publicKey,
-                                encryptedWith: Self.thirdPartyCredentialId,
+                                encryptedWith: SyncCode.RecoveryKeyV2.thirdPartyCredentialId,
                                 purpose: key.purpose)
         }
     }
@@ -313,16 +404,23 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         init(keys: [ProtectedKey]) {
             self.keys = keys.map(ProtectedKeyPayload.init)
         }
-
-        init(key: ProtectedKey) {
-            self.init(keys: [key])
-        }
     }
 
     struct SetKeyIfAbsentResult: Decodable {
         let keys: [ProtectedKey]?
     }
 
+    private struct ProtectedKeysForThirdPartyCredential {
+        let protectedKeys: [ProtectedKey]
+        let shouldUploadDefaultCredentialKeys: Bool
+        let protectedKeysToCache: [ProtectedKey]
+    }
+
+}
+
+struct EnsuredThirdPartyCredential {
+    let scopedPassword: Data
+    let protectedKeysToCache: [ProtectedKey]
 }
 
 private enum ScopedAccessKeyDerivation {

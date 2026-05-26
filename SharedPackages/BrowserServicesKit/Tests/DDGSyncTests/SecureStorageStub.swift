@@ -74,13 +74,6 @@ class SecureStorageStub: SecureStoring {
         theProtectedKeysData = data
     }
 
-    func protectedKeys() throws -> Data? {
-        if let mockReadError {
-            throw mockReadError
-        }
-        return theProtectedKeysData
-    }
-
     func removeProtectedKeys() throws {
         theProtectedKeysData = nil
     }

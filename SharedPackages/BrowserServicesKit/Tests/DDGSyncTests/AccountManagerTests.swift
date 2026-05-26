@@ -218,6 +218,52 @@ final class AccountManagerTests: XCTestCase {
         XCTAssertEqual(result.accessCredentials?.first?.encrypted3PartyCredential, "encrypted")
     }
 
+    func testWhenLoggingInWithScopedAccessCredentialsEnabledThenLoginRequestIncludesSyncScope() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let accountManager = AccountManager(endpoints: endpoints,
+                                            api: api,
+                                            crypter: CryptingMock(),
+                                            isScopedAccessCredentialsEnabled: { true })
+        api.fakeRequests[endpoints.login] = makeJSONRequest("""
+        {
+            "devices": [],
+            "token": "token-1",
+            "protected_encryption_key": ""
+        }
+        """)
+
+        _ = try await accountManager.login(.init(userId: "user-1", primaryKey: Data()),
+                                           deviceName: "iPhone",
+                                           deviceType: "iOS")
+
+        let loginBody = try makeLoginBody(from: api)
+        XCTAssertEqual(loginBody["scope"] as? String, "sync")
+    }
+
+    func testWhenLoggingInWithScopedAccessCredentialsDisabledThenLoginRequestOmitsSyncScope() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let accountManager = AccountManager(endpoints: endpoints,
+                                            api: api,
+                                            crypter: CryptingMock(),
+                                            isScopedAccessCredentialsEnabled: { false })
+        api.fakeRequests[endpoints.login] = makeJSONRequest("""
+        {
+            "devices": [],
+            "token": "token-1",
+            "protected_encryption_key": ""
+        }
+        """)
+
+        _ = try await accountManager.login(.init(userId: "user-1", primaryKey: Data()),
+                                           deviceName: "iPhone",
+                                           deviceType: "iOS")
+
+        let loginBody = try makeLoginBody(from: api)
+        XCTAssertNil(loginBody["scope"])
+    }
+
     func testWhenRefreshingTokenWithoutAccessCredentialsThenResultAccessCredentialsIsNil() async throws {
         let api = RemoteAPIRequestCreatingMock()
         let endpoints = Endpoints(baseURL: Self.baseURL)
@@ -254,6 +300,12 @@ final class AccountManagerTests: XCTestCase {
     }
 
     private func makeSignupBody(from api: RemoteAPIRequestCreatingMock) throws -> [String: Any] {
+        let requestBody = try XCTUnwrap(api.createRequestCallArgs.last?.body)
+        let json = try JSONSerialization.jsonObject(with: requestBody)
+        return try XCTUnwrap(json as? [String: Any])
+    }
+
+    private func makeLoginBody(from api: RemoteAPIRequestCreatingMock) throws -> [String: Any] {
         let requestBody = try XCTUnwrap(api.createRequestCallArgs.last?.body)
         let json = try JSONSerialization.jsonObject(with: requestBody)
         return try XCTUnwrap(json as? [String: Any])

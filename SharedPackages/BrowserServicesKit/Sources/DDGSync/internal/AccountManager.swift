@@ -22,9 +22,8 @@ import Networking
 
 struct AccountManager: AccountManaging {
 
+    /// Login access-credential scope. This is unrelated to protected-key purposes such as `ai_chats`.
     private static let defaultLoginScope = "sync"
-    private static let defaultCredentialId = "ddg"
-
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
     let crypter: CryptingInternal
@@ -59,7 +58,7 @@ struct AccountManager: AccountManaging {
             deviceId: deviceId,
             deviceName: encryptedDeviceName,
             deviceType: encryptedDeviceType,
-            credentialId: isScopedAccessCredentialsEnabled() ? Self.defaultCredentialId : nil
+            credentialId: isScopedAccessCredentialsEnabled() ? SyncCredentialID.defaultCredential : nil
         )
 
         guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {

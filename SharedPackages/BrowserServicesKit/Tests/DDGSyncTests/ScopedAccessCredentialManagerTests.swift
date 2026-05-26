@@ -26,7 +26,125 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
 
     private static let baseURL = URL(string: "https://dev.null")!
 
-    func testWhenEnsuringThirdPartyAccessCredentialThenUsesHKDFAndJWEAndPostsThirdPartyKeysOnly() async throws {
+    func testWhenEnsuringScopedPasswordAndCredentialExistsThenRecoversPasswordWithoutCreatingCredential() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: CryptingMock())
+
+        let scopedPassword = Data(repeating: 8, count: 32)
+        let account = makeAccount(primaryKey: Data((0..<32).map(UInt8.init)))
+        let defaultCredentialMainKey = hkdf(input: account.primaryKey, salt: account.userId, info: "Main Key")
+        let encryptedCredential = try ScopedAccessCredentialEnvelope().encryptScopedPassword(scopedPassword,
+                                                                                           using: defaultCredentialMainKey,
+                                                                                           kid: "ddg")
+        let accessCredentials = [AccessCredential(id: "3party", scope: "sync", encrypted3PartyCredential: encryptedCredential)]
+        api.fakeRequests[endpoints.accessCredentials] = makeRequest(statusCode: 200, body: try accessCredentialsBody(accessCredentials))
+
+        let result = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                                      purpose: "ai_chats",
+                                                                      cachedScopedPassword: {
+                                                                          XCTFail("Existing credentials should not read cached scoped password")
+                                                                          return nil
+                                                                      })
+
+        XCTAssertEqual(result.scopedPassword, scopedPassword)
+        XCTAssertTrue(result.protectedKeysToCache.isEmpty)
+        XCTAssertEqual(api.createRequestCallArgs.map(\.url), [endpoints.accessCredentials])
+    }
+
+    func testWhenEnsuringScopedPasswordAndCredentialIsMissingThenCreatesCredentialUsingProtectedKeys() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        var crypter = CryptingMock()
+        crypter._extractLoginInfo = { recoveryKey in
+            ExtractedLoginInfo(userId: recoveryKey.userId,
+                               primaryKey: recoveryKey.primaryKey,
+                               passwordHash: Data([0xAB]),
+                               stretchedPrimaryKey: Data())
+        }
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: crypter)
+
+        let scopedPassword = Data((32..<64).map(UInt8.init))
+        let account = makeAccount(primaryKey: Data((0..<32).map(UInt8.init)))
+        let protectedKey = try makeNativeEncryptedProtectedKey(privateKey: Data("default-private-key".utf8), account: account, crypter: crypter)
+        api.fakeRequests[endpoints.accessCredentials] = makeRequest(statusCode: 200, body: try accessCredentialsBody([]))
+        api.fakeRequests[endpoints.keys] = makeRequest(statusCode: 200, body: try protectedKeysBody([protectedKey]))
+        api.fakeRequests[endpoints.accessCredential("3party")] = makeRequest(statusCode: 201)
+
+        let result = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                                      purpose: "ai_chats",
+                                                                      cachedScopedPassword: { scopedPassword })
+
+        XCTAssertEqual(result.scopedPassword, scopedPassword)
+        XCTAssertEqual(result.protectedKeysToCache.map(\.kid), [protectedKey.kid])
+
+        let requestBody = try XCTUnwrap(api.createRequestCallArgs.last?.body)
+        let payload = try decodeJSONObject(requestBody)
+        let keys = try XCTUnwrap(payload["keys"] as? [[String: Any]])
+        XCTAssertEqual(keys.count, 1)
+        XCTAssertEqual(keys.first?["kid"] as? String, protectedKey.kid)
+        XCTAssertEqual(keys.first?["encrypted_with"] as? String, "3party")
+    }
+
+    func testWhenEnsuringScopedPasswordAndNoDefaultKeyExistsThenUploadsDefaultAndThirdPartyKeys() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        var crypter = CryptingMock()
+        crypter._extractLoginInfo = { recoveryKey in
+            ExtractedLoginInfo(userId: recoveryKey.userId,
+                               primaryKey: recoveryKey.primaryKey,
+                               passwordHash: Data([0xAB]),
+                               stretchedPrimaryKey: Data())
+        }
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: crypter)
+
+        let scopedPassword = Data((32..<64).map(UInt8.init))
+        let account = makeAccount(primaryKey: Data((0..<32).map(UInt8.init)))
+        api.fakeRequests[endpoints.accessCredentials] = makeRequest(statusCode: 200, body: try accessCredentialsBody([]))
+        api.fakeRequests[endpoints.keys] = makeRequest(statusCode: 200, body: try protectedKeysBody([]))
+        api.fakeRequests[endpoints.accessCredential("3party")] = makeRequest(statusCode: 201)
+
+        let result = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                                      purpose: "ai_chats",
+                                                                      cachedScopedPassword: { scopedPassword })
+
+        let protectedKey = try XCTUnwrap(result.protectedKeysToCache.first)
+        XCTAssertEqual(protectedKey.encryptedWith, "ddg")
+        XCTAssertEqual(protectedKey.purpose, "ai_chats")
+
+        let requestBody = try XCTUnwrap(api.createRequestCallArgs.last?.body)
+        let payload = try decodeJSONObject(requestBody)
+        let keys = try XCTUnwrap(payload["keys"] as? [[String: Any]])
+        XCTAssertEqual(keys.count, 2)
+        XCTAssertNotNil(keys.first { $0["encrypted_with"] as? String == "ddg" })
+        XCTAssertNotNil(keys.first { $0["encrypted_with"] as? String == "3party" })
+    }
+
+    func testWhenFetchingAccessCredentialsReturns404ThenReturnsEmptyCredentials() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: CryptingMock())
+        let account = makeAccount(primaryKey: Data((0..<32).map(UInt8.init)))
+        api.fakeRequests[endpoints.accessCredentials] = makeFailingRequest(statusCode: 404)
+
+        let credentials = try await manager.fetchAccessCredentials(account)
+
+        XCTAssertTrue(credentials.isEmpty)
+    }
+
+    func testWhenFetchingProtectedKeysReturns404ThenReturnsEmptyKeys() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: CryptingMock())
+        let account = makeAccount(primaryKey: Data((0..<32).map(UInt8.init)))
+        api.fakeRequests[endpoints.keys] = makeFailingRequest(statusCode: 404)
+
+        let keys = try await manager.fetchProtectedKeys(account)
+
+        XCTAssertTrue(keys.isEmpty)
+    }
+
+    func testWhenEnsuringThirdPartyScopedPasswordThenUsesHKDFAndJWEAndPostsThirdPartyKeysOnly() async throws {
         let api = RemoteAPIRequestCreatingMock()
         let endpoints = Endpoints(baseURL: Self.baseURL)
         var crypter = CryptingMock()
@@ -48,14 +166,16 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
                                                          publicKey: ddgWrappedProtectedKey.publicKey,
                                                          encryptedWith: "3party",
                                                          purpose: ddgWrappedProtectedKey.purpose)
+        api.fakeRequests[endpoints.accessCredentials] = makeRequest(statusCode: 200, body: try accessCredentialsBody([]))
+        api.fakeRequests[endpoints.keys] = makeRequest(statusCode: 200,
+                                                       body: try protectedKeysBody([ddgWrappedProtectedKey, thirdPartyWrappedProtectedKey]))
         api.fakeRequests[endpoints.accessCredential("3party")] = makeRequest(statusCode: 201)
 
-        let returnedScopedPassword = try await manager.ensureThirdPartyAccessCredential(for: account,
-                                                                                       scopedPassword: scopedPassword,
-                                                                                       keys: [ddgWrappedProtectedKey, thirdPartyWrappedProtectedKey],
-                                                                                       includesNewDefaultKeys: false)
+        let result = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                                      purpose: "ai_chats",
+                                                                      cachedScopedPassword: { scopedPassword })
 
-        XCTAssertEqual(returnedScopedPassword, scopedPassword)
+        XCTAssertEqual(result.scopedPassword, scopedPassword)
 
         let requestBody = try XCTUnwrap(api.createRequestCallArgs.last?.body)
         let payload = try decodeJSONObject(requestBody)
@@ -76,7 +196,7 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         XCTAssertEqual(keyPayload["encrypted_with"] as? String, "3party")
     }
 
-    func testWhenEnsuringThirdPartyAccessCredentialWithNewDefaultKeyThenPostsOriginalAndRewrappedKeys() async throws {
+    func testWhenEnsuringThirdPartyScopedPasswordWithExistingDefaultKeyThenPostsRewrappedKeyOnly() async throws {
         let api = RemoteAPIRequestCreatingMock()
         let endpoints = Endpoints(baseURL: Self.baseURL)
         var crypter = CryptingMock()
@@ -94,21 +214,19 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         let thirdPartyMainKey = hkdf(input: scopedPassword, salt: account.userId, info: "Main Key")
         let originalPrivateKey = Data("default-private-key".utf8)
         let ddgWrappedProtectedKey = try makeNativeEncryptedProtectedKey(privateKey: originalPrivateKey, account: account, crypter: crypter)
+        api.fakeRequests[endpoints.accessCredentials] = makeRequest(statusCode: 200, body: try accessCredentialsBody([]))
+        api.fakeRequests[endpoints.keys] = makeRequest(statusCode: 200, body: try protectedKeysBody([ddgWrappedProtectedKey]))
         api.fakeRequests[endpoints.accessCredential("3party")] = makeRequest(statusCode: 201)
 
-        _ = try await manager.ensureThirdPartyAccessCredential(for: account,
-                                                               scopedPassword: scopedPassword,
-                                                               keys: [ddgWrappedProtectedKey, ddgWrappedProtectedKey],
-                                                               includesNewDefaultKeys: true)
+        _ = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                             purpose: "ai_chats",
+                                                             cachedScopedPassword: { scopedPassword })
 
         let requestBody = try XCTUnwrap(api.createRequestCallArgs.last?.body)
         let payload = try decodeJSONObject(requestBody)
         let keys = try XCTUnwrap(payload["keys"] as? [[String: Any]])
-        XCTAssertEqual(keys.count, 2)
-
-        let ddgKeyPayload = try XCTUnwrap(keys.first { $0["encrypted_with"] as? String == "ddg" })
-        XCTAssertEqual(ddgKeyPayload["kid"] as? String, ddgWrappedProtectedKey.kid)
-        XCTAssertEqual(ddgKeyPayload["purpose"] as? String, "ai_chats")
+        XCTAssertEqual(keys.count, 1)
+        XCTAssertNil(keys.first { $0["encrypted_with"] as? String == "ddg" })
 
         let rewrappedKeyPayload = try XCTUnwrap(keys.first { $0["encrypted_with"] as? String == "3party" })
         XCTAssertEqual(rewrappedKeyPayload["kid"] as? String, ddgWrappedProtectedKey.kid)
@@ -117,6 +235,47 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         let rewrappedEncryptedPrivateKey = try XCTUnwrap(rewrappedKeyPayload["encrypted_private_key"] as? String)
         let decryptedRewrappedPrivateKey = try JWECompactCodec().decryptDirect(token: rewrappedEncryptedPrivateKey, contentEncryptionKey: thirdPartyMainKey)
         XCTAssertEqual(decryptedRewrappedPrivateKey, originalPrivateKey)
+    }
+
+    func testWhenCreatingThirdPartyScopedPasswordReturns409ThenRefetchesAndRecoversScopedPassword() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        var crypter = CryptingMock()
+        crypter._extractLoginInfo = { recoveryKey in
+            ExtractedLoginInfo(userId: recoveryKey.userId,
+                               primaryKey: recoveryKey.primaryKey,
+                               passwordHash: Data([0xAB]),
+                               stretchedPrimaryKey: Data())
+        }
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: crypter)
+
+        let accountPrimaryKey = Data((0..<32).map(UInt8.init))
+        let localScopedPassword = Data((32..<64).map(UInt8.init))
+        let recoveredScopedPassword = Data((64..<96).map(UInt8.init))
+        let account = makeAccount(primaryKey: accountPrimaryKey)
+        let defaultCredentialMainKey = hkdf(input: accountPrimaryKey, salt: account.userId, info: "Main Key")
+        let encryptedCredential = try ScopedAccessCredentialEnvelope().encryptScopedPassword(recoveredScopedPassword,
+                                                                                           using: defaultCredentialMainKey,
+                                                                                           kid: "ddg")
+        let accessCredentials = [AccessCredential(id: "3party", scope: "sync", encrypted3PartyCredential: encryptedCredential)]
+        api.fakeRequests[endpoints.accessCredentials] = SequencedHTTPRequestingMock(results: [
+            .init(data: Data(try accessCredentialsBody([]).utf8), response: makeHTTPURLResponse(statusCode: 200)),
+            .init(data: Data(try accessCredentialsBody(accessCredentials).utf8), response: makeHTTPURLResponse(statusCode: 200))
+        ])
+        api.fakeRequests[endpoints.keys] = makeRequest(statusCode: 200, body: try protectedKeysBody([]))
+        api.fakeRequests[endpoints.accessCredential("3party")] = makeFailingRequest(statusCode: 409)
+
+        let result = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                                      purpose: "ai_chats",
+                                                                      cachedScopedPassword: { localScopedPassword })
+
+        XCTAssertEqual(result.scopedPassword, recoveredScopedPassword)
+        XCTAssertEqual(api.createRequestCallArgs.map(\.url), [
+            endpoints.accessCredentials,
+            endpoints.keys,
+            endpoints.accessCredential("3party"),
+            endpoints.accessCredentials
+        ])
     }
 
     func testWhenDefaultCredentialProtectedKeyIsDirectJWEThenThrowsInvalidDataInResponse() async throws {
@@ -138,12 +297,13 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         let ddgWrappedProtectedKey = try ScopedAccessKeyFactory.makeJWEProtectedKey(wrappingKey: defaultCredentialMainKey,
                                                                                     encryptedWith: "ddg",
                                                                                     purpose: "ai_chats")
+        api.fakeRequests[endpoints.accessCredentials] = makeRequest(statusCode: 200, body: try accessCredentialsBody([]))
+        api.fakeRequests[endpoints.keys] = makeRequest(statusCode: 200, body: try protectedKeysBody([ddgWrappedProtectedKey]))
 
         do {
-            _ = try await manager.ensureThirdPartyAccessCredential(for: account,
-                                                                   scopedPassword: scopedPassword,
-                                                                   keys: [ddgWrappedProtectedKey],
-                                                                   includesNewDefaultKeys: false)
+            _ = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                                 purpose: "ai_chats",
+                                                                 cachedScopedPassword: { scopedPassword })
             XCTFail("Expected direct-JWE ddg source key to be rejected")
         } catch SyncError.invalidDataInResponse(let message) {
             XCTAssertTrue(message.contains("encrypted_private_key"))
@@ -167,7 +327,7 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
                                                        {
                                                          "keys": [
                                                            {
-                                                             "kid": "server-ddg",
+                                                             "kid": "requested",
                                                              "encrypted_private_key": "enc-private",
                                                              "public_key": {
                                                                "kty": "RSA",
@@ -185,7 +345,7 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
 
         let result = try await manager.setKeyIfAbsent(purpose: "ai_chats", key: requestedKey, for: account)
 
-        XCTAssertEqual(result?.kid, "server-ddg")
+        XCTAssertEqual(result?.kid, "requested")
         XCTAssertEqual(result?.encryptedWith, "ddg")
         XCTAssertEqual(result?.purpose, "ai_chats")
         XCTAssertEqual(api.createRequestCallArgs.count, 2)
@@ -259,7 +419,7 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
                                                                                              "purpose": "bookmarks"
                                                                                            },
                                                                                            {
-                                                                                             "kid": "server-ddg",
+                                                                                             "kid": "requested",
                                                                                              "encrypted_private_key": "enc-private",
                                                                                              "public_key": {
                                                                                                "kty": "RSA",
@@ -277,7 +437,7 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
 
         let result = try await manager.setKeyIfAbsent(purpose: "ai_chats", key: requestedKey, for: account)
 
-        XCTAssertEqual(result?.kid, "server-ddg")
+        XCTAssertEqual(result?.kid, "requested")
         XCTAssertEqual(result?.encryptedWith, "ddg")
         XCTAssertEqual(result?.purpose, "ai_chats")
     }
@@ -328,6 +488,31 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         XCTAssertEqual(api.createRequestCallArgs.count, 1)
     }
 
+    func testWhenFetchingProtectedKeysFailsThenCachedKeysAreNotUsedForThirdPartyCredentialCreation() async throws {
+        let api = RemoteAPIRequestCreatingMock()
+        let endpoints = Endpoints(baseURL: Self.baseURL)
+        let manager = ScopedAccessCredentialManager(endpoints: endpoints, api: api, crypter: CryptingMock())
+        let account = makeAccount(primaryKey: Data((0..<32).map(UInt8.init)))
+        api.fakeRequests[endpoints.accessCredentials] = makeRequest(statusCode: 200, body: try accessCredentialsBody([]))
+        api.fakeRequests[endpoints.keys] = makeFailingRequest(statusCode: 500)
+
+        do {
+            _ = try await manager.ensureThirdPartyScopedPassword(for: account,
+                                                                 purpose: "ai_chats",
+                                                                 cachedScopedPassword: { Data((32..<64).map(UInt8.init)) })
+            XCTFail("Expected fetchProtectedKeys failure to be propagated")
+        } catch SyncError.unexpectedStatusCode(let statusCode) {
+            XCTAssertEqual(statusCode, 500)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(api.createRequestCallArgs.map(\.url), [
+            endpoints.accessCredentials,
+            endpoints.keys
+        ])
+    }
+
     private func makeAccount(primaryKey: Data) -> SyncAccount {
         SyncAccount(deviceId: "device-1",
                     deviceName: "iPhone",
@@ -366,6 +551,12 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
                                          response: makeHTTPURLResponse(statusCode: statusCode)))
     }
 
+    private func makeFailingRequest(statusCode: Int) -> HTTPRequestingMock {
+        let request = HTTPRequestingMock()
+        request.error = SyncError.unexpectedStatusCode(statusCode)
+        return request
+    }
+
     private func makeHTTPURLResponse(statusCode: Int) -> HTTPURLResponse {
         HTTPURLResponse(url: URL(string: "https://dev.null/test")!,
                         statusCode: statusCode,
@@ -381,11 +572,45 @@ final class ScopedAccessCredentialManagerTests: XCTestCase {
         return object
     }
 
+    private func accessCredentialsBody(_ accessCredentials: [AccessCredential]) throws -> String {
+        let body = FetchAccessCredentialsBody(accessCredentials: accessCredentials)
+        let data = try JSONEncoder.snakeCaseKeys.encode(body)
+        return try XCTUnwrap(String(data: data, encoding: .utf8))
+    }
+
+    private func protectedKeysBody(_ keys: [ProtectedKey]) throws -> String {
+        let body = FetchProtectedKeysBody(keys: keys)
+        let data = try JSONEncoder.snakeCaseKeys.encode(body)
+        return try XCTUnwrap(String(data: data, encoding: .utf8))
+    }
+
     private func hkdf(input: Data, salt: String, info: String) -> Data {
         let derivedKey = HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: input),
                                                 salt: Data(salt.utf8),
                                                 info: Data(info.utf8),
                                                 outputByteCount: 32)
         return derivedKey.withUnsafeBytes { Data($0) }
+    }
+
+    private struct FetchAccessCredentialsBody: Encodable {
+        let accessCredentials: [AccessCredential]
+    }
+
+    private struct FetchProtectedKeysBody: Encodable {
+        let keys: [ProtectedKey]
+    }
+}
+
+private extension Endpoints {
+
+    func accessCredential(_ id: String) -> URL {
+        accessCredentials.appendingPathComponent(id)
+    }
+
+    func setKeyIfAbsent(purpose: String) -> URL {
+        keys
+            .appendingPathComponent("purpose")
+            .appendingPathComponent(purpose)
+            .appendingPathComponent("set-if-absent")
     }
 }

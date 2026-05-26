@@ -268,21 +268,11 @@ public protocol DDGSyncingDebuggingSupport {
     var serverEnvironment: ServerEnvironment { get }
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
     func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String
-    func fetchProtectedKeys() async throws -> [ProtectedKey]
-    func fetchAccessCredentials() async throws -> [AccessCredential]
 }
 
 public extension DDGSyncingDebuggingSupport {
     func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
         _ = purpose
-        throw SyncError.failedToEncryptValue("Debug scoped access credentials are not implemented for this sync service")
-    }
-
-    func fetchProtectedKeys() async throws -> [ProtectedKey] {
-        throw SyncError.failedToEncryptValue("Debug scoped access credentials are not implemented for this sync service")
-    }
-
-    func fetchAccessCredentials() async throws -> [AccessCredential] {
         throw SyncError.failedToEncryptValue("Debug scoped access credentials are not implemented for this sync service")
     }
 }

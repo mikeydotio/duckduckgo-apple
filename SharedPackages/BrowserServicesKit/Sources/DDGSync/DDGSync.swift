@@ -44,8 +44,6 @@ public class DDGSync: DDGSyncing {
         case doNotLogoutOn401
     }
 
-    static private let thirdPartyCredentialPurpose = "ai_chats"
-
     @Published public private(set) var authState = SyncAuthState.initializing
     public var authStatePublisher: AnyPublisher<SyncAuthState, Never> {
         $authState.eraseToAnyPublisher()
@@ -80,11 +78,6 @@ public class DDGSync: DDGSyncing {
 
     public weak var dataProvidersSource: DataProvidersSource?
     private var customOperations: [any SyncCustomOperation] = []
-
-    private struct KeyPreparation {
-        let keys: [ProtectedKey]
-        let includesNewDefaultKeys: Bool
-    }
 
     /// This is the constructor intended for use by app clients.
     public convenience init(dataProvidersSource: DataProvidersSource,
@@ -286,25 +279,6 @@ public class DDGSync: DDGSyncing {
         initializeIfNeeded()
     }
 
-    private func makeDefaultCredentialProtectedKey(purpose: String) throws -> ProtectedKey {
-        guard dependencies.isScopedAccessCredentialsEnabled() else {
-            throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
-        }
-        guard let account else {
-            throw SyncError.accountNotFound
-        }
-
-        let keyMaterial = try ScopedAccessKeyFactory.makeRSAKeyMaterial()
-        let encryptedPrivateKeyBytes = try dependencies.crypter.encrypt(keyMaterial.privateKeyPKCS8, using: account.secretKey)
-        return ProtectedKey(
-            kid: UUID().uuidString,
-            encryptedPrivateKey: Base64URL.encode(encryptedPrivateKeyBytes),
-            publicKey: keyMaterial.publicKeyJWK,
-            encryptedWith: "ddg",
-            purpose: purpose
-        )
-    }
-
     public func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
         guard dependencies.isScopedAccessCredentialsEnabled() else {
             throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
@@ -318,42 +292,6 @@ public class DDGSync: DDGSyncing {
             let code = try makeThirdPartyRecoveryCode(account: account, scopedPassword: scopedPassword)
             try dependencies.secureStore.persistScopedPassword(scopedPassword)
             return code
-        } catch {
-            throw handleUnauthenticatedAndMap(error)
-        }
-    }
-
-    public func fetchProtectedKeys() async throws -> [ProtectedKey] {
-        guard dependencies.isScopedAccessCredentialsEnabled() else {
-            throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
-        }
-        guard let account else {
-            throw SyncError.accountNotFound
-        }
-
-        do {
-            let keys = try await dependencies.scopedAccess.fetchProtectedKeys(account)
-            let payload = debugPayloadDescription(for: keys, unavailableDescription: "<unable to encode protected keys>")
-            Logger.sync.debug("Fetched GET /keys response count: \(keys.count, privacy: .public) payload: \(payload, privacy: .public)")
-            return keys
-        } catch {
-            throw handleUnauthenticatedAndMap(error)
-        }
-    }
-
-    public func fetchAccessCredentials() async throws -> [AccessCredential] {
-        guard dependencies.isScopedAccessCredentialsEnabled() else {
-            throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
-        }
-        guard let account else {
-            throw SyncError.accountNotFound
-        }
-
-        do {
-            let credentials = try await dependencies.scopedAccess.fetchAccessCredentials(account)
-            let payload = debugPayloadDescription(for: credentials, unavailableDescription: "<unable to encode access credentials>")
-            Logger.sync.debug("Fetched GET /access-credentials response count: \(credentials.count, privacy: .public) payload: \(payload, privacy: .public)")
-            return credentials
         } catch {
             throw handleUnauthenticatedAndMap(error)
         }
@@ -390,10 +328,6 @@ public class DDGSync: DDGSyncing {
 
             return try Base64URL.encode(dependencies.crypter.decryptData(encryptedData, using: key))
         }
-    }
-
-    private func debugPayloadDescription<T: Encodable>(for value: T, unavailableDescription: String) -> String {
-        (try? JSONEncoder.snakeCaseKeys.encode(value)).flatMap { String(data: $0, encoding: .utf8) } ?? unavailableDescription
     }
 
     // MARK: -
@@ -640,57 +574,19 @@ public class DDGSync: DDGSyncing {
         try? dependencies.secureStore.persistProtectedKeys(encodedKeys)
     }
 
-    private func cacheProtectedKey(_ key: ProtectedKey) {
-        var cachedKeys = cachedProtectedKeys()
-
-        if let index = cachedKeys.firstIndex(where: { $0.hasSameWrappingIdentity(as: key) }) {
-            cachedKeys[index] = key
-        } else {
-            cachedKeys.append(key)
-        }
-
-        if let encodedKeys = try? JSONEncoder.snakeCaseKeys.encode(cachedKeys.removingDuplicateWrappingIdentities()) {
-            try? dependencies.secureStore.persistProtectedKeys(encodedKeys)
-        }
-    }
-
-    private func cachedProtectedKeys() -> [ProtectedKey] {
-        let storedKeys: Data?
-        do {
-            storedKeys = try dependencies.secureStore.protectedKeys()
-        } catch {
-            return []
-        }
-
-        guard
-            let keysData = storedKeys,
-            !keysData.isEmpty,
-            let cachedKeys = try? JSONDecoder.snakeCaseKeys.decode([ProtectedKey].self, from: keysData)
-        else {
-            return []
-        }
-
-        return cachedKeys.removingDuplicateWrappingIdentities()
-    }
-
-    private func cachedDefaultCredentialKeysForCreateThirdPartyCredential() -> [ProtectedKey] {
-        return cachedProtectedKeys()
-            .filter { $0.encryptedWith == "ddg" }
-            .removingDuplicateWrappingIdentities()
-    }
-
-    private func thirdPartyKeys(forPurpose purpose: String, in keys: [ProtectedKey]) -> [ProtectedKey] {
-        keys
-            .filter { $0.encryptedWith == "3party" && $0.purpose == purpose }
-            .removingDuplicateWrappingIdentities()
-    }
-
     private func persistRecoveredThirdPartyScopedPasswordIfAvailable(from accessCredentials: [AccessCredential]?, account: SyncAccount) {
+        guard dependencies.isScopedAccessCredentialsEnabled() else {
+            return
+        }
+
         do {
             if let scopedPassword = try recoverScopedPasswordIfAvailable(from: accessCredentials, account: account) {
                 try dependencies.secureStore.persistScopedPassword(scopedPassword)
             }
         } catch {
+            if containsThirdPartyAccessCredential(accessCredentials) {
+                try? dependencies.secureStore.removeScopedPassword()
+            }
             Logger.sync.error("Failed to recover scoped password during native account flow: \(error.localizedDescription, privacy: .public)")
         }
     }
@@ -700,67 +596,23 @@ public class DDGSync: DDGSyncing {
                                                             userID: account.userId)
     }
 
-    private func ensureThirdPartyScopedPassword(for account: SyncAccount, purpose: String) async throws -> Data {
-        let accessCredentials = try await dependencies.scopedAccess.fetchAccessCredentials(account)
-        if let scopedPassword = try recoverScopedPasswordIfAvailable(from: accessCredentials, account: account) {
-            return scopedPassword
-        }
-
-        return try await ensureThirdPartyCredential(for: account, purpose: purpose)
+    private func containsThirdPartyAccessCredential(_ accessCredentials: [AccessCredential]?) -> Bool {
+        accessCredentials?.contains { $0.id == SyncCode.RecoveryKeyV2.thirdPartyCredentialId } == true
     }
 
-    private func ensureThirdPartyCredential(for account: SyncAccount, purpose: String) async throws -> Data {
-        let scopedPassword = try scopedPasswordForNewThirdPartyCredential()
-        let keyPreparation = try await ensureProtectedKeysForThirdPartyCredential(purpose: purpose, account: account)
-        return try await dependencies.scopedAccess.ensureThirdPartyAccessCredential(for: account, scopedPassword: scopedPassword,
-                                                                                   keys: keyPreparation.keys,
-                                                                                   includesNewDefaultKeys: keyPreparation.includesNewDefaultKeys)
+    private func ensureThirdPartyScopedPassword(for account: SyncAccount, purpose: String) async throws -> Data {
+        let result = try await dependencies.scopedAccess.ensureThirdPartyScopedPassword(for: account,
+                                                                                       purpose: purpose,
+                                                                                       cachedScopedPassword: dependencies.secureStore.scopedPassword)
+        updateProtectedKeysCache(with: result.protectedKeysToCache)
+        return result.scopedPassword
     }
 
     private func makeThirdPartyRecoveryCode(account: SyncAccount, scopedPassword: Data) throws -> String {
-        guard let code = account.scopedAccessRecoveryCode(scopedPassword: scopedPassword) else {
+        guard let code = dependencies.scopedAccess.makeRecoveryCode(for: account, scopedPassword: scopedPassword) else {
             throw SyncError.invalidRecoveryKey
         }
         return code
-    }
-
-    private func ensureProtectedKeysForThirdPartyCredential(purpose: String, account: SyncAccount) async throws -> KeyPreparation {
-        let cachedDefaultCredentialKeys = cachedDefaultCredentialKeysForCreateThirdPartyCredential()
-
-        do {
-            let fetchedKeys = try await dependencies.scopedAccess.fetchProtectedKeys(account)
-            if !fetchedKeys.isEmpty {
-                updateProtectedKeysCache(with: fetchedKeys)
-            }
-
-            let fetchedDefaultCredentialKeys = fetchedKeys
-                .filter { $0.encryptedWith == "ddg" }
-                .removingDuplicateWrappingIdentities()
-            if fetchedDefaultCredentialKeys.contains(where: { $0.purpose == purpose }) {
-                return KeyPreparation(keys: fetchedKeys.filter { $0.purpose == purpose },
-                                      includesNewDefaultKeys: false)
-            }
-
-            let protectedKey = try makeDefaultCredentialProtectedKey(purpose: purpose)
-            cacheProtectedKey(protectedKey)
-            return KeyPreparation(keys: [protectedKey],
-                                  includesNewDefaultKeys: true)
-        } catch {
-            let cachedKeys = cachedDefaultCredentialKeys.filter { $0.purpose == purpose }
-            guard !cachedKeys.isEmpty else {
-                throw error
-            }
-            return KeyPreparation(keys: cachedKeys,
-                                  includesNewDefaultKeys: false)
-        }
-    }
-
-    private func scopedPasswordForNewThirdPartyCredential() throws -> Data {
-        if let scopedPassword = try dependencies.secureStore.scopedPassword(), !scopedPassword.isEmpty {
-            return scopedPassword
-        }
-
-        return try ScopedAccessKeyFactory.makeScopedPassword()
     }
 
     public func setCustomOperations(_ operations: [any SyncCustomOperation]) {

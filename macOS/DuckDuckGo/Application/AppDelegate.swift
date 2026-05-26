@@ -2072,7 +2072,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             errorEvents: SyncErrorHandler(),
             privacyConfigurationManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
             keyValueStore: keyValueStore,
-            environment: environment
+            environment: environment,
+            isScopedAccessCredentialsEnabled: { [featureFlagger] in
+                featureFlagger.isFeatureOn(.syncScopedAccessCredentials)
+            }
         )
         let aiChatSyncCleaner = AIChatSyncCleaner(
             sync: syncService,

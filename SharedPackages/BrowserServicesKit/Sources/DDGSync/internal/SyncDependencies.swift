@@ -71,12 +71,15 @@ protocol ScopedAccessCredentialManaging {
     func recoverScopedPassword(from accessCredentials: [AccessCredential]?,
                                primaryKey: Data,
                                userID: String) throws -> Data?
-    func ensureThirdPartyAccessCredential(for account: SyncAccount,
-                                          scopedPassword: Data,
-                                          keys: [ProtectedKey],
-                                          includesNewDefaultKeys: Bool) async throws -> Data
+    func ensureThirdPartyScopedPassword(for account: SyncAccount,
+                                        purpose: String,
+                                        cachedScopedPassword: () throws -> Data?) async throws -> EnsuredThirdPartyCredential
+    func makeRecoveryCode(for account: SyncAccount, scopedPassword: Data) -> String?
     func fetchAccessCredentials(_ account: SyncAccount) async throws -> [AccessCredential]
     func fetchProtectedKeys(_ account: SyncAccount) async throws -> [ProtectedKey]
+    /// Foundation API for explicit protected-key creation. The current 3party credential
+    /// ensure flow uploads required keys with `/access-credentials/3party`; this remains
+    /// available for callers that need the set-if-absent endpoint directly.
     func setKeyIfAbsent(purpose: String,
                         key: ProtectedKey,
                         for account: SyncAccount) async throws -> ProtectedKey?
@@ -90,7 +93,6 @@ protocol SecureStoring {
     func scopedPassword() throws -> Data?
     func removeScopedPassword() throws
     func persistProtectedKeys(_ data: Data) throws
-    func protectedKeys() throws -> Data?
     func removeProtectedKeys() throws
 }
 

@@ -96,31 +96,6 @@ public struct SyncAccount: Codable, Sendable {
     }
 }
 
-extension SyncAccount {
-    /// Builds the V2 recovery code payload:
-    /// `{ "recovery": { "user_id", "secret", "cid", "v": "2.0" } }`, JSON-encoded,
-    /// then base64URL-encoded (no padding, `-`/`_` alphabet).
-    func scopedAccessRecoveryCode(scopedPassword: Data,
-                                  credentialId: String = SyncCode.RecoveryKeyV2.thirdPartyCredentialId) -> String? {
-        guard !scopedPassword.isEmpty else {
-            return nil
-        }
-        let payload = SyncCode.RecoveryKeyV2(
-            userId: userId,
-            secret: Base64URL.encode(scopedPassword),
-            cid: credentialId,
-            v: SyncCode.RecoveryKeyV2.currentVersion
-        )
-        do {
-            let json = try SyncCode(recovery: .v2(payload)).toJSON()
-            return Base64URL.encode(json)
-        } catch {
-            assertionFailure(error.localizedDescription)
-            return nil
-        }
-    }
-}
-
 public struct RegisteredDevice: Codable, Sendable {
 
     public let id: String
@@ -134,6 +109,11 @@ public struct AccessCredential: Codable, Sendable {
     public let id: String
     public let scope: String?
     public let encrypted3PartyCredential: String?
+}
+
+enum SyncCredentialID {
+    static let defaultCredential = "ddg"
+    static let thirdParty = "3party"
 }
 
 public struct ProtectedKey: Codable, Sendable {
@@ -293,23 +273,6 @@ public struct SyncCode: Codable {
             self.userId = userId
             self.primaryKey = primaryKey
         }
-
-        enum CodingKeys: CodingKey {
-            case userId
-            case primaryKey
-        }
-
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.userId = try container.decode(String.self, forKey: .userId)
-            self.primaryKey = try container.decode(Data.self, forKey: .primaryKey)
-        }
-
-        public func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(self.userId, forKey: .userId)
-            try container.encode(self.primaryKey, forKey: .primaryKey)
-        }
     }
 
     public struct ConnectCode: Codable, Sendable {
@@ -327,7 +290,7 @@ public struct SyncCode: Codable {
     /// `v` is `"major.minor"` to allow additive minor schema changes.
     public struct RecoveryKeyV2: Codable, Sendable, Equatable {
         static let currentVersion = "2.0"
-        static let thirdPartyCredentialId = "3party"
+        static let thirdPartyCredentialId = SyncCredentialID.thirdParty
 
         let userId: String
         let secret: String

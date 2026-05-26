@@ -49,6 +49,18 @@ extension RegisteredDevice {
     }
 }
 
+extension ProtectedKeyPublicKey {
+    static var mock: ProtectedKeyPublicKey {
+        ProtectedKeyPublicKey(alg: "RSA-OAEP-256",
+                              e: "AQAB",
+                              ext: true,
+                              keyOps: ["encrypt"],
+                              kty: "RSA",
+                              n: "mod",
+                              use: "enc")
+    }
+}
+
 extension LoginResult {
     static var mock: LoginResult {
         LoginResult(account: .mock, devices: [.mock])
@@ -79,8 +91,15 @@ class AccountManagingMock: AccountManaging {
         return loginStub ?? .mock
     }
 
+    var refreshTokenStub: LoginResult?
+    var refreshTokenError: Error?
+    var refreshTokenCalled: Bool = false
     func refreshToken(_ account: SyncAccount, deviceName: String) async throws -> LoginResult {
-        .mock
+        refreshTokenCalled = true
+        if let refreshTokenError {
+            throw refreshTokenError
+        }
+        return refreshTokenStub ?? .mock
     }
 
     func logout(deviceId: String, token: String) async throws {}
@@ -208,6 +227,7 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
 
     var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
+    var scopedAccess: ScopedAccessCredentialManaging = ScopedAccessCredentialManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
     var payloadCompressor: SyncPayloadCompressing = SyncGzipPayloadCompressorMock()
     var secureStore: SecureStoring = SecureStorageStub()
@@ -217,13 +237,6 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
     var errorEvents: EventMapping<SyncError> = MockErrorHandler()
     var shouldPreserveAccountWhenSyncDisabled: () -> Bool = { false }
     var isScopedAccessCredentialsEnabled: () -> Bool = { true }
-    var isPairingV2ScanningEnabled: () -> Bool = { true }
-    var isPairingV2CodeEnabled: () -> Bool = { false }
-    var syncFeatureFlags: any SyncFeatureFlagProviding {
-        SyncFeatureFlagProvider(isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled,
-                                isPairingV2ScanningEnabled: isPairingV2ScanningEnabled,
-                                isPairingV2CodeEnabled: isPairingV2CodeEnabled)
-    }
     var keyValueStore: ThrowingKeyValueStoring = try! MockKeyValueFileStore()
     var legacyKeyValueStore: KeyValueStoring = MockKeyValueStore()
 
@@ -263,13 +276,6 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
         createExchangeRecoveryKeyTransmitterStub ?? MockExchangeRecoveryKeyTransmitting()
     }
 
-    var createPairingV2TransportStub: PairingV2Transporting?
-    var createPairingV2TransportCallCount = 0
-    func createPairingV2Transport() -> PairingV2Transporting {
-        createPairingV2TransportCallCount += 1
-        createPairingV2TransportStub ?? MockPairingV2Transporting()
-    }
-
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
 
     var createTokenRescopeStub: TokenRescoping?
@@ -284,28 +290,89 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
 
 }
 
-final class MockPairingV2Transporting: PairingV2Transporting {
-    var openedChannelIDs: [String] = []
-    var sentMessages: [(messages: [PairingV2EncryptedMessage], channelID: String)] = []
-    var fetchedMessages: [PairingV2SequencedMessage] = []
-    var fetchCalls: [(channelID: String, sequence: Int)] = []
-    var closedChannelIDs: [String] = []
+final class ScopedAccessCredentialManagingMock: ScopedAccessCredentialManaging {
 
-    func openChannel(_ channelID: String) async throws {
-        openedChannelIDs.append(channelID)
+    var recoverScopedPasswordCalls: [(accessCredentials: [AccessCredential]?, primaryKey: Data, userID: String)] = []
+    var recoverScopedPasswordStub: Data?
+    var recoverScopedPasswordError: Error?
+    func recoverScopedPassword(from accessCredentials: [AccessCredential]?, primaryKey: Data, userID: String) throws -> Data? {
+        recoverScopedPasswordCalls.append((accessCredentials: accessCredentials, primaryKey: primaryKey, userID: userID))
+        if let recoverScopedPasswordError {
+            throw recoverScopedPasswordError
+        }
+        return recoverScopedPasswordStub
     }
 
-    func send(_ messages: [PairingV2EncryptedMessage], to channelID: String) async throws {
-        sentMessages.append((messages, channelID))
+    var ensureThirdPartyScopedPasswordCalls: [(account: SyncAccount, purpose: String)] = []
+    var ensureThirdPartyScopedPasswordStub: EnsuredThirdPartyCredential?
+    var ensureThirdPartyScopedPasswordError: Error?
+    func ensureThirdPartyScopedPassword(for account: SyncAccount,
+                                        purpose: String,
+                                        cachedScopedPassword: () throws -> Data?) async throws -> EnsuredThirdPartyCredential {
+        ensureThirdPartyScopedPasswordCalls.append((account: account, purpose: purpose))
+        if let ensureThirdPartyScopedPasswordError {
+            throw ensureThirdPartyScopedPasswordError
+        }
+        if let ensureThirdPartyScopedPasswordStub {
+            return ensureThirdPartyScopedPasswordStub
+        }
+        return EnsuredThirdPartyCredential(scopedPassword: try cachedScopedPassword() ?? Data(repeating: 1, count: 32),
+                                           protectedKeysToCache: [])
     }
 
-    func fetchMessages(from channelID: String, after sequence: Int) async throws -> [PairingV2SequencedMessage] {
-        fetchCalls.append((channelID, sequence))
-        return fetchedMessages
+    var makeRecoveryCodeCalls: [(account: SyncAccount, scopedPassword: Data)] = []
+    var makeRecoveryCodeStub: String?
+    func makeRecoveryCode(for account: SyncAccount, scopedPassword: Data) -> String? {
+        makeRecoveryCodeCalls.append((account: account, scopedPassword: scopedPassword))
+        if let makeRecoveryCodeStub {
+            return makeRecoveryCodeStub
+        }
+        guard !scopedPassword.isEmpty else {
+            return nil
+        }
+        let payload = SyncCode.RecoveryKeyV2(
+            userId: account.userId,
+            secret: Base64URL.encode(scopedPassword),
+            cid: SyncCode.RecoveryKeyV2.thirdPartyCredentialId,
+            v: SyncCode.RecoveryKeyV2.currentVersion
+        )
+        guard let json = try? SyncCode(recovery: .v2(payload)).toJSON() else {
+            return nil
+        }
+        return Base64URL.encode(json)
     }
 
-    func closeChannel(_ channelID: String) async throws {
-        closedChannelIDs.append(channelID)
+    var fetchAccessCredentialsCalls: [SyncAccount] = []
+    var fetchAccessCredentialsStub: [AccessCredential] = []
+    var fetchAccessCredentialsError: Error?
+    func fetchAccessCredentials(_ account: SyncAccount) async throws -> [AccessCredential] {
+        fetchAccessCredentialsCalls.append(account)
+        if let fetchAccessCredentialsError {
+            throw fetchAccessCredentialsError
+        }
+        return fetchAccessCredentialsStub
+    }
+
+    var fetchProtectedKeysCalls: [SyncAccount] = []
+    var fetchProtectedKeysStub: [ProtectedKey] = []
+    var fetchProtectedKeysError: Error?
+    func fetchProtectedKeys(_ account: SyncAccount) async throws -> [ProtectedKey] {
+        fetchProtectedKeysCalls.append(account)
+        if let fetchProtectedKeysError {
+            throw fetchProtectedKeysError
+        }
+        return fetchProtectedKeysStub
+    }
+
+    var setKeyIfAbsentCalls: [(purpose: String, key: ProtectedKey, account: SyncAccount)] = []
+    var setKeyIfAbsentStub: ProtectedKey?
+    var setKeyIfAbsentError: Error?
+    func setKeyIfAbsent(purpose: String, key: ProtectedKey, for account: SyncAccount) async throws -> ProtectedKey? {
+        setKeyIfAbsentCalls.append((purpose: purpose, key: key, account: account))
+        if let setKeyIfAbsentError {
+            throw setKeyIfAbsentError
+        }
+        return setKeyIfAbsentStub
     }
 }
 
@@ -452,6 +519,26 @@ class HTTPRequestingMock: HTTPRequesting {
     }
 }
 
+final class SequencedHTTPRequestingMock: HTTPRequestingMock {
+    private var results: [HTTPResult]
+
+    init(results: [HTTPResult]) {
+        self.results = results
+        super.init(result: results.last ?? .init(data: Data(), response: HTTPURLResponse()))
+    }
+
+    override func execute() async throws -> HTTPResult {
+        executeCallCount += 1
+        if let error {
+            throw error
+        }
+        if results.count > 1 {
+            return results.removeFirst()
+        }
+        return results.first ?? result
+    }
+}
+
 class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     var createRequestCallCount = 0
     var createRequestCallArgs: [CreateRequestCallArgs] = []
@@ -524,6 +611,9 @@ struct CryptingMock: CryptingInternal {
 
     var _encryptAndBase64Encode: (String) throws -> String = { "encrypted_\($0)" }
     var _base64DecodeAndDecrypt: (String) throws -> String = { $0.dropping(prefix: "encrypted_") }
+    var _extractLoginInfo: (SyncCode.RecoveryKey) throws -> ExtractedLoginInfo = { _ in
+        ExtractedLoginInfo(userId: "user", primaryKey: Data(), passwordHash: Data(), stretchedPrimaryKey: Data())
+    }
 
     func fetchSecretKey() throws -> Data {
         .init()
@@ -534,12 +624,15 @@ struct CryptingMock: CryptingInternal {
         if let string = String(data: value, encoding: .utf8) {
             return try encrypt(string, using: secretKey)
         }
-        return value
+        return Data(Base64URL.encode(value).utf8)
     }
 
     func decryptData(_ value: Data, using secretKey: Data) throws -> Data {
+        if let string = String(data: value, encoding: .utf8), let decoded = Base64URL.decode(string) {
+            return decoded
+        }
         // Test helper: decrypt to UTF-8 string and return UTF-8 bytes.
-        Data(try decrypt(value, using: secretKey).utf8)
+        return Data(try decrypt(value, using: secretKey).utf8)
     }
 
     func encrypt(_ value: String, using secretKey: Data) throws -> Data {
@@ -590,7 +683,7 @@ struct CryptingMock: CryptingInternal {
     }
 
     func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo {
-        ExtractedLoginInfo(userId: "user", primaryKey: Data(), passwordHash: Data(), stretchedPrimaryKey: Data())
+        try _extractLoginInfo(recoveryKey)
     }
 
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data {

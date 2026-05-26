@@ -59,7 +59,7 @@ enum ScopedAccessKeyFactory {
     /// Generates a fresh RSA-2048 KEK pair and wraps its private key using direct JWE
     /// (`alg=dir`, `enc=A256GCM`).
     ///
-    /// Native `ddg` key creation in current flows uses libsodium wrapping in DDGSync.
+    /// Native `ddg` key creation encrypts keys with the account secret, not direct JWE.
     /// Keep this helper for JWE-based wrapping use cases, including 3party keys and test fixtures.
     static func makeJWEProtectedKey(wrappingKey: Data,
                                     encryptedWith: String,
