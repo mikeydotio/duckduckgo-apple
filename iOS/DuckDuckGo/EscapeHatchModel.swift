@@ -179,7 +179,7 @@ extension EscapeHatchModel {
     /// Everything else defaults to close.
     var primarySwipeAction: SwipeAction {
         isFireTab
-            ? SwipeAction(label: UserText.escapeHatchMenuBurnTab, perform: onBurnTabImmediately)
+            ? SwipeAction(label: UserText.escapeHatchMenuDeleteTab, perform: onBurnTabImmediately)
             : SwipeAction(label: UserText.escapeHatchMenuCloseTab, perform: onCloseTab)
     }
 }
