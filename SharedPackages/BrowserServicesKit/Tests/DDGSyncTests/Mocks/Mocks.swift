@@ -237,6 +237,13 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
     var errorEvents: EventMapping<SyncError> = MockErrorHandler()
     var shouldPreserveAccountWhenSyncDisabled: () -> Bool = { false }
     var isScopedAccessCredentialsEnabled: () -> Bool = { true }
+    var isPairingV2ScanningEnabled: () -> Bool = { true }
+    var isPairingV2CodeEnabled: () -> Bool = { true }
+    lazy var syncFeatureFlags: any SyncFeatureFlagProviding = SyncFeatureFlagProvider(
+        isScopedAccessCredentialsEnabled: { [weak self] in self?.isScopedAccessCredentialsEnabled() == true },
+        isPairingV2ScanningEnabled: { [weak self] in self?.isPairingV2ScanningEnabled() == true },
+        isPairingV2CodeEnabled: { [weak self] in self?.isPairingV2CodeEnabled() == true }
+    )
     var keyValueStore: ThrowingKeyValueStoring = try! MockKeyValueFileStore()
     var legacyKeyValueStore: KeyValueStoring = MockKeyValueStore()
 
@@ -276,6 +283,13 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
         createExchangeRecoveryKeyTransmitterStub ?? MockExchangeRecoveryKeyTransmitting()
     }
 
+    var createPairingV2TransportStub: PairingV2Transporting?
+    var createPairingV2TransportCallCount = 0
+    func createPairingV2Transport() -> PairingV2Transporting {
+        createPairingV2TransportCallCount += 1
+        return createPairingV2TransportStub ?? PairingV2TransportingMock()
+    }
+
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
 
     var createTokenRescopeStub: TokenRescoping?
@@ -288,6 +302,47 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
         createAIChatsStub ?? MockAIChatsHandling()
     }
 
+}
+
+final class PairingV2TransportingMock: PairingV2Transporting {
+    var openChannelCalls: [String] = []
+    var sendCalls: [(messages: [PairingV2EncryptedMessage], channelID: String)] = []
+    var sendHandler: (([PairingV2EncryptedMessage], String) async throws -> Void)?
+    var sendError: Error?
+    var fetchMessagesCalls: [(channelID: String, sequence: Int)] = []
+    var fetchMessagesHandler: ((String, Int) async throws -> [PairingV2SequencedMessage])?
+    var fetchMessagesStub: [PairingV2SequencedMessage] = []
+    var fetchMessagesError: Error?
+    var closeChannelCalls: [String] = []
+
+    func openChannel(_ channelID: String) async throws {
+        openChannelCalls.append(channelID)
+    }
+
+    func send(_ messages: [PairingV2EncryptedMessage], to channelID: String) async throws {
+        sendCalls.append((messages: messages, channelID: channelID))
+        if let sendError {
+            throw sendError
+        }
+        if let sendHandler {
+            try await sendHandler(messages, channelID)
+        }
+    }
+
+    func fetchMessages(from channelID: String, after sequence: Int) async throws -> [PairingV2SequencedMessage] {
+        fetchMessagesCalls.append((channelID: channelID, sequence: sequence))
+        if let fetchMessagesError {
+            throw fetchMessagesError
+        }
+        if let fetchMessagesHandler {
+            return try await fetchMessagesHandler(channelID, sequence)
+        }
+        return fetchMessagesStub
+    }
+
+    func closeChannel(_ channelID: String) async throws {
+        closeChannelCalls.append(channelID)
+    }
 }
 
 final class ScopedAccessCredentialManagingMock: ScopedAccessCredentialManaging {

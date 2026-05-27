@@ -25,18 +25,27 @@ struct PairingV2LocalClient: Equatable {
     let kind: PairingV2DeviceKind
     let hasAccount: Bool
     let isPresenter: Bool
+    let userId: String?
+
+    init(kind: PairingV2DeviceKind, hasAccount: Bool, isPresenter: Bool, userId: String? = nil) {
+        self.kind = kind
+        self.hasAccount = hasAccount
+        self.isPresenter = isPresenter
+        self.userId = userId
+    }
 }
 
 struct PairingV2PeerStatus: Equatable {
     let kind: PairingV2DeviceKind
     let hasAccount: Bool
+    let userId: String?
 
-    static func recoveryCodeAvailable(kind: PairingV2DeviceKind) -> PairingV2PeerStatus {
-        PairingV2PeerStatus(kind: kind, hasAccount: true)
+    static func recoveryCodeAvailable(kind: PairingV2DeviceKind, userId: String? = nil) -> PairingV2PeerStatus {
+        PairingV2PeerStatus(kind: kind, hasAccount: true, userId: userId)
     }
 
     static func recoveryCodeRequest(kind: PairingV2DeviceKind) -> PairingV2PeerStatus {
-        PairingV2PeerStatus(kind: kind, hasAccount: false)
+        PairingV2PeerStatus(kind: kind, hasAccount: false, userId: nil)
     }
 }
 
@@ -91,7 +100,7 @@ enum PairingV2State: Equatable {
 enum PairingV2Event: Equatable {
     case presentCodeRequested(localClient: PairingV2LocalClient, flags: PairingV2RolloutFlags)
     case scannedCode(PairingV2ScannedCode, localClient: PairingV2LocalClient, flags: PairingV2RolloutFlags)
-    case receivedHello
+    case receivedHello(PairingV2HelloMessage)
     case receivedPeerStatus(PairingV2PeerStatus)
     case nativeCredentialAbsenceValidated
     case nativeCredentialAlreadyPresent
@@ -124,6 +133,8 @@ enum PairingV2Error: Error, Equatable {
     case loginFailed
     case recoveryCodeDenied
     case recoveryCodeUnavailable
+    case sameAccount
+    case unsupportedVersion(String)
     case unsupportedFlow(String)
     case cancelled
 }
@@ -186,8 +197,8 @@ struct PairingV2StateMachine {
         case .scannedCode(let scannedCode, let localClient, let flags):
             return handleScannedCode(scannedCode, localClient: localClient, flags: flags)
 
-        case .receivedHello:
-            return handleReceivedHello()
+        case .receivedHello(let message):
+            return handleReceivedHello(message)
 
         case .receivedPeerStatus(let peerStatus):
             return handleReceivedPeerStatus(peerStatus)
@@ -253,9 +264,13 @@ struct PairingV2StateMachine {
         }
     }
 
-    private mutating func handleReceivedHello() -> [PairingV2Command] {
+    private mutating func handleReceivedHello(_ message: PairingV2HelloMessage) -> [PairingV2Command] {
+        guard Self.supports(version: message.version) else {
+            return fail(with: .unsupportedVersion(message.version))
+        }
+
         guard case .waitingForPeerHello(let session) = state else {
-            return fail(with: .unexpectedEvent("hello received outside initial presenter state"))
+            return fail(with: .unexpectedEvent("scanner received hello after sending scan hello; simultaneous scan handling is out of scope"))
         }
 
         state = .waitingForPeerStatus(session)
@@ -265,6 +280,13 @@ struct PairingV2StateMachine {
     private mutating func handleReceivedPeerStatus(_ peerStatus: PairingV2PeerStatus) -> [PairingV2Command] {
         guard case .waitingForPeerStatus(let session) = state else {
             return fail(with: .unexpectedEvent("peer status received before channel hierarchy was ready"))
+        }
+
+        if peerStatus.hasAccount,
+           let peerUserId = peerStatus.userId,
+           let localUserId = session.localClient.userId,
+           peerUserId == localUserId {
+            return fail(with: .sameAccount)
         }
 
         let updatedSession = session.withPeerStatus(peerStatus)
@@ -352,5 +374,12 @@ struct PairingV2StateMachine {
             return .thirdParty
         }
         return hostKind
+    }
+
+    private static func supports(version: String) -> Bool {
+        guard let majorString = version.split(separator: ".").first, let major = Int(majorString) else {
+            return false
+        }
+        return major == 2
     }
 }

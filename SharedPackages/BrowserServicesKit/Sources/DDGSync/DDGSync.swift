@@ -573,7 +573,7 @@ public class DDGSync: DDGSyncing {
     }
 
     private func persistRecoveredThirdPartyScopedPasswordIfAvailable(from accessCredentials: [AccessCredential]?, account: SyncAccount) {
-        guard dependencies.isScopedAccessCredentialsEnabled() else {
+        guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() else {
             return
         }
 

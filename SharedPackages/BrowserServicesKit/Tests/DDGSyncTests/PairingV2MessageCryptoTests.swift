@@ -39,12 +39,67 @@ final class PairingV2MessageCryptoTests: XCTestCase {
         XCTAssertEqual(decryptedMessage, message)
     }
 
+    func testWhenEncodingHelloThenUsesCanonicalShapeAndDefaultVersion() throws {
+        let message = PairingV2HelloMessage(channelId: "channel-1", publicKey: "public-key")
+        let data = try JSONEncoder.snakeCaseKeys.encode(message)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
+
+        XCTAssertEqual(json, [
+            "type": "hello",
+            "channel_id": "channel-1",
+            "public_key": "public-key",
+            "version": "2"
+        ])
+    }
+
+    func testWhenEncodingRecoveryCodeAvailableThenUsesCanonicalShape() throws {
+        let message = PairingV2RecoveryCodeStatusMessage(
+            type: PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable,
+            name: "Device",
+            kind: .ddg,
+            userId: "user-1"
+        )
+        let data = try JSONEncoder.snakeCaseKeys.encode(message)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
+
+        XCTAssertEqual(json, [
+            "type": "recovery_code_available",
+            "name": "Device",
+            "kind": "ddg",
+            "user_id": "user-1"
+        ])
+    }
+
+    func testWhenEncodingRecoveryCodeResponseThenUsesCanonicalShape() throws {
+        let message = PairingV2RecoveryCodeResponseMessage(recoveryCode: "full-recovery-code")
+        let data = try JSONEncoder.snakeCaseKeys.encode(message)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
+
+        XCTAssertEqual(json, [
+            "type": "recovery_code_response",
+            "recovery_code": "full-recovery-code"
+        ])
+    }
+
+    func testWhenDecodingTypeOnlyRecoveryCodeDeniedThenSucceeds() throws {
+        let data = try XCTUnwrap(#"{"type":"recovery_code_denied"}"#.data(using: .utf8))
+        let message = try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeTerminalMessage.self, from: data)
+
+        XCTAssertEqual(message, .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeDenied))
+    }
+
+    func testWhenDecodingTypeOnlyRecoveryCodeUnavailableThenSucceeds() throws {
+        let data = try XCTUnwrap(#"{"type":"recovery_code_unavailable"}"#.data(using: .utf8))
+        let message = try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeTerminalMessage.self, from: data)
+
+        XCTAssertEqual(message, .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeUnavailable))
+    }
+
     func testWhenDecryptingHigherMajorVersionThenThrowsUnsupportedVersion() throws {
         let keyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "channel-1")
         let crypto = PairingV2MessageCrypto()
         let message = try crypto.encrypt(
             .recoveryCodeRequest(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest,
-                                       requestId: "request-1",
                                        kind: .ddg)),
             recipientPublicKey: keyPair.publicKey,
             senderChannelID: "sender-channel"

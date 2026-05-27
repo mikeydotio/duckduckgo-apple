@@ -22,10 +22,8 @@ enum PairingV2ApplicationMessage: Equatable {
     case hello(PairingV2HelloMessage)
     case recoveryCodeAvailable(PairingV2RecoveryCodeStatusMessage)
     case recoveryCodeRequest(PairingV2RecoveryCodeStatusMessage)
-    case recoveryCodePending(PairingV2RecoveryCodeRequestIDMessage)
-    case recoveryCodePreparing(PairingV2RecoveryCodeRequestIDMessage)
-    case recoveryCodeDenied(PairingV2RecoveryCodeRequestIDMessage)
-    case recoveryCodeUnavailable(PairingV2RecoveryCodeRequestIDMessage)
+    case recoveryCodeDenied(PairingV2RecoveryCodeTerminalMessage)
+    case recoveryCodeUnavailable(PairingV2RecoveryCodeTerminalMessage)
     case recoveryCodeResponse(PairingV2RecoveryCodeResponseMessage)
 }
 
@@ -132,45 +130,31 @@ struct PairingV2HelloMessage: Codable, Equatable {
 
 struct PairingV2RecoveryCodeStatusMessage: Codable, Equatable {
     let type: String
-    let requestId: String?
     let name: String?
     let kind: PairingV2DeviceKind
     let userId: String?
 
-    init(type: String, requestId: String? = nil, name: String? = nil, kind: PairingV2DeviceKind, userId: String? = nil) {
+    init(type: String, name: String? = nil, kind: PairingV2DeviceKind, userId: String? = nil) {
         self.type = type
-        self.requestId = requestId
         self.name = name
         self.kind = kind
         self.userId = userId
     }
 }
 
-struct PairingV2RecoveryCodeRequestIDMessage: Codable, Equatable {
+struct PairingV2RecoveryCodeTerminalMessage: Codable, Equatable {
     let type: String
-    let requestId: String
 }
 
 struct PairingV2RecoveryCodeResponseMessage: Codable, Equatable {
     static let messageType = "recovery_code_response"
 
     let type: String
-    let recoveryCode: String?
-    let userId: String?
-    let secret: String?
+    let recoveryCode: String
 
     init(recoveryCode: String) {
         self.type = Self.messageType
         self.recoveryCode = recoveryCode
-        self.userId = nil
-        self.secret = nil
-    }
-
-    init(userId: String, secret: String) {
-        self.type = Self.messageType
-        self.recoveryCode = nil
-        self.userId = userId
-        self.secret = secret
     }
 }
 
@@ -179,8 +163,6 @@ extension PairingV2ApplicationMessage {
     enum MessageType {
         static let recoveryCodeAvailable = "recovery_code_available"
         static let recoveryCodeRequest = "recovery_code_request"
-        static let recoveryCodePending = "recovery_code_pending"
-        static let recoveryCodePreparing = "recovery_code_preparing"
         static let recoveryCodeDenied = "recovery_code_denied"
         static let recoveryCodeUnavailable = "recovery_code_unavailable"
     }
@@ -192,9 +174,7 @@ extension PairingV2ApplicationMessage {
         case .recoveryCodeAvailable(let message),
                 .recoveryCodeRequest(let message):
             return message.type
-        case .recoveryCodePending(let message),
-                .recoveryCodePreparing(let message),
-                .recoveryCodeDenied(let message),
+        case .recoveryCodeDenied(let message),
                 .recoveryCodeUnavailable(let message):
             return message.type
         case .recoveryCodeResponse(let message):

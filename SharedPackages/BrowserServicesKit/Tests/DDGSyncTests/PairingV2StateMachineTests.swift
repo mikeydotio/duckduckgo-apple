@@ -109,19 +109,26 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(stateMachine.state, .failed(error))
     }
 
-    func testWhenHelloIsReceivedAfterInitialStateThenFlowAborts() {
+    func testWhenScannerReceivesHelloAfterSendingHelloThenFlowAbortsAsScopeCut() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
 
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
         )
-        let commands = stateMachine.handle(.receivedHello)
+        let error = PairingV2Error.unexpectedEvent("scanner received hello after sending scan hello; simultaneous scan handling is out of scope")
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
 
-        XCTAssertEqual(commands, [
-            .abort(.unexpectedEvent("hello received outside initial presenter state"))
-        ])
-        XCTAssertEqual(stateMachine.state, .failed(.unexpectedEvent("hello received outside initial presenter state")))
+        XCTAssertEqual(commands, [.abort(error)])
+        XCTAssertEqual(stateMachine.state, .failed(error))
+    }
+
+    func testWhenHelloHasUnsupportedVersionThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key", version: "3.0")))
+
+        XCTAssertEqual(commands, [.abort(.unsupportedVersion("3.0"))])
+        XCTAssertEqual(stateMachine.state, .failed(.unsupportedVersion("3.0")))
     }
 
     func testWhenNativeScansThirdPartyRecoveryCodeThenFlowAbortsAsIncompatible() {
@@ -157,6 +164,19 @@ final class PairingV2StateMachineTests: XCTestCase {
                 credentialKind: .thirdParty
             )
         )
+    }
+
+    func testWhenPeerAvailableHasSameUserIdAsLocalAccountThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false, userId: "same-user")
+
+        _ = stateMachine.handle(
+            .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
+        )
+        let commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .thirdParty, userId: "same-user")))
+
+        XCTAssertEqual(commands, [.abort(.sameAccount)])
+        XCTAssertEqual(stateMachine.state, .failed(.sameAccount))
     }
 
     func testWhenNativeAccountScannerScansNativePresenterThenWaitsForRecoveryCode() {
@@ -229,7 +249,8 @@ final class PairingV2StateMachineTests: XCTestCase {
 
     private func makeLocalClient(kind: PairingV2DeviceKind,
                                  hasAccount: Bool,
-                                 isPresenter: Bool) -> PairingV2LocalClient {
-        PairingV2LocalClient(kind: kind, hasAccount: hasAccount, isPresenter: isPresenter)
+                                 isPresenter: Bool,
+                                 userId: String? = nil) -> PairingV2LocalClient {
+        PairingV2LocalClient(kind: kind, hasAccount: hasAccount, isPresenter: isPresenter, userId: userId)
     }
 }

@@ -101,9 +101,7 @@ final class PairingV2MessageCrypto {
         case .recoveryCodeAvailable(let message),
                 .recoveryCodeRequest(let message):
             return try JSONEncoder.snakeCaseKeys.encode(message)
-        case .recoveryCodePending(let message),
-                .recoveryCodePreparing(let message),
-                .recoveryCodeDenied(let message),
+        case .recoveryCodeDenied(let message),
                 .recoveryCodeUnavailable(let message):
             return try JSONEncoder.snakeCaseKeys.encode(message)
         case .recoveryCodeResponse(let message):
@@ -120,14 +118,10 @@ final class PairingV2MessageCrypto {
             return .recoveryCodeAvailable(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeStatusMessage.self, from: payload))
         case PairingV2ApplicationMessage.MessageType.recoveryCodeRequest:
             return .recoveryCodeRequest(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeStatusMessage.self, from: payload))
-        case PairingV2ApplicationMessage.MessageType.recoveryCodePending:
-            return .recoveryCodePending(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeRequestIDMessage.self, from: payload))
-        case PairingV2ApplicationMessage.MessageType.recoveryCodePreparing:
-            return .recoveryCodePreparing(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeRequestIDMessage.self, from: payload))
         case PairingV2ApplicationMessage.MessageType.recoveryCodeDenied:
-            return .recoveryCodeDenied(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeRequestIDMessage.self, from: payload))
+            return .recoveryCodeDenied(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeTerminalMessage.self, from: payload))
         case PairingV2ApplicationMessage.MessageType.recoveryCodeUnavailable:
-            return .recoveryCodeUnavailable(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeRequestIDMessage.self, from: payload))
+            return .recoveryCodeUnavailable(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeTerminalMessage.self, from: payload))
         case PairingV2RecoveryCodeResponseMessage.messageType:
             return .recoveryCodeResponse(try JSONDecoder.snakeCaseKeys.decode(PairingV2RecoveryCodeResponseMessage.self, from: payload))
         default:

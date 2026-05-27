@@ -330,6 +330,17 @@ public class SyncConnectionController: SyncConnectionControlling {
             }
             await coordinator.cancel()
             return false
+        } catch let error as PairingV2Error {
+            guard error != .cancelled else {
+                return false
+            }
+            await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: error, setupRole: setupRole)
+            await coordinator.cancel()
+            return false
+        } catch let error as PairingV2MessageCryptoError {
+            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: setupRole)
+            await coordinator.cancel()
+            return false
         } catch {
             await delegate?.controllerDidError(.failedToFetchExchangeRecoveryKey, underlyingError: error, setupRole: setupRole)
             await coordinator.cancel()
@@ -481,6 +492,19 @@ public class SyncConnectionController: SyncConnectionControlling {
 
     private func shouldContinueServerSyncOperation(setupRole: SyncSetupRole) async -> Bool {
         await delegate?.controllerWillPerformServerSyncOperation(setupRole: setupRole) ?? true
+    }
+
+    private func pairingV2ConnectionError(for error: PairingV2Error) -> SyncConnectionError {
+        switch error {
+        case .recoveryCodePreparationFailed, .recoveryCodeSendFailed:
+            return .failedToTransmitExchangeRecoveryKey
+        case .loginFailed, .nativeCredentialAlreadyPresent, .sameAccount:
+            return .failedToLogIn
+        case .recoveryCodeDenied, .recoveryCodeUnavailable:
+            return .failedToFetchExchangeRecoveryKey
+        case .v2ScanningDisabled, .unknownCode, .incompatibleRecoveryCode, .unexpectedEvent, .unsupportedVersion, .unsupportedFlow, .cancelled:
+            return .unableToRecognizeCode
+        }
     }
 }
 

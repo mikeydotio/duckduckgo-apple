@@ -33,8 +33,6 @@ final class PairingV2Coordinator {
     private var localKeyPair: PairingV2KeyPair?
     private var peerChannelID: String?
     private var peerPublicKey: String?
-    private var peerRequestID: String?
-    private var localRequestID = UUID().uuidString
     private var lastProcessedSequence = 0
     private(set) var completedRegisteredDevices: [RegisteredDevice]?
     private(set) var pendingRecoveryKey: SyncCode.RecoveryKey?
@@ -94,7 +92,7 @@ final class PairingV2Coordinator {
             case .completed(let completion):
                 return completion
             case .failed(let error):
-                throw SyncError.failedToPrepareForExchange("Pairing V2 failed: \(error)")
+                throw error
             default:
                 break
             }
@@ -134,22 +132,20 @@ final class PairingV2Coordinator {
         let commands: [PairingV2Command]
         switch message {
         case .hello(let message):
-            commands = stateMachine.handle(.receivedHello)
+            commands = stateMachine.handle(.receivedHello(message))
             if !isTerminal {
                 peerChannelID = message.channelId
                 peerPublicKey = message.publicKey
             }
 
         case .recoveryCodeAvailable(let message):
-            peerRequestID = message.requestId
-            commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: message.kind)))
+            commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: message.kind, userId: message.userId)))
 
         case .recoveryCodeRequest(let message):
-            peerRequestID = message.requestId
             commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeRequest(kind: message.kind)))
 
         case .recoveryCodeResponse(let message):
-            let recoveryCode = try recoveryCode(from: message)
+            let recoveryCode = recoveryCode(from: message)
             commands = stateMachine.handle(.receivedRecoveryCode(recoveryCode))
 
         case .recoveryCodeDenied:
@@ -157,10 +153,6 @@ final class PairingV2Coordinator {
 
         case .recoveryCodeUnavailable:
             commands = stateMachine.handle(.failed(.recoveryCodeUnavailable))
-
-        case .recoveryCodePending, .recoveryCodePreparing:
-            Logger.sync.debug("Pairing V2 received progress message: \(message.type, privacy: .public)")
-            commands = []
         }
 
         try await execute(commands)
@@ -186,31 +178,32 @@ final class PairingV2Coordinator {
             try await send(statusMessage(for: status))
 
         case .prepareRecoveryCode(let credentialKind, let purpose):
+            let recoveryCode: String
             do {
-                let recoveryCode = try await prepareRecoveryCode(credentialKind: credentialKind, purpose: purpose)
-                try await execute(stateMachine.handle(.recoveryCodePrepared(recoveryCode)))
+                recoveryCode = try await prepareRecoveryCode(credentialKind: credentialKind, purpose: purpose)
             } catch {
                 try await execute(stateMachine.handle(.failed(.recoveryCodePreparationFailed)))
-                throw error
+                throw PairingV2Error.recoveryCodePreparationFailed
             }
+            try await execute(stateMachine.handle(.recoveryCodePrepared(recoveryCode)))
 
         case .sendRecoveryCode(let recoveryCode):
             do {
                 try await sendRecoveryCode(recoveryCode)
-                try await execute(stateMachine.handle(.recoveryCodeSent))
             } catch {
                 try await execute(stateMachine.handle(.failed(.recoveryCodeSendFailed)))
-                throw error
+                throw PairingV2Error.recoveryCodeSendFailed
             }
+            try await execute(stateMachine.handle(.recoveryCodeSent))
 
         case .loginWithRecoveryCode(let recoveryCode):
             do {
                 try await login(with: recoveryCode)
-                try await execute(stateMachine.handle(.loginSucceeded))
             } catch {
                 try await execute(stateMachine.handle(.failed(.loginFailed)))
-                throw error
+                throw PairingV2Error.loginFailed
             }
+            try await execute(stateMachine.handle(.loginSucceeded))
 
         case .stopPolling:
             await closeLocalChannel()
@@ -234,8 +227,8 @@ final class PairingV2Coordinator {
         let type = status.hasAccount ? PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable : PairingV2ApplicationMessage.MessageType.recoveryCodeRequest
 
         return status.hasAccount
-            ? .recoveryCodeAvailable(.init(type: type, requestId: localRequestID, name: deviceName, kind: status.kind, userId: syncService.account?.userId))
-            : .recoveryCodeRequest(.init(type: type, requestId: localRequestID, name: deviceName, kind: status.kind))
+            ? .recoveryCodeAvailable(.init(type: type, name: deviceName, kind: status.kind, userId: syncService.account?.userId))
+            : .recoveryCodeRequest(.init(type: type, name: deviceName, kind: status.kind))
     }
 
     private func prepareRecoveryCode(credentialKind: PairingV2DeviceKind, purpose: String) async throws -> String {
@@ -257,11 +250,8 @@ final class PairingV2Coordinator {
         try await send(response)
     }
 
-    private func recoveryCode(from response: PairingV2RecoveryCodeResponseMessage) throws -> String {
-        guard let recoveryCode = response.recoveryCode else {
-            throw SyncError.invalidRecoveryKey
-        }
-        return recoveryCode
+    private func recoveryCode(from response: PairingV2RecoveryCodeResponseMessage) -> String {
+        response.recoveryCode
     }
 
     private func login(with recoveryCode: String) async throws {
@@ -274,7 +264,7 @@ final class PairingV2Coordinator {
     }
 
     private func localClient(isPresenter: Bool) -> PairingV2LocalClient {
-        PairingV2LocalClient(kind: localKind, hasAccount: syncService.account != nil, isPresenter: isPresenter)
+        PairingV2LocalClient(kind: localKind, hasAccount: syncService.account != nil, isPresenter: isPresenter, userId: syncService.account?.userId)
     }
 
     private func requiredLocalKeyPair() throws -> PairingV2KeyPair {
