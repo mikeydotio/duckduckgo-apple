@@ -29,16 +29,6 @@ struct AccountManager: AccountManaging {
     let crypter: CryptingInternal
     let isScopedAccessCredentialsEnabled: () -> Bool
 
-    init(endpoints: Endpoints,
-         api: RemoteAPIRequestCreating,
-         crypter: CryptingInternal,
-         isScopedAccessCredentialsEnabled: @escaping () -> Bool = { false }) {
-        self.endpoints = endpoints
-        self.api = api
-        self.crypter = crypter
-        self.isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled
-    }
-
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount {
         let deviceId = UUID().uuidString
         let userId = UUID().uuidString

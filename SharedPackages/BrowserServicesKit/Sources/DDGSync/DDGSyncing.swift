@@ -267,14 +267,6 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
 public protocol DDGSyncingDebuggingSupport {
     var serverEnvironment: ServerEnvironment { get }
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
-    func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String
-}
-
-public extension DDGSyncingDebuggingSupport {
-    func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
-        _ = purpose
-        throw SyncError.failedToEncryptValue("Debug scoped access credentials are not implemented for this sync service")
-    }
 }
 
 public extension DDGSyncing {

@@ -676,7 +676,7 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .aiChatSettingsLinkInAiFeatures:
             Config(defaultValue: .enabled, source: .remoteReleasable(AIChatSubfeature.settingsLinkInAiFeatures), category: .duckAI)
         case .syncScopedAccessCredentials:
-            Config(source: .remoteReleasable(.subfeature(SyncSubfeature.scopedAccessCredentials)), category: .sync)
+            Config(source: .remoteReleasable(SyncSubfeature.scopedAccessCredentials), category: .sync)
         }
     }
 

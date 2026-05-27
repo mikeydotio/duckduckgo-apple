@@ -738,7 +738,7 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .aiChatChromeShortcutIPad:
             Config(defaultValue: .internalOnly, source: .remoteReleasable(AIChatSubfeature.iPadChromeShortcut))
         case .syncScopedAccessCredentials:
-            Config(source: .remoteReleasable(.subfeature(SyncSubfeature.scopedAccessCredentials)))
+            Config(source: .remoteReleasable(SyncSubfeature.scopedAccessCredentials))
         }
     }
 

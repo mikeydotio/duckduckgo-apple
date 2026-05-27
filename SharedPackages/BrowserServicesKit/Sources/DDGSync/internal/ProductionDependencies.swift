@@ -44,7 +44,7 @@ struct ProductionDependencies: SyncDependencies {
         privacyConfigurationManager: PrivacyConfigurationManaging,
         keyValueStore: ThrowingKeyValueStoring,
         errorEvents: EventMapping<SyncError>,
-        isScopedAccessCredentialsEnabled: (() -> Bool)? = nil,
+        isScopedAccessCredentialsEnabled: @escaping () -> Bool = { false },
         shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool = { false }
     ) {
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
@@ -66,7 +66,7 @@ struct ProductionDependencies: SyncDependencies {
         secureStore: SecureStoring,
         privacyConfigurationManager: PrivacyConfigurationManaging,
         errorEvents: EventMapping<SyncError>,
-        isScopedAccessCredentialsEnabled: (() -> Bool)? = nil,
+        isScopedAccessCredentialsEnabled: @escaping () -> Bool,
         shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool
     ) {
         self.fileStorageUrl = fileStorageUrl
@@ -76,15 +76,11 @@ struct ProductionDependencies: SyncDependencies {
         self.secureStore = secureStore
         self.privacyConfigurationManager = privacyConfigurationManager
         self.errorEvents = errorEvents
+        self.isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled
         self.shouldPreserveAccountWhenSyncDisabled = shouldPreserveAccountWhenSyncDisabled
 
         api = RemoteAPIRequestCreator()
         payloadCompressor = SyncGzipPayloadCompressor()
-
-        let isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled ?? {
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.scopedAccessCredentials)
-        }
-        self.isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter, isScopedAccessCredentialsEnabled: isScopedAccessCredentialsEnabled)

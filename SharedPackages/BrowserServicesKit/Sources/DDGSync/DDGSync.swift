@@ -85,11 +85,8 @@ public class DDGSync: DDGSyncing {
                             privacyConfigurationManager: PrivacyConfigurationManaging,
                             keyValueStore: ThrowingKeyValueStoring,
                             environment: ServerEnvironment = .production,
-                            isScopedAccessCredentialsEnabled: (() -> Bool)? = nil,
+                            isScopedAccessCredentialsEnabled: @escaping () -> Bool = { false },
                             shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool = { false }) {
-        let isScopedAccessCredentialsEnabled = isScopedAccessCredentialsEnabled ?? {
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.scopedAccessCredentials)
-        }
         let dependencies = ProductionDependencies(
             serverEnvironment: environment,
             privacyConfigurationManager: privacyConfigurationManager,

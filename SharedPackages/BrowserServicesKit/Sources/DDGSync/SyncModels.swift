@@ -104,64 +104,6 @@ public struct RegisteredDevice: Codable, Sendable {
 
 }
 
-public struct AccessCredential: Codable, Sendable {
-
-    public let id: String
-    public let scope: String?
-    public let encrypted3PartyCredential: String?
-}
-
-enum SyncCredentialID {
-    static let defaultCredential = "ddg"
-    static let thirdParty = "3party"
-}
-
-public struct ProtectedKey: Codable, Sendable {
-
-    public let kid: String
-    public let encryptedPrivateKey: String
-    public let publicKey: ProtectedKeyPublicKey
-    public let encryptedWith: String
-    public let purpose: String
-}
-
-public struct ProtectedKeyPublicKey: Codable, Sendable, Equatable {
-    public let alg: String
-    public let e: String?
-    public let ext: Bool?
-    public let keyOps: [String]?
-    public let kty: String
-    public let n: String?
-    public let use: String?
-}
-
-extension ProtectedKey {
-    func hasSameWrappingIdentity(as other: ProtectedKey) -> Bool {
-        kid == other.kid && encryptedWith == other.encryptedWith && purpose == other.purpose
-    }
-}
-
-extension Sequence where Element == ProtectedKey {
-    func removingDuplicateWrappingIdentities() -> [ProtectedKey] {
-        var seenIdentities: Set<ProtectedKeyWrappingIdentity> = []
-        return filter { key in
-            seenIdentities.insert(ProtectedKeyWrappingIdentity(key: key)).inserted
-        }
-    }
-}
-
-private struct ProtectedKeyWrappingIdentity: Hashable {
-    let kid: String
-    let encryptedWith: String
-    let purpose: String
-
-    init(key: ProtectedKey) {
-        self.kid = key.kid
-        self.encryptedWith = key.encryptedWith
-        self.purpose = key.purpose
-    }
-}
-
 public struct AccountCreationKeys {
     public let primaryKey: Data
     public let secretKey: Data
@@ -254,6 +196,64 @@ public struct PairingInfo {
     }
 }
 
+// MARK: - Scoped Access Credentials
+
+enum SyncCredentialID {
+    static let defaultCredential = "ddg"
+    static let thirdParty = "3party"
+}
+
+public struct AccessCredential: Codable, Sendable {
+    public let id: String
+    public let scope: String?
+    public let encrypted3PartyCredential: String?
+}
+
+public struct ProtectedKey: Codable, Sendable {
+    public let kid: String
+    public let encryptedPrivateKey: String
+    public let publicKey: ProtectedKeyPublicKey
+    public let encryptedWith: String
+    public let purpose: String
+}
+
+public struct ProtectedKeyPublicKey: Codable, Sendable, Equatable {
+    public let alg: String
+    public let e: String?
+    public let ext: Bool?
+    public let keyOps: [String]?
+    public let kty: String
+    public let n: String?
+    public let use: String?
+}
+
+private struct ProtectedKeyWrappingIdentity: Hashable {
+    let kid: String
+    let encryptedWith: String
+    let purpose: String
+
+    init(key: ProtectedKey) {
+        self.kid = key.kid
+        self.encryptedWith = key.encryptedWith
+        self.purpose = key.purpose
+    }
+}
+
+extension ProtectedKey {
+    func hasSameWrappingIdentity(as other: ProtectedKey) -> Bool {
+        kid == other.kid && encryptedWith == other.encryptedWith && purpose == other.purpose
+    }
+}
+
+extension Sequence where Element == ProtectedKey {
+    func removingDuplicateWrappingIdentities() -> [ProtectedKey] {
+        var seenIdentities: Set<ProtectedKeyWrappingIdentity> = []
+        return filter { key in
+            seenIdentities.insert(ProtectedKeyWrappingIdentity(key: key)).inserted
+        }
+    }
+}
+
 public struct SyncCode: Codable {
 
     public enum Base64Error: Error {
@@ -268,11 +268,6 @@ public struct SyncCode: Codable {
     public struct RecoveryKey: Codable, Sendable, Equatable {
         let userId: String
         let primaryKey: Data
-
-        init(userId: String, primaryKey: Data) {
-            self.userId = userId
-            self.primaryKey = primaryKey
-        }
     }
 
     public struct ConnectCode: Codable, Sendable {
