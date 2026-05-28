@@ -118,6 +118,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// floating panel) so the top edge can show its rounded corners and the host's window-level
     /// shadow can extend uniformly on all four sides.
     var disablesAddressBarChrome: Bool = false
+    /// When true, the image-upload button and the attachments row are kept hidden regardless of
+    /// model capabilities or feature flags. The global Duck.ai floating panel uses this because
+    /// the file-picker sheet conflicts with the panel's non-activating behavior; attachments will
+    /// move to a richer menu in a follow-up.
+    var hidesImageAttachments: Bool = false
     var themeUpdateCancellable: AnyCancellable?
     private var appearanceCancellable: AnyCancellable?
     private var textChangeCancellable: AnyCancellable?
@@ -453,11 +458,13 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     private var shouldShowImageUpload: Bool {
-        omnibarController.isImageGenerationMode || omnibarController.selectedModelSupportsImageUpload
+        guard !hidesImageAttachments else { return false }
+        return omnibarController.isImageGenerationMode || omnibarController.selectedModelSupportsImageUpload
     }
 
     private var shouldShowAttachments: Bool {
-        shouldShowImageUpload
+        guard !hidesImageAttachments else { return false }
+        return shouldShowImageUpload
     }
 
     private var shouldShowModelPicker: Bool {

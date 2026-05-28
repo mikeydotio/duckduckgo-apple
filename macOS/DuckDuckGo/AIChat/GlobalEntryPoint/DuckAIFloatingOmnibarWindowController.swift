@@ -209,6 +209,10 @@ final class DuckAIFloatingOmnibarWindowController: NSObject, NSWindowDelegate {
         // top clip mask and external shadow view so the top edge can render fully and the panel's
         // own shadow extends evenly on all four sides.
         container.disablesAddressBarChrome = true
+        // Image attachments are hidden in the floating panel — the file-picker sheet conflicts with
+        // a non-activating panel (icon bounce, sheet swallows the panel on dismiss). Attachments
+        // will return through a future menu-style entry point.
+        container.hidesImageAttachments = true
         let text = AIChatOmnibarTextContainerViewController(omnibarController: omnibar, themeManager: themeManager)
         text.containerViewController = container
 
