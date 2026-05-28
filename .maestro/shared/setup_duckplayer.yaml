@@ -1,0 +1,18 @@
+# setup_duckplayer.yaml
+appId: com.duckduckgo.mobile.ios
+
+---
+
+# Setup for duckplayer_native and duckplayer_classic tests.
+# Disables the webExtensions feature flag so Duck Player flows aren't affected by extensions.
+
+- launchApp:
+    appId: "com.duckduckgo.mobile.ios"
+    clearState: true
+    clearKeychain: true
+    arguments:
+        isOnboardingCompleted: ${ONBOARDING_COMPLETED} # Renaming `isOnboardingCompleted` requires to update LaunchOptionsHandler `isOnboardingCompleted` key
+        currentAppVariant: ${APP_VARIANT} # Renaming `currentAppVariant` requires to update LaunchOptionsHandler `currentAppVariant` key
+        isRunningUITests: true
+        ff.browsingMenuSheetEnabledByDefault: "true"
+        ff.webExtensions: "false"
