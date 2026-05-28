@@ -25,7 +25,7 @@ tags:
 - inputText: "TestName"
 - tapOn: "Cookie value"
 - inputText: "TestValue"
-- tapOn: "Done"
+- tapOn: "selected"
 - scrollUntilVisible:
     element:
       text: "Submit"

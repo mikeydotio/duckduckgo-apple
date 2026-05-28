@@ -27,8 +27,9 @@ tags:
     arguments:
         isRunningUITests: true
 
-- assertVisible: "Unlock DuckDuckGo."
-- inputText: "password"
+- inputRandomText:
+    length: 22
+
 - pressKey: Enter
 
 - assertVisible:
