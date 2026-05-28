@@ -401,7 +401,7 @@ private extension OnboardingIntroViewModel {
                 let isDuckAiTailoredFlow = onboardingManager.currentOnboardingFlow == .duckAI
                 // Duck.ai Tailored flow pre-selects Duck.ai; the default flow always pre-selects Search.
                 let duckAIQueryMode: DuckAIQueryExperimentMode = isDuckAiTailoredFlow ? .duckAI : .search
-                // Duck.ai Tailored flow shows step counter while experiment does not.
+                // Duck.ai Tailored flow shows step counter; the default flow hides it.
                 let progressStep: OnboardingView.ViewState.Intro.StepInfo = isDuckAiTailoredFlow ? stepInfo() : .hidden
                 return .onboarding(
                     .init(
