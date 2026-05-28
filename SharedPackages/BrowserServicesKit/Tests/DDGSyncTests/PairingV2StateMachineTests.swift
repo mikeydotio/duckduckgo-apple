@@ -122,15 +122,39 @@ final class PairingV2StateMachineTests: XCTestCase {
         )
     }
 
-    func testWhenPresenterFlowIsRequestedThenFlowAbortsAsUnsupported() {
+    func testWhenPresenterFlowIsRequestedThenOpensLocalChannelAndWaitsForHello() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
-        let error = PairingV2Error.unsupportedFlow("Pairing V2 code presentation is not implemented")
 
         let commands = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
 
+        XCTAssertEqual(commands, [.openV2Channel(channelID: nil)])
+        XCTAssertEqual(stateMachine.state, .waitingForPeerHello(.init(localClient: localClient, channelID: nil)))
+    }
+
+    func testWhenPresenterFlowIsRequestedWithCodeDisabledThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
+        let flags = PairingV2RolloutFlags(isV2ScanningEnabled: true, isV2CodeEnabled: false)
+        let error = PairingV2Error.unsupportedFlow("Pairing V2 code presentation is disabled")
+
+        let commands = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: flags))
+
         XCTAssertEqual(commands, [.abort(error)])
         XCTAssertEqual(stateMachine.state, .failed(error))
+    }
+
+    func testWhenPresenterReceivesHelloThenSendsLocalRecoveryCodeStatus() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(name: "Presenter", kind: .ddg, hasAccount: true, isPresenter: true, userId: "local-user")
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+
+        XCTAssertEqual(commands, [
+            .sendRecoveryCodeStatus(.recoveryCodeAvailable(name: "Presenter", kind: .ddg, userId: "local-user"))
+        ])
+        XCTAssertEqual(stateMachine.state, .waitingForPeerStatus(.init(localClient: localClient, channelID: nil)))
     }
 
     func testWhenNativeWithoutAccountScansV2LinkingCodeThenSendsHelloAndRecoveryCodeRequest() {
@@ -152,18 +176,17 @@ final class PairingV2StateMachineTests: XCTestCase {
         )
     }
 
-    func testWhenScannerReceivesHelloAfterSendingHelloThenFlowAbortsAsUnifiedAlgorithmSimultaneousScanScopeCut() {
+    func testWhenScannerReceivesHelloAfterSendingHelloThenAbsorbsSimultaneousScanHello() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
 
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
         )
-        let error = PairingV2Error.unexpectedEvent("Unified Algorithm simultaneous scan rule is intentionally out of scope before role election; scanner-side hello is a PR2 scope cut")
         let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
 
-        XCTAssertEqual(commands, [.abort(error)])
-        XCTAssertEqual(stateMachine.state, .failed(error))
+        XCTAssertEqual(commands, [])
+        XCTAssertEqual(stateMachine.state, .waitingForPeerStatus(.init(localClient: localClient, channelID: "channel-1")))
     }
 
     func testWhenHelloHasUnsupportedVersionThenFlowAborts() {
@@ -199,6 +222,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         let commands = stateMachine.handle(.receivedPeerStatus(peerStatus))
 
         XCTAssertEqual(commands, [
+            .sendRecoveryCodeAwaitingConfirmation,
             .prepareRecoveryCode(credentialKind: .thirdParty, purpose: "ai_chats")
         ])
         XCTAssertEqual(
@@ -206,6 +230,28 @@ final class PairingV2StateMachineTests: XCTestCase {
             .hostPreparingRecoveryCode(
                 .init(localClient: localClient, channelID: "channel-1", peerStatus: peerStatus),
                 credentialKind: .thirdParty
+            )
+        )
+    }
+
+    func testWhenNativePresenterHostsNativePeerThenItPreparesNativeRecoveryCode() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true, userId: "local-user")
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        _ = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+        let peerStatus = PairingV2PeerStatus.recoveryCodeAvailable(kind: .ddg, userId: "peer-user")
+        let commands = stateMachine.handle(.receivedPeerStatus(peerStatus))
+
+        XCTAssertEqual(commands, [
+            .sendRecoveryCodeAwaitingConfirmation,
+            .prepareRecoveryCode(credentialKind: .ddg, purpose: "ai_chats")
+        ])
+        XCTAssertEqual(
+            stateMachine.state,
+            .hostPreparingRecoveryCode(
+                .init(localClient: localClient, channelID: nil, peerStatus: peerStatus),
+                credentialKind: .ddg
             )
         )
     }
@@ -355,6 +401,36 @@ final class PairingV2StateMachineTests: XCTestCase {
 
         XCTAssertEqual(commands, [.stopPolling])
         XCTAssertEqual(stateMachine.state, .completed(.recoveryCodeSent))
+    }
+
+    func testWhenRecoveryCodeIsPreparedThenHostSendsConfirmedBeforeResponse() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
+
+        _ = stateMachine.handle(.scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags))
+        _ = stateMachine.handle(.receivedPeerStatus(.recoveryCodeRequest(kind: .thirdParty)))
+        let commands = stateMachine.handle(.recoveryCodePrepared("recovery-code"))
+
+        XCTAssertEqual(commands, [.sendRecoveryCodeConfirmed, .sendRecoveryCode("recovery-code")])
+        XCTAssertEqual(
+            stateMachine.state,
+            .hostSendingRecoveryCode(
+                .init(localClient: localClient, channelID: "channel-1", peerStatus: .recoveryCodeRequest(kind: .thirdParty)),
+                recoveryCode: "recovery-code"
+            )
+        )
+    }
+
+    func testWhenKnownRecoveryCodeMessageArrivesWhilePresenterWaitsForHelloThenFlowAbortsAsUnexpected() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        let error = PairingV2Error.unexpectedEvent("recovery code received while not joining")
+        let commands = stateMachine.handle(.receivedRecoveryCode("recovery-code"))
+
+        XCTAssertEqual(commands, [.abort(error)])
+        XCTAssertEqual(stateMachine.state, .failed(error))
     }
 
     func testWhenCompatibleRecoveryCodeIsScannedThenFlowAbortsAsUnsupported() {

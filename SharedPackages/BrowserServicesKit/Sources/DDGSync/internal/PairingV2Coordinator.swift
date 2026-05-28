@@ -57,11 +57,27 @@ final class PairingV2Coordinator {
         stateMachine.state
     }
 
+    func startPresenting() async throws -> PairingV2QRCodePayload {
+        let keyPair = try PairingV2KeyPairFactory.makeKeyPair()
+        localKeyPair = keyPair
+        peerChannelID = nil
+        peerPublicKey = nil
+        lastProcessedSequence = 0
+
+        let commands = stateMachine.handle(
+            .presentCodeRequested(localClient: localClient(isPresenter: true), flags: flags)
+        )
+        try await execute(commands)
+
+        return PairingV2QRCodePayload(channelId: keyPair.channelID, publicKey: keyPair.publicKey)
+    }
+
     func startScanning(qrPayload: PairingV2QRCodePayload) async throws {
         let keyPair = try PairingV2KeyPairFactory.makeKeyPair()
         localKeyPair = keyPair
         peerChannelID = qrPayload.channelId
         peerPublicKey = qrPayload.publicKey
+        lastProcessedSequence = 0
 
         let commands = stateMachine.handle(
             .scannedCode(.v2Linking(channelID: qrPayload.channelId), localClient: localClient(isPresenter: false), flags: flags)
@@ -180,6 +196,12 @@ final class PairingV2Coordinator {
 
         case .sendRecoveryCodeStatus(let status):
             try await send(recoveryCodeStatusMessage(for: status))
+
+        case .sendRecoveryCodeAwaitingConfirmation:
+            try await send(.recoveryCodeAwaitingConfirmation(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeAwaitingConfirmation)))
+
+        case .sendRecoveryCodeConfirmed:
+            try await send(.recoveryCodeConfirmed(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeConfirmed)))
 
         case .prepareRecoveryCode(let credentialKind, let purpose):
             let recoveryCode: String

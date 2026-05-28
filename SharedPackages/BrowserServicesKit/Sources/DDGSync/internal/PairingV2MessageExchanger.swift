@@ -54,6 +54,9 @@ struct PairingV2MessageExchanger: PairingV2MessageExchanging {
                                         body: body,
                                         contentType: "application/json")
         let result = try await request.execute()
+        // A first send can rarely see 404 while a just-created relay channel is still
+        // replicating. The spec allows either a targeted retry or aborting this session
+        // and letting the user retry the whole pairing flow.
         guard result.response.statusCode == 204 else {
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
         }

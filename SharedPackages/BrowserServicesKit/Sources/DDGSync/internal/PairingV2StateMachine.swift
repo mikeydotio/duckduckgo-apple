@@ -121,6 +121,8 @@ enum PairingV2Command: Equatable {
     case stopPolling
     case sendHello
     case sendRecoveryCodeStatus(PairingV2PeerStatus)
+    case sendRecoveryCodeAwaitingConfirmation
+    case sendRecoveryCodeConfirmed
     case prepareRecoveryCode(credentialKind: PairingV2DeviceKind, purpose: String)
     case sendRecoveryCode(String)
     case loginWithRecoveryCode(String)
@@ -196,8 +198,8 @@ struct PairingV2StateMachine {
 
     mutating func handle(_ event: PairingV2Event) -> [PairingV2Command] {
         switch event {
-        case .presentCodeRequested:
-            return fail(with: .unsupportedFlow("Pairing V2 code presentation is not implemented"))
+        case .presentCodeRequested(let localClient, let flags):
+            return handlePresentCodeRequested(localClient: localClient, flags: flags)
 
         case .scannedCode(let scannedCode, let localClient, let flags):
             return handleScannedCode(scannedCode, localClient: localClient, flags: flags)
@@ -238,6 +240,20 @@ struct PairingV2StateMachine {
         case .failed(let error):
             return fail(with: error)
         }
+    }
+
+    private mutating func handlePresentCodeRequested(localClient: PairingV2LocalClient, flags: PairingV2RolloutFlags) -> [PairingV2Command] {
+        guard flags.isV2CodeEnabled else {
+            return fail(with: .unsupportedFlow("Pairing V2 code presentation is disabled"))
+        }
+
+        guard localClient.kind == .ddg else {
+            return fail(with: .unsupportedFlow("Pairing V2 code presentation requires a native client"))
+        }
+
+        let session = PairingV2Session(localClient: localClient, channelID: nil)
+        state = .waitingForPeerHello(session)
+        return [.openV2Channel(channelID: nil)]
     }
 
     private mutating func handleScannedCode(_ scannedCode: PairingV2ScannedCode,
@@ -283,12 +299,17 @@ struct PairingV2StateMachine {
             return fail(with: .unsupportedVersion(message.version))
         }
 
-        guard case .waitingForPeerHello(let session) = state else {
-            return fail(with: .unexpectedEvent("Unified Algorithm simultaneous scan rule is intentionally out of scope before role election; scanner-side hello is a PR2 scope cut"))
-        }
+        switch state {
+        case .waitingForPeerHello(let session):
+            state = .waitingForPeerStatus(session)
+            return [.sendRecoveryCodeStatus(Self.localRecoveryCodeStatus(for: session.localClient))]
 
-        state = .waitingForPeerStatus(session)
-        return [.sendRecoveryCodeStatus(Self.localRecoveryCodeStatus(for: session.localClient))]
+        case .waitingForPeerStatus:
+            return []
+
+        default:
+            return fail(with: .unexpectedEvent("hello received before channel hierarchy was ready"))
+        }
     }
 
     private mutating func handleReceivedPeerStatus(_ peerStatus: PairingV2PeerStatus) -> [PairingV2Command] {
@@ -307,12 +328,15 @@ struct PairingV2StateMachine {
         switch PairingV2RoleElection.decideRole(localClient: updatedSession.localClient, peerStatus: peerStatus) {
         case .host(let joinerKind):
             let credentialKind = Self.recoveryCredentialKind(hostKind: updatedSession.localClient.kind, joinerKind: joinerKind)
-            guard updatedSession.localClient.kind == .ddg, credentialKind == .thirdParty else {
-                return fail(with: .unsupportedFlow("Pairing V2 native host currently supports only 3party recovery codes"))
+            guard updatedSession.localClient.kind == .ddg else {
+                return fail(with: .unsupportedFlow("Pairing V2 native host requires a native client"))
             }
 
             state = .hostPreparingRecoveryCode(updatedSession, credentialKind: credentialKind)
-            return [.prepareRecoveryCode(credentialKind: credentialKind, purpose: updatedSession.purpose)]
+            return [
+                .sendRecoveryCodeAwaitingConfirmation,
+                .prepareRecoveryCode(credentialKind: credentialKind, purpose: updatedSession.purpose)
+            ]
 
         case .joiner(let hostKind):
             guard updatedSession.localClient.kind == .ddg, [PairingV2DeviceKind.ddg, .thirdParty].contains(hostKind) else {
@@ -330,7 +354,7 @@ struct PairingV2StateMachine {
         }
 
         state = .hostSendingRecoveryCode(session, recoveryCode: recoveryCode)
-        return [.sendRecoveryCode(recoveryCode)]
+        return [.sendRecoveryCodeConfirmed, .sendRecoveryCode(recoveryCode)]
     }
 
     private mutating func handleReceivedRecoveryCode(_ recoveryCode: String) -> [PairingV2Command] {
