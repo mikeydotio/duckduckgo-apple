@@ -106,27 +106,6 @@ public protocol SyncFeatureFlagProviding {
     func isPairingV2CodeEnabled() -> Bool
 }
 
-public struct PrivacyConfigSyncFeatureFlagProvider: SyncFeatureFlagProviding {
-
-    private let privacyConfigurationManager: PrivacyConfigurationManaging
-
-    public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
-        self.privacyConfigurationManager = privacyConfigurationManager
-    }
-
-    public func isScopedAccessCredentialsEnabled() -> Bool {
-        privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.scopedAccessCredentials)
-    }
-
-    public func isPairingV2ScanningEnabled() -> Bool {
-        privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.canUseV2ConnectFlow)
-    }
-
-    public func isPairingV2CodeEnabled() -> Bool {
-        privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(SyncSubfeature.canShowV2ConnectCode)
-    }
-}
-
 public struct SyncFeatureFlagProvider: SyncFeatureFlagProviding {
 
     private let isScopedAccessCredentialsEnabledCallback: () -> Bool

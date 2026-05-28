@@ -33,8 +33,9 @@ final class PairingV2MessageCryptoTests: XCTestCase {
         let parts = encryptedMessage.payload.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
         let decryptedMessage = try crypto.decrypt(encryptedMessage, privateKey: keyPair.privateKey)
 
-        XCTAssertEqual(encryptedMessage.version, "2")
+        XCTAssertEqual(encryptedMessage.version, "2.0")
         XCTAssertEqual(parts.count, 5)
+        XCTAssertEqual(parts[0], JWECompactCodec.encodedRSAOAEP256ProtectedHeader(kid: "sender-channel"))
         XCTAssertFalse(parts[1].isEmpty)
         XCTAssertEqual(decryptedMessage, message)
     }
@@ -48,7 +49,7 @@ final class PairingV2MessageCryptoTests: XCTestCase {
             "type": "hello",
             "channel_id": "channel-1",
             "public_key": "public-key",
-            "version": "2"
+            "version": "2.0"
         ])
     }
 
@@ -95,7 +96,7 @@ final class PairingV2MessageCryptoTests: XCTestCase {
         XCTAssertEqual(message, .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeUnavailable))
     }
 
-    func testWhenDecryptingHigherMajorVersionThenThrowsUnsupportedVersion() throws {
+    func testWhenDecryptingUnsupportedVersionThenThrowsUnsupportedVersion() throws {
         let keyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "channel-1")
         let crypto = PairingV2MessageCrypto()
         let message = try crypto.encrypt(
@@ -108,6 +109,49 @@ final class PairingV2MessageCryptoTests: XCTestCase {
 
         XCTAssertThrowsError(try crypto.decrypt(unsupportedMessage, privateKey: keyPair.privateKey)) { error in
             XCTAssertEqual(error as? PairingV2MessageCryptoError, .unsupportedVersion("3"))
+        }
+    }
+
+    func testWhenDecryptingDifferentMinorVersionThenThrowsUnsupportedVersion() throws {
+        let keyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "channel-1")
+        let crypto = PairingV2MessageCrypto()
+        let message = try crypto.encrypt(
+            .recoveryCodeRequest(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest,
+                                       kind: .ddg)),
+            recipientPublicKey: keyPair.publicKey,
+            senderChannelID: "sender-channel"
+        )
+        let unsupportedMessage = PairingV2EncryptedMessage(version: "2.1", payload: message.payload)
+
+        XCTAssertThrowsError(try crypto.decrypt(unsupportedMessage, privateKey: keyPair.privateKey)) { error in
+            XCTAssertEqual(error as? PairingV2MessageCryptoError, .unsupportedVersion("2.1"))
+        }
+    }
+
+    func testWhenDecryptingTokenWithWrongPartCountThenThrowsInvalidTokenPartCount() throws {
+        let keyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "channel-1")
+        let crypto = PairingV2MessageCrypto()
+        let message = PairingV2EncryptedMessage(payload: "a.b.c")
+
+        XCTAssertThrowsError(try crypto.decrypt(message, privateKey: keyPair.privateKey)) { error in
+            XCTAssertEqual(error as? PairingV2MessageCryptoError, .invalidTokenPartCount(3))
+        }
+    }
+
+    func testWhenDecryptingTokenWithInvalidAuthenticationTagThenThrowsInvalidBase64URLComponent() throws {
+        let keyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "channel-1")
+        let crypto = PairingV2MessageCrypto()
+        let message = try crypto.encrypt(
+            .hello(.init(channelId: "channel-2", publicKey: "public-key")),
+            recipientPublicKey: keyPair.publicKey,
+            senderChannelID: "sender-channel"
+        )
+        var parts = message.payload.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+        parts[4] = Base64URL.encode(Data(repeating: 0x00, count: 15))
+        let invalidMessage = PairingV2EncryptedMessage(payload: parts.joined(separator: "."))
+
+        XCTAssertThrowsError(try crypto.decrypt(invalidMessage, privateKey: keyPair.privateKey)) { error in
+            XCTAssertEqual(error as? PairingV2MessageCryptoError, .invalidBase64URLComponent)
         }
     }
 

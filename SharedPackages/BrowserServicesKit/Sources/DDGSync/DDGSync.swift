@@ -85,9 +85,8 @@ public class DDGSync: DDGSyncing {
                             privacyConfigurationManager: PrivacyConfigurationManaging,
                             keyValueStore: ThrowingKeyValueStoring,
                             environment: ServerEnvironment = .production,
-                            syncFeatureFlags: (any SyncFeatureFlagProviding)? = nil,
+                            syncFeatureFlags: any SyncFeatureFlagProviding,
                             shouldPreserveAccountWhenSyncDisabled: @escaping () -> Bool = { false }) {
-        let syncFeatureFlags = syncFeatureFlags ?? PrivacyConfigSyncFeatureFlagProvider(privacyConfigurationManager: privacyConfigurationManager)
         let dependencies = ProductionDependencies(
             serverEnvironment: environment,
             privacyConfigurationManager: privacyConfigurationManager,
@@ -290,6 +289,36 @@ public class DDGSync: DDGSyncing {
             let code = try makeThirdPartyRecoveryCode(account: account, scopedPassword: scopedPassword)
             try dependencies.secureStore.persistScopedPassword(scopedPassword)
             return code
+        } catch {
+            throw handleUnauthenticatedAndMap(error)
+        }
+    }
+
+    public func upgradeThirdPartyAccountToDefaultCredential(_ recoveryCode: String,
+                                                            deviceName: String,
+                                                            deviceType: String) async throws -> [RegisteredDevice] {
+        guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() else {
+            throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
+        }
+        guard try dependencies.secureStore.account() == nil else {
+            throw SyncError.accountAlreadyExists
+        }
+
+        do {
+            let upgradeCoordinator = dependencies.createThirdPartyAccountUpgradeCoordinator()
+            let result = try await upgradeCoordinator.upgradeThirdPartyAccountToDefaultCredential(recoveryCode,
+                                                                                                 deviceName: deviceName,
+                                                                                                 deviceType: deviceType)
+            do {
+                try updateAccount(result.account)
+                try dependencies.secureStore.persistScopedPassword(result.scopedPassword)
+                updateProtectedKeysCache(with: result.protectedKeys)
+                scheduler.requestSyncImmediately()
+            } catch {
+                Logger.sync.error("3party account upgrade failed to persist the native account: \(String(reflecting: error), privacy: .public)")
+                throw error
+            }
+            return result.devices
         } catch {
             throw handleUnauthenticatedAndMap(error)
         }

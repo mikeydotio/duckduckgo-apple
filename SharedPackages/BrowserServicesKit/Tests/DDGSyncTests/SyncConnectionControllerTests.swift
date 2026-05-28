@@ -550,21 +550,24 @@ final class SyncConnectionControllerTests: XCTestCase {
         let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: false, codeSource: .pastedCode)
 
         XCTAssertFalse(result)
-        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
         XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
     }
 
     @MainActor
-    func test_syncCodeEntered_withV2UrlAndNoAccount_returnsFailureBeforeStartingPairingV2() async throws {
-        let payload = PairingV2QRCodePayload(channelId: "channel-1", publicKey: "public-key")
+    func test_syncCodeEntered_withV2UrlAndNoAccount_startsPairingV2() async throws {
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2Error.cancelled
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
         let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
 
         let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: true, codeSource: .pastedCode)
 
         XCTAssertFalse(result)
-        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .failedToLogIn)
-        XCTAssertTrue(delegate.didErrorErrors?.underlyingError is PairingV2Error)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 1)
+        XCTAssertNil(delegate.didErrorErrors)
     }
 
     @MainActor
@@ -576,7 +579,7 @@ final class SyncConnectionControllerTests: XCTestCase {
         let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: true, codeSource: .pastedCode)
 
         XCTAssertFalse(result)
-        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
         XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
         XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .v2ScanningDisabled)
     }
@@ -590,7 +593,7 @@ final class SyncConnectionControllerTests: XCTestCase {
         let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: true, codeSource: .pastedCode)
 
         XCTAssertFalse(result)
-        XCTAssertEqual(dependencies.createPairingV2TransportCallCount, 0)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
         XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
         XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .v2ScanningDisabled)
     }
@@ -598,9 +601,9 @@ final class SyncConnectionControllerTests: XCTestCase {
     @MainActor
     func test_syncCodeEntered_withV2UrlAndPairingV2Cancelled_returnsFailureWithoutError() async throws {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
-        let transport = PairingV2TransportingMock()
-        transport.fetchMessagesError = PairingV2Error.cancelled
-        dependencies.createPairingV2TransportStub = transport
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2Error.cancelled
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
         let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
         let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
@@ -614,10 +617,10 @@ final class SyncConnectionControllerTests: XCTestCase {
     @MainActor
     func test_syncCodeEntered_withV2SameAccountFailure_notifiesLoginError() async throws {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
-        let transport = PairingV2TransportingMock()
-        dependencies.createPairingV2TransportStub = transport
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
-        transport.fetchMessagesHandler = { _, _ in
+        messageExchanger.fetchMessagesHandler = { _, _ in
             try self.encryptedPeerMessages(
                 [
                     .recoveryCodeAvailable(
@@ -627,7 +630,7 @@ final class SyncConnectionControllerTests: XCTestCase {
                               userId: SyncAccount.mock.userId)
                     )
                 ],
-                transport: transport,
+                messageExchanger: messageExchanger,
                 peerKeyPair: peerKeyPair
             )
         }
@@ -644,9 +647,9 @@ final class SyncConnectionControllerTests: XCTestCase {
     @MainActor
     func test_syncCodeEntered_withV2MessageCryptoError_notifiesUnableToRecognizeCode() async throws {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
-        let transport = PairingV2TransportingMock()
-        transport.fetchMessagesError = PairingV2MessageCryptoError.unsupportedProtectedHeader
-        dependencies.createPairingV2TransportStub = transport
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2MessageCryptoError.unsupportedProtectedHeader
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
         let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
         let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
@@ -663,10 +666,10 @@ final class SyncConnectionControllerTests: XCTestCase {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
         let scopedAccess = try XCTUnwrap(dependencies.scopedAccess as? ScopedAccessCredentialManagingMock)
         scopedAccess.ensureThirdPartyScopedPasswordError = SyncError.failedToEncryptValue("")
-        let transport = PairingV2TransportingMock()
-        dependencies.createPairingV2TransportStub = transport
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
-        transport.fetchMessagesHandler = { _, _ in
+        messageExchanger.fetchMessagesHandler = { _, _ in
             try self.encryptedPeerMessages(
                 [
                     .recoveryCodeAvailable(
@@ -676,7 +679,7 @@ final class SyncConnectionControllerTests: XCTestCase {
                               userId: "other-user")
                     )
                 ],
-                transport: transport,
+                messageExchanger: messageExchanger,
                 peerKeyPair: peerKeyPair
             )
         }
@@ -693,15 +696,15 @@ final class SyncConnectionControllerTests: XCTestCase {
     @MainActor
     func test_syncCodeEntered_withV2RecoveryCodeSendFailure_notifiesTransmitError() async throws {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
-        let transport = PairingV2TransportingMock()
-        transport.sendHandler = { _, _ in
-            if transport.sendCalls.count > 2 {
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.sendHandler = { _, _ in
+            if messageExchanger.sendCalls.count > 2 {
                 throw SyncError.failedToEncryptValue("")
             }
         }
-        dependencies.createPairingV2TransportStub = transport
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
-        transport.fetchMessagesHandler = { _, _ in
+        messageExchanger.fetchMessagesHandler = { _, _ in
             try self.encryptedPeerMessages(
                 [
                     .recoveryCodeAvailable(
@@ -711,7 +714,7 @@ final class SyncConnectionControllerTests: XCTestCase {
                               userId: "other-user")
                     )
                 ],
-                transport: transport,
+                messageExchanger: messageExchanger,
                 peerKeyPair: peerKeyPair
             )
         }
@@ -728,10 +731,10 @@ final class SyncConnectionControllerTests: XCTestCase {
     @MainActor
     func test_syncCodeEntered_withV2LoginFailure_notifiesLoginError() async throws {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
-        let transport = PairingV2TransportingMock()
-        dependencies.createPairingV2TransportStub = transport
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
-        transport.fetchMessagesHandler = { _, _ in
+        messageExchanger.fetchMessagesHandler = { _, _ in
             try self.encryptedPeerMessages(
                 [
                     .recoveryCodeAvailable(
@@ -742,7 +745,7 @@ final class SyncConnectionControllerTests: XCTestCase {
                     ),
                     .recoveryCodeResponse(.init(recoveryCode: Self.validRecoveryCode))
                 ],
-                transport: transport,
+                messageExchanger: messageExchanger,
                 peerKeyPair: peerKeyPair
             )
         }
@@ -1004,12 +1007,12 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     private func encryptedPeerMessages(_ messages: [PairingV2ApplicationMessage],
-                                       transport: PairingV2TransportingMock,
+                                       messageExchanger: PairingV2MessageExchangingMock,
                                        peerKeyPair: PairingV2KeyPair,
                                        file: StaticString = #filePath,
                                        line: UInt = #line) throws -> [PairingV2SequencedMessage] {
         let crypto = PairingV2MessageCrypto()
-        let encryptedHello = try XCTUnwrap(transport.sendCalls.first?.messages.first, file: file, line: line)
+        let encryptedHello = try XCTUnwrap(messageExchanger.sendCalls.first?.messages.first, file: file, line: line)
         let decryptedHello = try XCTUnwrap(try crypto.decrypt(encryptedHello, privateKey: peerKeyPair.privateKey), file: file, line: line)
         guard case .hello(let hello) = decryptedHello else {
             XCTFail("Expected initial Pairing V2 hello message", file: file, line: line)

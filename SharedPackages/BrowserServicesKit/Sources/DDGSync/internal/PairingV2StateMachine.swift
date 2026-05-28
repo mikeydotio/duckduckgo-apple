@@ -22,12 +22,14 @@ enum PairingV2DeviceKind: String, Codable, Equatable {
 }
 
 struct PairingV2LocalClient: Equatable {
+    let name: String?
     let kind: PairingV2DeviceKind
     let hasAccount: Bool
     let isPresenter: Bool
     let userId: String?
 
-    init(kind: PairingV2DeviceKind, hasAccount: Bool, isPresenter: Bool, userId: String? = nil) {
+    init(name: String? = nil, kind: PairingV2DeviceKind, hasAccount: Bool, isPresenter: Bool, userId: String? = nil) {
+        self.name = name
         self.kind = kind
         self.hasAccount = hasAccount
         self.isPresenter = isPresenter
@@ -36,16 +38,17 @@ struct PairingV2LocalClient: Equatable {
 }
 
 struct PairingV2PeerStatus: Equatable {
+    let name: String?
     let kind: PairingV2DeviceKind
     let hasAccount: Bool
     let userId: String?
 
-    static func recoveryCodeAvailable(kind: PairingV2DeviceKind, userId: String? = nil) -> PairingV2PeerStatus {
-        PairingV2PeerStatus(kind: kind, hasAccount: true, userId: userId)
+    static func recoveryCodeAvailable(name: String? = nil, kind: PairingV2DeviceKind, userId: String? = nil) -> PairingV2PeerStatus {
+        PairingV2PeerStatus(name: name, kind: kind, hasAccount: true, userId: userId)
     }
 
-    static func recoveryCodeRequest(kind: PairingV2DeviceKind) -> PairingV2PeerStatus {
-        PairingV2PeerStatus(kind: kind, hasAccount: false, userId: nil)
+    static func recoveryCodeRequest(name: String? = nil, kind: PairingV2DeviceKind) -> PairingV2PeerStatus {
+        PairingV2PeerStatus(name: name, kind: kind, hasAccount: false, userId: nil)
     }
 }
 
@@ -88,7 +91,6 @@ enum PairingV2State: Equatable {
     case idle
     case waitingForPeerHello(PairingV2Session)
     case waitingForPeerStatus(PairingV2Session)
-    case validatingAccountCanHostNativeJoiner(PairingV2Session)
     case hostPreparingRecoveryCode(PairingV2Session, credentialKind: PairingV2DeviceKind)
     case hostSendingRecoveryCode(PairingV2Session, recoveryCode: String)
     case joinerWaitingForRecoveryCode(PairingV2Session)
@@ -102,7 +104,6 @@ enum PairingV2Event: Equatable {
     case scannedCode(PairingV2ScannedCode, localClient: PairingV2LocalClient, flags: PairingV2RolloutFlags)
     case receivedHello(PairingV2HelloMessage)
     case receivedPeerStatus(PairingV2PeerStatus)
-    case nativeCredentialAbsenceValidated
     case nativeCredentialAlreadyPresent
     case recoveryCodePrepared(String)
     case recoveryCodeSent
@@ -115,10 +116,11 @@ enum PairingV2Command: Equatable {
     case openV2Channel(channelID: String?)
     case stopPolling
     case sendHello
-    case sendPeerStatus(PairingV2PeerStatus)
+    case sendRecoveryCodeStatus(PairingV2PeerStatus)
     case prepareRecoveryCode(credentialKind: PairingV2DeviceKind, purpose: String)
     case sendRecoveryCode(String)
     case loginWithRecoveryCode(String)
+    case upgradeThirdPartyAccountWithRecoveryCode(String)
     case abort(PairingV2Error)
 }
 
@@ -140,48 +142,47 @@ enum PairingV2Error: Error, Equatable {
 }
 
 enum PairingV2RoleDecision: Equatable {
-    case host(joinerKind: PairingV2DeviceKind, requiresNativeCredentialAbsenceValidation: Bool)
+    case host(joinerKind: PairingV2DeviceKind)
     case joiner(hostKind: PairingV2DeviceKind)
 }
 
 enum PairingV2RoleElection {
 
-    static func decideRole(localClient: PairingV2LocalClient, peerStatus: PairingV2PeerStatus) -> PairingV2RoleDecision {
+    static func decideRole(localClient: PairingV2LocalClient,
+                           peerStatus: PairingV2PeerStatus,
+                           localChannelID: String? = nil,
+                           peerChannelID: String? = nil) -> PairingV2RoleDecision {
         let peerKind = peerStatus.kind
-        let peerHasAccount = peerStatus.hasAccount
 
-        if peerHasAccount {
-            if !localClient.hasAccount {
-                return .joiner(hostKind: peerKind)
-            }
+        // Rule 1: account beats no-account.
+        if localClient.hasAccount && !peerStatus.hasAccount {
+            return .host(joinerKind: peerKind)
+        }
 
-            if localClient.kind != peerKind {
-                return localClient.kind == .ddg
-                    ? .host(joinerKind: peerKind, requiresNativeCredentialAbsenceValidation: false)
-                    : .joiner(hostKind: peerKind)
-            }
+        // Rule 2: no-account joins an account.
+        if !localClient.hasAccount && peerStatus.hasAccount {
+            return .joiner(hostKind: peerKind)
+        }
 
-            return localClient.isPresenter
-                ? .host(joinerKind: peerKind, requiresNativeCredentialAbsenceValidation: false)
+        // Rules 3-4: DDG beats 3party.
+        if localClient.kind == .ddg && peerKind == .thirdParty {
+            return .host(joinerKind: peerKind)
+        }
+
+        // Rule 5: presenter hosts when account and kind do not decide.
+        if localClient.isPresenter {
+            return .host(joinerKind: peerKind)
+        }
+
+        // Rule 6: mutual scanners use channel IDs as a deterministic tie-break.
+        if let localChannelID, let peerChannelID {
+            return localChannelID < peerChannelID
+                ? .host(joinerKind: peerKind)
                 : .joiner(hostKind: peerKind)
         }
 
-        if localClient.hasAccount {
-            return .host(
-                joinerKind: peerKind,
-                requiresNativeCredentialAbsenceValidation: localClient.kind == .thirdParty && peerKind == .ddg
-            )
-        }
-
-        if localClient.kind != peerKind {
-            return localClient.kind == .ddg
-                ? .host(joinerKind: peerKind, requiresNativeCredentialAbsenceValidation: false)
-                : .joiner(hostKind: peerKind)
-        }
-
-        return localClient.isPresenter
-            ? .host(joinerKind: peerKind, requiresNativeCredentialAbsenceValidation: false)
-            : .joiner(hostKind: peerKind)
+        // Rule 7: scanners join by default.
+        return .joiner(hostKind: peerKind)
     }
 }
 
@@ -202,9 +203,6 @@ struct PairingV2StateMachine {
 
         case .receivedPeerStatus(let peerStatus):
             return handleReceivedPeerStatus(peerStatus)
-
-        case .nativeCredentialAbsenceValidated:
-            return handleNativeCredentialAbsenceValidated()
 
         case .nativeCredentialAlreadyPresent:
             return fail(with: .nativeCredentialAlreadyPresent)
@@ -238,8 +236,8 @@ struct PairingV2StateMachine {
                 return fail(with: .v2ScanningDisabled)
             }
 
-            guard localClient.kind == .ddg, localClient.hasAccount else {
-                return fail(with: .unsupportedFlow("Pairing V2 scanning requires an existing native account in this slice"))
+            guard localClient.kind == .ddg else {
+                return fail(with: .unsupportedFlow("Pairing V2 scanning requires a native client"))
             }
 
             let session = PairingV2Session(localClient: localClient, channelID: channelID)
@@ -248,7 +246,7 @@ struct PairingV2StateMachine {
             let commands: [PairingV2Command] = [
                 .openV2Channel(channelID: nil),
                 .sendHello,
-                .sendPeerStatus(Self.statusMessage(for: localClient))
+                .sendRecoveryCodeStatus(Self.localRecoveryCodeStatus(for: localClient))
             ]
             return commands
 
@@ -270,11 +268,11 @@ struct PairingV2StateMachine {
         }
 
         guard case .waitingForPeerHello(let session) = state else {
-            return fail(with: .unexpectedEvent("scanner received hello after sending scan hello; simultaneous scan handling is out of scope"))
+            return fail(with: .unexpectedEvent("Unified Algorithm simultaneous scan rule is intentionally out of scope before role election; scanner-side hello is a PR2 scope cut"))
         }
 
         state = .waitingForPeerStatus(session)
-        return [.sendPeerStatus(Self.statusMessage(for: session.localClient))]
+        return [.sendRecoveryCodeStatus(Self.localRecoveryCodeStatus(for: session.localClient))]
     }
 
     private mutating func handleReceivedPeerStatus(_ peerStatus: PairingV2PeerStatus) -> [PairingV2Command] {
@@ -291,10 +289,7 @@ struct PairingV2StateMachine {
 
         let updatedSession = session.withPeerStatus(peerStatus)
         switch PairingV2RoleElection.decideRole(localClient: updatedSession.localClient, peerStatus: peerStatus) {
-        case .host(_, true):
-            return fail(with: .unsupportedFlow("3party host native-joiner validation is not implemented"))
-
-        case .host(let joinerKind, false):
+        case .host(let joinerKind):
             let credentialKind = Self.recoveryCredentialKind(hostKind: updatedSession.localClient.kind, joinerKind: joinerKind)
             guard updatedSession.localClient.kind == .ddg, credentialKind == .thirdParty else {
                 return fail(with: .unsupportedFlow("Pairing V2 native host currently supports only 3party recovery codes"))
@@ -304,24 +299,13 @@ struct PairingV2StateMachine {
             return [.prepareRecoveryCode(credentialKind: credentialKind, purpose: updatedSession.purpose)]
 
         case .joiner(let hostKind):
-            guard updatedSession.localClient.kind == .ddg, hostKind == .ddg else {
-                return fail(with: .unsupportedFlow("Pairing V2 native joiner currently supports only native recovery codes"))
+            guard updatedSession.localClient.kind == .ddg, [PairingV2DeviceKind.ddg, .thirdParty].contains(hostKind) else {
+                return fail(with: .unsupportedFlow("Pairing V2 native joiner currently supports only native or 3party recovery codes"))
             }
 
             state = .joinerWaitingForRecoveryCode(updatedSession)
             return []
         }
-    }
-
-    private mutating func handleNativeCredentialAbsenceValidated() -> [PairingV2Command] {
-        guard case .validatingAccountCanHostNativeJoiner(let session) = state,
-              let peerStatus = session.peerStatus else {
-            return fail(with: .unexpectedEvent("native credential validation completed outside validation state"))
-        }
-
-        let credentialKind = Self.recoveryCredentialKind(hostKind: session.localClient.kind, joinerKind: peerStatus.kind)
-        state = .hostPreparingRecoveryCode(session, credentialKind: credentialKind)
-        return [.prepareRecoveryCode(credentialKind: credentialKind, purpose: session.purpose)]
     }
 
     private mutating func handleRecoveryCodePrepared(_ recoveryCode: String) -> [PairingV2Command] {
@@ -339,6 +323,9 @@ struct PairingV2StateMachine {
         }
 
         state = .joinerLoggingIn(session, recoveryCode: recoveryCode)
+        if session.peerStatus?.kind == .thirdParty {
+            return [.upgradeThirdPartyAccountWithRecoveryCode(recoveryCode)]
+        }
         return [.loginWithRecoveryCode(recoveryCode)]
     }
 
@@ -365,8 +352,10 @@ struct PairingV2StateMachine {
         return [.abort(error)]
     }
 
-    private static func statusMessage(for localClient: PairingV2LocalClient) -> PairingV2PeerStatus {
-        localClient.hasAccount ? .recoveryCodeAvailable(kind: localClient.kind) : .recoveryCodeRequest(kind: localClient.kind)
+    private static func localRecoveryCodeStatus(for localClient: PairingV2LocalClient) -> PairingV2PeerStatus {
+        localClient.hasAccount
+            ? .recoveryCodeAvailable(name: localClient.name, kind: localClient.kind, userId: localClient.userId)
+            : .recoveryCodeRequest(name: localClient.name, kind: localClient.kind)
     }
 
     private static func recoveryCredentialKind(hostKind: PairingV2DeviceKind, joinerKind: PairingV2DeviceKind) -> PairingV2DeviceKind {
@@ -377,9 +366,7 @@ struct PairingV2StateMachine {
     }
 
     private static func supports(version: String) -> Bool {
-        guard let majorString = version.split(separator: ".").first, let major = Int(majorString) else {
-            return false
-        }
-        return major == 2
+        version == PairingV2ProtocolVersion.current
     }
+
 }

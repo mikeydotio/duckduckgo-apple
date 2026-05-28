@@ -22,7 +22,7 @@ import os.log
 final class PairingV2Coordinator {
 
     private let syncService: DDGSyncing
-    private let transport: PairingV2Transporting
+    private let messageExchanger: PairingV2MessageExchanging
     private let messageCrypto: PairingV2MessageCrypto
     private let deviceName: String
     private let deviceType: String
@@ -38,14 +38,14 @@ final class PairingV2Coordinator {
     private(set) var pendingRecoveryKey: SyncCode.RecoveryKey?
 
     init(syncService: DDGSyncing,
-         transport: PairingV2Transporting,
+         messageExchanger: PairingV2MessageExchanging,
          messageCrypto: PairingV2MessageCrypto = PairingV2MessageCrypto(),
          deviceName: String,
          deviceType: String,
          localKind: PairingV2DeviceKind = .ddg,
          flags: PairingV2RolloutFlags) {
         self.syncService = syncService
-        self.transport = transport
+        self.messageExchanger = messageExchanger
         self.messageCrypto = messageCrypto
         self.deviceName = deviceName
         self.deviceType = deviceType
@@ -74,7 +74,7 @@ final class PairingV2Coordinator {
             throw SyncError.failedToPrepareForExchange("Pairing V2 local channel is not ready")
         }
 
-        let messages = try await transport.fetchMessages(from: channelID, after: lastProcessedSequence)
+        let messages = try await messageExchanger.fetchMessages(from: channelID, after: lastProcessedSequence)
         for message in messages.sorted(by: { $0.seq < $1.seq }) {
             guard !isTerminal else {
                 return
@@ -115,7 +115,7 @@ final class PairingV2Coordinator {
         guard let channelID = localKeyPair?.channelID else {
             return
         }
-        try? await transport.closeChannel(channelID)
+        try? await messageExchanger.closeChannel(channelID)
     }
 
     private func handle(_ encryptedMessage: PairingV2EncryptedMessage, sequence: Int? = nil) async throws {
@@ -124,10 +124,8 @@ final class PairingV2Coordinator {
         }
 
         guard let message = try messageCrypto.decrypt(encryptedMessage, privateKey: privateKey, expectedSenderChannelID: peerChannelID) else {
-            Logger.sync.debug("Pairing V2 dropped unknown message type")
             return
         }
-        Logger.sync.debug("Pairing V2 received message: \(message.type, privacy: .public)")
 
         let commands: [PairingV2Command]
         switch message {
@@ -139,10 +137,10 @@ final class PairingV2Coordinator {
             }
 
         case .recoveryCodeAvailable(let message):
-            commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: message.kind, userId: message.userId)))
+            commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(name: message.name, kind: message.kind, userId: message.userId)))
 
         case .recoveryCodeRequest(let message):
-            commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeRequest(kind: message.kind)))
+            commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeRequest(name: message.name, kind: message.kind)))
 
         case .recoveryCodeResponse(let message):
             let recoveryCode = recoveryCode(from: message)
@@ -168,14 +166,14 @@ final class PairingV2Coordinator {
         switch command {
         case .openV2Channel(let channelID):
             let channelID = try channelID ?? requiredLocalChannelID()
-            try await transport.openChannel(channelID)
+            try await messageExchanger.openChannel(channelID)
 
         case .sendHello:
             let keyPair = try requiredLocalKeyPair()
             try await send(.hello(.init(channelId: keyPair.channelID, publicKey: keyPair.publicKey)))
 
-        case .sendPeerStatus(let status):
-            try await send(statusMessage(for: status))
+        case .sendRecoveryCodeStatus(let status):
+            try await send(recoveryCodeStatusMessage(for: status))
 
         case .prepareRecoveryCode(let credentialKind, let purpose):
             let recoveryCode: String
@@ -205,6 +203,18 @@ final class PairingV2Coordinator {
             }
             try await execute(stateMachine.handle(.loginSucceeded))
 
+        case .upgradeThirdPartyAccountWithRecoveryCode(let recoveryCode):
+            do {
+                try await upgradeThirdPartyAccount(with: recoveryCode)
+            } catch let error as PairingV2Error {
+                try await execute(stateMachine.handle(.failed(error)))
+                throw error
+            } catch {
+                try await execute(stateMachine.handle(.failed(.loginFailed)))
+                throw PairingV2Error.loginFailed
+            }
+            try await execute(stateMachine.handle(.loginSucceeded))
+
         case .stopPolling:
             await closeLocalChannel()
 
@@ -219,16 +229,20 @@ final class PairingV2Coordinator {
         }
 
         let encryptedMessage = try messageCrypto.encrypt(message, recipientPublicKey: peerPublicKey, senderChannelID: try requiredLocalChannelID())
-        Logger.sync.debug("Pairing V2 sending message: \(message.type, privacy: .public) to channel: \(peerChannelID, privacy: .public)")
-        try await transport.send([encryptedMessage], to: peerChannelID)
+        try await messageExchanger.send([encryptedMessage], to: peerChannelID)
     }
 
-    private func statusMessage(for status: PairingV2PeerStatus) -> PairingV2ApplicationMessage {
-        let type = status.hasAccount ? PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable : PairingV2ApplicationMessage.MessageType.recoveryCodeRequest
+    private func recoveryCodeStatusMessage(for status: PairingV2PeerStatus) -> PairingV2ApplicationMessage {
+        let name = status.name ?? deviceName
 
-        return status.hasAccount
-            ? .recoveryCodeAvailable(.init(type: type, name: deviceName, kind: status.kind, userId: syncService.account?.userId))
-            : .recoveryCodeRequest(.init(type: type, name: deviceName, kind: status.kind))
+        if status.hasAccount {
+            return .recoveryCodeAvailable(
+                .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable,
+                      name: name,
+                      kind: status.kind,
+                      userId: status.userId ?? syncService.account?.userId))
+        }
+        return .recoveryCodeRequest(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest, name: name, kind: status.kind))
     }
 
     private func prepareRecoveryCode(credentialKind: PairingV2DeviceKind, purpose: String) async throws -> String {
@@ -263,8 +277,19 @@ final class PairingV2Coordinator {
         completedRegisteredDevices = try await syncService.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
     }
 
+    private func upgradeThirdPartyAccount(with recoveryCode: String) async throws {
+        do {
+            completedRegisteredDevices = try await syncService.upgradeThirdPartyAccountToDefaultCredential(recoveryCode,
+                                                                                                           deviceName: deviceName,
+                                                                                                           deviceType: deviceType)
+        } catch {
+            Logger.sync.error("Pairing V2 3party account upgrade failed: \(String(reflecting: error), privacy: .public)")
+            throw error
+        }
+    }
+
     private func localClient(isPresenter: Bool) -> PairingV2LocalClient {
-        PairingV2LocalClient(kind: localKind, hasAccount: syncService.account != nil, isPresenter: isPresenter, userId: syncService.account?.userId)
+        PairingV2LocalClient(name: deviceName, kind: localKind, hasAccount: syncService.account != nil, isPresenter: isPresenter, userId: syncService.account?.userId)
     }
 
     private func requiredLocalKeyPair() throws -> PairingV2KeyPair {

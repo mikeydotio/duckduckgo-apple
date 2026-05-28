@@ -47,35 +47,39 @@ enum PairingV2KeyPairFactory {
     private static let rsaKeySizeInBits = 2048
 
     static func makeKeyPair(channelID: String = UUID().uuidString) throws -> PairingV2KeyPair {
-        let attributes: [String: Any] = [
-            kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
-            kSecAttrKeySizeInBits as String: rsaKeySizeInBits,
-            kSecPrivateKeyAttrs as String: [
-                kSecAttrIsPermanent as String: false
-            ]
-        ]
-
-        guard let privateKey = SecKeyCreateRandomKey(attributes as CFDictionary, nil) else {
+        let keyPair: RSAKeyPair
+        do {
+            keyPair = try RSAKeyPairGenerator.makeKeyPair(keySizeInBits: rsaKeySizeInBits)
+        } catch RSAKeyPairGeneratorError.keyGenerationFailed {
             throw PairingV2MessageCryptoError.keyGenerationFailed
-        }
-        guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
+        } catch RSAKeyPairGeneratorError.publicKeyExtractionFailed {
             throw PairingV2MessageCryptoError.publicKeyExtractionFailed
+        } catch {
+            throw error
         }
-        guard let publicKeyPKCS1 = SecKeyCopyExternalRepresentation(publicKey, nil) as Data? else {
+
+        let publicKeyPKCS1: Data
+        do {
+            publicKeyPKCS1 = try RSAKeyPairGenerator.copyExternalRepresentation(for: keyPair.publicKey)
+        } catch RSAKeyPairGeneratorError.externalRepresentationFailed {
             throw PairingV2MessageCryptoError.publicKeyExportFailed
+        } catch {
+            throw error
         }
 
         return PairingV2KeyPair(channelID: channelID,
-                                publicKey: Base64URL.encode(PairingV2DER.wrapRSAPublicKeyInSPKI(publicKeyPKCS1)),
-                                privateKey: privateKey)
+                                publicKey: Base64URL.encode(RSAKeyDER.wrapRSAPublicKeyInSPKI(publicKeyPKCS1)),
+                                privateKey: keyPair.privateKey)
     }
 }
 
 final class PairingV2MessageCrypto {
 
-    private static let supportedMajorVersion = 2
-    private let contentEncryptionKeyLength = 32
-    private let ivLength = 12
+    private let jweCompactCodec: JWECompactCodec
+
+    init(jweCompactCodec: JWECompactCodec = JWECompactCodec()) {
+        self.jweCompactCodec = jweCompactCodec
+    }
 
     func encrypt(_ message: PairingV2ApplicationMessage,
                  recipientPublicKey: String,
@@ -130,75 +134,34 @@ final class PairingV2MessageCrypto {
     }
 
     private func encrypt(_ payload: Data, recipientPublicKey: SecKey, kid: String) throws -> String {
-        let contentEncryptionKey = try randomBytes(count: contentEncryptionKeyLength)
-        let encryptedContentEncryptionKey = try encryptContentEncryptionKey(contentEncryptionKey, recipientPublicKey: recipientPublicKey)
-        let iv = try randomBytes(count: ivLength)
-        let protectedHeader = Self.encodedProtectedHeader(kid: kid)
-        let encryptedPayload = try aesGCMEncrypt(plaintext: payload,
-                                                 contentEncryptionKey: contentEncryptionKey,
-                                                 iv: iv,
-                                                 additionalAuthenticatedData: Data(protectedHeader.utf8))
-
-        return [
-            protectedHeader,
-            Base64URL.encode(encryptedContentEncryptionKey),
-            Base64URL.encode(iv),
-            Base64URL.encode(encryptedPayload.ciphertext),
-            Base64URL.encode(encryptedPayload.authenticationTag)
-        ].joined(separator: ".")
+        do {
+            return try jweCompactCodec.encryptRSAOAEP256(payload: payload,
+                                                         recipientPublicKey: recipientPublicKey,
+                                                         kid: kid)
+        } catch let error as JWECompactCodecError {
+            throw pairingError(for: error)
+        }
     }
 
     private func decrypt(token: String, privateKey: SecKey, expectedSenderChannelID: String?) throws -> Data {
-        let parts = token.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
-        guard parts.count == 5 else {
-            throw PairingV2MessageCryptoError.invalidTokenPartCount(parts.count)
-        }
-        try decodeProtectedHeader(parts[0], expectedSenderChannelID: expectedSenderChannelID)
-
-        guard let encryptedContentEncryptionKey = Base64URL.decode(parts[1]),
-              let iv = Base64URL.decode(parts[2]),
-              let ciphertext = Base64URL.decode(parts[3]),
-              let authenticationTag = Base64URL.decode(parts[4]),
-              authenticationTag.count == 16
-        else {
-            throw PairingV2MessageCryptoError.invalidBase64URLComponent
-        }
-
-        let contentEncryptionKey = try decryptContentEncryptionKey(encryptedContentEncryptionKey, privateKey: privateKey)
-        return try aesGCMDecrypt(ciphertext: ciphertext,
-                                 authenticationTag: authenticationTag,
-                                 contentEncryptionKey: contentEncryptionKey,
-                                 iv: iv,
-                                 additionalAuthenticatedData: Data(parts[0].utf8))
-    }
-
-    private static func encodedProtectedHeader(kid: String) -> String {
-        Base64URL.encode(Data(#"{"alg":"RSA-OAEP-256","enc":"A256GCM","kid":"\#(kid)"}"#.utf8))
-    }
-
-    private func decodeProtectedHeader(_ encodedHeader: String, expectedSenderChannelID: String?) throws {
-        guard let protectedHeaderData = Base64URL.decode(encodedHeader),
-              let protectedHeader = try? JSONDecoder().decode(ProtectedHeader.self, from: protectedHeaderData),
-              protectedHeader.alg == "RSA-OAEP-256",
-              protectedHeader.enc == "A256GCM" else {
-            throw PairingV2MessageCryptoError.unsupportedProtectedHeader
-        }
-        if let expectedSenderChannelID, protectedHeader.kid != expectedSenderChannelID {
-            throw PairingV2MessageCryptoError.unsupportedProtectedHeader
+        do {
+            return try jweCompactCodec.decryptRSAOAEP256(token: token,
+                                                         privateKey: privateKey,
+                                                         expectedKid: expectedSenderChannelID)
+        } catch let error as JWECompactCodecError {
+            throw pairingError(for: error)
         }
     }
 
     private func validateSupportedVersion(_ version: String) throws {
-        guard let majorString = version.split(separator: ".").first,
-              let major = Int(majorString),
-              major == Self.supportedMajorVersion else {
+        guard version == PairingV2ProtocolVersion.current else {
             throw PairingV2MessageCryptoError.unsupportedVersion(version)
         }
     }
 
     private func makePublicKey(fromSPKIBase64URL publicKey: String) throws -> SecKey {
         guard let spki = Base64URL.decode(publicKey),
-              let publicKeyPKCS1 = try? PairingV2DER.unwrapRSAPublicKeySPKI(spki) else {
+              let publicKeyPKCS1 = try? RSAKeyDER.unwrapRSAPublicKeySPKI(spki) else {
             throw PairingV2MessageCryptoError.invalidPublicKey
         }
 
@@ -213,201 +176,36 @@ final class PairingV2MessageCrypto {
         return key
     }
 
-    private func encryptContentEncryptionKey(_ contentEncryptionKey: Data, recipientPublicKey: SecKey) throws -> Data {
-        guard SecKeyIsAlgorithmSupported(recipientPublicKey, .encrypt, .rsaEncryptionOAEPSHA256) else {
-            throw PairingV2MessageCryptoError.invalidPublicKey
-        }
-
-        var error: Unmanaged<CFError>?
-        guard let encrypted = SecKeyCreateEncryptedData(recipientPublicKey,
-                                                        .rsaEncryptionOAEPSHA256,
-                                                        contentEncryptionKey as CFData,
-                                                        &error) as Data? else {
-            throw PairingV2MessageCryptoError.rsaEncryptionFailed
-        }
-        return encrypted
-    }
-
-    private func decryptContentEncryptionKey(_ encryptedContentEncryptionKey: Data, privateKey: SecKey) throws -> Data {
-        guard SecKeyIsAlgorithmSupported(privateKey, .decrypt, .rsaEncryptionOAEPSHA256) else {
-            throw PairingV2MessageCryptoError.invalidPrivateKey
-        }
-
-        var error: Unmanaged<CFError>?
-        guard let decrypted = SecKeyCreateDecryptedData(privateKey,
-                                                        .rsaEncryptionOAEPSHA256,
-                                                        encryptedContentEncryptionKey as CFData,
-                                                        &error) as Data? else {
-            throw PairingV2MessageCryptoError.rsaDecryptionFailed
-        }
-        return decrypted
-    }
-
-    private func randomBytes(count: Int) throws -> Data {
-        do {
-            return try JWEA256GCMCipher.randomBytes(count: count)
-        } catch JWEA256GCMCipherError.randomBytesGenerationFailed(let status) {
-            throw PairingV2MessageCryptoError.randomBytesGenerationFailed(status)
-        } catch {
-            throw error
-        }
-    }
-
-    private func aesGCMEncrypt(plaintext: Data,
-                               contentEncryptionKey: Data,
-                               iv: Data,
-                               additionalAuthenticatedData: Data) throws -> (ciphertext: Data, authenticationTag: Data) {
-        do {
-            return try JWEA256GCMCipher.aesGCMEncrypt(plaintext: plaintext,
-                                                      contentEncryptionKey: contentEncryptionKey,
-                                                      iv: iv,
-                                                      additionalAuthenticatedData: additionalAuthenticatedData)
-        } catch JWEA256GCMCipherError.aesGCMEncryptionFailed {
-            throw PairingV2MessageCryptoError.aesGCMEncryptionFailed
-        } catch {
-            throw error
-        }
-    }
-
-    private func aesGCMDecrypt(ciphertext: Data,
-                               authenticationTag: Data,
-                               contentEncryptionKey: Data,
-                               iv: Data,
-                               additionalAuthenticatedData: Data) throws -> Data {
-        do {
-            return try JWEA256GCMCipher.aesGCMDecrypt(ciphertext: ciphertext,
-                                                      authenticationTag: authenticationTag,
-                                                      contentEncryptionKey: contentEncryptionKey,
-                                                      iv: iv,
-                                                      additionalAuthenticatedData: additionalAuthenticatedData)
-        } catch JWEA256GCMCipherError.aesGCMDecryptionFailed {
-            throw PairingV2MessageCryptoError.aesGCMDecryptionFailed
-        } catch {
-            throw error
+    private func pairingError(for error: JWECompactCodecError) -> PairingV2MessageCryptoError {
+        switch error {
+        case .invalidTokenPartCount(let count):
+            return .invalidTokenPartCount(count)
+        case .invalidBase64URLComponent:
+            return .invalidBase64URLComponent
+        case .unsupportedProtectedHeader,
+                .invalidDirectTokenShape,
+                .invalidDirectProtectedHeaderKid:
+            return .unsupportedProtectedHeader
+        case .invalidPublicKey:
+            return .invalidPublicKey
+        case .invalidPrivateKey:
+            return .invalidPrivateKey
+        case .randomBytesGenerationFailed(let status):
+            return .randomBytesGenerationFailed(status)
+        case .invalidContentEncryptionKeyLength:
+            return .aesGCMEncryptionFailed
+        case .rsaEncryptionFailed:
+            return .rsaEncryptionFailed
+        case .rsaDecryptionFailed:
+            return .rsaDecryptionFailed
+        case .aesGCMEncryptionFailed:
+            return .aesGCMEncryptionFailed
+        case .aesGCMDecryptionFailed:
+            return .aesGCMDecryptionFailed
         }
     }
 
     private struct MessageTypeProbe: Decodable {
         let type: String
-    }
-
-    private struct ProtectedHeader: Decodable {
-        let alg: String
-        let enc: String
-        let kid: String?
-    }
-}
-
-private enum PairingV2DER {
-    private static let rsaEncryptionOID = Data([0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01])
-    private static let null = Data([0x05, 0x00])
-
-    static func wrapRSAPublicKeyInSPKI(_ publicKeyPKCS1: Data) -> Data {
-        sequence([
-            sequence([rsaEncryptionOID, null]),
-            bitString(publicKeyPKCS1)
-        ])
-    }
-
-    static func unwrapRSAPublicKeySPKI(_ spki: Data) throws -> Data {
-        var cursor = Cursor(bytes: [UInt8](spki))
-        try cursor.expect(tag: 0x30)
-        _ = try cursor.readLength()
-        try cursor.expect(tag: 0x30)
-        let algorithmIdentifierLength = try cursor.readLength()
-        _ = try cursor.readBytes(count: algorithmIdentifierLength)
-        try cursor.expect(tag: 0x03)
-        let bitStringLength = try cursor.readLength()
-        let bitString = try cursor.readBytes(count: bitStringLength)
-        guard bitString.first == 0x00 else {
-            throw PairingV2MessageCryptoError.invalidPublicKey
-        }
-        return Data(bitString.dropFirst())
-    }
-
-    private static func sequence(_ parts: [Data]) -> Data {
-        var contents = Data()
-        parts.forEach { contents.append($0) }
-        return wrap(tag: 0x30, contents: contents)
-    }
-
-    private static func bitString(_ data: Data) -> Data {
-        var contents = Data([0x00])
-        contents.append(data)
-        return wrap(tag: 0x03, contents: contents)
-    }
-
-    private static func wrap(tag: UInt8, contents: Data) -> Data {
-        var output = Data([tag])
-        output.append(lengthBytes(for: contents.count))
-        output.append(contents)
-        return output
-    }
-
-    private static func lengthBytes(for length: Int) -> Data {
-        if length < 0x80 {
-            return Data([UInt8(length)])
-        }
-
-        var remainingLength = length
-        var bytes: [UInt8] = []
-        while remainingLength > 0 {
-            bytes.insert(UInt8(remainingLength & 0xFF), at: 0)
-            remainingLength >>= 8
-        }
-
-        var encoded = Data([0x80 | UInt8(bytes.count)])
-        encoded.append(contentsOf: bytes)
-        return encoded
-    }
-
-    private struct Cursor {
-        let bytes: [UInt8]
-        var index = 0
-
-        mutating func expect(tag: UInt8) throws {
-            guard index < bytes.count, bytes[index] == tag else {
-                throw PairingV2MessageCryptoError.invalidPublicKey
-            }
-            index += 1
-        }
-
-        mutating func readLength() throws -> Int {
-            guard index < bytes.count else {
-                throw PairingV2MessageCryptoError.invalidPublicKey
-            }
-
-            let first = bytes[index]
-            index += 1
-
-            if first & 0x80 == 0 {
-                return Int(first)
-            }
-
-            let byteCount = Int(first & 0x7F)
-            guard byteCount > 0, byteCount <= 4 else {
-                throw PairingV2MessageCryptoError.invalidPublicKey
-            }
-
-            var length = 0
-            for _ in 0..<byteCount {
-                guard index < bytes.count else {
-                    throw PairingV2MessageCryptoError.invalidPublicKey
-                }
-                length = (length << 8) | Int(bytes[index])
-                index += 1
-            }
-            return length
-        }
-
-        mutating func readBytes(count: Int) throws -> [UInt8] {
-            guard count >= 0, index + count <= bytes.count else {
-                throw PairingV2MessageCryptoError.invalidPublicKey
-            }
-
-            let value = Array(bytes[index..<(index + count)])
-            index += count
-            return value
-        }
     }
 }

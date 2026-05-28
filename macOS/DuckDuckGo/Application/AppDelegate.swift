@@ -2121,7 +2121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             privacyConfigurationManager: privacyFeatures.contentBlocking.privacyConfigurationManager,
             keyValueStore: keyValueStore,
             environment: environment,
-syncFeatureFlags: SyncFeatureFlagProvider(
+            syncFeatureFlags: SyncFeatureFlagProvider(
                 isScopedAccessCredentialsEnabled: { [featureFlagger] in
                     featureFlagger.isFeatureOn(.syncScopedAccessCredentials)
                 },

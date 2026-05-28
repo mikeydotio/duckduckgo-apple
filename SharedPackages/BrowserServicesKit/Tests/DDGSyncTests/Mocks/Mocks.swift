@@ -283,11 +283,16 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
         createExchangeRecoveryKeyTransmitterStub ?? MockExchangeRecoveryKeyTransmitting()
     }
 
-    var createPairingV2TransportStub: PairingV2Transporting?
-    var createPairingV2TransportCallCount = 0
-    func createPairingV2Transport() -> PairingV2Transporting {
-        createPairingV2TransportCallCount += 1
-        return createPairingV2TransportStub ?? PairingV2TransportingMock()
+    var createPairingV2MessageExchangerStub: PairingV2MessageExchanging?
+    var createPairingV2MessageExchangerCallCount = 0
+    func createPairingV2MessageExchanger() -> PairingV2MessageExchanging {
+        createPairingV2MessageExchangerCallCount += 1
+        return createPairingV2MessageExchangerStub ?? PairingV2MessageExchangingMock()
+    }
+
+    var createThirdPartyAccountUpgradeCoordinatorStub: ThirdPartyAccountUpgradeCoordinating?
+    func createThirdPartyAccountUpgradeCoordinator() -> ThirdPartyAccountUpgradeCoordinating {
+        createThirdPartyAccountUpgradeCoordinatorStub ?? ThirdPartyAccountUpgradeCoordinatingMock()
     }
 
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
@@ -304,7 +309,7 @@ final class MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSup
 
 }
 
-final class PairingV2TransportingMock: PairingV2Transporting {
+final class PairingV2MessageExchangingMock: PairingV2MessageExchanging {
     var openChannelCalls: [String] = []
     var sendCalls: [(messages: [PairingV2EncryptedMessage], channelID: String)] = []
     var sendHandler: (([PairingV2EncryptedMessage], String) async throws -> Void)?
@@ -428,6 +433,25 @@ final class ScopedAccessCredentialManagingMock: ScopedAccessCredentialManaging {
             throw setKeyIfAbsentError
         }
         return setKeyIfAbsentStub
+    }
+}
+
+final class ThirdPartyAccountUpgradeCoordinatingMock: ThirdPartyAccountUpgradeCoordinating {
+    var upgradeThirdPartyAccountCalls: [(recoveryCode: String, deviceName: String, deviceType: String)] = []
+    var upgradeThirdPartyAccountStub = UpgradedThirdPartyAccount(account: .mock,
+                                                                devices: [.mock],
+                                                                scopedPassword: Data(repeating: 1, count: 32),
+                                                                protectedKeys: [])
+    var upgradeThirdPartyAccountError: Error?
+
+    func upgradeThirdPartyAccountToDefaultCredential(_ recoveryCode: String,
+                                                     deviceName: String,
+                                                     deviceType: String) async throws -> UpgradedThirdPartyAccount {
+        upgradeThirdPartyAccountCalls.append((recoveryCode: recoveryCode, deviceName: deviceName, deviceType: deviceType))
+        if let upgradeThirdPartyAccountError {
+            throw upgradeThirdPartyAccountError
+        }
+        return upgradeThirdPartyAccountStub
     }
 }
 
@@ -669,6 +693,10 @@ struct CryptingMock: CryptingInternal {
     var _extractLoginInfo: (SyncCode.RecoveryKey) throws -> ExtractedLoginInfo = { _ in
         ExtractedLoginInfo(userId: "user", primaryKey: Data(), passwordHash: Data(), stretchedPrimaryKey: Data())
     }
+    var _createAccountCreationKeys: (String, String) throws -> AccountCreationKeys = { _, _ in
+        AccountCreationKeys(primaryKey: Data(), secretKey: Data(), protectedSecretKey: Data(), passwordHash: Data())
+    }
+    var _extractSecretKey: (Data, Data) throws -> Data = { _, _ in Data() }
 
     func fetchSecretKey() throws -> Data {
         .init()
@@ -734,7 +762,7 @@ struct CryptingMock: CryptingInternal {
     }
 
     func createAccountCreationKeys(userId: String, password: String) throws -> AccountCreationKeys {
-        AccountCreationKeys(primaryKey: Data(), secretKey: Data(), protectedSecretKey: Data(), passwordHash: Data())
+        try _createAccountCreationKeys(userId, password)
     }
 
     func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo {
@@ -742,7 +770,7 @@ struct CryptingMock: CryptingInternal {
     }
 
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data {
-        Data()
+        try _extractSecretKey(protectedSecretKey, stretchedPrimaryKey)
     }
 
     func prepareForConnect() throws -> ConnectInfo {

@@ -97,7 +97,6 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
                                                                      account: account,
                                                                      shouldUploadDefaultCredentialKeys: shouldUploadDefaultCredentialKeys)
             .removingDuplicateWrappingIdentities()
-            .map(ProtectedKeyPayload.init)
 
         do {
             try await postThirdPartyAccessCredential(token: token,
@@ -238,7 +237,7 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
                                                 hashedPassword: String,
                                                 credentialHashedPassword: String,
                                                 encryptedThirdPartyCredential: String,
-                                                keys: [ProtectedKeyPayload]) async throws {
+                                                keys: [ProtectedKey]) async throws {
         let params = CreateThirdPartyCredentialParameters(
             hashedPassword: hashedPassword,
             credentialHashedPassword: credentialHashedPassword,
@@ -368,27 +367,11 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
         let accessCredentials: [AccessCredential]?
     }
 
-    struct ProtectedKeyPayload: Encodable {
-        let kid: String
-        let purpose: String
-        let encryptedPrivateKey: String
-        let publicKey: ProtectedKeyPublicKey
-        let encryptedWith: String
-
-        init(key: ProtectedKey) {
-            self.kid = key.kid
-            self.purpose = key.purpose
-            self.encryptedPrivateKey = key.encryptedPrivateKey
-            self.publicKey = key.publicKey
-            self.encryptedWith = key.encryptedWith
-        }
-    }
-
     struct CreateThirdPartyCredentialParameters: Encodable {
         let hashedPassword: String
         let credentialHashedPassword: String
         let encrypted3partyCredential: String
-        let keys: [ProtectedKeyPayload]
+        let keys: [ProtectedKey]
 
         enum CodingKeys: String, CodingKey {
             case hashedPassword = "hashed_password"
@@ -399,11 +382,7 @@ struct ScopedAccessCredentialManager: ScopedAccessCredentialManaging {
     }
 
     struct SetKeyIfAbsentParameters: Encodable {
-        let keys: [ProtectedKeyPayload]
-
-        init(keys: [ProtectedKey]) {
-            self.keys = keys.map(ProtectedKeyPayload.init)
-        }
+        let keys: [ProtectedKey]
     }
 
     struct SetKeyIfAbsentResult: Decodable {
@@ -423,7 +402,7 @@ struct EnsuredThirdPartyCredential {
     let protectedKeysToCache: [ProtectedKey]
 }
 
-private enum ScopedAccessKeyDerivation {
+enum ScopedAccessKeyDerivation {
 
     private static let passwordInfo = "Password"
     private static let mainKeyInfo = "Main Key"

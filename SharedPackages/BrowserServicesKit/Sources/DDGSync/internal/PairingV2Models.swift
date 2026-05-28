@@ -27,14 +27,16 @@ enum PairingV2ApplicationMessage: Equatable {
     case recoveryCodeResponse(PairingV2RecoveryCodeResponseMessage)
 }
 
-struct PairingV2QRCodePayload: Codable, Equatable {
-    static let currentVersion = "2"
+enum PairingV2ProtocolVersion {
+    static let current = "2.0"
+}
 
+struct PairingV2QRCodePayload: Codable, Equatable {
     let version: String
     let channelId: String
     let publicKey: String
 
-    init(version: String = Self.currentVersion, channelId: String, publicKey: String) {
+    init(version: String = PairingV2ProtocolVersion.current, channelId: String, publicKey: String) {
         self.version = version
         self.channelId = channelId
         self.publicKey = publicKey
@@ -83,20 +85,15 @@ struct PairingV2QRCodePayload: Codable, Equatable {
     }
 
     private static func supports(version: String) -> Bool {
-        guard let majorString = version.split(separator: ".").first, let major = Int(majorString) else {
-            return false
-        }
-        return major == 2
+        version == PairingV2ProtocolVersion.current
     }
 }
 
 struct PairingV2EncryptedMessage: Codable, Equatable {
-    static let currentVersion = "2"
-
     let version: String
     let payload: String
 
-    init(version: String = Self.currentVersion, payload: String) {
+    init(version: String = PairingV2ProtocolVersion.current, payload: String) {
         self.version = version
         self.payload = payload
     }
@@ -120,7 +117,7 @@ struct PairingV2HelloMessage: Codable, Equatable {
     let publicKey: String
     let version: String
 
-    init(channelId: String, publicKey: String, version: String = PairingV2QRCodePayload.currentVersion) {
+    init(channelId: String, publicKey: String, version: String = PairingV2ProtocolVersion.current) {
         self.type = Self.messageType
         self.channelId = channelId
         self.publicKey = publicKey

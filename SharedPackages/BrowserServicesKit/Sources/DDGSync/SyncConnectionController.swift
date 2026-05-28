@@ -281,13 +281,6 @@ public class SyncConnectionController: SyncConnectionControlling {
             await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: PairingV2Error.v2ScanningDisabled, setupRole: setupRole)
             return false
         }
-        guard syncService.account != nil else {
-            await delegate?.controllerDidError(.failedToLogIn,
-                                               underlyingError: PairingV2Error.unsupportedFlow("Native V2 scanning requires an existing native account"),
-                                               setupRole: setupRole)
-            return false
-        }
-
         await delegate?.controllerDidRecognizeCode(setupSource: .exchange, codeSource: codeSource)
         guard await shouldContinueServerSyncOperation(setupRole: setupRole) else {
             return false
@@ -295,7 +288,7 @@ public class SyncConnectionController: SyncConnectionControlling {
 
         let coordinator = PairingV2Coordinator(
             syncService: syncService,
-            transport: dependencies.createPairingV2Transport(),
+            messageExchanger: dependencies.createPairingV2MessageExchanger(),
             deviceName: deviceName,
             deviceType: deviceType,
             flags: PairingV2RolloutFlags(isV2ScanningEnabled: isPairingV2ScanningEnabled,

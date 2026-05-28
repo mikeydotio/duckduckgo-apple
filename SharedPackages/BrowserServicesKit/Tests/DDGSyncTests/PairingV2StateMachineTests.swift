@@ -22,19 +22,78 @@ import XCTest
 
 final class PairingV2StateMachineTests: XCTestCase {
 
-    func testWhenBothClientsHaveAccountsAndKindsDifferThenNativeBecomesHost() {
+    func testWhenLocalHasAccountAndPeerDoesNotThenLocalBecomesHostBeforeKindRules() {
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
+
+        let decision = PairingV2RoleElection.decideRole(
+            localClient: localClient,
+            peerStatus: .recoveryCodeRequest(kind: .thirdParty)
+        )
+
+        XCTAssertEqual(decision, .host(joinerKind: .thirdParty))
+    }
+
+    func testWhenPeerHasAccountAndLocalDoesNotThenLocalBecomesJoinerBeforeKindRules() {
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
 
         let decision = PairingV2RoleElection.decideRole(
             localClient: localClient,
             peerStatus: .recoveryCodeAvailable(kind: .thirdParty)
         )
 
-        XCTAssertEqual(decision, .host(joinerKind: .thirdParty, requiresNativeCredentialAbsenceValidation: false))
+        XCTAssertEqual(decision, .joiner(hostKind: .thirdParty))
     }
 
-    func testWhenNeitherClientHasAccountAndKindsDifferThenNativeBecomesHost() {
-        let localClient = makeLocalClient(kind: .thirdParty, hasAccount: false, isPresenter: true)
+    func testWhenAccountsMatchAndLocalIsDDGWithThirdPartyPeerThenLocalBecomesHost() {
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
+
+        let decision = PairingV2RoleElection.decideRole(
+            localClient: localClient,
+            peerStatus: .recoveryCodeRequest(kind: .thirdParty)
+        )
+
+        XCTAssertEqual(decision, .host(joinerKind: .thirdParty))
+    }
+
+    func testWhenAccountAndKindRulesDoNotDecideThenPresenterBecomesHost() {
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
+
+        let decision = PairingV2RoleElection.decideRole(
+            localClient: localClient,
+            peerStatus: .recoveryCodeAvailable(kind: .ddg)
+        )
+
+        XCTAssertEqual(decision, .host(joinerKind: .ddg))
+    }
+
+    func testWhenScannerReceivedHelloAndLocalChannelIDIsLowerThenLocalBecomesHost() {
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
+
+        let decision = PairingV2RoleElection.decideRole(
+            localClient: localClient,
+            peerStatus: .recoveryCodeRequest(kind: .ddg),
+            localChannelID: "channel-a",
+            peerChannelID: "channel-b"
+        )
+
+        XCTAssertEqual(decision, .host(joinerKind: .ddg))
+    }
+
+    func testWhenScannerReceivedHelloAndLocalChannelIDIsHigherThenLocalBecomesJoiner() {
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
+
+        let decision = PairingV2RoleElection.decideRole(
+            localClient: localClient,
+            peerStatus: .recoveryCodeRequest(kind: .ddg),
+            localChannelID: "channel-b",
+            peerChannelID: "channel-a"
+        )
+
+        XCTAssertEqual(decision, .joiner(hostKind: .ddg))
+    }
+
+    func testWhenScannerHasNoEarlierRuleAndNoPeerHelloThenLocalBecomesJoiner() {
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
 
         let decision = PairingV2RoleElection.decideRole(
             localClient: localClient,
@@ -44,31 +103,9 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(decision, .joiner(hostKind: .ddg))
     }
 
-    func testWhenClientsHaveSamePriorityThenPresenterBecomesHost() {
-        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
-
-        let decision = PairingV2RoleElection.decideRole(
-            localClient: localClient,
-            peerStatus: .recoveryCodeAvailable(kind: .ddg)
-        )
-
-        XCTAssertEqual(decision, .host(joinerKind: .ddg, requiresNativeCredentialAbsenceValidation: false))
-    }
-
-    func testWhenThirdPartyAccountHostsNativeJoinerThenNativeCredentialValidationIsRequired() {
-        let localClient = makeLocalClient(kind: .thirdParty, hasAccount: true, isPresenter: true)
-
-        let decision = PairingV2RoleElection.decideRole(
-            localClient: localClient,
-            peerStatus: .recoveryCodeRequest(kind: .ddg)
-        )
-
-        XCTAssertEqual(decision, .host(joinerKind: .ddg, requiresNativeCredentialAbsenceValidation: true))
-    }
-
     func testWhenNativeAccountScannerScansV2LinkingCodeThenSendsHelloAndAccountStatus() {
         var stateMachine = PairingV2StateMachine()
-        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
+        let localClient = makeLocalClient(name: "Scanner", kind: .ddg, hasAccount: true, isPresenter: false)
 
         let commands = stateMachine.handle(
             .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
@@ -77,7 +114,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(commands, [
             .openV2Channel(channelID: nil),
             .sendHello,
-            .sendPeerStatus(.recoveryCodeAvailable(kind: .ddg))
+            .sendRecoveryCodeStatus(.recoveryCodeAvailable(name: "Scanner", kind: .ddg))
         ])
         XCTAssertEqual(
             stateMachine.state,
@@ -87,7 +124,7 @@ final class PairingV2StateMachineTests: XCTestCase {
 
     func testWhenPresenterFlowIsRequestedThenFlowAbortsAsUnsupported() {
         var stateMachine = PairingV2StateMachine()
-        let localClient = makeLocalClient(kind: .thirdParty, hasAccount: true, isPresenter: true)
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
         let error = PairingV2Error.unsupportedFlow("Pairing V2 code presentation is not implemented")
 
         let commands = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
@@ -96,27 +133,33 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(stateMachine.state, .failed(error))
     }
 
-    func testWhenNativeWithoutAccountScansV2LinkingCodeThenFlowAbortsAsUnsupported() {
+    func testWhenNativeWithoutAccountScansV2LinkingCodeThenSendsHelloAndRecoveryCodeRequest() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
-        let error = PairingV2Error.unsupportedFlow("Pairing V2 scanning requires an existing native account in this slice")
 
         let commands = stateMachine.handle(
             .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
         )
 
-        XCTAssertEqual(commands, [.abort(error)])
-        XCTAssertEqual(stateMachine.state, .failed(error))
+        XCTAssertEqual(commands, [
+            .openV2Channel(channelID: nil),
+            .sendHello,
+            .sendRecoveryCodeStatus(.recoveryCodeRequest(kind: .ddg))
+        ])
+        XCTAssertEqual(
+            stateMachine.state,
+            .waitingForPeerStatus(.init(localClient: localClient, channelID: "channel-1"))
+        )
     }
 
-    func testWhenScannerReceivesHelloAfterSendingHelloThenFlowAbortsAsScopeCut() {
+    func testWhenScannerReceivesHelloAfterSendingHelloThenFlowAbortsAsUnifiedAlgorithmSimultaneousScanScopeCut() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
 
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
         )
-        let error = PairingV2Error.unexpectedEvent("scanner received hello after sending scan hello; simultaneous scan handling is out of scope")
+        let error = PairingV2Error.unexpectedEvent("Unified Algorithm simultaneous scan rule is intentionally out of scope before role election; scanner-side hello is a PR2 scope cut")
         let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
 
         XCTAssertEqual(commands, [.abort(error)])
@@ -152,7 +195,8 @@ final class PairingV2StateMachineTests: XCTestCase {
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
         )
-        let commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .thirdParty)))
+        let peerStatus = PairingV2PeerStatus.recoveryCodeAvailable(name: "Peer", kind: .thirdParty)
+        let commands = stateMachine.handle(.receivedPeerStatus(peerStatus))
 
         XCTAssertEqual(commands, [
             .prepareRecoveryCode(credentialKind: .thirdParty, purpose: "ai_chats")
@@ -160,7 +204,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(
             stateMachine.state,
             .hostPreparingRecoveryCode(
-                .init(localClient: localClient, channelID: "channel-1", peerStatus: .recoveryCodeAvailable(kind: .thirdParty)),
+                .init(localClient: localClient, channelID: "channel-1", peerStatus: peerStatus),
                 credentialKind: .thirdParty
             )
         )
@@ -217,6 +261,26 @@ final class PairingV2StateMachineTests: XCTestCase {
         )
     }
 
+    func testWhenNativeJoinerReceivesThirdPartyRecoveryCodeThenUpgradesThirdPartyAccount() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
+
+        _ = stateMachine.handle(
+            .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
+        )
+        _ = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .thirdParty)))
+        let commands = stateMachine.handle(.receivedRecoveryCode("recovery-code"))
+
+        XCTAssertEqual(commands, [.upgradeThirdPartyAccountWithRecoveryCode("recovery-code")])
+        XCTAssertEqual(
+            stateMachine.state,
+            .joinerLoggingIn(
+                .init(localClient: localClient, channelID: "channel-1", peerStatus: .recoveryCodeAvailable(kind: .thirdParty)),
+                recoveryCode: "recovery-code"
+            )
+        )
+    }
+
     func testWhenRecoveryCodeSentFromSendingStateThenCompletesAndStopsPolling() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
@@ -247,10 +311,11 @@ final class PairingV2StateMachineTests: XCTestCase {
         PairingV2RolloutFlags(isV2ScanningEnabled: true, isV2CodeEnabled: true)
     }
 
-    private func makeLocalClient(kind: PairingV2DeviceKind,
+    private func makeLocalClient(name: String? = nil,
+                                 kind: PairingV2DeviceKind,
                                  hasAccount: Bool,
                                  isPresenter: Bool,
                                  userId: String? = nil) -> PairingV2LocalClient {
-        PairingV2LocalClient(kind: kind, hasAccount: hasAccount, isPresenter: isPresenter, userId: userId)
+        PairingV2LocalClient(name: name, kind: kind, hasAccount: hasAccount, isPresenter: isPresenter, userId: userId)
     }
 }

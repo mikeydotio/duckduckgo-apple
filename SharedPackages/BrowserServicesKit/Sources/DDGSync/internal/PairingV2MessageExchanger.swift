@@ -1,5 +1,5 @@
 //
-//  PairingV2Transport.swift
+//  PairingV2MessageExchanger.swift
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -18,14 +18,14 @@
 
 import Foundation
 
-protocol PairingV2Transporting {
+protocol PairingV2MessageExchanging {
     func openChannel(_ channelID: String) async throws
     func send(_ messages: [PairingV2EncryptedMessage], to channelID: String) async throws
     func fetchMessages(from channelID: String, after sequence: Int) async throws -> [PairingV2SequencedMessage]
     func closeChannel(_ channelID: String) async throws
 }
 
-struct PairingV2Transport: PairingV2Transporting {
+struct PairingV2MessageExchanger: PairingV2MessageExchanging {
 
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
@@ -38,7 +38,7 @@ struct PairingV2Transport: PairingV2Transporting {
                                         body: nil,
                                         contentType: nil)
         let result = try await request.execute()
-        // OpenAPI currently documents 200, while the deployed service has returned 204.
+        // API currently documents 200, while the deployed service has returned 204.
         // Treat both as success until the contract and deployment converge.
         guard [200, 204].contains(result.response.statusCode) else {
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
