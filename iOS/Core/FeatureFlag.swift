@@ -386,9 +386,6 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213763338305579?focus=true
     case aiChatContextualFireButton
 
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213809475913723?focus=true
-    case minimalChromeInLandscape
-
     case aiChatNativeStorage
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215106459483563?focus=true
@@ -709,8 +706,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(iOSBrowserConfigSubfeature.screenTimeCleaning))
         case .aiChatContextualFireButton:
             Config(source: .remoteReleasable(AIChatSubfeature.contextualFireButton))
-        case .minimalChromeInLandscape:
-            Config(defaultValue: .enabled, source: .remoteReleasable(iOSBrowserConfigSubfeature.minimalChromeInLandscape))
         case .aiChatNativeStorage:
             Config(source: .remoteReleasable(AIChatSubfeature.nativeStorage))
         case .duckAINativeStoragePathMigration:
