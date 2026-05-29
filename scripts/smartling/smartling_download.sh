@@ -106,15 +106,6 @@ fi
 # Cleanup temporary directories
 rm -rf "$DOWNLOAD_DIR" "$IMPORT_DIR"
 
-# Check for markdown bold marker regressions introduced by this import.
-# Compares each changed translation's `**` count against the English source.
-# Non-blocking: surfaces problems so they can be fixed at the Smartling source,
-# but does not stop translations from importing.
-echo "Checking markdown bold markers against English source..."
-if ! ./scripts/smartling/check_translation_markers.py --changed-only; then
-	echo "::warning::Smartling import introduced markdown bold marker mismatches (see above). Translations were still imported — fix the affected strings at the Smartling source so they don't recur."
-fi
-
 # Check for deleted translation keys and problematic replacements
 echo "Checking for deleted translation keys and value replacements..."
 

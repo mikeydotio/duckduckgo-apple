@@ -492,6 +492,9 @@ jobs:
       - name: Check translations
         run: python3 scripts/translation-pr-checks/check_new_string_translations.py --platform iOS
 
+      - name: Check markdown markers
+        run: python3 scripts/translation-pr-checks/check_marker_consistency.py --platform iOS
+
       - name: Check for orphaned translations
         id: orphaned-translations
         run: |
