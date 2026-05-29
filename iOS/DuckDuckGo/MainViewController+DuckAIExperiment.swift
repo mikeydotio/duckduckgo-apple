@@ -350,9 +350,14 @@ extension MainViewController {
             guard let self else { return }
 
             if isUTIActive {
-                // UTI manages its own chrome; just fade the snapshot away.
-                UIView.animate(withDuration: 0.3) {
+                viewCoordinator.aiChatTabChatHeaderContainer.alpha = 0
+                viewCoordinator.navigationBarContainer.alpha = 0
+                viewCoordinator.statusBackground.alpha = 0
+                UIView.animate(withDuration: 0.25) {
                     onboardingTransitionSnapshotView?.alpha = 0
+                    self.viewCoordinator.aiChatTabChatHeaderContainer.alpha = 1
+                    self.viewCoordinator.navigationBarContainer.alpha = 1
+                    self.viewCoordinator.statusBackground.alpha = 1
                 } completion: { _ in
                     self.hideOnboardingTransitionSnapshot(onboardingTransitionSnapshotView)
                 }
