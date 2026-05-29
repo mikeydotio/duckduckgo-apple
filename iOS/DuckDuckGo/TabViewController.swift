@@ -149,7 +149,7 @@ class TabViewController: UIViewController {
 
     private(set) var webView: WKWebView!
     private lazy var appRatingPrompt: AppRatingPrompt = AppRatingPrompt(featureFlagger: self.featureFlagger)
-    private let unifiedToggleInputFeature: UnifiedToggleInputFeatureProviding
+    let unifiedToggleInputFeature: UnifiedToggleInputFeatureProviding
     public weak var privacyDashboard: PrivacyDashboardViewController?
     
     private var storageCache: StorageCache = AppDependencyProvider.shared.storageCache
@@ -2425,6 +2425,30 @@ extension TabViewController: WKNavigationDelegate {
             return
         case .ignore:
             break
+        }
+
+        // Same-frame boundary-cross link taps spawn a new tab (cross-frame is handled by `aiChatNewWindowDecision` above). Skip when ⌘ is held.
+        // Runs before tracking-link/referrer/DNS rewrites — acceptable since the new tab re-runs the full policy pipeline; only originating-frame context is lost, which a boundary cross severs anyway.
+        if navigationAction.navigationType == .linkActivated,
+           navigationAction.targetFrame?.isMainFrame == true,
+           let linkURL = navigationAction.request.url,
+           let scheme = linkURL.scheme?.lowercased(),
+           scheme == "http" || scheme == "https",
+           !(delegate?.tabWillRequestNewTab(self)?.contains(.command) ?? false) {
+            // Use `self.isAITab` over `webView.url?.isDuckAIURL` — webView.url goes transiently nil during in-flight navigations, losing boundary protection.
+            let decision = AIBoundaryNavigationDecision.forSameFrameLinkTap(
+                currentIsAI: isAITab,
+                targetIsAI: linkURL.isDuckAIURL,
+                unifiedToggleInputAvailable: unifiedToggleInputFeature.isAvailable
+            )
+            if decision == .openInNewTab {
+                decisionHandler(.cancel)
+                delegate?.tab(self,
+                              didRequestNewTabForUrl: linkURL,
+                              openedByPage: true,
+                              inheritingAttribution: adClickAttributionLogic.state)
+                return
+            }
         }
 
         // This check needs to happen before GPC checks. Otherwise the navigation type may be rewritten to `.other`
