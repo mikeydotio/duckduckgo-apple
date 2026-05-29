@@ -4,14 +4,15 @@ Markdown Marker Consistency Check
 
 Verifies that markdown bold markers (`**`) in localized strings match the
 English source. Smartling occasionally returns translations where the `**`
-markers are dropped or unpaired; because our SwiftUI rendering uses
-`Text(LocalizedStringKey(...))`, a broken pair renders literal asterisks or
-loses the bold styling.
+markers are dropped, unpaired, or have a stray space next to a delimiter;
+because our SwiftUI rendering uses `Text(LocalizedStringKey(...))`, any of these
+makes the affected words render literal asterisks or lose the bold styling.
 
-For each key, the number of `**` occurrences in a locale's value is compared to
-the English source value. A key/locale is flagged when:
-  - the locale's `**` count differs from the English source count, or
-  - the locale's `**` count is odd (an unpaired marker), which is always broken.
+For each key, a locale's value is flagged when:
+  - its `**` count differs from the English source count, or
+  - its `**` count is odd (an unpaired marker), or
+  - a bold span has whitespace adjacent to a `**` delimiter (e.g. `**text **`),
+    which markdown won't render as bold even though the count is balanced.
 
 Modes:
   - Default (PR check): only inspects keys whose value changed vs the base
@@ -25,7 +26,7 @@ Usage:
     python3 check_marker_consistency.py --platform iOS
     python3 check_marker_consistency.py --platform macOS --all
 
-Exit code is 1 when any mismatch is found, 0 otherwise.
+Exit code is 1 when any issue is found, 0 otherwise.
 
 Copyright © 2025 DuckDuckGo. All rights reserved.
 Licensed under the Apache License, Version 2.0
@@ -46,8 +47,8 @@ from localization_utils import (
 
 MARKER = "**"
 
-# (display_key, file, locale, en_count, loc_count)
-Finding = Tuple[str, str, str, int, int]
+# (display_key, file, locale, issues) where issues is a list of descriptions
+Finding = Tuple[str, str, str, List[str]]
 
 
 def count_markers(value: str) -> int:
@@ -86,9 +87,38 @@ def flatten_localization(entry: Dict) -> Dict[str, str]:
     return leaves
 
 
-def compare(en_count: int, loc_count: int) -> bool:
-    """True if the locale marker count is a problem vs the English source."""
-    return loc_count != en_count or loc_count % 2 != 0
+def marker_issues(source_value: str, loc_value: str) -> List[str]:
+    """Return a list of problem descriptions for a translation. Empty == fine.
+
+    Detects three classes:
+      - count mismatch / unpaired markers (vs the English source), and
+      - whitespace adjacent to a `**` delimiter (won't render as bold).
+    """
+    en = count_markers(source_value)
+    loc = count_markers(loc_value)
+    issues: List[str] = []
+
+    if loc != en or loc % 2 != 0:
+        if loc % 2 != 0:
+            category = "UNPAIRED"
+        elif en == 0 and loc > 0:
+            category = "ADDED"
+        else:
+            category = "DROPPED"
+        issues.append(f"{loc} marker(s) vs {en} in source [{category}]")
+
+    # Whitespace next to a delimiter: split into segments; odd-index segments are
+    # the bold content. Any leading/trailing whitespace there means a `**` sits
+    # next to a space and won't render. Only meaningful when markers are paired.
+    if loc % 2 == 0 and loc > 0:
+        segments = loc_value.split(MARKER)
+        bad = [segments[i] for i in range(1, len(segments), 2)
+               if segments[i] and segments[i] != segments[i].strip()]
+        if bad:
+            rendered = ", ".join(repr(b) for b in bad)
+            issues.append(f"space inside bold delimiter: {rendered} [WHITESPACE]")
+
+    return issues
 
 
 def en_sibling_path(strings_path: str) -> str:
@@ -117,10 +147,9 @@ def check_strings_file(path: str, only_changed_keys=None) -> List[Finding]:
             continue
         if key not in english:
             continue
-        en_count = count_markers(english[key])
-        loc_count = count_markers(value)
-        if compare(en_count, loc_count):
-            findings.append((key, path, locale, en_count, loc_count))
+        issues = marker_issues(english[key], value)
+        if issues:
+            findings.append((key, path, locale, issues))
     return findings
 
 
@@ -152,11 +181,10 @@ def check_xcstrings_data(new_data: Dict, path: str, old_data: Dict = None) -> Li
                 source_value = source_leaves.get(sub_path, source_leaves.get(""))
                 if source_value is None:
                     continue
-                en_count = count_markers(source_value)
-                loc_count = count_markers(loc_value)
-                if compare(en_count, loc_count):
+                issues = marker_issues(source_value, loc_value)
+                if issues:
                     display_key = f"{key} [{sub_path}]" if sub_path else key
-                    findings.append((display_key, path, locale, en_count, loc_count))
+                    findings.append((display_key, path, locale, issues))
     return findings
 
 
@@ -205,36 +233,27 @@ def check_all(platform: str) -> List[Finding]:
 
 def report(findings: List[Finding], mode_label: str) -> int:
     if not findings:
-        print("✅ No markdown marker mismatches found.")
+        print("✅ No markdown marker issues found.")
         return 0
 
-    def categorize(en_count: int, loc_count: int) -> str:
-        if loc_count % 2 != 0:
-            return "UNPAIRED"
-        if en_count == 0 and loc_count > 0:
-            return "ADDED"
-        return "DROPPED"
+    by_key: Dict[Tuple[str, str], List[Tuple[str, List[str]]]] = {}
+    for key, path, locale, issues in findings:
+        by_key.setdefault((key, path), []).append((locale, issues))
 
-    by_key: Dict[Tuple[str, str, int], List[Tuple[str, int]]] = {}
-    for key, path, locale, en_count, loc_count in findings:
-        by_key.setdefault((key, path, en_count), []).append((locale, loc_count))
-
-    real_bugs = sum(1 for _k, _p, _l, e, c in findings if categorize(e, c) != "ADDED")
-    print(f"⚠️  Found {len(findings)} markdown marker mismatch(es) {mode_label} "
-          f"across {len(by_key)} key(s) "
-          f"({real_bugs} marker bug(s); "
-          f"{len(findings) - real_bugs} likely content mismatch — see ADDED):\n")
-    for (key, path, en_count), locales in sorted(by_key.items()):
+    print(f"⚠️  Found {len(findings)} markdown marker issue(s) {mode_label} "
+          f"across {len(by_key)} key(s):\n")
+    for (key, path), locales in sorted(by_key.items()):
         print(f"  {key}  ({path})")
-        print(f"      English source: {en_count} '**' marker(s)")
-        for locale, loc_count in sorted(locales):
-            print(f"      {locale}: {loc_count}  [{categorize(en_count, loc_count)}]")
+        for locale, issues in sorted(locales):
+            for issue in issues:
+                print(f"      {locale}: {issue}")
         print()
-    print("Each translation's '**' count must match the English source. "
+    print("Each translation's ** bold markers must match the English source. "
           "Fix the affected translations at the Smartling source.")
-    print("Legend: UNPAIRED = odd marker count (always broken); "
-          "DROPPED = markers missing/changed vs source; "
-          "ADDED = source has none but translation does (usually wrong content).")
+    print("Legend: UNPAIRED = odd marker count; DROPPED = markers missing/changed "
+          "vs source; ADDED = source has none but translation does (often wrong "
+          "content); WHITESPACE = a space sits next to a ** delimiter so it won't "
+          "render as bold.")
     return 1
 
 
