@@ -51,4 +51,16 @@ final class RecoveryCodeViewModelTests: XCTestCase {
         XCTAssertEqual(model.recoveryCode, "Y2hhcmFjdGVycw==")
 
     }
+
+    func testWhenNormalizedPasteboardStringIsV2PairingURLThenCodeIsPreserved() {
+        let url = "https://duckduckgo.com/sync/pairing/#&code2=eyJ2ZXJzaW9uIjoiMi4wIn0"
+        let normalized = RecoveryCodeViewModel.normalizedPasteboardString(url)
+        XCTAssertEqual(normalized, url)
+    }
+
+    func testWhenNormalizedPasteboardStringHasWhitespaceThenWhitespaceIsRemoved() {
+        let input = " https://duckduckgo.com/sync/pairing/\n#&code2=abc \n"
+        let normalized = RecoveryCodeViewModel.normalizedPasteboardString(input)
+        XCTAssertEqual(normalized, "https://duckduckgo.com/sync/pairing/#&code2=abc")
+    }
 }

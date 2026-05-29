@@ -28,6 +28,8 @@ public protocol SyncConnectionControllerDelegate: AnyObject {
     func controllerDidRecognizeCode(setupSource: SyncSetupSource, codeSource: SyncCodeSource) async
 
     func controllerWillPerformServerSyncOperation(setupRole: SyncSetupRole) async -> Bool
+    func controllerShouldAllowPairingV2PeerToJoin(peerName: String?) async -> Bool
+    func controllerShouldJoinPairingV2Peer(peerName: String?) async -> Bool
 
     func controllerDidCreateSyncAccount()
     func controllerDidCompleteAccountConnection(shouldShowSyncEnabled: Bool, setupSource: SyncSetupSource, codeSource: SyncCodeSource)
@@ -431,7 +433,13 @@ public class SyncConnectionController: SyncConnectionControlling {
 
     private func shouldDismissPairingV2PresenterCode(for state: PairingV2State) -> Bool {
         switch state {
-        case .waitingForPeerStatus, .hostPreparingRecoveryCode, .hostSendingRecoveryCode, .joinerWaitingForRecoveryCode, .joinerLoggingIn:
+        case .waitingForPeerStatus,
+             .hostWaitingForConfirmation,
+             .hostPreparingRecoveryCode,
+             .hostSendingRecoveryCode,
+             .joinerWaitingForConfirmation,
+             .joinerWaitingForRecoveryCode,
+             .joinerLoggingIn:
             return true
         case .idle, .waitingForPeerHello, .completed, .failed:
             return false
@@ -596,7 +604,8 @@ public class SyncConnectionController: SyncConnectionControlling {
             deviceName: deviceName,
             deviceType: deviceType,
             flags: PairingV2RolloutFlags(isV2ScanningEnabled: isPairingV2ScanningEnabled,
-                                         isV2CodeEnabled: dependencies.syncFeatureFlags.isPairingV2CodeEnabled())
+                                         isV2CodeEnabled: dependencies.syncFeatureFlags.isPairingV2CodeEnabled()),
+            confirmationDelegate: self
         )
     }
 
@@ -618,5 +627,24 @@ public class SyncConnectionController: SyncConnectionControlling {
 public extension SyncConnectionControllerDelegate {
     func controllerWillPerformServerSyncOperation(setupRole _: SyncSetupRole) async -> Bool {
         true
+    }
+
+    func controllerShouldAllowPairingV2PeerToJoin(peerName _: String?) async -> Bool {
+        true
+    }
+
+    func controllerShouldJoinPairingV2Peer(peerName _: String?) async -> Bool {
+        true
+    }
+}
+
+extension SyncConnectionController: PairingV2ConfirmationDelegate {
+
+    func pairingV2CoordinatorShouldAllowPeerToJoin(peerName: String?) async -> Bool {
+        await delegate?.controllerShouldAllowPairingV2PeerToJoin(peerName: peerName) ?? true
+    }
+
+    func pairingV2CoordinatorShouldJoinPeer(peerName: String?) async -> Bool {
+        await delegate?.controllerShouldJoinPairingV2Peer(peerName: peerName) ?? true
     }
 }

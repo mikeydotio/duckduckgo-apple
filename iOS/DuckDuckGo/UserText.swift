@@ -1257,6 +1257,23 @@ public struct UserText {
     }
     public static let syncRemoveDeviceConfirmAction = NSLocalizedString("sync.remove-device.action", value: "Remove", comment: "Caption for a button to remove device from Sync")
     public static let syncCodeCopied = NSLocalizedString("sync.code.copied", value: "Recovery code copied to clipboard", comment: "Message confirming that recovery code was copied to clipboard")
+    public static let syncPairingV2ConfirmationTitle = NotLocalizedString("sync.pairing-v2.confirmation.title", value: "Sync your data?", comment: "Title of the dialog to confirm Pairing V2 sync setup with another device")
+    public static let syncPairingV2ConfirmationAction = NotLocalizedString("sync.pairing-v2.confirmation.action", value: "Sync", comment: "Caption for a button to confirm Pairing V2 sync setup with another device")
+    public static let syncPairingV2UnknownPeerName = NotLocalizedString("sync.pairing-v2.unknown-peer-name", value: "the other device", comment: "Fallback device name for Pairing V2 confirmation dialogs")
+    public static func syncPairingV2JoinerConfirmationMessage(_ deviceName: String) -> String {
+        let message = NotLocalizedString(
+            "sync.pairing-v2.joiner-confirmation.message",
+            value: "Sync your data with \"%@\"?",
+            comment: "Message for the dialog to confirm joining Sync with another device")
+        return message.format(arguments: deviceName)
+    }
+    public static func syncPairingV2HostConfirmationMessage(_ deviceName: String) -> String {
+        let message = NotLocalizedString(
+            "sync.pairing-v2.host-confirmation.message",
+            value: "Allow \"%@\" to sync with this device?",
+            comment: "Message for the dialog to confirm allowing another device to join Sync")
+        return message.format(arguments: deviceName)
+    }
 
     // Simplified Sync
     public static let simplifiedSyncEnabledToast = NSLocalizedString("sync.simplified.enabled.toast", value: "Sync & Backup enabled", comment: "Toast message shown after sync is successfully enabled")

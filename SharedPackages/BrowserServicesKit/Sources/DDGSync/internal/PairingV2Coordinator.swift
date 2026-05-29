@@ -19,6 +19,11 @@
 import Foundation
 import os.log
 
+protocol PairingV2ConfirmationDelegate: AnyObject {
+    func pairingV2CoordinatorShouldAllowPeerToJoin(peerName: String?) async -> Bool
+    func pairingV2CoordinatorShouldJoinPeer(peerName: String?) async -> Bool
+}
+
 final class PairingV2Coordinator {
 
     private let syncService: DDGSyncing
@@ -28,6 +33,7 @@ final class PairingV2Coordinator {
     private let deviceType: String
     private let localKind: PairingV2DeviceKind
     private let flags: PairingV2RolloutFlags
+    private weak var confirmationDelegate: PairingV2ConfirmationDelegate?
 
     private var stateMachine = PairingV2StateMachine()
     private var localKeyPair: PairingV2KeyPair?
@@ -43,7 +49,8 @@ final class PairingV2Coordinator {
          deviceName: String,
          deviceType: String,
          localKind: PairingV2DeviceKind = .ddg,
-         flags: PairingV2RolloutFlags) {
+         flags: PairingV2RolloutFlags,
+         confirmationDelegate: PairingV2ConfirmationDelegate? = nil) {
         self.syncService = syncService
         self.messageExchanger = messageExchanger
         self.messageCrypto = messageCrypto
@@ -51,6 +58,7 @@ final class PairingV2Coordinator {
         self.deviceType = deviceType
         self.localKind = localKind
         self.flags = flags
+        self.confirmationDelegate = confirmationDelegate
     }
 
     var state: PairingV2State {
@@ -203,6 +211,19 @@ final class PairingV2Coordinator {
         case .sendRecoveryCodeConfirmed:
             try await send(.recoveryCodeConfirmed(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeConfirmed)))
 
+        case .sendRecoveryCodeDenied:
+            try await send(.recoveryCodeDenied(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeDenied)))
+
+        case .requestHostConfirmation(let peerName):
+            let isConfirmed = await confirmationDelegate?.pairingV2CoordinatorShouldAllowPeerToJoin(peerName: peerName) ?? true
+            let event: PairingV2Event = isConfirmed ? .hostConfirmationAccepted : .hostConfirmationDenied
+            try await execute(stateMachine.handle(event))
+
+        case .requestJoinerConfirmation(let peerName):
+            let isConfirmed = await confirmationDelegate?.pairingV2CoordinatorShouldJoinPeer(peerName: peerName) ?? true
+            let event: PairingV2Event = isConfirmed ? .joinerConfirmationAccepted : .joinerConfirmationDenied
+            try await execute(stateMachine.handle(event))
+
         case .prepareRecoveryCode(let credentialKind, let purpose):
             let recoveryCode: String
             do {
@@ -311,7 +332,7 @@ final class PairingV2Coordinator {
                                                                                                            deviceName: deviceName,
                                                                                                            deviceType: deviceType)
         } catch {
-            Logger.sync.error("Pairing V2 3party account upgrade failed: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("Pairing V2 3party account upgrade failed: \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }

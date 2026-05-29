@@ -35,11 +35,20 @@ final public class RecoveryCodeViewModel: ObservableObject {
     }
 
     func paste() {
-        let code = NSPasteboard.general.string(forType: .string)?
+        guard let code = Self.normalizedPasteboardString(NSPasteboard.general.string(forType: .string)) else {
+            return
+        }
+        // Accept pasteboard content as-is (including URL-based V2 pairing codes).
+        // Validation happens in SyncConnectionController, matching iOS ScanOrPasteCodeViewModel.
+        recoveryCode = code
+    }
+
+    static func normalizedPasteboardString(_ raw: String?) -> String? {
+        let code = raw?
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\n", with: "")
             .replacingOccurrences(of: " ", with: "") ?? ""
-        setCode(code)
+        return code.isEmpty ? nil : code
     }
 
     public init() {}

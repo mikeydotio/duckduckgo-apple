@@ -734,6 +734,52 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
         }
     }
 
+    func controllerShouldAllowPairingV2PeerToJoin(peerName: String?) async -> Bool {
+        let peerName = pairingV2DisplayName(for: peerName)
+        let isConfirmed = await presentPairingV2ConfirmationAlert(message: UserText.syncPairingV2HostConfirmationMessage(peerName))
+        if !isConfirmed {
+            dismissPairingV2UIAfterDeniedConfirmation()
+        }
+        return isConfirmed
+    }
+
+    func controllerShouldJoinPairingV2Peer(peerName: String?) async -> Bool {
+        let peerName = pairingV2DisplayName(for: peerName)
+        let isConfirmed = await presentPairingV2ConfirmationAlert(message: UserText.syncPairingV2JoinerConfirmationMessage(peerName))
+        if !isConfirmed {
+            dismissPairingV2UIAfterDeniedConfirmation()
+        }
+        return isConfirmed
+    }
+
+    private func presentPairingV2ConfirmationAlert(message: String) async -> Bool {
+        await withCheckedContinuation { continuation in
+            let alert = UIAlertController(title: UserText.syncPairingV2ConfirmationTitle, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: UserText.actionCancel, style: .cancel) { _ in
+                continuation.resume(returning: false)
+            })
+            alert.addAction(UIAlertAction(title: UserText.syncPairingV2ConfirmationAction, style: .default) { _ in
+                continuation.resume(returning: true)
+            })
+
+            let viewControllerToPresentFrom = navigationController?.presentedViewController ?? presentedViewController ?? self
+            viewControllerToPresentFrom.present(alert, animated: true)
+        }
+    }
+
+    private func pairingV2DisplayName(for peerName: String?) -> String {
+        guard let peerName = peerName?.trimmingCharacters(in: .whitespacesAndNewlines), !peerName.isEmpty else {
+            return UserText.syncPairingV2UnknownPeerName
+        }
+        return peerName
+    }
+
+    private func dismissPairingV2UIAfterDeniedConfirmation() {
+        DispatchQueue.main.async {
+            self.dismissPresentedViewController()
+        }
+    }
+
     func confirmAndDisableSync() async -> Bool {
         return await withCheckedContinuation { continuation in
             let alert = UIAlertController(title: UserText.syncTurnOffConfirmTitle,

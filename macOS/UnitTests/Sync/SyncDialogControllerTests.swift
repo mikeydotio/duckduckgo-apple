@@ -135,13 +135,18 @@ final class SyncDialogControllerTests: XCTestCase {
         await fulfillment(of: [expectation], timeout: 5.0)
     }
 
-    func test_recoverDevice_callsConnectionController() async {
+    func test_recoverDevice_routesPastedCodeThroughConnectionControllerWithURLScanning() async {
+        featureFlagger.isFeatureOn[FeatureFlag.canScanUrlBasedSyncSetupBarcodes.rawValue] = true
         let expectation = expectation(description: "callsConnectionController")
         connectionController.syncCodeEnteredCalled = { _, _, _ in
             expectation.fulfill()
         }
         syncDialogController.recoveryCodePasted(testRecoveryCode, fromRecoveryScreen: false)
         await fulfillment(of: [expectation], timeout: 5)
+
+        XCTAssertEqual(connectionController.spySyncCodeEnteredCode, testRecoveryCode)
+        XCTAssertEqual(connectionController.spySyncCodeEnteredCanScanURLBarcodes, true)
+        XCTAssertEqual(connectionController.spySyncCodeEnteredCodeSource, .pastedCode)
     }
 
     func test_controllerDidFindTwoAccountsDuringRecovery_accountAlreadyExists_oneDevice_disconnectsThenLogsInAgain() async throws {

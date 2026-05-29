@@ -91,8 +91,10 @@ enum PairingV2State: Equatable {
     case idle
     case waitingForPeerHello(PairingV2Session)
     case waitingForPeerStatus(PairingV2Session)
+    case hostWaitingForConfirmation(PairingV2Session, credentialKind: PairingV2DeviceKind)
     case hostPreparingRecoveryCode(PairingV2Session, credentialKind: PairingV2DeviceKind)
     case hostSendingRecoveryCode(PairingV2Session, recoveryCode: String)
+    case joinerWaitingForConfirmation(PairingV2Session)
     case joinerWaitingForRecoveryCode(PairingV2Session)
     case joinerLoggingIn(PairingV2Session, recoveryCode: String)
     case completed(Completion)
@@ -105,6 +107,10 @@ enum PairingV2Event: Equatable {
     case receivedHello(PairingV2HelloMessage)
     case receivedPeerStatus(PairingV2PeerStatus)
     case nativeCredentialAlreadyPresent
+    case hostConfirmationAccepted
+    case hostConfirmationDenied
+    case joinerConfirmationAccepted
+    case joinerConfirmationDenied
     case recoveryCodePrepared(String)
     case recoveryCodeSent
     case receivedRecoveryCodeAwaitingConfirmation
@@ -123,6 +129,9 @@ enum PairingV2Command: Equatable {
     case sendRecoveryCodeStatus(PairingV2PeerStatus)
     case sendRecoveryCodeAwaitingConfirmation
     case sendRecoveryCodeConfirmed
+    case sendRecoveryCodeDenied
+    case requestHostConfirmation(peerName: String?)
+    case requestJoinerConfirmation(peerName: String?)
     case prepareRecoveryCode(credentialKind: PairingV2DeviceKind, purpose: String)
     case sendRecoveryCode(String)
     case loginWithRecoveryCode(String)
@@ -212,6 +221,18 @@ struct PairingV2StateMachine {
 
         case .nativeCredentialAlreadyPresent:
             return fail(with: .nativeCredentialAlreadyPresent)
+
+        case .hostConfirmationAccepted:
+            return handleHostConfirmationAccepted()
+
+        case .hostConfirmationDenied:
+            return handleHostConfirmationDenied()
+
+        case .joinerConfirmationAccepted:
+            return handleJoinerConfirmationAccepted()
+
+        case .joinerConfirmationDenied:
+            return handleJoinerConfirmationDenied()
 
         case .recoveryCodePrepared(let recoveryCode):
             return handleRecoveryCodePrepared(recoveryCode)
@@ -332,10 +353,10 @@ struct PairingV2StateMachine {
                 return fail(with: .unsupportedFlow("Pairing V2 native host requires a native client"))
             }
 
-            state = .hostPreparingRecoveryCode(updatedSession, credentialKind: credentialKind)
+            state = .hostWaitingForConfirmation(updatedSession, credentialKind: credentialKind)
             return [
                 .sendRecoveryCodeAwaitingConfirmation,
-                .prepareRecoveryCode(credentialKind: credentialKind, purpose: updatedSession.purpose)
+                .requestHostConfirmation(peerName: peerStatus.name)
             ]
 
         case .joiner(let hostKind):
@@ -343,9 +364,45 @@ struct PairingV2StateMachine {
                 return fail(with: .unsupportedFlow("Pairing V2 native joiner currently supports only native or 3party recovery codes"))
             }
 
-            state = .joinerWaitingForRecoveryCode(updatedSession)
-            return []
+            state = .joinerWaitingForConfirmation(updatedSession)
+            return [.requestJoinerConfirmation(peerName: peerStatus.name)]
         }
+    }
+
+    private mutating func handleHostConfirmationAccepted() -> [PairingV2Command] {
+        guard case .hostWaitingForConfirmation(let session, let credentialKind) = state else {
+            return fail(with: .unexpectedEvent("host confirmation accepted while not awaiting confirmation"))
+        }
+
+        state = .hostPreparingRecoveryCode(session, credentialKind: credentialKind)
+        return [.prepareRecoveryCode(credentialKind: credentialKind, purpose: session.purpose)]
+    }
+
+    private mutating func handleHostConfirmationDenied() -> [PairingV2Command] {
+        guard case .hostWaitingForConfirmation = state else {
+            return fail(with: .unexpectedEvent("host confirmation denied while not awaiting confirmation"))
+        }
+
+        state = .failed(.cancelled)
+        return [.sendRecoveryCodeDenied, .abort(.cancelled)]
+    }
+
+    private mutating func handleJoinerConfirmationAccepted() -> [PairingV2Command] {
+        guard case .joinerWaitingForConfirmation(let session) = state else {
+            return fail(with: .unexpectedEvent("joiner confirmation accepted while not awaiting confirmation"))
+        }
+
+        state = .joinerWaitingForRecoveryCode(session)
+        return []
+    }
+
+    private mutating func handleJoinerConfirmationDenied() -> [PairingV2Command] {
+        guard case .joinerWaitingForConfirmation = state else {
+            return fail(with: .unexpectedEvent("joiner confirmation denied while not awaiting confirmation"))
+        }
+
+        state = .failed(.cancelled)
+        return [.abort(.cancelled)]
     }
 
     private mutating func handleRecoveryCodePrepared(_ recoveryCode: String) -> [PairingV2Command] {

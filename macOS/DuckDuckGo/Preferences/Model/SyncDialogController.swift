@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import AppKit
 import Foundation
 import DDGSync
 import Combine
@@ -201,7 +202,7 @@ final class SyncDialogController {
 
     private func recoverDevice(recoveryCode: String, fromRecoveryScreen: Bool, codeSource: SyncCodeSource) {
         Task {
-            await connectionController.syncCodeEntered(code: recoveryCode, canScanURLBarcodes: false, codeSource: codeSource)
+            await connectionController.syncCodeEntered(code: recoveryCode, canScanURLBarcodes: featureFlagger.isFeatureOn(.canScanUrlBasedSyncSetupBarcodes), codeSource: codeSource)
         }
     }
 
@@ -611,6 +612,16 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
         sendCodeRecognisedPixel(setupSource: setupSource, codeSource: codeSource)
     }
 
+    func controllerShouldAllowPairingV2PeerToJoin(peerName: String?) async -> Bool {
+        let peerName = peerName ?? "the other device"
+        return await showPairingV2Confirmation(message: "Allow \"\(peerName)\" to sync with this device?")
+    }
+
+    func controllerShouldJoinPairingV2Peer(peerName: String?) async -> Bool {
+        let peerName = peerName ?? "the other device"
+        return await showPairingV2Confirmation(message: "Sync your data with \"\(peerName)\"?")
+    }
+
     func controllerDidCreateSyncAccount() {
         let additionalParameters = syncPromoSource.map { ["source": $0] } ?? [:]
         PixelKit.fire(GeneralPixel.syncSignupConnect, withAdditionalParameters: additionalParameters)
@@ -696,5 +707,25 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
         }
         guard setupSource != .recovery, setupSource != .unknown else { return }
         PixelKit.fire(SyncSetupPixelKitEvent.syncSetupEndedSuccessful(setupSource), doNotEnforcePrefix: true)
+    }
+
+    private func showPairingV2Confirmation(message: String) async -> Bool {
+        await withCheckedContinuation { continuation in
+            let alert = NSAlert()
+            alert.messageText = "Sync your data?"
+            alert.informativeText = message
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: "Sync")
+
+            guard let window = NSApplication.shared.keyWindow else {
+                continuation.resume(returning: alert.runModal() == .alertSecondButtonReturn)
+                return
+            }
+
+            alert.beginSheetModal(for: window) { response in
+                continuation.resume(returning: response == .alertSecondButtonReturn)
+            }
+        }
     }
 }
