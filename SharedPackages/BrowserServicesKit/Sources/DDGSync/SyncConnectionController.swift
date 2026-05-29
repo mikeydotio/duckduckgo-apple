@@ -133,6 +133,8 @@ private actor SyncConnectionState {
 }
 
 public class SyncConnectionController: SyncConnectionControlling {
+    private static let pairingURLBase = URL(string: "https://duckduckgo.com")!
+
     private let deviceName: String
     private let deviceType: String
     private let syncService: DDGSyncing
@@ -151,6 +153,10 @@ public class SyncConnectionController: SyncConnectionControlling {
     }
 
     public func startExchangeMode() async throws -> PairingInfo {
+        guard !isPairingV2PresentationEnabled else {
+            return try await startPairingV2PresenterMode()
+        }
+
         let exchanger = try remoteExchange()
         await state.setExchanger(exchanger)
         startExchangePolling()
@@ -274,6 +280,23 @@ public class SyncConnectionController: SyncConnectionControlling {
         }
     }
 
+    private func startPairingV2PresenterMode() async throws -> PairingInfo {
+        let coordinator = makePairingV2Coordinator()
+        let payload = try await coordinator.startPresenting()
+        let url: URL
+        do {
+            url = try payload.toURL(baseURL: Self.pairingURLBase)
+        } catch {
+            await coordinator.cancel()
+            throw error
+        }
+
+        await state.setPairingV2Coordinator(coordinator)
+        startPairingV2PresenterPolling(coordinator)
+
+        return PairingInfo(pairingV2URL: url, deviceName: deviceName)
+    }
+
     private func handlePairingV2(qrPayload: PairingV2QRCodePayload, codeSource: SyncCodeSource) async -> Bool {
         let setupRole: SyncSetupRole = .receiver(.exchange, codeSource)
         let isPairingV2ScanningEnabled = dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
@@ -286,14 +309,7 @@ public class SyncConnectionController: SyncConnectionControlling {
             return false
         }
 
-        let coordinator = PairingV2Coordinator(
-            syncService: syncService,
-            messageExchanger: dependencies.createPairingV2MessageExchanger(),
-            deviceName: deviceName,
-            deviceType: deviceType,
-            flags: PairingV2RolloutFlags(isV2ScanningEnabled: isPairingV2ScanningEnabled,
-                                         isV2CodeEnabled: dependencies.syncFeatureFlags.isPairingV2CodeEnabled())
-        )
+        let coordinator = makePairingV2Coordinator()
         await state.setPairingV2Coordinator(coordinator)
         defer {
             Task {
@@ -337,6 +353,87 @@ public class SyncConnectionController: SyncConnectionControlling {
         } catch {
             await delegate?.controllerDidError(.failedToFetchExchangeRecoveryKey, underlyingError: error, setupRole: setupRole)
             await coordinator.cancel()
+            return false
+        }
+    }
+
+    private func startPairingV2PresenterPolling(_ coordinator: PairingV2Coordinator) {
+        Task { @MainActor in
+            defer {
+                Task {
+                    await self.state.setPairingV2Coordinator(nil)
+                }
+            }
+
+            let setupRole = SyncSetupRole.sharer
+            do {
+                let completion = try await pollPairingV2PresenterUntilFinished(coordinator)
+                switch completion {
+                case .loggedIn:
+                    await delegate?.controllerDidCompleteLogin(registeredDevices: coordinator.completedRegisteredDevices ?? [], isRecovery: false, setupRole: setupRole)
+                case .recoveryCodeSent:
+                    delegate?.controllerDidFinishTransmittingRecoveryKey()
+                }
+            } catch SyncError.pollingDidTimeOut {
+                await delegate?.controllerDidError(.pollingForRecoveryKeyTimedOut, underlyingError: nil, setupRole: setupRole)
+                await coordinator.cancel()
+            } catch SyncError.accountAlreadyExists {
+                if let recoveryKey = coordinator.pendingRecoveryKey {
+                    await delegate?.controllerDidFindTwoAccountsDuringRecovery(recoveryKey, setupRole: setupRole)
+                } else {
+                    await delegate?.controllerDidError(.failedToLogIn, underlyingError: SyncError.accountAlreadyExists, setupRole: setupRole)
+                }
+                await coordinator.cancel()
+            } catch let error as PairingV2Error {
+                guard error != .cancelled else {
+                    return
+                }
+                await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: error, setupRole: setupRole)
+                await coordinator.cancel()
+            } catch let error as PairingV2MessageCryptoError {
+                await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: setupRole)
+                await coordinator.cancel()
+            } catch {
+                await delegate?.controllerDidError(.failedToFetchExchangeRecoveryKey, underlyingError: error, setupRole: setupRole)
+                await coordinator.cancel()
+            }
+        }
+    }
+
+    private func pollPairingV2PresenterUntilFinished(_ coordinator: PairingV2Coordinator,
+                                                     timeout: TimeInterval = 60,
+                                                     pollInterval: UInt64 = 1_000_000_000) async throws -> PairingV2State.Completion {
+        let timeoutDate = Date().addingTimeInterval(timeout)
+        var didNotifyPeerConnected = false
+
+        while true {
+            switch coordinator.state {
+            case .completed(let completion):
+                return completion
+            case .failed(let error):
+                throw error
+            default:
+                break
+            }
+
+            if Date() > timeoutDate {
+                throw SyncError.pollingDidTimeOut
+            }
+
+            try await coordinator.pollOnce()
+            if !didNotifyPeerConnected && shouldDismissPairingV2PresenterCode(for: coordinator.state) {
+                didNotifyPeerConnected = true
+                await delegate?.controllerWillBeginTransmittingRecoveryKey()
+            }
+            try await Task.sleep(nanoseconds: pollInterval)
+        }
+    }
+
+    private func shouldDismissPairingV2PresenterCode(for state: PairingV2State) -> Bool {
+        switch state {
+        case .waitingForPeerStatus, .hostPreparingRecoveryCode, .hostSendingRecoveryCode, .joinerWaitingForRecoveryCode, .joinerLoggingIn:
+            return true
+        case .idle, .waitingForPeerHello, .completed, .failed:
             return false
         }
     }
@@ -485,6 +582,22 @@ public class SyncConnectionController: SyncConnectionControlling {
 
     private func shouldContinueServerSyncOperation(setupRole: SyncSetupRole) async -> Bool {
         await delegate?.controllerWillPerformServerSyncOperation(setupRole: setupRole) ?? true
+    }
+
+    private var isPairingV2PresentationEnabled: Bool {
+        dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2CodeEnabled()
+    }
+
+    private func makePairingV2Coordinator() -> PairingV2Coordinator {
+        let isPairingV2ScanningEnabled = dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
+        return PairingV2Coordinator(
+            syncService: syncService,
+            messageExchanger: dependencies.createPairingV2MessageExchanger(),
+            deviceName: deviceName,
+            deviceType: deviceType,
+            flags: PairingV2RolloutFlags(isV2ScanningEnabled: isPairingV2ScanningEnabled,
+                                         isV2CodeEnabled: dependencies.syncFeatureFlags.isPairingV2CodeEnabled())
+        )
     }
 
     private func pairingV2ConnectionError(for error: PairingV2Error) -> SyncConnectionError {

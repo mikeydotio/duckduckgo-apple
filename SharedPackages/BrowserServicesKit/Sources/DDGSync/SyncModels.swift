@@ -137,6 +137,11 @@ public struct ExchangeMessage: Codable, Sendable {
 }
 
 public struct PairingInfo {
+    enum Kind {
+        case legacy
+        case pairingV2(URL)
+    }
+
     enum Keys {
         static let code = "code"
         static let deviceName = "deviceName"
@@ -144,6 +149,7 @@ public struct PairingInfo {
 
     public let base64Code: String
     public let deviceName: String
+    let kind: Kind
 
     public init?(url: URL) {
         guard Self.isPairing(url: url) else {
@@ -168,12 +174,21 @@ public struct PairingInfo {
                   deviceName: deviceName)
     }
 
-    init(base64Code: String, deviceName: String) {
+    init(base64Code: String, deviceName: String, kind: Kind = .legacy) {
         self.base64Code = base64Code
         self.deviceName = deviceName
+        self.kind = kind
+    }
+
+    init(pairingV2URL: URL, deviceName: String) {
+        self.init(base64Code: pairingV2URL.absoluteString, deviceName: deviceName, kind: .pairingV2(pairingV2URL))
     }
 
     public func toURL(baseURL: URL) -> URL {
+        if case .pairingV2(let url) = kind {
+            return url
+        }
+
         let url = baseURL.appendingPathComponent("sync/pairing/")
         var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
         let fragment = "&\(Keys.code)=\(base64URLCode)&\(Keys.deviceName)=\(deviceName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? deviceName)"

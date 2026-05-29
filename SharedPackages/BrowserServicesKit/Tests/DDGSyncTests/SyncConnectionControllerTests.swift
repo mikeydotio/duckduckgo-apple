@@ -123,6 +123,7 @@ final class SyncConnectionControllerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         dependencies = MockSyncDependencies()
+        dependencies.isPairingV2CodeEnabled = { false }
         syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
         delegate = MockSyncConnectionControllerDelegate()
         controller = SyncConnectionController(deviceName: Self.deviceName, deviceType: Self.deviceType, delegate: delegate, syncService: syncService, dependencies: dependencies)
@@ -148,6 +149,77 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertEqual(pairingInfo.base64Code, expectedExchangeCode)
         XCTAssertEqual(pairingInfo.deviceName, Self.deviceName)
+    }
+
+    func test_startExchangeMode_whenPairingV2CodeEnabled_returnsV2PairingInfo() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2Error.cancelled
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+
+        let pairingInfo = try await controller.startExchangeMode()
+        let url = try XCTUnwrap(URL(string: pairingInfo.base64Code))
+        let payload = try XCTUnwrap(PairingV2QRCodePayload(url: url))
+
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 1)
+        XCTAssertEqual(messageExchanger.openChannelCalls, [payload.channelId])
+        XCTAssertEqual(pairingInfo.toURL(baseURL: URL(string: "https://example.com")!), url)
+    }
+
+    func test_startExchangeMode_whenPairingV2CodeEnabledAndScopedAccessDisabled_returnsLegacyPairingInfo() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        dependencies.isScopedAccessCredentialsEnabled = { false }
+        let expectedExchangeCode = "TestExchangerCode"
+        let mockRemoteKeyExchanger: MockRemoteKeyExchanging = .init()
+        dependencies.createRemoteKeyExchangerStub = mockRemoteKeyExchanger
+        mockRemoteKeyExchanger.code = expectedExchangeCode
+
+        let pairingInfo = try await controller.startExchangeMode()
+
+        XCTAssertEqual(pairingInfo.base64Code, expectedExchangeCode)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
+    }
+
+    @MainActor
+    func test_startExchangeMode_whenPairingV2PresenterCompletes_notifiesDelegate() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        try dependencies.secureStore.persistAccount(SyncAccount.mock)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        var payload: PairingV2QRCodePayload?
+        messageExchanger.fetchMessagesHandler = { _, sequence in
+            guard let payload else {
+                return []
+            }
+            if sequence == 0 {
+                return try Self.encryptedPresenterPeerMessages(messages: [
+                    .hello(.init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
+                ], presenterPayload: payload, peerKeyPair: peerKeyPair)
+            }
+            return try Self.encryptedPresenterPeerMessages(messages: [
+                .recoveryCodeRequest(
+                    .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest,
+                          name: "Peer",
+                          kind: .ddg)
+                )
+            ], presenterPayload: payload, peerKeyPair: peerKeyPair, initialSequence: sequence)
+        }
+
+        let willBeginTransmitting = expectation(description: "will begin transmitting")
+        delegate.didBeginTransmittingRecoveryKeyCalled = {
+            willBeginTransmitting.fulfill()
+        }
+        let didFinishTransmitting = expectation(description: "did finish transmitting")
+        delegate.didFinishTransmittingRecoveryKeyCalled = {
+            didFinishTransmitting.fulfill()
+        }
+
+        let pairingInfo = try await controller.startExchangeMode()
+        payload = try XCTUnwrap(PairingV2QRCodePayload(url: try XCTUnwrap(URL(string: pairingInfo.base64Code))))
+
+        await fulfillment(of: [willBeginTransmitting, didFinishTransmitting], timeout: 5)
+        XCTAssertFalse(messageExchanger.closeChannelCalls.isEmpty)
     }
 
     @MainActor
@@ -1004,6 +1076,17 @@ final class SyncConnectionControllerTests: XCTestCase {
 
     enum TestError: Error {
         case nilValue
+    }
+
+    private static func encryptedPresenterPeerMessages(messages: [PairingV2ApplicationMessage],
+                                                       presenterPayload: PairingV2QRCodePayload,
+                                                       peerKeyPair: PairingV2KeyPair,
+                                                       initialSequence: Int = 0) throws -> [PairingV2SequencedMessage] {
+        let crypto = PairingV2MessageCrypto()
+        return try messages.enumerated().map { index, message in
+            let encryptedMessage = try crypto.encrypt(message, recipientPublicKey: presenterPayload.publicKey, senderChannelID: peerKeyPair.channelID)
+            return PairingV2SequencedMessage(seq: initialSequence + index + 1, version: encryptedMessage.version, payload: encryptedMessage.payload)
+        }
     }
 
     private func encryptedPeerMessages(_ messages: [PairingV2ApplicationMessage],
