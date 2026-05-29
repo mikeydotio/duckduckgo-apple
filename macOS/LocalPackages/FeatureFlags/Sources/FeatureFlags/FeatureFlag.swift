@@ -128,12 +128,6 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866476152134
     case osSupportForceUnsupportedMessage
 
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866476263589
-    case osSupportForceWillSoonDropSupportMessage
-
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866719124742
-    case willSoonDropBigSurSupport
-
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866475316806
     case hangReporting
 
@@ -500,10 +494,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(AIChatSubfeature.omnibarOnboarding), category: .duckAI)
         case .osSupportForceUnsupportedMessage:
             Config(source: .disabled, category: .osSupportWarnings)
-        case .osSupportForceWillSoonDropSupportMessage:
-            Config(source: .disabled, category: .osSupportWarnings)
-        case .willSoonDropBigSurSupport:
-            Config(source: .remoteReleasable(MacOSBrowserConfigSubfeature.willSoonDropBigSurSupport), category: .osSupportWarnings)
         case .hangReporting:
             Config(source: .remoteReleasable(MacOSBrowserConfigSubfeature.hangReporting))
         case .newTabPageOmnibar:
