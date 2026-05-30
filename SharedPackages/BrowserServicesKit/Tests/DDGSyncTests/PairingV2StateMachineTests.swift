@@ -186,7 +186,53 @@ final class PairingV2StateMachineTests: XCTestCase {
         let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
 
         XCTAssertEqual(commands, [])
-        XCTAssertEqual(stateMachine.state, .waitingForPeerStatus(.init(localClient: localClient, channelID: "channel-1")))
+        XCTAssertEqual(
+            stateMachine.state,
+            .waitingForPeerStatus(.init(localClient: localClient, channelID: "channel-1", hasReceivedHello: true))
+        )
+    }
+
+    func testWhenScannerReceivesSecondHelloAfterAbsorbingSimultaneousScanHelloThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
+        let error = PairingV2Error.unexpectedEvent("hello received after peer hello was already established")
+
+        _ = stateMachine.handle(
+            .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
+        )
+        _ = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+
+        XCTAssertEqual(commands, [.abort(error)])
+        XCTAssertEqual(stateMachine.state, .failed(error))
+    }
+
+    func testWhenPresenterReceivesSecondHelloThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
+        let error = PairingV2Error.unexpectedEvent("hello received after peer hello was already established")
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        _ = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+
+        XCTAssertEqual(commands, [.abort(error)])
+        XCTAssertEqual(stateMachine.state, .failed(error))
+    }
+
+    func testWhenHelloArrivesAfterPeerStatusThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
+        let error = PairingV2Error.unexpectedEvent("hello received after peer status was already established")
+
+        _ = stateMachine.handle(
+            .scannedCode(.v2Linking(channelID: "channel-1"), localClient: localClient, flags: enabledFlags)
+        )
+        _ = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .ddg)))
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+
+        XCTAssertEqual(commands, [.abort(error)])
+        XCTAssertEqual(stateMachine.state, .failed(error))
     }
 
     func testWhenHelloHasUnsupportedVersionThenFlowAborts() {

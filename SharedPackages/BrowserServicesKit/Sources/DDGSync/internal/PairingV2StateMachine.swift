@@ -69,16 +69,34 @@ struct PairingV2Session: Equatable {
     let channelID: String?
     let peerStatus: PairingV2PeerStatus?
     let purpose: String
+    let hasReceivedHello: Bool
 
-    init(localClient: PairingV2LocalClient, channelID: String?, peerStatus: PairingV2PeerStatus? = nil, purpose: String = "ai_chats") {
+    init(localClient: PairingV2LocalClient,
+         channelID: String?,
+         peerStatus: PairingV2PeerStatus? = nil,
+         purpose: String = "ai_chats",
+         hasReceivedHello: Bool = false) {
         self.localClient = localClient
         self.channelID = channelID
         self.peerStatus = peerStatus
         self.purpose = purpose
+        self.hasReceivedHello = hasReceivedHello
     }
 
     func withPeerStatus(_ peerStatus: PairingV2PeerStatus) -> PairingV2Session {
-        PairingV2Session(localClient: localClient, channelID: channelID, peerStatus: peerStatus, purpose: purpose)
+        PairingV2Session(localClient: localClient,
+                         channelID: channelID,
+                         peerStatus: peerStatus,
+                         purpose: purpose,
+                         hasReceivedHello: hasReceivedHello)
+    }
+
+    func withReceivedHello() -> PairingV2Session {
+        PairingV2Session(localClient: localClient,
+                         channelID: channelID,
+                         peerStatus: peerStatus,
+                         purpose: purpose,
+                         hasReceivedHello: true)
     }
 }
 
@@ -325,7 +343,14 @@ struct PairingV2StateMachine {
             state = .waitingForPeerStatus(session)
             return [.sendRecoveryCodeStatus(Self.localRecoveryCodeStatus(for: session.localClient))]
 
-        case .waitingForPeerStatus:
+        case .waitingForPeerStatus(let session):
+            guard !session.localClient.isPresenter, !session.hasReceivedHello else {
+                return fail(with: .unexpectedEvent("hello received after peer hello was already established"))
+            }
+            guard session.peerStatus == nil else {
+                return fail(with: .unexpectedEvent("hello received after peer status was already established"))
+            }
+            state = .waitingForPeerStatus(session.withReceivedHello())
             return []
 
         default:

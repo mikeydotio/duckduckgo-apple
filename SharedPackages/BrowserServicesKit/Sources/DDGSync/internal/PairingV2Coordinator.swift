@@ -153,10 +153,15 @@ final class PairingV2Coordinator {
         }
 
         let commands: [PairingV2Command]
+        let stateBeforeMessage = stateMachine.state
         switch message {
         case .hello(let message):
-            commands = stateMachine.handle(.receivedHello(message))
-            if !isTerminal {
+            if shouldRejectRedundantHello(message, stateBeforeMessage: stateBeforeMessage) {
+                commands = stateMachine.handle(.failed(.unexpectedEvent("redundant hello did not match scanned Pairing V2 code")))
+            } else {
+                commands = stateMachine.handle(.receivedHello(message))
+            }
+            if case .waitingForPeerHello = stateBeforeMessage, !isTerminal {
                 peerChannelID = message.channelId
                 peerPublicKey = message.publicKey
             }
@@ -185,6 +190,16 @@ final class PairingV2Coordinator {
         }
 
         try await execute(commands)
+    }
+
+    private func shouldRejectRedundantHello(_ message: PairingV2HelloMessage, stateBeforeMessage: PairingV2State) -> Bool {
+        guard case .waitingForPeerStatus(let session) = stateBeforeMessage,
+              !session.localClient.isPresenter,
+              !session.hasReceivedHello else {
+            return false
+        }
+
+        return message.channelId != peerChannelID || message.publicKey != peerPublicKey
     }
 
     private func execute(_ commands: [PairingV2Command]) async throws {

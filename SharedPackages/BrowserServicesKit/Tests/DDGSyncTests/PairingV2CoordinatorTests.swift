@@ -95,6 +95,64 @@ final class PairingV2CoordinatorTests: XCTestCase {
         )
     }
 
+    func testWhenScannerReceivesMatchingRedundantHelloThenKeepsWaitingForPeerStatus() async throws {
+        let dependencies = MockSyncDependencies()
+        let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        let messageCrypto = PairingV2MessageCrypto()
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let coordinator = makeCoordinator(syncService: syncService, messageExchanger: messageExchanger, messageCrypto: messageCrypto)
+
+        try await coordinator.startScanning(qrPayload: .init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
+        let hello = try localHello(from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto)
+        messageExchanger.fetchMessagesStub = [
+            .init(seq: 1,
+                  version: PairingV2ProtocolVersion.current,
+                  payload: try messageCrypto.encrypt(
+                    .hello(.init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)),
+                    recipientPublicKey: hello.publicKey,
+                    senderChannelID: peerKeyPair.channelID).payload)
+        ]
+
+        try await coordinator.pollOnce()
+
+        XCTAssertEqual(
+            coordinator.state,
+            .waitingForPeerStatus(
+                .init(localClient: .init(name: "Mac", kind: .ddg, hasAccount: false, isPresenter: false),
+                      channelID: peerKeyPair.channelID,
+                      hasReceivedHello: true)
+            )
+        )
+        XCTAssertTrue(messageExchanger.closeChannelCalls.isEmpty)
+    }
+
+    func testWhenScannerReceivesMismatchedRedundantHelloThenFlowAborts() async throws {
+        let dependencies = MockSyncDependencies()
+        let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        let messageCrypto = PairingV2MessageCrypto()
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let coordinator = makeCoordinator(syncService: syncService, messageExchanger: messageExchanger, messageCrypto: messageCrypto)
+        let error = PairingV2Error.unexpectedEvent("redundant hello did not match scanned Pairing V2 code")
+
+        try await coordinator.startScanning(qrPayload: .init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
+        let hello = try localHello(from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto)
+        messageExchanger.fetchMessagesStub = [
+            .init(seq: 1,
+                  version: PairingV2ProtocolVersion.current,
+                  payload: try messageCrypto.encrypt(
+                    .hello(.init(channelId: peerKeyPair.channelID, publicKey: "mismatched-public-key")),
+                    recipientPublicKey: hello.publicKey,
+                    senderChannelID: peerKeyPair.channelID).payload)
+        ]
+
+        try await coordinator.pollOnce()
+
+        XCTAssertEqual(coordinator.state, .failed(error))
+        XCTAssertEqual(messageExchanger.closeChannelCalls, [hello.channelId])
+    }
+
     func testWhenPresenterHostsNativePeerThenSendsProgressMessagesBeforeRecoveryCodeResponse() async throws {
         let dependencies = MockSyncDependencies()
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
