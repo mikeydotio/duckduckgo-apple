@@ -327,7 +327,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(stateMachine.state, .failed(.cancelled))
     }
 
-    func testWhenPeerAvailableHasSameUserIdAsLocalAccountThenFlowAborts() {
+    func testWhenPeerAvailableHasSameUserIdAsLocalAccountThenFlowCompletesAlreadyConnected() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false, userId: "same-user")
 
@@ -336,8 +336,20 @@ final class PairingV2StateMachineTests: XCTestCase {
         )
         let commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .thirdParty, userId: "same-user")))
 
-        XCTAssertEqual(commands, [.abort(.sameAccount)])
-        XCTAssertEqual(stateMachine.state, .failed(.sameAccount))
+        XCTAssertEqual(commands, [.stopPolling])
+        XCTAssertEqual(stateMachine.state, .completed(.alreadyConnected))
+    }
+
+    func testWhenPresenterReceivesPeerAvailableWithSameUserIdAsLocalAccountThenFlowCompletesAlreadyConnected() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true, userId: "same-user")
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        _ = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
+        let commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .ddg, userId: "same-user")))
+
+        XCTAssertEqual(commands, [.stopPolling])
+        XCTAssertEqual(stateMachine.state, .completed(.alreadyConnected))
     }
 
     func testWhenNativeAccountScannerScansNativePresenterThenRequestsJoinerConfirmation() {

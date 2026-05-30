@@ -649,6 +649,10 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
 
         sendSetupEndedSuccessfullyPixel(setupSource: syncSetupSource, codeSource: syncCodeSource)
     }
+
+    func controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole _: SyncSetupRole) {
+        dismissVCAndShowDeviceSyncedToast()
+    }
     
     func controllerDidError(_ error: SyncConnectionError, underlyingError: (any Error)?, setupRole: SyncSetupRole) async {
         switch error {

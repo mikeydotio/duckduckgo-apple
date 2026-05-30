@@ -35,6 +35,7 @@ public protocol SyncConnectionControllerDelegate: AnyObject {
     func controllerDidCompleteAccountConnection(shouldShowSyncEnabled: Bool, setupSource: SyncSetupSource, codeSource: SyncCodeSource)
 
     func controllerDidCompleteLogin(registeredDevices: [RegisteredDevice], isRecovery: Bool, setupRole: SyncSetupRole)
+    func controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole: SyncSetupRole)
 
     func controllerDidFindTwoAccountsDuringRecovery(_ recoveryKey: SyncCode.RecoveryKey, setupRole: SyncSetupRole) async
 
@@ -327,12 +328,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         do {
             try await coordinator.startScanning(qrPayload: qrPayload)
             let completion = try await coordinator.pollUntilFinished()
-            switch completion {
-            case .loggedIn:
-                await delegate?.controllerDidCompleteLogin(registeredDevices: coordinator.completedRegisteredDevices ?? [], isRecovery: false, setupRole: setupRole)
-            case .recoveryCodeSent:
-                await delegate?.controllerDidFinishTransmittingRecoveryKey()
-            }
+            await handlePairingV2Completion(completion, coordinator: coordinator, setupRole: setupRole)
             return true
         } catch SyncError.pollingDidTimeOut {
             await delegate?.controllerDidError(.pollingForRecoveryKeyTimedOut, underlyingError: nil, setupRole: setupRole)
@@ -375,12 +371,7 @@ public class SyncConnectionController: SyncConnectionControlling {
             let setupRole = SyncSetupRole.sharer
             do {
                 let completion = try await pollPairingV2PresenterUntilFinished(coordinator)
-                switch completion {
-                case .loggedIn:
-                    await delegate?.controllerDidCompleteLogin(registeredDevices: coordinator.completedRegisteredDevices ?? [], isRecovery: false, setupRole: setupRole)
-                case .recoveryCodeSent:
-                    delegate?.controllerDidFinishTransmittingRecoveryKey()
-                }
+                await handlePairingV2Completion(completion, coordinator: coordinator, setupRole: setupRole)
             } catch SyncError.pollingDidTimeOut {
                 await delegate?.controllerDidError(.pollingForRecoveryKeyTimedOut, underlyingError: nil, setupRole: setupRole)
                 await coordinator.cancel()
@@ -404,6 +395,19 @@ public class SyncConnectionController: SyncConnectionControlling {
                 await delegate?.controllerDidError(.failedToFetchExchangeRecoveryKey, underlyingError: error, setupRole: setupRole)
                 await coordinator.cancel()
             }
+        }
+    }
+
+    private func handlePairingV2Completion(_ completion: PairingV2State.Completion,
+                                           coordinator: PairingV2Coordinator,
+                                           setupRole: SyncSetupRole) async {
+        switch completion {
+        case .loggedIn:
+            await delegate?.controllerDidCompleteLogin(registeredDevices: coordinator.completedRegisteredDevices ?? [], isRecovery: false, setupRole: setupRole)
+        case .recoveryCodeSent:
+            await delegate?.controllerDidFinishTransmittingRecoveryKey()
+        case .alreadyConnected:
+            await delegate?.controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole: setupRole)
         }
     }
 
@@ -618,7 +622,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         switch error {
         case .recoveryCodePreparationFailed, .recoveryCodeSendFailed:
             return .failedToTransmitExchangeRecoveryKey
-        case .loginFailed, .nativeCredentialAlreadyPresent, .sameAccount:
+        case .loginFailed, .nativeCredentialAlreadyPresent:
             return .failedToLogIn
         case .recoveryCodeDenied, .recoveryCodeUnavailable:
             return .failedToFetchExchangeRecoveryKey
@@ -640,6 +644,9 @@ public extension SyncConnectionControllerDelegate {
 
     func controllerShouldJoinPairingV2Peer(peerName _: String?) async -> Bool {
         true
+    }
+
+    func controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole _: SyncSetupRole) {
     }
 }
 

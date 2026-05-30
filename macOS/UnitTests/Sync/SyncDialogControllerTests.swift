@@ -828,6 +828,12 @@ final class SyncDialogControllerTests: XCTestCase {
         XCTAssertEqual(managementDialogModel.currentDialog, initialDialog)
     }
 
+    func testControllerDidCompletePairingWithAlreadyConnectedAccount_presentsDeviceSyncedDialog() {
+        syncDialogController.controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole: .receiver(.exchange, .pastedCode))
+
+        XCTAssertEqual(managementDialogModel.currentDialog, .nowSyncing)
+    }
+
     func testControllerDidCompleteLogin_updatesDevicesAndPresentsRecoveryDialog() async {
         ddgSyncing.account = SyncAccount.mock
 

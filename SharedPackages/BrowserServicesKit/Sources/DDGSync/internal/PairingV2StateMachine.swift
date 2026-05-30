@@ -86,6 +86,7 @@ enum PairingV2State: Equatable {
     enum Completion: Equatable {
         case recoveryCodeSent
         case loggedIn
+        case alreadyConnected
     }
 
     case idle
@@ -150,7 +151,6 @@ enum PairingV2Error: Error, Equatable {
     case loginFailed
     case recoveryCodeDenied
     case recoveryCodeUnavailable
-    case sameAccount
     case unsupportedVersion(String)
     case unsupportedFlow(String)
     case cancelled
@@ -342,7 +342,8 @@ struct PairingV2StateMachine {
            let peerUserId = peerStatus.userId,
            let localUserId = session.localClient.userId,
            peerUserId == localUserId {
-            return fail(with: .sameAccount)
+            state = .completed(.alreadyConnected)
+            return [.stopPolling]
         }
 
         let updatedSession = session.withPeerStatus(peerStatus)

@@ -653,6 +653,10 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
         sendSetupEndedSuccessfullyPixel(setupSource: syncSetupSource, codeSource: syncCodeSource)
     }
 
+    func controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole _: SyncSetupRole) {
+        presentDialog(for: .nowSyncing)
+    }
+
     func controllerDidFindTwoAccountsDuringRecovery(_ recoveryKey: SyncCode.RecoveryKey, setupRole: SyncSetupRole) async {
         await handleAccountAlreadyExists(recoveryKey)
     }

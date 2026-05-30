@@ -53,6 +53,8 @@ final class MockSyncConnectionControllerDelegate: SyncConnectionControllerDelega
     var didCreateSyncAccountCalled = { }
     var didCompleteAccountConnectionValue: Bool?
     var didCompleteLoginDevices: [RegisteredDevice]?
+    var didCompletePairingWithAlreadyConnectedAccountCalled = { }
+    var didCompletePairingWithAlreadyConnectedAccountSetupRole: SyncSetupRole?
     var didFindTwoAccountsDuringRecoveryCalled: SyncCode.RecoveryKey?
     var didErrorCalled = { }
     var didErrorErrors: (error: SyncConnectionError, underlyingError: Error?)?
@@ -91,6 +93,11 @@ final class MockSyncConnectionControllerDelegate: SyncConnectionControllerDelega
 
     func controllerDidCompleteLogin(registeredDevices: [RegisteredDevice], isRecovery: Bool, setupRole: SyncSetupRole) {
         didCompleteLoginDevices = registeredDevices
+    }
+
+    func controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole: SyncSetupRole) {
+        didCompletePairingWithAlreadyConnectedAccountSetupRole = setupRole
+        didCompletePairingWithAlreadyConnectedAccountCalled()
     }
 
     func controllerDidFindTwoAccountsDuringRecovery(_ recoveryKey: SyncCode.RecoveryKey, setupRole: SyncSetupRole) async {
@@ -219,6 +226,50 @@ final class SyncConnectionControllerTests: XCTestCase {
         payload = try XCTUnwrap(PairingV2QRCodePayload(url: try XCTUnwrap(URL(string: pairingInfo.base64Code))))
 
         await fulfillment(of: [willBeginTransmitting, didFinishTransmitting], timeout: 5)
+        XCTAssertFalse(messageExchanger.closeChannelCalls.isEmpty)
+    }
+
+    @MainActor
+    func test_startExchangeMode_whenPairingV2PresenterDetectsSameAccount_notifiesAlreadyConnected() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        try dependencies.secureStore.persistAccount(SyncAccount.mock)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        var payload: PairingV2QRCodePayload?
+        messageExchanger.fetchMessagesHandler = { _, sequence in
+            guard let payload else {
+                return []
+            }
+            if sequence == 0 {
+                return try Self.encryptedPresenterPeerMessages(messages: [
+                    .hello(.init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
+                ], presenterPayload: payload, peerKeyPair: peerKeyPair)
+            }
+            return try Self.encryptedPresenterPeerMessages(messages: [
+                .recoveryCodeAvailable(
+                    .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable,
+                          name: "Peer",
+                          kind: .ddg,
+                          userId: SyncAccount.mock.userId)
+                )
+            ], presenterPayload: payload, peerKeyPair: peerKeyPair, initialSequence: sequence)
+        }
+
+        let didCompleteAlreadyConnected = expectation(description: "did complete already connected")
+        delegate.didCompletePairingWithAlreadyConnectedAccountCalled = {
+            didCompleteAlreadyConnected.fulfill()
+        }
+
+        let pairingInfo = try await controller.startExchangeMode()
+        payload = try XCTUnwrap(PairingV2QRCodePayload(url: try XCTUnwrap(URL(string: pairingInfo.base64Code))))
+
+        await fulfillment(of: [didCompleteAlreadyConnected], timeout: 5)
+        guard case .sharer = delegate.didCompletePairingWithAlreadyConnectedAccountSetupRole else {
+            XCTFail("Expected already-connected completion for sharer role")
+            return
+        }
+        XCTAssertNil(delegate.didErrorErrors)
         XCTAssertFalse(messageExchanger.closeChannelCalls.isEmpty)
     }
 
@@ -706,7 +757,7 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     @MainActor
-    func test_syncCodeEntered_withV2SameAccountFailure_notifiesLoginError() async throws {
+    func test_syncCodeEntered_withV2SameAccount_notifiesAlreadyConnected() async throws {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
         let messageExchanger = PairingV2MessageExchangingMock()
         dependencies.createPairingV2MessageExchangerStub = messageExchanger
@@ -730,9 +781,15 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         let result = await controller.syncCodeEntered(code: url.absoluteString, canScanURLBarcodes: true, codeSource: .pastedCode)
 
-        XCTAssertFalse(result)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .failedToLogIn)
-        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .sameAccount)
+        XCTAssertTrue(result)
+        guard case .receiver(.exchange, .pastedCode) = delegate.didCompletePairingWithAlreadyConnectedAccountSetupRole else {
+            XCTFail("Expected already-connected completion for exchange receiver role")
+            return
+        }
+        XCTAssertNil(delegate.didErrorErrors)
+        XCTAssertNil(delegate.didCompleteLoginDevices)
+        XCTAssertNil(delegate.didCompleteAccountConnectionValue)
+        XCTAssertFalse(messageExchanger.closeChannelCalls.isEmpty)
     }
 
     @MainActor
