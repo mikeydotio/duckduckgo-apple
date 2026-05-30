@@ -959,7 +959,7 @@ extension LegacySyncPreferences: ManagementDialogModelDelegate {
 extension LegacySyncPreferences: SyncConnectionControllerDelegate {
 
     func controllerWillBeginTransmittingRecoveryKey() async {
-        // no-op
+        presentDialog(for: .prepareToSync)
     }
 
     func controllerDidFinishTransmittingRecoveryKey() {
@@ -972,6 +972,7 @@ extension LegacySyncPreferences: SyncConnectionControllerDelegate {
 
     func controllerDidRecognizeCode(setupSource: SyncSetupSource, codeSource: SyncCodeSource) async {
         sendCodeRecognisedPixel(setupSource: setupSource, codeSource: codeSource)
+        presentDialog(for: .prepareToSync)
     }
 
     func controllerShouldAllowPairingV2PeerToJoin(peerName: String?) async -> Bool {

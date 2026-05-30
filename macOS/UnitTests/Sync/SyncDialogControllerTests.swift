@@ -784,8 +784,20 @@ final class SyncDialogControllerTests: XCTestCase {
         XCTAssertNotNil(syncDialogController)
     }
 
+    func testControllerWillBeginTransmittingRecoveryKey_presentsPrepareDialog() async {
+        await syncDialogController.controllerWillBeginTransmittingRecoveryKey()
+
+        XCTAssertEqual(managementDialogModel.currentDialog, .prepareToSync)
+    }
+
     func testControllerDidReceiveRecoveryKey_presentsPrepareDialog() {
         syncDialogController.controllerDidReceiveRecoveryKey()
+
+        XCTAssertEqual(managementDialogModel.currentDialog, .prepareToSync)
+    }
+
+    func testControllerDidRecognizeCode_presentsPrepareDialog() async {
+        await syncDialogController.controllerDidRecognizeCode(setupSource: .exchange, codeSource: .pastedCode)
 
         XCTAssertEqual(managementDialogModel.currentDialog, .prepareToSync)
     }
