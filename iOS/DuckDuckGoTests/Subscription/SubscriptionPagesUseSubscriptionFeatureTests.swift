@@ -1415,6 +1415,50 @@ final class SubscriptionPagesUseSubscriptionFeatureTests: XCTestCase {
         XCTAssertTrue(scheduler.scheduledTimeBeforeCancel.isEmpty,
                       "Scheduler must not be invoked when the purchase did not complete successfully")
     }
+
+    // MARK: - Bridge result payloads
+    //
+    // These tests pin the JSON shape of the `result` payloads our handlers produce.
+    // The broker's envelope wrapping (context / featureName / id) is covered by
+    // `UserScriptMessagingTests.testDelegateRespondsWithResult` in BrowserServicesKit.
+    // Renaming a key here is a breaking change to the FE↔Native contract.
+
+    func testUserSettingsResponse_encodesGranted() throws {
+        let response = DefaultSubscriptionPagesUseSubscriptionFeature.UserSettingsResponse(notificationsPermission: .granted)
+        XCTAssertEqual(try jsonString(response), "{\"notificationsPermission\":\"granted\"}")
+    }
+
+    func testUserSettingsResponse_encodesDenied() throws {
+        let response = DefaultSubscriptionPagesUseSubscriptionFeature.UserSettingsResponse(notificationsPermission: .denied)
+        XCTAssertEqual(try jsonString(response), "{\"notificationsPermission\":\"denied\"}")
+    }
+
+    func testUserSettingsResponse_encodesNotDetermined() throws {
+        let response = DefaultSubscriptionPagesUseSubscriptionFeature.UserSettingsResponse(notificationsPermission: .notDetermined)
+        XCTAssertEqual(try jsonString(response), "{\"notificationsPermission\":\"notDetermined\"}")
+    }
+
+    func testNotificationsPermissionResponse_encodesGrantedTrue() throws {
+        let response = DefaultSubscriptionPagesUseSubscriptionFeature.NotificationsPermissionResponse(granted: true)
+        XCTAssertEqual(try jsonString(response), "{\"granted\":true}")
+    }
+
+    func testNotificationsPermissionResponse_encodesGrantedFalse() throws {
+        let response = DefaultSubscriptionPagesUseSubscriptionFeature.NotificationsPermissionResponse(granted: false)
+        XCTAssertEqual(try jsonString(response), "{\"granted\":false}")
+    }
+
+    func testScheduleNotificationPreference_decodesFromExpectedShape() throws {
+        let raw = "{\"daysBeforeCancel\":7}"
+        let preference = try JSONDecoder().decode(DefaultSubscriptionPagesUseSubscriptionFeature.ScheduleNotificationPreference.self,
+                                                  from: Data(raw.utf8))
+        XCTAssertEqual(preference.daysBeforeCancel, 7)
+    }
+
+    private func jsonString<T: Encodable>(_ value: T) throws -> String {
+        let data = try JSONEncoder().encode(value)
+        return try XCTUnwrap(String(data: data, encoding: .utf8))
+    }
 }
 
 final class MockURLWebView: WKWebView {
