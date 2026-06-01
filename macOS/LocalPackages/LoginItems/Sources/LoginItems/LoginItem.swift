@@ -28,10 +28,29 @@ public enum SMLoginItemSetEnabledError: Error {
 /// Takes care of enabling and disabling a login item.
 ///
 public struct LoginItem: Equatable, Hashable {
-    public let agentBundleID: String
+
+    /// Selects which kind of login item we're driving.
+    ///
+    /// - `helper(bundleId:)` — a separate helper agent (the original use case;
+    ///   how VPN and DBP launch their background agents).
+    /// - `mainApp` — the calling main app itself, registered via
+    ///   `SMAppService.mainApp`. Requires macOS 13+; older systems get a no-op.
+    enum Backing: Equatable, Hashable {
+        case helper(bundleId: String)
+        case mainApp
+    }
+
+    private let backing: Backing
     private let launchInformation: LoginItemLaunchInformation
     private let defaults: UserDefaults
     private let logger: Logger
+
+    public var agentBundleID: String {
+        switch backing {
+        case .helper(let bundleId): return bundleId
+        case .mainApp: return Bundle.main.bundleIdentifier ?? ""
+        }
+    }
 
     public var isRunning: Bool {
         !runningApplications.isEmpty
@@ -72,19 +91,49 @@ public struct LoginItem: Equatable, Hashable {
     }
 
     public var status: Status {
-        guard #available(macOS 13.0, *) else {
+        if #available(macOS 13.0, *) {
+            switch backing {
+            case .helper(let bundleId):
+                return Status(SMAppService.loginItem(identifier: bundleId).status)
+            case .mainApp:
+                return Status(SMAppService.mainApp.status)
+            }
+        }
+
+        switch backing {
+        case .helper(let bundleId):
             guard let job = ServiceManagement.copyAllJobDictionaries(kSMDomainUserLaunchd).first(where: {
-                $0["Label"] as? String == agentBundleID
+                $0["Label"] as? String == bundleId
             }) else { return .notRegistered }
 
             logger.debug("🟢 found login item job: \(job.debugDescription, privacy: .public)")
             return job["OnDemand"] as? Bool == true ? .enabled : .requiresApproval
+        case .mainApp:
+            // `SMAppService.mainApp` requires macOS 13+; no fallback API exists
+            // for self-registering the running app on older systems.
+            return .notRegistered
         }
-        return Status(SMAppService.loginItem(identifier: agentBundleID).status)
     }
 
     public init(bundleId: String, defaults: UserDefaults, logger: Logger) {
-        self.agentBundleID = bundleId
+        self.init(backing: .helper(bundleId: bundleId), defaults: defaults, logger: logger)
+    }
+
+    /// Drives `SMAppService.mainApp` — registers the calling app itself as a
+    /// login item. Requires macOS 13+ at runtime; older systems get a no-op
+    /// (callers should not rely on login-item launch on those systems).
+    public static func mainApp(defaults: UserDefaults, logger: Logger) -> LoginItem {
+        LoginItem(backing: .mainApp, defaults: defaults, logger: logger)
+    }
+
+    private init(backing: Backing, defaults: UserDefaults, logger: Logger) {
+        let bundleId: String = {
+            switch backing {
+            case .helper(let id): return id
+            case .mainApp: return Bundle.main.bundleIdentifier ?? ""
+            }
+        }()
+        self.backing = backing
         self.defaults = defaults
         self.launchInformation = LoginItemLaunchInformation(agentBundleID: bundleId, defaults: defaults)
         self.logger = logger
@@ -94,11 +143,21 @@ public struct LoginItem: Equatable, Hashable {
         logger.debug("🟢 registering login item \(self.debugDescription, privacy: .public)")
 
         if #available(macOS 13.0, *) {
-            try SMAppService.loginItem(identifier: agentBundleID).register()
+            switch backing {
+            case .helper(let bundleId):
+                try SMAppService.loginItem(identifier: bundleId).register()
+            case .mainApp:
+                try SMAppService.mainApp.register()
+            }
         } else {
-            let success = SMLoginItemSetEnabled(agentBundleID as CFString, true)
-            if !success {
-                throw SMLoginItemSetEnabledError.failed
+            switch backing {
+            case .helper(let bundleId):
+                let success = SMLoginItemSetEnabled(bundleId as CFString, true)
+                if !success {
+                    throw SMLoginItemSetEnabledError.failed
+                }
+            case .mainApp:
+                logger.debug("ℹ️ Login-item registration for the main app requires macOS 13+; no-op on this system.")
             }
         }
 
@@ -109,11 +168,21 @@ public struct LoginItem: Equatable, Hashable {
         logger.debug("🟢 unregistering login item \(self.debugDescription, privacy: .public)")
 
         if #available(macOS 13.0, *) {
-            try SMAppService.loginItem(identifier: agentBundleID).unregister()
+            switch backing {
+            case .helper(let bundleId):
+                try SMAppService.loginItem(identifier: bundleId).unregister()
+            case .mainApp:
+                try SMAppService.mainApp.unregister()
+            }
         } else {
-            let success = SMLoginItemSetEnabled(agentBundleID as CFString, false)
-            if !success {
-                throw SMLoginItemSetEnabledError.failed
+            switch backing {
+            case .helper(let bundleId):
+                let success = SMLoginItemSetEnabled(bundleId as CFString, false)
+                if !success {
+                    throw SMLoginItemSetEnabledError.failed
+                }
+            case .mainApp:
+                logger.debug("ℹ️ Login-item unregistration for the main app requires macOS 13+; no-op on this system.")
             }
         }
     }

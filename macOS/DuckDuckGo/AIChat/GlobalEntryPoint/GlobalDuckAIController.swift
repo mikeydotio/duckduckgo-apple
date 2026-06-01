@@ -18,18 +18,24 @@
 
 import AppKit
 import Combine
+import LoginItems
+import os.log
 
 /// Coordinates the OS-level Duck.ai entry point: status bar item, global keyboard shortcut,
 /// floating omnibar, and login-item registration. Reconciles its state from
 /// `AIChatPreferences.isGlobalShortcutEnabled` — flipping the toggle installs/uninstalls
-/// the menu-bar icon (and, in later milestones, the shortcut monitor and login item).
+/// the menu-bar icon, registers/unregisters the system-wide hot key, and registers/
+/// unregisters DDG as a login item.
 @MainActor
 final class GlobalDuckAIController {
+
+    private static let logger = Logger(subsystem: "Duck.ai Global Entry Point", category: "")
 
     private let preferences: AIChatPreferences
     private let statusBar = DuckAIStatusBarController()
     private let floatingOmnibar = DuckAIFloatingOmnibarWindowController()
     private let shortcutMonitor = DuckAIGlobalShortcutMonitor()
+    private let loginItem: LoginItem = .mainApp(defaults: .standard, logger: GlobalDuckAIController.logger)
     private var cancellables = Set<AnyCancellable>()
 
     init(preferences: AIChatPreferences) {
@@ -56,9 +62,19 @@ final class GlobalDuckAIController {
         if enabled {
             statusBar.install()
             shortcutMonitor.start()
+            do {
+                try loginItem.enable()
+            } catch {
+                Self.logger.error("Failed to register Duck.ai login item: \(error.localizedDescription, privacy: .public)")
+            }
         } else {
             statusBar.uninstall()
             shortcutMonitor.stop()
+            do {
+                try loginItem.disable()
+            } catch {
+                Self.logger.error("Failed to unregister Duck.ai login item: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
