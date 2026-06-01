@@ -1,0 +1,14 @@
+# Opens the browsing menu, goes to Settings, and navigates to the Ad Blocking screen.
+appId: com.duckduckgo.mobile.ios
+---
+- tapOn: ${output.browsingMenuLabel}
+- waitForAnimationToEnd
+- tapOn: ${output.settingsLabel}
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    centerElement: true
+    direction: DOWN
+    element:
+        text: ${output.adBlockingSettingsRow}
+- tapOn: ${output.adBlockingSettingsRow}
+- waitForAnimationToEnd

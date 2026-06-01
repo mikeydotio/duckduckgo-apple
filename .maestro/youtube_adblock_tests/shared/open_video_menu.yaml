@@ -1,0 +1,6 @@
+# Opens the browsing menu (used while on a YouTube video page so the
+# Enable/Disable YouTube Ad Blocking entry is present).
+appId: com.duckduckgo.mobile.ios
+---
+- tapOn: ${output.browsingMenuLabel}
+- waitForAnimationToEnd

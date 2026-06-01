@@ -1,0 +1,52 @@
+# YouTube Ad Blocking — Settings content, toggle, and the address-bar badge.
+# Verifies the settings screen renders, defaults ON under rollout flags, the
+# toggle flips off then on, and that loading a YouTube video animates the
+# "YouTube Ad Block On" notification into the address bar.
+appId: com.duckduckgo.mobile.ios
+tags:
+    - youtube_adblock
+    - iphone
+---
+- runFlow:
+    file: shared/constants.yaml
+- runFlow:
+    file: shared/launch_enabled.yaml
+- runFlow:
+    file: shared/open_settings.yaml
+
+# Screen content
+- assertVisible: ${output.sectionHeader}
+- assertVisible: ${output.toggleLabel}
+- assertVisible: ${output.toggleExplanation}
+
+# Defaults ON (rollout defaults active)
+- assertVisible:
+    text: ${output.toggleOn}
+
+# Toggle OFF
+- tapOn:
+    text: ${output.toggleOn}
+    index: 0
+- assertVisible:
+    text: ${output.toggleOff}
+
+# Toggle back ON
+- tapOn:
+    text: ${output.toggleOff}
+    index: 0
+- assertVisible:
+    text: ${output.toggleOn}
+
+# Load a YouTube video and confirm the "YouTube Ad Block On" badge animates into
+# the address bar. Ad blocking is enabled (toggled back on above), so the
+# notification fires on a playable video page. The badge is transient and
+# load_youtube_video.yaml ends with waitForAnimationToEnd (which would wait the
+# badge back out), so navigate without the m.youtube.com gate and wait for the
+# badge itself — its appearance also confirms the video page loaded.
+- runFlow:
+    file: shared/close_settings.yaml
+- runFlow:
+    file: shared/navigate_to_youtube_video.yaml
+- extendedWaitUntil:
+    visible: ${output.adBlockOnBadge}
+    timeout: 15000

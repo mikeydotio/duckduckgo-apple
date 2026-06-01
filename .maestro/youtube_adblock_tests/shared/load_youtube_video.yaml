@@ -1,0 +1,13 @@
+# Navigates to a YouTube video watch page and confirms it loaded (m.youtube.com).
+# Use when ad blocking is enabled, so no "Unavailable" sheet covers the omnibar.
+# The browsing-menu ad-block entry and the picker/breakage flows are only reachable
+# from a playable YouTube video page, so confirming the load gates those flows.
+appId: com.duckduckgo.mobile.ios
+---
+- runFlow:
+    file: navigate_to_youtube_video.yaml
+- extendedWaitUntil:
+    visible:
+        text: ${output.youtubeMobileDomain}
+    timeout: 15000
+- waitForAnimationToEnd

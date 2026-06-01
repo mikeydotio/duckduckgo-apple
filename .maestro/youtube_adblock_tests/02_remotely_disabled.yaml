@@ -1,0 +1,33 @@
+# YouTube Ad Blocking — remotely-disabled state.
+# Settings shows the "unavailable" message instead of a working toggle, and
+# loading a YouTube video surfaces the "Unavailable" sheet (after a ~2s delay).
+appId: com.duckduckgo.mobile.ios
+tags:
+    - youtube_adblock
+    - iphone
+---
+- runFlow:
+    file: shared/constants.yaml
+- runFlow:
+    file: shared/launch_remotely_disabled.yaml
+
+# Settings shows the remotely-disabled message
+- runFlow:
+    file: shared/open_settings.yaml
+- assertVisible: ${output.sectionHeader}
+- assertVisible: ${output.unavailableBody}
+- runFlow:
+    file: shared/close_settings.yaml
+
+# Loading a YouTube video surfaces the Unavailable sheet (auto-presents after a
+# ~2s delay). It covers the omnibar, so we navigate without asserting m.youtube.com
+# and wait for the sheet itself as the load confirmation.
+- runFlow:
+    file: shared/navigate_to_youtube_video.yaml
+- extendedWaitUntil:
+    visible: ${output.unavailableTitle}
+    timeout: 15000
+- assertVisible: ${output.unavailableBody}
+- tapOn: ${output.unavailableGotIt}
+- waitForAnimationToEnd
+- assertNotVisible: ${output.unavailableTitle}

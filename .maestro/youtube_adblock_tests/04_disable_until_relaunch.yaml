@@ -1,0 +1,49 @@
+# YouTube Ad Blocking — "Disable Until Relaunch" mode and persistence.
+# Disabling until relaunch shows the subtitle in Settings and reads as off;
+# after a relaunch (without clearing state) ad blocking re-enables.
+appId: com.duckduckgo.mobile.ios
+tags:
+    - youtube_adblock
+    - iphone
+---
+- runFlow:
+    file: shared/constants.yaml
+- runFlow:
+    file: shared/launch_enabled.yaml
+- runFlow:
+    file: shared/load_youtube_video.yaml
+
+# Disable until relaunch via the picker
+- runFlow:
+    file: shared/open_video_menu.yaml
+- tapOn: ${output.menuDisable}
+- waitForAnimationToEnd
+- tapOn: ${output.modeDisableUntilRelaunch}
+- waitForAnimationToEnd
+
+# Breakage sheet appears -> Cancel
+- assertVisible: ${output.breakageTitle}
+- tapOn: ${output.cancelLabel}
+- waitForAnimationToEnd
+
+# Settings shows the "Disabled until relaunch" subtitle and the toggle reads off
+- runFlow:
+    file: shared/open_settings.yaml
+- assertVisible: ${output.disabledUntilRelaunchSubtitle}
+- assertVisible:
+    text: ${output.toggleOff}
+
+# Relaunch WITHOUT clearing state -> ad blocking re-enables
+- stopApp
+- launchApp:
+    arguments:
+        clearState: false
+        isRunningUITests: true
+- waitForAnimationToEnd
+
+# Settings now shows the toggle back on and no subtitle
+- runFlow:
+    file: shared/open_settings.yaml
+- assertVisible:
+    text: ${output.toggleOn}
+- assertNotVisible: ${output.disabledUntilRelaunchSubtitle}

@@ -1,0 +1,17 @@
+# Launches the app with YouTube Ad Blocking fully enabled (rollout defaults active).
+# Requires iOS 18.4+ at runtime for WKWebExtension support; the feature-flag
+# overrides below are no-ops on older iOS.
+appId: com.duckduckgo.mobile.ios
+---
+- launchApp:
+    appId: "com.duckduckgo.mobile.ios"
+    clearState: true
+    clearKeychain: true
+    arguments:
+        isOnboardingCompleted: ${ONBOARDING_COMPLETED}
+        currentAppVariant: ${APP_VARIANT}
+        isRunningUITests: true
+        ff.browsingMenuSheetEnabledByDefault: "true"
+        ff.webExtensions: "true"
+        ff.adBlockingExtension: "true"
+        ff.adBlockingExtensionEnabledByDefault: "true"

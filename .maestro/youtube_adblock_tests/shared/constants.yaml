@@ -1,0 +1,47 @@
+# Shared constants for the YouTube Ad Blocking Maestro tests.
+appId: com.duckduckgo.mobile.ios
+---
+# --- Settings screen ---
+- evalScript: "${output.adBlockingSettingsRow = 'Ad Blocking'}"
+- evalScript: "${output.sectionHeader = 'YouTube Ad Blocking'}"
+- evalScript: "${output.toggleLabel = 'Block ads on YouTube'}"
+- evalScript: "${output.toggleExplanation = 'DuckDuckGo blocks video ads on YouTube, so you can watch videos without interruption.'}"
+- evalScript: "${output.disabledUntilRelaunchSubtitle = 'Disabled until relaunch'}"
+
+# --- Browsing menu entries ---
+- evalScript: "${output.menuDisable = 'Disable YouTube Ad Blocking'}"
+- evalScript: "${output.menuEnable = 'Enable YouTube Ad Blocking'}"
+
+# --- Mode picker ---
+- evalScript: "${output.pickerTitle = 'YouTube Ad Blocking'}"
+- evalScript: "${output.modeAlwaysOn = 'Always On'}"
+- evalScript: "${output.modeDisableUntilRelaunch = 'Disable Until Relaunch'}"
+- evalScript: "${output.modeAlwaysOff = 'Always Off'}"
+
+# --- Breakage report sheet (Maestro text matchers are full-match regexes, so the
+# .* wildcards absorb the rest of the element text, incl. the trailing '?') ---
+- evalScript: "${output.breakageTitle = '.*YouTube Ad Blocking not working.*'}"
+- evalScript: "${output.breakageSend = 'Send Breakage Report'}"
+
+# --- Unavailable sheet (body wrapped in .* so the full-match regex spans the
+# whole message, avoiding the apostrophe in "We're") ---
+- evalScript: "${output.unavailableTitle = 'YouTube Ad Blocking Unavailable'}"
+- evalScript: "${output.unavailableBody = '.*affected by recent changes to YouTube.*'}"
+- evalScript: "${output.unavailableGotIt = 'Got It'}"
+
+# --- Common labels / ids ---
+- evalScript: "${output.browsingMenuLabel = 'Browsing Menu'}"
+- evalScript: "${output.settingsLabel = 'Settings'}"
+- evalScript: "${output.doneLabel = 'Done'}"
+- evalScript: "${output.cancelLabel = 'Cancel'}"
+- evalScript: "${output.closeLabel = 'Close'}"
+- evalScript: "${output.searchEntryId = 'searchEntry'}"
+- evalScript: "${output.youtubeMobileDomain = 'm.youtube.com'}"
+- evalScript: "${output.videoUrl = 'https://www.youtube.com/watch?v=yKWIA-Pys4c'}"
+
+# --- Toggle states (SettingsCellView toggle accessibility value) ---
+- evalScript: "${output.toggleOff = '0'}"
+- evalScript: "${output.toggleOn = '1'}"
+
+# --- Address-bar notification shown when a YouTube video loads with blocking on ---
+- evalScript: "${output.adBlockOnBadge = '.*YouTube Ad Block On.*'}"

@@ -1,0 +1,7 @@
+# Returns from the Ad Blocking sub-screen to the Settings root and dismisses Settings.
+appId: com.duckduckgo.mobile.ios
+---
+- tapOn: ${output.settingsLabel}
+- waitForAnimationToEnd
+- tapOn: ${output.doneLabel}
+- waitForAnimationToEnd

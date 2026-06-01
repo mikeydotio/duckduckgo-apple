@@ -1,0 +1,18 @@
+# Launches the app with YouTube Ad Blocking remotely disabled: the feature is
+# supported and enabled-by-default for the user, but the adBlockingExtension flag
+# is OFF, so the extension can't run. This surfaces the "unavailable" messaging in
+# Settings and the "Unavailable" sheet on YouTube video pages.
+appId: com.duckduckgo.mobile.ios
+---
+- launchApp:
+    appId: "com.duckduckgo.mobile.ios"
+    clearState: true
+    clearKeychain: true
+    arguments:
+        isOnboardingCompleted: ${ONBOARDING_COMPLETED}
+        currentAppVariant: ${APP_VARIANT}
+        isRunningUITests: true
+        ff.browsingMenuSheetEnabledByDefault: "true"
+        ff.webExtensions: "true"
+        ff.adBlockingExtension: "false"
+        ff.adBlockingExtensionEnabledByDefault: "true"

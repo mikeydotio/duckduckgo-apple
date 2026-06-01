@@ -1,0 +1,15 @@
+# Navigates the address bar to a YouTube video watch page (no load confirmation).
+# Used when the caller asserts its own post-navigation state — e.g. the remotely-
+# disabled flow, where the "Unavailable" sheet auto-presents over the page and takes
+# over the accessibility tree, so the m.youtube.com omnibar text can't be asserted.
+appId: com.duckduckgo.mobile.ios
+---
+- waitForAnimationToEnd
+- tapOn:
+    id: ${output.searchEntryId}
+    optional: true
+- tapOn:
+    text: "Search or enter address"
+    optional: true
+- inputText: ${output.videoUrl}
+- pressKey: Enter
