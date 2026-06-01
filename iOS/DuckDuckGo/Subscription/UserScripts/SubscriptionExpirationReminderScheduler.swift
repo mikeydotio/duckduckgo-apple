@@ -87,8 +87,9 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
             return
         }
 
-        guard let subscription = try? await subscriptionManager.getSubscription(forceRefresh: false), subscription.isActive else {
-            Logger.subscription.log("Expiration reminder skipped: no active subscription available")
+        guard let subscription = try? await subscriptionManager.getSubscription(forceRefresh: false),
+              Self.statusWarrantsReminder(subscription.status) else {
+            Logger.subscription.log("Expiration reminder skipped: subscription not in an active state for reminders")
             return
         }
 
@@ -118,22 +119,31 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         }
     }
 
-    /// Cancels the pending reminder when the subscription is no longer in a state that warrants a reminder.
-    /// Skips work entirely when no reminder is queued — most users will never opt in.
-    /// Per spec, `.autoRenewable`, `.notAutoRenewable`, and `.gracePeriod` are the only statuses considered active for this purpose.
+    /// Cancels the pending reminder unless the subscription is in an active state.
+    /// A thrown error (e.g. transient network failure) leaves the reminder alone; a confirmed inactive/missing subscription cancels it.
+    @MainActor
     private func cancelReminderIfInactive(forceRefresh: Bool) async {
         let pending = await notificationCenter.pendingNotificationRequests()
         guard pending.contains(where: { $0.identifier == Self.notificationIdentifier }) else { return }
 
-        let subscription = try? await subscriptionManager.getSubscription(forceRefresh: forceRefresh)
-        if let status = subscription?.status {
-            switch status {
-            case .autoRenewable, .notAutoRenewable, .gracePeriod:
-                return
-            case .inactive, .expired, .unknown:
-                break
-            }
+        let subscription: DuckDuckGoSubscription?
+        do {
+            subscription = try await subscriptionManager.getSubscription(forceRefresh: forceRefresh)
+        } catch {
+            Logger.subscription.log("Skipping expiration-reminder check: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+
+        if let status = subscription?.status, Self.statusWarrantsReminder(status) {
+            return
         }
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [Self.notificationIdentifier])
+    }
+
+    private static func statusWarrantsReminder(_ status: DuckDuckGoSubscription.Status) -> Bool {
+        switch status {
+        case .autoRenewable, .notAutoRenewable, .gracePeriod: return true
+        case .inactive, .expired, .unknown: return false
+        }
     }
 }

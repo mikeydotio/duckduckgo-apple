@@ -1,0 +1,255 @@
+//
+//  SubscriptionExpirationReminderSchedulerTests.swift
+//  DuckDuckGo
+//
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import XCTest
+import UIKit
+import UserNotifications
+@testable import DuckDuckGo
+import Subscription
+import SubscriptionTestingUtilities
+
+final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
+
+    private var subscriptionManager: SubscriptionManagerMock!
+    private var notificationCenter: MockUNUserNotificationCenter!
+    private var observerNotificationCenter: NotificationCenter!
+    private var featureFlagEnabled: Bool = true
+    private var sut: DefaultSubscriptionExpirationReminderScheduler!
+
+    private let identifier = DefaultSubscriptionExpirationReminderScheduler.notificationIdentifier
+
+    override func setUp() {
+        super.setUp()
+        subscriptionManager = SubscriptionManagerMock()
+        notificationCenter = MockUNUserNotificationCenter()
+        notificationCenter.authorizationStatus = .authorized
+        observerNotificationCenter = NotificationCenter()
+        featureFlagEnabled = true
+        sut = DefaultSubscriptionExpirationReminderScheduler(
+            subscriptionManager: subscriptionManager,
+            isFeatureEnabled: { [weak self] in self?.featureFlagEnabled ?? false },
+            notificationCenter: notificationCenter,
+            notificationCenterObserver: observerNotificationCenter
+        )
+    }
+
+    override func tearDown() {
+        sut = nil
+        subscriptionManager = nil
+        notificationCenter = nil
+        observerNotificationCenter = nil
+        super.tearDown()
+    }
+
+    // MARK: - Helpers
+
+    private func setSubscription(status: DuckDuckGoSubscription.Status) {
+        subscriptionManager.resultSubscription = .success(SubscriptionMockFactory.subscription(status: status))
+    }
+
+    // MARK: - scheduleReminder skip paths
+
+    func test_scheduleReminder_whenFeatureFlagOff_doesNotAddRequest() async {
+        featureFlagEnabled = false
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func test_scheduleReminder_whenDaysBeforeCancelIsZero_doesNotAddRequest() async {
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 0)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func test_scheduleReminder_whenDaysBeforeCancelIsNegative_doesNotAddRequest() async {
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: -3)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func test_scheduleReminder_whenAuthorizationStatusIsDenied_doesNotAddRequest() async {
+        notificationCenter.authorizationStatus = .denied
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func test_scheduleReminder_whenAuthorizationStatusIsProvisional_doesNotAddRequest() async {
+        notificationCenter.authorizationStatus = .provisional
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty,
+                      "Provisional notifications deliver silently — the user would not see the reminder")
+    }
+
+    func test_scheduleReminder_whenAuthorizationStatusIsNotDetermined_doesNotAddRequest() async {
+        notificationCenter.authorizationStatus = .notDetermined
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func test_scheduleReminder_whenNoSubscription_doesNotAddRequest() async {
+        subscriptionManager.resultSubscription = nil
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func test_scheduleReminder_whenSubscriptionStatusIsExpired_doesNotAddRequest() async {
+        setSubscription(status: .expired)
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func test_scheduleReminder_whenFireDateInThePast_doesNotAddRequest() async {
+        // Depends on SubscriptionMockFactory.subscription(status:) hardcoding a +30-day expiry.
+        // daysBeforeCancel = 365 puts the computed fire date ~335 days in the past.
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 365)
+
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    // MARK: - scheduleReminder success path
+
+    func test_scheduleReminder_withValidInputs_addsRequestWithCorrectIdentifierAndTrigger() async throws {
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertEqual(notificationCenter.addedRequests.count, 1)
+        let request = try XCTUnwrap(notificationCenter.addedRequests.first)
+        XCTAssertEqual(request.identifier, identifier)
+        XCTAssertEqual(request.content.title, "Your Privacy Pro subscription is ending soon")
+        XCTAssertEqual(request.content.categoryIdentifier, identifier)
+        XCTAssertTrue(request.trigger is UNCalendarNotificationTrigger)
+    }
+
+    func test_scheduleReminder_removesPreviouslyScheduledReminderBeforeAdding() async {
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+
+        XCTAssertEqual(notificationCenter.removedIdentifiers.count, 1)
+        XCTAssertEqual(notificationCenter.removedIdentifiers.first, [identifier])
+    }
+
+    // MARK: - Observer: .subscriptionDidChange
+
+    func test_subscriptionDidChange_whenStatusBecomesExpired_cancelsPendingReminder() async {
+        setSubscription(status: .autoRenewable)
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+
+        setSubscription(status: .expired)
+        observerNotificationCenter.post(name: .subscriptionDidChange, object: nil)
+
+        await waitUntil("reminder cancelled after subscriptionDidChange") {
+            self.notificationCenter.removedIdentifiers.count > priorRemovalCount
+        }
+        XCTAssertEqual(notificationCenter.removedIdentifiers.last, [identifier])
+    }
+
+    func test_subscriptionDidChange_whenStatusStillActive_doesNotCancel() async {
+        setSubscription(status: .autoRenewable)
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+
+        observerNotificationCenter.post(name: .subscriptionDidChange, object: nil)
+
+        await assertNoActionWithinShortDelay()
+        XCTAssertEqual(notificationCenter.removedIdentifiers.count, priorRemovalCount)
+    }
+
+    // MARK: - Observer: UIApplication.didBecomeActiveNotification
+
+    func test_didBecomeActive_whenNoPendingReminder_doesNotCancel() async {
+        // No call to scheduleReminder, so no pending notification queued.
+        // Subscription is inactive — if the foreground observer didn't early-exit on the pending check,
+        // it would proceed to the cancel branch. Verify the absence of cancellation.
+        setSubscription(status: .inactive)
+        observerNotificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        await assertNoActionWithinShortDelay()
+        XCTAssertTrue(notificationCenter.removedIdentifiers.isEmpty,
+                      "Foreground observer should early-exit when no reminder is queued, without reaching the cancel branch")
+    }
+
+    func test_didBecomeActive_whenPendingAndStatusInactive_cancelsReminder() async {
+        setSubscription(status: .autoRenewable)
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+
+        setSubscription(status: .inactive)
+        observerNotificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        await waitUntil("reminder cancelled after didBecomeActive") {
+            self.notificationCenter.removedIdentifiers.count > priorRemovalCount
+        }
+        XCTAssertEqual(notificationCenter.removedIdentifiers.last, [identifier])
+    }
+
+    func test_didBecomeActive_whenPendingAndStatusActive_doesNotCancel() async {
+        setSubscription(status: .autoRenewable)
+        await sut.scheduleReminder(daysBeforeCancel: 7)
+        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+
+        observerNotificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        await assertNoActionWithinShortDelay()
+        XCTAssertEqual(notificationCenter.removedIdentifiers.count, priorRemovalCount)
+    }
+
+    // MARK: - Async test helpers
+
+    private func waitUntil(_ description: String,
+                           timeout: TimeInterval = 1.0,
+                           predicate: @escaping () -> Bool,
+                           file: StaticString = #file,
+                           line: UInt = #line) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if predicate() { return }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTFail("Timed out waiting: \(description)", file: file, line: line)
+    }
+
+    private func assertNoActionWithinShortDelay() async {
+        try? await Task.sleep(nanoseconds: 100_000_000)
+    }
+}

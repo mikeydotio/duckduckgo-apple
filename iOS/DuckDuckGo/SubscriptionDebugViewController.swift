@@ -119,9 +119,12 @@ final class SubscriptionDebugViewController: UITableViewController {
     }
 
     enum ExpirationReminderRows: Int, CaseIterable {
+        case currentStatus
         case triggerMockNotification
-        case cancelPendingReminder
     }
+
+    private var notificationAuthStatusText: String = "Loading"
+    private var subscriptionStatusText: String = "Loading"
     
 
     private var storefrontID = "Loading"
@@ -134,6 +137,12 @@ final class SubscriptionDebugViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadStoreKitMetadata()
+        loadExpirationReminderStatus()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        loadExpirationReminderStatus()
     }
 
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
@@ -247,10 +256,15 @@ final class SubscriptionDebugViewController: UITableViewController {
 
         case .expirationReminder:
             switch ExpirationReminderRows(rawValue: indexPath.row) {
+            case .currentStatus:
+                cell.textLabel?.attributedText = Self.makeStatusAttributedText(
+                    notifications: notificationAuthStatusText,
+                    subscription: subscriptionStatusText
+                )
+                cell.textLabel?.numberOfLines = 0
+                cell.selectionStyle = .none
             case .triggerMockNotification:
-                cell.textLabel?.text = "Trigger Mock Notification (5s)"
-            case .cancelPendingReminder:
-                cell.textLabel?.text = "Cancel Pending Reminder"
+                cell.textLabel?.text = "Trigger Mock Notification…"
             case .none:
                 break
             }
@@ -358,7 +372,6 @@ final class SubscriptionDebugViewController: UITableViewController {
         case .expirationReminder:
             switch ExpirationReminderRows(rawValue: indexPath.row) {
             case .triggerMockNotification: triggerMockExpirationReminder()
-            case .cancelPendingReminder: cancelPendingExpirationReminder()
             default: break
             }
         case .none:
@@ -645,9 +658,33 @@ final class SubscriptionDebugViewController: UITableViewController {
 
     // MARK: - Expiration reminder (debug)
 
-    /// Schedules a local notification 5 seconds out using the same identifier and content as the production reminder.
-    /// Exercises the NotificationServiceManager tap-routing path without waiting for an active subscription's expiry.
+    /// Prompts for a delay in seconds, then schedules a local notification using the same identifier
+    /// and content as the production reminder so the NotificationServiceManager tap-routing path can be exercised.
+    /// Note: shares the production identifier, so this will overwrite any real pending reminder.
     private func triggerMockExpirationReminder() {
+        let alert = UIAlertController(title: "Trigger Mock Reminder",
+                                      message: "Fire after how many seconds?",
+                                      preferredStyle: .alert)
+        weak var secondsTextField: UITextField?
+        alert.addTextField { field in
+            field.keyboardType = .numberPad
+            field.placeholder = "Seconds"
+            field.text = "5"
+            secondsTextField = field
+        }
+        alert.addAction(UIAlertAction(title: "Schedule", style: .default) { [weak self] _ in
+            guard let raw = secondsTextField?.text,
+                  let seconds = TimeInterval(raw), seconds > 0 else {
+                self?.showAlert(title: "Invalid value", message: "Enter a positive number of seconds.")
+                return
+            }
+            self?.scheduleMockExpirationReminder(afterSeconds: seconds)
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    private func scheduleMockExpirationReminder(afterSeconds seconds: TimeInterval) {
         let center = UNUserNotificationCenter.current()
         Task { @MainActor in
             let status = await center.authorizationStatus()
@@ -668,23 +705,49 @@ final class SubscriptionDebugViewController: UITableViewController {
             content.body = "Tap to review your subscription and stay protected."
             content.categoryIdentifier = identifier
 
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
             let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
 
             do {
                 try await center.add(request)
-                showAlert(title: "Mock reminder scheduled", message: "Will fire in 5 seconds. Background the app or wait to see it.")
+                showAlert(title: "Mock reminder scheduled", message: "Will fire in \(Int(seconds)) seconds.")
             } catch {
                 showAlert(title: "Failed to schedule", message: error.localizedDescription)
             }
         }
     }
 
-    private func cancelPendingExpirationReminder() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: [DefaultSubscriptionExpirationReminderScheduler.notificationIdentifier]
-        )
-        showAlert(title: "Pending reminder cancelled")
+    /// Builds a two-line attributed string with each label in `.footnote` + secondary color
+    /// and each value in `.body` + primary color, so labels and values are visually distinguishable.
+    private static func makeStatusAttributedText(notifications: String, subscription: String) -> NSAttributedString {
+        let labelAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.preferredFont(forTextStyle: .footnote),
+            .foregroundColor: UIColor.secondaryLabel
+        ]
+        let valueAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.preferredFont(forTextStyle: .body),
+            .foregroundColor: UIColor.label
+        ]
+        let attributed = NSMutableAttributedString()
+        attributed.append(NSAttributedString(string: "Notifications: ", attributes: labelAttrs))
+        attributed.append(NSAttributedString(string: notifications, attributes: valueAttrs))
+        attributed.append(NSAttributedString(string: "\nSubscription: ", attributes: labelAttrs))
+        attributed.append(NSAttributedString(string: subscription, attributes: valueAttrs))
+        return attributed
+    }
+
+    private func loadExpirationReminderStatus() {
+        Task { @MainActor in
+            let authStatus = await UNUserNotificationCenter.current().authorizationStatus()
+            notificationAuthStatusText = authStatus.stringValue
+
+            if let subscription = try? await subscriptionManager.getSubscription(forceRefresh: false) {
+                subscriptionStatusText = subscription.status.rawValue
+            } else {
+                subscriptionStatusText = "No subscription"
+            }
+            tableView.reloadSections(IndexSet(integer: Sections.expirationReminder.rawValue), with: .none)
+        }
     }
 
     private func showBuyProductionSubscriptions() {

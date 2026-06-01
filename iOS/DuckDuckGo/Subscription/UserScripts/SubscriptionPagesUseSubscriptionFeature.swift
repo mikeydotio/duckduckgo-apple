@@ -170,7 +170,6 @@ final class DefaultSubscriptionPagesUseSubscriptionFeature: SubscriptionPagesUse
     private let requestValidator: any ScriptRequestValidator
     private let userNotificationCenter: UNUserNotificationCenterRepresentable
     private let expirationReminderScheduler: SubscriptionExpirationReminderScheduling?
-    private var pendingScheduleNotification: ScheduleNotificationPreference?
 
     init(subscriptionManager: SubscriptionManager,
          subscriptionFeatureAvailability: SubscriptionFeatureAvailability,
@@ -431,10 +430,6 @@ final class DefaultSubscriptionPagesUseSubscriptionFeature: SubscriptionPagesUse
         setTransactionStatus(.purchasing)
         resetSubscriptionFlow()
 
-        // The reminder preference only lives for the duration of one purchase attempt.
-        // Clearing on exit covers cancellation, failure, and post-success paths uniformly.
-        defer { pendingScheduleNotification = nil }
-
         struct SubscriptionSelection: Decodable {
             struct Experiment: Codable {
                 let name: String
@@ -462,8 +457,7 @@ final class DefaultSubscriptionPagesUseSubscriptionFeature: SubscriptionPagesUse
             return nil
         }
 
-        // Hold the reminder preference for the duration of the purchase flow. Discarded if the purchase doesn't succeed.
-        pendingScheduleNotification = subscriptionSelection.scheduleNotification
+        let pendingScheduleNotification = subscriptionSelection.scheduleNotification
 
         // 2: Check for active subscriptions
         if await subscriptionManager.storePurchaseManager().hasActiveSubscription() {

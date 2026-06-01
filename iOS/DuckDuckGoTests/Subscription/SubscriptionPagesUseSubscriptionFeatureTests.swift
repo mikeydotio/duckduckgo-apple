@@ -1314,15 +1314,29 @@ final class SubscriptionPagesUseSubscriptionFeatureTests: XCTestCase {
         XCTAssertFalse(center.didRequestAuthorization)
     }
 
-    func testRequestNotificationsPermission_WhenNotDetermined_PromptsUserAndReturnsResult() async throws {
+    func testRequestNotificationsPermission_WhenNotDeterminedAndUserAllows_PromptsAndReturnsTrue() async throws {
         let center = MockUNUserNotificationCenter()
         center.authorizationStatus = .notDetermined
+        center.requestAuthorizationResult = true
         let sut = makeFeature(notificationCenter: center)
 
         let response = await sut.requestNotificationsPermission(params: "", original: WKScriptMessage.mock())
         let result = try XCTUnwrap(response as? DefaultSubscriptionPagesUseSubscriptionFeature.NotificationsPermissionResponse)
 
         XCTAssertTrue(result.granted)
+        XCTAssertTrue(center.didRequestAuthorization)
+    }
+
+    func testRequestNotificationsPermission_WhenNotDeterminedAndUserDenies_PromptsAndReturnsFalse() async throws {
+        let center = MockUNUserNotificationCenter()
+        center.authorizationStatus = .notDetermined
+        center.requestAuthorizationResult = false
+        let sut = makeFeature(notificationCenter: center)
+
+        let response = await sut.requestNotificationsPermission(params: "", original: WKScriptMessage.mock())
+        let result = try XCTUnwrap(response as? DefaultSubscriptionPagesUseSubscriptionFeature.NotificationsPermissionResponse)
+
+        XCTAssertFalse(result.granted)
         XCTAssertTrue(center.didRequestAuthorization)
     }
 

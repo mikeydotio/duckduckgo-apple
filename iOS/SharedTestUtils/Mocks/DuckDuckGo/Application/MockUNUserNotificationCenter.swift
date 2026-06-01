@@ -31,6 +31,7 @@ final class MockUNUserNotificationCenter: UNUserNotificationCenterRepresentable 
     var authorizationStatus: UNAuthorizationStatus = .notDetermined
     var addRequestError: MockPushNotificationError?
     var requestAuthError: MockPushNotificationError?
+    var requestAuthorizationResult: Bool = true
     
     // Spies
     private(set) var addedRequests: [UNNotificationRequest] = []
@@ -51,7 +52,7 @@ final class MockUNUserNotificationCenter: UNUserNotificationCenterRepresentable 
         if options.contains(.provisional) {
             authorizationStatus = .provisional
         }
-        return true
+        return requestAuthorizationResult
     }
 
     func add(_ request: UNNotificationRequest) async throws {
