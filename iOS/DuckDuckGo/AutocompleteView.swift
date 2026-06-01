@@ -179,46 +179,46 @@ private struct SuggestionView: View {
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.findSearchSmall),
                                    title: phrase,
                                    query: query,
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.SearchPhrase-\(phrase)",
                                    indicator: tapAheadImage,
                                    onTapIndicator: { autocompleteModel.onTapAhead(model) })
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.SearchPhrase-\(phrase)")
 
             case .website(let url):
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.globe),
-                                   title: url.formattedForSuggestion())
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.Website-\(url.formattedForSuggestion())")
+                                   title: url.formattedForSuggestion(),
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.Website-\(url.formattedForSuggestion())")
 
             case .bookmark(let title, let url, let isFavorite, _) where isFavorite:
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.bookmarkFavorite),
                                    title: title,
-                                   subtitle: url.formattedForSuggestion())
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.Favorite-\(url.formattedForSuggestion())")
+                                   subtitle: url.formattedForSuggestion(),
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.Favorite-\(url.formattedForSuggestion())")
 
             case .bookmark(let title, let url, _, _):
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.bookmark),
                                    title: title,
-                                   subtitle: url.formattedForSuggestion())
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.Bookmark-\(url.formattedForSuggestion())")
+                                   subtitle: url.formattedForSuggestion(),
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.Bookmark-\(url.formattedForSuggestion())")
 
             case .historyEntry(_, let url, _) where url.isDuckDuckGoSearch:
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.history),
                                    title: url.searchQuery ?? "",
                                    subtitle: UserText.autocompleteSearchDuckDuckGo,
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.SERPHistory-\(url.searchQuery ?? "")",
                                    onDelete: onDelete)
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.SERPHistory-\(url.searchQuery ?? "")")
 
             case .historyEntry(let title, let url, _):
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.history),
                                    title: title ?? "",
                                    subtitle: url.formattedForSuggestion(),
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.History-\(url.formattedForSuggestion())",
                                    onDelete: onDelete)
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.History-\(url.formattedForSuggestion())")
 
             case .openTab(title: let title, url: let url, _, _):
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.tabsMobile),
                                    title: title,
-                                   subtitle: "\(UserText.autocompleteSwitchToTab) · \(url.formattedForSuggestion())")
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.OpenTab-\(url.formattedForSuggestion())")
+                                   subtitle: "\(UserText.autocompleteSwitchToTab) · \(url.formattedForSuggestion())",
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.OpenTab-\(url.formattedForSuggestion())")
 
             case .internalPage, .unknown:
                 FailedAssertionView("Unknown or unsupported suggestion type")
@@ -226,8 +226,8 @@ private struct SuggestionView: View {
             case .askAIChat(value: let value):
                 SuggestionListItem(icon: Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChat),
                                    title: value,
-                                   subtitle: UserText.autocompleteAskAIChat)
-                .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.AskAIChat-\(value)")
+                                   subtitle: UserText.autocompleteAskAIChat,
+                                   accessibilityIdentifier: "Autocomplete.Suggestions.ListItem.AskAIChat-\(value)")
 
             }
 
@@ -245,6 +245,7 @@ private struct SuggestionListItem: View {
     let title: String
     let subtitle: String?
     let query: String?
+    let accessibilityIdentifier: String
     let indicator: Image?
     let onTapIndicator: (() -> Void)?
     let onDelete: (() -> Void)?
@@ -253,6 +254,7 @@ private struct SuggestionListItem: View {
          title: String,
          subtitle: String? = nil,
          query: String? = nil,
+         accessibilityIdentifier: String,
          indicator: Image? = nil,
          onTapIndicator: ( () -> Void)? = nil,
          onDelete: (() -> Void)? = nil) {
@@ -261,6 +263,7 @@ private struct SuggestionListItem: View {
         self.title = title
         self.subtitle = subtitle
         self.query = query
+        self.accessibilityIdentifier = accessibilityIdentifier
         self.indicator = indicator
         self.onTapIndicator = onTapIndicator
         self.onDelete = onDelete
@@ -268,40 +271,49 @@ private struct SuggestionListItem: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            icon
-                .resizable()
-                .frame(width: Metrics.iconSize, height: Metrics.iconSize)
-                .tintIfAvailable(Color(designSystemColor: .icons))
+            // Combine the icon + title/subtitle (the row's "select" target) into a single
+            // accessibility element carrying the row identifier. The row is wrapped in a
+            // Button, whose accessibility element would otherwise absorb the trailing
+            // button identifiers; isolating the identifier here keeps the tap-ahead /
+            // delete buttons addressable by their own identifiers.
+            HStack(spacing: 0) {
+                icon
+                    .resizable()
+                    .frame(width: Metrics.iconSize, height: Metrics.iconSize)
+                    .tintIfAvailable(Color(designSystemColor: .icons))
 
-            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
 
-                Group {
-                    // Can't use dax modifiers because they are not typed for Text
-                    if let query, title.hasPrefix(query) {
-                        Text(query)
-                            .font(Font(uiFont: UIFont.daxBodyRegular()))
-                            .foregroundColor(Color(designSystemColor: .textPrimary))
-                        +
-                        Text(title.dropping(prefix: query))
-                            .font(Font(uiFont: UIFont.daxBodyBold()))
-                            .foregroundColor(Color(designSystemColor: .textPrimary))
-                    } else {
-                        Text(title)
-                            .font(Font(uiFont: UIFont.daxBodyRegular()))
+                    Group {
+                        // Can't use dax modifiers because they are not typed for Text
+                        if let query, title.hasPrefix(query) {
+                            Text(query)
+                                .font(Font(uiFont: UIFont.daxBodyRegular()))
                                 .foregroundColor(Color(designSystemColor: .textPrimary))
+                            +
+                            Text(title.dropping(prefix: query))
+                                .font(Font(uiFont: UIFont.daxBodyBold()))
+                                .foregroundColor(Color(designSystemColor: .textPrimary))
+                        } else {
+                            Text(title)
+                                .font(Font(uiFont: UIFont.daxBodyRegular()))
+                                    .foregroundColor(Color(designSystemColor: .textPrimary))
+                        }
+                    }
+                    .lineLimit(1)
+
+                    if let subtitle {
+                        Text(subtitle)
+                            .daxFootnoteRegular()
+                            .foregroundColor(Color(designSystemColor: .textSecondary))
+                            .lineLimit(1)
+                            .frame(minHeight: Metrics.subtitleMinHeight)
                     }
                 }
-                .lineLimit(1)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .daxFootnoteRegular()
-                        .foregroundColor(Color(designSystemColor: .textSecondary))
-                        .lineLimit(1)
-                        .frame(minHeight: Metrics.subtitleMinHeight)
-                }
+                .padding(.leading, Metrics.verticalSpacing)
             }
-            .padding(.leading, Metrics.verticalSpacing)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(accessibilityIdentifier)
 
             if indicator == nil && onDelete == nil {
                 // No trailing accessory means we want to preserve the room for icon,
@@ -318,6 +330,7 @@ private struct SuggestionListItem: View {
                     })
                     .tintIfAvailable(Color.init(designSystemColor: .iconsSecondary))
                     .padding(.leading, Metrics.indicatorLeadingPadding)
+                    .accessibilityIdentifier("Autocomplete.Suggestions.ListItem.TapAheadButton")
             } else if let onDelete {
                 Image(uiImage: DesignSystemImages.Glyphs.Size16.clear)
                     .highPriorityGesture(TapGesture().onEnded {

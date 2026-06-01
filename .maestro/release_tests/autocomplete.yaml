@@ -1,0 +1,82 @@
+# autocomplete.yaml
+#
+# Covers the autocomplete suggestion accessory controls:
+#  * Test 1: the "fill" / tap-ahead arrow on a search-phrase suggestion fills the
+#            suggestion text back into the address bar for further editing instead
+#            of navigating. This regressed once (tapping the arrow did nothing),
+#            so the test taps the arrow and asserts the query actually changes.
+#  * Test 2: the delete button on a history suggestion removes that entry from
+#            history (the row disappears from the suggestions list).
+#
+# Search-phrase suggestions are fetched remotely, so the test waits for them with
+# extendedWaitUntil rather than a fixed delay.
+appId: com.duckduckgo.mobile.ios
+tags:
+    - iphone
+    - release
+name: autocomplete
+
+---
+
+# Set up
+- runFlow:
+    file: ../shared/setup.yaml
+
+# Test 1: tap-ahead / fill arrow fills the phrase into the address bar (no navigation)
+- assertVisible:
+    id: "searchEntry"
+- tapOn:
+    id: "searchEntry"
+- inputText: "weath"
+# The fill arrow is only shown on (remotely fetched) search-phrase suggestions
+- extendedWaitUntil:
+    visible:
+        id: "Autocomplete.Suggestions.ListItem.TapAheadButton"
+    timeout: 15000
+- tapOn:
+    id: "Autocomplete.Suggestions.ListItem.TapAheadButton"
+# Let the address bar update with the chosen phrase
+- runFlow:
+    file: ../shared/delay.yaml
+# The query in the address bar should now be the (longer) suggestion phrase,
+# and we should still be editing rather than having navigated away.
+- copyTextFrom:
+    id: "searchEntry"
+- assertTrue: ${maestro.copiedText != "weath"}
+- assertVisible: "Cancel"
+- tapOn: "Cancel"
+
+# Test 2: delete button on a history suggestion removes the entry from history
+# First create a history entry by visiting a site
+- assertVisible:
+    id: "searchEntry"
+- tapOn:
+    id: "searchEntry"
+- inputText: "https://privacy-test-pages.site"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: ".*Privacy Test Pages.*"
+    timeout: 20000
+
+# Open a fresh tab and start typing to surface the history suggestion
+- tapOn: "Tab Switcher"
+- tapOn: "New Tab"
+- assertVisible:
+    id: "searchEntry"
+- tapOn:
+    id: "searchEntry"
+- inputText: "privacy-test-pages"
+# History suggestion for the visited site, with its delete button
+- extendedWaitUntil:
+    visible:
+        id: "Autocomplete.Suggestions.ListItem.History-privacy-test-pages.site.*"
+    timeout: 15000
+- assertVisible:
+    id: "Autocomplete.Suggestions.ListItem.DeleteButton"
+- tapOn:
+    id: "Autocomplete.Suggestions.ListItem.DeleteButton"
+# The history suggestion should be gone after deletion
+- extendedWaitUntil:
+    notVisible:
+        id: "Autocomplete.Suggestions.ListItem.History-privacy-test-pages.site.*"
+    timeout: 10000
