@@ -140,7 +140,7 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213569392605475
     case subscriptionPromoForReinstallers
 
-    /// https://app.asana.com/1/137249556945/task/1215310117152165
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215316109166260?focus=true
     case subscriptionExpirationReminderNotification
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866464085187
