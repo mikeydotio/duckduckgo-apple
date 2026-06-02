@@ -3999,6 +3999,10 @@
 		CC26B68A2F0D6C2400D380B6 /* NewTabPageNextStepsSingleCardProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26B6882F0D6C1200D380B6 /* NewTabPageNextStepsSingleCardProvider.swift */; };
 		CC26B68C2F0D716200D380B6 /* NewTabPageNextStepsPersistor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26B68B2F0D715300D380B6 /* NewTabPageNextStepsPersistor.swift */; };
 		CC26B68D2F0D716200D380B6 /* NewTabPageNextStepsPersistor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26B68B2F0D715300D380B6 /* NewTabPageNextStepsPersistor.swift */; };
+		CC26B6B02F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26B6AF2F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift */; };
+		CC26B6B12F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26B6AF2F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift */; };
+		CC26B6B62F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26B6B52F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift */; };
+		CC26B6B72F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26B6B52F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift */; };
 		CC33F77F2F86642F006536BE /* OnboardingUserScript+Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33F77E2F866426006536BE /* OnboardingUserScript+Telemetry.swift */; };
 		CC33F7802F86642F006536BE /* OnboardingUserScript+Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33F77E2F866426006536BE /* OnboardingUserScript+Telemetry.swift */; };
 		CC34456F2E674E7700019518 /* UserScriptErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC34456E2E674E7700019518 /* UserScriptErrorTests.swift */; };
@@ -6718,6 +6722,8 @@
 		CC26B6772F0D28D500D380B6 /* MockNewTabPageNextStepsCardsActionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockNewTabPageNextStepsCardsActionHandler.swift; sourceTree = "<group>"; };
 		CC26B6882F0D6C1200D380B6 /* NewTabPageNextStepsSingleCardProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageNextStepsSingleCardProvider.swift; sourceTree = "<group>"; };
 		CC26B68B2F0D715300D380B6 /* NewTabPageNextStepsPersistor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTabPageNextStepsPersistor.swift; sourceTree = "<group>"; };
+		CC26B6AF2F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepsAdvancedCardOrderingExperiment.swift; sourceTree = "<group>"; };
+		CC26B6B52F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepsAdvancedCardOrderingExperimentTests.swift; sourceTree = "<group>"; };
 		CC33F77E2F866426006536BE /* OnboardingUserScript+Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingUserScript+Telemetry.swift"; sourceTree = "<group>"; };
 		CC34456E2E674E7700019518 /* UserScriptErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserScriptErrorTests.swift; sourceTree = "<group>"; };
 		CC438E1C2EBCE224008537AD /* DefaultBrowserAndDockPromptUIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultBrowserAndDockPromptUIProvider.swift; sourceTree = "<group>"; };
@@ -8094,6 +8100,7 @@
 				377D7BC02D0AC7E000ADFD06 /* NewTabPageNextStepsCardsProviderTests.swift */,
 				CC8E71262F0FEF6D008C8070 /* NewTabPageNextStepsCardsProviderFacadeTests.swift */,
 				CC8E70D82F0EC731008C8070 /* NewTabPageNextStepsSingleCardProviderTests.swift */,
+				CC26B6B52F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift */,
 				1D2EE7072E267D4F00F51C57 /* NewTabPageOmnibarConfigProviderTests.swift */,
 				370CAEC42E3134AC001844E4 /* NewTabPageAIChatShortcutSettingProviderTests.swift */,
 				1D69B7182E2E31A800258E33 /* NewTabPageSuggestionsProviderTests.swift */,
@@ -12730,6 +12737,7 @@
 				CC8E71232F0FE421008C8070 /* NewTabPageNextStepsCardsProviderFacade.swift */,
 				CC26B68B2F0D715300D380B6 /* NewTabPageNextStepsPersistor.swift */,
 				CC26B6882F0D6C1200D380B6 /* NewTabPageNextStepsSingleCardProvider.swift */,
+				CC26B6AF2F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift */,
 				CCE3F8362F5A26D90046F5E4 /* NextStepsCardsPromoDelegate.swift */,
 			);
 			path = NextSteps;
@@ -14981,6 +14989,7 @@
 				EEDFA38B2CD148DE00D1C558 /* SyncDiagnosisHelper.swift in Sources */,
 				3706FAD7293F65D500E42796 /* Feedback.swift in Sources */,
 				CC26B6892F0D6C2400D380B6 /* NewTabPageNextStepsSingleCardProvider.swift in Sources */,
+				CC26B6B02F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift in Sources */,
 				EED4D3D92C874AE200C79EEA /* PopoverInfoViewController.swift in Sources */,
 				3707C722294B5D2900682A9F /* WKWebViewExtension.swift in Sources */,
 				3745DE052D536DCF00024FC8 /* HistoryGroupingProvider.swift in Sources */,
@@ -16506,6 +16515,7 @@
 				3706FE76293F661700E42796 /* MockSecureVault.swift in Sources */,
 				F1AFDBD92C23221700710F2C /* SubscriptionAppStoreRestorerTests.swift in Sources */,
 				CC8E70DA2F0EC731008C8070 /* NewTabPageNextStepsSingleCardProviderTests.swift in Sources */,
+				CC26B6B62F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift in Sources */,
 				C1E961F32B87B273001760E1 /* MockAutofillActionExecutor.swift in Sources */,
 				376E2D2729428353001CD31B /* BrokenSiteReportingReferenceTests.swift in Sources */,
 				3707C72F294B5D4F00682A9F /* WebViewTests.swift in Sources */,
@@ -17607,6 +17617,7 @@
 				AAECA42024EEA4AC00EFA63A /* IndexPathExtension.swift in Sources */,
 				4B9579212AC687170062CA31 /* HardwareModel.swift in Sources */,
 				CC26B68A2F0D6C2400D380B6 /* NewTabPageNextStepsSingleCardProvider.swift in Sources */,
+				CC26B6B12F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperiment.swift in Sources */,
 				37ADC3EE2DF031890001CA03 /* MoreOptionsMenuPixel.swift in Sources */,
 				37ADC4012DF040000001CA03 /* WebViewZoomPixel.swift in Sources */,
 				B6080BC52B21E78100B418EF /* DataImportErrorView.swift in Sources */,
@@ -18398,6 +18409,7 @@
 				CCE3F8112F59B0700046F5E4 /* PromoTypeTests.swift in Sources */,
 				569277C429DEE09D00B633EF /* ContinueSetUpModelTests.swift in Sources */,
 				CC8E70D92F0EC731008C8070 /* NewTabPageNextStepsSingleCardProviderTests.swift in Sources */,
+				CC26B6B72F0E100100D380B6 /* NextStepsAdvancedCardOrderingExperimentTests.swift in Sources */,
 				4B85B6A02ED3BF0E003EBF2A /* MockFileManager.swift in Sources */,
 				31A2FD172BAB41C500D0E741 /* DataBrokerProtectionFeatureGatekeeperTests.swift in Sources */,
 				85F1B0C925EF9759004792B6 /* URLEventHandlerTests.swift in Sources */,

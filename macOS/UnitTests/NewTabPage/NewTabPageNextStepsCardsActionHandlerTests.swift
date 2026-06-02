@@ -17,6 +17,7 @@
 //
 
 import BrowserServicesKit
+import NewTabPage
 @testable import DuckDuckGo_Privacy_Browser
 import PrivacyConfigTestsUtils
 import Subscription

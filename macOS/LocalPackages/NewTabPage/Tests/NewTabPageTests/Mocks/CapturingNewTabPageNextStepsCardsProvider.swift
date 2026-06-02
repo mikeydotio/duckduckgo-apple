@@ -45,8 +45,13 @@ final class CapturingNewTabPageNextStepsCardsProvider: NewTabPageNextStepsCardsP
         willDisplayCardsImpl?(cards)
     }
 
+    func enrollInAdvancedOrderingExperimentIfNeeded() {
+        didCallEnrollInAdvancedOrderingExperimentIfNeeded = true
+    }
+
     var handleActionCalls: [NewTabPageDataModel.CardID] = []
     var dismissCalls: [NewTabPageDataModel.CardID] = []
     var willDisplayCardsCalls: [[NewTabPageDataModel.CardID]] = []
     var willDisplayCardsImpl: (([NewTabPageDataModel.CardID]) -> Void)?
+    var didCallEnrollInAdvancedOrderingExperimentIfNeeded: Bool = false
 }

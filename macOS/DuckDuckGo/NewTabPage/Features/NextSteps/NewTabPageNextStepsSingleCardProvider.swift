@@ -198,7 +198,7 @@ final class NewTabPageNextStepsSingleCardProvider: NewTabPageNextStepsCardsProvi
         self.adBlockingAvailability = adBlockingAvailability
         self.isAppStoreBuild = applicationBuildType.isAppStoreBuild
         self.scheduler = scheduler
-        self.shouldUseAdvancedCardOrdering = featureFlagger.isFeatureOn(.nextStepsListAdvancedCardOrdering)
+        self.shouldUseAdvancedCardOrdering = NextStepsAdvancedCardOrderingExperiment.isAdvancedOrderingEnabled(featureFlagger: featureFlagger)
         self.standardCards = defaultStandardCards
 
         // Migrate isFirstSession from legacy persistor if needed
@@ -240,6 +240,13 @@ final class NewTabPageNextStepsSingleCardProvider: NewTabPageNextStepsCardsProvi
             pixelHandler.fireAddToDockPresentedPixelIfNeeded([card])
             persistor.incrementTimesShown(for: card)
         }
+    }
+
+    func enrollInAdvancedOrderingExperimentIfNeeded() {
+        guard let cohort = NextStepsAdvancedCardOrderingExperiment.enrollIfNeeded(persistor: persistor, featureFlagger: featureFlagger) else { return }
+
+        shouldUseAdvancedCardOrdering = cohort == .treatment
+        refreshCardList()
     }
 }
 
@@ -431,10 +438,11 @@ private extension NewTabPageNextStepsSingleCardProvider {
 
     func observeFeatureFlagChanges() {
         featureFlagger.updatesPublisher
-            .compactMap { [weak self] in
-                self?.featureFlagger.isFeatureOn(.nextStepsListAdvancedCardOrdering)
+            .map { [weak self] _ in
+                guard let self else { return false }
+                return NextStepsAdvancedCardOrderingExperiment.isAdvancedOrderingEnabled(featureFlagger: featureFlagger)
             }
-            .prepend(featureFlagger.isFeatureOn(.nextStepsListAdvancedCardOrdering))
+            .prepend(NextStepsAdvancedCardOrderingExperiment.isAdvancedOrderingEnabled(featureFlagger: featureFlagger))
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isAdvancedOrderingOn in

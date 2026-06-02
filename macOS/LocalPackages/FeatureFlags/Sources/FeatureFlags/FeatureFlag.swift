@@ -389,6 +389,12 @@ extension FeatureFlag: FeatureFlagDescribing {
         case treatment
     }
 
+    /// Cohorts for the Next Steps advanced card ordering experiment
+    public enum NextStepsListAdvancedCardOrderingCohort: String, FeatureFlagCohortDescribing {
+        case control
+        case treatment
+    }
+
     private struct Config {
         let defaultValue: FeatureFlagDefaultValue
         let source: FeatureFlagSource
@@ -554,7 +560,8 @@ extension FeatureFlag: FeatureFlagDescribing {
         case .nextStepsListWidget:
             Config(defaultValue: .enabled, source: .remoteReleasable(HtmlNewTabPageSubfeature.nextStepsListWidget))
         case .nextStepsListAdvancedCardOrdering:
-            Config(source: .disabled)
+            Config(defaultValue: .internalOnlyWithCohort(NextStepsListAdvancedCardOrderingCohort.control), source: .remoteReleasable(HtmlNewTabPageSubfeature.nextStepsListAdvancedCardOrdering),
+                   cohortType: NextStepsListAdvancedCardOrderingCohort.self)
         case .crashCollectionLimitCallStackTreeDepth:
             Config(defaultValue: .enabled, source: .remoteReleasable(MacOSBrowserConfigSubfeature.crashCollectionLimitCallStackTreeDepth), supportsLocalOverriding: false)
         case .freeTrialConversionWideEvent:

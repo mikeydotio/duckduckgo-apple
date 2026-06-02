@@ -37,4 +37,13 @@ public protocol NewTabPageNextStepsCardsProviding: AnyObject {
 
     @MainActor
     func willDisplayCards(_ cards: [NewTabPageDataModel.CardID])
+
+    /// Enrolls the user in the advanced ordering experiment if needed.
+    /// Requirements for enrollment:
+    /// - The user is not already enrolled in the experiment (to prevent side effects after enrollment, e.g. extra card list refresh)
+    /// - The user has not seen any Next Steps cards yet (new users only)
+    ///
+    /// This must be called after onboarding is complete (when the New Tab Page is being loaded)
+    /// but before any Next Steps cards have been displayed.
+    func enrollInAdvancedOrderingExperimentIfNeeded()
 }

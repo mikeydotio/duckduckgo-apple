@@ -256,7 +256,7 @@ final class NewTabPageNextStepsCardsProviderFacadeTests: XCTestCase {
 
 private extension NewTabPageNextStepsCardsProviderFacadeTests {
     func defaultCards(for _: NewTabPageNextStepsSingleCardProvider) -> [NewTabPageDataModel.CardID] {
-        let cards = featureFlagger.isFeatureOn(.nextStepsListAdvancedCardOrdering)
+        let cards = NextStepsAdvancedCardOrderingExperiment.isAdvancedOrderingEnabled(featureFlagger: featureFlagger)
             ? NewTabPageNextStepsSingleCardProvider.defaultAdvancedCards
             : NewTabPageNextStepsSingleCardProvider.defaultStandardCards
 

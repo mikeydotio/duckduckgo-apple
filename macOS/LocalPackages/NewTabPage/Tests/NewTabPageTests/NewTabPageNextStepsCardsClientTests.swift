@@ -110,6 +110,12 @@ final class NewTabPageNextStepsCardsClientTests: XCTestCase {
         XCTAssertEqual(data, .init(content: nil))
     }
 
+    func testThatGetDataCallsEnrollInAdvancedOrderingExperimentIfNeeded() async throws {
+        try await messageHelper.handleMessageIgnoringResponse(named: .getData)
+
+        XCTAssertTrue(model.didCallEnrollInAdvancedOrderingExperimentIfNeeded)
+    }
+
     // MARK: - willDisplayCardsPublisher
 
     func testThatWillDisplayCardsPublisherIsSentAfterGetDataAndGetConfigAreCalled() async throws {

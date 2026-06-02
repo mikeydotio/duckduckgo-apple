@@ -145,4 +145,8 @@ final class NewTabPageNextStepsCardsProviderFacade: NewTabPageNextStepsCardsProv
     func willDisplayCards(_ cards: [NewTabPageDataModel.CardID]) {
         activeProvider.willDisplayCards(cards)
     }
+
+    func enrollInAdvancedOrderingExperimentIfNeeded() {
+        activeProvider.enrollInAdvancedOrderingExperimentIfNeeded()
+    }
 }

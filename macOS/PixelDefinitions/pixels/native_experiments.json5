@@ -22,6 +22,83 @@
                     "enum": ["true"]
                 }
             }
+        },
+        "nextStepsListAdvancedCardOrdering": {
+            "cohorts": ["control", "treatment"],
+            "metrics": {
+                "bringStuff_shown": {
+                    "description": "Bring stuff (import) Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "defaultApp_shown": {
+                    "description": "Set as Default Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "emailProtection_shown": {
+                    "description": "Email Protection Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "duckplayer_shown": {
+                    "description": "Duck Player Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "youtubeAdBlocking_shown": {
+                    "description": "Youtube Ad Blocking Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "addAppToDockMac_shown": {
+                    "description": "Add to Dock Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "subscription_shown": {
+                    "description": "Subscription Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "personalizeBrowser_shown": {
+                    "description": "Personalize Browser Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "sync_shown": {
+                    "description": "Sync Next Steps card impression",
+                    "enum": ["1"]
+                },
+                "bringStuff_clicked": {
+                    "description": "User tapped the Bring Stuff (Import) Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "defaultApp_clicked": {
+                    "description": "User tapped the Set as Default Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "emailProtection_clicked": {
+                    "description": "User tapped the Email Protection Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "duckplayer_clicked": {
+                    "description": "User tapped the Duck Player Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "youtubeAdBlocking_clicked": {
+                    "description": "User tapped the YouTube Ad Blocking Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "addAppToDockMac_clicked": {
+                    "description": "User tapped the Add to Dock Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "subscription_clicked": {
+                    "description": "User tapped the Subscription Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "personalizeBrowser_clicked": {
+                    "description": "User tapped the Personalize Browser Next Steps card CTA",
+                    "enum": ["1"]
+                },
+                "sync_clicked": {
+                    "description": "User tapped the Sync Next Steps card CTA",
+                    "enum": ["1"]
+                }
+            }
         }
     }
 }

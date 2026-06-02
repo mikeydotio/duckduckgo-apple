@@ -650,13 +650,11 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
     // MARK: - Card Ordering Tests (nextStepsListAdvancedCardOrdering enabled)
 
     func testWhenNoPersistedOrder_WithAdvancedOrderingEnabled_ThenDefaultOrderIsUsed_ForNonAppStore() {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.orderedCardIDs = nil
         let testProvider = createProvider(
             persistor: testPersistor,
-            featureFlagger: testFeatureFlagger,
             adBlockingAvailability: MockAdBlockingAvailability(isFeatureSupported: true, isEnabledByUser: true),
             isAppStoreBuild: false
         )
@@ -666,13 +664,11 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
     }
 
     func testWhenNoPersistedOrder_WithAdvancedOrderingEnabled_ThenDefaultOrderIsUsed_ForAppStore() {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.orderedCardIDs = nil
         let testProvider = createProvider(
             persistor: testPersistor,
-            featureFlagger: testFeatureFlagger,
             adBlockingAvailability: MockAdBlockingAvailability(isFeatureSupported: true, isEnabledByUser: true),
             isAppStoreBuild: true
         )
@@ -682,32 +678,29 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
     }
 
     func testWhenPersistedOrderExists_WithAdvancedOrderingEnabled_ThenPersistedOrderIsUsed_ForNonAppStore() {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         let persistedOrder: [NewTabPageDataModel.CardID] = [.emailProtection, .defaultApp, .addAppToDockMac, .bringStuff, .subscription, .personalizeBrowser, .sync]
         testPersistor.orderedCardIDs = persistedOrder
-        let testProvider = createProvider(persistor: testPersistor, featureFlagger: testFeatureFlagger, isAppStoreBuild: false)
+        let testProvider = createProvider(persistor: testPersistor, isAppStoreBuild: false)
         let expectedCards = persistedOrder
 
         XCTAssertEqual(testProvider.cards, expectedCards)
     }
 
     func testWhenPersistedOrderExists_WithAdvancedOrderingEnabled_ThenPersistedOrderIsUsed_ForAppStore() {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         let persistedOrder: [NewTabPageDataModel.CardID] = [.emailProtection, .defaultApp, .addAppToDockMac, .bringStuff, .subscription, .personalizeBrowser, .sync]
         testPersistor.orderedCardIDs = persistedOrder
-        let testProvider = createProvider(persistor: testPersistor, featureFlagger: testFeatureFlagger, isAppStoreBuild: true)
+        let testProvider = createProvider(persistor: testPersistor, isAppStoreBuild: true)
         let expectedCards = persistedOrder.filter { $0 != .addAppToDockMac }
 
         XCTAssertEqual(testProvider.cards, expectedCards)
     }
 
     func testWhenFirstCardLevelIsLevel1AndDaysLessThanMaxDays_WithAdvancedOrderingEnabled_ThenLevel1CardsFirst() throws {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.firstCardLevel = .level1
         testPersistor.orderedCardIDs = nil
@@ -715,8 +708,7 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
         let testProvider = createProvider(
             defaultBrowserIsDefault: false,
             appearancePreferences: testAppearancePrefs,
-            persistor: testPersistor,
-            featureFlagger: testFeatureFlagger
+            persistor: testPersistor
         )
 
         let cards = testProvider.cards
@@ -730,8 +722,7 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
     }
 
     func testWhenFirstCardLevelIsLevel1AndDaysGreaterThanOrEqualToMaxDays_WithAdvancedOrderingEnabled_ThenLevel2CardsFirst() throws {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.firstCardLevel = .level1
         testPersistor.orderedCardIDs = nil
@@ -739,8 +730,7 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
         let testProvider = createProvider(
             defaultBrowserIsDefault: false,
             appearancePreferences: testAppearancePrefs,
-            persistor: testPersistor,
-            featureFlagger: testFeatureFlagger
+            persistor: testPersistor
         )
 
         let cards = testProvider.cards
@@ -758,8 +748,7 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
     }
 
     func testWhenLevelOrderSwaps_WithAdvancedOrderingEnabled_ThenOrderIsPersisted() {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.firstCardLevel = .level1
         testPersistor.orderedCardIDs = nil
@@ -768,7 +757,7 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
             defaultBrowserIsDefault: false,
             appearancePreferences: testAppearancePrefs,
             persistor: testPersistor,
-            featureFlagger: testFeatureFlagger
+            adBlockingAvailability: MockAdBlockingAvailability(isFeatureSupported: true, isEnabledByUser: true)
         )
 
         _ = testProvider.cards
@@ -779,14 +768,13 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
     }
 
     func testWhenDefaultOrderIsUsed_WithAdvancedOrderingEnabled_ThenOrderIsPersisted() {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.orderedCardIDs = nil
         let testProvider = createProvider(
             defaultBrowserIsDefault: false,
             persistor: testPersistor,
-            featureFlagger: testFeatureFlagger
+            adBlockingAvailability: MockAdBlockingAvailability(isFeatureSupported: true, isEnabledByUser: true)
         )
 
         _ = testProvider.cards
@@ -798,12 +786,11 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
 
     @MainActor
     func testWhenCardShownMaxTimes_WithAdvancedOrderingEnabled_ThenCardMovesToBack() throws {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.setTimesShown(10, for: .personalizeBrowser)
         testPersistor.orderedCardIDs = [.personalizeBrowser, .sync, .emailProtection]
-        let testProvider = createProvider(persistor: testPersistor, featureFlagger: testFeatureFlagger)
+        let testProvider = createProvider(persistor: testPersistor)
 
         let cards = testProvider.cards
 
@@ -813,12 +800,11 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
 
     @MainActor
     func testWhenCardShownMaxTimes_WithAdvancedOrderingEnabled_ThenTimesShownResets() {
-        let testFeatureFlagger = MockFeatureFlagger()
-        testFeatureFlagger.enabledFeatureFlags = [.nextStepsListAdvancedCardOrdering]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
         let testPersistor = MockNewTabPageNextStepsCardsPersistor()
         testPersistor.setTimesShown(10, for: .personalizeBrowser)
         testPersistor.orderedCardIDs = [.personalizeBrowser, .sync, .emailProtection]
-        let testProvider = createProvider(persistor: testPersistor, featureFlagger: testFeatureFlagger)
+        let testProvider = createProvider(persistor: testPersistor)
 
         _ = testProvider.cards
 
@@ -839,7 +825,7 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
 
         let cards = testProvider.cards
         XCTAssertFalse(cards.isEmpty, "Should have cards")
-        XCTAssertEqual(cards.first, .emailProtection, "Email protection should be first in first session under default mock state (YouTube ad-blocking hidden)")
+        XCTAssertEqual(cards.first, NewTabPageNextStepsSingleCardProvider.defaultStandardCards.first)
     }
 
     @MainActor
@@ -944,6 +930,65 @@ final class NewTabPageNextStepsSingleCardProviderTests: XCTestCase {
         )
 
         XCTAssertFalse(testProvider.cards.contains(.youtubeAdBlocking))
+    }
+
+    // MARK: - Experiment enrollment
+
+    func testWhenCardsAreReadAfterExperimentEnrollmentThenTreatmentCohortUsesAdvancedOrdering() {
+        let testFeatureFlagger = MockFeatureFlagger(resolveCohortStub: FeatureFlag.NextStepsListAdvancedCardOrderingCohort.treatment)
+        let testProvider = createProvider(
+            defaultBrowserIsDefault: false,
+            featureFlagger: testFeatureFlagger,
+            adBlockingAvailability: MockAdBlockingAvailability(isFeatureSupported: true, isEnabledByUser: true)
+        )
+
+        testProvider.enrollInAdvancedOrderingExperimentIfNeeded()
+
+        XCTAssertEqual(testProvider.cards.first, .personalizeBrowser)
+    }
+
+    func testWhenCardsAreReadAfterExperimentEnrollmentThenControlCohortUsesStandardOrdering() {
+        let testFeatureFlagger = MockFeatureFlagger(resolveCohortStub: FeatureFlag.NextStepsListAdvancedCardOrderingCohort.control)
+        let testProvider = createProvider(
+            defaultBrowserIsDefault: false,
+            featureFlagger: testFeatureFlagger,
+            isFirstSession: true
+        )
+
+        testProvider.enrollInAdvancedOrderingExperimentIfNeeded()
+
+        XCTAssertEqual(testProvider.cards.first, .emailProtection)
+    }
+
+    @MainActor
+    func testWhenWillDisplayCardsIsCalledThenItUsesSameCardIDsAsCardsProperty() {
+        let testFeatureFlagger = MockFeatureFlagger(resolveCohortStub: FeatureFlag.NextStepsListAdvancedCardOrderingCohort.treatment)
+        let testProvider = createProvider(
+            defaultBrowserIsDefault: false,
+            featureFlagger: testFeatureFlagger,
+            adBlockingAvailability: MockAdBlockingAvailability(isFeatureSupported: true, isEnabledByUser: true)
+        )
+        let cardsFromGetter = testProvider.cards
+
+        testProvider.willDisplayCards(cardsFromGetter)
+
+        XCTAssertEqual(pixelHandler.fireNextStepsCardShownPixelsCalledWith, [cardsFromGetter.first].compactMap { $0 })
+    }
+
+    func testWhenAnyCardWasPreviouslyShownThenEnrollmentIsSkipped() {
+        let testFeatureFlagger = MockFeatureFlagger(resolveCohortStub: FeatureFlag.NextStepsListAdvancedCardOrderingCohort.treatment)
+        let testPersistor = MockNewTabPageNextStepsCardsPersistor()
+        testPersistor.setTimesShown(1, for: .defaultApp)
+        let testProvider = createProvider(
+            defaultBrowserIsDefault: false,
+            persistor: testPersistor,
+            featureFlagger: testFeatureFlagger,
+            isFirstSession: true
+        )
+
+        testProvider.enrollInAdvancedOrderingExperimentIfNeeded()
+
+        XCTAssertEqual(testProvider.cards.first, .emailProtection)
     }
 
     // MARK: - Helper Functions

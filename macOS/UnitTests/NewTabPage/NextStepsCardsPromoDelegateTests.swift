@@ -142,4 +142,5 @@ private final class MockNextStepsCardsProvider: NewTabPageNextStepsCardsProvidin
     func dismiss(_ card: NewTabPageDataModel.CardID) {}
     @MainActor
     func willDisplayCards(_ cards: [NewTabPageDataModel.CardID]) {}
+    func enrollInAdvancedOrderingExperimentIfNeeded() {}
 }

@@ -18,6 +18,7 @@
 
 import Bookmarks
 import Combine
+import FeatureFlags
 import PersistenceTestingUtils
 import PixelKitTestingUtilities
 import PrivacyConfig
@@ -202,7 +203,8 @@ final class AppearancePreferencesTests: XCTestCase {
 
         XCTAssertEqual(model.maxNextStepsCardsDemonstrationDays, 9)
 
-        featureFlagger.enabledFeatureFlags = [.nextStepsListWidget, .nextStepsListAdvancedCardOrdering]
+        featureFlagger.enabledFeatureFlags = [.nextStepsListWidget]
+        featureFlagger.setAdvancedCardOrderingExperimentEnrollment(cohort: .treatment)
 
         XCTAssertEqual(model.maxNextStepsCardsDemonstrationDays, 14)
     }

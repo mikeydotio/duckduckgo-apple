@@ -158,6 +158,8 @@ public final class NewTabPageNextStepsCardsClient: NewTabPageUserScriptClient {
 
     @MainActor
     private func getData(params: Any, original: WKScriptMessage) async throws -> Encodable? {
+        model.enrollInAdvancedOrderingExperimentIfNeeded()
+
         let cardIDs = model.cards
         let cards = cardIDs.map(NewTabPageDataModel.Card.init(id:))
 

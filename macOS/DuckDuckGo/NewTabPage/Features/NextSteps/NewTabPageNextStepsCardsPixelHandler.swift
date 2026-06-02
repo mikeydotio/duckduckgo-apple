@@ -17,7 +17,9 @@
 //
 
 import NewTabPage
+import PixelExperimentKit
 import PixelKit
+import PrivacyConfig
 
 protocol NewTabPageNextStepsCardsPixelHandling {
 
@@ -50,9 +52,55 @@ protocol NewTabPageNextStepsCardsPixelHandling {
 
 final class NewTabPageNextStepsCardsPixelHandler: NewTabPageNextStepsCardsPixelHandling {
     private let pixelHandler: (PixelKitEvent, PixelKit.Frequency, Bool) -> Void
+    private let experimentPixelHandler: ExperimentPixelFiring.Type
 
-    init(pixelHandler: @escaping (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { PixelKit.fire($0, frequency: $1, includeAppVersionParameter: $2) }) {
+    private enum NextStepsCardsExperiment {
+        static let conversionWindows = [Window.sevenDay, Window.fourteenDay]
+
+        enum Metric {
+            case cardShown(NewTabPageDataModel.CardID)
+            case cardClicked(NewTabPageDataModel.CardID)
+
+            var name: String {
+                switch self {
+                case .cardShown(let card):
+                    return "\(card.rawValue)_shown"
+                case .cardClicked(let card):
+                    return "\(card.rawValue)_clicked"
+                }
+            }
+        }
+
+        enum Window {
+            static let sevenDay: ConversionWindow = 0...6
+            static let fourteenDay: ConversionWindow = 0...13
+        }
+    }
+
+    init(pixelHandler: @escaping (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { PixelKit.fire($0, frequency: $1, includeAppVersionParameter: $2) },
+         experimentPixelHandler: ExperimentPixelFiring.Type = PixelKit.self) {
         self.pixelHandler = pixelHandler
+        self.experimentPixelHandler = experimentPixelHandler
+    }
+
+    func fireCardShownExperimentPixel(_ card: NewTabPageDataModel.CardID) {
+        let metric = NextStepsCardsExperiment.Metric.cardShown(card).name
+        for window in NextStepsCardsExperiment.conversionWindows {
+            experimentPixelHandler.fireExperimentPixel(for: HtmlNewTabPageSubfeature.nextStepsListAdvancedCardOrdering.rawValue,
+                                                       metric: metric,
+                                                       conversionWindowDays: window,
+                                                       value: "1")
+        }
+    }
+
+    func fireCardClickedExperimentPixel(_ card: NewTabPageDataModel.CardID) {
+        let metric = NextStepsCardsExperiment.Metric.cardClicked(card).name
+        for window in NextStepsCardsExperiment.conversionWindows {
+            experimentPixelHandler.fireExperimentPixel(for: HtmlNewTabPageSubfeature.nextStepsListAdvancedCardOrdering.rawValue,
+                                                       metric: metric,
+                                                       conversionWindowDays: window,
+                                                       value: "1")
+        }
     }
 
     func fireAddToDockPresentedPixelIfNeeded(_ cards: [NewTabPageDataModel.CardID]) {
@@ -66,11 +114,13 @@ final class NewTabPageNextStepsCardsPixelHandler: NewTabPageNextStepsCardsPixelH
         for card in cards {
             // Fires once per card (unique by name + key parameter)
             pixelHandler(NewTabPagePixel.nextStepsCardShown(card.rawValue), .uniqueByNameAndParameters, false)
+            fireCardShownExperimentPixel(card)
         }
     }
 
     func fireNextStepsCardClickedPixel(_ card: NewTabPage.NewTabPageDataModel.CardID) {
         pixelHandler(NewTabPagePixel.nextStepsCardClicked(card.rawValue), .standard, true)
+        fireCardClickedExperimentPixel(card)
     }
 
     func fireNextStepsCardDismissedPixel(_ card: NewTabPage.NewTabPageDataModel.CardID) {

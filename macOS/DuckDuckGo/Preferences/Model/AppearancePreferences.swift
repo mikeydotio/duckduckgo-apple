@@ -322,8 +322,8 @@ final class AppearancePreferences: ObservableObject {
 
     var maxNextStepsCardsDemonstrationDays: Int {
         if let featureFlagger,
-           featureFlagger.isFeatureOn(.nextStepsListWidget) &&
-            featureFlagger.isFeatureOn(.nextStepsListAdvancedCardOrdering) {
+           featureFlagger.isFeatureOn(.nextStepsListWidget),
+           NextStepsAdvancedCardOrderingExperiment.isAdvancedOrderingEnabled(featureFlagger: featureFlagger) {
             return Constants.maxNextStepsCardsDemonstrationDays
         } else {
             return Constants.legacyDismissNextStepsCardsAfterDays

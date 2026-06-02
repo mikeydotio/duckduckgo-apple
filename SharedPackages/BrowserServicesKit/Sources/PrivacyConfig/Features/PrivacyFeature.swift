@@ -545,6 +545,9 @@ public enum HtmlNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Controls whether the Next Steps List widget is enabled on New Tab Page
     case nextStepsListWidget
+
+    /// A/B experiment for advanced Next Steps card ordering on New Tab Page
+    case nextStepsListAdvancedCardOrdering
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {

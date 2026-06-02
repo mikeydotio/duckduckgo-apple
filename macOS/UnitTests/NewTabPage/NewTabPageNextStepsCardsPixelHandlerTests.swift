@@ -17,24 +17,37 @@
 //
 
 import NewTabPage
+import PixelExperimentKit
 import PixelKit
+import PrivacyConfig
 import XCTest
 @testable import DuckDuckGo_Privacy_Browser
 
 final class NewTabPageNextStepsCardsPixelHandlerTests: XCTestCase {
     private var pixelHandler: NewTabPageNextStepsCardsPixelHandler!
     private var firedPixels: [(event: PixelKitEvent, frequency: PixelKit.Frequency, includesAppVersionParameter: Bool)] = []
+    private var firedExperimentPixels: [(subfeatureID: String, metric: String, conversionWindowDays: ConversionWindow, value: String)] = []
 
     override func setUp() async throws {
         firedPixels = []
-        pixelHandler = NewTabPageNextStepsCardsPixelHandler { event, frequency, includesAppVersionParameter in
-            self.firedPixels.append((event, frequency, includesAppVersionParameter))
+        firedExperimentPixels = []
+        NextStepsExperimentPixelMock.reset()
+        NextStepsExperimentPixelMock.onFire = { subfeatureID, metric, conversionWindowDays, value in
+            self.firedExperimentPixels.append((subfeatureID, metric, conversionWindowDays, value))
         }
+        pixelHandler = NewTabPageNextStepsCardsPixelHandler(
+            pixelHandler: { event, frequency, includesAppVersionParameter in
+                self.firedPixels.append((event, frequency, includesAppVersionParameter))
+            },
+            experimentPixelHandler: NextStepsExperimentPixelMock.self
+        )
     }
 
     override func tearDown() {
         pixelHandler = nil
         firedPixels = []
+        firedExperimentPixels = []
+        NextStepsExperimentPixelMock.reset()
     }
 
     // MARK: - Shown pixels
@@ -96,6 +109,12 @@ final class NewTabPageNextStepsCardsPixelHandlerTests: XCTestCase {
         XCTAssertEqual(firedPixels.first?.event.name, expectedEvent.name)
         XCTAssertEqual(firedPixels.first?.frequency, .uniqueByNameAndParameters)
         XCTAssertEqual(firedPixels.first?.includesAppVersionParameter, false)
+        XCTAssertEqual(firedExperimentPixels.map(\.metric), ["defaultApp_shown", "defaultApp_shown"])
+        XCTAssertTrue(firedExperimentPixels.map(\.conversionWindowDays).contains(where: { $0 == 0...6 }))
+        XCTAssertTrue(firedExperimentPixels.map(\.conversionWindowDays).contains(where: { $0 == 0...13 }))
+        XCTAssertTrue(firedExperimentPixels.allSatisfy {
+            $0.subfeatureID == HtmlNewTabPageSubfeature.nextStepsListAdvancedCardOrdering.rawValue && $0.value == "1"
+        })
     }
 
     func testWhenFireNextStepsCardShownPixelsCalled_WithBringStuff_ThenShownPixelIsFired() {
@@ -161,6 +180,12 @@ final class NewTabPageNextStepsCardsPixelHandlerTests: XCTestCase {
         XCTAssertEqual(firedPixels.first?.event.name, expectedEvent.name)
         XCTAssertEqual(firedPixels.first?.frequency, .standard)
         XCTAssertEqual(firedPixels.first?.includesAppVersionParameter, true)
+        XCTAssertEqual(firedExperimentPixels.map(\.metric), ["defaultApp_clicked", "defaultApp_clicked"])
+        XCTAssertTrue(firedExperimentPixels.map(\.conversionWindowDays).contains(where: { $0 == 0...6 }))
+        XCTAssertTrue(firedExperimentPixels.map(\.conversionWindowDays).contains(where: { $0 == 0...13 }))
+        XCTAssertTrue(firedExperimentPixels.allSatisfy {
+            $0.subfeatureID == HtmlNewTabPageSubfeature.nextStepsListAdvancedCardOrdering.rawValue && $0.value == "1"
+        })
     }
 
     func testWhenFireAddedToDockPixelCalled_ThenItFiresPixels() {
@@ -330,4 +355,19 @@ final class NewTabPageNextStepsCardsPixelHandlerTests: XCTestCase {
         XCTAssertEqual(firedPixels.first?.includesAppVersionParameter, true)
     }
 
+}
+
+private enum NextStepsExperimentPixelMock: ExperimentPixelFiring {
+    static var onFire: ((String, String, ConversionWindow, String) -> Void)?
+
+    static func reset() {
+        onFire = nil
+    }
+
+    static func fireExperimentPixel(for subfeatureID: String,
+                                    metric: String,
+                                    conversionWindowDays: ConversionWindow,
+                                    value: String) {
+        onFire?(subfeatureID, metric, conversionWindowDays, value)
+    }
 }

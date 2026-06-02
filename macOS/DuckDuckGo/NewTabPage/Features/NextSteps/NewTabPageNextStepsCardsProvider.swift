@@ -98,6 +98,10 @@ final class NewTabPageNextStepsCardsProvider: NewTabPageNextStepsCardsProviding 
         pixelHandler.fireAddToDockPresentedPixelIfNeeded(cards)
         pixelHandler.fireNextStepsCardShownPixels(cards)
     }
+
+    func enrollInAdvancedOrderingExperimentIfNeeded() {
+        // No-op - Legacy cards provider is not eligible for advanced ordering experiment
+    }
 }
 
 extension HomePage.Models.FeatureType {

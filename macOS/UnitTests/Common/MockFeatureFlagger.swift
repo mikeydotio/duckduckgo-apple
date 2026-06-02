@@ -18,6 +18,7 @@
 
 import PrivacyConfig
 import FeatureFlags
+import Foundation
 
 extension MockFeatureFlagger {
 
