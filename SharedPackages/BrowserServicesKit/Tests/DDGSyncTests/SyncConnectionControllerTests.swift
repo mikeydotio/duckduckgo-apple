@@ -185,6 +185,32 @@ final class SyncConnectionControllerTests: XCTestCase {
         XCTAssertEqual(pairingInfo.toURL(baseURL: URL(string: "https://example.com")!), url)
     }
 
+    @MainActor
+    func test_startExchangeMode_whenPairingV2ScannerIsActive_cancelsScannerCoordinator() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+        let didStartScanner = expectation(description: "scanner sent hello")
+        messageExchanger.sendHandler = { _, _ in
+            didStartScanner.fulfill()
+        }
+
+        let scannerTask = Task {
+            await self.controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+        }
+        await fulfillment(of: [didStartScanner], timeout: 5)
+        let scannerChannelID = try XCTUnwrap(messageExchanger.openChannelCalls.first)
+
+        _ = try await controller.startExchangeMode()
+
+        XCTAssertTrue(messageExchanger.closeChannelCalls.contains(scannerChannelID))
+        _ = await scannerTask.value
+        await controller.cancel()
+    }
+
     func test_startExchangeMode_whenPairingV2CodeEnabledAndScopedAccessDisabled_returnsLegacyPairingInfo() async throws {
         dependencies.isPairingV2CodeEnabled = { true }
         dependencies.isScopedAccessCredentialsEnabled = { false }
@@ -761,6 +787,25 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 1)
+        XCTAssertNil(delegate.didErrorErrors)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withV2UrlWhenPresenterIsActive_cancelsPresenterCoordinator() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let presenterInfo = try await controller.startExchangeMode()
+        let presenterPayload = try XCTUnwrap(PairingV2QRCodePayload(url: try XCTUnwrap(URL(string: presenterInfo.base64Code))))
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let scannerPayload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
+        let scannerURL = try scannerPayload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        messageExchanger.fetchMessagesError = PairingV2Error.cancelled
+        let result = await controller.syncCodeEntered(code: scannerURL.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertTrue(messageExchanger.closeChannelCalls.contains(presenterPayload.channelId))
         XCTAssertNil(delegate.didErrorErrors)
     }
 
