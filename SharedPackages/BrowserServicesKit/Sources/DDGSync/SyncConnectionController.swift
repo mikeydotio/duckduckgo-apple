@@ -120,8 +120,16 @@ private actor SyncConnectionState {
         return _connector
     }
 
-    func setPairingV2Coordinator(_ coordinator: PairingV2Coordinator?) {
+    func replacePairingV2Coordinator(with coordinator: PairingV2Coordinator) async {
+        await _pairingV2Coordinator?.cancel()
         _pairingV2Coordinator = coordinator
+    }
+
+    func clearPairingV2Coordinator(_ coordinator: PairingV2Coordinator) {
+        guard _pairingV2Coordinator === coordinator else {
+            return
+        }
+        _pairingV2Coordinator = nil
     }
 
     func stopConnectMode() {
@@ -304,7 +312,7 @@ public class SyncConnectionController: SyncConnectionControlling {
             throw error
         }
 
-        await state.setPairingV2Coordinator(coordinator)
+        await state.replacePairingV2Coordinator(with: coordinator)
         startPairingV2PresenterPolling(coordinator)
 
         return PairingInfo(pairingV2URL: url, deviceName: deviceName)
@@ -323,10 +331,10 @@ public class SyncConnectionController: SyncConnectionControlling {
         }
 
         let coordinator = makePairingV2Coordinator()
-        await state.setPairingV2Coordinator(coordinator)
+        await state.replacePairingV2Coordinator(with: coordinator)
         defer {
             Task {
-                await self.state.setPairingV2Coordinator(nil)
+                await self.state.clearPairingV2Coordinator(coordinator)
             }
         }
 
@@ -369,7 +377,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         Task { @MainActor in
             defer {
                 Task {
-                    await self.state.setPairingV2Coordinator(nil)
+                    await self.state.clearPairingV2Coordinator(coordinator)
                 }
             }
 
