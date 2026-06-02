@@ -2503,7 +2503,13 @@ class MainViewController: UIViewController {
             }
 
             ViewHighlighter.updatePositions()
-            self.recomputeNavigationBarContainerHeightIfNeeded()
+            /// Defer off this block: iPad multitasking resize (Split View / Stage Manager) drives
+            /// _sceneBoundsDidChange, which flushes this completion synchronously inside UIKit's
+            /// scene-snapshot transaction — the relayout there risks a watchdog SIGKILL.
+            /// https://app.asana.com/1/137249556945/project/1214294661819890/task/1214959863673211?focus=true
+            DispatchQueue.main.async { [weak self] in
+                self?.recomputeNavigationBarContainerHeightIfNeeded()
+            }
         }
 
         hideNotificationBarIfBrokenSitePromptShown()
