@@ -394,6 +394,15 @@ class OmniBarViewController: UIViewController, OmniBar {
         textField.resignFirstResponder()
     }
 
+    func setEditingStateLogoHidden(_ hidden: Bool) {
+        // Overridden in DefaultOmniBarViewController for the experimental editing state.
+    }
+
+    /// Enters AI Chat full mode, showing AI Chat-specific UI in the omnibar
+    func enterAIChatMode() {
+        refreshState(state.onEnterAIChatState)
+    }
+
     func refreshText(forUrl url: URL?, forceFullURL: Bool) {
         guard !textField.isEditing else { return }
         guard let url = url else {
@@ -1109,14 +1118,6 @@ extension OmniBarViewController: UITextFieldDelegate {
     /// Shows the logo after full-screen transition completes.
     func showLogoAfterTransition() {
         barView.privacyInfoContainer.privacyIcon.showLogoAfterTransition()
-    }
-}
-
-extension OmniBarViewController {
-
-    /// Enters AI Chat full mode, showing AI Chat-specific UI in the omnibar
-    func enterAIChatMode() {
-        refreshState(state.onEnterAIChatState)
     }
 }
 

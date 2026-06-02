@@ -17,6 +17,7 @@
 //
 
 import Common
+import FoundationExtensions
 import Foundation
 import Navigation
 import BrowserServicesKit
@@ -655,6 +656,7 @@ struct UserText {
     static let hideAIGeneratedImagesSettings = NSLocalizedString("duckai.hide-ai-generated-images-settings", value: "Hide AI-Generated Images", comment: "The section name in preferences for Hide AI-Generated Images Settings")
     static let hideAIGeneratedImagesSettingsDescription = NSLocalizedString("duckai.hide-ai-generated-images-settings.description", value: "Filter out AI-generated images from image search results", comment: "Description of the section in Settings")
     static let searchAIFeaturesSettingsLink = NSLocalizedString("duckai.search-ai-features-settings.link", value: "Open Search AI Features", comment: "Button to open the Search AI Features Settings")
+    static let duckAiSettingsLink = NSLocalizedString("duckai.duckai-settings.link", value: "Open Duck.ai Settings", comment: "Button to open the Duck.ai Settings in a new tab from Settings → AI Features")
     static let aiChatSidebarTitle = NSLocalizedString("aichat.sidebar.title", value: "Duck.ai", comment: "Title for the Duck.ai sidebar")
     static let aiChatSidebarExpandButtonTooltip = NSLocalizedString("aichat.sidebar.expand-button.tooltip", value: "Expand", comment: "Tooltip for button to open duck.ai chat from sidebar in a full tab")
     static let aiChatSidebarDetachButtonTooltip = NSLocalizedString("aichat.sidebar.detach-button.tooltip", value: "Move to separate window", comment: "Tooltip for button to detach the duck.ai sidebar into a floating window")
@@ -674,11 +676,12 @@ struct UserText {
     static let aiChatVoiceChatButtonTooltip = NSLocalizedString("aichat.voice-chat-button.tooltip", value: "Start a voice chat", comment: "Tooltip for the voice chat button shown in the AI chat omnibar when the input is empty")
     static let aiChatSearchToggleButtonTooltip = NSLocalizedString("aichat.search-toggle-button.tooltip", value: "Search the web", comment: "Tooltip for the search toggle button in AI chat omnibar")
     static let aiChatImageUploadButtonTooltip = NSLocalizedString("aichat.image-upload-button.tooltip", value: "Add image", comment: "Tooltip for the image upload button in AI chat omnibar")
-    static let aiChatAttachMenuImageOrFile = NSLocalizedString("aichat.attach-menu.image-or-file", value: "Add Image or File", comment: "Top-level item in the AI chat omnibar add-attachment menu that opens the image and file picker")
+    static let aiChatAttachMenuImageOrFile = NSLocalizedString("aichat.attach-menu.image-or-file", value: "Add Images or PDFs", comment: "Top-level item in the AI chat omnibar add-attachment menu that opens the image and file picker. PDF is the only file format the menu currently accepts on the file side, so the copy names it explicitly rather than the more abstract 'file'.")
     static let aiChatAttachMenuPageContent = NSLocalizedString("aichat.attach-menu.page-content", value: "Add Page Content", comment: "Top-level item in the AI chat omnibar add-attachment menu that opens the open-tabs submenu")
     static let aiChatAttachMenuRecentTabsHeader = NSLocalizedString("aichat.attach-menu.recent-tabs-header", value: "Recent Tabs", comment: "Section header inside the AI chat omnibar add-attachment menu listing the user's currently open browser tabs")
-    static let aiChatAttachMenuNoOpenTabs = NSLocalizedString("aichat.attach-menu.no-open-tabs", value: "No open tabs", comment: "Placeholder shown inside the AI chat omnibar add-attachment menu when the user has no open browser tabs to choose from")
+    static let aiChatAttachMenuNoOpenTabs = NSLocalizedString("aichat.attach-menu.no-open-tabs", value: "No page content available", comment: "Placeholder shown inside the AI chat omnibar add-attachment menu when none of the user's open tabs can be attached (e.g. all are filtered out as NTP / duck.ai / DDG homepage). Phrased as 'no page content' rather than 'no open tabs' because tabs may be open but their content isn't attachable.")
     static let aiChatTabPickerCurrentTabSuffix = NSLocalizedString("aichat.tab-picker.current-tab-suffix", value: "(Current Tab)", comment: "Trailing badge in AI chat tab pickers (omnibar attach menu and the @-mention picker) next to the user's currently active browser tab")
+    static let aiChatMentionPickerNoMatches = NSLocalizedString("aichat.mention-picker.no-matches", value: "No matching tabs", comment: "Placeholder shown inside the @-mention tab picker when the typed filter doesn't match any open browser tab")
     static let aiChatToolsButtonLabel = NSLocalizedString("aichat.tools-button.label", value: "Tools", comment: "Label for the tools dropdown button in AI chat omnibar")
     static let aiChatImageGenButtonLabel = NSLocalizedString("aichat.image-gen-button.label", value: "Create Image", comment: "Label for the image generation toggle button in AI chat omnibar")
     static let aiChatImageGenToolSubtitle = NSLocalizedString("aichat.image-gen-tool.subtitle", value: "Turn text into images", comment: "Subtitle for Create Image tool in the tools dropdown menu")
@@ -1071,6 +1074,12 @@ struct UserText {
     static let locationPermissionAuthorizationFormat = NSLocalizedString("permission.authorization.location",
                                                                          value: "“%@“ website would like to use your current location.",
                                                                          comment: "Popover asking for domain %@ to use location")
+    static let microphonePermissionAuthorizationFormat = NSLocalizedString("permission.authorization.microphone",
+                                                                           value: "“%@“ website would like to use your microphone.",
+                                                                           comment: "Popover asking for domain %@ to use the microphone")
+    static let duckAiVoiceChatMicrophonePrompt = NSLocalizedString("permission.authorization.microphone.duckai-voice-chat",
+                                                                   value: "Duck.ai voice chat requires microphone access.",
+                                                                   comment: "Prompt shown in the OS-microphone-disabled popover when the user starts voice chat on Duck.ai")
     static let devicePermissionAuthorizationFormat = NSLocalizedString("permission.authorization.format",
                                                                        value: "Allow “%@“ to use your %@ once?",
                                                                        comment: "Popover asking for domain %@ to use camera/mic (%@)")
@@ -1146,6 +1155,8 @@ struct UserText {
     static let permissionSystemLocationEnabled = NSLocalizedString("permission.system.location.enabled", value: "System location enabled!", comment: "Text shown after system location permission has been granted")
     static let permissionSystemLocationDisabled = NSLocalizedString("permission.system.location.disabled", value: "System location disabled. Turn it on in ", comment: "Text shown when system location was previously denied. Followed by a link to System Settings")
     static let permissionSystemSettingsLocation = NSLocalizedString("permission.system.settings.location", value: "System Settings → Privacy", comment: "Link text to open System Settings Privacy section for location")
+    static let permissionSystemMicrophoneDisabled = NSLocalizedString("permission.system.microphone.disabled", value: "System microphone access disabled. Turn it on in ", comment: "Text shown when system microphone access was previously denied. Followed by a link to System Settings")
+    static let permissionSystemSettingsMicrophone = NSLocalizedString("permission.system.settings.microphone", value: "System Settings → Privacy", comment: "Link text to open System Settings Privacy section for microphone")
     static let permissionSystemNotificationEnable = NSLocalizedString("permission.system.notification.enable", value: "Enable System Notifications", comment: "Button to enable system notifications")
     static let permissionSystemNotificationWaiting = NSLocalizedString("permission.system.notification.waiting", value: "Waiting for system permission…", comment: "Text shown while waiting for user to respond to system notification permission dialog")
     static let permissionSystemNotificationEnabled = NSLocalizedString("permission.system.notification.enabled", value: "System notifications enabled!", comment: "Text shown after system notification permission has been granted")
@@ -1247,11 +1258,25 @@ struct UserText {
     static let identityTheftRestoration = NSLocalizedString("preferences.identityTheftRestoration", value: "Identity Theft Restoration", comment: "Title of the option to show the Identity Theft Restoration preferences")
     static let subscriptionSettings = NSLocalizedString("preferences.subscriptionSettings", value: "Subscription Settings", comment: "Title of the option to show the Subscription Settings preferences")
     static let duckPlayer = NSLocalizedString("preferences.duck-player", value: "Duck Player", comment: "Title of the option to show the Duck Player browser preferences")
-    static let youTubeAdBlocking = NSLocalizedString("preferences.youtube-ad-blocking", value: "YouTube Ad Blocking", comment: "Title of the option to show the YouTube Ad Blocking preferences")
-    static let youTubeAdBlockingExplanation = NSLocalizedString("preferences.youtube-ad-blocking.explanation", value: "DuckDuckGo removes video ads on YouTube, so you can watch videos without interruption.", comment: "Explanation of the YouTube Ad Blocking feature")
+    static let youTubeAdBlocking = NSLocalizedString("preferences.youtube-ad-blocking", value: "Ad Blocking", comment: "Title of the option to show the Ad Blocking preferences")
+    static let adBlockingDescription = NSLocalizedString("preferences.ad-blocking.description", value: "Blocks invasive trackers before they load, effectively eliminating ads that rely on tracking", comment: "Description of the Ad Blocking feature in preferences")
+    static let adBlockingYouTubeSectionHeader = NSLocalizedString("preferences.ad-blocking.youtube-section-header", value: "YouTube Ad Blocking", comment: "Section header for YouTube-specific ad blocking settings")
+    static let youTubeAdBlockingExplanation = NSLocalizedString("preferences.youtube-ad-blocking.explanation", value: "DuckDuckGo blocks video ads on YouTube, so you can watch videos without interruption.", comment: "Explanation of the YouTube Ad Blocking feature")
     static let youTubeAdBlockingToggle = NSLocalizedString("preferences.youtube-ad-blocking.toggle", value: "Block ads on YouTube", comment: "Toggle label for enabling YouTube ad blocking")
+    static let youTubeAdBlockingDisabledUntilRelaunch = NSLocalizedString("preferences.youtube-ad-blocking.disabled-until-relaunch", value: "Disabled until relaunch.", comment: "Sub-line shown below the YouTube Ad Blocking toggle when the user has temporarily disabled ad blocking for the current app session")
+    static let youTubeAdBlockUnavailableTitle = NSLocalizedString("preferences.youtube-ad-blocking.unavailable.title", value: "YouTube Ad Blocking Unavailable", comment: "Title of the message shown when YouTube Ad Blocking is currently unavailable due to remote changes")
+    static let youTubeAdBlockUnavailableMessage = NSLocalizedString("preferences.youtube-ad-blocking.unavailable.message", value: "Ad Blocking has been affected by recent changes to YouTube. We're working to fix these issues and appreciate your understanding", comment: "Body text of the message shown when YouTube Ad Blocking is currently unavailable due to remote changes")
+    static let youTubeAdBlockingPopoverAlwaysOn = NSLocalizedString("preferences.youtube-ad-blocking.popover.always-on", value: "Always On", comment: "YouTube Ad Block popover dropdown option that keeps ad blocking always on")
+    static let youTubeAdBlockingPopoverDisableUntilRelaunch = NSLocalizedString("preferences.youtube-ad-blocking.popover.disable-until-relaunch", value: "Disable Until Relaunch", comment: "YouTube Ad Block popover dropdown option that disables ad blocking for the current app session only")
+    static let youTubeAdBlockingPopoverAlwaysOff = NSLocalizedString("preferences.youtube-ad-blocking.popover.always-off", value: "Always Off", comment: "YouTube Ad Block popover dropdown option that keeps ad blocking always off")
+    static let youTubeAdBlockingPopoverRowTitle = NSLocalizedString("preferences.youtube-ad-blocking.popover.row-title", value: "YouTube Ad Blocking", comment: "Title row in the YouTube Ad Blocking address bar popover, next to the on/off dropdown")
+    static let youTubeAdBlockingPopoverRowDescription = NSLocalizedString("preferences.youtube-ad-blocking.popover.row-description", value: "If you encounter video playback issues, disabling Ad Blocking may fix the issue.", comment: "Description below the on/off dropdown in the YouTube Ad Blocking address bar popover")
+    static let youTubeAdBlockingPopoverBreakageReportTitle = NSLocalizedString("preferences.youtube-ad-blocking.popover.breakage-report.title", value: "YouTube Ad Blocking not working?", comment: "Title of the breakage report card shown in the YouTube Ad Blocking popover after the user disables ad blocking")
+    static let youTubeAdBlockingPopoverBreakageReportSendButton = NSLocalizedString("preferences.youtube-ad-blocking.popover.breakage-report.send-button", value: "Send Report", comment: "Button label that sends a breakage report from the YouTube Ad Blocking popover")
+    static let youTubeAdBlockingPopoverBreakageReportDescription = NSLocalizedString("preferences.youtube-ad-blocking.popover.breakage-report.description", value: "Send an anonymous breakage report to DuckDuckGo. Help make Ad Blocking better for everyone!", comment: "Description below the breakage report send button in the YouTube Ad Blocking popover")
     static let youTubeAdBlockingToggleFooter = NSLocalizedString("preferences.youtube-ad-blocking.toggle.footer", value: "When on, DuckDuckGo will anonymously detect ad blocking interference or YouTube errors, to improve the experience for everyone. DuckDuckGo never sees which videos you view or any personally identifiable information.", comment: "Description shown below the YouTube ad blocking toggle")
     static let youTubeAdBlockingLearnMoreButton = NSLocalizedString("preferences.youtube-ad-blocking.learn-more", value: "Learn More", comment: "Learn more button shown below the YouTube ad blocking toggle description")
+    static let youTubeAdBlockingTooltip = NSLocalizedString("tooltip.youtube-ad-blocking.show", value: "YouTube Ad Blocking", comment: "Tooltip for the YouTube Ad Blocking address bar button")
     static let about = NSLocalizedString("preferences.about", value: "About", comment: "Title of the option to show the About screen")
     static let aiFeatures = NSLocalizedString("preferences.aiFeatures", value: "AI Features", comment: "Title of the option to show AI features in preferences")
     static let duckAIShortcuts = NSLocalizedString("preferences.duck-ai-shortcuts", value: "Duck.ai Shortcuts", comment: "Title of a subsection in preferences containing shortcut preferences")
@@ -1375,23 +1400,15 @@ struct UserText {
 
     // MARK: - macOS Version is unsupported
 
-    static let aboutUnsupportedDeviceInfo1 = NSLocalizedString("preferences.about.unsupported-device-info1", value: "DuckDuckGo is no longer providing browser updates for your version of macOS.", comment: "This string represents a message informing the user that DuckDuckGo is no longer providing browser updates for their version of macOS")
-    static func aboutUnsupportedDeviceInfo2(version: String) -> String {
-        let localized = NSLocalizedString("preferences.about.unsupported-device-info2", value: "Please update to macOS %@ or later to use the most recent version of DuckDuckGo. You can also keep using your current version of the browser, but it will not receive further updates.", comment: "Copy in section that tells the user to update their macOS version since their current version is unsupported")
-        return String(format: localized, version)
-    }
-
     static let unsupportedDeviceInfoAlertHeader = NSLocalizedString("unsupported.device.info.alert.header", value: "Your version of macOS is no longer supported.", comment: "his string represents the header for an alert informing the user that their version of macOS is no longer supported")
 
-    // MARK: - macOS Version will soon be unsupported
+    // MARK: - Big Sur end-of-support launch notice
 
-    static let aboutWillSoonBeUnsupportedDeviceInfo1 = NSLocalizedString("preferences.about.will-soon-be-unsupported-device-info1", value: "DuckDuckGo will soon stop providing browser updates for your version of macOS.", comment: "This string informs the user that DuckDuckGo will soon discontinue browser updates for their version of macOS")
-    static func aboutWillSoonBeUnsupportedDeviceInfo2(version: String) -> String {
-        let localized = NSLocalizedString("preferences.about.will-soon-be-unsupported-device-info2", value: "Please update to macOS %@ or later to continue receiving DuckDuckGo browser updates. You can still use your current browser version, but updates will be discontinued soon.", comment: "This string informs the user to update their macOS version to continue receiving DuckDuckGo browser updates, as their current version of macOS will soon be unsupported")
-        return String(format: localized, version)
-    }
-
-    static let aboutWillSoonBeUnsupportedDeviceInfoAlertHeader = NSLocalizedString("preferences.about.will-soon-be-unsupported-device-info-alert-header", value: "Your version of macOS will soon be unsupported.", comment: "This string represents the header for an alert informing the user that their version of macOS will soon be unsupported")
+    static let bigSurEndOfSupportNoticeTitle = NSLocalizedString("big-sur-end-of-support.title", value: "Big Sur support has ended", comment: "Title of the on-launch alert shown to users running macOS Big Sur after support has ended")
+    static let bigSurEndOfSupportNoticeMessage = NSLocalizedString("big-sur-end-of-support.message", value: "Update macOS to Monterey or later to keep getting new DuckDuckGo features, fixes, and security improvements.", comment: "Body of the on-launch alert shown to users running macOS Big Sur after support has ended")
+    static let bigSurEndOfSupportNoticeDontShowAgain = NSLocalizedString("big-sur-end-of-support.dont-show-again", value: "Don’t Show Again", comment: "Button that permanently dismisses the Big Sur end-of-support alert")
+    static let bigSurEndOfSupportNoticeUpdateMacOS = NSLocalizedString("big-sur-end-of-support.update-macos", value: "Update macOS", comment: "Primary button on the Big Sur end-of-support alert; matches the RMF message’s primaryActionText")
+    static let bigSurEndOfSupportNoticeMessageIncapable = NSLocalizedString("big-sur-end-of-support.message-incapable", value: "DuckDuckGo updates have ended for macOS Big Sur. Your browser will keep working as it does today.", comment: "Body of the on-launch alert shown to users whose Mac cannot upgrade past Big Sur — does not prompt the user to update.")
 
     static func moreAt(url: String) -> String {
         let localized = NSLocalizedString("preferences.about.more-at", value: "More at %@", comment: "Link to the about page")

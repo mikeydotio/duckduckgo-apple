@@ -21,13 +21,15 @@ import AppKitExtensions
 import AppUpdaterShared
 import AttributedMetric
 import AutoconsentStats
-import BWManagementShared
 import Bookmarks
 import BrokenSitePrompt
 import BrowserServicesKit
+import BWManagementShared
 import Cocoa
 import Combine
+import CombineExtensions
 import Common
+import ConcurrencyExtensions
 import Configuration
 import ContentScopeScripts
 import CoreData
@@ -38,6 +40,7 @@ import DataBrokerProtectionCore
 import DDGSync
 import DuckAiDataStore
 import FeatureFlags
+import FoundationExtensions
 import Freemium
 import History
 import HistoryView
@@ -69,7 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 #if DEBUG
     let disableCVDisplayLinkLogs: Void = {
-        // Disable CVDisplayLink logs
+        // Disable noisy CVDisplayLink logs
         CFPreferencesSetValue("cv_note" as CFString,
                               0 as CFPropertyList,
                               "com.apple.corevideo" as CFString,
@@ -104,8 +107,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let featureFlagger: FeatureFlagger
     private(set) lazy var adBlockingAvailability: AdBlockingAvailabilityProviding = AdBlockingAvailability(
         featureFlagger: featureFlagger,
-        isEnabledByUserProvider: {
-            UserDefaults.standard.object(forKey: UserDefaultsKeys.youTubeAdBlockingEnabled.rawValue) as? Bool ?? false
+        isEnabledByUserProvider: { [featureFlagger] in
+            UserDefaults.standard.object(forKey: UserDefaultsKeys.youTubeAdBlockingEnabled.rawValue) as? Bool
+                ?? featureFlagger.isFeatureOn(.adBlockingExtensionEnabledByDefault)
         }
     )
     let visualizeFireSettingsDecider: VisualizeFireSettingsDecider
@@ -793,7 +797,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         freeTrialConversionService = DefaultFreeTrialConversionInstrumentationService(
             wideEvent: wideEvent,
             pixelHandler: FreeTrialPixelHandler(),
-            subscriptionFetcher: { try? await defaultSubscriptionManager.getSubscription(cachePolicy: .cacheFirst) },
+            subscriptionFetcher: { try? await defaultSubscriptionManager.getSubscription() },
             isFeatureEnabled: { [featureFlagger] in featureFlagger.isFeatureOn(.freeTrialConversionWideEvent) }
         )
         freeTrialConversionService.startObservingSubscriptionChanges()
@@ -840,20 +844,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         themeManager = ThemeManager(appearancePreferences: appearancePreferences, featureFlagger: featureFlagger, displaysTabsAnimations: displaysTabsAnimations)
 
+        let voiceChatPermissionOverride = DuckAiVoiceChatPermissionOverride(featureFlagger: featureFlagger)
 #if DEBUG
         if AppVersion.runType.requiresEnvironment {
             fireproofDomains = FireproofDomains(store: FireproofDomainsStore(database: database.db, tableName: "FireproofDomains"), tld: tld)
             faviconManager = FaviconManager(cacheType: .standard(database.db), bookmarkManager: bookmarkManager, fireproofDomains: fireproofDomains, privacyConfigurationManager: privacyConfigurationManager)
-            permissionManager = PermissionManager(store: LocalPermissionStore(database: database.db))
+            permissionManager = PermissionManager(store: LocalPermissionStore(database: database.db), decisionOverride: voiceChatPermissionOverride)
         } else {
             fireproofDomains = FireproofDomains(store: FireproofDomainsStore(context: nil), tld: tld)
             faviconManager = FaviconManager(cacheType: .inMemory, bookmarkManager: bookmarkManager, fireproofDomains: fireproofDomains, privacyConfigurationManager: privacyConfigurationManager)
-            permissionManager = PermissionManager(store: LocalPermissionStore(database: nil))
+            permissionManager = PermissionManager(store: LocalPermissionStore(database: nil), decisionOverride: voiceChatPermissionOverride)
         }
 #else
         fireproofDomains = FireproofDomains(store: FireproofDomainsStore(database: database.db, tableName: "FireproofDomains"), tld: tld)
         faviconManager = FaviconManager(cacheType: .standard(database.db), bookmarkManager: bookmarkManager, fireproofDomains: fireproofDomains, privacyConfigurationManager: privacyConfigurationManager)
-        permissionManager = PermissionManager(store: LocalPermissionStore(database: database.db))
+        permissionManager = PermissionManager(store: LocalPermissionStore(database: database.db), decisionOverride: voiceChatPermissionOverride)
 #endif
         notificationService = UserNotificationAuthorizationService()
 
@@ -876,6 +881,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             duckAiNativeStorageHandler = nil
             burnerDuckAiStorageRegistry = nil
+        }
+
+        // Runs independently of `aiChatNativeStorage`. The native-storage handler is an optional
+        // dependency used to clear the legacy in-app voice-mode consent for users who had a
+        // persisted `.deny`; the cleanup nil-checks it internally. The override is already
+        // installed above — the cleanup just reconciles the FE-side stale flag.
+        if featureFlagger.isFeatureOn(.aiChatNativeVoicePermissionFlow) {
+            DuckAiVoiceChatLegacyConsentCleanup(
+                permissionManager: permissionManager,
+                storageHandler: duckAiNativeStorageHandler
+            ).runIfNeeded()
         }
 
         aiChatHistoryCleaner = AIChatHistoryCleaner(featureFlagger: featureFlagger,
@@ -906,7 +922,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             keyValueStore: UserDefaults.standard
         )
         dockPreferences = DockPreferencesModel(
-            featureFlagger: featureFlagger,
             dockCustomizer: dockCustomization,
             pixelFiring: PixelKit.shared
         )
@@ -914,7 +929,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         duckPlayer = DuckPlayer(
             preferencesPersistor: DuckPlayerPreferencesUserDefaultsPersistor(),
             privacyConfigurationManager: privacyConfigurationManager,
-            internalUserDecider: internalUserDecider
+            internalUserDecider: internalUserDecider,
+            featureFlagger: featureFlagger
         )
         newTabPageCustomizationModel = NewTabPageCustomizationModel(appearancePreferences: appearancePreferences)
 
@@ -1455,6 +1471,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         remoteMessagingClient?.startRefreshingRemoteMessages()
 
+        if SupportedOSChecker().showsSupportWarning {
+            BigSurEndOfSupportNoticePresenter(keyValueStore: keyValueStore).showIfNeeded()
+        }
+
         // This messaging system has been replaced by RMF, but we need to clean up the message manifest for any users who had it stored.
         let deprecatedRemoteMessagingStorage = DefaultSurveyRemoteMessagingStorage.surveys()
         deprecatedRemoteMessagingStorage.removeStoredMessagesIfNecessary()
@@ -1642,7 +1662,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             self.updateController = appStoreFactory.instantiate(
                 internalUserDecider: internalUserDecider,
-                featureFlagger: featureFlagger,
                 pixelFiring: PixelKit.shared,
                 notificationPresenter: notificationPresenter,
                 isOnboardingFinished: { OnboardingActionsManager.isOnboardingFinished }
@@ -1913,6 +1932,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .removeDuplicates()
             .eraseToAnyPublisher()
 
+        let adBlockingDefaultsPublisher = featureFlagger.updatesPublisher
+            .compactMap { [weak featureFlagger] in
+                featureFlagger?.isFeatureOn(.adBlockingExtensionEnabledByDefault)
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+
         youTubeAdBlockingCancellable = NotificationCenter.default
             .publisher(for: YouTubeAdBlockingPreferences.youTubeAdBlockingEnabledDidChangeNotification)
             .sink { [weak self] _ in
@@ -1926,6 +1952,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             featureFlagPublisher: webExtensionsPublisher,
             embeddedExtensionFlagPublisher: embeddedExtensionPublisher,
             adBlockingExtensionFlagPublisher: adBlockingExtensionPublisher,
+            adBlockingDefaultsFlagPublisher: adBlockingDefaultsPublisher,
             onFeatureFlagEnabled: { [weak self] in
                 await self?.initializeWebExtensions()
             },
@@ -1936,6 +1963,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 await self?.syncEmbeddedExtensions()
             },
             onAdBlockingExtensionFlagEnabled: { [weak self] in
+                await self?.syncEmbeddedExtensions()
+            },
+            onAdBlockingDefaultsFlagChanged: { [weak self] in
                 await self?.syncEmbeddedExtensions()
             }
         )
@@ -2391,7 +2421,7 @@ struct DuckAiNativeStoragePixelAdapter: DuckAiNativeStoragePixelFiring {
         case .initSuccess:
             PixelKit.fire(GeneralPixel.duckAiNativeStorageInitSuccess)
         case .initError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageInitError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageInitError, error: error), frequency: .dailyAndStandard)
         case .migrationDone(let key):
             PixelKit.fire(GeneralPixel.duckAiNativeStorageMigrationDoneUnique(key: key), frequency: .uniqueByName)
             PixelKit.fire(GeneralPixel.duckAiNativeStorageMigrationDoneCount(key: key))
@@ -2404,26 +2434,28 @@ struct DuckAiNativeStoragePixelAdapter: DuckAiNativeStoragePixelFiring {
         case .migrationError(let error):
             PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageMigrationError, error: error))
         case .settingsPutError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageSettingsPutError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageSettingsPutError, error: error), frequency: .dailyAndStandard)
         case .settingsGetError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageSettingsGetError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageSettingsGetError, error: error), frequency: .dailyAndStandard)
         case .settingsDeleteError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageSettingsDeleteError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageSettingsDeleteError, error: error), frequency: .dailyAndStandard)
         case .chatPutError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageChatPutError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageChatPutError, error: error), frequency: .dailyAndStandard)
         case .chatGetError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageChatGetError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageChatGetError, error: error), frequency: .dailyAndStandard)
         case .chatDeleteError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageChatDeleteError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageChatDeleteError, error: error), frequency: .dailyAndStandard)
         case .filePutError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFilePutError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFilePutError, error: error), frequency: .dailyAndStandard)
         case .fileGetError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFileGetError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFileGetError, error: error), frequency: .dailyAndStandard)
         case .fileListError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFileListError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFileListError, error: error), frequency: .dailyAndStandard)
         case .fileDeleteError(let error):
-            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFileDeleteError, error: error))
+            PixelKit.fire(DebugEvent(GeneralPixel.duckAiNativeStorageFileDeleteError, error: error), frequency: .dailyAndStandard)
         case .lastUsedModelParseError:
+            break
+        case .lastUsedReasoningModeParseError:
             break
         }
     }

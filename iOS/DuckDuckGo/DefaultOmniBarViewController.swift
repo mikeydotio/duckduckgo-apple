@@ -38,6 +38,9 @@ final class DefaultOmniBarViewController: OmniBarViewController {
 
     private var animateNextEditingTransition = true
     private var isSuppressingKeyboardTransfer = false
+    /// Applied to the next `OmniBarEditingStateViewController` at creation so the Dax logo
+    /// is never shown between the field activating and the chat-path completion dialog appearing.
+    private var pendingHideEditingStateLogo = false
 
     weak var unifiedToggleInputOmnibarActivating: UnifiedToggleInputOmnibarActivating?
 
@@ -108,9 +111,12 @@ final class DefaultOmniBarViewController: OmniBarViewController {
             return false
         }
 
-        if unifiedToggleInputOmnibarActivating?.activateFromOmnibarIfNeeded(
-            currentText: extractCurrentTextForEditing(textField)
-        ) == .intercept {
+        let activationDecision = unifiedToggleInputOmnibarActivating?.activateFromOmnibarIfNeeded(
+            currentText: extractCurrentTextForEditing(textField),
+            tapped: textFieldTapped,
+            textEntryMode: textEntryMode)
+
+        if activationDecision == .intercept {
             return false
         }
 
@@ -192,6 +198,13 @@ final class DefaultOmniBarViewController: OmniBarViewController {
         editingStateViewController?.dismissAnimated()
     }
 
+    override func setEditingStateLogoHidden(_ hidden: Bool) {
+        // Always update the pending flag so the next created editing-state VC picks it up,
+        // even if a stale weak `editingStateViewController` ref is currently being torn down.
+        pendingHideEditingStateLogo = hidden
+        editingStateViewController?.setLogoHidden(hidden)
+    }
+
     // MARK: - Layout
 
     override func animateDismissButtonTransition(from oldView: UIView, to newView: UIView) {
@@ -232,6 +245,29 @@ final class DefaultOmniBarViewController: OmniBarViewController {
             barView.customIconView.centerYAnchor.constraint(equalTo: customIconSuperview.centerYAnchor),
             barView.customIconView.leadingAnchor.constraint(equalTo: customIconSuperview.leadingAnchor),
         ])
+    }
+
+    override func refreshText(forUrl url: URL?, forceFullURL: Bool) {
+        /// Skip while the expanded duck.ai panel is open — otherwise the page title bleeds
+        /// through the transparent aiChatTextView. https://app.asana.com/1/137249556945/project/1201011656765697/task/1215084286493408?focus=true
+        if omniBarView.isSearchAreaExpanded {
+            return
+        }
+        super.refreshText(forUrl: url, forceFullURL: forceFullURL)
+    }
+
+    override func enterAIChatMode() {
+        /// Skip while the user is editing — would reveal the favicon over the open panel.
+        ///  https://app.asana.com/1/137249556945/project/1201011656765697/task/1215084286493408?focus=true
+        if omniBarView.isSearchAreaExpanded || omniBarView.textField.isEditing {
+            return
+        }
+        super.enterAIChatMode()
+
+        if dependencies.aiChatAddressBarExperience.isIPadAIToggleExperienceEnabled,
+           state is SmallOmniBarState.AIChatModeState {
+            refreshState(SmallOmniBarState.AIChatTabModeState(dependencies: dependencies, isLoading: state.isLoading))
+        }
     }
 
     override func updateInterface(from oldState: any OmniBarState, to state: any OmniBarState) {
@@ -306,11 +342,14 @@ final class DefaultOmniBarViewController: OmniBarViewController {
         let switchBarHandler = createSwitchBarHandler(for: textField, initialToggleState: textEntryMode)
         let shouldAutoSelectText = shouldAutoSelectTextForUrl(textField)
 
-        let escapeHatch = omniDelegate?.escapeHatchForEditingState()
+        let escapeHatchModel = omniDelegate?.escapeHatchForEditingState()
+        let initialLogoHidden = pendingHideEditingStateLogo
+        pendingHideEditingStateLogo = false
         let editingStateViewController = OmniBarEditingStateViewController(
             switchBarHandler: switchBarHandler,
             duckAiNativeStorageHandler: dependencies.duckAiNativeStorageHandler,
-            escapeHatch: escapeHatch
+            escapeHatchModel: escapeHatchModel,
+            initialLogoHidden: initialLogoHidden
         )
         editingStateViewController.delegate = self
 
@@ -391,6 +430,11 @@ extension DefaultOmniBarViewController {
                 omniDelegate?.onOmniQuerySubmitted(query)
             } else {
                 DailyPixel.fireDailyAndCount(pixel: .aiChatIPadTogglePromptSubmitted)
+                /// Collapse and resign instantly so a quick re-tap doesn't race the post-submit
+                /// collapse animation.
+                /// https://app.asana.com/1/137249556945/project/1201011656765697/task/1215084286493408?focus=true
+                omniBarView.setSearchAreaExpanded(false, animated: false)
+                omniBarView.aiChatTextView.resignFirstResponder()
                 omniDelegate?.onPromptSubmitted(query, tools: nil)
             }
         } else {

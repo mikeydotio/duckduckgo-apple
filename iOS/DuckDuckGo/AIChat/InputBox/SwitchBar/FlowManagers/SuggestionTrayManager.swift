@@ -65,9 +65,10 @@ final class SuggestionTrayManager: NSObject {
     // MARK: - Properties
     
     weak var delegate: SuggestionTrayManagerDelegate?
-    
+
     private let switchBarHandler: SwitchBarHandling
     private let dependencies: SuggestionTrayDependencies
+    private let autocompleteHorizontalInset: CGFloat
     private var cancellables = Set<AnyCancellable>()
     
     private(set) var suggestionTrayViewController: SuggestionTrayViewController?
@@ -109,9 +110,10 @@ final class SuggestionTrayManager: NSObject {
 
     // MARK: - Initialization
     
-    init(switchBarHandler: SwitchBarHandling, dependencies: SuggestionTrayDependencies) {
+    init(switchBarHandler: SwitchBarHandling, dependencies: SuggestionTrayDependencies, autocompleteHorizontalInset: CGFloat = 0) {
         self.switchBarHandler = switchBarHandler
         self.dependencies = dependencies
+        self.autocompleteHorizontalInset = autocompleteHorizontalInset
         super.init()
         setupBindings()
     }
@@ -126,9 +128,8 @@ final class SuggestionTrayManager: NSObject {
         suggestionTrayViewController?.setFavoritesSectionTitle(title)
     }
 
-    func setEscapeHatch(_ model: EscapeHatchModel?, openTabCount: Int) {
+    func setEscapeHatch(_ model: EscapeHatchModel?) {
         suggestionTrayViewController?.setEscapeHatch(model)
-        suggestionTrayViewController?.setOpenTabCount(openTabCount)
     }
 
     func setAdditionalTopInset(_ inset: CGFloat) {
@@ -136,7 +137,7 @@ final class SuggestionTrayManager: NSObject {
     }
 
     /// Installs the suggestion tray in the provided container view
-    func installInContainerView(_ containerView: UIView, parentViewController: UIViewController, escapeHatch: EscapeHatchModel? = nil, openTabCount: Int = 0) {
+    func installInContainerView(_ containerView: UIView, parentViewController: UIViewController, escapeHatchModel: EscapeHatchModel? = nil) {
         guard suggestionTrayViewController == nil else { return }
         
 
@@ -178,8 +179,7 @@ final class SuggestionTrayManager: NSObject {
             self.delegate?.suggestionTrayManagerDidUpdateVisibility(self)
         }
         controller.didMove(toParent: parentViewController)
-        controller.setEscapeHatch(escapeHatch)
-        controller.setOpenTabCount(openTabCount)
+        controller.setEscapeHatch(escapeHatchModel)
 
         showInitialSuggestions()
         containerView.layoutIfNeeded()
@@ -202,7 +202,7 @@ final class SuggestionTrayManager: NSObject {
         if canShow {
             // Don't set view.isHidden = false here — the tray stays hidden until
             // results arrive. autocompleteDidReloadResults shows it if non-empty.
-            suggestionTray.fill()
+            suggestionTray.fill(horizontalInset: autocompleteHorizontalInset)
             suggestionTray.show(for: .autocomplete(query: query), animated: animated)
         } else {
             suggestionTray.didHide(animated: animated)
@@ -271,10 +271,19 @@ final class SuggestionTrayManager: NSObject {
 
         if canShowSuggestion {
             suggestionTray.view.isHidden = false
-            suggestionTray.fill()
+            suggestionTray.fill(horizontalInset: horizontalInset(for: type))
             suggestionTray.show(for: type, animated: animated)
         } else {
             suggestionTray.didHide(animated: animated)
+        }
+    }
+
+    private func horizontalInset(for type: SuggestionTrayViewController.SuggestionType) -> CGFloat {
+        switch type {
+        case .autocomplete:
+            return autocompleteHorizontalInset
+        case .favorites:
+            return 0
         }
     }
     

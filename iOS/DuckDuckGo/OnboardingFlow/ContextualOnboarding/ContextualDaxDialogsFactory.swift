@@ -97,12 +97,13 @@ final class DefaultContextualDaxDialogsFactory: ContextualDaxDialogsFactory {
                     onSizeUpdate: onSizeUpdate
                 )
             )
-        case .fire:
+        case .fire(let fireVariant):
             rootView = AnyView(
                 fireDialog(
                     title: spec.title,
                     message: spec.message,
                     delegate: delegate,
+                    fireVariant: fireVariant,
                     pixelName: spec.pixelName,
                     allowsManualDismiss: spec.allowsManualDismiss
                 )
@@ -259,7 +260,12 @@ final class DefaultContextualDaxDialogsFactory: ContextualDaxDialogsFactory {
             delegate?.didShowContextualOnboardingTrackersDialog()
         }
         .onFirstAppear { [weak self] in
+            // Fire the general dialog impression pixel for all users, plus an additional
+            // chat-path-specific pixel when the user is in the Duck.ai experiment flow.
             self?.contextualOnboardingPixelReporter.measureScreenImpression(event: spec.pixelName)
+            if self?.contextualOnboardingSettings.chatPathPhase == .trackerToEOJ {
+                self?.contextualOnboardingPixelReporter.measureScreenImpression(event: .onboardingChatPathTrackersBlockedUnique)
+            }
             self?.contextualOnboardingPixelReporter.measureScreenImpression(.trackersBlocked(.shown))
         }
     }
@@ -268,6 +274,7 @@ final class DefaultContextualDaxDialogsFactory: ContextualDaxDialogsFactory {
         title: String?,
         message: String,
         delegate: ContextualOnboardingDelegate,
+        fireVariant: DaxDialogs.BrowsingSpec.SpecType.FireVariant,
         pixelName: Pixel.Event,
         allowsManualDismiss: Bool
     ) -> some View {
@@ -278,8 +285,16 @@ final class DefaultContextualDaxDialogsFactory: ContextualDaxDialogsFactory {
 
         return OnboardingFireDialog(title: title, message: message, onManualDismiss: onManualDismiss)
             .onFirstAppear { [weak self] in
-                self?.contextualOnboardingPixelReporter.measureScreenImpression(event: pixelName)
-                self?.contextualOnboardingPixelReporter.measureScreenImpression(.fireButton(.shown))
+                guard let self else { return }
+                switch fireVariant {
+                case .standard:
+                    self.contextualOnboardingPixelReporter.measureScreenImpression(event: pixelName)
+                case .duckAIOnboarding:
+                    if self.onboardingManager.currentOnboardingFlow == .default {
+                        self.contextualOnboardingPixelReporter.measureDuckAIExperimentFireDialogImpression()
+                    }
+                }
+                self.contextualOnboardingPixelReporter.measureScreenImpression(.fireButton(.shown))
             }
     }
 
@@ -319,6 +334,8 @@ protocol ContextualOnboardingSettings {
     var userHasSeenTrackersDialog: Bool { get }
     var userHasSeenFireDialog: Bool { get }
     var userHasSeenTryVisitSiteDialog: Bool { get }
+    /// The current phase of the Duck.ai chat-first onboarding path.
+    var chatPathPhase: DaxDialogs.ChatPathPhase { get }
 }
 
 extension DefaultDaxDialogsSettings: ContextualOnboardingSettings {

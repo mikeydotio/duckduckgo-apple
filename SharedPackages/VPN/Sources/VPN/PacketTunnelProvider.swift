@@ -21,12 +21,14 @@
 
 import Combine
 import Common
+import ConcurrencyExtensions
 import Foundation
+import FoundationExtensions
 import Network
 import NetworkExtension
-import UserNotifications
 import os.log
 import PixelKit
+import UserNotifications
 
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
@@ -38,7 +40,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case tunnelStopAttempt(_ step: TunnelStopAttemptStep)
         case tunnelUpdateAttempt(_ step: TunnelUpdateAttemptStep)
         case tunnelWakeAttempt(_ step: TunnelWakeAttemptStep)
-        case tunnelStartOnDemandWithoutAccessToken
+        case tunnelStartOnDemandWithoutAccessToken(_ error: Error)
         case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result, location: VPNSettings.SelectedLocation)
         case rekeyAttempt(_ step: RekeyAttemptStep)
@@ -293,7 +295,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let serverSelectionResolver: VPNServerSelectionResolving
 
     @MainActor
-    private var lastSelectedServer: NetworkProtectionServer? {
+    var lastSelectedServer: NetworkProtectionServer? {
         didSet {
             if lastSelectedServer != oldValue {
                 bumpTunnelPathGeneration()
@@ -384,6 +386,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Connection Tester
 
     private let connectionTester: ConnectionTesting
+
+    // MARK: - Monitors
+
+    private var tunnelMonitors: TunnelMonitors!
 
     // MARK: - Cancellables
 
@@ -539,7 +545,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handshakeReporter: self.adapter
         )
 
-        self.failureRecoveryHandler = failureRecoveryHandler ?? FailureRecoveryHandler(
+        let resolvedFailureRecoveryHandler = failureRecoveryHandler ?? FailureRecoveryHandler(
             deviceManager: self.deviceManager,
             reassertingControl: self,
             eventHandler: { [weak self] step in
@@ -547,9 +553,39 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         )
 
-        self.connectionTester.resultHandler = { @MainActor [weak self] result in
-            self?.handleConnectionTestResult(result)
-        }
+        self.tunnelMonitors = TunnelMonitors(
+            tunnelFailureMonitor: self.tunnelFailureMonitor,
+            latencyMonitor: self.latencyMonitor,
+            entitlementMonitor: self.entitlementMonitor,
+            serverStatusMonitor: self.serverStatusMonitor,
+            keyExpirationTester: self.keyExpirationTester,
+            connectionTester: self.connectionTester,
+            failureRecoveryHandler: resolvedFailureRecoveryHandler,
+            tunnelState: self,
+            settings: self.settings,
+            events: self.providerEvents,
+            entitlementCheck: self.entitlementCheck,
+            isConnectionTesterEnabled: { [weak self] in
+                self?.isConnectionTesterEnabled ?? true
+            },
+            onReconfigureForMigration: { @MainActor [weak self] in
+                guard let self else { throw CancellationError() }
+                try await self.updateTunnelConfiguration(
+                    updateMethod: .selectServer(self.currentServerSelectionMethod),
+                    reassert: true,
+                    regenerateKey: true,
+                    attemptSource: .serverMigration)
+            },
+            onConnectionTestResult: { @MainActor [weak self] result in
+                self?.handleConnectionTestResult(result)
+            },
+            onFailureRecoveryConfigUpdate: { @MainActor [weak self] result in
+                try await self?.handleFailureRecoveryConfigUpdate(result: result)
+            },
+            onAccessRevoked: { @MainActor [weak self] in
+                await self?.handleAccessRevoked(dueTo: TunnelError.vpnAccessRevokedDetectedByMonitorCheck)
+            }
+        )
 
         self.messageHandler = PacketTunnelMessageHandler(
             keyStore: self.keyStore,
@@ -758,8 +794,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             Logger.networkProtection.log("🟢 Startup options loaded correctly")
 
 #if os(iOS)
-            if (try? await tokenHandlerProvider.getToken()) == nil {
-                throw TunnelError.startingTunnelWithoutAuthToken(internalError: nil)
+            do {
+                _ = try await tokenHandlerProvider.getToken()
+            } catch {
+                throw TunnelError.startingTunnelWithoutAuthToken(internalError: error)
             }
 
             // Load resources that require the device to be unlocked.
@@ -777,7 +815,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // manual start attempt that preceded failed, or if the subscription has
                 // expired.  In either case it should be enough to record the manual failures
                 // for these prerequisited to avoid flooding our metrics.
-                providerEvents.fire(.tunnelStartOnDemandWithoutAccessToken)
+                providerEvents.fire(.tunnelStartOnDemandWithoutAccessToken(error))
                 Logger.networkProtection.log("Going to sleep...")
                 try? await Task.sleep(interval: .seconds(15))
                 Logger.networkProtection.log("Waking up...")
@@ -1333,135 +1371,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         tunnelPathGeneration &+= 1
     }
 
-    // MARK: - Monitors
-
-    private func startTunnelFailureMonitor() async {
-        if await tunnelFailureMonitor.isStarted {
-            await tunnelFailureMonitor.stop()
-        }
-
-        await tunnelFailureMonitor.start { [weak self] result in
-            guard let self else {
-                return
-            }
-
-            providerEvents.fire(.reportTunnelFailure(result: result))
-
-            switch result {
-            case .failureDetected:
-                startServerFailureRecovery()
-            case .failureRecovered:
-                Task {
-                    await self.failureRecoveryHandler.stop()
-                }
-            case .networkPathChanged: break
-            }
-        }
-    }
-
-    private var failureRecoveryHandler: FailureRecoveryHandling!
-
-    private func startServerFailureRecovery() {
-        Task {
-            guard let server = await self.lastSelectedServer else {
-                return
-            }
-            await self.failureRecoveryHandler.attemptRecovery(
-                to: server,
-                excludeLocalNetworks: protocolConfiguration.excludeLocalNetworks,
-                dnsSettings: self.settings.dnsSettings) { [weak self] generateConfigResult in
-
-                try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
-                self?.providerEvents.fire(.failureRecoveryAttempt(.completed(.unhealthy)))
-            }
-        }
-    }
+    // MARK: - Failure Recovery
 
     @MainActor
     private func handleFailureRecoveryConfigUpdate(result: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws {
         self.lastSelectedServer = result.server
         try await updateTunnelConfiguration(updateMethod: .useConfiguration(result.tunnelConfiguration), reassert: true, attemptSource: .failureRecovery)
-    }
-
-    @MainActor
-    private func startLatencyMonitor() async {
-        guard let ip = lastSelectedServerInfo?.ipv4 else {
-            await latencyMonitor.stop()
-            return
-        }
-        if await latencyMonitor.isStarted {
-            await latencyMonitor.stop()
-        }
-
-        if await isEntitlementInvalid() {
-            return
-        }
-
-        await latencyMonitor.start(serverIP: ip) { [weak self] result in
-            guard let self else { return }
-
-            switch result {
-            case .error:
-                self.providerEvents.fire(.reportLatency(result: .error, location: self.settings.selectedLocation))
-            case .quality(let quality):
-                self.providerEvents.fire(.reportLatency(result: .quality(quality), location: self.settings.selectedLocation))
-            }
-        }
-    }
-
-    private func startEntitlementMonitor() async {
-        if await entitlementMonitor.isStarted {
-            await entitlementMonitor.stop()
-        }
-
-        guard let entitlementCheck else {
-            Logger.networkProtection.fault("Expected entitlement check but didn't find one")
-            assertionFailure("Expected entitlement check but didn't find one")
-            return
-        }
-
-        await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
-            // Attempt tunnel shutdown & show messaging if the entitlement is verified to be invalid
-            // Ignore otherwise
-            switch result {
-            case .invalidEntitlement:
-                await self?.handleAccessRevoked(dueTo: TunnelError.vpnAccessRevokedDetectedByMonitorCheck)
-            case .validEntitlement, .error:
-                break
-            }
-        }
-    }
-
-    private func startServerStatusMonitor() async {
-        guard let serverName = await lastSelectedServerInfo?.name else {
-            await serverStatusMonitor.stop()
-            return
-        }
-
-        if await serverStatusMonitor.isStarted {
-            await serverStatusMonitor.stop()
-        }
-
-        await serverStatusMonitor.start(serverName: serverName) { status in
-            if status.shouldMigrate {
-                Task { [ weak self] in
-                    guard let self else { return }
-
-                    providerEvents.fire(.serverMigrationAttempt(.begin))
-
-                    do {
-                        try await self.updateTunnelConfiguration(
-                            updateMethod: .selectServer(currentServerSelectionMethod),
-                            reassert: true,
-                            regenerateKey: true,
-                            attemptSource: .serverMigration)
-                        providerEvents.fire(.serverMigrationAttempt(.success))
-                    } catch {
-                        providerEvents.fire(.serverMigrationAttempt(.failure(error)))
-                    }
-                }
-            }
-        }
     }
 
     @MainActor
@@ -1510,40 +1425,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public func startMonitors(testImmediately: Bool) async throws {
-        await startTunnelFailureMonitor()
-        await startLatencyMonitor()
-        await startEntitlementMonitor()
-        await startServerStatusMonitor()
-        await keyExpirationTester.start(testImmediately: testImmediately)
-
-        do {
-            try await startConnectionTester(testImmediately: testImmediately)
-        } catch {
-            Logger.networkProtection.error("🔴 Connection Tester error: \(error.localizedDescription, privacy: .public)")
-            throw error
-        }
+        try await tunnelMonitors.start(testImmediately: testImmediately)
     }
 
     @MainActor
     public func stopMonitors() async {
-        connectionTester.stop()
-        await keyExpirationTester.stop()
-        await self.tunnelFailureMonitor.stop()
-        await self.latencyMonitor.stop()
-        await self.entitlementMonitor.stop()
-        await self.serverStatusMonitor.stop()
-    }
-
-    // MARK: - Entitlement handling
-
-    private func isEntitlementInvalid() async -> Bool {
-        guard let entitlementCheck, case .success(false) = await entitlementCheck() else { return false }
-        return true
+        await tunnelMonitors.stop()
     }
 
     // MARK: - Connection Tester
 
-    private enum ConnectionTesterError: CustomNSError {
+    enum ConnectionTesterError: CustomNSError {
         case couldNotRetrieveInterfaceNameFromAdapter
         case testerFailedToStart(internalError: Error)
 
@@ -1561,30 +1453,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .testerFailedToStart(let internalError):
                 return [NSUnderlyingErrorKey: internalError as NSError]
             }
-        }
-    }
-
-    private func startConnectionTester(testImmediately: Bool) async throws {
-        guard isConnectionTesterEnabled else {
-            Logger.networkProtectionConnectionTester.log("The connection tester is disabled")
-            return
-        }
-
-        guard let interfaceName = adapter.interfaceName else {
-            throw ConnectionTesterError.couldNotRetrieveInterfaceNameFromAdapter
-        }
-
-        do {
-            try await connectionTester.start(tunnelIfName: interfaceName, testImmediately: testImmediately)
-        } catch {
-            switch error {
-            case NetworkProtectionConnectionTester.TesterError.couldNotFindInterface:
-                Logger.networkProtectionConnectionTester.log("Printing current proposed utun: \(String(reflecting: self.adapter.interfaceName), privacy: .public)")
-            default:
-                break
-            }
-
-            throw ConnectionTesterError.testerFailedToStart(internalError: error)
         }
     }
 
@@ -1826,7 +1694,16 @@ extension PacketTunnelProvider {
 extension PacketTunnelProvider: TunnelStateProviding {
     // connectionStatus — already public var @MainActor
     // currentServerSelectionMethod — already internal var @MainActor
+    // lastSelectedServer — already internal var @MainActor
     // lastSelectedServerInfo — already public var @MainActor
+
+    var tunnelInterfaceName: String? {
+        adapter.interfaceName
+    }
+
+    var excludeLocalNetworks: Bool {
+        protocolConfiguration.excludeLocalNetworks
+    }
 }
 
 // MARK: - TunnelLifecycleManaging

@@ -18,6 +18,7 @@
 
 import Combine
 import Common
+import FoundationExtensions
 import Foundation
 import NetworkExtension
 import Networking
@@ -453,12 +454,12 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
                     frequency: .legacyDailyAndCount,
                     includeAppVersionParameter: true)
             }
-        case .tunnelStartOnDemandWithoutAccessToken:
+        case .tunnelStartOnDemandWithoutAccessToken(let error):
             Logger.networkProtection.error("🔴 Starting tunnel without an auth token")
             if loopDetector.connectionLoopDetected { return }
 
             PixelKit.fire(
-                NetworkProtectionPixelEvent.networkProtectionTunnelStartAttemptOnDemandWithoutAccessToken,
+                NetworkProtectionPixelEvent.networkProtectionTunnelStartAttemptOnDemandWithoutAccessToken(error),
                 frequency: .legacyDailyAndCount,
                 includeAppVersionParameter: true)
         case .adapterEndTemporaryShutdownStateAttemptFailure(let error):
@@ -574,7 +575,7 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
 
         // MARK: -
 
-        let loopDetector = ConnectionFailureLoopDetector(store: defaults, isFeatureEnabled: true)
+        let loopDetector = ConnectionFailureLoopDetector(store: defaults)
 
         let tunnelHealthStore = NetworkProtectionTunnelHealthStore(notificationCenter: notificationCenter)
         let notificationsPresenter = NetworkProtectionNotificationsPresenterFactory().make(settings: settings, defaults: defaults)

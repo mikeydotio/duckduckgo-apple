@@ -17,11 +17,12 @@
 //
 
 import BrowserServicesKitTestsUtils
+import ConcurrencyExtensions
 import CoreData
 import Foundation
 import Persistence
-import RemoteMessagingTestsUtils
 import PersistenceTestingUtils
+import RemoteMessagingTestsUtils
 import XCTest
 @testable import RemoteMessaging
 
@@ -684,12 +685,12 @@ class RemoteMessagingStoreTests: XCTestCase {
             try context.save()
         }
 
-        let result = store.fetchScheduledRemoteMessage(surfaces: .allCases, trigger: .afterIdle)
+        let result = store.fetchScheduledRemoteMessage(surfaces: .allCases, triggerFilter: .specific(.afterIdle))
         XCTAssertNotNil(result)
         XCTAssertEqual(result?.id, "trigger-match")
     }
 
-    func testWhenMessageHasTriggerAndCallerPassesNilThenItIsNotReturned() async throws {
+    func testWhenMessageHasTriggerAndCallerPassesNoTriggerThenItIsNotReturned() async throws {
         let context = store.context
         try context.performAndWait {
             let message = RemoteMessageManagedObject(context: context)
@@ -703,11 +704,11 @@ class RemoteMessagingStoreTests: XCTestCase {
             try context.save()
         }
 
-        let result = store.fetchScheduledRemoteMessage(surfaces: .allCases)
+        let result = store.fetchScheduledRemoteMessage(surfaces: .allCases, triggerFilter: .noTrigger)
         XCTAssertNil(result)
     }
 
-    func testWhenMessageHasNoTriggerThenItIsReturnedRegardlessOfCallerTrigger() async throws {
+    func testWhenMessageHasNoTriggerThenItMatchesNoTriggerAndAnyButNotSpecific() async throws {
         let context = store.context
         try context.performAndWait {
             let message = RemoteMessageManagedObject(context: context)
@@ -721,10 +722,13 @@ class RemoteMessagingStoreTests: XCTestCase {
             try context.save()
         }
 
-        let resultWithTrigger = store.fetchScheduledRemoteMessage(surfaces: .allCases, trigger: .afterIdle)
-        XCTAssertNotNil(resultWithTrigger)
+        let resultWithSpecificTrigger = store.fetchScheduledRemoteMessage(surfaces: .allCases, triggerFilter: .specific(.afterIdle))
+        XCTAssertNil(resultWithSpecificTrigger)
 
-        // Reset status to scheduled for the second fetch
+        let resultWithAny = store.fetchScheduledRemoteMessage(surfaces: .allCases, triggerFilter: .any)
+        XCTAssertNotNil(resultWithAny)
+
+        // Reset status to scheduled for the next fetch
         try context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", "no-trigger")
@@ -736,8 +740,27 @@ class RemoteMessagingStoreTests: XCTestCase {
             try context.save()
         }
 
-        let resultWithoutTrigger = store.fetchScheduledRemoteMessage(surfaces: .allCases)
+        let resultWithoutTrigger = store.fetchScheduledRemoteMessage(surfaces: .allCases, triggerFilter: .noTrigger)
         XCTAssertNotNil(resultWithoutTrigger)
+    }
+
+    func testWhenMessageHasTriggerAndCallerPassesAnyThenItIsReturned() async throws {
+        let context = store.context
+        try context.performAndWait {
+            let message = RemoteMessageManagedObject(context: context)
+            message.id = "trigger-any"
+            message.status = NSNumber(value: 0)
+            message.shown = false
+            message.message = """
+              {"isMetricsEnabled":true,"content":{"small":{"titleText":"t","descriptionText":"d"}},"id":"trigger-any","exclusionRules":[],"matchingRules":[],"displayConditions":{"trigger":"after_idle"}}
+              """
+            context.insert(message)
+            try context.save()
+        }
+
+        let result = store.fetchScheduledRemoteMessage(surfaces: .allCases, triggerFilter: .any)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.id, "trigger-any")
     }
 
     func testWhenMessageHasTriggerAndDismissAfterDaysShownAndBothConditionsMetThenItIsAutoDismissed() async throws {
@@ -755,7 +778,7 @@ class RemoteMessagingStoreTests: XCTestCase {
             try context.save()
         }
 
-        let result = store.fetchScheduledRemoteMessage(surfaces: .allCases, trigger: .afterIdle)
+        let result = store.fetchScheduledRemoteMessage(surfaces: .allCases, triggerFilter: .specific(.afterIdle))
         XCTAssertNil(result)
     }
 

@@ -17,6 +17,7 @@
 //
 
 import Common
+import FoundationExtensions
 import Foundation
 import os.log
 
@@ -25,7 +26,10 @@ import os.log
 protocol TunnelStateProviding: AnyObject {
     @MainActor var connectionStatus: ConnectionStatus { get }
     @MainActor var currentServerSelectionMethod: NetworkProtectionServerSelectionMethod { get }
+    @MainActor var lastSelectedServer: NetworkProtectionServer? { get }
     @MainActor var lastSelectedServerInfo: NetworkProtectionServerInfo? { get }
+    @MainActor var tunnelInterfaceName: String? { get }
+    @MainActor var excludeLocalNetworks: Bool { get }
 }
 
 protocol TunnelLifecycleManaging: AnyObject {

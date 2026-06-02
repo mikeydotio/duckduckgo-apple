@@ -18,6 +18,7 @@
 //
 
 import Common
+import FoundationExtensions
 import Core
 import Foundation
 import BrowserServicesKit
@@ -125,7 +126,7 @@ final class RemoteMessagingConfigMatcherProvider: RemoteMessagingConfigMatcherPr
 
         let surveyActionMapper: DefaultRemoteMessagingSurveyURLBuilder
 
-        if let subscription = try? await subscriptionManager.getSubscription(cachePolicy: .cacheFirst) {
+        if let subscription = try? await subscriptionManager.getSubscription() {
             subscriptionDaysSinceSubscribed = Calendar.current.numberOfDaysBetween(subscription.startedAt, and: Date()) ?? -1
             subscriptionDaysUntilExpiry = Calendar.current.numberOfDaysBetween(Date(), and: subscription.expiresOrRenewsAt) ?? -1
             subscriptionPurchasePlatform = subscription.platform.rawValue

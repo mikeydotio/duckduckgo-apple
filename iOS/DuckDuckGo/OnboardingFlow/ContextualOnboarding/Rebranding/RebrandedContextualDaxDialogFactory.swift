@@ -208,7 +208,9 @@ private extension RebrandedContextualDaxDialogFactory {
     ) -> some View {
         let attributedMessage = attributedStringFromLegacyMarkdown(spec.message)
 
-        let onManualDismiss: (_ isShowingFireDialog: Bool) -> Void = { [weak delegate, weak self] isShowingFireDialog in
+        let isChatPath = contextualOnboardingSettings.chatPathPhase == .trackerToEOJ
+
+        let onManualDismiss: ((_ isShowingFireDialog: Bool) -> Void)? = isChatPath ? nil : { [weak delegate, weak self] isShowingFireDialog in
             // Hide Pulsing animation for Privacy Shield or Fire Dialog
             ViewHighlighter.hideAll()
 
@@ -244,7 +246,12 @@ private extension RebrandedContextualDaxDialogFactory {
             delegate?.didShowContextualOnboardingTrackersDialog()
         }
         .onFirstAppear { [weak self] in
+            // Fire the general dialog impression pixel for all users, plus an additional
+            // chat-path-specific pixel when the user is in the Duck.ai experiment flow.
             self?.contextualOnboardingPixelReporter.measureScreenImpression(event: spec.pixelName)
+            if self?.contextualOnboardingSettings.chatPathPhase == .trackerToEOJ {
+                self?.contextualOnboardingPixelReporter.measureScreenImpression(event: .onboardingChatPathTrackersBlockedUnique)
+            }
             self?.contextualOnboardingPixelReporter.measureScreenImpression(.trackersBlocked(.shown))
         }
     }
@@ -276,8 +283,16 @@ private extension RebrandedContextualDaxDialogFactory {
         }
         .applyAnimatedContextualOnboardingBackground(backgroundType: backgroundType)
         .onFirstAppear { [weak self] in
-            self?.contextualOnboardingPixelReporter.measureScreenImpression(event: pixelName)
-            self?.contextualOnboardingPixelReporter.measureScreenImpression(.fireButton(.shown))
+            guard let self else { return }
+            switch fireVariant {
+            case .standard:
+                self.contextualOnboardingPixelReporter.measureScreenImpression(event: pixelName)
+            case .duckAIOnboarding:
+                if self.onboardingManager.currentOnboardingFlow == .default {
+                    self.contextualOnboardingPixelReporter.measureDuckAIExperimentFireDialogImpression()
+                }
+            }
+            self.contextualOnboardingPixelReporter.measureScreenImpression(.fireButton(.shown))
         }
     }
 

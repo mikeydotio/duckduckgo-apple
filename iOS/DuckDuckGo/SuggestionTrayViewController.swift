@@ -29,6 +29,7 @@ import UIComponents
 import RemoteMessaging
 import AIChat
 import Subscription
+import Onboarding
 
 class SuggestionTrayViewController: UIViewController {
     
@@ -76,7 +77,6 @@ class SuggestionTrayViewController: UIViewController {
     private var newTabPage: NewTabPageViewController?
     private var willRemoveAutocomplete = false
     private var pendingEscapeHatchModel: EscapeHatchModel?
-    private var pendingOpenTabCount: Int = 0
     private var pendingSuggestionsSectionTitle: String?
     private var pendingFavoritesSectionTitle: String?
     private let bookmarksDatabase: CoreDataDatabase
@@ -127,6 +127,7 @@ class SuggestionTrayViewController: UIViewController {
         let subscriptionDataReporting: SubscriptionDataReporting?
         let newTabDialogFactory: NewTabDaxDialogsProvider
         let newTabDaxDialogManager: NewTabDialogSpecProvider & SubscriptionPromotionCoordinating
+        let onboardingFlowProvider: OnboardingFlowProviding
         let faviconLoader: FavoritesFaviconLoading
         let faviconsCache: FavoritesFaviconCaching
         let remoteMessagingActionHandler: RemoteMessagingActionHandling
@@ -291,13 +292,14 @@ class SuggestionTrayViewController: UIViewController {
 
         variableWidthConstraint.constant = width
         fullWidthConstraint.isActive = false
+        fullWidthConstraint.constant = 0
         fullHeightConstraint.isActive = false
         fullHeightSafeAreaConstraint.isActive = false
         fullHeightSafeAreaInequalityConstraint.isActive = true
         applyTopConstraintForLayoutMode()
     }
 
-    func fill(bottomOffset: CGFloat = 0.0) {
+    func fill(bottomOffset: CGFloat = 0.0, horizontalInset: CGFloat = 0.0) {
         additionalSafeAreaInsets = .init(top: 0, left: 0, bottom: bottomOffset, right: 0)
 
         containerView.layer.shadowColor = UIColor.clear.cgColor
@@ -310,6 +312,7 @@ class SuggestionTrayViewController: UIViewController {
         backgroundView.backgroundColor = UIColor.clear
 
         fullWidthConstraint.isActive = true
+        fullWidthConstraint.constant = -(horizontalInset * 2)
         fullHeightConstraint.isActive = coversFullScreen
         fullHeightSafeAreaConstraint.isActive = !coversFullScreen
         fullHeightSafeAreaInequalityConstraint.isActive = !coversFullScreen
@@ -346,11 +349,6 @@ class SuggestionTrayViewController: UIViewController {
         newTabPage?.setEscapeHatch(model)
     }
 
-    func setOpenTabCount(_ count: Int) {
-        pendingOpenTabCount = count
-        newTabPage?.setOpenTabCount(count)
-    }
-
     func setSuggestionsSectionTitle(_ title: String?) {
         pendingSuggestionsSectionTitle = title
         autocompleteController?.setSectionTitle(title)
@@ -380,12 +378,12 @@ class SuggestionTrayViewController: UIViewController {
             subscriptionDataReporting: dependencies.subscriptionDataReporting,
             newTabDialogFactory: dependencies.newTabDialogFactory,
             daxDialogsManager: dependencies.newTabDaxDialogManager,
+            onboardingFlowProvider: dependencies.onboardingFlowProvider,
             faviconLoader: dependencies.faviconLoader,
             remoteMessagingActionHandler: dependencies.remoteMessagingActionHandler,
             remoteMessagingImageLoader: dependencies.remoteMessagingImageLoader,
             remoteMessagingPixelReporter: dependencies.remoteMessagingPixelReporter,
             fireModePromotionEligibility: dependencies.fireModePromotionEligibility,
-            hasEscapeHatch: pendingEscapeHatchModel != nil,
             appSettings: dependencies.appSettings,
             faviconsCache: dependencies.faviconsCache,
             subscriptionManager: dependencies.subscriptionManager,
@@ -397,7 +395,6 @@ class SuggestionTrayViewController: UIViewController {
             controller.hideBorderView()
         }
         controller.setEscapeHatch(pendingEscapeHatchModel)
-        controller.setOpenTabCount(pendingOpenTabCount)
         if let pendingFavoritesSectionTitle {
             controller.setSectionTitle(pendingFavoritesSectionTitle)
         }

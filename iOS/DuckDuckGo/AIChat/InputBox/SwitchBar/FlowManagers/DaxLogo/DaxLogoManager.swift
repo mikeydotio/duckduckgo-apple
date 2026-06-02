@@ -75,9 +75,7 @@ final class DaxLogoManager {
     func installInViewController(_ parentController: UIViewController,
                                  asSubviewOf parentView: UIView,
                                  anchorView: UIView? = nil,
-                                 isTopBarPosition: Bool,
-                                 escapeHatch: EscapeHatchModel? = nil,
-                                 onEscapeHatchTap: (() -> Void)? = nil) {
+                                 isTopBarPosition: Bool) {
 
         if !isFireTab && isTopBarPosition && anchorView == nil {
             assertionFailure("Non-fire top-bar Dax logo install requires an anchor view.")
@@ -89,7 +87,7 @@ final class DaxLogoManager {
         parentView.addSubview(logoContainerView)
 
         if isFireTab {
-            installFireTabContent(in: parentController, escapeHatch: escapeHatch, onEscapeHatchTap: onEscapeHatchTap)
+            installFireTabContent(in: parentController)
             installFireTabConstraints(parentView: parentView, anchorView: anchorView, isTopBarPosition: isTopBarPosition)
         } else {
             installDaxLogoContent()
@@ -152,6 +150,8 @@ final class DaxLogoManager {
             guard self?.pendingTransitionToken == token else { return }
             self?.pendingTransitionToken = nil
             self?.isAnimatingLogoTransition = false
+            self?.currentProgress = targetProgress
+            self?.updateState()
         }
     }
 
@@ -290,13 +290,10 @@ final class DaxLogoManager {
         ])
     }
 
-    private func installFireTabContent(in parentController: UIViewController,
-                                       escapeHatch: EscapeHatchModel?,
-                                       onEscapeHatchTap: (() -> Void)?) {
-        let hostingController = UIHostingController(
-            rootView: FireModeEmptyStateView(type: .tab,
-                                             escapeHatch: escapeHatch,
-                                             onEscapeHatchTap: onEscapeHatchTap))
+    private func installFireTabContent(in parentController: UIViewController) {
+        let rootView = FireModeEmptyStateView(type: .tab)
+        let hostingController = UIHostingController(rootView: rootView)
+
         // Opaque NTP background so the fire empty state fully covers any favorites/suggestion tray content layered beneath.
         hostingController.view.backgroundColor = UIColor(designSystemColor: .background)
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false

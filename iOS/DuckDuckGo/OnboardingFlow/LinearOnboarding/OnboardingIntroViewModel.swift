@@ -19,6 +19,7 @@
 
 import class UIKit.UIApplication
 import Common
+import FoundationExtensions
 import Core
 import Foundation
 import Onboarding
@@ -95,6 +96,8 @@ final class OnboardingIntroViewModel: ObservableObject {
     var onCompletingOnboardingIntro: (() -> Void)?
     var onOpenAIChatFromOnboarding: ((String?, Bool) -> Void)?
     var onSearchFromOnboarding: ((String) -> Void)?
+    /// Invoked when the flow reaches an `OnboardingIntroStep.interlude(_)` step. The host is expected to dismiss the onboarding UI, run its own experience, and call `resumeOnboardingFromInterlude()` once finished.
+    var onOnboardingInterlude: ((OnboardingIntroStep.Interlude) -> Void)?
     private var introSteps: [OnboardingIntroStep]
     private var currentIntroStep: OnboardingIntroStep
 
@@ -225,6 +228,7 @@ final class OnboardingIntroViewModel: ObservableObject {
     }
 
     func aiComparisonAction() {
+        pixelReporter.measureAiComparisonCTAAction()
         makeNextViewState()
     }
 
@@ -262,12 +266,14 @@ final class OnboardingIntroViewModel: ObservableObject {
         makeNextViewState()
     }
 
-    func selectDuckAIQueryExperimentAction(selection: DuckAIQueryExperimentMode) {
-        switch selection {
-        case .duckAI:
-            pixelReporter.measureDuckAIQueryExperimentChooseAIChat()
-        case .search:
-            pixelReporter.measureDuckAIQueryExperimentChooseSearchOnly()
+    func selectDuckAIQueryExperimentAction(selection: DuckAIQueryMode) {
+        if resolveDuckAIQueryExperimentCohortID() != nil {
+            switch selection {
+            case .duckAI:
+                pixelReporter.measureDuckAIQueryExperimentChooseAIChat()
+            case .search:
+                pixelReporter.measureDuckAIQueryExperimentChooseSearchOnly()
+            }
         }
         makeNextViewState()
     }
@@ -284,11 +290,18 @@ final class OnboardingIntroViewModel: ObservableObject {
         onSearchFromOnboarding?(query)
     }
 
-    func measureDuckAIQueryExperimentQuerySubmission(selection: DuckAIQueryExperimentMode, promptSource: DuckAIQueryExperimentPromptSource) {
-        pixelReporter.measureDuckAIQueryExperimentQuerySubmission(
-            selection: selection,
-            promptSource: promptSource
-        )
+    func measureDuckAIQuerySubmission(selection: DuckAIQueryMode, promptSource: DuckAIQueryPromptSource) {
+        if resolveDuckAIQueryExperimentCohortID() != nil {
+            pixelReporter.measureDuckAIQueryExperimentQuerySubmission(
+                selection: selection,
+                promptSource: promptSource
+            )
+        } else {
+            pixelReporter.measureDuckAIQuerySubmission(
+                selection: selection,
+                promptSource: promptSource
+            )
+        }
     }
 
     func restoreSyncAccountAction() {
@@ -301,6 +314,17 @@ final class OnboardingIntroViewModel: ObservableObject {
 
     func restorePromptSkipAction() {
         pixelReporter.measureAutoRestoreOnboardingSkipCTAAction()
+    }
+
+    /// Resumes the linear onboarding after the host has finished an interlude.
+    ///
+    /// Call this once the host's interlude experience completes. The view model will advance to the step immediately after the current interlude in `introSteps`.
+    func resumeOnboardingFromInterlude() {
+        guard case .interlude = currentIntroStep else {
+            assertionFailure("resumeOnboardingFromInterlude() called outside an interlude step (current: \(currentIntroStep))")
+            return
+        }
+        makeNextViewState()
     }
 
 #if DEBUG || ALPHA
@@ -324,32 +348,89 @@ private extension OnboardingIntroViewModel {
 
     func setViewState(introStep: OnboardingIntroStep) {
         func stepInfo() -> OnboardingView.ViewState.Intro.StepInfo {
-            guard let currentStepIndex = introSteps.firstIndex(of: introStep) else { return .hidden }
+            // Remove interlude steps from counting the total number of steps as they're not rendered
+            let stepsWithoutInterludes = introSteps.filter { !$0.isInterlude }
+
+            guard let currentStepIndex = stepsWithoutInterludes.firstIndex(of: introStep) else { return .hidden }
 
             // Remove startOnboardingDialog from the count of total steps since we don't show the progress for that step.
-            return OnboardingView.ViewState.Intro.StepInfo(currentStep: currentStepIndex, totalSteps: introSteps.count - 1)
+            return OnboardingView.ViewState.Intro.StepInfo(currentStep: currentStepIndex, totalSteps: stepsWithoutInterludes.count - 1)
         }
 
-        let viewState = switch introStep {
-        case .introDialog(let isReturningUser):
-            OnboardingView.ViewState.onboarding(.init(type: .startOnboardingDialog(content: contentProvider.introStepContent, type: introDialogType(isReturningUser: isReturningUser)), step: .hidden))
-        case .browserComparison:
-            OnboardingView.ViewState.onboarding(.init(type: .browsersComparisonDialog(content: contentProvider.browserComparisonContent), step: stepInfo()))
-        case .aiComparison:
-            OnboardingView.ViewState.onboarding(.init(type: .aiComparisonDialog(content: contentProvider.aiComparisonContent), step: stepInfo()))
-        case .addToDockPromo:
-            OnboardingView.ViewState.onboarding(.init(type: .addToDockPromoDialog(content: contentProvider.addToDockContent), step: stepInfo()))
-        case .appIconSelection:
-            OnboardingView.ViewState.onboarding(.init(type: .chooseAppIconDialog(content: contentProvider.appIconColorContent), step: stepInfo()))
-        case .addressBarPositionSelection:
-            OnboardingView.ViewState.onboarding(.init(type: .chooseAddressBarPositionDialog(content: contentProvider.addressBarPositionContent), step: stepInfo()))
-        case .searchExperienceSelection:
-            OnboardingView.ViewState.onboarding(.init(type: .chooseSearchExperienceDialog(content: contentProvider.searchExperienceContent), step: stepInfo()))
-        case .duckAIQuerySelection:
-            OnboardingView.ViewState.onboarding(.init(type: .duckAIQueryExperimentDialog(content: contentProvider.duckAIQueryContent, defaultMode: onboardingManager.currentOnboardingFlow == .duckAI ? .duckAI : duckAIQueryExperimentDefaultMode), step: stepInfo()))
+        func mapToViewState(renderableStep: OnboardingIntroStep.RenderableStep) -> OnboardingView.ViewState {
+            switch renderableStep {
+            case .introDialog(let isReturningUser):
+                return .onboarding(
+                    .init(
+                        type: .startOnboardingDialog(content: contentProvider.introStepContent, type: introDialogType(isReturningUser: isReturningUser)),
+                        step: .hidden
+                    )
+                )
+            case .browserComparison:
+                return .onboarding(
+                    .init(
+                        type: .browsersComparisonDialog(content: contentProvider.browserComparisonContent),
+                        step: stepInfo()
+                    )
+                )
+            case .aiComparison:
+                return .onboarding(
+                    .init(
+                        type: .aiComparisonDialog(content: contentProvider.aiComparisonContent),
+                        step: stepInfo()
+                    )
+                )
+            case .addToDockPromo:
+                return .onboarding(
+                    .init(
+                        type: .addToDockPromoDialog(content: contentProvider.addToDockContent),
+                        step: stepInfo()
+                    )
+                )
+            case .appIconSelection:
+                return .onboarding(
+                    .init(
+                        type: .chooseAppIconDialog(content: contentProvider.appIconColorContent),
+                        step: stepInfo()
+                    )
+                )
+            case .addressBarPositionSelection:
+                return .onboarding(
+                    .init(
+                        type: .chooseAddressBarPositionDialog(content: contentProvider.addressBarPositionContent),
+                        step: stepInfo()
+                    )
+                )
+            case .searchExperienceSelection:
+                return .onboarding(
+                    .init(
+                        type: .chooseSearchExperienceDialog(content: contentProvider.searchExperienceContent),
+                        step: stepInfo()
+                    )
+                )
+            case .duckAIQuerySelection:
+                let isDuckAiTailoredFlow = onboardingManager.currentOnboardingFlow == .duckAI
+                // Duck.ai Tailored flow shows only Duck.ai options while experiment shows toggle with "Search" and "Ask AI"
+                let duckAIQueryMode: DuckAIQueryMode = isDuckAiTailoredFlow ? .duckAI : duckAIQueryExperimentDefaultMode
+                // Duck.ai Tailored flow shows step counter while experiment does not.
+                let progressStep: OnboardingView.ViewState.Intro.StepInfo = isDuckAiTailoredFlow ? stepInfo() : .hidden
+                return .onboarding(
+                    .init(
+                        type: .duckAIQueryExperimentDialog(content: contentProvider.duckAIQueryContent, defaultMode: duckAIQueryMode),
+                        step: progressStep
+                    )
+                )
+            }
         }
 
-        state = viewState
+        switch introStep {
+        case let .interlude(interlude):
+            // Interlude steps don't render a view state. They inform the delegate that an interlude is starting.
+            // The delegate will resume the onboarding by calling `resumeOnboardingFromInterlude()` when finished.
+            onOnboardingInterlude?(interlude)
+        case let .renderable(renderable):
+            state = mapToViewState(renderableStep: renderable)
+        }
     }
 
     func makeNextViewState() {
@@ -397,7 +478,7 @@ private extension OnboardingIntroViewModel {
             // The step is reachable either as an experimental insertion in the default flow,
             // or as a standard step in the Duck.ai tailored flow — the two flags are independent.
             guard
-                featureFlagger.isFeatureOn(.onboardingDuckAIQueryExperiment) ||
+                featureFlagger.isFeatureOn(.onboardingDuckAIQueryTrackersDemoExperiment) ||
                     onboardingManager.currentOnboardingFlow == .duckAI
             else {
                 OnboardingResumeCheckpointStore.clearAll(in: onboardingResumeStepStore)
@@ -421,9 +502,10 @@ private extension OnboardingIntroViewModel {
             currentIntroStep = .addressBarPositionSelection
         case .searchExperienceSelection where introSteps.contains(.searchExperienceSelection):
             currentIntroStep = .searchExperienceSelection
-
         case .duckAIAnswerStep:
             break // handled separately by restorePendingDuckAIAnswerStepIfNeeded in MainViewController
+        case .interludeDuckAI where introSteps.contains(.interlude(.duckAI)):
+            currentIntroStep = .interlude(.duckAI)
 
         default:
             // Stored step is not available in the current flow — clear and start from the beginning.
@@ -447,7 +529,7 @@ private extension OnboardingIntroViewModel {
         case .browsersComparisonDialog:
             pixelReporter.measureBrowserComparisonImpression()
         case .aiComparisonDialog:
-            break
+            pixelReporter.measureAiComparisonImpression()
         case .addToDockPromoDialog:
             pixelReporter.measureAddToDockPromoImpression()
         case .chooseAppIconDialog:
@@ -457,12 +539,21 @@ private extension OnboardingIntroViewModel {
         case .chooseSearchExperienceDialog:
             pixelReporter.measureSearchExperienceSelectionImpression()
         case .duckAIQueryExperimentDialog:
-            pixelReporter.measureDuckAIQueryExperimentSelectionImpression()
+            // Both the experiment and the Duck.ai tailored flow reach this view state. Only the
+            // experiment cohort should fire experiment-flavoured pixels; tailored-flow users get
+            // the plain shared toggle-shown pixel.
+            if resolveDuckAIQueryExperimentCohortID() != nil {
+                pixelReporter.measureDuckAIQueryExperimentSelectionImpression()
+            } else {
+                pixelReporter.measureDuckAIQuerySelectionImpression()
+            }
         }
     }
 
     func insertExperimentStepIfNeeded() {
-        guard let currentStepIndex = introSteps.firstIndex(of: currentIntroStep),
+        guard case .introDialog(isReturningUser: false) = introSteps.first,
+              !restorePromptHandler.isEligibleForRestorePrompt(),
+              let currentStepIndex = introSteps.firstIndex(of: currentIntroStep),
               let cohort = resolveDuckAIQueryExperimentCohortID(), cohort != .control,
               !introSteps.contains(.duckAIQuerySelection) else {
             return
@@ -470,7 +561,7 @@ private extension OnboardingIntroViewModel {
         introSteps.insert(.duckAIQuerySelection, at: currentStepIndex + 1)
     }
 
-    var duckAIQueryExperimentDefaultMode: DuckAIQueryExperimentMode {
+    var duckAIQueryExperimentDefaultMode: DuckAIQueryMode {
         switch resolveDuckAIQueryExperimentCohortID() {
         case .treatmentB:
             .search
@@ -483,8 +574,8 @@ private extension OnboardingIntroViewModel {
 
     func resolveDuckAIQueryExperimentCohortID() -> FeatureFlag.DuckAIQueryExperimentCohort? {
         // Do not enroll users experiencing Duck.ai tailored flow in the experiment
-        guard onboardingManager.currentOnboardingFlow == .default && featureFlagger.isFeatureOn(.onboardingDuckAIQueryExperiment) else { return nil }
-        return featureFlagger.resolveCohort(for: FeatureFlag.onboardingDuckAIQueryExperiment) as? FeatureFlag.DuckAIQueryExperimentCohort
+        guard onboardingManager.currentOnboardingFlow == .default && featureFlagger.isFeatureOn(.onboardingDuckAIQueryTrackersDemoExperiment) else { return nil }
+        return featureFlagger.resolveCohort(for: FeatureFlag.onboardingDuckAIQueryTrackersDemoExperiment) as? FeatureFlag.DuckAIQueryExperimentCohort
     }
 
     func introDialogType(isReturningUser: Bool) -> OnboardingView.ViewState.Intro.IntroDialogType {

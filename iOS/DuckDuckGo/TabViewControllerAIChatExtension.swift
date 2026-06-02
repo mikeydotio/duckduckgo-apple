@@ -20,6 +20,7 @@
 import AIChat
 import Foundation
 import UIKit
+import WebKit
 
 /// Protocol for tab controllers that support full mode AIChat content loading.
 protocol AITabController {
@@ -58,7 +59,8 @@ extension TabViewController: AITabController {
         isVoiceModeRequested = false
 
         aiChatContentHandler.setPayload(payload: payload)
-        if let query, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let hasAttachments = images?.isEmpty == false || files?.isEmpty == false
+        if let query, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || hasAttachments {
             let prompt = AIChatNativePrompt.queryPrompt(
                 query,
                 autoSubmit: autoSend,
@@ -119,5 +121,32 @@ extension TabViewController: AITabController {
         if isAITab {
             webView.reload()
         }
+    }
+}
+
+extension TabViewController {
+
+    enum AIChatNewWindowDecision: Equatable {
+        case ignore
+        case loadInTab(URL)
+        case openInNewTab(URL)
+    }
+
+    static func aiChatNewWindowDecision(currentURL: URL?,
+                                        navigationAction: WKNavigationAction) -> AIChatNewWindowDecision {
+        guard navigationAction.navigationType == .linkActivated,
+              navigationAction.targetFrame == nil,
+              currentURL?.isDuckAIURL == true,
+              let url = navigationAction.request.url,
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            return .ignore
+        }
+
+        if url.isDuckAIURL {
+            return .loadInTab(url)
+        }
+
+        return .openInNewTab(url)
     }
 }
