@@ -355,7 +355,15 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsRootView> {
             return
         }
         presentedViewController.dismiss(animated: true, completion: completion)
-        endConnectMode()
+    }
+
+    @MainActor
+    func dismissPresentedViewController() async {
+        await withCheckedContinuation { continuation in
+            dismissPresentedViewController {
+                continuation.resume()
+            }
+        }
     }
 
     func refreshDevices(clearDevices: Bool = true) {
@@ -494,8 +502,8 @@ extension SyncSettingsViewController: ScanOrPasteCodeViewModelDelegate {
         Task { @MainActor in
             do {
                 if let recoveryKey = try await connector?.pollForRecoveryKey() {
-                    dismissPresentedViewController()
-                    showPreparingSync(nil)
+                    await dismissPresentedViewController()
+                    await showPreparingSync()
                     try await loginAndShowDeviceConnected(recoveryKey: recoveryKey)
                 } else {
                     // Likely cancelled elsewhere
@@ -542,6 +550,7 @@ extension SyncSettingsViewController: ScanOrPasteCodeViewModelDelegate {
         needsPreservedAccountCleanupBeforeServerOperation = false
         autoRestorePromptSource = nil
         dismissPresentedViewController()
+        endConnectMode()
         Pixel.fire(pixel: .syncSetupEndedAbandoned,
                    withAdditionalParameters: [PixelParameters.source: source.rawValue],
                    includedParameters: [.appVersion])
@@ -598,7 +607,7 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
     }
     
     func controllerWillBeginTransmittingRecoveryKey() async {
-        dismissPresentedViewController()
+        await dismissPresentedViewController()
         await showPreparingSync()
     }
     
@@ -610,13 +619,14 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
     }
     
     func controllerDidReceiveRecoveryKey() {
-        dismissPresentedViewController()
-        showPreparingSync(nil)
+        dismissPresentedViewController { [weak self] in
+            self?.showPreparingSync(nil)
+        }
     }
     
     func controllerDidRecognizeCode(setupSource: SyncSetupSource, codeSource: SyncCodeSource) async {
         sendCodeRecognisedPixel(setupSource: setupSource, codeSource: codeSource)
-        dismissPresentedViewController()
+        await dismissPresentedViewController()
         await showPreparingSync()
     }
 
@@ -678,7 +688,7 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
         case .failedToCreateAccount:
             await handleError(.unableToSyncWithDevice, error: underlyingError, event: .syncSignupError)
         case .pollingForRecoveryKeyTimedOut:
-            dismissPresentedViewController()
+            await dismissPresentedViewController()
             handleRecoveryKeyPollingTimeout(setupRole: setupRole)
         }
 

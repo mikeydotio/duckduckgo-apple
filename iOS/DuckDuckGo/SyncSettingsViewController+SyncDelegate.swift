@@ -174,8 +174,8 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
                     guard await self.performDeferredPreservedAccountCleanupIfNeeded() else {
                         return
                     }
-                    self.dismissPresentedViewController()
-                    self.showPreparingSync(nil)
+                    await self.dismissPresentedViewController()
+                    await self.showPreparingSync()
                     try await self.syncService.createAccount(deviceName: self.deviceName, deviceType: self.deviceType)
                     let additionalParameters = self.source.map { ["source": $0] } ?? [:]
                     try await Pixel.fire(pixel: .syncSignupDirect, withAdditionalParameters: additionalParameters, includedParameters: [.appVersion])
