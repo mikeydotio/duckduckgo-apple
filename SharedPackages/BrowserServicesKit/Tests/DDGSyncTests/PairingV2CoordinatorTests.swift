@@ -209,7 +209,7 @@ final class PairingV2CoordinatorTests: XCTestCase {
             try decryptSentMessage(at: 3, from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto),
             .recoveryCodeResponse(.init(recoveryCode: recoveryCode))
         )
-        XCTAssertEqual(coordinator.state, .completed(.recoveryCodeSent))
+        XCTAssertEqual(coordinator.state, .completed(.recoveryCodeSent(credentialKind: .ddg)))
     }
 
     func testWhenNoAccountPresenterHostsNativePeerThenCreatesAccountBeforeSendingRecoveryCodeResponse() async throws {
@@ -261,7 +261,7 @@ final class PairingV2CoordinatorTests: XCTestCase {
             try decryptSentMessage(at: 3, from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto),
             .recoveryCodeResponse(.init(recoveryCode: recoveryCode))
         )
-        XCTAssertEqual(coordinator.state, .completed(.recoveryCodeSent))
+        XCTAssertEqual(coordinator.state, .completed(.recoveryCodeSent(credentialKind: .ddg)))
     }
 
     func testWhenPresenterHostConfirmationIsDeniedThenSendsRecoveryCodeDeniedAndStops() async throws {

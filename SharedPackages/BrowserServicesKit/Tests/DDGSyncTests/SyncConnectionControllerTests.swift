@@ -47,6 +47,7 @@ final class MockRemoteExchangeRecovering: RemoteExchangeRecovering {
 final class MockSyncConnectionControllerDelegate: SyncConnectionControllerDelegate {
     var didBeginTransmittingRecoveryKeyCalled = { }
     var didFinishTransmittingRecoveryKeyCalled = { }
+    var didFinishTransmittingRecoveryKeyShouldWaitForDevicesToChange: Bool?
     var didReceiveRecoveryKeyCalled = { }
     var didRecognizeScannedCodeCalled = { }
     var willPerformServerSyncOperationCalled = { }
@@ -67,7 +68,8 @@ final class MockSyncConnectionControllerDelegate: SyncConnectionControllerDelega
         didBeginTransmittingRecoveryKeyCalled()
     }
 
-    func controllerDidFinishTransmittingRecoveryKey() {
+    func controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: Bool) {
+        didFinishTransmittingRecoveryKeyShouldWaitForDevicesToChange = shouldWaitForDevicesToChange
         didFinishTransmittingRecoveryKeyCalled()
     }
 
@@ -236,6 +238,46 @@ final class SyncConnectionControllerTests: XCTestCase {
         payload = try XCTUnwrap(PairingV2QRCodePayload(url: try XCTUnwrap(URL(string: pairingInfo.base64Code))))
 
         await fulfillment(of: [willBeginTransmitting, didFinishTransmitting], timeout: 5)
+        XCTAssertEqual(delegate.didFinishTransmittingRecoveryKeyShouldWaitForDevicesToChange, true)
+        XCTAssertFalse(messageExchanger.closeChannelCalls.isEmpty)
+    }
+
+    @MainActor
+    func test_startExchangeMode_whenPairingV2PresenterCompletesForThirdPartyPeer_doesNotWaitForDeviceListChange() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        try dependencies.secureStore.persistAccount(SyncAccount.mock)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        var payload: PairingV2QRCodePayload?
+        messageExchanger.fetchMessagesHandler = { _, sequence in
+            guard let payload else {
+                return []
+            }
+            if sequence == 0 {
+                return try Self.encryptedPresenterPeerMessages(messages: [
+                    .hello(.init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
+                ], presenterPayload: payload, peerKeyPair: peerKeyPair)
+            }
+            return try Self.encryptedPresenterPeerMessages(messages: [
+                .recoveryCodeRequest(
+                    .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest,
+                          name: "Peer",
+                          kind: .thirdParty)
+                )
+            ], presenterPayload: payload, peerKeyPair: peerKeyPair, initialSequence: sequence)
+        }
+
+        let didFinishTransmitting = expectation(description: "did finish transmitting")
+        delegate.didFinishTransmittingRecoveryKeyCalled = {
+            didFinishTransmitting.fulfill()
+        }
+
+        let pairingInfo = try await controller.startExchangeMode()
+        payload = try XCTUnwrap(PairingV2QRCodePayload(url: try XCTUnwrap(URL(string: pairingInfo.base64Code))))
+
+        await fulfillment(of: [didFinishTransmitting], timeout: 5)
+        XCTAssertEqual(delegate.didFinishTransmittingRecoveryKeyShouldWaitForDevicesToChange, false)
         XCTAssertFalse(messageExchanger.closeChannelCalls.isEmpty)
     }
 
@@ -732,8 +774,8 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
-        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .v2ScanningDisabled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .updateRequired)
+        XCTAssertNil(delegate.didErrorErrors?.underlyingError)
     }
 
     @MainActor
@@ -746,8 +788,8 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
-        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .v2ScanningDisabled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .updateRequired)
+        XCTAssertNil(delegate.didErrorErrors?.underlyingError)
     }
 
     @MainActor
@@ -848,7 +890,7 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(delegate.didErrorErrors?.error, .failedToTransmitExchangeRecoveryKey)
-        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .recoveryCodePreparationFailed)
+        XCTAssertNil(delegate.didErrorErrors?.underlyingError)
     }
 
     @MainActor
@@ -883,11 +925,11 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(delegate.didErrorErrors?.error, .failedToTransmitExchangeRecoveryKey)
-        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .recoveryCodeSendFailed)
+        XCTAssertNil(delegate.didErrorErrors?.underlyingError)
     }
 
     @MainActor
-    func test_syncCodeEntered_withV2LoginFailure_notifiesLoginError() async throws {
+    func test_syncCodeEntered_withV2DifferentNativeAccount_notifiesTwoAccountsDuringRecovery() async throws {
         try dependencies.secureStore.persistAccount(SyncAccount.mock)
         let messageExchanger = PairingV2MessageExchangingMock()
         dependencies.createPairingV2MessageExchangerStub = messageExchanger
@@ -913,8 +955,8 @@ final class SyncConnectionControllerTests: XCTestCase {
         let result = await controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
 
         XCTAssertFalse(result)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .failedToLogIn)
-        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .loginFailed)
+        XCTAssertNotNil(delegate.didFindTwoAccountsDuringRecoveryCalled)
+        XCTAssertNil(delegate.didErrorErrors)
     }
 
     @MainActor

@@ -602,7 +602,7 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
         await showPreparingSync()
     }
     
-    func controllerDidFinishTransmittingRecoveryKey() {
+    func controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange _: Bool) {
         Pixel.fire(pixel: .syncSetupEndedSuccessful,
                    withAdditionalParameters: [PixelParameters.source: SyncSetupSource.exchange.rawValue],
                    includedParameters: [.appVersion])
@@ -659,6 +659,19 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
         case .unableToRecognizeCode:
             sendCodeParsingFailedPixel(setupRole: setupRole)
             await handleError(.unableToRecognizeCode, error: underlyingError, event: nil)
+        case .updateRequired:
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+            await handleError(.updateRequired, error: nil, event: nil)
+        case .codeOnlyCompatibleWithDuckAI:
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+            await handleError(.codeOnlyCompatibleWithDuckAI, error: nil, event: nil)
+        case .codeMustBeScannedWithDuckDuckGo:
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+            await handleError(.codeMustBeScannedWithDuckDuckGo, error: nil, event: nil)
+        case .syncFromAnotherConnectedDevice:
+            await handleError(.syncFromAnotherConnectedDevice, error: nil, event: nil)
+        case .syncCancelledFromOtherDevice:
+            await handleError(.syncCancelledFromOtherDevice, error: nil, event: nil)
         case .failedToFetchPublicKey, .failedToTransmitExchangeRecoveryKey, .failedToFetchConnectRecoveryKey, .failedToLogIn, .failedToTransmitExchangeKey, .failedToFetchExchangeRecoveryKey, .failedToTransmitConnectRecoveryKey:
             fireCodeHandlingFailedExperimentPixel(setupRole: setupRole)
             await handleError(.unableToSyncWithDevice, error: underlyingError, event: .syncLoginError)

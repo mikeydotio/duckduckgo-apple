@@ -21,7 +21,7 @@ import Foundation
 @MainActor
 public protocol SyncConnectionControllerDelegate: AnyObject {
     func controllerWillBeginTransmittingRecoveryKey() async
-    func controllerDidFinishTransmittingRecoveryKey()
+    func controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: Bool)
 
     func controllerDidReceiveRecoveryKey()
 
@@ -44,6 +44,11 @@ public protocol SyncConnectionControllerDelegate: AnyObject {
 
 public enum SyncConnectionError: Error {
     case unableToRecognizeCode
+    case updateRequired
+    case codeOnlyCompatibleWithDuckAI
+    case codeMustBeScannedWithDuckDuckGo
+    case syncFromAnotherConnectedDevice
+    case syncCancelledFromOtherDevice
 
     case failedToFetchPublicKey
     case failedToTransmitExchangeRecoveryKey
@@ -309,7 +314,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         let setupRole: SyncSetupRole = .receiver(.exchange, codeSource)
         let isPairingV2ScanningEnabled = dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
         guard isPairingV2ScanningEnabled else {
-            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: PairingV2Error.v2ScanningDisabled, setupRole: setupRole)
+            await delegate?.controllerDidError(.updateRequired, underlyingError: nil, setupRole: setupRole)
             return false
         }
         await delegate?.controllerDidRecognizeCode(setupSource: .exchange, codeSource: codeSource)
@@ -346,7 +351,7 @@ public class SyncConnectionController: SyncConnectionControlling {
             guard error != .cancelled else {
                 return false
             }
-            await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: error, setupRole: setupRole)
+            await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: nil, setupRole: setupRole)
             await coordinator.cancel()
             return false
         } catch let error as PairingV2MessageCryptoError {
@@ -386,7 +391,7 @@ public class SyncConnectionController: SyncConnectionControlling {
                 guard error != .cancelled else {
                     return
                 }
-                await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: error, setupRole: setupRole)
+                await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: nil, setupRole: setupRole)
                 await coordinator.cancel()
             } catch let error as PairingV2MessageCryptoError {
                 await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: setupRole)
@@ -404,8 +409,8 @@ public class SyncConnectionController: SyncConnectionControlling {
         switch completion {
         case .loggedIn:
             await delegate?.controllerDidCompleteLogin(registeredDevices: coordinator.completedRegisteredDevices ?? [], isRecovery: false, setupRole: setupRole)
-        case .recoveryCodeSent:
-            await delegate?.controllerDidFinishTransmittingRecoveryKey()
+        case .recoveryCodeSent(let credentialKind):
+            await delegate?.controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: credentialKind == .ddg)
         case .alreadyConnected:
             await delegate?.controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole: setupRole)
         }
@@ -491,7 +496,7 @@ public class SyncConnectionController: SyncConnectionControlling {
                 return
             }
 
-            delegate?.controllerDidFinishTransmittingRecoveryKey()
+            delegate?.controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: true)
             (await state.getExchanger())?.stopPolling()
         }
     }
@@ -622,12 +627,25 @@ public class SyncConnectionController: SyncConnectionControlling {
         switch error {
         case .recoveryCodePreparationFailed, .recoveryCodeSendFailed:
             return .failedToTransmitExchangeRecoveryKey
-        case .loginFailed, .nativeCredentialAlreadyPresent:
+        case .loginFailed:
             return .failedToLogIn
+        case .nativeCredentialAlreadyPresent:
+            return .syncFromAnotherConnectedDevice
         case .recoveryCodeDenied, .recoveryCodeUnavailable:
-            return .failedToFetchExchangeRecoveryKey
-        case .v2ScanningDisabled, .unknownCode, .incompatibleRecoveryCode, .unexpectedEvent, .unsupportedVersion, .unsupportedFlow, .cancelled:
+            return .syncCancelledFromOtherDevice
+        case .v2ScanningDisabled, .unsupportedVersion:
+            return .updateRequired
+        case .unknownCode, .unsupportedFlow:
             return .unableToRecognizeCode
+        case .incompatibleRecoveryCode(let scanningKind, let codeKind):
+            if scanningKind == .ddg && codeKind == .thirdParty {
+                return .codeOnlyCompatibleWithDuckAI
+            }
+            return .codeMustBeScannedWithDuckDuckGo
+        case .unexpectedEvent:
+            return .failedToFetchExchangeRecoveryKey
+        case .cancelled:
+            return .syncCancelledFromOtherDevice
         }
     }
 }

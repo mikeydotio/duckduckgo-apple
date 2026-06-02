@@ -270,6 +270,8 @@ final class PairingV2Coordinator {
         case .loginWithRecoveryCode(let recoveryCode):
             do {
                 try await login(with: recoveryCode)
+            } catch SyncError.accountAlreadyExists {
+                throw SyncError.accountAlreadyExists
             } catch {
                 try await execute(stateMachine.handle(.failed(.loginFailed)))
                 throw PairingV2Error.loginFailed

@@ -102,7 +102,7 @@ struct PairingV2Session: Equatable {
 
 enum PairingV2State: Equatable {
     enum Completion: Equatable {
-        case recoveryCodeSent
+        case recoveryCodeSent(credentialKind: PairingV2DeviceKind)
         case loggedIn
         case alreadyConnected
     }
@@ -112,7 +112,7 @@ enum PairingV2State: Equatable {
     case waitingForPeerStatus(PairingV2Session)
     case hostWaitingForConfirmation(PairingV2Session, credentialKind: PairingV2DeviceKind)
     case hostPreparingRecoveryCode(PairingV2Session, credentialKind: PairingV2DeviceKind)
-    case hostSendingRecoveryCode(PairingV2Session, recoveryCode: String)
+    case hostSendingRecoveryCode(PairingV2Session, credentialKind: PairingV2DeviceKind, recoveryCode: String)
     case joinerWaitingForConfirmation(PairingV2Session)
     case joinerWaitingForRecoveryCode(PairingV2Session)
     case joinerLoggingIn(PairingV2Session, recoveryCode: String)
@@ -366,7 +366,8 @@ struct PairingV2StateMachine {
         if peerStatus.hasAccount,
            let peerUserId = peerStatus.userId,
            let localUserId = session.localClient.userId,
-           peerUserId == localUserId {
+           peerUserId == localUserId,
+           peerStatus.kind == session.localClient.kind {
             state = .completed(.alreadyConnected)
             return [.stopPolling]
         }
@@ -432,11 +433,11 @@ struct PairingV2StateMachine {
     }
 
     private mutating func handleRecoveryCodePrepared(_ recoveryCode: String) -> [PairingV2Command] {
-        guard case .hostPreparingRecoveryCode(let session, _) = state else {
+        guard case .hostPreparingRecoveryCode(let session, let credentialKind) = state else {
             return fail(with: .unexpectedEvent("recovery code prepared while not hosting"))
         }
 
-        state = .hostSendingRecoveryCode(session, recoveryCode: recoveryCode)
+        state = .hostSendingRecoveryCode(session, credentialKind: credentialKind, recoveryCode: recoveryCode)
         return [.sendRecoveryCodeConfirmed, .sendRecoveryCode(recoveryCode)]
     }
 
@@ -467,11 +468,11 @@ struct PairingV2StateMachine {
     }
 
     private mutating func handleRecoveryCodeSent() -> [PairingV2Command] {
-        guard case .hostSendingRecoveryCode = state else {
+        guard case .hostSendingRecoveryCode(_, let credentialKind, _) = state else {
             return fail(with: .unexpectedEvent("recovery code sent while not sending"))
         }
 
-        state = .completed(.recoveryCodeSent)
+        state = .completed(.recoveryCodeSent(credentialKind: credentialKind))
         return [.stopPolling]
     }
 

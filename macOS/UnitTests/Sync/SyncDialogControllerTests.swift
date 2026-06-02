@@ -777,11 +777,17 @@ final class SyncDialogControllerTests: XCTestCase {
     // MARK: - Connection Controller Delegate Methods
 
     func testControllerDidFinishTransmittingRecoveryKey_waitsForDevices() {
-        syncDialogController.controllerDidFinishTransmittingRecoveryKey()
+        syncDialogController.controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: true)
 
         // The method sets up a publisher to wait for device changes
         // We can verify this by checking that the devices publisher is being observed
         XCTAssertNotNil(syncDialogController)
+    }
+
+    func testControllerDidFinishTransmittingRecoveryKey_whenNoDeviceChangeExpected_presentsNowSyncing() {
+        syncDialogController.controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: false)
+
+        XCTAssertEqual(managementDialogModel.currentDialog, .nowSyncing)
     }
 
     func testControllerWillBeginTransmittingRecoveryKey_presentsPrepareDialog() async {

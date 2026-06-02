@@ -373,7 +373,20 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(stateMachine.state, .failed(.cancelled))
     }
 
-    func testWhenPeerAvailableHasSameUserIdAsLocalAccountThenFlowCompletesAlreadyConnected() {
+    func testWhenNativePeerAvailableHasSameUserIdAsLocalNativeAccountThenFlowCompletesAlreadyConnected() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false, userId: "same-user")
+
+        _ = stateMachine.handle(
+            .scannedCode(.v2Linking(peerChannelID: "channel-1"), localClient: localClient, flags: enabledFlags)
+        )
+        let commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .ddg, userId: "same-user")))
+
+        XCTAssertEqual(commands, [.stopPolling])
+        XCTAssertEqual(stateMachine.state, .completed(.alreadyConnected))
+    }
+
+    func testWhenThirdPartyPeerAvailableHasSameUserIdAsLocalNativeAccountThenNativeHosts() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false, userId: "same-user")
 
@@ -382,8 +395,19 @@ final class PairingV2StateMachineTests: XCTestCase {
         )
         let commands = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .thirdParty, userId: "same-user")))
 
-        XCTAssertEqual(commands, [.stopPolling])
-        XCTAssertEqual(stateMachine.state, .completed(.alreadyConnected))
+        XCTAssertEqual(commands, [
+            .sendRecoveryCodeAwaitingConfirmation,
+            .requestHostConfirmation(peerName: nil)
+        ])
+        XCTAssertEqual(
+            stateMachine.state,
+            .hostWaitingForConfirmation(
+                .init(localClient: localClient,
+                      peerChannelID: "channel-1",
+                      peerStatus: .recoveryCodeAvailable(kind: .thirdParty, userId: "same-user")),
+                credentialKind: .thirdParty
+            )
+        )
     }
 
     func testWhenPresenterReceivesPeerAvailableWithSameUserIdAsLocalAccountThenFlowCompletesAlreadyConnected() {
@@ -563,7 +587,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         let commands = stateMachine.handle(.recoveryCodeSent)
 
         XCTAssertEqual(commands, [.stopPolling])
-        XCTAssertEqual(stateMachine.state, .completed(.recoveryCodeSent))
+        XCTAssertEqual(stateMachine.state, .completed(.recoveryCodeSent(credentialKind: .thirdParty)))
     }
 
     func testWhenRecoveryCodeIsPreparedThenHostSendsConfirmedBeforeResponse() {
@@ -580,6 +604,7 @@ final class PairingV2StateMachineTests: XCTestCase {
             stateMachine.state,
             .hostSendingRecoveryCode(
                 .init(localClient: localClient, peerChannelID: "channel-1", peerStatus: .recoveryCodeRequest(kind: .thirdParty)),
+                credentialKind: .thirdParty,
                 recoveryCode: "recovery-code"
             )
         )

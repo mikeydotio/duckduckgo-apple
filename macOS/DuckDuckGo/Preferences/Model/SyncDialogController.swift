@@ -600,8 +600,12 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
         presentDialog(for: .prepareToSync)
     }
 
-    func controllerDidFinishTransmittingRecoveryKey() {
-        waitForDevicesToChangeThenPresentSyncing()
+    func controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: Bool) {
+        if shouldWaitForDevicesToChange {
+            waitForDevicesToChangeThenPresentSyncing()
+        } else {
+            presentDialog(for: .nowSyncing)
+        }
     }
 
     func controllerDidReceiveRecoveryKey() {
@@ -667,6 +671,19 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
         case .unableToRecognizeCode:
             managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .unableToRecognizeCode)
             sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .updateRequired:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .updateRequired)
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .codeOnlyCompatibleWithDuckAI:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .codeOnlyCompatibleWithDuckAI)
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .codeMustBeScannedWithDuckDuckGo:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .codeMustBeScannedWithDuckDuckGo)
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .syncFromAnotherConnectedDevice:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .syncFromAnotherConnectedDevice)
+        case .syncCancelledFromOtherDevice:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .syncCancelledFromOtherDevice)
         case .failedToFetchPublicKey, .failedToTransmitExchangeRecoveryKey, .failedToFetchConnectRecoveryKey, .failedToLogIn, .failedToTransmitExchangeKey, .failedToFetchExchangeRecoveryKey, .failedToTransmitConnectRecoveryKey:
             managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .unableToSyncToOtherDevice, description: underlyingError?.localizedDescription)
             PixelKit.fire(DebugEvent(GeneralPixel.syncLoginError(error: underlyingError ?? error)))

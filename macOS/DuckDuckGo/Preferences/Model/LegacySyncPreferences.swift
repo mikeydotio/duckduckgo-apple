@@ -962,8 +962,12 @@ extension LegacySyncPreferences: SyncConnectionControllerDelegate {
         presentDialog(for: .prepareToSync)
     }
 
-    func controllerDidFinishTransmittingRecoveryKey() {
-        waitForDevicesToChangeThenPresentSyncing()
+    func controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: Bool) {
+        if shouldWaitForDevicesToChange {
+            waitForDevicesToChangeThenPresentSyncing()
+        } else {
+            presentDialog(for: .nowSyncing)
+        }
     }
 
     func controllerDidReceiveRecoveryKey() {
@@ -1036,6 +1040,19 @@ extension LegacySyncPreferences: SyncConnectionControllerDelegate {
         case .unableToRecognizeCode:
             handleError(.unableToRecognizeCode, error: underlyingError, pixelEvent: nil)
             sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .updateRequired:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .updateRequired)
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .codeOnlyCompatibleWithDuckAI:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .codeOnlyCompatibleWithDuckAI)
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .codeMustBeScannedWithDuckDuckGo:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .codeMustBeScannedWithDuckDuckGo)
+            sendCodeParsingFailedPixel(setupRole: setupRole)
+        case .syncFromAnotherConnectedDevice:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .syncFromAnotherConnectedDevice)
+        case .syncCancelledFromOtherDevice:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .syncCancelledFromOtherDevice)
         case .failedToFetchPublicKey, .failedToTransmitExchangeRecoveryKey, .failedToFetchConnectRecoveryKey, .failedToLogIn, .failedToTransmitExchangeKey, .failedToFetchExchangeRecoveryKey, .failedToTransmitConnectRecoveryKey:
             handleError(.unableToSyncToOtherDevice, error: underlyingError, pixelEvent: GeneralPixel.syncLoginError(error: underlyingError ?? error))
         case .failedToCreateAccount:
