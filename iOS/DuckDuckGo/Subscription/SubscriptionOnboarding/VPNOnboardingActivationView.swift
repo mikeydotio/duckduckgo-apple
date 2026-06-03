@@ -18,35 +18,29 @@
 //
 
 import SwiftUI
+import Combine
 import DesignResourcesKit
 import DesignResourcesKitIcons
 import DuckUI
-
-enum VPNOnboardingActivationState: Equatable {
-    case off
-    case requestingPermission
-    case on
-}
+import VPN
+import Subscription
 
 struct VPNOnboardingActivationView: View {
 
-    @State private var state: VPNOnboardingActivationState
-
-    private let realIP = "31.120.130.50"
-    private let realLocation = "🇪🇸 Madrid, Spain"
-    private let vpnIP = "165.225.94.30"
-    private let vpnLocation = "🇪🇸 Valencia, Spain"
+    @StateObject private var viewModel: VPNOnboardingActivationViewModel
+    @Environment(\.dismiss) private var dismiss
 
     private let onNext: () -> Void
 
-    init(initialState: VPNOnboardingActivationState = .off, onNext: @escaping () -> Void = {}) {
-        _state = State(initialValue: initialState)
+    init(viewModel: VPNOnboardingActivationViewModel = VPNOnboardingActivationViewModel(),
+         onNext: @escaping () -> Void = {}) {
+        _viewModel = StateObject(wrappedValue: viewModel)
         self.onNext = onNext
     }
 
     var body: some View {
         ZStack {
-            Color(designSystemColor: .background)
+            Color(designSystemColor: .surface)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -58,27 +52,28 @@ struct VPNOnboardingActivationView: View {
                         contentCards
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.vertical, 16)
+                    .animation(.easeInOut, value: viewModel.isConnected)
                 }
 
                 footer
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
             }
-
-            if state == .requestingPermission {
-                permissionModal
-                    .transition(.opacity)
-            }
+        }
+        .task {
+            await viewModel.fetchRealIPLocation()
         }
     }
 
     private var stepHeader: some View {
         ZStack {
             Text("Step 1 of 4")
-                .daxFootnoteRegular()
+                .daxSubheadSemibold()
                 .foregroundColor(Color(designSystemColor: .textSecondary))
 
             HStack {
-                Button("Back") {}
+                Button("Back") { dismiss() }
                     .daxBodyRegular()
                     .foregroundColor(Color(designSystemColor: .textPrimary))
                 Spacer()
@@ -89,42 +84,44 @@ struct VPNOnboardingActivationView: View {
     }
 
     private var headerContent: SettingsDescription {
-        SettingsDescription(
-            image: state == .on
-                ? DesignSystemImages.Color.Size128.networkProtectionVPN
-                : DesignSystemImages.Color.Size128.networkProtectionVPNDisabled,
-            title: state == .on ? "DuckDuckGo VPN is On" : "DuckDuckGo VPN is Off",
+        let explanation = viewModel.isConnected
+            ? "All device internet traffic is being secured through the VPN. [Learn More](https://duckduckgo.com/pro)"
+            : "Connect to secure all of your device's internet traffic. [Learn More](https://duckduckgo.com/pro)"
+        return SettingsDescription(
+            image: viewModel.isConnected
+                ? (UIImage(named: "NetworkProtectionVPNUtilityON") ?? UIImage())
+                : (UIImage(named: "NetworkProtectionVPNUtilityOFF") ?? UIImage()),
+            title: viewModel.isConnected ? "DuckDuckGo VPN is On" : "DuckDuckGo VPN is Off",
             status: nil,
-            explanation: state == .on
-                ? "All device internet traffic is being secured through the VPN."
-                : "Connect to secure all of your device's internet traffic."
+            explanation: explanation
         )
     }
 
     @ViewBuilder
     private var contentCards: some View {
         VStack(spacing: 16) {
-            if state == .on {
+            if viewModel.isConnected {
                 groupedContainer {
                     VPNOnboardingIPCard(title: "Your IP Address is Hidden",
-                                        ipAddress: realIP,
-                                        location: realLocation,
+                                        ipAddress: viewModel.realIP ?? "—",
+                                        location: viewModel.realLocation ?? "—",
                                         style: .hidden)
                 }
 
                 groupedContainer {
                     VPNOnboardingIPCard(title: "Your New IP Address",
-                                        ipAddress: vpnIP,
-                                        location: vpnLocation,
-                                        style: .new)
+                                        ipAddress: viewModel.vpnIP ?? "—",
+                                        location: viewModel.vpnLocation ?? "—",
+                                        style: .new,
+                                        isNearest: viewModel.isNearest)
                 }
 
                 caption("When the VPN is on, sites and apps see your new IP instead, helping keep your activity anonymous.")
             } else {
                 groupedContainer {
                     VPNOnboardingIPCard(title: "Your IP Address",
-                                        ipAddress: realIP,
-                                        location: realLocation,
+                                        ipAddress: viewModel.realIP ?? "—",
+                                        location: viewModel.realLocation ?? "—",
                                         style: .active)
                 }
 
@@ -132,97 +129,38 @@ struct VPNOnboardingActivationView: View {
             }
 
             VStack(spacing: 8) {
-                VPNOnboardingFeatureRow(text: "Shielding your online activity", isActive: state == .on)
-                VPNOnboardingFeatureRow(text: "Hiding your location & IP address", isActive: state == .on)
-                VPNOnboardingFeatureRow(text: "Blocking harmful sites", isActive: state == .on)
+                VPNOnboardingFeatureRow(text: "Shielding your online activity", isActive: viewModel.isConnected)
+                VPNOnboardingFeatureRow(text: "Hiding your location & IP address", isActive: viewModel.isConnected)
+                VPNOnboardingFeatureRow(text: "Blocking harmful sites", isActive: viewModel.isConnected)
             }
         }
     }
 
     private var footer: some View {
         Button {
-            switch state {
-            case .off:
-                withAnimation { state = .requestingPermission }
-            case .requestingPermission:
-                break
-            case .on:
+            if viewModel.isConnected {
                 onNext()
+            } else {
+                Task { await viewModel.turnOnVPN() }
             }
         } label: {
-            Text(state == .on ? "Next" : "Turn on VPN")
+            Text(viewModel.isConnected ? "Next" : "Turn on VPN")
         }
         .buttonStyle(PrimaryButtonStyle())
-        .padding(16)
-    }
-
-    private var permissionModal: some View {
-        ZStack {
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
-
-            VStack(spacing: 24) {
-                VStack(spacing: 0) {
-                    VStack(spacing: 6) {
-                        Text("“DuckDuckGo” Would Like to Add VPN Configurations")
-                            .daxHeadline()
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(Color(designSystemColor: .textPrimary))
-
-                        Text("All network activity on this iPhone may be filtered or monitored when using the VPN.")
-                            .daxFootnoteRegular()
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(Color(designSystemColor: .textSecondary))
-                    }
-                    .padding(16)
-
-                    Divider()
-
-                    HStack(spacing: 0) {
-                        Button("Don't Allow") {
-                            withAnimation { state = .off }
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-
-                        Divider()
-                            .frame(height: 44)
-
-                        Button {
-                            withAnimation { state = .on }
-                        } label: {
-                            Text("Allow")
-                                .daxHeadline()
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                    }
-                }
-                .frame(maxWidth: 270)
-                .background(Color(designSystemColor: .surface))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                Text("Tap Allow")
-                    .daxFootnoteRegular()
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Capsule().fill(Color.orange))
-            }
-            .padding(40)
-        }
     }
 
     private func groupedContainer<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(designSystemColor: .surface))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .background(Color(designSystemColor: .background))
+            .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 
     private func caption(_ text: String) -> some View {
         Text(text)
             .daxFootnoteRegular()
-            .foregroundColor(Color(designSystemColor: .textSecondary))
+            .foregroundColor(Color(designSystemColor: .textPrimary))
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -239,31 +177,29 @@ struct VPNOnboardingIPCard: View {
     let ipAddress: String
     let location: String
     let style: Style
+    var isNearest: Bool = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(uiImage: DesignSystemImages.Glyphs.Size24.globe)
-                .renderingMode(.template)
-                .foregroundColor(Color(designSystemColor: style == .new ? .accent : .icons))
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(Color(designSystemColor: .backgroundTertiary)))
+        HStack(alignment: .top, spacing: 12) {
+            Image(uiImage: style == .new
+                  ? DesignSystemImages.Color.Size24.vpn
+                  : DesignSystemImages.Color.Size24.vpnGrayscale)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .daxFootnoteRegular()
-                    .foregroundColor(Color(designSystemColor: .textSecondary))
+                    .daxFootnoteSemibold()
+                    .foregroundColor(Color(designSystemColor: .textPrimary))
 
                 Text(ipAddress)
-                    .strikethrough(style == .hidden)
                     .daxHeadline()
                     .foregroundColor(Color(designSystemColor: .textPrimary))
 
                 HStack(spacing: 4) {
                     Text(location)
                         .daxFootnoteRegular()
-                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                        .foregroundColor(Color(designSystemColor: .textPrimary))
 
-                    if style == .new {
+                    if isNearest {
                         Text("(Nearest)")
                             .daxFootnoteRegular()
                             .foregroundColor(Color(designSystemColor: .textSecondary))
@@ -284,40 +220,182 @@ struct VPNOnboardingFeatureRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color(designSystemColor: isActive ? .alertGreen : .icons))
-                    .opacity(isActive ? 1 : 0.3)
-                    .frame(width: 24, height: 24)
-
-                Image(uiImage: isActive ? DesignSystemImages.Glyphs.Size24.check : DesignSystemImages.Glyphs.Size24.close)
-                    .renderingMode(.template)
-                    .resizable()
-                    .frame(width: 14, height: 14)
-                    .foregroundColor(.white)
-            }
+            Image(uiImage: isActive
+                  ? DesignSystemImages.Glyphs.Size20.checkSolid
+                  : DesignSystemImages.Glyphs.Size20.closeSolid)
+                .renderingMode(.template)
+                .foregroundColor(Color(designSystemColor: isActive ? .alertGreen : .icons))
 
             Text(text)
-                .daxBodyRegular()
+                .daxSubheadRegular()
                 .foregroundColor(Color(designSystemColor: .textPrimary))
 
             Spacer()
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(designSystemColor: .surface))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color(designSystemColor: .background))
+        .clipShape(Capsule())
+    }
+}
+
+final class VPNOnboardingActivationViewModel: ObservableObject {
+
+    @Published private(set) var isConnected: Bool
+    @Published private(set) var realIP: String?
+    @Published private(set) var realLocation: String?
+    @Published private(set) var vpnIP: String?
+    @Published private(set) var vpnLocation: String?
+
+    let isNearest: Bool
+
+    private let statusModel: NetworkProtectionStatusViewModel?
+    private let statusObserver: ConnectionStatusObserver?
+    private let serverInfoObserver: ConnectionServerInfoObserver?
+
+    convenience init() {
+        let provider = AppDependencyProvider.shared
+        let serverInfo = provider.serverInfoObserver.recentValue
+        let statusModel = NetworkProtectionStatusViewModel(
+            tunnelController: provider.networkProtectionTunnelController,
+            settings: provider.vpnSettings,
+            statusObserver: provider.connectionObserver,
+            serverInfoObserver: provider.serverInfoObserver,
+            locationListRepository: NetworkProtectionLocationListCompositeRepository(),
+            enablesUnifiedFeedbackForm: provider.subscriptionManager.isUserAuthenticated)
+        self.init(statusModel: statusModel,
+                  statusObserver: provider.connectionObserver,
+                  serverInfoObserver: provider.serverInfoObserver,
+                  isNearest: provider.vpnSettings.selectedLocation == .nearest,
+                  isConnected: provider.connectionObserver.recentValue.isConnected,
+                  vpnIP: serverInfo.serverAddress,
+                  vpnLocation: serverInfo.serverLocation.map(Self.formattedLocation))
+        bindObservers()
+    }
+
+    init(statusModel: NetworkProtectionStatusViewModel? = nil,
+         statusObserver: ConnectionStatusObserver? = nil,
+         serverInfoObserver: ConnectionServerInfoObserver? = nil,
+         isNearest: Bool = false,
+         isConnected: Bool = false,
+         realIP: String? = nil,
+         realLocation: String? = nil,
+         vpnIP: String? = nil,
+         vpnLocation: String? = nil) {
+        self.statusModel = statusModel
+        self.statusObserver = statusObserver
+        self.serverInfoObserver = serverInfoObserver
+        self.isNearest = isNearest
+        self.isConnected = isConnected
+        self.realIP = realIP
+        self.realLocation = realLocation
+        self.vpnIP = vpnIP
+        self.vpnLocation = vpnLocation
+    }
+
+    private func bindObservers() {
+        statusObserver?.publisher
+            .receive(on: DispatchQueue.main)
+            .map(\.isConnected)
+            .assign(to: &$isConnected)
+
+        serverInfoObserver?.publisher
+            .receive(on: DispatchQueue.main)
+            .map(\.serverAddress)
+            .assign(to: &$vpnIP)
+
+        serverInfoObserver?.publisher
+            .receive(on: DispatchQueue.main)
+            .map { $0.serverLocation.map(Self.formattedLocation) }
+            .assign(to: &$vpnLocation)
+    }
+
+    @MainActor
+    func turnOnVPN() async {
+        await statusModel?.didToggleNetP(to: true)
+    }
+
+    @MainActor
+    func fetchRealIPLocation() async {
+        // Only fetch on the live path. On the preview/injected path (no observers) we keep
+        // the injected values so the canvas never displays the developer's real IP.
+        guard statusObserver != nil else { return }
+        guard let result = try? await RealIPLocationFetcher.fetch() else { return }
+        realIP = result.ip
+        realLocation = result.location
+    }
+
+    private static func formattedLocation(_ attributes: NetworkProtectionServerInfo.ServerAttributes) -> String {
+        NetworkProtectionLocationStatusModel.formattedLocation(city: attributes.city, country: attributes.country)
+    }
+}
+
+enum RealIPLocationFetcher {
+
+    struct Response: Decodable {
+        let ip: String
+        let city: String
+        let country: String
+    }
+
+    struct Result {
+        let ip: String
+        let location: String
+    }
+
+    static func fetch() async throws -> Result {
+        let url = URL(string: "https://ipapi.co/json/")!
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let response = try JSONDecoder().decode(Response.self, from: data)
+        let location = NetworkProtectionLocationStatusModel.formattedLocation(city: response.city,
+                                                                              country: response.country)
+        return Result(ip: response.ip, location: location)
+    }
+}
+
+private extension ConnectionStatus {
+    var isConnected: Bool {
+        if case .connected = self {
+            return true
+        }
+        return false
+    }
+}
+
+struct SubscriptionOnboardingDebugView: View {
+
+    @State private var isOnboardingPresented = false
+
+    var body: some View {
+        List {
+            Section {
+                Button("Subscribe") {
+                    isOnboardingPresented = true
+                }
+            } footer: {
+                Text("This button does nothing with your actual subscription status. It only opens the post-subscription onboarding view for preview.")
+            }
+        }
+        .navigationTitle("Subscription Onboarding")
+        .sheet(isPresented: $isOnboardingPresented) {
+            VPNOnboardingActivationView()
+        }
     }
 }
 
 #Preview("VPN Off") {
-    VPNOnboardingActivationView(initialState: .off)
-}
-
-#Preview("VPN modal") {
-    VPNOnboardingActivationView(initialState: .requestingPermission)
+    VPNOnboardingActivationView(viewModel: VPNOnboardingActivationViewModel(
+        isConnected: false,
+        realIP: "31.120.130.50",
+        realLocation: "🇪🇸 Madrid, Spain"))
 }
 
 #Preview("VPN On") {
-    VPNOnboardingActivationView(initialState: .on)
+    VPNOnboardingActivationView(viewModel: VPNOnboardingActivationViewModel(
+        isNearest: true,
+        isConnected: true,
+        realIP: "31.120.130.50",
+        realLocation: "🇪🇸 Madrid, Spain",
+        vpnIP: "165.225.94.30",
+        vpnLocation: "🇪🇸 Valencia, Spain"))
 }

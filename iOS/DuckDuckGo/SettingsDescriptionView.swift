@@ -52,6 +52,7 @@ struct SettingsDescriptionView: View {
         VStack(spacing: 8) {
             content.image
                 .resizable()
+                .scaledToFit()
                 .frame(width: 128, height: 96)
 
             Text(content.title)

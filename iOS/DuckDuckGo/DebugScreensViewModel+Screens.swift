@@ -133,6 +133,9 @@ extension DebugScreensViewModel {
             .view(title: "Settings Cells Demo", { _ in
                 SettingsCellDemoDebugView()
             }),
+            .view(title: "Subscription Onboarding", { _ in
+                SubscriptionOnboardingDebugView()
+            }),
             .view(title: "Vanilla Web View", { d in
                 let configuration = WKWebViewConfiguration()
                 configuration.websiteDataStore = WKWebsiteDataStore.nonPersistent()

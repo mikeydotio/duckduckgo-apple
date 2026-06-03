@@ -256,6 +256,7 @@
 		369E69282E5F4B9600F98A8F /* InactivityNotificationSchedulerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369E69272E5F4B8500F98A8F /* InactivityNotificationSchedulerService.swift */; };
 		369E692A2E5F579B00F98A8F /* NotificationServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369E69292E5F579500F98A8F /* NotificationServiceManager.swift */; };
 		369E692D2E5F6EC200F98A8F /* InactivityNotificationSchedulerServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369E692C2E5F6EB500F98A8F /* InactivityNotificationSchedulerServiceTests.swift */; };
+		36A288A62FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */; };
 		36A96A0A2E6606CF003D4529 /* LocalNotificationsPlaygroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A96A092E6606C0003D4529 /* LocalNotificationsPlaygroundView.swift */; };
 		36F2CA592E604C5100C7039D /* UNUserNotificationCenterRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2CA582E604C4700C7039D /* UNUserNotificationCenterRepresentable.swift */; };
 		36F2CA5B2E60589600C7039D /* MockUNUserNotificationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2CA5A2E60588F00C7039D /* MockUNUserNotificationCenter.swift */; };
@@ -2898,6 +2899,7 @@
 		369E69272E5F4B8500F98A8F /* InactivityNotificationSchedulerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InactivityNotificationSchedulerService.swift; sourceTree = "<group>"; };
 		369E69292E5F579500F98A8F /* NotificationServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationServiceManager.swift; sourceTree = "<group>"; };
 		369E692C2E5F6EB500F98A8F /* InactivityNotificationSchedulerServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InactivityNotificationSchedulerServiceTests.swift; sourceTree = "<group>"; };
+		36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNOnboardingActivationView.swift; sourceTree = "<group>"; };
 		36A96A092E6606C0003D4529 /* LocalNotificationsPlaygroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotificationsPlaygroundView.swift; sourceTree = "<group>"; };
 		36F2CA582E604C4700C7039D /* UNUserNotificationCenterRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UNUserNotificationCenterRepresentable.swift; sourceTree = "<group>"; };
 		36F2CA5A2E60588F00C7039D /* MockUNUserNotificationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockUNUserNotificationCenter.swift; sourceTree = "<group>"; };
@@ -6454,6 +6456,14 @@
 				C1A74BAF2EC2618D00870321 /* AutofillServiceTests.swift */,
 			);
 			path = AppServices;
+			sourceTree = "<group>";
+		};
+		36A288A52FD0CA5A001B8EC5 /* SubscriptionOnboarding */ = {
+			isa = PBXGroup;
+			children = (
+				36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */,
+			);
+			path = SubscriptionOnboarding;
 			sourceTree = "<group>";
 		};
 		36F619572F68655A00CBF121 /* Statistics */ = {
@@ -10103,6 +10113,7 @@
 		D664C7922B289AA000CBFA76 /* Subscription */ = {
 			isa = PBXGroup;
 			children = (
+				36A288A52FD0CA5A001B8EC5 /* SubscriptionOnboarding */,
 				BB3F734C2F321F4000461429 /* FreeTrialPixelHandler.swift */,
 				56D60AA42EE33EA600652ABB /* SubscriptionUserScriptFeatureFlagAdapter.swift */,
 				D6D95CE42B6DA3F200960317 /* AsyncHeadlessWebview */,
@@ -12564,6 +12575,7 @@
 				D6E83C2E2B1EA06E006C8AFB /* SettingsViewModel.swift in Sources */,
 				F0A100012F30200100BAD001 /* NewBadgeVisibilityManager.swift in Sources */,
 				9F44A7CC2E973F8D008B3D5A /* RemoteMessagingActionHandling.swift in Sources */,
+				36A288A62FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift in Sources */,
 				F1CCC1522F6423DD007AB0A5 /* RebrandedComparisonTableModel.swift in Sources */,
 				8590CB612684D0600089F6BF /* CookieDebugViewController.swift in Sources */,
 				319A37152829A55F0079FBCE /* AutofillListItemTableViewCell.swift in Sources */,
