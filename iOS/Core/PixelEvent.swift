@@ -1948,6 +1948,9 @@ extension Pixel {
 
         // MARK: - Custom Product Page
         case customProductPageDuckAIOpenedAIChat
+
+        // MARK: - Danger test
+        case dangerNoIssue
     }
 
 }
@@ -3817,6 +3820,9 @@ extension Pixel.Event {
 
         // MARK: - Custom Product Page
         case .customProductPageDuckAIOpenedAIChat: return "m_custom-product-page_duck-ai_opened-ai-chat"
+
+        // MARK: - Danger test
+        case .dangerNoIssue: return "danger_test_no_issue"
         }
     }
 }
