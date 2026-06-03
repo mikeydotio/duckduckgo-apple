@@ -5,16 +5,14 @@
         "owners": ["dus7"],
         "triggers": ["other"],
         "suffixes": ["platform", "form_factor"],
-        "parameters": ["appVersion"],
-        "expires": "2026-07-15"
+        "parameters": ["appVersion"]
     },
     "m_tab_switcher_view_as_list": {
         "description": "User switched the tab manager layout to List via the View As menu.",
         "owners": ["dus7"],
         "triggers": ["other"],
         "suffixes": ["platform", "form_factor"],
-        "parameters": ["appVersion"],
-        "expires": "2026-07-15"
+        "parameters": ["appVersion"]
     },
     "m_tab_switcher_view_as_shown": {
         "description": "User opened the View As submenu (change layout) from the tab manager more menu.",
