@@ -86,7 +86,7 @@ private extension NotificationServiceManager {
 
     @MainActor
     func handleSubscriptionExpirationReminder() {
-        mainCoordinator.segueToDuckDuckGoSubscription()
+        mainCoordinator.segueToSubscriptionSettings()
     }
 
     @MainActor
