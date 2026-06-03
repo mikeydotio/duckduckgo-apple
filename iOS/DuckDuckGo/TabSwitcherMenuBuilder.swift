@@ -82,9 +82,15 @@ struct TabSwitcherLongPressMenuActions {
     var onCloseOther: () -> Void
 }
 
+struct TabSwitcherEditMenuState {
+    let isGridViewEnabled: Bool
+}
+
 struct TabSwitcherEditMenuActions {
     var onEnterSelectMode: () -> Void
     var onCloseAll: () -> Void
+    var onSelectGridView: () -> Void
+    var onSelectListView: () -> Void
 }
 
 // MARK: - Protocol
@@ -92,7 +98,8 @@ struct TabSwitcherEditMenuActions {
 protocol TabSwitcherMenuBuilding {
     func multiSelectionMenu(state: TabSwitcherMultiSelectMenuState,
                             actions: TabSwitcherMultiSelectMenuActions) -> UIMenu
-    func editMenu(actions: TabSwitcherEditMenuActions) -> UIMenu
+    func editMenu(state: TabSwitcherEditMenuState,
+                  actions: TabSwitcherEditMenuActions) -> UIMenu
     func longPressMenu(state: TabSwitcherLongPressMenuState,
                        actions: TabSwitcherLongPressMenuActions) -> UIMenu
 }
@@ -111,8 +118,9 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
         return UIMenu(title: "", children: [deferredElement])
     }
 
-    func editMenu(actions: TabSwitcherEditMenuActions) -> UIMenu {
-        let items = editMenuItems(actions: actions)
+    func editMenu(state: TabSwitcherEditMenuState,
+                  actions: TabSwitcherEditMenuActions) -> UIMenu {
+        let items = editMenuItems(state: state, actions: actions)
         let deferredElement = UIDeferredMenuElement.uncached { completion in
             Pixel.fire(pixel: .tabSwitcherEditMenuClicked)
             completion(items)
@@ -169,8 +177,11 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
         ]
     }
 
-    func editMenuItems(actions: TabSwitcherEditMenuActions) -> [UIMenuElement] {
+    func editMenuItems(state: TabSwitcherEditMenuState,
+                       actions: TabSwitcherEditMenuActions) -> [UIMenuElement] {
         return [
+            viewAsMenu(isGridViewEnabled: state.isGridViewEnabled, actions: actions),
+
             // Force plural version - this really means "switch to select tabs mode"
             action(UserText.tabSwitcherSelectTabs(withCount: 2),
                    DesignSystemImages.Glyphs.Size16.checkCircle,
@@ -182,6 +193,23 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
                             actions.onCloseAll),
             ]),
         ]
+    }
+
+    /// Nested "View As" submenu to switch between grid and list layouts.
+    /// The active layout carries a checkmark.
+    private func viewAsMenu(isGridViewEnabled: Bool,
+                            actions: TabSwitcherEditMenuActions) -> UIMenu {
+        let grid = UIAction(title: UserText.tabSwitcherViewAsGrid,
+                            image: DesignSystemImages.Glyphs.Size16.viewGrid,
+                            state: isGridViewEnabled ? .on : .off) { _ in actions.onSelectGridView() }
+        let list = UIAction(title: UserText.tabSwitcherViewAsList,
+                            image: DesignSystemImages.Glyphs.Size16.viewList,
+                            state: isGridViewEnabled ? .off : .on) { _ in actions.onSelectListView() }
+        return UIMenu(title: UserText.tabSwitcherViewAs,
+                      image: isGridViewEnabled
+                        ? DesignSystemImages.Glyphs.Size16.viewGrid
+                        : DesignSystemImages.Glyphs.Size16.viewList,
+                      children: [grid, list])
     }
 
     func longPressMenuItems(state: TabSwitcherLongPressMenuState,

@@ -4402,6 +4402,15 @@ Take back control of your personal information with the browser designed for dat
 /* Do not translate - stringsdict entry */
 "tab.switcher.tracker.count.title" = "tab.switcher.tracker.count.title";
 
+/* Title for the menu item that lets the user choose between grid and list tab layouts */
+"tab.switcher.viewAs" = "View As";
+
+/* Menu item to show tabs in a grid layout */
+"tab.switcher.viewAs.grid" = "Grid";
+
+/* Menu item to show tabs in a list layout */
+"tab.switcher.viewAs.list" = "List";
+
 /* Description text for the text size adjustment setting */
 "textSize.description" = "Increase or decrease text size across all sites.";
 

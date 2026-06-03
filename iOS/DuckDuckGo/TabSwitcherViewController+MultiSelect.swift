@@ -65,8 +65,9 @@ extension TabSwitcherViewController {
         })
     }
 
-    func onTabStyleChange() {
+    func setGridView(_ enabled: Bool) {
         guard isProcessingUpdates == false else { return }
+        guard tabSwitcherSettings.isGridViewEnabled != enabled else { return }
 
         isProcessingUpdates = true
         // Idea is here to wait for any pending processing of reconfigureItems on a cells,
@@ -77,15 +78,13 @@ extension TabSwitcherViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             guard let self else { return }
 
-            tabSwitcherSettings.isGridViewEnabled = !tabSwitcherSettings.isGridViewEnabled
+            tabSwitcherSettings.isGridViewEnabled = enabled
 
             if tabSwitcherSettings.isGridViewEnabled {
                 Pixel.fire(pixel: .tabSwitcherGridEnabled)
             } else {
                 Pixel.fire(pixel: .tabSwitcherListEnabled)
             }
-
-            self.refreshDisplayModeButton()
 
             UIView.transition(with: view,
                               duration: 0.3,
@@ -278,7 +277,7 @@ extension TabSwitcherViewController {
         }
 
         barsHandler.update(state)
-        barsHandler.configureButtonActions(tabsStyle: tabsStyle, canShowSelectionMenu: canShowSelectionMenu)
+        barsHandler.configureButtonActions(canShowSelectionMenu: canShowSelectionMenu)
 
         titleBarView.setCenterView(isEditing ? nil : segmentedPickerHostingController?.view)
         titleBarView.setLeadingButtons(barsHandler.topBarLeftButtons)
@@ -310,10 +309,14 @@ extension TabSwitcherViewController {
     }
 
     func createEditMenu() -> UIMenu {
-        return menuBuilder.editMenu(actions: TabSwitcherEditMenuActions(
-            onEnterSelectMode: { [weak self] in self?.editMenuEnterSelectMode() },
-            onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() }
-        ))
+        return menuBuilder.editMenu(
+            state: TabSwitcherEditMenuState(isGridViewEnabled: tabSwitcherSettings.isGridViewEnabled),
+            actions: TabSwitcherEditMenuActions(
+                onEnterSelectMode: { [weak self] in self?.editMenuEnterSelectMode() },
+                onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() },
+                onSelectGridView: { [weak self] in self?.setGridView(true) },
+                onSelectListView: { [weak self] in self?.setGridView(false) }
+            ))
     }
 
     /// Takes indexes of tabs to create long menu for.  Internally creates tab array for those

@@ -408,6 +408,12 @@ public struct UserText {
 
     public static let tabSwitcherBookmarkAllTabs = NSLocalizedString("tab.switcher.bookmarkAll", value: "Bookmark All Tabs", comment: "Bookmark all tabs menu item")
 
+    public static let tabSwitcherViewAs = NSLocalizedString("tab.switcher.viewAs", value: "View As", comment: "Title for the menu item that lets the user choose between grid and list tab layouts")
+
+    public static let tabSwitcherViewAsGrid = NSLocalizedString("tab.switcher.viewAs.grid", value: "Grid", comment: "Menu item to show tabs in a grid layout")
+
+    public static let tabSwitcherViewAsList = NSLocalizedString("tab.switcher.viewAs.list", value: "List", comment: "Menu item to show tabs in a list layout")
+
     public static func tabSwitcherSelectTabs(withCount count: Int) -> String {
         let format = Bundle.main.localizedString(forKey: "tab.switcher.select-tabs.withCount", value: nil, table: nil)
         return String.localizedStringWithFormat(format, count)

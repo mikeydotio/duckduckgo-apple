@@ -69,29 +69,6 @@ class TabSwitcherViewController: UIViewController {
 
     }
 
-    enum TabsStyle: String {
-
-        case list = "tabsToggleList"
-        case grid = "tabsToggleGrid"
-
-        var accessibilityLabel: String {
-            switch self {
-            case .list: "Switch to grid view"
-            case .grid: "Switch to list view"
-            }
-        }
-
-        var image: UIImage {
-            switch self {
-            case .list:
-                return DesignSystemImages.Glyphs.Size24.viewList
-            case .grid:
-                return DesignSystemImages.Glyphs.Size24.viewGrid
-            }
-        }
-
-    }
-
     lazy var borderView = StyledTopBottomBorderView()
 
     let titleBarView = TabSwitcherTitleBarView()
@@ -142,7 +119,6 @@ class TabSwitcherViewController: UIViewController {
 
     let favicons: FaviconManaging
 
-    var tabsStyle: TabsStyle = .list
     var interfaceMode: InterfaceMode = .regularSize
     var canShowSelectionMenu = false
     var menuBuilder: TabSwitcherMenuBuilding = DefaultTabSwitcherMenuBuilder()
@@ -551,10 +527,6 @@ class TabSwitcherViewController: UIViewController {
             return self?.createEditMenu()
         }
 
-        barsHandler.onTabStyleButtonTapped = { [weak self] in
-            self?.onTabStyleChange()
-        }
-
         barsHandler.onSelectAllTapped = { [weak self] in
             self?.selectAllTabs()
         }
@@ -591,10 +563,6 @@ class TabSwitcherViewController: UIViewController {
     private func showFireButtonPulseIfNeeded() {
         guard daxDialogsManager.isShowingFireDialog, let window = view.window else { return }
         ViewHighlighter.showIn(window, focussedOnButton: barsHandler.fireButton)
-    }
-
-    func refreshDisplayModeButton() {
-        tabsStyle = tabSwitcherSettings.isGridViewEnabled ? .grid : .list
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -817,9 +785,7 @@ extension TabSwitcherViewController {
     private func decorate() {
         let theme = ThemeManager.shared.currentTheme
         view.backgroundColor = theme.backgroundColor
-        
-        refreshDisplayModeButton()
-        
+
         titleBarView.tintColor = theme.barTintColor
 
         toolbar.barTintColor = theme.barBackgroundColor
@@ -899,7 +865,7 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
 
     func page(_ page: TabSwitcherPageViewController, didReorderTabs: Void) {
         if isEditing {
-            barsHandler.configureButtonActions(tabsStyle: tabsStyle, canShowSelectionMenu: canShowSelectionMenu)
+            barsHandler.configureButtonActions(canShowSelectionMenu: canShowSelectionMenu)
         }
         delegate.tabSwitcherDidReorderTabs(tabSwitcher: self)
     }

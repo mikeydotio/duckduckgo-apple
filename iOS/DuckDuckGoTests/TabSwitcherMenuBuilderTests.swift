@@ -36,7 +36,8 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
             onDeselectAll: {}, onSelectAll: {}, onShare: {},
             onBookmarkSelected: {}, onCloseOther: {}, onCloseSelected: {}, onBookmarkAll: {}
         )
-        noopEditActions = TabSwitcherEditMenuActions(onEnterSelectMode: {}, onCloseAll: {})
+        noopEditActions = TabSwitcherEditMenuActions(onEnterSelectMode: {}, onCloseAll: {},
+                                                     onSelectGridView: {}, onSelectListView: {})
         noopLongPressActions = TabSwitcherLongPressMenuActions(
             onShare: {}, onBookmark: {}, onSelect: {}, onClose: {}, onCloseOther: {}
         )
@@ -147,7 +148,7 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
     // MARK: - Edit Menu
 
     func testEditMenu_alwaysContainsSelectTabsAndCloseAll() {
-        let items = builder.editMenuItems(actions: noopEditActions)
+        let items = builder.editMenuItems(state: .init(isGridViewEnabled: true), actions: noopEditActions)
         let actions = flatActions(items)
 
         XCTAssertTrue(actions.contains(title: UserText.tabSwitcherSelectTabs(withCount: 2)))
@@ -155,11 +156,32 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
     }
 
     func testEditMenu_closeAllIsDestructive() {
-        let items = builder.editMenuItems(actions: noopEditActions)
+        let items = builder.editMenuItems(state: .init(isGridViewEnabled: true), actions: noopEditActions)
         let closeAllAction = flatActions(items).first(withTitle: UserText.closeAllTabs)
 
         XCTAssertNotNil(closeAllAction)
         XCTAssertTrue(closeAllAction!.attributes.contains(.destructive))
+    }
+
+    func testViewAsMenu_containsGridAndList() {
+        let actions = builder.viewAsItems(isGridViewEnabled: true, actions: noopEditActions)
+
+        XCTAssertTrue(actions.contains(title: UserText.tabSwitcherViewAsGrid))
+        XCTAssertTrue(actions.contains(title: UserText.tabSwitcherViewAsList))
+    }
+
+    func testViewAsMenu_checksGridWhenGridEnabled() {
+        let actions = builder.viewAsItems(isGridViewEnabled: true, actions: noopEditActions)
+
+        XCTAssertEqual(actions.first(withTitle: UserText.tabSwitcherViewAsGrid)?.state, .on)
+        XCTAssertEqual(actions.first(withTitle: UserText.tabSwitcherViewAsList)?.state, .off)
+    }
+
+    func testViewAsMenu_checksListWhenGridDisabled() {
+        let actions = builder.viewAsItems(isGridViewEnabled: false, actions: noopEditActions)
+
+        XCTAssertEqual(actions.first(withTitle: UserText.tabSwitcherViewAsGrid)?.state, .off)
+        XCTAssertEqual(actions.first(withTitle: UserText.tabSwitcherViewAsList)?.state, .on)
     }
 
     // MARK: - Long Press Menu

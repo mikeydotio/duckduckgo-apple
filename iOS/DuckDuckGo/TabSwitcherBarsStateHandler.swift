@@ -47,7 +47,6 @@ protocol TabSwitcherBarsStateHandling {
     var doneButton: UIBarButtonItem { get }
     var closeTabsButton: UIBarButtonItem { get }
     var menuButton: UIBarButtonItem { get }
-    var tabSwitcherStyleButton: UIBarButtonItem { get }
     var editButton: UIBarButtonItem { get }
     var selectAllButton: UIBarButtonItem { get }
     var deselectAllButton: UIBarButtonItem { get }
@@ -65,7 +64,6 @@ protocol TabSwitcherBarsStateHandling {
     var onFireButtonTapped: (() -> Void)? { get set }
     var onDoneButtonTapped: (() -> Void)? { get set }
     var onEditButtonTapped: (() -> UIMenu?)? { get set }
-    var onTabStyleButtonTapped: (() -> Void)? { get set }
     var onSelectAllTapped: (() -> Void)? { get set }
     var onDeselectAllTapped: (() -> Void)? { get set }
     var onMenuButtonTapped: (() -> UIMenu?)? { get set }
@@ -74,8 +72,7 @@ protocol TabSwitcherBarsStateHandling {
 
     func update(_ state: TabSwitcherToolbarState)
 
-    func configureButtonActions(tabsStyle: TabSwitcherViewController.TabsStyle,
-                                canShowSelectionMenu: Bool)
+    func configureButtonActions(canShowSelectionMenu: Bool)
 
     func configurePlusButtonLongPressMenu(isFireModeEnabled: Bool)
 
@@ -127,15 +124,8 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
         return item
     }()
 
-    lazy var tabSwitcherStyleButton: UIBarButtonItem = {
-        let item = BrowserChromeButton.createToolbarButtonItem(title: "", image: nil) { [weak self] in
-            self?.onTabStyleButtonTapped?()
-        }
-        return item
-    }()
-
     lazy var editButton: UIBarButtonItem = {
-        let item = BrowserChromeButton.createToolbarButtonItem(title: UserText.actionGenericEdit, image: DesignSystemImages.Glyphs.Size24.menuDotsVertical)
+        let item = BrowserChromeButton.createToolbarButtonItem(title: UserText.actionGenericEdit, image: DesignSystemImages.Glyphs.Size24.menuDotsHorizontal)
         return item
     }()
 
@@ -177,7 +167,6 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
     var onFireButtonTapped: (() -> Void)?
     var onDoneButtonTapped: (() -> Void)?
     var onEditButtonTapped: (() -> UIMenu?)?
-    var onTabStyleButtonTapped: (() -> Void)?
     var onSelectAllTapped: (() -> Void)?
     var onDeselectAllTapped: (() -> Void)?
     var onMenuButtonTapped: (() -> UIMenu?)?
@@ -207,13 +196,7 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
         updateTopRightButtons()
     }
 
-    func configureButtonActions(tabsStyle: TabSwitcherViewController.TabsStyle,
-                                canShowSelectionMenu: Bool) {
-        if let button = tabSwitcherStyleButton.customView as? BrowserChromeButton {
-            button.setImage(tabsStyle.image)
-            button.accessibilityLabel = tabsStyle.accessibilityLabel
-        }
-
+    func configureButtonActions(canShowSelectionMenu: Bool) {
         // Configure edit button with menu
         if let button = editButton.customView as? BrowserChromeButton {
             button.menu = onEditButtonTapped?()
@@ -303,10 +286,6 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
         case .regularSize:
 
             newItems = [
-                tabSwitcherStyleButton,
-
-                .flexibleSpace(),
-
                 invisibleBalancingButton(),
 
                 .flexibleSpace(),
@@ -316,8 +295,6 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
                 .flexibleSpace(),
 
                 plusButton,
-
-                .flexibleSpace(),
 
                 editButton,
             ].compactMap { $0 }
@@ -377,7 +354,6 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
         case .largeSize:
             topBarLeftButtons = [
                 editButton,
-                tabSwitcherStyleButton,
             ].views()
 
         case .editingRegularSize:

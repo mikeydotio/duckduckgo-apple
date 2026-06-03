@@ -40,11 +40,10 @@ class TabSwitcherBarsStateHandlerTests: XCTestCase {
         stateHandler.update(.regularSize(selectedCount: 0, totalCount: 1, containsWebPages: false, showAIChat: true, canDismissOnEmpty: true))
 
         let items = stateHandler.bottomBarItems
-        XCTAssertEqual(items.count, 9)
-        XCTAssertEqual(items[0], stateHandler.tabSwitcherStyleButton)
-        XCTAssertEqual(items[4], stateHandler.fireButton)
-        XCTAssertEqual(items[6], stateHandler.plusButton)
-        XCTAssertEqual(items[8], stateHandler.editButton)
+        XCTAssertEqual(items.count, 6)
+        XCTAssertEqual(items[2], stateHandler.fireButton)
+        XCTAssertEqual(items[4], stateHandler.plusButton)
+        XCTAssertEqual(items[5], stateHandler.editButton)
 
         XCTAssertFalse(stateHandler.isBottomBarHidden)
         XCTAssertFalse(stateHandler.editButton.isEnabled)
@@ -55,11 +54,10 @@ class TabSwitcherBarsStateHandlerTests: XCTestCase {
 
         // Check that the expected items are present in the correct order
         let items = stateHandler.bottomBarItems
-        XCTAssertEqual(items.count, 9)
-        XCTAssertEqual(items[0], stateHandler.tabSwitcherStyleButton)
-        XCTAssertEqual(items[4], stateHandler.fireButton)
-        XCTAssertEqual(items[6], stateHandler.plusButton)
-        XCTAssertEqual(items[8], stateHandler.editButton)
+        XCTAssertEqual(items.count, 6)
+        XCTAssertEqual(items[2], stateHandler.fireButton)
+        XCTAssertEqual(items[4], stateHandler.plusButton)
+        XCTAssertEqual(items[5], stateHandler.editButton)
 
         XCTAssertFalse(stateHandler.isBottomBarHidden)
         XCTAssertTrue(stateHandler.editButton.isEnabled)
@@ -158,17 +156,15 @@ class TabSwitcherBarsStateHandlerTests: XCTestCase {
     func testWhenInterfaceModeIsLargeSizeThenTopLeftButtonsAreSetCorrectly() {
         stateHandler.update(.largeSize(selectedCount: 0, totalCount: 2, containsWebPages: false, showAIChat: false, canDismissOnEmpty: true))
 
-        XCTAssertEqual(stateHandler.topBarLeftButtons.count, 2)
+        XCTAssertEqual(stateHandler.topBarLeftButtons.count, 1)
         XCTAssertTrue(stateHandler.topBarLeftButtons.contains(stateHandler.editButton.customView!))
-        XCTAssertTrue(stateHandler.topBarLeftButtons.contains(stateHandler.tabSwitcherStyleButton.customView!))
     }
 
     func testWhenInterfaceModeIsLargeSizeAndCannotShowEditButtonThenTopLeftButtonsAreSetCorrectly() {
         stateHandler.update(.largeSize(selectedCount: 0, totalCount: 0, containsWebPages: false, showAIChat: false, canDismissOnEmpty: true))
 
-        XCTAssertEqual(stateHandler.topBarLeftButtons.count, 2)
+        XCTAssertEqual(stateHandler.topBarLeftButtons.count, 1)
         XCTAssertTrue(stateHandler.topBarLeftButtons.contains(stateHandler.editButton.customView!))
-        XCTAssertTrue(stateHandler.topBarLeftButtons.contains(stateHandler.tabSwitcherStyleButton.customView!))
     }
 
     func testWhenInterfaceModeIsLargeSizeThenTopRightButtonsAreSetCorrectly() {
