@@ -240,6 +240,23 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(notificationCenter.removedIdentifiers.count, priorRemovalCount)
     }
 
+    // MARK: - Observer: .accountDidSignOut
+
+    func test_accountDidSignOut_cancelsPendingReminderUnconditionally() async {
+        setSubscription(status: .autoRenewable)
+        await sut.scheduleReminder(timeBeforeCancel: days(7))
+        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+
+        // No need to flip the subscription status — sign-out cancels regardless
+        // because the subscription manager may no longer return a usable result.
+        observerNotificationCenter.post(name: .accountDidSignOut, object: nil)
+
+        await waitUntil("reminder cancelled after accountDidSignOut") {
+            self.notificationCenter.removedIdentifiers.count > priorRemovalCount
+        }
+        XCTAssertEqual(notificationCenter.removedIdentifiers.last, [identifier])
+    }
+
     // MARK: - Async test helpers
 
     private func waitUntil(_ description: String,

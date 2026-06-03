@@ -65,6 +65,18 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
                 Task { [weak self] in await self?.cancelReminderIfInactive(forceRefresh: true) }
             }
             .store(in: &cancellables)
+
+        // Sign-out posts .accountDidSignOut (not .subscriptionDidChange), so cancel unconditionally.
+        notificationCenterObserver.publisher(for: .accountDidSignOut)
+            .sink { [weak self] _ in
+                Task { [weak self] in await self?.cancelPendingReminder() }
+            }
+            .store(in: &cancellables)
+    }
+
+    @MainActor
+    private func cancelPendingReminder() async {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [Self.notificationIdentifier])
     }
 
     func scheduleReminder(timeBeforeCancel: TimeInterval) async {
