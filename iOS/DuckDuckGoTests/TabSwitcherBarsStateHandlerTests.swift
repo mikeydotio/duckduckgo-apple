@@ -36,7 +36,7 @@ class TabSwitcherBarsStateHandlerTests: XCTestCase {
         super.tearDown()
     }
 
-    func testWhenNoPagesThenEditButtonVisibleButDisabled() {
+    func testWhenNoPagesThenEditButtonVisibleAndEnabled() {
         stateHandler.update(.regularSize(selectedCount: 0, totalCount: 1, containsWebPages: false, showAIChat: true, canDismissOnEmpty: true))
 
         let items = stateHandler.bottomBarItems
@@ -46,7 +46,8 @@ class TabSwitcherBarsStateHandlerTests: XCTestCase {
         XCTAssertEqual(items[5], stateHandler.editButton)
 
         XCTAssertFalse(stateHandler.isBottomBarHidden)
-        XCTAssertFalse(stateHandler.editButton.isEnabled)
+        // Stays enabled so the "View As" menu is reachable even with a single empty tab.
+        XCTAssertTrue(stateHandler.editButton.isEnabled)
     }
 
     func testWhenDuckChatEnabledThenBottomBarItemsAreSetCorrectly() {

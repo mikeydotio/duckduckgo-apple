@@ -258,7 +258,8 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
         configureAccessibility(deselectAllButton, label: UserText.deselectAllTabs)
         configureAccessibility(menuButton, label: "More Menu")
 
-        setEnabled(editButton, params.totalCount > 1 || params.containsWebPages)
+        // Always enabled so the "View As" layout menu stays reachable with no tabs.
+        setEnabled(editButton, true)
         setEnabled(closeTabsButton, params.selectedCount > 0)
         let doneEnabled = params.canDismissOnEmpty || params.totalCount > 0
         setEnabled(doneIconButton, doneEnabled)

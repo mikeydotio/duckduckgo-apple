@@ -147,16 +147,32 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
 
     // MARK: - Edit Menu
 
-    func testEditMenu_alwaysContainsSelectTabsAndCloseAll() {
-        let items = builder.editMenuItems(state: .init(isGridViewEnabled: true), actions: noopEditActions)
+    func testEditMenu_whenCanEditTabsSelectTabsAndCloseAllAreEnabled() {
+        let items = builder.editMenuItems(state: .init(isGridViewEnabled: true, canEditTabs: true), actions: noopEditActions)
         let actions = flatActions(items)
+        let select = actions.first(withTitle: UserText.tabSwitcherSelectTabs(withCount: 2))
+        let closeAll = actions.first(withTitle: UserText.closeAllTabs)
 
-        XCTAssertTrue(actions.contains(title: UserText.tabSwitcherSelectTabs(withCount: 2)))
-        XCTAssertTrue(actions.contains(title: UserText.closeAllTabs))
+        XCTAssertNotNil(select)
+        XCTAssertNotNil(closeAll)
+        XCTAssertFalse(select!.attributes.contains(.disabled))
+        XCTAssertFalse(closeAll!.attributes.contains(.disabled))
+    }
+
+    func testEditMenu_whenCannotEditTabsSelectTabsAndCloseAllAreDisabled() {
+        let items = builder.editMenuItems(state: .init(isGridViewEnabled: true, canEditTabs: false), actions: noopEditActions)
+        let actions = flatActions(items)
+        let select = actions.first(withTitle: UserText.tabSwitcherSelectTabs(withCount: 2))
+        let closeAll = actions.first(withTitle: UserText.closeAllTabs)
+
+        XCTAssertNotNil(select)
+        XCTAssertNotNil(closeAll)
+        XCTAssertTrue(select!.attributes.contains(.disabled))
+        XCTAssertTrue(closeAll!.attributes.contains(.disabled))
     }
 
     func testEditMenu_closeAllIsDestructive() {
-        let items = builder.editMenuItems(state: .init(isGridViewEnabled: true), actions: noopEditActions)
+        let items = builder.editMenuItems(state: .init(isGridViewEnabled: true, canEditTabs: true), actions: noopEditActions)
         let closeAllAction = flatActions(items).first(withTitle: UserText.closeAllTabs)
 
         XCTAssertNotNil(closeAllAction)

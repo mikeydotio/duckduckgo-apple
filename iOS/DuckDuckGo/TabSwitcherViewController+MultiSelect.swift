@@ -259,7 +259,6 @@ extension TabSwitcherViewController {
         }
 
         let showAIChatButton = aiChatSettings.isAIChatTabSwitcherUserSettingsEnabled
-        let containsWebPages = tabsModel.tabs.contains(where: { $0.link != nil })
 
         let state: TabSwitcherToolbarState
         if isEditing {
@@ -309,8 +308,10 @@ extension TabSwitcherViewController {
     }
 
     func createEditMenu() -> UIMenu {
+        let canEditTabs = tabsModel.count > 1 || containsWebPages
         return menuBuilder.editMenu(
-            state: TabSwitcherEditMenuState(isGridViewEnabled: tabSwitcherSettings.isGridViewEnabled),
+            state: TabSwitcherEditMenuState(isGridViewEnabled: tabSwitcherSettings.isGridViewEnabled,
+                                            canEditTabs: canEditTabs),
             actions: TabSwitcherEditMenuActions(
                 onEnterSelectMode: { [weak self] in self?.editMenuEnterSelectMode() },
                 onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() },

@@ -84,6 +84,7 @@ struct TabSwitcherLongPressMenuActions {
 
 struct TabSwitcherEditMenuState {
     let isGridViewEnabled: Bool
+    let canEditTabs: Bool
 }
 
 struct TabSwitcherEditMenuActions {
@@ -185,18 +186,18 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
             // Force plural version - this really means "switch to select tabs mode"
             action(UserText.tabSwitcherSelectTabs(withCount: 2),
                    DesignSystemImages.Glyphs.Size16.checkCircle,
+                   enabled: state.canEditTabs,
                    actions.onEnterSelectMode),
 
             UIMenu(title: "", options: [.displayInline], children: [
                 destructive(UserText.closeAllTabs,
                             DesignSystemImages.Glyphs.Size16.tabCloseAlt,
+                            enabled: state.canEditTabs,
                             actions.onCloseAll),
             ]),
         ]
     }
 
-    /// Nested "View As" submenu to switch between grid and list layouts.
-    /// The active layout carries a checkmark.
     private func viewAsMenu(isGridViewEnabled: Bool,
                             actions: TabSwitcherEditMenuActions) -> UIMenu {
         let items = viewAsItems(isGridViewEnabled: isGridViewEnabled, actions: actions)
@@ -258,11 +259,15 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
             DesignSystemImages.Glyphs.Size16.tabCloseAlt
     }
 
-    private func action(_ title: String, _ image: UIImage? = nil, _ handler: @escaping () -> Void) -> UIAction {
-        return UIAction(title: title, image: image) { _ in handler() }
+    private func action(_ title: String, _ image: UIImage? = nil, enabled: Bool = true, _ handler: @escaping () -> Void) -> UIAction {
+        let action = UIAction(title: title, image: image) { _ in handler() }
+        if !enabled { action.attributes.insert(.disabled) }
+        return action
     }
 
-    private func destructive(_ title: String, _ image: UIImage, _ handler: @escaping () -> Void) -> UIAction {
-        return UIAction(title: title, image: image, attributes: .destructive) { _ in handler() }
+    private func destructive(_ title: String, _ image: UIImage, enabled: Bool = true, _ handler: @escaping () -> Void) -> UIAction {
+        let action = UIAction(title: title, image: image, attributes: .destructive) { _ in handler() }
+        if !enabled { action.attributes.insert(.disabled) }
+        return action
     }
 }

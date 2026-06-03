@@ -138,7 +138,11 @@ class TabSwitcherViewController: UIViewController {
     var canDismissOnEmpty: Bool {
         !tabsModel.allowsEmpty
     }
-    
+
+    var containsWebPages: Bool {
+        tabsModel.tabs.contains(where: { $0.link != nil })
+    }
+
     var barsHandler: TabSwitcherBarsStateHandling = DefaultTabSwitcherBarsStateHandler()
 
     private let appSettings: AppSettings
