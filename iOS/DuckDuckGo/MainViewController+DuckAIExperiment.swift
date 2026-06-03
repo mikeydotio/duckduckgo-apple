@@ -18,7 +18,9 @@
 //
 
 import AIChat
+import Combine
 import Core
+import DesignResourcesKit
 import UIKit
 
 // MARK: - Duck.ai Query Experiment — onboarding fire flow types
@@ -75,7 +77,12 @@ extension MainViewController {
     /// Both the `onboardingDuckAIQueryTrackersDemoExperiment` experiment in the default flow and the Duck.ai tailored flow
     /// drive the same Fire-onboarding code path; either being active is sufficient.
     var isDuckAIFireFlowEnabled: Bool {
-        featureFlagger.isFeatureOn(.onboardingDuckAIQueryTrackersDemoExperiment) || onboardingManager.currentOnboardingFlow == .duckAI
+        // TODO: OVERRIDE - Remove before shipping. Feature flag is off and onboardingFlowType
+        // is reset to nil (.default), so the production check would return false and skip the
+        // entire fire-onboarding path (controls lock, fire dialog, completion dialog).
+        // return true
+        // swiftlint:disable:next unreachable_code
+        return featureFlagger.isFeatureOn(.onboardingDuckAIQueryTrackersDemoExperiment) || onboardingManager.currentOnboardingFlow == .duckAI
     }
 
     // MARK: Session setup
@@ -346,6 +353,20 @@ extension MainViewController {
         // a simpler snapshot-only path: dismiss the intro modal, let UTI manage chrome, fade snapshot.
         let isUTIActive = unifiedToggleInputCoordinator != nil
 
+        // if isUTIActive {
+        //     // Slide UTI chrome off-screen so it enters the same way the legacy bars do.
+        //     // transform-based so Auto Layout is unaffected and the content area doesn't shift.
+        //     let safeTop = view.safeAreaInsets.top
+        //     let headerH = viewCoordinator.aiChatTabChatHeaderContainer.bounds.height
+        //     viewCoordinator.aiChatTabChatHeaderContainer.transform =
+        //         CGAffineTransform(translationX: 0, y: -(headerH + safeTop))
+
+        //     let safeBottom = view.safeAreaInsets.bottom
+        //     let inputBarH = viewCoordinator.navigationBarContainer.bounds.height
+        //     viewCoordinator.navigationBarContainer.transform =
+        //         CGAffineTransform(translationX: 0, y: inputBarH + safeBottom)
+        // }
+
         controller.dismiss(animated: false) { [weak self] in
             guard let self else { return }
 
@@ -353,13 +374,54 @@ extension MainViewController {
                 viewCoordinator.aiChatTabChatHeaderContainer.alpha = 0
                 viewCoordinator.navigationBarContainer.alpha = 0
                 viewCoordinator.statusBackground.alpha = 0
-                UIView.animate(withDuration: 0.25) {
+                // Hide content so no partially-loaded web view bleeds through the fading snapshot.
+                viewCoordinator.contentContainer.alpha = 0
+
+                // Full-screen surface fill placed behind the content container. This prevents the
+                // root view's surfaceCanvas background from bleeding through the transparent
+                // contentContainer during both the snapshot fade and the subsequent content fade-in.
+                // It must be removed only after contentContainer is fully opaque.
+                let transitionFill = UIView()
+                transitionFill.backgroundColor = UIColor(singleUseColor: .duckAIWebViewBackground)
+                transitionFill.frame = viewCoordinator.contentContainer.frame
+                transitionFill.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                transitionFill.isUserInteractionEnabled = false
+                view.insertSubview(transitionFill, belowSubview: viewCoordinator.contentContainer)
+
+                UIView.animate(withDuration: 0.3) {
                     onboardingTransitionSnapshotView?.alpha = 0
                     self.viewCoordinator.aiChatTabChatHeaderContainer.alpha = 1
                     self.viewCoordinator.navigationBarContainer.alpha = 1
                     self.viewCoordinator.statusBackground.alpha = 1
                 } completion: { _ in
                     self.hideOnboardingTransitionSnapshot(onboardingTransitionSnapshotView)
+
+                    let revealContent = {
+                        UIView.animate(withDuration: 0.25) {
+                            self.viewCoordinator.contentContainer.alpha = 1
+                        } completion: { _ in
+                            transitionFill.removeFromSuperview()
+                        }
+                    }
+
+                    // Trigger the fade-in only once the web view has finished loading so the
+                    // content is rendered before it becomes visible, not while it's still blank.
+                    guard let webView = self.currentTab?.webView, webView.isLoading else {
+                        revealContent()
+                        return
+                    }
+
+                    var cancellable: AnyCancellable?
+                    cancellable = webView.publisher(for: \.isLoading)
+                        .filter { !$0 }
+                        .first()
+                        // delay before the web view content starts rendering before revealing it
+                        .delay(for: .seconds(0.5), scheduler: DispatchQueue.main)
+                        .sink { _ in
+                            cancellable = nil
+                            revealContent()
+                        }
+                   
                 }
                 self.newTabPageViewController?.onboardingCompleted()
                 return
