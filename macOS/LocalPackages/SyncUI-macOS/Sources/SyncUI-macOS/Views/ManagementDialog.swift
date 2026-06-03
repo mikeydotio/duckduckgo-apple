@@ -42,12 +42,10 @@ public struct ManagementDialog: View {
     }
 
     var errorDescription: String {
-        guard let typeDescription = model.syncErrorMessage?.type.description,
-              let errorDescription = model.syncErrorMessage?.errorDescription
-        else {
-            return ""
-        }
-        return typeDescription + "\n" + errorDescription
+        composeErrorDescription(
+            primary: model.syncErrorMessage?.type.description,
+            detail: model.syncErrorMessage?.errorDescription
+        )
     }
 
     var buttonTitle: String {
@@ -116,5 +114,19 @@ public struct ManagementDialog: View {
         }
         .environmentObject(model)
         .environmentObject(recoveryCodeModel)
+    }
+
+    private func composeErrorDescription(primary: String?, detail: String?) -> String {
+        let primary = primary?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let detail = detail?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let primary, !primary.isEmpty else {
+            return detail ?? ""
+        }
+        guard let detail, !detail.isEmpty, detail != primary else {
+            return primary
+        }
+
+        return primary + "\n" + detail
     }
 }
