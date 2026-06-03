@@ -69,14 +69,16 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         // Sign-out posts .accountDidSignOut (not .subscriptionDidChange), so cancel unconditionally.
         notificationCenterObserver.publisher(for: .accountDidSignOut)
             .sink { [weak self] _ in
-                Task { [weak self] in await self?.cancelPendingReminder() }
+                Task { [weak self] in await self?.cancelReminder() }
             }
             .store(in: &cancellables)
     }
 
+    /// Removes the reminder from both the pending queue and Notification Center (delivered).
     @MainActor
-    private func cancelPendingReminder() async {
+    private func cancelReminder() async {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [Self.notificationIdentifier])
+        notificationCenter.removeDeliveredNotifications(withIdentifiers: [Self.notificationIdentifier])
     }
 
     func scheduleReminder(timeBeforeCancel: TimeInterval) async {
@@ -119,12 +121,15 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         }
     }
 
-    /// Cancels the pending reminder unless the subscription is in an active state.
+    /// Cancels the pending and delivered reminder unless the subscription is in an active state.
     /// A thrown error (e.g. transient network failure) leaves the reminder alone; a confirmed inactive/missing subscription cancels it.
     @MainActor
     private func cancelReminderIfInactive(forceRefresh: Bool) async {
-        let pending = await notificationCenter.pendingNotificationRequests()
-        guard pending.contains(where: { $0.identifier == Self.notificationIdentifier }) else { return }
+        async let pendingTask = notificationCenter.pendingNotificationRequests()
+        async let deliveredTask = notificationCenter.deliveredNotifications()
+        let hasPending = await pendingTask.contains { $0.identifier == Self.notificationIdentifier }
+        let hasDelivered = await deliveredTask.contains { $0.request.identifier == Self.notificationIdentifier }
+        guard hasPending || hasDelivered else { return }
 
         let subscription: DuckDuckGoSubscription?
         do {
@@ -137,7 +142,7 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         if let status = subscription?.status, Self.statusWarrantsReminder(status) {
             return
         }
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: [Self.notificationIdentifier])
+        await cancelReminder()
     }
 
     private static func statusWarrantsReminder(_ status: DuckDuckGoSubscription.Status) -> Bool {

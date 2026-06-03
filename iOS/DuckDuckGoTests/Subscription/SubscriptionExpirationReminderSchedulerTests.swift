@@ -176,18 +176,21 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
 
     // MARK: - Observer: .subscriptionDidChange
 
-    func test_subscriptionDidChange_whenStatusBecomesExpired_cancelsPendingReminder() async {
+    func test_subscriptionDidChange_whenStatusBecomesExpired_cancelsPendingAndDeliveredReminder() async {
         setSubscription(status: .autoRenewable)
         await sut.scheduleReminder(timeBeforeCancel: days(7))
-        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+        let priorPendingRemovalCount = notificationCenter.removedIdentifiers.count
+        let priorDeliveredRemovalCount = notificationCenter.removedDeliveredIdentifiers.count
 
         setSubscription(status: .expired)
         observerNotificationCenter.post(name: .subscriptionDidChange, object: nil)
 
         await waitUntil("reminder cancelled after subscriptionDidChange") {
-            self.notificationCenter.removedIdentifiers.count > priorRemovalCount
+            self.notificationCenter.removedIdentifiers.count > priorPendingRemovalCount
+                && self.notificationCenter.removedDeliveredIdentifiers.count > priorDeliveredRemovalCount
         }
         XCTAssertEqual(notificationCenter.removedIdentifiers.last, [identifier])
+        XCTAssertEqual(notificationCenter.removedDeliveredIdentifiers.last, [identifier])
     }
 
     func test_subscriptionDidChange_whenStatusStillActive_doesNotCancel() async {
@@ -203,9 +206,9 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
 
     // MARK: - Observer: UIApplication.didBecomeActiveNotification
 
-    func test_didBecomeActive_whenNoPendingReminder_doesNotCancel() async {
-        // No call to scheduleReminder, so no pending notification queued.
-        // Subscription is inactive — if the foreground observer didn't early-exit on the pending check,
+    func test_didBecomeActive_whenNoPendingOrDeliveredReminder_doesNotCancel() async {
+        // No call to scheduleReminder, so no pending notification queued, and the mock returns no delivered notifications.
+        // Subscription is inactive — if the foreground observer didn't early-exit on the pending-or-delivered check,
         // it would proceed to the cancel branch. Verify the absence of cancellation.
         setSubscription(status: .inactive)
         observerNotificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -215,18 +218,21 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
                       "Foreground observer should early-exit when no reminder is queued, without reaching the cancel branch")
     }
 
-    func test_didBecomeActive_whenPendingAndStatusInactive_cancelsReminder() async {
+    func test_didBecomeActive_whenPendingAndStatusInactive_cancelsPendingAndDeliveredReminder() async {
         setSubscription(status: .autoRenewable)
         await sut.scheduleReminder(timeBeforeCancel: days(7))
-        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+        let priorPendingRemovalCount = notificationCenter.removedIdentifiers.count
+        let priorDeliveredRemovalCount = notificationCenter.removedDeliveredIdentifiers.count
 
         setSubscription(status: .inactive)
         observerNotificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
 
         await waitUntil("reminder cancelled after didBecomeActive") {
-            self.notificationCenter.removedIdentifiers.count > priorRemovalCount
+            self.notificationCenter.removedIdentifiers.count > priorPendingRemovalCount
+                && self.notificationCenter.removedDeliveredIdentifiers.count > priorDeliveredRemovalCount
         }
         XCTAssertEqual(notificationCenter.removedIdentifiers.last, [identifier])
+        XCTAssertEqual(notificationCenter.removedDeliveredIdentifiers.last, [identifier])
     }
 
     func test_didBecomeActive_whenPendingAndStatusActive_doesNotCancel() async {
@@ -242,19 +248,22 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
 
     // MARK: - Observer: .accountDidSignOut
 
-    func test_accountDidSignOut_cancelsPendingReminderUnconditionally() async {
+    func test_accountDidSignOut_cancelsPendingAndDeliveredReminderUnconditionally() async {
         setSubscription(status: .autoRenewable)
         await sut.scheduleReminder(timeBeforeCancel: days(7))
-        let priorRemovalCount = notificationCenter.removedIdentifiers.count
+        let priorPendingRemovalCount = notificationCenter.removedIdentifiers.count
+        let priorDeliveredRemovalCount = notificationCenter.removedDeliveredIdentifiers.count
 
         // No need to flip the subscription status — sign-out cancels regardless
         // because the subscription manager may no longer return a usable result.
         observerNotificationCenter.post(name: .accountDidSignOut, object: nil)
 
         await waitUntil("reminder cancelled after accountDidSignOut") {
-            self.notificationCenter.removedIdentifiers.count > priorRemovalCount
+            self.notificationCenter.removedIdentifiers.count > priorPendingRemovalCount
+                && self.notificationCenter.removedDeliveredIdentifiers.count > priorDeliveredRemovalCount
         }
         XCTAssertEqual(notificationCenter.removedIdentifiers.last, [identifier])
+        XCTAssertEqual(notificationCenter.removedDeliveredIdentifiers.last, [identifier])
     }
 
     // MARK: - Async test helpers
