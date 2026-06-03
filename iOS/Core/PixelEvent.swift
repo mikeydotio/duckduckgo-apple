@@ -80,8 +80,9 @@ extension Pixel {
         
         case privacyDashboardReportBrokenSite
         
-        case tabSwitcherListEnabled
-        case tabSwitcherGridEnabled
+        case tabSwitcherViewAsList
+        case tabSwitcherViewAsGrid
+        case tabSwitcherViewAsMenuShown
         case tabSwitcherNewTab
         case tabSwitcherSwitchTabs
         case tabSwitcherClickCloseTab
@@ -2023,8 +2024,9 @@ extension Pixel.Event {
         case .tabsStoreSaveError: return "m_debug_tabs_store_save_error"
         case .tabsStoreReadError: return "m_debug_tabs_store_read_error"
 
-        case .tabSwitcherListEnabled: return "m_ts_l"
-        case .tabSwitcherGridEnabled: return "m_ts_g"
+        case .tabSwitcherViewAsList: return "m_tab_switcher_view_as_list"
+        case .tabSwitcherViewAsGrid: return "m_tab_switcher_view_as_grid"
+        case .tabSwitcherViewAsMenuShown: return "m_tab_switcher_view_as_shown"
         case .tabSwitcherNewTab: return "m_tab_manager_new_tab_click"
         case .tabSwitcherSwitchTabs: return "m_tab_manager_switch_tabs"
         case .tabSwitcherClickCloseTab: return "m_tab_manager_close_tab_click"

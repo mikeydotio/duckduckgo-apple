@@ -81,9 +81,9 @@ extension TabSwitcherViewController {
             tabSwitcherSettings.isGridViewEnabled = enabled
 
             if tabSwitcherSettings.isGridViewEnabled {
-                Pixel.fire(pixel: .tabSwitcherGridEnabled)
+                Pixel.fire(pixel: .tabSwitcherViewAsGrid)
             } else {
-                Pixel.fire(pixel: .tabSwitcherListEnabled)
+                Pixel.fire(pixel: .tabSwitcherViewAsList)
             }
 
             UIView.transition(with: view,

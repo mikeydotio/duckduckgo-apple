@@ -199,17 +199,27 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
     /// The active layout carries a checkmark.
     private func viewAsMenu(isGridViewEnabled: Bool,
                             actions: TabSwitcherEditMenuActions) -> UIMenu {
+        let items = viewAsItems(isGridViewEnabled: isGridViewEnabled, actions: actions)
+        let deferredElement = UIDeferredMenuElement.uncached { completion in
+            Pixel.fire(pixel: .tabSwitcherViewAsMenuShown)
+            completion(items)
+        }
+        return UIMenu(title: UserText.tabSwitcherViewAs,
+                      image: isGridViewEnabled
+                        ? DesignSystemImages.Glyphs.Size16.viewGrid
+                        : DesignSystemImages.Glyphs.Size16.viewList,
+                      children: [deferredElement])
+    }
+
+    func viewAsItems(isGridViewEnabled: Bool,
+                     actions: TabSwitcherEditMenuActions) -> [UIAction] {
         let grid = UIAction(title: UserText.tabSwitcherViewAsGrid,
                             image: DesignSystemImages.Glyphs.Size16.viewGrid,
                             state: isGridViewEnabled ? .on : .off) { _ in actions.onSelectGridView() }
         let list = UIAction(title: UserText.tabSwitcherViewAsList,
                             image: DesignSystemImages.Glyphs.Size16.viewList,
                             state: isGridViewEnabled ? .off : .on) { _ in actions.onSelectListView() }
-        return UIMenu(title: UserText.tabSwitcherViewAs,
-                      image: isGridViewEnabled
-                        ? DesignSystemImages.Glyphs.Size16.viewGrid
-                        : DesignSystemImages.Glyphs.Size16.viewList,
-                      children: [grid, list])
+        return [grid, list]
     }
 
     func longPressMenuItems(state: TabSwitcherLongPressMenuState,
