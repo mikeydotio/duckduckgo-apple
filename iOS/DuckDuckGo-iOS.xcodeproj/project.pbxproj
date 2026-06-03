@@ -257,6 +257,7 @@
 		369E692A2E5F579B00F98A8F /* NotificationServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369E69292E5F579500F98A8F /* NotificationServiceManager.swift */; };
 		369E692D2E5F6EC200F98A8F /* InactivityNotificationSchedulerServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369E692C2E5F6EB500F98A8F /* InactivityNotificationSchedulerServiceTests.swift */; };
 		36A288A62FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */; };
+		36A288B12FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A288B02FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift */; };
 		36A96A0A2E6606CF003D4529 /* LocalNotificationsPlaygroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A96A092E6606C0003D4529 /* LocalNotificationsPlaygroundView.swift */; };
 		36F2CA592E604C5100C7039D /* UNUserNotificationCenterRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2CA582E604C4700C7039D /* UNUserNotificationCenterRepresentable.swift */; };
 		36F2CA5B2E60589600C7039D /* MockUNUserNotificationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2CA5A2E60588F00C7039D /* MockUNUserNotificationCenter.swift */; };
@@ -2900,6 +2901,7 @@
 		369E69292E5F579500F98A8F /* NotificationServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationServiceManager.swift; sourceTree = "<group>"; };
 		369E692C2E5F6EB500F98A8F /* InactivityNotificationSchedulerServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InactivityNotificationSchedulerServiceTests.swift; sourceTree = "<group>"; };
 		36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNOnboardingActivationView.swift; sourceTree = "<group>"; };
+		36A288B02FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAIOnboardingActivationView.swift; sourceTree = "<group>"; };
 		36A96A092E6606C0003D4529 /* LocalNotificationsPlaygroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotificationsPlaygroundView.swift; sourceTree = "<group>"; };
 		36F2CA582E604C4700C7039D /* UNUserNotificationCenterRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UNUserNotificationCenterRepresentable.swift; sourceTree = "<group>"; };
 		36F2CA5A2E60588F00C7039D /* MockUNUserNotificationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockUNUserNotificationCenter.swift; sourceTree = "<group>"; };
@@ -6462,6 +6464,7 @@
 			isa = PBXGroup;
 			children = (
 				36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */,
+				36A288B02FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift */,
 			);
 			path = SubscriptionOnboarding;
 			sourceTree = "<group>";
@@ -12576,6 +12579,7 @@
 				F0A100012F30200100BAD001 /* NewBadgeVisibilityManager.swift in Sources */,
 				9F44A7CC2E973F8D008B3D5A /* RemoteMessagingActionHandling.swift in Sources */,
 				36A288A62FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift in Sources */,
+				36A288B12FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift in Sources */,
 				F1CCC1522F6423DD007AB0A5 /* RebrandedComparisonTableModel.swift in Sources */,
 				8590CB612684D0600089F6BF /* CookieDebugViewController.swift in Sources */,
 				319A37152829A55F0079FBCE /* AutofillListItemTableViewCell.swift in Sources */,

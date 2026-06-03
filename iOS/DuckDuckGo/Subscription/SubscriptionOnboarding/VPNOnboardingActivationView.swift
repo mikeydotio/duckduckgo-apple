@@ -44,7 +44,7 @@ struct VPNOnboardingActivationView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                stepHeader
+                SubscriptionOnboardingStepHeader(step: 1, totalSteps: 4) { dismiss() }
 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -64,23 +64,6 @@ struct VPNOnboardingActivationView: View {
         .task {
             await viewModel.fetchRealIPLocation()
         }
-    }
-
-    private var stepHeader: some View {
-        ZStack {
-            Text("Step 1 of 4")
-                .daxSubheadSemibold()
-                .foregroundColor(Color(designSystemColor: .textSecondary))
-
-            HStack {
-                Button("Back") { dismiss() }
-                    .daxBodyRegular()
-                    .foregroundColor(Color(designSystemColor: .textPrimary))
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 
     private var headerContent: SettingsDescription {
@@ -162,6 +145,30 @@ struct VPNOnboardingActivationView: View {
             .daxFootnoteRegular()
             .foregroundColor(Color(designSystemColor: .textPrimary))
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct SubscriptionOnboardingStepHeader: View {
+
+    let step: Int
+    let totalSteps: Int
+    let onBack: () -> Void
+
+    var body: some View {
+        ZStack {
+            Text("Step \(step) of \(totalSteps)")
+                .daxSubheadSemibold()
+                .foregroundColor(Color(designSystemColor: .textSecondary))
+
+            HStack {
+                Button("Back") { onBack() }
+                    .daxBodyRegular()
+                    .foregroundColor(Color(designSystemColor: .textPrimary))
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 
@@ -364,21 +371,28 @@ private extension ConnectionStatus {
 
 struct SubscriptionOnboardingDebugView: View {
 
-    @State private var isOnboardingPresented = false
+    @State private var isVPNOnboardingPresented = false
+    @State private var isDuckAIOnboardingPresented = false
 
     var body: some View {
         List {
             Section {
-                Button("Subscribe") {
-                    isOnboardingPresented = true
+                Button("VPN") {
+                    isVPNOnboardingPresented = true
+                }
+                Button("Duck.ai") {
+                    isDuckAIOnboardingPresented = true
                 }
             } footer: {
-                Text("This button does nothing with your actual subscription status. It only opens the post-subscription onboarding view for preview.")
+                Text("These buttons do nothing with your actual subscription status. They only open the post-subscription onboarding views for preview.")
             }
         }
         .navigationTitle("Subscription Onboarding")
-        .sheet(isPresented: $isOnboardingPresented) {
+        .sheet(isPresented: $isVPNOnboardingPresented) {
             VPNOnboardingActivationView()
+        }
+        .sheet(isPresented: $isDuckAIOnboardingPresented) {
+            DuckAIOnboardingActivationView()
         }
     }
 }
