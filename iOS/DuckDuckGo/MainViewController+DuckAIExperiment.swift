@@ -348,19 +348,19 @@ extension MainViewController {
         // a simpler snapshot-only path: dismiss the intro modal, let UTI manage chrome, fade snapshot.
         let isUTIActive = unifiedToggleInputCoordinator != nil
 
-        // if isUTIActive {
-        //     // Slide UTI chrome off-screen so it enters the same way the legacy bars do.
-        //     // transform-based so Auto Layout is unaffected and the content area doesn't shift.
-        //     let safeTop = view.safeAreaInsets.top
-        //     let headerH = viewCoordinator.aiChatTabChatHeaderContainer.bounds.height
-        //     viewCoordinator.aiChatTabChatHeaderContainer.transform =
-        //         CGAffineTransform(translationX: 0, y: -(headerH + safeTop))
+        if isUTIActive {
+            // Slide UTI chrome off-screen so it enters the same way the legacy bars do.
+            // transform-based so Auto Layout is unaffected and the content area doesn't shift.
+            let safeTop = view.safeAreaInsets.top
+            let headerH = viewCoordinator.aiChatTabChatHeaderContainer.bounds.height
+            viewCoordinator.aiChatTabChatHeaderContainer.transform =
+                CGAffineTransform(translationX: 0, y: -(headerH + safeTop))
 
-        //     let safeBottom = view.safeAreaInsets.bottom
-        //     let inputBarH = viewCoordinator.navigationBarContainer.bounds.height
-        //     viewCoordinator.navigationBarContainer.transform =
-        //         CGAffineTransform(translationX: 0, y: inputBarH + safeBottom)
-        // }
+            let safeBottom = view.safeAreaInsets.bottom
+            let inputBarH = viewCoordinator.navigationBarContainer.bounds.height
+            viewCoordinator.navigationBarContainer.transform =
+                CGAffineTransform(translationX: 0, y: inputBarH + safeBottom)
+        }
 
         controller.dismiss(animated: false) { [weak self] in
             guard let self else { return }
@@ -369,6 +369,16 @@ extension MainViewController {
                 viewCoordinator.aiChatTabChatHeaderContainer.alpha = 0
                 viewCoordinator.navigationBarContainer.alpha = 0
                 viewCoordinator.statusBackground.alpha = 0
+                let chromeRevealDelay: TimeInterval = 0.05
+                DispatchQueue.main.asyncAfter(deadline: .now() + chromeRevealDelay) {
+                    UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
+                        onboardingTransitionSnapshotView?.alpha = 0
+                        self.viewCoordinator.aiChatTabChatHeaderContainer.transform = .identity
+                        self.viewCoordinator.navigationBarContainer.transform = .identity
+                    } completion: { _ in
+                        self.hideOnboardingTransitionSnapshot(onboardingTransitionSnapshotView)
+                    }
+                }
                 // Hide content so no partially-loaded web view bleeds through the fading snapshot.
                 viewCoordinator.contentContainer.alpha = 0
 
