@@ -1945,6 +1945,8 @@
 		C18390BB2F4F6F54001939B9 /* UnifiedToggleInputCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18390BA2F4F6F54001939B9 /* UnifiedToggleInputCoordinator.swift */; };
 		C18390BD2F4F6F57001939B9 /* UnifiedToggleInputDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18390BC2F4F6F57001939B9 /* UnifiedToggleInputDelegate.swift */; };
 		C18390BF2F4F6F5E001939B9 /* UnifiedToggleInputFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18390BE2F4F6F5E001939B9 /* UnifiedToggleInputFeature.swift */; };
+		C18390E12F4F6F5E001939B9 /* UnifiedToggleInputUserType.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18390E22F4F6F5E001939B9 /* UnifiedToggleInputUserType.swift */; };
+		C18390E32F4F6F5E001939B9 /* UnifiedToggleInputGrantStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18390E42F4F6F5E001939B9 /* UnifiedToggleInputGrantStore.swift */; };
 		925EB62CBE6C4A27B4E4A25A /* AIBoundaryNavigationDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD56A4878844306BD83E026 /* AIBoundaryNavigationDecision.swift */; };
 		C18390C22F4F712A001939B9 /* AIChatNativeInputViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18390C12F4F712A001939B9 /* AIChatNativeInputViewController.swift */; };
 		C18390C42F4F73AE001939B9 /* UnifiedToggleInputHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18390C32F4F73AE001939B9 /* UnifiedToggleInputHandler.swift */; };
@@ -4610,6 +4612,8 @@
 		C18390BA2F4F6F54001939B9 /* UnifiedToggleInputCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputCoordinator.swift; sourceTree = "<group>"; };
 		C18390BC2F4F6F57001939B9 /* UnifiedToggleInputDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputDelegate.swift; sourceTree = "<group>"; };
 		C18390BE2F4F6F5E001939B9 /* UnifiedToggleInputFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputFeature.swift; sourceTree = "<group>"; };
+		C18390E22F4F6F5E001939B9 /* UnifiedToggleInputUserType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputUserType.swift; sourceTree = "<group>"; };
+		C18390E42F4F6F5E001939B9 /* UnifiedToggleInputGrantStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputGrantStore.swift; sourceTree = "<group>"; };
 		4AD56A4878844306BD83E026 /* AIBoundaryNavigationDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBoundaryNavigationDecision.swift; sourceTree = "<group>"; };
 		C18390C12F4F712A001939B9 /* AIChatNativeInputViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatNativeInputViewController.swift; sourceTree = "<group>"; };
 		C18390C32F4F73AE001939B9 /* UnifiedToggleInputHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputHandler.swift; sourceTree = "<group>"; };
@@ -9435,6 +9439,8 @@
 				A1B2C3D4E5F60001A1B2C3D4 /* UnifiedInputContentContainerViewController.swift */,
 				C18390BC2F4F6F57001939B9 /* UnifiedToggleInputDelegate.swift */,
 				C18390BE2F4F6F5E001939B9 /* UnifiedToggleInputFeature.swift */,
+				C18390E22F4F6F5E001939B9 /* UnifiedToggleInputUserType.swift */,
+				C18390E42F4F6F5E001939B9 /* UnifiedToggleInputGrantStore.swift */,
 				4AD56A4878844306BD83E026 /* AIBoundaryNavigationDecision.swift */,
 				C18390C62F5078ED001939B9 /* MainViewController+UnifiedToggleInput.swift */,
 				F2B8A10636AA100000C0DE01 /* MainViewController+UnifiedToggleInputIntentHandling.swift */,
@@ -12832,6 +12838,8 @@
 				65DE1D722D9558070013CA0B /* DuckPlayerToastView.swift in Sources */,
 				31584616281AFB46004ADB8B /* AutofillLoginDetailsViewController.swift in Sources */,
 				C18390BF2F4F6F5E001939B9 /* UnifiedToggleInputFeature.swift in Sources */,
+				C18390E12F4F6F5E001939B9 /* UnifiedToggleInputUserType.swift in Sources */,
+				C18390E32F4F6F5E001939B9 /* UnifiedToggleInputGrantStore.swift in Sources */,
 				925EB62CBE6C4A27B4E4A25A /* AIBoundaryNavigationDecision.swift in Sources */,
 				9FA5E44B2BF1AF3400BDEF02 /* SubscriptionContainerViewFactory.swift in Sources */,
 				C1F341C72A6924100032057B /* EmailAddressPromptViewModel.swift in Sources */,

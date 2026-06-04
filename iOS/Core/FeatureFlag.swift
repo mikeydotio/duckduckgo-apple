@@ -311,6 +311,11 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1206488453854252/task/1212289671815991
     case unifiedToggleInput
 
+    /// Forward-only lever: when disabled, *new* users no longer receive the Unified Toggle Input.
+    /// On by default (absent/unfetched config ⇒ new users included); ship `{state: "disabled"}` to
+    /// stop new users. Never revokes UTI from anyone already granted (sticky per-device grant).
+    case unifiedToggleInputIncludeNewUsers
+
     /// Failsafe kill switch for hiding the Search↔Duck.ai toggle on Duck.ai tabs. On by
     /// default; ship a privacy-config entry to roll back. See
     /// `UnifiedToggleInputFeatureProviding.isToggleHiddenOnDuckAITab`.
@@ -673,6 +678,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(iOSBrowserConfigSubfeature.showWhatsNewPromptOnDemand))
         case .unifiedToggleInput:
             Config(source: .remoteReleasable(AIChatSubfeature.unifiedToggleInput))
+        case .unifiedToggleInputIncludeNewUsers:
+            Config(defaultValue: .enabled, source: .remoteReleasable(AIChatSubfeature.unifiedToggleInputIncludeNewUsers), supportsLocalOverriding: false)
         case .aiChatTabHideToggle:
             Config(defaultValue: .enabled, source: .remoteReleasable(AIChatSubfeature.aiChatTabHideToggle))
         case .freeTrialConversionWideEvent:

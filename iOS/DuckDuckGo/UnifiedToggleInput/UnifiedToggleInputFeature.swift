@@ -45,10 +45,56 @@ struct UnifiedToggleInputFeature: UnifiedToggleInputFeatureProviding {
         AIChatSubfeature.onboardingDuckAIQueryTrackersDemoExperiment.rawValue,
     ]
 
-    /// Snapshot the feature flags once per session. Call early at launch, before any consumer reads `isAvailable` / `isToggleHiddenOnDuckAITab`.
-    static func resolve(using featureFlagger: FeatureFlagger) {
-        UserDefaults.app.set(featureFlagger.isFeatureOn(.unifiedToggleInput), forKey: isFeatureFlagEnabledKey)
+    /// Snapshot the UTI availability decision once per session, and record the sticky grant when the
+    /// device first becomes available. Call early at launch, before any consumer reads `isAvailable` /
+    /// `isToggleHiddenOnDuckAITab`.
+    ///
+    /// Gate precedence:
+    /// a. `unifiedToggleInput` off → off for everyone (master kill switch wins, even over a grant).
+    /// b. already granted → on (grandfathered; the grant is never revoked).
+    /// c. `!includeNewUsers` && the user is a new install → off.
+    /// d. otherwise → on, and the grant is recorded (gated on the device actually being able to show UTI).
+    ///
+    /// `unifiedToggleInputIncludeNewUsers` is on by default in code, so an absent/unfetched config keeps
+    /// new users included; shipping `{state: "disabled"}` stops only future new installs.
+    static func resolve(using featureFlagger: FeatureFlagger,
+                        userTypeProvider: UnifiedToggleInputUserTypeProviding,
+                        grantStore: UnifiedToggleInputGrantStoring,
+                        devicePlatform: DevicePlatformProviding.Type = DevicePlatform.self) {
+        let gateDecision: Bool
+        if !featureFlagger.isFeatureOn(.unifiedToggleInput) {
+            gateDecision = false // (a) master wins; the sticky grant is deliberately left untouched.
+        } else if grantStore.hasGrantedUnifiedToggleInput {
+            gateDecision = true // (b) grandfathered.
+        } else if !featureFlagger.isFeatureOn(.unifiedToggleInputIncludeNewUsers) && userTypeProvider.isNewUser {
+            gateDecision = false // (c) lever pulled and this is a new install.
+        } else {
+            gateDecision = true // (d) returning/existing/undetermined, or new users still included.
+        }
+
+        // Record the grant only when this device would actually present UTI, so the read-time device
+        // gate and the grant decision can never diverge.
+        if gateDecision && isDeviceEligible(featureFlagger: featureFlagger, devicePlatform: devicePlatform) {
+            grantStore.recordGrant()
+        }
+
+        UserDefaults.app.set(gateDecision, forKey: isFeatureFlagEnabledKey)
         UserDefaults.app.set(featureFlagger.isFeatureOn(.aiChatTabHideToggle), forKey: isToggleHiddenOnDuckAITabKey)
+    }
+
+    /// Device/cohort eligibility applied live at read time, and again when deciding whether to record a
+    /// grant. UTI is iPhone-only and excludes non-control cohorts of the Duck.ai onboarding experiments.
+    private static func isDeviceEligible(featureFlagger: FeatureFlagger, devicePlatform: DevicePlatformProviding.Type) -> Bool {
+        devicePlatform.isIphone && !isInExcludedExperimentCohort(featureFlagger)
+    }
+
+    private static func isInExcludedExperimentCohort(_ featureFlagger: FeatureFlagger) -> Bool {
+        nonControlCohortExcludedExperimentIDs.contains { experimentID in
+            guard let cohortID = featureFlagger.allActiveExperiments[experimentID]?.cohortID else {
+                return false
+            }
+            return cohortID != controlCohortID
+        }
     }
 
     private let featureFlagger: FeatureFlagger
@@ -60,24 +106,15 @@ struct UnifiedToggleInputFeature: UnifiedToggleInputFeatureProviding {
         self.devicePlatform = devicePlatform
     }
 
-    private var isFeatureFlagEnabled: Bool {
+    private var isGateDecisionEnabled: Bool {
         UserDefaults.app.bool(forKey: Self.isFeatureFlagEnabledKey)
     }
 
     var isAvailable: Bool {
-        isFeatureFlagEnabled && devicePlatform.isIphone && !isInExcludedExperimentCohort
+        isGateDecisionEnabled && Self.isDeviceEligible(featureFlagger: featureFlagger, devicePlatform: devicePlatform)
     }
 
     var isToggleHiddenOnDuckAITab: Bool {
         UserDefaults.app.bool(forKey: Self.isToggleHiddenOnDuckAITabKey)
-    }
-
-    private var isInExcludedExperimentCohort: Bool {
-        Self.nonControlCohortExcludedExperimentIDs.contains { experimentID in
-            guard let cohortID = featureFlagger.allActiveExperiments[experimentID]?.cohortID else {
-                return false
-            }
-            return cohortID != Self.controlCohortID
-        }
     }
 }

@@ -312,7 +312,8 @@ struct Launching: LaunchingHandling {
                                               whatsNewRepository: whatsNewRepository,
                                               sharedSecureVault: configuration.persistentStoresConfiguration.sharedSecureVault,
                                               wideEvent: AppDependencyProvider.shared.wideEvent,
-                                              onboardingManager: onboardingManager
+                                              onboardingManager: onboardingManager,
+                                              unifiedToggleInputUserTypeProvider: defaultBrowserPromptService.unifiedToggleInputUserTypeProvider
         )
 
         // MARK: - UI-Dependent Services Setup
