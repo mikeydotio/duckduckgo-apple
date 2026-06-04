@@ -424,7 +424,7 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     case unifiedToggleInput
 
-    /// Forward-only lever that controls whether *new* users are granted the Unified Toggle Input.
+    /// Forward-only flag that controls whether *new* users are granted the Unified Toggle Input.
     /// On by default; ship `{state: "disabled"}` to stop new users receiving UTI. Never revokes UTI
     /// from anyone who already received it (the client persists a sticky per-device grant).
     case unifiedToggleInputIncludeNewUsers

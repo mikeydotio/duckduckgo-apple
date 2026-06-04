@@ -67,7 +67,7 @@ struct UnifiedToggleInputFeature: UnifiedToggleInputFeatureProviding {
         } else if grantStore.hasGrantedUnifiedToggleInput {
             gateDecision = true // (b) grandfathered.
         } else if !featureFlagger.isFeatureOn(.unifiedToggleInputIncludeNewUsers) && userTypeProvider.isNewUser {
-            gateDecision = false // (c) lever pulled and this is a new install.
+            gateDecision = false // (c) new-user flag disabled and this is a new install.
         } else {
             gateDecision = true // (d) returning/existing/undetermined, or new users still included.
         }

@@ -23,7 +23,7 @@ import Persistence
 /// Persists whether this device has ever been granted the Unified Toggle Input.
 ///
 /// The grant is forward-only: once recorded it is never cleared, so the remote
-/// `unifiedToggleInputIncludeNewUsers` lever can stop *new* users receiving UTI without ever
+/// `unifiedToggleInputIncludeNewUsers` flag can stop *new* users receiving UTI without ever
 /// revoking it from anyone who already has it.
 protocol UnifiedToggleInputGrantStoring {
     var hasGrantedUnifiedToggleInput: Bool { get }

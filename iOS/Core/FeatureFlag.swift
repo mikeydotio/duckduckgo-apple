@@ -311,7 +311,7 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1206488453854252/task/1212289671815991
     case unifiedToggleInput
 
-    /// Forward-only lever: when disabled, *new* users no longer receive the Unified Toggle Input.
+    /// Forward-only flag: when disabled, *new* users no longer receive the Unified Toggle Input.
     /// On by default (absent/unfetched config ⇒ new users included); ship `{state: "disabled"}` to
     /// stop new users. Never revokes UTI from anyone already granted (sticky per-device grant).
     /// https://app.asana.com/1/137249556945/project/1206488453854252/task/1214693266528802

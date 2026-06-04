@@ -259,19 +259,19 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
         // The no-config GA state: primary flag on, includeNewUsers absent (default on). Everyone is in.
         for isNewUser in [true, false] {
             XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: true, isNewUser: isNewUser).isAvailable,
-                          "Default-on lever must include every user type (isNewUser=\(isNewUser))")
+                          "Default-on includeNewUsers must include every user type (isNewUser=\(isNewUser))")
         }
     }
 
-    func test_leverDisabled_excludesOnlyNewUsers() {
-        // (c) lever pulled: new users excluded…
+    func test_whenIncludeNewUsersDisabled_excludesOnlyNewUsers() {
+        // (c) includeNewUsers disabled: new users excluded…
         XCTAssertFalse(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, isNewUser: true).isAvailable)
         // (d) …returning / existing / undetermined stay eligible (isNewUser == false).
         XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, isNewUser: false).isAvailable)
     }
 
-    func test_leverDisabled_grantedNewUserStaysAvailable() {
-        // (b) grandfathering: a previously-granted new user keeps UTI even after the lever is pulled.
+    func test_whenIncludeNewUsersDisabled_grantedNewUserStaysAvailable() {
+        // (b) grandfathering: a previously-granted new user keeps UTI even after includeNewUsers is disabled.
         XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, isNewUser: true, granted: true).isAvailable)
     }
 
