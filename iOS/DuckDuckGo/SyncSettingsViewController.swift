@@ -592,16 +592,18 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
             }.store(in: &cancellables)
     }
 
-    func controllerDidCreateSyncAccount() {
+    func controllerDidCreateSyncAccount(shouldShowSyncEnabled: Bool) {
         let additionalParameters = source.map { ["source": $0] } ?? [:]
         Pixel.fire(pixel: .syncSignupConnect, withAdditionalParameters: additionalParameters, includedParameters: [.appVersion])
         syncSetupExperimentPixels.fireSignupConnect()
 
         AutofillOnboardingExperimentPixelReporter().fireSyncEnabled(true)
-        if useSimplifiedLayout {
-            dismissVCAndShowDeviceSyncedToast()
-        } else {
-            self.dismissVCAndShowRecoveryPDF()
+        if shouldShowSyncEnabled {
+            if useSimplifiedLayout {
+                dismissVCAndShowDeviceSyncedToast()
+            } else {
+                self.dismissVCAndShowRecoveryPDF()
+            }
         }
         viewModel.syncEnabled(recoveryCode: recoveryCode)
     }

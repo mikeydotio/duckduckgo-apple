@@ -852,7 +852,7 @@ final class SyncDialogControllerTests: XCTestCase {
         // Use the mock account that has a recovery code already set
         ddgSyncing.account = SyncAccount.mock
 
-        syncDialogController.controllerDidCreateSyncAccount()
+        syncDialogController.controllerDidCreateSyncAccount(shouldShowSyncEnabled: true)
 
         if case .saveRecoveryCode = managementDialogModel.currentDialog {
             // Success - don't check exact code since recoveryCode is read-only

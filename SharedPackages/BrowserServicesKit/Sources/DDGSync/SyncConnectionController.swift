@@ -31,7 +31,7 @@ public protocol SyncConnectionControllerDelegate: AnyObject {
     func controllerShouldAllowPairingV2PeerToJoin(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool
     func controllerShouldJoinPairingV2Peer(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool
 
-    func controllerDidCreateSyncAccount()
+    func controllerDidCreateSyncAccount(shouldShowSyncEnabled: Bool)
     func controllerDidCompleteAccountConnection(shouldShowSyncEnabled: Bool, setupSource: SyncSetupSource, codeSource: SyncCodeSource)
 
     func controllerDidCompleteLogin(registeredDevices: [RegisteredDevice], isRecovery: Bool, setupRole: SyncSetupRole)
@@ -605,7 +605,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         if syncService.account == nil {
             do {
                 try await syncService.createAccount(deviceName: deviceName, deviceType: deviceType)
-                await delegate?.controllerDidCreateSyncAccount()
+                await delegate?.controllerDidCreateSyncAccount(shouldShowSyncEnabled: true)
                 shouldShowSyncEnabled = false
             } catch {
                 Task {
@@ -712,7 +712,7 @@ extension SyncConnectionController: PairingV2ConfirmationDelegate {
         await delegate?.controllerShouldJoinPairingV2Peer(peerName: peerName, peerKind: peerKind) ?? false
     }
 
-    func pairingV2CoordinatorDidCreateSyncAccount() async {
-        await delegate?.controllerDidCreateSyncAccount()
+    func pairingV2CoordinatorDidCreateSyncAccount(credentialKind: PairingV2DeviceKind) async {
+        await delegate?.controllerDidCreateSyncAccount(shouldShowSyncEnabled: credentialKind == .ddg)
     }
 }

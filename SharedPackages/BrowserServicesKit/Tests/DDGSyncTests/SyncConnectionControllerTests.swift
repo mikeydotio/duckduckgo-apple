@@ -52,6 +52,7 @@ final class MockSyncConnectionControllerDelegate: SyncConnectionControllerDelega
     var didRecognizeScannedCodeCalled = { }
     var willPerformServerSyncOperationCalled = { }
     var didCreateSyncAccountCalled = { }
+    var didCreateSyncAccountShouldShowSyncEnabled: Bool?
     var didCompleteAccountConnectionValue: Bool?
     var didCompleteLoginDevices: [RegisteredDevice]?
     var didCompletePairingWithAlreadyConnectedAccountCalled = { }
@@ -96,7 +97,8 @@ final class MockSyncConnectionControllerDelegate: SyncConnectionControllerDelega
         shouldJoinPairingV2Peer
     }
 
-    func controllerDidCreateSyncAccount() {
+    func controllerDidCreateSyncAccount(shouldShowSyncEnabled: Bool) {
+        didCreateSyncAccountShouldShowSyncEnabled = shouldShowSyncEnabled
         didCreateSyncAccountCalled()
     }
 
@@ -993,6 +995,35 @@ final class SyncConnectionControllerTests: XCTestCase {
         XCTAssertNil(delegate.didCompleteLoginDevices)
         XCTAssertNil(delegate.didCompleteAccountConnectionValue)
         XCTAssertFalse(messageExchanger.closeChannelCalls.isEmpty)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withV2ThirdPartyRecoveryCodeRequestAndNoAccount_defersSyncEnabledUIUntilTransmitCompletion() async throws {
+        let messageExchanger = PairingV2MessageExchangingMock()
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        messageExchanger.fetchMessagesHandler = { _, _ in
+            try self.encryptedPeerMessages(
+                [
+                    .recoveryCodeRequest(
+                        .init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest,
+                              name: "Peer",
+                              kind: .thirdParty)
+                    )
+                ],
+                messageExchanger: messageExchanger,
+                peerKeyPair: peerKeyPair
+            )
+        }
+        let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .qrCode)
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(delegate.didCreateSyncAccountShouldShowSyncEnabled, false)
+        XCTAssertEqual(delegate.didFinishTransmittingRecoveryKeyShouldWaitForDevicesToChange, false)
+        XCTAssertNil(delegate.didErrorErrors)
     }
 
     @MainActor

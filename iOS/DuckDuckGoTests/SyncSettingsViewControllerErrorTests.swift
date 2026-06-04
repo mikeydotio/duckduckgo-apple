@@ -406,10 +406,30 @@ final class SyncSettingsViewControllerErrorTests: XCTestCase {
 
     @MainActor
     func testWhenControllerDidCreateSyncAccountThenSignupConnectIsFiredWithoutSuccess() {
-        vc.controllerDidCreateSyncAccount()
+        vc.controllerDidCreateSyncAccount(shouldShowSyncEnabled: true)
 
         XCTAssertTrue(syncSetupExperimentPixels.firedMetrics.contains("signup_connect"))
         XCTAssertFalse(syncSetupExperimentPixels.firedMetrics.contains("setup_ended_successful"))
+    }
+
+    @MainActor
+    func testWhenControllerDidCreateSyncAccountWithoutShowingSyncEnabledThenDoesNotPresentCompletionUI() {
+        let spyVC = SpySyncSettingsViewController(
+            syncService: ddgSyncing,
+            syncBookmarksAdapter: syncBookmarksAdapter,
+            syncCredentialsAdapter: syncCredentialsAdapter,
+            syncCreditCardsAdapter: syncCreditCardsAdapter,
+            syncPausedStateManager: errorHandler,
+            featureFlagger: featureFlagger,
+            syncAutoRestoreHandler: syncAutoRestoreHandler,
+            syncSetupExperimentPixels: syncSetupExperimentPixels
+        )
+
+        spyVC.controllerDidCreateSyncAccount(shouldShowSyncEnabled: false)
+
+        XCTAssertEqual(spyVC.dismissVCAndShowDeviceSyncedToastCallCount, 0)
+        XCTAssertEqual(spyVC.dismissVCAndShowRecoveryPDFCallCount, 0)
+        XCTAssertTrue(syncSetupExperimentPixels.firedMetrics.contains("signup_connect"))
     }
 
     @MainActor
@@ -575,6 +595,7 @@ private final class SpySyncSettingsViewController: SyncSettingsViewController {
 
     var dismissPresentedViewControllerCallCount = 0
     var dismissVCAndShowDeviceSyncedToastCallCount = 0
+    var dismissVCAndShowRecoveryPDFCallCount = 0
 
     override func dismissPresentedViewController(completion: (() -> Void)? = nil) {
         dismissPresentedViewControllerCallCount += 1
@@ -583,5 +604,9 @@ private final class SpySyncSettingsViewController: SyncSettingsViewController {
 
     override func dismissVCAndShowDeviceSyncedToast() {
         dismissVCAndShowDeviceSyncedToastCallCount += 1
+    }
+
+    override func dismissVCAndShowRecoveryPDF() {
+        dismissVCAndShowRecoveryPDFCallCount += 1
     }
 }

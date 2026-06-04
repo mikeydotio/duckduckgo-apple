@@ -991,9 +991,12 @@ extension LegacySyncPreferences: SyncConnectionControllerDelegate {
         return await showPairingV2Confirmation(message: message)
     }
 
-    func controllerDidCreateSyncAccount() {
+    func controllerDidCreateSyncAccount(shouldShowSyncEnabled: Bool) {
         let additionalParameters = syncPromoSource.map { ["source": $0] } ?? [:]
         PixelKit.fire(GeneralPixel.syncSignupConnect, withAdditionalParameters: additionalParameters)
+        guard shouldShowSyncEnabled else {
+            return
+        }
         guard let code = recoveryCode else {
             return
         }
