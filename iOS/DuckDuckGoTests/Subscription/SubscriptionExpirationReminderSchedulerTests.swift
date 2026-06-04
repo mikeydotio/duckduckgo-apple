@@ -246,6 +246,28 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(notificationCenter.removedIdentifiers.count, priorRemovalCount)
     }
 
+    // MARK: - Feature-flag kill switch
+
+    func test_cancelReminderIfInactive_whenFeatureFlagOff_cancelsRegardlessOfSubscriptionState() async {
+        // Schedule with the flag on so the reminder makes it to the queue.
+        setSubscription(status: .autoRenewable)
+        await sut.scheduleReminder(timeBeforeCancel: days(7))
+        let priorPendingRemovalCount = notificationCenter.removedIdentifiers.count
+        let priorDeliveredRemovalCount = notificationCenter.removedDeliveredIdentifiers.count
+
+        // Flag flips off remotely while subscription is still active — the kill switch should
+        // still cancel without consulting the backend.
+        featureFlagEnabled = false
+        observerNotificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        await waitUntil("reminder cancelled by feature-flag kill switch") {
+            self.notificationCenter.removedIdentifiers.count > priorPendingRemovalCount
+                && self.notificationCenter.removedDeliveredIdentifiers.count > priorDeliveredRemovalCount
+        }
+        XCTAssertEqual(notificationCenter.removedIdentifiers.last, [identifier])
+        XCTAssertEqual(notificationCenter.removedDeliveredIdentifiers.last, [identifier])
+    }
+
     // MARK: - Observer: .accountDidSignOut
 
     func test_accountDidSignOut_cancelsPendingAndDeliveredReminderUnconditionally() async {

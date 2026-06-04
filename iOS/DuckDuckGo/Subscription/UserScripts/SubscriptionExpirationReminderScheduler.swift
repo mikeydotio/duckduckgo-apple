@@ -121,7 +121,8 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         }
     }
 
-    /// Cancels the pending and delivered reminder unless the subscription is in an active state.
+    /// Cancels the pending and delivered reminder unless the subscription is in an active state,
+    /// or unconditionally when the feature flag is off (remote kill switch).
     /// A thrown error (e.g. transient network failure) leaves the reminder alone; a confirmed inactive/missing subscription cancels it.
     @MainActor
     private func cancelReminderIfInactive(forceRefresh: Bool) async {
@@ -130,6 +131,13 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         let hasPending = await pendingTask.contains { $0.identifier == Self.notificationIdentifier }
         let hasDelivered = await deliveredTask.contains { $0.request.identifier == Self.notificationIdentifier }
         guard hasPending || hasDelivered else { return }
+
+        // If the feature was disabled remotely after a reminder was scheduled, treat it as a kill switch
+        // and clean up without consulting the backend.
+        guard isFeatureEnabled() else {
+            await cancelReminder()
+            return
+        }
 
         let subscription: DuckDuckGoSubscription?
         do {
