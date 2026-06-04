@@ -1956,6 +1956,7 @@ extension Pixel {
         case dangerPixelKitMultilineOldPixel
         case dangerPixelKitDashedNoIssue
         case dangerPixelKitDashedOldPixel
+        case dangerPixelKitDashes
     }
 
 }
@@ -3834,9 +3835,11 @@ extension Pixel.Event {
         case .dangerPixelKitMultilineOldPixel:
             return "m_danger_pixelkit_warn"
         case .dangerPixelKitDashedNoIssue:
-            return "danger-pixelkit-dashed_no-issue"
+            return "danger-pixelkit-dashed-no-issue"
         case .dangerPixelKitDashedOldPixel:
             return "m_danger-pixelkit-dashed_warn"
+        case .dangerPixelKitDashes:
+            return "m-danger-pixelkit-all-dashes"
         }
     }
 }
