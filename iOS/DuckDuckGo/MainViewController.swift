@@ -1020,13 +1020,13 @@ class MainViewController: UIViewController {
         )
     }
 
-    func presentNetworkProtectionStatusSettingsModal() {
+    func presentNetworkProtectionStatusSettingsModal(origin: SubscriptionFunnelOrigin) {
         Task {
             if let canShowVPNInUI = try? await subscriptionManager.isFeatureIncludedInSubscription(.networkProtection),
                canShowVPNInUI {
                 segueToVPN()
             } else {
-                segueToDuckDuckGoSubscription()
+                segueToDuckDuckGoSubscription(origin: origin.rawValue)
             }
         }
     }
@@ -3196,11 +3196,14 @@ class MainViewController: UIViewController {
 
     private func presentExpiredEntitlementAlert() {
         let alertController = CriticalAlerts.makeExpiredEntitlementAlert { [weak self] in
-            self?.segueToDuckDuckGoSubscription()
+            Pixel.fire(pixel: .vpnAccessRevokedAlertSubscribeButtonClicked)
+            self?.segueToDuckDuckGoSubscription(origin: SubscriptionFunnelOrigin.vpnAccessRevokedAlert.rawValue)
         }
         dismiss(animated: true) {
-            self.present(alertController, animated: true, completion: nil)
-            self.tunnelDefaults.showEntitlementAlert = false
+            Pixel.fire(pixel: .vpnAccessRevokedAlertShown)
+            self.present(alertController, animated: true) {
+                self.tunnelDefaults.showEntitlementAlert = false
+            }
         }
     }
 
@@ -6757,7 +6760,7 @@ extension MainViewController {
             self.launchAutofillLogins(with: currentTab?.url, currentTabUid: currentTab?.tabModel.uid, source: .customizedToolbarButton, selectedAccount: nil)
 
         case .vpn:
-            self.presentNetworkProtectionStatusSettingsModal()
+            self.presentNetworkProtectionStatusSettingsModal(origin: .toolbarVPN)
 
         case .share:
             self.shareCurrentURLFromToolbar()
@@ -6820,7 +6823,7 @@ extension MainViewController {
             onFirePressed()
 
         case .vpn:
-            presentNetworkProtectionStatusSettingsModal()
+            presentNetworkProtectionStatusSettingsModal(origin: .addressBarVPN)
 
         case .zoom:
             showTextZoomEditorIfPossible()
