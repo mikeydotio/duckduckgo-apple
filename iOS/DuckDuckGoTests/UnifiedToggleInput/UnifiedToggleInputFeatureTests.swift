@@ -310,13 +310,13 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
                         isIphone: true,
                         includeNewUsers: true,
                         isNewUser: false,
-                        grantStore: store,
                         activeExperiments: [
                             ExperimentID.duckAIQuery: makeExperimentData(
                                 for: .onboardingDuckAIQueryExperiment,
                                 cohortID: FeatureFlag.DuckAIQueryExperimentCohort.treatmentA.rawValue
                             )
-                        ])
+                        ],
+                        grantStore: store)
         XCTAssertFalse(store.hasGrantedUnifiedToggleInput)
     }
 
