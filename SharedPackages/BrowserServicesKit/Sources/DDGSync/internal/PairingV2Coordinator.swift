@@ -364,7 +364,7 @@ final class PairingV2Coordinator {
         case .thirdParty:
             return try await syncService.prepareThirdPartyRecoveryCode(purpose: purpose)
         case .ddg:
-            guard let recoveryCode = syncService.account?.recoveryCode else {
+            guard let account = syncService.account, let recoveryCode = account.recoveryCodeV2 else {
                 throw SyncError.invalidRecoveryKey
             }
             return recoveryCode
@@ -393,9 +393,10 @@ final class PairingV2Coordinator {
 
     private func login(with recoveryCode: String) async throws {
         let syncCode = try SyncCode.decodeBase64String(recoveryCode)
-        guard let recovery = syncCode.recovery, let recoveryKey = recovery.legacyRecoveryKey() else {
+        guard let recovery = syncCode.recovery else {
             throw SyncError.invalidRecoveryKey
         }
+        let recoveryKey = try recovery.defaultCredentialRecoveryKey()
         pendingRecoveryKey = recoveryKey
         completedRegisteredDevices = try await syncService.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
     }

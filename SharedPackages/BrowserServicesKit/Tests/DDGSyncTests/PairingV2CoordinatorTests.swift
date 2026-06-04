@@ -254,7 +254,8 @@ final class PairingV2CoordinatorTests: XCTestCase {
 
         try await coordinator.pollOnce()
 
-        let recoveryCode = try XCTUnwrap(syncService.account?.recoveryCode)
+        let account = try XCTUnwrap(syncService.account)
+        let recoveryCode = try XCTUnwrap(account.recoveryCodeV2)
         XCTAssertEqual(confirmationDelegate.allowPeerToJoinCalls.map { $0.peerName }, ["Peer"])
         XCTAssertEqual(confirmationDelegate.allowPeerToJoinCalls.map { $0.peerKind }, [.ddg])
         XCTAssertEqual(messageExchanger.sendCalls.map(\.channelID), [
@@ -314,7 +315,8 @@ final class PairingV2CoordinatorTests: XCTestCase {
 
         try await coordinator.pollOnce()
 
-        let recoveryCode = try XCTUnwrap(syncService.account?.recoveryCode)
+        let account = try XCTUnwrap(syncService.account)
+        let recoveryCode = try XCTUnwrap(account.recoveryCodeV2)
         XCTAssertEqual(accountManager.createAccountCalls.map(\.deviceName), ["Mac"])
         XCTAssertEqual(accountManager.createAccountCalls.map(\.deviceType), ["desktop"])
         XCTAssertEqual(confirmationDelegate.didCreateSyncAccountCalls, [.ddg])
@@ -374,6 +376,73 @@ final class PairingV2CoordinatorTests: XCTestCase {
         )
         XCTAssertEqual(coordinator.state, .failed(.cancelled))
         XCTAssertEqual(messageExchanger.closeChannelCalls, [payload.channelId])
+    }
+
+    func testWhenNativeJoinerReceivesDDGV2RecoveryCodeThenConvertsAndLogsIn() async throws {
+        let dependencies = MockSyncDependencies()
+        let accountManager = AccountManagingMock()
+        dependencies.account = accountManager
+        (dependencies.secureStore as? SecureStorageStub)?.theAccount = nil
+
+        let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        let messageCrypto = PairingV2MessageCrypto()
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let confirmationDelegate = PairingV2ConfirmationDelegateMock()
+        let coordinator = makeCoordinator(syncService: syncService,
+                                          messageExchanger: messageExchanger,
+                                          messageCrypto: messageCrypto,
+                                          confirmationDelegate: confirmationDelegate)
+        let userId = "v2-ddg-user"
+        let primaryKey = Data((0..<32).map(UInt8.init))
+        var loginRecoveryKey: SyncCode.RecoveryKey?
+        var loginDeviceName: String?
+        var loginDeviceType: String?
+        accountManager.loginSpy = { recoveryKey, deviceName, deviceType in
+            loginRecoveryKey = recoveryKey
+            loginDeviceName = deviceName
+            loginDeviceType = deviceType
+        }
+
+        try await coordinator.startScanning(qrPayload: .init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
+        let hello = try localHello(from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto)
+
+        messageExchanger.fetchMessagesStub = [
+            .init(seq: 1,
+                  version: PairingV2ProtocolVersion.current,
+                  payload: try messageCrypto.encrypt(
+                    .recoveryCodeAvailable(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable,
+                                                 name: "Peer",
+                                                 kind: .ddg,
+                                                 userId: userId)),
+                    recipientPublicKey: hello.publicKey,
+                    senderChannelID: peerKeyPair.channelID).payload)
+        ]
+        try await coordinator.pollOnce()
+
+        let recoveryCode = try Self.makeRecoveryCodeV2(userId: userId,
+                                                       secret: Base64URL.encode(primaryKey),
+                                                       credentialId: SyncCredentialID.defaultCredential)
+        messageExchanger.fetchMessagesStub = [
+            .init(seq: 2,
+                  version: PairingV2ProtocolVersion.current,
+                  payload: try messageCrypto.encrypt(
+                    .recoveryCodeResponse(.init(recoveryCode: recoveryCode)),
+                    recipientPublicKey: hello.publicKey,
+                    senderChannelID: peerKeyPair.channelID).payload)
+        ]
+        try await coordinator.pollOnce()
+
+        XCTAssertEqual(confirmationDelegate.joinPeerCalls.map { $0.peerName }, ["Peer"])
+        XCTAssertEqual(confirmationDelegate.joinPeerCalls.map { $0.peerKind }, [.ddg])
+        XCTAssertTrue(accountManager.loginCalled)
+        XCTAssertEqual(loginRecoveryKey?.userId, userId)
+        XCTAssertEqual(loginRecoveryKey?.primaryKey, primaryKey)
+        XCTAssertEqual(loginDeviceName, "Mac")
+        XCTAssertEqual(loginDeviceType, "desktop")
+        XCTAssertEqual(coordinator.pendingRecoveryKey, loginRecoveryKey)
+        XCTAssertEqual(coordinator.completedRegisteredDevices?.map(\.id), [RegisteredDevice.mock.id])
+        XCTAssertEqual(coordinator.state, .completed(.loggedIn))
     }
 
     func testWhenNativeJoinerReceivesThirdPartyRecoveryCodeThenDelegatesUpgradeToSyncService() async throws {
@@ -508,6 +577,18 @@ final class PairingV2CoordinatorTests: XCTestCase {
                              deviceType: "desktop",
                              flags: PairingV2RolloutFlags(isV2ScanningEnabled: true, isV2CodeEnabled: true),
                              confirmationDelegate: confirmationDelegate)
+    }
+
+    private static func makeRecoveryCodeV2(userId: String,
+                                           secret: String,
+                                           credentialId: String) throws -> String {
+        let payload = SyncCode.RecoveryKeyV2(
+            userId: userId,
+            secret: secret,
+            cid: credentialId,
+            v: SyncCode.RecoveryKeyV2.currentVersion
+        )
+        return Base64URL.encode(try SyncCode(recovery: .v2(payload)).toJSON())
     }
 
     private func encryptedPeerMessages(_ messages: [PairingV2ApplicationMessage],

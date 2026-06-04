@@ -1273,6 +1273,53 @@ final class SyncConnectionControllerTests: XCTestCase {
         XCTAssertTrue(mockAccountManager.loginCalled)
     }
 
+    func test_syncCodeEntered_withDefaultCredentialV2RecoveryCode_attemptsLogin() async throws {
+        let secret = Data("default credential primary key".utf8)
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential,
+                                                       secret: Base64URL.encode(secret))
+        let mockAccountManager = AccountManagingMock()
+        var receivedRecoveryKey: SyncCode.RecoveryKey?
+        mockAccountManager.loginSpy = { recoveryKey, _, _ in
+            receivedRecoveryKey = recoveryKey
+        }
+        dependencies.account = mockAccountManager
+
+        let result = await controller.syncCodeEntered(code: recoveryCode, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertTrue(result)
+        XCTAssertTrue(mockAccountManager.loginCalled)
+        XCTAssertEqual(receivedRecoveryKey?.userId, "test-user-id")
+        XCTAssertEqual(receivedRecoveryKey?.primaryKey, secret)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withDefaultCredentialV2RecoveryCodeWhenPairingV2ScanningDisabled_returnsUnableToRecognizeCode() async throws {
+        dependencies.isPairingV2ScanningEnabled = { false }
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential)
+        let mockAccountManager = AccountManagingMock()
+        dependencies.account = mockAccountManager
+
+        let result = await controller.syncCodeEntered(code: recoveryCode, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertFalse(mockAccountManager.loginCalled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withDefaultCredentialV2RecoveryCodeWhenScopedAccessCredentialsDisabled_returnsUnableToRecognizeCode() async throws {
+        dependencies.isScopedAccessCredentialsEnabled = { false }
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential)
+        let mockAccountManager = AccountManagingMock()
+        dependencies.account = mockAccountManager
+
+        let result = await controller.syncCodeEntered(code: recoveryCode, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertFalse(mockAccountManager.loginCalled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+    }
+
     @MainActor
     func test_syncCodeEntered_withRecoveryCodeWhenPairingV2PresenterIsActive_cancelsPresenterCoordinator() async throws {
         dependencies.isPairingV2CodeEnabled = { true }
@@ -1339,7 +1386,7 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertFalse(mockAccountManager.loginCalled)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .codeOnlyCompatibleWithDuckAI)
     }
 
     // MARK: - syncCodeEntered connect

@@ -489,7 +489,8 @@ final class SyncSettingsViewControllerErrorTests: XCTestCase {
         }
 
         guard let syncCode = try? SyncCode.decodeBase64String(testRecoveryCode),
-              let recoveryKey = syncCode.recovery?.legacyRecoveryKey() else {
+              let recovery = syncCode.recovery,
+              let recoveryKey = try? recovery.defaultCredentialRecoveryKey() else {
             XCTFail("Could not create RecoveryKey from code")
             return
         }
@@ -552,7 +553,8 @@ final class SyncSettingsViewControllerErrorTests: XCTestCase {
         }
 
         guard let syncCode = try? SyncCode.decodeBase64String(testRecoveryCode),
-            let recoveryKey = syncCode.recovery?.legacyRecoveryKey() else {
+              let recovery = syncCode.recovery,
+              let recoveryKey = try? recovery.defaultCredentialRecoveryKey() else {
             XCTFail("Could not create RecoveryKey from code")
             return
         }
@@ -571,7 +573,8 @@ final class SyncSettingsViewControllerErrorTests: XCTestCase {
         }
 
         guard let syncCode = try? SyncCode.decodeBase64String(testRecoveryCode),
-              let recoveryKey = syncCode.recovery?.legacyRecoveryKey() else {
+              let recovery = syncCode.recovery,
+              let recoveryKey = try? recovery.defaultCredentialRecoveryKey() else {
             XCTFail("Could not create RecoveryKey from code")
             return
         }

@@ -26,6 +26,10 @@ final class MockDDGSyncing: DDGSyncing {
 
     var authState: SyncAuthState = .active
     var account: SyncAccount?
+    var recoveryCodeOverride: String?
+    var recoveryCode: String? {
+        recoveryCodeOverride ?? account?.legacyRecoveryCodeV1
+    }
     var isAIChatHistoryEnabled: Bool = true
 
     // MARK: - Delete AI Chats

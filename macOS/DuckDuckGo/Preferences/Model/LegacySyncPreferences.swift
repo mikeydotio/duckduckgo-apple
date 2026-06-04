@@ -195,7 +195,7 @@ final class LegacySyncPreferences: ObservableObject, SyncUI_macOS.ManagementView
     }
 
     var recoveryCode: String? {
-        syncService.account?.recoveryCode
+        syncService.recoveryCode
     }
 
     private let featureFlagger: FeatureFlagger
@@ -705,7 +705,7 @@ extension LegacySyncPreferences: ManagementDialogModelDelegate {
 
     @MainActor
     func saveRecoveryPDF() {
-        guard let recoveryCode = syncService.account?.recoveryCode else {
+        guard let recoveryCode = syncService.recoveryCode else {
             assertionFailure()
             return
         }
@@ -840,7 +840,7 @@ extension LegacySyncPreferences: ManagementDialogModelDelegate {
     func userConfirmedSwitchAccounts(recoveryCode: String) {
         PixelKit.fire(SyncSwitchAccountPixelKitEvent.syncUserAcceptedSwitchingAccount, doNotEnforcePrefix: true)
         guard let syncCode = try? SyncCode.decodeBase64String(recoveryCode),
-              let recoveryKey = syncCode.recovery?.legacyRecoveryKey() else {
+              let recoveryKey = try? syncCode.recovery?.defaultCredentialRecoveryKey() else {
             return
         }
         Task {

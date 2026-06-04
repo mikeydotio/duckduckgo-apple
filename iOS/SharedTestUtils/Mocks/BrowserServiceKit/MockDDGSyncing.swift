@@ -87,6 +87,10 @@ final class MockDDGSyncing: DDGSyncing {
     }
 
     var account: SyncAccount?
+    var recoveryCodeOverride: String?
+    var recoveryCode: String? {
+        recoveryCodeOverride ?? account?.legacyRecoveryCodeV1
+    }
 
     var scheduler: Scheduling
 

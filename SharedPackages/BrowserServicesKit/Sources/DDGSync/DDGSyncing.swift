@@ -279,12 +279,6 @@ public protocol DDGSyncingDebuggingSupport {
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
 }
 
-public extension DDGSyncing {
-    var recoveryCode: String? {
-        account?.recoveryCode
-    }
-}
-
 public enum ServerEnvironment: LosslessStringConvertible {
     case development
     case production

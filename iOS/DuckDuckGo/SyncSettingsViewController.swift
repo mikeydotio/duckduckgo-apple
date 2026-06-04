@@ -72,7 +72,7 @@ class SyncSettingsViewController: UIHostingController<SyncSettingsRootView> {
     }
 
     var recoveryCode: String {
-        guard let code = syncService.account?.recoveryCode else {
+        guard let code = syncService.recoveryCode else {
             return ""
         }
 

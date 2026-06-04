@@ -91,7 +91,7 @@ final class SyncDialogController {
     @Published var stringForQR: String?
     @Published var codeForDisplayOrPasting: String?
     private var recoveryCode: String? {
-        syncService.account?.recoveryCode
+        syncService.recoveryCode
     }
 
     private var isScreenLocked: Bool = false
@@ -422,7 +422,7 @@ extension SyncDialogController: ManagementDialogModelDelegate {
     }
 
     func saveRecoveryPDF() {
-        guard let recoveryCode = syncService.account?.recoveryCode else {
+        guard let recoveryCode = syncService.recoveryCode else {
             assertionFailure()
             return
         }
@@ -493,7 +493,7 @@ extension SyncDialogController: ManagementDialogModelDelegate {
     func userConfirmedSwitchAccounts(recoveryCode: String) {
         PixelKit.fire(SyncSwitchAccountPixelKitEvent.syncUserAcceptedSwitchingAccount, doNotEnforcePrefix: true)
         guard let syncCode = try? SyncCode.decodeBase64String(recoveryCode),
-              let recoveryKey = syncCode.recovery?.legacyRecoveryKey() else {
+              let recoveryKey = try? syncCode.recovery?.defaultCredentialRecoveryKey() else {
             return
         }
         Task {

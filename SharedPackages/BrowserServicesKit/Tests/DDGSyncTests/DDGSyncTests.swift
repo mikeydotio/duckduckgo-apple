@@ -120,6 +120,47 @@ final class DDGSyncTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testRecoveryCodeWhenScopedAccessCredentialsAndPairingV2CodeAreEnabledReturnsV2Code() throws {
+        dependencies.isScopedAccessCredentialsEnabled = { true }
+        dependencies.isPairingV2CodeEnabled = { true }
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+
+        let recoveryCode = try XCTUnwrap(syncService.recoveryCode)
+        let syncCode = try SyncCode.decodeBase64URLString(recoveryCode)
+
+        XCTAssertEqual(recoveryCode, try XCTUnwrap(SyncAccount.mock.recoveryCodeV2))
+        guard case .v2(let payload) = syncCode.recovery else {
+            XCTFail("Expected v2 recovery payload")
+            return
+        }
+        XCTAssertEqual(payload.cid, SyncCredentialID.defaultCredential)
+        XCTAssertEqual(Base64URL.decode(payload.secret), SyncAccount.mock.primaryKey)
+    }
+
+    func testRecoveryCodeWhenPairingV2CodeIsDisabledReturnsLegacyV1Code() throws {
+        dependencies.isScopedAccessCredentialsEnabled = { true }
+        dependencies.isPairingV2CodeEnabled = { false }
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+
+        let recoveryCode = try XCTUnwrap(syncService.recoveryCode)
+        let syncCode = try SyncCode.decodeBase64String(recoveryCode)
+
+        XCTAssertEqual(recoveryCode, try XCTUnwrap(SyncAccount.mock.legacyRecoveryCodeV1))
+        XCTAssertNoThrow(try XCTUnwrap(syncCode.recovery).defaultCredentialRecoveryKey())
+    }
+
+    func testRecoveryCodeWhenScopedAccessCredentialsAreDisabledReturnsLegacyV1Code() throws {
+        dependencies.isScopedAccessCredentialsEnabled = { false }
+        dependencies.isPairingV2CodeEnabled = { true }
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+
+        let recoveryCode = try XCTUnwrap(syncService.recoveryCode)
+        let syncCode = try SyncCode.decodeBase64String(recoveryCode)
+
+        XCTAssertEqual(recoveryCode, try XCTUnwrap(SyncAccount.mock.legacyRecoveryCodeV1))
+        XCTAssertNoThrow(try XCTUnwrap(syncCode.recovery).defaultCredentialRecoveryKey())
+    }
+
     func testThatRegularSyncOperationsAreSerialized() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         dataProvider.updateSyncTimestamps(server: "1234", local: nil)

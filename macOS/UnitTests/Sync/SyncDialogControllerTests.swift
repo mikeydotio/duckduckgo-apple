@@ -57,7 +57,7 @@ final class SyncDialogControllerTests: XCTestCase {
     private var featureFlagger: MockSyncFeatureFlagger!
     private var syncDialogController: SyncDialogController!
     var testRecoveryCode = "eyJyZWNvdmVyeSI6eyJ1c2VyX2lkIjoiMDZGODhFNzEtNDFBRS00RTUxLUE2UkRtRkEwOTcwMDE5QkYwIiwicHJpbWFyeV9rZXkiOiI1QTk3U3dsQVI5RjhZakJaU09FVXBzTktnSnJEYnE3aWxtUmxDZVBWazgwPSJ9fQ=="
-    lazy var testRecoveryKey = try! SyncCode.decodeBase64String(testRecoveryCode).recovery!.legacyRecoveryKey()!
+    lazy var testRecoveryKey = try! SyncCode.decodeBase64String(testRecoveryCode).recovery!.defaultCredentialRecoveryKey()
     var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
@@ -1081,7 +1081,7 @@ private extension SyncCode.RecoveryKey {
     init(base64Code: String?) throws {
         let contents = try Data(base64Encoded: try XCTUnwrap(base64Code))
             .flatMap { try JSONDecoder.snakeCaseKeys.decode(SyncCode.self, from: $0) }
-        self = try XCTUnwrap(contents?.recovery?.legacyRecoveryKey())
+        self = try XCTUnwrap(contents?.recovery).defaultCredentialRecoveryKey()
     }
 }
 

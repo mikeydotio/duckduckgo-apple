@@ -289,17 +289,8 @@ public class SyncConnectionController: SyncConnectionControlling {
             }
             await state.prepareForNewFlow()
             return await handleExchangeKey(exchangeKey, codeSource: codeSource)
-        } else if let recovery = syncCode.recovery, let recoveryKey = recovery.legacyRecoveryKey() {
-            let setupRole: SyncSetupRole = .receiver(.recovery, codeSource)
-            await delegate?.controllerDidRecognizeCode(setupSource: .recovery, codeSource: codeSource)
-            guard await shouldContinueServerSyncOperation(setupRole: setupRole) else {
-                return false
-            }
-            await state.prepareForNewFlow()
-            return await handleRecoveryKey(recoveryKey, isRecovery: true, setupRole: .receiver(.recovery, codeSource))
-        } else if syncCode.recovery != nil {
-            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: .receiver(.unknown, codeSource))
-            return false
+        } else if let recovery = syncCode.recovery {
+            return await handleRecoveryCode(recovery, codeSource: codeSource)
         } else if let connectKey = syncCode.connect {
             let setupRole: SyncSetupRole = .receiver(.connect, codeSource)
             await delegate?.controllerDidRecognizeCode(setupSource: .connect, codeSource: codeSource)
@@ -587,6 +578,36 @@ public class SyncConnectionController: SyncConnectionControlling {
 
     private func remoteExchangeRecoverer(exchangeInfo: ExchangeInfo) throws -> RemoteExchangeRecovering {
         return try dependencies.createRemoteExchangeRecoverer(exchangeInfo)
+    }
+
+    private func handleRecoveryCode(_ recovery: SyncCode.Recovery, codeSource: SyncCodeSource) async -> Bool {
+        let setupRole: SyncSetupRole = .receiver(.recovery, codeSource)
+
+        if case .v2(let recoveryKey) = recovery {
+            guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled() else {
+                await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: setupRole)
+                return false
+            }
+            guard recoveryKey.cid != SyncCode.RecoveryKeyV2.thirdPartyCredentialId else {
+                await delegate?.controllerDidError(.codeOnlyCompatibleWithDuckAI, underlyingError: nil, setupRole: setupRole)
+                return false
+            }
+        }
+
+        let recoveryKey: SyncCode.RecoveryKey
+        do {
+            recoveryKey = try recovery.defaultCredentialRecoveryKey()
+        } catch {
+            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: .receiver(.unknown, codeSource))
+            return false
+        }
+
+        await delegate?.controllerDidRecognizeCode(setupSource: .recovery, codeSource: codeSource)
+        guard await shouldContinueServerSyncOperation(setupRole: setupRole) else {
+            return false
+        }
+        await state.prepareForNewFlow()
+        return await handleRecoveryKey(recoveryKey, isRecovery: true, setupRole: setupRole)
     }
 
     private func handleRecoveryKey(_ recoveryKey: SyncCode.RecoveryKey, isRecovery: Bool, setupRole: SyncSetupRole) async -> Bool {

@@ -28,12 +28,31 @@ public struct SyncAccount: Codable, Sendable {
     public let token: String?
     public let state: SyncAuthState
 
-    /// Convenience var which calls `SyncCode().toJSON().base64EncodedString()`
-    public var recoveryCode: String? {
+    /// Legacy native/DDG V1 recovery code.
+    public var legacyRecoveryCodeV1: String? {
         guard let data = try? SyncCode(recovery: .v1(.init(userId: userId, primaryKey: primaryKey))).toJSON() else {
             return nil
         }
         return data.base64EncodedString()
+    }
+
+    /// Native/DDG V2 recovery code.
+    public var recoveryCodeV2: String? {
+        let payload = SyncCode.RecoveryKeyV2(
+            userId: userId,
+            secret: Base64URL.encode(primaryKey),
+            cid: SyncCredentialID.defaultCredential,
+            v: SyncCode.RecoveryKeyV2.currentVersion
+        )
+        guard let data = try? SyncCode(recovery: .v2(payload)).toJSON() else {
+            return nil
+        }
+        return Base64URL.encode(data)
+    }
+
+    @available(*, deprecated, message: "Use recoveryCodeV2 or legacyRecoveryCodeV1 explicitly.")
+    public var recoveryCode: String? {
+        legacyRecoveryCodeV1
     }
 
     init(
@@ -296,7 +315,7 @@ public struct SyncCode: Codable {
     }
 
     /// V2 recovery code payload. All fields are snake_case on the wire.
-    /// For `cid == "3party"`, `secret` is base64URL of raw scoped-password bytes.
+    /// `secret` is base64URL of the raw default-credential secret (`cid == "ddg"`) or scoped-password bytes (`cid == "3party"`).
     /// `v` is `"major.minor"` to allow additive minor schema changes.
     public struct RecoveryKeyV2: Codable, Sendable, Equatable {
         static let currentVersion = "2.0"
@@ -351,12 +370,17 @@ public struct SyncCode: Codable {
             }
         }
 
-        public func legacyRecoveryKey() -> RecoveryKey? {
+        public func defaultCredentialRecoveryKey() throws -> RecoveryKey {
             switch self {
             case .v1(let recoveryKey):
                 return recoveryKey
-            case .v2:
-                return nil
+            case .v2(let recoveryKey):
+                guard recoveryKey.cid == SyncCredentialID.defaultCredential,
+                      let primaryKey = Base64URL.decode(recoveryKey.secret),
+                      !primaryKey.isEmpty else {
+                    throw SyncError.invalidRecoveryKey
+                }
+                return RecoveryKey(userId: recoveryKey.userId, primaryKey: primaryKey)
             }
         }
 
