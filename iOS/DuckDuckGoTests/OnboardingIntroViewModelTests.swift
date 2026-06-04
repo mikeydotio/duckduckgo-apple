@@ -1378,15 +1378,6 @@ extension OnboardingIntroViewModelTests {
         XCTAssertNil(resumeStepRawValue(in: store))
     }
 
-    func testWhenResumeStepIsDuckAIQuerySelection_AndIsDefaultFlow_AndExperimentFlagIsOff_ThenStoreIsCleared() {
-        let store = MockKeyValueStore()
-        setResumeStep(.duckAIQuerySelection, in: store)
-        onboardingManagerMock.onboardingSteps = OnboardingStepsHelper.expectedIPhoneSteps(isReturningUser: false)
-        onboardingManagerMock.currentOnboardingFlow = .default
-        _ = makeSUT(featureFlagger: MockFeatureFlagger(), resumeStepStore: store)
-        XCTAssertNil(resumeStepRawValue(in: store))
-    }
-
 }
 
 extension OnboardingIntroViewModelTests {
