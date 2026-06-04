@@ -28,8 +28,6 @@ import SystemSettingsPiPTutorial
 @MainActor
 final class DefaultBrowserPromptService {
     let presenter: DefaultBrowserPromptPresenting
-    /// Snapshotted new-user signal reused by the Unified Toggle Input gate (no new snapshot is computed).
-    let unifiedToggleInputUserTypeProvider: UnifiedToggleInputUserTypeProviding
     private let userActivityManager: DefaultBrowserPromptUserActivityRecorder & DefaultBrowserPromptUserActivityManager
     private let featureFlagAdapter: DefaultBrowserPromptFeatureFlagAdapter
 
@@ -51,7 +49,6 @@ final class DefaultBrowserPromptService {
         let userTypeStore = DefaultBrowserPromptUserTypeStore(keyValueFilesStore: keyValueFilesStore)
         let userTypeManager = DefaultBrowserPromptUserTypeManager(store: userTypeStore)
         userTypeManager.persistUserType()
-        unifiedToggleInputUserTypeProvider = DefaultBrowserPromptUnifiedToggleInputUserTypeAdapter(userTypeProvider: userTypeManager)
         let checkDefaultBrowserInfoStorage = DefaultBrowserInfoStore()
         let promptTypeKeyValueFilesStore = DefaultBrowserPromptActivityKeyValueFilesStore(keyValueFilesStore: keyValueFilesStore)
         let userActivityStore = DefaultBrowserPromptUserActivityKeyValueFilesStore(keyValueFilesStore: keyValueFilesStore)

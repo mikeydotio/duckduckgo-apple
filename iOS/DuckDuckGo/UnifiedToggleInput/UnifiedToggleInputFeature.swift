@@ -45,31 +45,25 @@ struct UnifiedToggleInputFeature: UnifiedToggleInputFeatureProviding {
         AIChatSubfeature.onboardingDuckAIQueryTrackersDemoExperiment.rawValue,
     ]
 
-    /// Snapshot the UTI availability decision once per session, and record the sticky grant when the
-    /// device first becomes available. Call early at launch, before any consumer reads `isAvailable` /
+    /// Snapshot the UTI availability decision once per session, and record the sticky grant the first
+    /// time the device becomes available. Call early at launch, before any consumer reads `isAvailable` /
     /// `isToggleHiddenOnDuckAITab`.
     ///
-    /// Gate precedence:
-    /// a. `unifiedToggleInput` off → off for everyone (primary kill switch wins, even over a grant).
-    /// b. already granted → on (grandfathered; the grant is never revoked).
-    /// c. `!includeNewUsers` && the user is a new install → off.
-    /// d. otherwise → on, and the grant is recorded (gated on the device actually being able to show UTI).
-    ///
-    /// `unifiedToggleInputIncludeNewUsers` is on by default in code, so an absent/unfetched config keeps
-    /// new users included; shipping `{state: "disabled"}` stops only future new installs.
+    /// A device is available when `unifiedToggleInput` is on AND either it has already been granted UTI
+    /// (so it keeps it forever) or `unifiedToggleInputIncludeNewUsers` is still on. "New user" therefore
+    /// just means "not yet granted": shipping `unifiedToggleInputIncludeNewUsers {state: "disabled"}` stops
+    /// devices that have never been granted — new installs going forward — without revoking it from anyone
+    /// who already had it. `unifiedToggleInputIncludeNewUsers` defaults to on in code, so an absent/unfetched
+    /// config keeps new users included.
     static func resolve(using featureFlagger: FeatureFlagger,
-                        userTypeProvider: UnifiedToggleInputUserTypeProviding,
                         grantStore: UnifiedToggleInputGrantStoring,
                         devicePlatform: DevicePlatformProviding.Type = DevicePlatform.self) {
         let gateDecision: Bool
         if !featureFlagger.isFeatureOn(.unifiedToggleInput) {
-            gateDecision = false // (a) primary kill switch wins; the sticky grant is deliberately left untouched.
-        } else if grantStore.hasGrantedUnifiedToggleInput {
-            gateDecision = true // (b) grandfathered.
-        } else if !featureFlagger.isFeatureOn(.unifiedToggleInputIncludeNewUsers) && userTypeProvider.isNewUser {
-            gateDecision = false // (c) new-user flag disabled and this is a new install.
+            gateDecision = false // primary kill switch wins; the sticky grant is deliberately left untouched.
         } else {
-            gateDecision = true // (d) returning/existing/undetermined, or new users still included.
+            gateDecision = grantStore.hasGrantedUnifiedToggleInput
+                || featureFlagger.isFeatureOn(.unifiedToggleInputIncludeNewUsers)
         }
 
         // Record the grant only when this device would actually present UTI, so the read-time device

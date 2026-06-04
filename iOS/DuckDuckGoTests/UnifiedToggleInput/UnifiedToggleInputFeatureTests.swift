@@ -21,7 +21,6 @@ import XCTest
 @testable import DuckDuckGo
 @testable import Core
 import PrivacyConfig
-import SetDefaultBrowserCore
 
 final class UnifiedToggleInputFeatureTests: XCTestCase {
 
@@ -29,10 +28,6 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
 
     private final class MockDevicePlatform: DevicePlatformProviding {
         static var isIphone: Bool = false
-    }
-
-    private struct MockUserTypeProvider: UnifiedToggleInputUserTypeProviding {
-        var isNewUser: Bool
     }
 
     private final class MockGrantStore: UnifiedToggleInputGrantStoring {
@@ -70,17 +65,17 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
 
     private func resetSnapshot() {
         UnifiedToggleInputFeature.resolve(using: MockFeatureFlagger(enabledFeatureFlags: []),
-                                          userTypeProvider: MockUserTypeProvider(isNewUser: false),
                                           grantStore: MockGrantStore(),
                                           devicePlatform: MockDevicePlatform.self)
     }
 
     // MARK: - Helpers
 
+    /// `includeNewUsers` defaults to `true` to mirror the GA "everyone in" state, so the master/device
+    /// tests below read like the original (flag on + iPhone ⇒ available).
     private func makeFeature(flagEnabled: Bool,
                              isIphone: Bool,
-                             includeNewUsers: Bool = false,
-                             isNewUser: Bool = false,
+                             includeNewUsers: Bool = true,
                              granted: Bool = false,
                              activeExperiments: Experiments = [:],
                              grantStore: MockGrantStore? = nil) -> UnifiedToggleInputFeature {
@@ -93,7 +88,6 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
         featureFlagger.mockActiveExperiments = activeExperiments
         let store = grantStore ?? MockGrantStore(hasGranted: granted)
         UnifiedToggleInputFeature.resolve(using: featureFlagger,
-                                          userTypeProvider: MockUserTypeProvider(isNewUser: isNewUser),
                                           grantStore: store,
                                           devicePlatform: MockDevicePlatform.self)
         return UnifiedToggleInputFeature(featureFlagger: featureFlagger, devicePlatform: MockDevicePlatform.self)
@@ -232,9 +226,8 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
 
     func test_isAvailable_doesNotResolveExperimentCohort() {
         MockDevicePlatform.isIphone = true
-        let featureFlagger = MockFeatureFlagger(enabledFeatureFlags: [.unifiedToggleInput])
+        let featureFlagger = MockFeatureFlagger(enabledFeatureFlags: [.unifiedToggleInput, .unifiedToggleInputIncludeNewUsers])
         UnifiedToggleInputFeature.resolve(using: featureFlagger,
-                                          userTypeProvider: MockUserTypeProvider(isNewUser: false),
                                           grantStore: MockGrantStore(),
                                           devicePlatform: MockDevicePlatform.self)
         let feature = UnifiedToggleInputFeature(featureFlagger: featureFlagger, devicePlatform: MockDevicePlatform.self)
@@ -243,64 +236,57 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
         XCTAssertFalse(featureFlagger.didCallResolveCohort)
     }
 
-    // MARK: - New-user gate matrix
+    // MARK: - New-user gate
     //
-    // Matrix over {primary flag} × {includeNewUsers default-on / disabled} × {new / returning|existing|nil}
-    // × {sticky grant set / unset}, evaluated on an eligible iPhone. `isNewUser` collapses the user-type
-    // axis: only `.new` reads as true (see adapter tests below); returning / existing / nil read as false.
+    // "New user" = a device that has not yet been granted UTI. Availability is
+    // `master on AND (granted OR includeNewUsers on)`, then the device/cohort gate.
 
     func test_whenFlagOff_isNeverAvailable_evenWhenGranted() {
-        // (a) the primary kill switch wins over everything, including a prior grant.
-        XCTAssertFalse(makeFeature(flagEnabled: false, isIphone: true, includeNewUsers: true, isNewUser: false, granted: true).isAvailable)
-        XCTAssertFalse(makeFeature(flagEnabled: false, isIphone: true, includeNewUsers: false, isNewUser: true, granted: true).isAvailable)
+        // The primary kill switch wins over everything, including a prior grant.
+        XCTAssertFalse(makeFeature(flagEnabled: false, isIphone: true, includeNewUsers: true, granted: true).isAvailable)
     }
 
-    func test_includeNewUsersDefaultOn_includesEveryone() {
-        // The no-config GA state: primary flag on, includeNewUsers absent (default on). Everyone is in.
-        for isNewUser in [true, false] {
-            XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: true, isNewUser: isNewUser).isAvailable,
-                          "Default-on includeNewUsers must include every user type (isNewUser=\(isNewUser))")
-        }
+    func test_whenIncludeNewUsersOn_isAvailable() {
+        // The no-config GA state: primary flag on, includeNewUsers on. Everyone is in.
+        XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: true, granted: false).isAvailable)
     }
 
-    func test_whenIncludeNewUsersDisabled_excludesOnlyNewUsers() {
-        // (c) includeNewUsers disabled: new users excluded…
-        XCTAssertFalse(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, isNewUser: true).isAvailable)
-        // (d) …returning / existing / undetermined stay eligible (isNewUser == false).
-        XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, isNewUser: false).isAvailable)
+    func test_whenIncludeNewUsersOff_andNotGranted_isNotAvailable() {
+        // A device that has never been granted is a "new user" — excluded once the flag is disabled.
+        XCTAssertFalse(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, granted: false).isAvailable)
     }
 
-    func test_whenIncludeNewUsersDisabled_grantedNewUserStaysAvailable() {
-        // (b) grandfathering: a previously-granted new user keeps UTI even after includeNewUsers is disabled.
-        XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, isNewUser: true, granted: true).isAvailable)
+    func test_whenIncludeNewUsersOff_andGranted_staysAvailable() {
+        // Grandfathering: an already-granted device keeps UTI even after the flag is disabled.
+        XCTAssertTrue(makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, granted: true).isAvailable)
     }
 
     // MARK: - Sticky grant recording
 
-    func test_grantRecorded_whenAvailableToNewlyEligibleUser() {
+    func test_grantRecorded_whenAvailableWhileIncludingNewUsers() {
         let store = MockGrantStore(hasGranted: false)
-        _ = makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: true, isNewUser: false, grantStore: store)
+        _ = makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: true, grantStore: store)
         XCTAssertTrue(store.hasGrantedUnifiedToggleInput)
         XCTAssertEqual(store.recordGrantCallCount, 1)
     }
 
-    func test_grantNotRecorded_whenExcludedNewUser() {
+    func test_grantNotRecorded_whenIncludeNewUsersOffAndNotGranted() {
         let store = MockGrantStore(hasGranted: false)
-        _ = makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, isNewUser: true, grantStore: store)
+        _ = makeFeature(flagEnabled: true, isIphone: true, includeNewUsers: false, grantStore: store)
         XCTAssertFalse(store.hasGrantedUnifiedToggleInput)
         XCTAssertEqual(store.recordGrantCallCount, 0)
     }
 
     func test_grantNotRecorded_whenFlagOff() {
         let store = MockGrantStore(hasGranted: false)
-        _ = makeFeature(flagEnabled: false, isIphone: true, includeNewUsers: true, isNewUser: false, grantStore: store)
+        _ = makeFeature(flagEnabled: false, isIphone: true, includeNewUsers: true, grantStore: store)
         XCTAssertFalse(store.hasGrantedUnifiedToggleInput)
     }
 
     func test_grantNotRecorded_whenNotIphone() {
         // An iPad never presents UTI, so it is never granted even when otherwise eligible.
         let store = MockGrantStore(hasGranted: false)
-        _ = makeFeature(flagEnabled: true, isIphone: false, includeNewUsers: true, isNewUser: false, grantStore: store)
+        _ = makeFeature(flagEnabled: true, isIphone: false, includeNewUsers: true, grantStore: store)
         XCTAssertFalse(store.hasGrantedUnifiedToggleInput)
     }
 
@@ -309,7 +295,6 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
         _ = makeFeature(flagEnabled: true,
                         isIphone: true,
                         includeNewUsers: true,
-                        isNewUser: false,
                         activeExperiments: [
                             ExperimentID.duckAIQuery: makeExperimentData(
                                 for: .onboardingDuckAIQueryExperiment,
@@ -326,9 +311,8 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
     /// UserDefaults, while readers still apply the device availability gate.
     func test_isAvailable_usesLaunchResolvedFlagSnapshot() {
         MockDevicePlatform.isIphone = true
-        let flagger = MockFeatureFlagger(enabledFeatureFlags: [.unifiedToggleInput])
+        let flagger = MockFeatureFlagger(enabledFeatureFlags: [.unifiedToggleInput, .unifiedToggleInputIncludeNewUsers])
         UnifiedToggleInputFeature.resolve(using: flagger,
-                                          userTypeProvider: MockUserTypeProvider(isNewUser: false),
                                           grantStore: MockGrantStore(),
                                           devicePlatform: MockDevicePlatform.self)
         let feature = UnifiedToggleInputFeature(featureFlagger: flagger, devicePlatform: MockDevicePlatform.self)
@@ -343,32 +327,9 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
                       "A fresh instance must read the same snapshot, not the mutated live flagger")
 
         UnifiedToggleInputFeature.resolve(using: flagger,
-                                          userTypeProvider: MockUserTypeProvider(isNewUser: false),
                                           grantStore: MockGrantStore(),
                                           devicePlatform: MockDevicePlatform.self)
         XCTAssertFalse(feature.isAvailable,
                        "After re-resolving the snapshot must flip — otherwise resolve isn't doing its job")
-    }
-
-    // MARK: - User-type adapter
-
-    func test_userTypeAdapter_mapsOnlyNewInstallToNewUser() {
-        let cases: [(DefaultBrowserPromptUserType?, Bool)] = [
-            (.new, true),
-            (.returning, false),
-            (.existing, false),
-            (nil, false)
-        ]
-        for (userType, expectedIsNewUser) in cases {
-            let adapter = DefaultBrowserPromptUnifiedToggleInputUserTypeAdapter(
-                userTypeProvider: StubDefaultBrowserPromptUserTypeProvider(userType: userType)
-            )
-            XCTAssertEqual(adapter.isNewUser, expectedIsNewUser, "userType=\(String(describing: userType))")
-        }
-    }
-
-    private struct StubDefaultBrowserPromptUserTypeProvider: DefaultBrowserPromptUserTypeProviding {
-        let userType: DefaultBrowserPromptUserType?
-        func currentUserType() -> DefaultBrowserPromptUserType? { userType }
     }
 }
