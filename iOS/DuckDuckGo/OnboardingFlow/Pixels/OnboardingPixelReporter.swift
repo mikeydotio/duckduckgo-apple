@@ -57,6 +57,8 @@ protocol OnboardingIntroPixelReporting: OnboardingIntroImpressionReporting {
     func measureAutoRestoreOnboardingSkipCTAAction()
     func measureBrowserComparisonImpression()
     func measureChooseBrowserCTAAction()
+    func measureAiComparisonImpression()
+    func measureAiComparisonCTAAction()
     func measureChooseAppIconImpression()
     func measureChooseAppIconColor(_ color: AppIcon)
     func measureAddressBarPositionSelectionImpression()
@@ -250,6 +252,18 @@ extension OnboardingPixelReporter: OnboardingIntroPixelReporting {
                                 flow: sharedPixelsStorage.onboardingFlow)
     }
 
+    func measureAiComparisonImpression() {
+        sharedPixelHandler.fire(.aiComparison(.shown),
+                                source: sharedPixelsStorage.onboardingSource,
+                                flow: sharedPixelsStorage.onboardingFlow)
+    }
+
+    func measureAiComparisonCTAAction() {
+        sharedPixelHandler.fire(.aiComparison(.clicked(.engage)),
+                                source: sharedPixelsStorage.onboardingSource,
+                                flow: sharedPixelsStorage.onboardingFlow)
+    }
+
     func measureChooseAppIconImpression() {
         fire(event: .onboardingIntroChooseAppIconImpressionUnique, unique: true)
         sharedPixelHandler.fire(.appIconColor(.shown),
@@ -329,23 +343,20 @@ extension OnboardingPixelReporter: OnboardingIntroPixelReporting {
             sharedPixelHandler.fire(.searchChatToggle(.clicked(.customChat)),
                                     source: sharedPixelsStorage.onboardingSource,
                                     flow: sharedPixelsStorage.onboardingFlow)
-            sharedPixelsStorage.onboardingVariant = .duckAIChat
         case (.custom, .search):
             sharedPixelHandler.fire(.searchChatToggle(.clicked(.customSearch)),
                                     source: sharedPixelsStorage.onboardingSource,
                                     flow: sharedPixelsStorage.onboardingFlow)
-            sharedPixelsStorage.onboardingVariant = .duckAISearch
         case (_, .duckAI):
             sharedPixelHandler.fire(.searchChatToggle(.clicked(.suggestedChat)),
                                     source: sharedPixelsStorage.onboardingSource,
                                     flow: sharedPixelsStorage.onboardingFlow)
-            sharedPixelsStorage.onboardingVariant = .duckAIChat
         case (_, .search):
             sharedPixelHandler.fire(.searchChatToggle(.clicked(.suggestedSearch)),
                                     source: sharedPixelsStorage.onboardingSource,
                                     flow: sharedPixelsStorage.onboardingFlow)
-            sharedPixelsStorage.onboardingVariant = .duckAISearch
         }
+        sharedPixelsStorage.onboardingVariant = OnboardingPixelParameter.Variant(selection)
     }
 
     func measureSkipOnboardingScreenImpression() {
@@ -600,6 +611,19 @@ extension OnboardingPixelReporter: OnboardingAddToDockReporting {
     
     func measureAddToDockTutorialDismissCTAAction() {
         fire(event: .onboardingAddToDockTutorialDismissCTATapped, unique: false)
+    }
+
+}
+
+extension OnboardingPixelParameter.Variant {
+
+    init(_ mode: DuckAIQueryMode) {
+        switch mode {
+        case .duckAI:
+            self = .duckAIChat
+        case .search:
+            self = .duckAISearch
+        }
     }
 
 }

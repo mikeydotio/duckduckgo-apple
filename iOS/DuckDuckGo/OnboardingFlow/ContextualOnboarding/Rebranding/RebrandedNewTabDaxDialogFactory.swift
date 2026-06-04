@@ -125,6 +125,7 @@ extension RebrandedNewTabDaxDialogFactory {
             .onFirstAppear { [weak self] in
                 self?.daxDialogsFlowCoordinator.setFinalOnboardingDialogSeen()
                 self?.onboardingPixelReporter.measureDuckAIFinalDialogImpression()
+                self?.onboardingPixelReporter.measureScreenImpression(.end(.shown))
             }
         )
     }

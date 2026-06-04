@@ -33,6 +33,8 @@ final class OnboardingPixelReporterMock: OnboardingIntroPixelReporting, Onboardi
     private(set) var didCallMeasureAutoRestoreOnboardingSkipTapped = false
     private(set) var didCallMeasureBrowserComparisonImpression = false
     private(set) var didCallMeasureChooseBrowserCTAAction = false
+    private(set) var didCallMeasureAiComparisonImpression = false
+    private(set) var didCallMeasureAiComparisonCTAAction = false
     private(set) var didCallMeasureChooseAppIconImpression = false
     private(set) var didCallMeasureChooseAppIconColor = false
     private(set) var didCaptureAppIconColorSelection: AppIcon?
@@ -142,6 +144,14 @@ final class OnboardingPixelReporterMock: OnboardingIntroPixelReporting, Onboardi
 
     func measureChooseBrowserCTAAction() {
         didCallMeasureChooseBrowserCTAAction = true
+    }
+
+    func measureAiComparisonImpression() {
+        didCallMeasureAiComparisonImpression = true
+    }
+
+    func measureAiComparisonCTAAction() {
+        didCallMeasureAiComparisonCTAAction = true
     }
 
     func measureChooseAppIconImpression() {

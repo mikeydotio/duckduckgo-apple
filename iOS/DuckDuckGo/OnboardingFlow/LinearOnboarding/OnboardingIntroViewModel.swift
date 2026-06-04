@@ -228,6 +228,7 @@ final class OnboardingIntroViewModel: ObservableObject {
     }
 
     func aiComparisonAction() {
+        pixelReporter.measureAiComparisonCTAAction()
         makeNextViewState()
     }
 
@@ -510,7 +511,7 @@ private extension OnboardingIntroViewModel {
         case .browsersComparisonDialog:
             pixelReporter.measureBrowserComparisonImpression()
         case .aiComparisonDialog:
-            break
+            pixelReporter.measureAiComparisonImpression()
         case .addToDockPromoDialog:
             pixelReporter.measureAddToDockPromoImpression()
         case .chooseAppIconDialog:
@@ -539,6 +540,11 @@ private extension OnboardingIntroViewModel {
         }
         // Restore-data prompt is suppressed in the Duck.ai tailored flow.
         guard onboardingManager.currentOnboardingFlow != .duckAI else {
+            // Fire a pixel to measure the volume of re‑installers who previously synced their device and would normally see the restore-data flow but instead experience the CPP onboarding (honouring the CPP install context).
+            // Consider deleting this pixel ini the future if the information is no longer needed
+            if restorePromptHandler.isEligibleForRestorePrompt() {
+                DailyPixel.fireDailyAndCount(pixel: .onboardingSyncAutoRestoreUserFromDuckAiFlow)
+            }
             return .skipTutorial
         }
         return restorePromptHandler.isEligibleForRestorePrompt() ? .restoreData : .skipTutorial
