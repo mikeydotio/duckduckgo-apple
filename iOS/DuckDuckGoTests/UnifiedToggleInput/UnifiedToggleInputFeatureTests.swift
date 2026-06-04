@@ -290,19 +290,22 @@ final class UnifiedToggleInputFeatureTests: XCTestCase {
         XCTAssertFalse(store.hasGrantedUnifiedToggleInput)
     }
 
-    func test_grantNotRecorded_whenInExcludedExperimentCohort() {
+    func test_grantRecordedButNotAvailable_whenInExcludedExperimentCohort() {
+        // The cohort isn't part of the grant decision (it isn't settled at launch); it only gates
+        // display live in `isAvailable`. So an excluded-cohort device is granted but does not see UTI.
         let store = MockGrantStore(hasGranted: false)
-        _ = makeFeature(flagEnabled: true,
-                        isIphone: true,
-                        includeNewUsers: true,
-                        activeExperiments: [
-                            ExperimentID.duckAIQuery: makeExperimentData(
-                                for: .onboardingDuckAIQueryExperiment,
-                                cohortID: FeatureFlag.DuckAIQueryExperimentCohort.treatmentA.rawValue
-                            )
-                        ],
-                        grantStore: store)
-        XCTAssertFalse(store.hasGrantedUnifiedToggleInput)
+        let feature = makeFeature(flagEnabled: true,
+                                  isIphone: true,
+                                  includeNewUsers: true,
+                                  activeExperiments: [
+                                      ExperimentID.duckAIQuery: makeExperimentData(
+                                          for: .onboardingDuckAIQueryExperiment,
+                                          cohortID: FeatureFlag.DuckAIQueryExperimentCohort.treatmentA.rawValue
+                                      )
+                                  ],
+                                  grantStore: store)
+        XCTAssertTrue(store.hasGrantedUnifiedToggleInput, "Grant is gated on device type only, not cohort")
+        XCTAssertFalse(feature.isAvailable, "Excluded cohort still suppresses display via the live gate")
     }
 
     // MARK: - Snapshot semantics

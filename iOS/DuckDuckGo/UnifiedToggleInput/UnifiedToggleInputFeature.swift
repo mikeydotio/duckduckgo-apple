@@ -66,9 +66,10 @@ struct UnifiedToggleInputFeature: UnifiedToggleInputFeatureProviding {
                 || featureFlagger.isFeatureOn(.unifiedToggleInputIncludeNewUsers)
         }
 
-        // Record the grant only when this device would actually present UTI, so the read-time device
-        // gate and the grant decision can never diverge.
-        if gateDecision && isDeviceEligible(featureFlagger: featureFlagger, devicePlatform: devicePlatform) {
+        // Gate the grant only on the device type, which is known at launch. The experiment cohort
+        // isn't enrolled this early (onboarding assigns it later), so it stays a live check in
+        // `isAvailable` rather than being frozen into the grant here.
+        if gateDecision && devicePlatform.isIphone {
             grantStore.recordGrant()
         }
 
