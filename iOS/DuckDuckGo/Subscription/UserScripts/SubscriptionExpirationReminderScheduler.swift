@@ -77,13 +77,8 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         }
 
         guard let subscription = try? await subscriptionManager.getSubscription(forceRefresh: false),
-              Self.statusWarrantsReminder(subscription.status) else {
-            Logger.subscription.log("Expiration reminder skipped: subscription not in an active state for reminders")
-            return
-        }
-
-        guard subscription.hasActiveTrialOffer else {
-            Logger.subscription.log("Expiration reminder skipped: subscription is not on a free trial")
+              Self.subscriptionWarrantsReminder(subscription) else {
+            Logger.subscription.log("Expiration reminder skipped: subscription does not warrant a reminder (must be active and on a free trial)")
             return
         }
 
@@ -146,16 +141,13 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [Self.notificationIdentifier])
     }
 
-    private static func statusWarrantsReminder(_ status: DuckDuckGoSubscription.Status) -> Bool {
-        switch status {
-        case .autoRenewable, .notAutoRenewable, .gracePeriod: return true
-        case .inactive, .expired, .unknown: return false
-        }
-    }
-
     /// A subscription warrants a reminder iff its status is active AND it is on a free trial.
-    /// Composed from `statusWarrantsReminder` so the schedule-time guards can keep granular logging on each component.
     private static func subscriptionWarrantsReminder(_ subscription: DuckDuckGoSubscription) -> Bool {
-        statusWarrantsReminder(subscription.status) && subscription.hasActiveTrialOffer
+        switch subscription.status {
+        case .autoRenewable, .notAutoRenewable, .gracePeriod:
+            return subscription.hasActiveTrialOffer
+        case .inactive, .expired, .unknown:
+            return false
+        }
     }
 }
