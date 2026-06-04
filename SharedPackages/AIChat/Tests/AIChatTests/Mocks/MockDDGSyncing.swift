@@ -129,6 +129,8 @@ final class MockDDGSyncing: DDGSyncing {
     func createConnectionController(deviceName: String, deviceType: String, delegate: SyncConnectionControllerDelegate) -> SyncConnectionControlling { fatalError("Not implemented") }
     func transmitGeneratedExchangeInfo(_ exchangeCode: SyncCode.ExchangeKey, deviceName: String) async throws -> ExchangeInfo { fatalError("Not implemented") }
     func transmitExchangeRecoveryKey(for exchangeMessage: ExchangeMessage) async throws {}
+    func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String { "" }
+    func upgradeThirdPartyAccountToDefaultCredential(_ recoveryCode: String, deviceName: String, deviceType: String) async throws -> [RegisteredDevice] { [] }
     func setCustomOperations(_ operations: [any SyncCustomOperation]) {}
     func disconnect() async throws {}
     func disconnect(deviceId: String) async throws {}

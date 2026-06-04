@@ -35,6 +35,14 @@ final class MockDDGSyncing: DDGSyncing {
         
     }
 
+    func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
+        ""
+    }
+
+    func upgradeThirdPartyAccountToDefaultCredential(_ recoveryCode: String, deviceName: String, deviceType: String) async throws -> [RegisteredDevice] {
+        []
+    }
+
     func mainTokenRescope(to scope: String) async throws -> String? {
         nil
     }
