@@ -5531,6 +5531,13 @@ extension MainViewController: AIChatHistoryViewModelDelegate {
             self?.onChatHistorySelected(url: url)
         }
     }
+
+    func viewModelDidRequestDeleteChat(chatId: String) {
+        // The chat-history sheet shows persistent chats, so this is never a fire-mode burn.
+        Task { @MainActor in
+            await fireExecutor.burnChat(chatID: chatId, isFireMode: false)
+        }
+    }
 }
 
 extension MainViewController: TabSwitcherDelegate {
