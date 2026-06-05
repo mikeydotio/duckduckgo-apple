@@ -640,9 +640,8 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
         await performDeferredPreservedAccountCleanupIfNeeded()
     }
 
-    func controllerDidFindTwoAccountsDuringRecovery(_ recoveryKey: SyncCode.RecoveryKey,
-                                                    setupRole: SyncSetupRole,
-                                                    shouldPromptBeforeSwitchingAccounts: Bool) async {
+    func controllerDidFindTwoAccountsDuringRecovery(_ recoveryKey: SyncCode.RecoveryKey, setupRole: SyncSetupRole, shouldPromptBeforeSwitchingAccounts: Bool) async {
+        // For V2 we're intentionally not showing prompt here
         if shouldPromptBeforeSwitchingAccounts && viewModel.devices.count > 1 {
             promptToSwitchAccounts(recoveryKey: recoveryKey)
         } else {
@@ -687,14 +686,11 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
         case .updateRequired:
             sendCodeParsingFailedPixel(setupRole: setupRole)
             await handleError(.updateRequired, error: nil, event: nil)
-        case .codeOnlyCompatibleWithDuckAI:
+        case .unsupportedThirdPartyRecoveryCode:
             sendCodeParsingFailedPixel(setupRole: setupRole)
-            await handleError(.codeOnlyCompatibleWithDuckAI, error: nil, event: nil)
-        case .codeMustBeScannedWithDuckDuckGo:
-            sendCodeParsingFailedPixel(setupRole: setupRole)
-            await handleError(.codeMustBeScannedWithDuckDuckGo, error: nil, event: nil)
-        case .syncFromAnotherConnectedDevice:
-            await handleError(.syncFromAnotherConnectedDevice, error: nil, event: nil)
+            await handleError(.unsupportedThirdPartyRecoveryCode, error: nil, event: nil)
+        case .thirdPartyAccountAlreadyUpgraded:
+            await handleError(.thirdPartyAccountAlreadyUpgraded, error: nil, event: nil)
         case .syncCancelledFromOtherDevice:
             await handleError(.syncCancelledFromOtherDevice, error: nil, event: nil)
         case .failedToFetchPublicKey, .failedToTransmitExchangeRecoveryKey, .failedToFetchConnectRecoveryKey, .failedToLogIn, .failedToTransmitExchangeKey, .failedToFetchExchangeRecoveryKey, .failedToTransmitConnectRecoveryKey:

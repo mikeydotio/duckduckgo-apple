@@ -21,6 +21,12 @@ import XCTest
 
 @testable import DDGSync
 
+private enum PairingV2CoordinatorTestError: Error {
+    case expectedLocalHello
+}
+
+private typealias NativeJoinerThirdPartyUpgradeSetup = (coordinator: PairingV2Coordinator, upgradeCoordinator: ThirdPartyAccountUpgradeCoordinatingMock)
+
 private final class PairingV2ConfirmationDelegateMock: PairingV2ConfirmationDelegate {
     var shouldAllowPeerToJoin = true
     var shouldJoinPeer = true
@@ -134,7 +140,7 @@ final class PairingV2CoordinatorTests: XCTestCase {
         let messageCrypto = PairingV2MessageCrypto()
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
         let coordinator = makeCoordinator(syncService: syncService, messageExchanger: messageExchanger, messageCrypto: messageCrypto)
-        let error = PairingV2Error.unexpectedEvent("redundant hello did not match scanned Pairing V2 code")
+        let error = PairingV2Error.secondHello
 
         try await coordinator.startScanning(qrPayload: .init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
         let hello = try localHello(from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto)
@@ -153,26 +159,7 @@ final class PairingV2CoordinatorTests: XCTestCase {
         XCTAssertEqual(messageExchanger.closeChannelCalls, [hello.channelId])
     }
 
-    func testWhenPollReceivesRelayChannelUnavailableThenContinuesPollingWithinTolerance() async throws {
-        let dependencies = MockSyncDependencies()
-        let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
-        let messageExchanger = PairingV2MessageExchangingMock()
-        let coordinator = makeCoordinator(syncService: syncService, messageExchanger: messageExchanger)
-
-        let payload = try await coordinator.startPresenting()
-        messageExchanger.fetchMessagesError = PairingV2Error.relayChannelUnavailable
-
-        try await coordinator.pollOnce()
-
-        XCTAssertEqual(messageExchanger.fetchMessagesCalls.map(\.channelID), [payload.channelId])
-        XCTAssertTrue(messageExchanger.closeChannelCalls.isEmpty)
-        XCTAssertEqual(
-            coordinator.state,
-            .waitingForPeerHello(.init(localClient: .init(name: "Mac", kind: .ddg, hasAccount: false, isPresenter: true), peerChannelID: nil))
-        )
-    }
-
-    func testWhenPollReceivesRelayChannelUnavailableBeyondToleranceThenFails() async throws {
+    func testWhenPollReceivesRelayChannelUnavailableThenFailsImmediately() async throws {
         let dependencies = MockSyncDependencies()
         let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
         let messageExchanger = PairingV2MessageExchangingMock()
@@ -183,21 +170,22 @@ final class PairingV2CoordinatorTests: XCTestCase {
 
         do {
             try await coordinator.pollOnce()
-            try await coordinator.pollOnce()
-            try await coordinator.pollOnce()
-            try await coordinator.pollOnce()
             XCTFail("Expected PairingV2Error.relayChannelUnavailable")
         } catch PairingV2Error.relayChannelUnavailable {
         } catch {
             XCTFail("Expected PairingV2Error.relayChannelUnavailable, got \(error)")
         }
 
-        XCTAssertEqual(messageExchanger.fetchMessagesCalls.map(\.channelID), [payload.channelId, payload.channelId, payload.channelId, payload.channelId])
+        XCTAssertEqual(messageExchanger.fetchMessagesCalls.map(\.channelID), [payload.channelId])
         XCTAssertEqual(messageExchanger.closeChannelCalls, [payload.channelId])
         XCTAssertEqual(coordinator.state, .failed(.relayChannelUnavailable))
+
+        await coordinator.cancel()
+
+        XCTAssertEqual(messageExchanger.closeChannelCalls, [payload.channelId])
     }
 
-    func testWhenSendReceivesUnexpectedStatusCode404ThenThrowsRelayChannelUnavailable() async throws {
+    func testWhenSendReceivesRelayChannelUnavailableThenThrowsRelayChannelUnavailable() async throws {
         let dependencies = MockSyncDependencies()
         let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
         let messageExchanger = PairingV2MessageExchangingMock()
@@ -214,7 +202,7 @@ final class PairingV2CoordinatorTests: XCTestCase {
             peerKeyPair: peerKeyPair,
             messageCrypto: messageCrypto
         )
-        messageExchanger.sendError = SyncError.unexpectedStatusCode(404)
+        messageExchanger.sendError = PairingV2Error.relayChannelUnavailable
 
         do {
             try await coordinator.pollOnce()
@@ -512,6 +500,36 @@ final class PairingV2CoordinatorTests: XCTestCase {
         XCTAssertEqual((dependencies.secureStore as? SecureStorageStub)?.theScopedPassword, Data(repeating: 1, count: 32))
     }
 
+    func testWhenThirdPartyUpgradeReportsExistingNativeCredentialThenPairingFailsWithNativeCredentialAlreadyPresent() async throws {
+        let setup = try await makeNativeJoinerReadyForThirdPartyUpgrade(upgradeError: ThirdPartyAccountUpgradeError.nativeCredentialAlreadyPresent)
+
+        do {
+            try await setup.coordinator.pollOnce()
+            XCTFail("Expected native credential conflict to abort pairing")
+        } catch PairingV2Error.nativeCredentialAlreadyPresent {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(setup.upgradeCoordinator.upgradeThirdPartyAccountCalls.map(\.recoveryCode), ["third-party-recovery-code"])
+        XCTAssertEqual(setup.coordinator.state, .failed(.nativeCredentialAlreadyPresent))
+    }
+
+    func testWhenThirdPartyUpgradeReportsGenericUpgradeErrorThenPairingFailsWithLoginFailed() async throws {
+        let setup = try await makeNativeJoinerReadyForThirdPartyUpgrade(upgradeError: ThirdPartyAccountUpgradeError.noUsableThirdPartyProtectedKeys)
+
+        do {
+            try await setup.coordinator.pollOnce()
+            XCTFail("Expected upgrade failure to abort pairing")
+        } catch PairingV2Error.loginFailed {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(setup.upgradeCoordinator.upgradeThirdPartyAccountCalls.map(\.recoveryCode), ["third-party-recovery-code"])
+        XCTAssertEqual(setup.coordinator.state, .failed(.loginFailed))
+    }
+
     func testWhenNativeJoinerConfirmationIsDeniedThenDoesNotLoginIfRecoveryCodeArrives() async throws {
         let dependencies = MockSyncDependencies()
         let upgradeCoordinator = ThirdPartyAccountUpgradeCoordinatingMock()
@@ -564,6 +582,54 @@ final class PairingV2CoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.completedRegisteredDevices)
         XCTAssertEqual(coordinator.state, .failed(.cancelled))
         XCTAssertEqual(messageExchanger.closeChannelCalls.count, 1)
+    }
+
+    private func makeNativeJoinerReadyForThirdPartyUpgrade(upgradeError: Error) async throws -> NativeJoinerThirdPartyUpgradeSetup {
+        let dependencies = MockSyncDependencies()
+        let upgradeCoordinator = ThirdPartyAccountUpgradeCoordinatingMock()
+        upgradeCoordinator.upgradeThirdPartyAccountError = upgradeError
+        dependencies.createThirdPartyAccountUpgradeCoordinatorStub = upgradeCoordinator
+        (dependencies.secureStore as? SecureStorageStub)?.theAccount = nil
+
+        let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        let messageCrypto = PairingV2MessageCrypto()
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let confirmationDelegate = PairingV2ConfirmationDelegateMock()
+        let coordinator = PairingV2Coordinator(syncService: syncService,
+                                               messageExchanger: messageExchanger,
+                                               messageCrypto: messageCrypto,
+                                               deviceName: "Mac",
+                                               deviceType: "desktop",
+                                               flags: PairingV2RolloutFlags(isV2ScanningEnabled: true, isV2CodeEnabled: true),
+                                               confirmationDelegate: confirmationDelegate)
+
+        try await coordinator.startScanning(qrPayload: .init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey))
+        let hello = try localHello(from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto)
+
+        messageExchanger.fetchMessagesStub = [
+            .init(seq: 1,
+                  version: PairingV2ProtocolVersion.current,
+                  payload: try messageCrypto.encrypt(
+                    .recoveryCodeAvailable(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable,
+                                                 name: "Peer",
+                                                 kind: .thirdParty,
+                                                 userId: "third-party-user")),
+                    recipientPublicKey: hello.publicKey,
+                    senderChannelID: peerKeyPair.channelID).payload)
+        ]
+        try await coordinator.pollOnce()
+
+        messageExchanger.fetchMessagesStub = [
+            .init(seq: 2,
+                  version: PairingV2ProtocolVersion.current,
+                  payload: try messageCrypto.encrypt(
+                    .recoveryCodeResponse(.init(recoveryCode: "third-party-recovery-code")),
+                    recipientPublicKey: hello.publicKey,
+                    senderChannelID: peerKeyPair.channelID).payload)
+        ]
+
+        return (coordinator, upgradeCoordinator)
     }
 
     private func makeCoordinator(syncService: DDGSyncing,
@@ -625,7 +691,7 @@ final class PairingV2CoordinatorTests: XCTestCase {
         let message = try XCTUnwrap(try messageCrypto.decrypt(encryptedHello, privateKey: peerPrivateKey))
         guard case .hello(let hello) = message else {
             XCTFail("Expected local hello")
-            throw PairingV2Error.unexpectedEvent("Expected local hello")
+            throw PairingV2CoordinatorTestError.expectedLocalHello
         }
         return hello
     }

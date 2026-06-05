@@ -601,6 +601,7 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
     }
 
     func controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: Bool) {
+        // Temporary handling as devices don't update when 3p device added to account
         if shouldWaitForDevicesToChange {
             waitForDevicesToChangeThenPresentSyncing()
         } else {
@@ -681,14 +682,11 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
         case .updateRequired:
             managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .updateRequired)
             sendCodeParsingFailedPixel(setupRole: setupRole)
-        case .codeOnlyCompatibleWithDuckAI:
-            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .codeOnlyCompatibleWithDuckAI)
+        case .unsupportedThirdPartyRecoveryCode:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .unsupportedThirdPartyRecoveryCode)
             sendCodeParsingFailedPixel(setupRole: setupRole)
-        case .codeMustBeScannedWithDuckDuckGo:
-            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .codeMustBeScannedWithDuckDuckGo)
-            sendCodeParsingFailedPixel(setupRole: setupRole)
-        case .syncFromAnotherConnectedDevice:
-            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .syncFromAnotherConnectedDevice)
+        case .thirdPartyAccountAlreadyUpgraded:
+            managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .thirdPartyAccountAlreadyUpgraded)
         case .syncCancelledFromOtherDevice:
             managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .syncCancelledFromOtherDevice)
         case .failedToFetchPublicKey, .failedToTransmitExchangeRecoveryKey, .failedToFetchConnectRecoveryKey, .failedToLogIn, .failedToTransmitExchangeKey, .failedToFetchExchangeRecoveryKey, .failedToTransmitConnectRecoveryKey:
@@ -703,6 +701,7 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
     }
 
     private func handleAccountAlreadyExists(_ recoveryKey: SyncCode.RecoveryKey, shouldPromptBeforeSwitchingAccounts: Bool) async {
+        // For V2 we're intentionally not showing prompt here
         if shouldPromptBeforeSwitchingAccounts && devices.count > 1 {
             managementDialogModel.showSwitchAccountsMessage()
             PixelKit.fire(SyncSwitchAccountPixelKitEvent.syncAskUserToSwitchAccount, doNotEnforcePrefix: true)

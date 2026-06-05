@@ -886,7 +886,7 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     @MainActor
-    func test_syncCodeEntered_withV2UrlAndPairingV2ScanningDisabled_returnsFailureBeforeStartingPairingV2() async throws {
+    func test_syncCodeEntered_withV2UrlAndPairingV2ScanningDisabled_returnsUnableToRecognizeCodeBeforeStartingPairingV2() async throws {
         dependencies.isPairingV2ScanningEnabled = { false }
         let payload = PairingV2QRCodePayload(channelId: "channel-1", publicKey: "public-key")
         let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
@@ -895,12 +895,12 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .updateRequired)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
         XCTAssertNil(delegate.didErrorErrors?.underlyingError)
     }
 
     @MainActor
-    func test_syncCodeEntered_withV2UrlAndScopedAccessCredentialsDisabled_returnsFailureBeforeStartingPairingV2() async throws {
+    func test_syncCodeEntered_withV2UrlAndScopedAccessCredentialsDisabled_returnsUnableToRecognizeCodeBeforeStartingPairingV2() async throws {
         dependencies.isScopedAccessCredentialsEnabled = { false }
         let payload = PairingV2QRCodePayload(channelId: "channel-1", publicKey: "public-key")
         let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
@@ -909,7 +909,7 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .updateRequired)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
         XCTAssertNil(delegate.didErrorErrors?.underlyingError)
     }
 
@@ -930,9 +930,9 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     @MainActor
-    func test_syncCodeEntered_withV2UrlAndSend404_notifiesFetchError() async throws {
+    func test_syncCodeEntered_withV2UrlAndRelayUnavailableOnSend_notifiesFetchError() async throws {
         let messageExchanger = PairingV2MessageExchangingMock()
-        messageExchanger.sendError = SyncError.unexpectedStatusCode(404)
+        messageExchanger.sendError = PairingV2Error.relayChannelUnavailable
         dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
         let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
@@ -1386,7 +1386,7 @@ final class SyncConnectionControllerTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertFalse(mockAccountManager.loginCalled)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .codeOnlyCompatibleWithDuckAI)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unsupportedThirdPartyRecoveryCode)
     }
 
     // MARK: - syncCodeEntered connect

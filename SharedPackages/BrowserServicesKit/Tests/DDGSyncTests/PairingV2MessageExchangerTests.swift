@@ -62,27 +62,30 @@ final class PairingV2MessageExchangerTests: XCTestCase {
         }
     }
 
-    func testWhenSendReceivesInitial404ThenRetriesAndSucceeds() async throws {
+    func testWhenFirstSendReceivesTransient404ThenRetriesTwiceAndSucceeds() async throws {
         let request = SequencedHTTPRequestingMock(results: [
+            .init(data: nil, response: makeHTTPURLResponse(statusCode: 404)),
             .init(data: nil, response: makeHTTPURLResponse(statusCode: 404)),
             .init(data: nil, response: makeHTTPURLResponse(statusCode: 204))
         ])
         api.request = request
-        let exchanger = makeExchanger(sendRetryDelaysNanoseconds: [0])
+        let exchanger = makeExchanger()
 
         try await exchanger.send([.init(payload: "payload")], to: "channel")
 
-        XCTAssertEqual(request.executeCallCount, 2)
-        XCTAssertEqual(api.createRequestCallCount, 2)
+        XCTAssertEqual(request.executeCallCount, 3)
+        XCTAssertEqual(api.createRequestCallCount, 1)
     }
 
-    func testWhenSendReceivesRepeated404ThenThrowsRelayChannelUnavailable() async throws {
+    func testWhenFirstSendKeepsReceiving404ThenThrowsRelayChannelUnavailableAfterRetryBudget() async throws {
         let request = SequencedHTTPRequestingMock(results: [
             .init(data: nil, response: makeHTTPURLResponse(statusCode: 404)),
-            .init(data: nil, response: makeHTTPURLResponse(statusCode: 404))
+            .init(data: nil, response: makeHTTPURLResponse(statusCode: 404)),
+            .init(data: nil, response: makeHTTPURLResponse(statusCode: 404)),
+            .init(data: nil, response: makeHTTPURLResponse(statusCode: 204))
         ])
         api.request = request
-        let exchanger = makeExchanger(sendRetryDelaysNanoseconds: [0])
+        let exchanger = makeExchanger()
 
         do {
             try await exchanger.send([.init(payload: "payload")], to: "channel")
@@ -92,7 +95,30 @@ final class PairingV2MessageExchangerTests: XCTestCase {
             XCTFail("Expected PairingV2Error.relayChannelUnavailable, got \(error)")
         }
 
+        XCTAssertEqual(request.executeCallCount, 3)
+        XCTAssertEqual(api.createRequestCallCount, 1)
+    }
+
+    func testWhenSendReceives404AfterFirstSuccessfulMessagePostThenThrowsRelayChannelUnavailableWithoutRetrying() async throws {
+        let request = SequencedHTTPRequestingMock(results: [
+            .init(data: nil, response: makeHTTPURLResponse(statusCode: 204)),
+            .init(data: nil, response: makeHTTPURLResponse(statusCode: 404)),
+            .init(data: nil, response: makeHTTPURLResponse(statusCode: 204))
+        ])
+        api.request = request
+        let exchanger = makeExchanger()
+
+        try await exchanger.send([.init(payload: "first-payload")], to: "channel")
+        do {
+            try await exchanger.send([.init(payload: "second-payload")], to: "channel")
+            XCTFail("Expected PairingV2Error.relayChannelUnavailable")
+        } catch PairingV2Error.relayChannelUnavailable {
+        } catch {
+            XCTFail("Expected PairingV2Error.relayChannelUnavailable, got \(error)")
+        }
+
         XCTAssertEqual(request.executeCallCount, 2)
+        XCTAssertEqual(api.createRequestCallCount, 2)
     }
 
     func testWhenSendReceives410ThenThrowsRelayChannelExpired() async throws {
@@ -117,8 +143,8 @@ final class PairingV2MessageExchangerTests: XCTestCase {
         XCTAssertEqual(api.createRequestCallCount, 1)
     }
 
-    private func makeExchanger(sendRetryDelaysNanoseconds: [UInt64] = []) -> PairingV2MessageExchanger {
-        PairingV2MessageExchanger(endpoints: endpoints, api: api, sendRetryDelaysNanoseconds: sendRetryDelaysNanoseconds)
+    private func makeExchanger() -> PairingV2MessageExchanger {
+        PairingV2MessageExchanger(endpoints: endpoints, api: api, firstMessagePost404RetryDelays: [0, 0])
     }
 
     private func makeRequest(statusCode: Int, body: String? = nil) -> HTTPRequestingMock {

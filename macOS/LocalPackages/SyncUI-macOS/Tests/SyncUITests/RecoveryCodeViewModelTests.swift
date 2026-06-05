@@ -16,10 +16,16 @@
 //  limitations under the License.
 //
 
+import AppKit
 import XCTest
 @testable import SyncUI_macOS
 
 final class RecoveryCodeViewModelTests: XCTestCase {
+
+    override func tearDown() {
+        NSPasteboard.general.clearContents()
+        super.tearDown()
+    }
 
     func testSubmitButtonIsDisabledByDefault() throws {
         let model = RecoveryCodeViewModel()
@@ -52,15 +58,25 @@ final class RecoveryCodeViewModelTests: XCTestCase {
 
     }
 
-    func testWhenNormalizedPasteboardStringIsV2PairingURLThenCodeIsPreserved() {
+    func testWhenPastingV2PairingURLThenCodeIsPreserved() {
+        let model = RecoveryCodeViewModel()
         let url = "https://duckduckgo.com/sync/pairing/#&code2=eyJ2ZXJzaW9uIjoiMi4wIn0"
-        let normalized = RecoveryCodeViewModel.normalizedPasteboardString(url)
-        XCTAssertEqual(normalized, url)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(url, forType: .string)
+
+        model.paste()
+
+        XCTAssertEqual(model.recoveryCode, url)
     }
 
-    func testWhenNormalizedPasteboardStringHasWhitespaceThenWhitespaceIsRemoved() {
+    func testWhenPastingCodeWithWhitespaceThenWhitespaceIsRemoved() {
+        let model = RecoveryCodeViewModel()
         let input = " https://duckduckgo.com/sync/pairing/\n#&code2=abc \n"
-        let normalized = RecoveryCodeViewModel.normalizedPasteboardString(input)
-        XCTAssertEqual(normalized, "https://duckduckgo.com/sync/pairing/#&code2=abc")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(input, forType: .string)
+
+        model.paste()
+
+        XCTAssertEqual(model.recoveryCode, "https://duckduckgo.com/sync/pairing/#&code2=abc")
     }
 }

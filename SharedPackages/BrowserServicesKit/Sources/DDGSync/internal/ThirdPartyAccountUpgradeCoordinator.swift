@@ -33,6 +33,15 @@ struct UpgradedThirdPartyAccount {
     let protectedKeys: [ProtectedKey]
 }
 
+enum ThirdPartyAccountUpgradeError: Error, Equatable {
+    case invalidRecoveryCode
+    case nativeCredentialAlreadyPresent
+    case noUsableThirdPartyProtectedKeys
+    case nativeCredentialCreationFailed(statusCode: Int)
+    case invalidTemporaryLoginResponse
+    case invalidFinalNativeLoginResponse
+}
+
 struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating {
 
     private enum LoginScope {
@@ -44,6 +53,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
     let api: RemoteAPIRequestCreating
     let crypter: CryptingInternal
     let scopedAccess: ScopedAccessCredentialManaging
+    let account: AccountManaging
 
     private let jweCompactCodec = JWECompactCodec()
     private let scopedAccessCredentialEnvelope = ScopedAccessCredentialEnvelope()
@@ -61,7 +71,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
                                                                   deviceName: deviceName,
                                                                   deviceType: deviceType)
         } catch {
-            Logger.sync.error("3party account upgrade failed during temporary 3party login: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed during temporary 3party login: \(String(reflecting: error))")
             throw error
         }
 
@@ -77,7 +87,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         let accessCredentials = try await fetchAccessCredentials(for: thirdPartyAccount)
         guard !accessCredentials.contains(where: { $0.id == SyncCredentialID.defaultCredential }) else {
             Logger.sync.error("3party account upgrade found an existing native access credential")
-            throw PairingV2Error.nativeCredentialAlreadyPresent
+            throw ThirdPartyAccountUpgradeError.nativeCredentialAlreadyPresent
         }
 
         let thirdPartyProtectedKeys = try await fetchUsableThirdPartyProtectedKeys(for: thirdPartyAccount)
@@ -99,6 +109,8 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
                                                            accountKeys: accountKeys,
                                                            deviceName: deviceName,
                                                            deviceType: deviceType)
+        await logoutTemporaryThirdPartyDevice(thirdPartyLogin)
+
         return UpgradedThirdPartyAccount(account: nativeLogin.account,
                                          devices: nativeLogin.devices,
                                          scopedPassword: scopedPassword,
@@ -110,7 +122,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         guard case .v2(let recoveryKey) = syncCode.recovery,
               recoveryKey.cid == SyncCode.RecoveryKeyV2.thirdPartyCredentialId else {
             Logger.sync.error("3party account upgrade received an invalid recovery key")
-            throw SyncError.invalidRecoveryKey
+            throw ThirdPartyAccountUpgradeError.invalidRecoveryCode
         }
         return recoveryKey
     }
@@ -118,7 +130,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
     private func decodeScopedPassword(from recoveryKey: SyncCode.RecoveryKeyV2) throws -> Data {
         guard let scopedPassword = Base64URL.decode(recoveryKey.secret), !scopedPassword.isEmpty else {
             Logger.sync.error("3party account upgrade received an invalid recovery code secret")
-            throw SyncError.invalidRecoveryKey
+            throw ThirdPartyAccountUpgradeError.invalidRecoveryCode
         }
         return scopedPassword
     }
@@ -127,7 +139,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         do {
             return try await scopedAccess.fetchAccessCredentials(account)
         } catch {
-            Logger.sync.error("3party account upgrade failed to fetch access credentials: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed to fetch access credentials: \(String(reflecting: error))")
             throw error
         }
     }
@@ -137,7 +149,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         do {
             protectedKeys = try await scopedAccess.fetchProtectedKeys(account)
         } catch {
-            Logger.sync.error("3party account upgrade failed to fetch protected keys: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed to fetch protected keys: \(String(reflecting: error))")
             throw error
         }
 
@@ -146,7 +158,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
             .removingDuplicateWrappingIdentities()
         guard !thirdPartyProtectedKeys.isEmpty else {
             Logger.sync.error("3party account upgrade found no usable 3party protected keys")
-            throw SyncError.invalidDataInResponse("3party account has no usable protected keys to upgrade")
+            throw ThirdPartyAccountUpgradeError.noUsableThirdPartyProtectedKeys
         }
         return thirdPartyProtectedKeys
     }
@@ -155,7 +167,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         do {
             return try crypter.createAccountCreationKeys(userId: userId, password: UUID().uuidString)
         } catch {
-            Logger.sync.error("3party account upgrade failed to generate native credential material: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed to generate native credential material: \(String(reflecting: error))")
             throw error
         }
     }
@@ -165,9 +177,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
                                                toAccountSecretKey accountSecretKey: Data) throws -> [ProtectedKey] {
         do {
             return try keys.map { key in
-                let decryptedPrivateKey = try jweCompactCodec.decryptDirect(
-                    token: key.encryptedPrivateKey,
-                    contentEncryptionKey: wrappingKey)
+                let decryptedPrivateKey = try jweCompactCodec.decryptDirect(token: key.encryptedPrivateKey, contentEncryptionKey: wrappingKey)
                 let rewrappedEncryptedPrivateKey = try crypter.encrypt(decryptedPrivateKey, using: accountSecretKey)
                 return ProtectedKey(kid: key.kid,
                                     encryptedPrivateKey: Base64URL.encode(rewrappedEncryptedPrivateKey),
@@ -176,7 +186,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
                                     purpose: key.purpose)
             }
         } catch {
-            Logger.sync.error("3party account upgrade failed to rewrap protected keys: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed to rewrap protected keys: \(String(reflecting: error))")
             throw error
         }
     }
@@ -189,7 +199,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
                 kid: SyncCredentialID.defaultCredential)
             return encryptedCredential
         } catch {
-            Logger.sync.error("3party account upgrade failed to encrypt the 3party credential: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed to encrypt the 3party credential: \(String(reflecting: error))")
             throw error
         }
     }
@@ -203,21 +213,31 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         let params = ThirdPartyLoginParameters(userId: recoveryKey.userId,
                                                hashedPassword: hashedPassword,
                                                deviceId: deviceId,
-                                               deviceName: deviceName.base64EncodedUTF8(),
-                                               deviceType: deviceType.base64EncodedUTF8(),
+                                               deviceName: Data(deviceName.utf8).base64EncodedString(),
+                                               deviceType: Data(deviceType.utf8).base64EncodedString(),
                                                scope: LoginScope.thirdPartyAccountManagement)
         let requestJson = try JSONEncoder.snakeCaseKeys.encode(params)
         let request = api.createUnauthenticatedJSONRequest(url: endpoints.login, method: .post, json: requestJson)
         let result = try await request.execute()
         guard let body = result.data else {
-            throw SyncError.noResponseBody
+            throw ThirdPartyAccountUpgradeError.invalidTemporaryLoginResponse
         }
-        let loginResult = try JSONDecoder.snakeCaseKeys.decode(ThirdPartyLoginResult.self, from: body)
+        guard let loginResult = try? JSONDecoder.snakeCaseKeys.decode(ThirdPartyLoginResult.self, from: body) else {
+            throw ThirdPartyAccountUpgradeError.invalidTemporaryLoginResponse
+        }
         return ThirdPartyLogin(deviceId: deviceId,
                                token: loginResult.token,
                                hashedPassword: hashedPassword,
                                mainKey: ScopedAccessKeyDerivation.mainKey(from: scopedPassword, userID: recoveryKey.userId),
                                devices: loginResult.registeredDevices)
+    }
+
+    private func logoutTemporaryThirdPartyDevice(_ thirdPartyLogin: ThirdPartyLogin) async {
+        do {
+            try await account.logout(deviceId: thirdPartyLogin.deviceId, token: thirdPartyLogin.token)
+        } catch {
+            Logger.sync.error("3party account upgrade failed to log out temporary 3party device: \(String(reflecting: error))")
+        }
     }
 
     private func postDefaultAccessCredential(token: String,
@@ -238,23 +258,25 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
                                                          method: .post,
                                                          authToken: token,
                                                          json: requestJson)
-        let result: HTTPResult
+        let statusCode: Int
         do {
-            result = try await request.execute()
-        } catch SyncError.unexpectedStatusCode(let statusCode) where statusCode == 409 {
-            Logger.sync.error("3party account upgrade hit a native credential creation conflict")
-            throw PairingV2Error.nativeCredentialAlreadyPresent
+            statusCode = try await request.execute().response.statusCode
+        } catch SyncError.unexpectedStatusCode(let code) {
+            statusCode = code
         } catch {
-            Logger.sync.error("3party account upgrade failed to create the native access credential: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed to create the native access credential: \(String(reflecting: error))")
             throw error
         }
-        guard result.response.statusCode != 409 else {
+
+        switch statusCode {
+        case 200, 201, 204:
+            return
+        case 409:
             Logger.sync.error("3party account upgrade hit a native credential creation conflict")
-            throw PairingV2Error.nativeCredentialAlreadyPresent
-        }
-        guard [200, 201, 204].contains(result.response.statusCode) else {
-            Logger.sync.error("3party account upgrade native credential creation returned unexpected status=\(result.response.statusCode, privacy: .public)")
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
+            throw ThirdPartyAccountUpgradeError.nativeCredentialAlreadyPresent
+        default:
+            Logger.sync.error("3party account upgrade native credential creation returned unexpected status=\(statusCode)")
+            throw ThirdPartyAccountUpgradeError.nativeCredentialCreationFailed(statusCode: statusCode)
         }
     }
 
@@ -277,11 +299,13 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         let request = api.createUnauthenticatedJSONRequest(url: endpoints.login, method: .post, json: requestJson)
         let result = try await request.execute()
         guard let body = result.data else {
-            throw SyncError.noResponseBody
+            throw ThirdPartyAccountUpgradeError.invalidFinalNativeLoginResponse
         }
-        let loginResult = try JSONDecoder.snakeCaseKeys.decode(DefaultCredentialLoginResult.self, from: body)
+        guard let loginResult = try? JSONDecoder.snakeCaseKeys.decode(DefaultCredentialLoginResult.self, from: body) else {
+            throw ThirdPartyAccountUpgradeError.invalidFinalNativeLoginResponse
+        }
         guard let protectedSecretKey = Data(base64Encoded: loginResult.protectedEncryptionKey) else {
-            throw SyncError.invalidDataInResponse("protected_key missing from response")
+            throw ThirdPartyAccountUpgradeError.invalidFinalNativeLoginResponse
         }
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey,
                                                      stretchedPrimaryKey: loginInfo.stretchedPrimaryKey)
@@ -313,19 +337,6 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         endpoints.accessCredentials.appendingPathComponent(id)
     }
 
-}
-
-private extension String {
-    func base64EncodedUTF8() -> String {
-        Data(utf8).base64EncodedString()
-    }
-
-    func base64DecodedUTF8() -> String? {
-        guard let data = Data(base64Encoded: self) else {
-            return nil
-        }
-        return String(data: data, encoding: .utf8)
-    }
 }
 
 private struct CreateDefaultCredentialParameters: Encodable {
@@ -386,8 +397,15 @@ private struct ThirdPartyLoginDevice: Decodable {
 
     var registeredDevice: RegisteredDevice {
         RegisteredDevice(id: id,
-                         name: name.base64DecodedUTF8() ?? name,
-                         type: type?.base64DecodedUTF8() ?? type ?? "")
+                         name: Self.base64DecodedUTF8(name) ?? name,
+                         type: type.flatMap { Self.base64DecodedUTF8($0) } ?? type ?? "")
+    }
+
+    private static func base64DecodedUTF8(_ value: String) -> String? {
+        guard let data = Data(base64Encoded: value) else {
+            return nil
+        }
+        return String(data: data, encoding: .utf8)
     }
 }
 

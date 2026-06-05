@@ -219,6 +219,7 @@ struct AccountManager: AccountManaging {
                 state: .addingNewDevice
             ),
             devices: result.devices.compactMap { device in
+                // Prevent devices with `null` type from blocking login while the V2 device payload is in flux.
                 guard let encryptedType = device.type,
                       let name = try? crypter.base64DecodeAndDecrypt(device.name, using: info.primaryKey),
                       let type = try? crypter.base64DecodeAndDecrypt(encryptedType, using: info.primaryKey) else {

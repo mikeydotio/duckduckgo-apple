@@ -123,6 +123,8 @@ public struct ManagementDialog: View {
         guard let primary, !primary.isEmpty else {
             return detail ?? ""
         }
+        // Some callers use the default type description as the detail when there is no underlying error.
+        // This is to avoid showing the same message twice in those cases.
         guard let detail, !detail.isEmpty, detail != primary else {
             return primary
         }

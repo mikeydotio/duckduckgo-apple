@@ -167,7 +167,9 @@ enum PairingV2Error: Error, Equatable {
     case v2ScanningDisabled
     case unknownCode
     case incompatibleRecoveryCode(scanningKind: PairingV2DeviceKind, codeKind: PairingV2DeviceKind)
-    case unexpectedEvent(String)
+    case secondHello
+    case unexpectedEvent(PairingV2UnexpectedEvent)
+    case pairingSessionNotReady(PairingV2MissingSessionData)
     case nativeCredentialAlreadyPresent
     case recoveryCodePreparationFailed
     case recoveryCodeSendFailed
@@ -179,6 +181,36 @@ enum PairingV2Error: Error, Equatable {
     case relayChannelUnavailable
     case relayChannelExpired
     case cancelled
+}
+
+enum PairingV2UnexpectedEvent: Equatable {
+    case startRequestedWhileSessionActive
+    case helloAfterPeerStatus
+    case helloBeforeChannelHierarchyReady
+    case peerStatusBeforeChannelHierarchyReady
+    case hostConfirmationAcceptedWhileNotAwaitingConfirmation
+    case hostConfirmationDeniedWhileNotAwaitingConfirmation
+    case joinerConfirmationAcceptedWhileNotAwaitingConfirmation
+    case joinerConfirmationDeniedWhileNotAwaitingConfirmation
+    case recoveryCodePreparedWhileNotHosting
+    case recoveryCodeMessageReceivedWhileNotJoining(PairingV2RecoveryCodeMessage)
+    case recoveryCodeSentWhileNotSending
+    case loginSucceededWhileNotLoggingIn
+}
+
+enum PairingV2RecoveryCodeMessage: Equatable {
+    case awaitingConfirmation
+    case confirmed
+    case denied
+    case unavailable
+    case response
+}
+
+enum PairingV2MissingSessionData: Equatable {
+    case localKeyPair
+    case localPrivateKey
+    case peerChannelID
+    case peerPublicKey
 }
 
 enum PairingV2RoleDecision: Equatable {
@@ -230,6 +262,24 @@ struct PairingV2StateMachine {
 
     private(set) var state: PairingV2State = .idle
 
+    private var canStartPairingSession: Bool {
+        switch state {
+        case .idle, .completed, .failed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var canFailCurrentPairingSession: Bool {
+        switch state {
+        case .completed, .failed:
+            return false
+        default:
+            return true
+        }
+    }
+
     mutating func handle(_ event: PairingV2Event) -> [PairingV2Command] {
         switch event {
         case .presentCodeRequested(let localClient, let flags):
@@ -266,16 +316,16 @@ struct PairingV2StateMachine {
             return handleRecoveryCodeSent()
 
         case .receivedRecoveryCodeAwaitingConfirmation:
-            return handleRecoveryCodeProgress(messageType: PairingV2ApplicationMessage.MessageType.recoveryCodeAwaitingConfirmation)
+            return handleRecoveryCodeProgress(message: .awaitingConfirmation)
 
         case .receivedRecoveryCodeConfirmed:
-            return handleRecoveryCodeProgress(messageType: PairingV2ApplicationMessage.MessageType.recoveryCodeConfirmed)
+            return handleRecoveryCodeProgress(message: .confirmed)
 
         case .receivedRecoveryCodeDenied:
-            return handleRecoveryCodeTerminalAbort(messageType: PairingV2ApplicationMessage.MessageType.recoveryCodeDenied, error: .recoveryCodeDenied)
+            return handleRecoveryCodeTerminalAbort(message: .denied, error: .recoveryCodeDenied)
 
         case .receivedRecoveryCodeUnavailable:
-            return handleRecoveryCodeTerminalAbort(messageType: PairingV2ApplicationMessage.MessageType.recoveryCodeUnavailable, error: .recoveryCodeUnavailable)
+            return handleRecoveryCodeTerminalAbort(message: .unavailable, error: .recoveryCodeUnavailable)
 
         case .receivedRecoveryCode(let recoveryCode):
             return handleReceivedRecoveryCode(recoveryCode)
@@ -284,11 +334,18 @@ struct PairingV2StateMachine {
             return handleLoginSucceeded()
 
         case .failed(let error):
+            guard canFailCurrentPairingSession else {
+                return []
+            }
             return fail(with: error)
         }
     }
 
     private mutating func handlePresentCodeRequested(localClient: PairingV2LocalClient, flags: PairingV2RolloutFlags) -> [PairingV2Command] {
+        guard canStartPairingSession else {
+            return fail(with: .unexpectedEvent(.startRequestedWhileSessionActive))
+        }
+
         guard flags.isV2CodeEnabled else {
             return fail(with: .unsupportedFlow("Pairing V2 code presentation is disabled"))
         }
@@ -305,6 +362,10 @@ struct PairingV2StateMachine {
     private mutating func handleScannedCode(_ scannedCode: PairingV2ScannedCode,
                                             localClient: PairingV2LocalClient,
                                             flags: PairingV2RolloutFlags) -> [PairingV2Command] {
+        guard canStartPairingSession else {
+            return fail(with: .unexpectedEvent(.startRequestedWhileSessionActive))
+        }
+
         switch scannedCode {
         case .v1Linking:
             return fail(with: .unsupportedFlow("V1 fallback is handled outside Pairing V2"))
@@ -352,22 +413,22 @@ struct PairingV2StateMachine {
 
         case .waitingForPeerStatus(let session):
             guard !session.localClient.isPresenter, !session.hasReceivedHello else {
-                return fail(with: .unexpectedEvent("hello received after peer hello was already established"))
+                return fail(with: .secondHello)
             }
             guard session.peerStatus == nil else {
-                return fail(with: .unexpectedEvent("hello received after peer status was already established"))
+                return fail(with: .unexpectedEvent(.helloAfterPeerStatus))
             }
             state = .waitingForPeerStatus(session.withReceivedHello())
             return []
 
         default:
-            return fail(with: .unexpectedEvent("hello received before channel hierarchy was ready"))
+            return fail(with: .unexpectedEvent(.helloBeforeChannelHierarchyReady))
         }
     }
 
     private mutating func handleReceivedPeerStatus(_ peerStatus: PairingV2PeerStatus) -> [PairingV2Command] {
         guard case .waitingForPeerStatus(let session) = state else {
-            return fail(with: .unexpectedEvent("peer status received before channel hierarchy was ready"))
+            return fail(with: .unexpectedEvent(.peerStatusBeforeChannelHierarchyReady))
         }
 
         if peerStatus.hasAccount, let peerUserId = peerStatus.userId, let localUserId = session.localClient.userId, peerUserId == localUserId {
@@ -406,7 +467,7 @@ struct PairingV2StateMachine {
 
     private mutating func handleHostConfirmationAccepted() -> [PairingV2Command] {
         guard case .hostWaitingForConfirmation(let session, let credentialKind) = state else {
-            return fail(with: .unexpectedEvent("host confirmation accepted while not awaiting confirmation"))
+            return fail(with: .unexpectedEvent(.hostConfirmationAcceptedWhileNotAwaitingConfirmation))
         }
 
         state = .hostPreparingRecoveryCode(session, credentialKind: credentialKind)
@@ -415,7 +476,7 @@ struct PairingV2StateMachine {
 
     private mutating func handleHostConfirmationDenied() -> [PairingV2Command] {
         guard case .hostWaitingForConfirmation = state else {
-            return fail(with: .unexpectedEvent("host confirmation denied while not awaiting confirmation"))
+            return fail(with: .unexpectedEvent(.hostConfirmationDeniedWhileNotAwaitingConfirmation))
         }
 
         state = .failed(.cancelled)
@@ -424,7 +485,7 @@ struct PairingV2StateMachine {
 
     private mutating func handleJoinerConfirmationAccepted() -> [PairingV2Command] {
         guard case .joinerWaitingForConfirmation(let session) = state else {
-            return fail(with: .unexpectedEvent("joiner confirmation accepted while not awaiting confirmation"))
+            return fail(with: .unexpectedEvent(.joinerConfirmationAcceptedWhileNotAwaitingConfirmation))
         }
 
         state = .joinerWaitingForRecoveryCode(session)
@@ -433,7 +494,7 @@ struct PairingV2StateMachine {
 
     private mutating func handleJoinerConfirmationDenied() -> [PairingV2Command] {
         guard case .joinerWaitingForConfirmation = state else {
-            return fail(with: .unexpectedEvent("joiner confirmation denied while not awaiting confirmation"))
+            return fail(with: .unexpectedEvent(.joinerConfirmationDeniedWhileNotAwaitingConfirmation))
         }
 
         state = .failed(.cancelled)
@@ -442,7 +503,7 @@ struct PairingV2StateMachine {
 
     private mutating func handleRecoveryCodePrepared(_ recoveryCode: String) -> [PairingV2Command] {
         guard case .hostPreparingRecoveryCode(let session, let credentialKind) = state else {
-            return fail(with: .unexpectedEvent("recovery code prepared while not hosting"))
+            return fail(with: .unexpectedEvent(.recoveryCodePreparedWhileNotHosting))
         }
 
         state = .hostSendingRecoveryCode(session, credentialKind: credentialKind, recoveryCode: recoveryCode)
@@ -451,7 +512,7 @@ struct PairingV2StateMachine {
 
     private mutating func handleReceivedRecoveryCode(_ recoveryCode: String) -> [PairingV2Command] {
         guard case .joinerWaitingForRecoveryCode(let session) = state else {
-            return fail(with: .unexpectedEvent("recovery code received while not joining"))
+            return fail(with: .unexpectedEvent(.recoveryCodeMessageReceivedWhileNotJoining(.response)))
         }
 
         state = .joinerLoggingIn(session, recoveryCode: recoveryCode)
@@ -461,23 +522,23 @@ struct PairingV2StateMachine {
         return [.loginWithRecoveryCode(recoveryCode)]
     }
 
-    private mutating func handleRecoveryCodeProgress(messageType: String) -> [PairingV2Command] {
+    private mutating func handleRecoveryCodeProgress(message: PairingV2RecoveryCodeMessage) -> [PairingV2Command] {
         guard case .joinerWaitingForRecoveryCode = state else {
-            return fail(with: .unexpectedEvent("\(messageType) received while not joining"))
+            return fail(with: .unexpectedEvent(.recoveryCodeMessageReceivedWhileNotJoining(message)))
         }
         return []
     }
 
-    private mutating func handleRecoveryCodeTerminalAbort(messageType: String, error: PairingV2Error) -> [PairingV2Command] {
+    private mutating func handleRecoveryCodeTerminalAbort(message: PairingV2RecoveryCodeMessage, error: PairingV2Error) -> [PairingV2Command] {
         guard case .joinerWaitingForRecoveryCode = state else {
-            return fail(with: .unexpectedEvent("\(messageType) received while not joining"))
+            return fail(with: .unexpectedEvent(.recoveryCodeMessageReceivedWhileNotJoining(message)))
         }
         return fail(with: error)
     }
 
     private mutating func handleRecoveryCodeSent() -> [PairingV2Command] {
         guard case .hostSendingRecoveryCode(_, let credentialKind, _) = state else {
-            return fail(with: .unexpectedEvent("recovery code sent while not sending"))
+            return fail(with: .unexpectedEvent(.recoveryCodeSentWhileNotSending))
         }
 
         state = .completed(.recoveryCodeSent(credentialKind: credentialKind))
@@ -486,7 +547,7 @@ struct PairingV2StateMachine {
 
     private mutating func handleLoginSucceeded() -> [PairingV2Command] {
         guard case .joinerLoggingIn = state else {
-            return fail(with: .unexpectedEvent("login succeeded while not logging in"))
+            return fail(with: .unexpectedEvent(.loginSucceededWhileNotLoggingIn))
         }
 
         state = .completed(.loggedIn)

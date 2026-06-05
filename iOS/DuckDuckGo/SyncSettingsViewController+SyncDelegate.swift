@@ -735,16 +735,14 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
     }
 
     func controllerShouldAllowPairingV2PeerToJoin(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool {
-        let peerName = pairingV2DisplayName(for: peerName)
-        let message = UserText.syncPairingV2ConfirmationMessage(peerName, isThirdPartyPeer: peerKind == .thirdParty)
-        let isConfirmed = await presentPairingV2ConfirmationAlert(message: message)
-        if !isConfirmed {
-            dismissPairingV2UIAfterDeniedConfirmation()
-        }
-        return isConfirmed
+        await confirmPairingV2Peer(peerName: peerName, peerKind: peerKind)
     }
 
     func controllerShouldJoinPairingV2Peer(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool {
+        await confirmPairingV2Peer(peerName: peerName, peerKind: peerKind)
+    }
+
+    private func confirmPairingV2Peer(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool {
         let peerName = pairingV2DisplayName(for: peerName)
         let message = UserText.syncPairingV2ConfirmationMessage(peerName, isThirdPartyPeer: peerKind == .thirdParty)
         let isConfirmed = await presentPairingV2ConfirmationAlert(message: message)

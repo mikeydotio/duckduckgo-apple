@@ -923,11 +923,11 @@ final class SyncDialogControllerTests: XCTestCase {
     }
 
     func testManagementDialogErrorDescription_whenDetailMatchesTypeDescription_doesNotDuplicateDescription() {
-        managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .syncFromAnotherConnectedDevice)
+        managementDialogModel.syncErrorMessage = SyncErrorMessage(type: .thirdPartyAccountAlreadyUpgraded)
 
         let dialog = ManagementDialog(model: managementDialogModel)
 
-        XCTAssertEqual(dialog.errorDescription, SyncErrorType.syncFromAnotherConnectedDevice.description)
+        XCTAssertEqual(dialog.errorDescription, SyncErrorType.thirdPartyAccountAlreadyUpgraded.description)
     }
 
     func testManagementDialogErrorDescription_whenDetailDiffersFromTypeDescription_preservesDetail() {

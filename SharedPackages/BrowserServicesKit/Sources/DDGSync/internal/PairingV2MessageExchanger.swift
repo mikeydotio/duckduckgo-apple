@@ -25,18 +25,19 @@ protocol PairingV2MessageExchanging {
     func closeChannel(_ channelID: String) async throws
 }
 
-struct PairingV2MessageExchanger: PairingV2MessageExchanging {
+final class PairingV2MessageExchanger: PairingV2MessageExchanging {
 
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
-    let sendRetryDelaysNanoseconds: [UInt64]
+    private let firstMessagePost404RetryDelays: [UInt64]
+    private var channelsWithCompletedFirstMessagePost: Set<String> = []
 
     init(endpoints: Endpoints,
          api: RemoteAPIRequestCreating,
-         sendRetryDelaysNanoseconds: [UInt64] = [200_000_000, 500_000_000]) {
+         firstMessagePost404RetryDelays: [UInt64] = [200_000_000, 500_000_000]) {
         self.endpoints = endpoints
         self.api = api
-        self.sendRetryDelaysNanoseconds = sendRetryDelaysNanoseconds
+        self.firstMessagePost404RetryDelays = firstMessagePost404RetryDelays
     }
 
     func openChannel(_ channelID: String) async throws {
@@ -46,37 +47,18 @@ struct PairingV2MessageExchanger: PairingV2MessageExchanging {
                                         parameters: [:],
                                         body: nil,
                                         contentType: nil)
-        let result = try await request.execute()
-        guard result.response.statusCode.isSuccessfulHTTPStatusCode else {
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
-        }
+        try await executeRequestIgnoringResponse(request, validatingStatusWith: validateSuccessfulStatusCode)
     }
 
     func send(_ messages: [PairingV2EncryptedMessage], to channelID: String) async throws {
         let body = try JSONEncoder.snakeCaseKeys.encode(SendMessagesRequest(messages: messages))
-        try await send(body: body, to: channelID, retryDelaysNanoseconds: sendRetryDelaysNanoseconds)
-    }
-
-    private func send(body: Data, to channelID: String, retryDelaysNanoseconds: [UInt64]) async throws {
         let request = api.createRequest(url: messagesURL(channelID),
                                         method: .post,
                                         headers: [:],
                                         parameters: [:],
                                         body: body,
                                         contentType: "application/json")
-        do {
-            let result = try await request.execute()
-            guard result.response.statusCode.isSuccessfulHTTPStatusCode else {
-                throw SyncError.unexpectedStatusCode(result.response.statusCode)
-            }
-        } catch SyncError.unexpectedStatusCode(404) where !retryDelaysNanoseconds.isEmpty {
-            try await Task.sleep(nanoseconds: retryDelaysNanoseconds[0])
-            try await send(body: body, to: channelID, retryDelaysNanoseconds: Array(retryDelaysNanoseconds.dropFirst()))
-        } catch SyncError.unexpectedStatusCode(404) {
-            throw PairingV2Error.relayChannelUnavailable
-        } catch SyncError.unexpectedStatusCode(410) {
-            throw PairingV2Error.relayChannelExpired
-        }
+        try await executeMessagePost(request, to: channelID)
     }
 
     func fetchMessages(from channelID: String, after sequence: Int) async throws -> [PairingV2SequencedMessage] {
@@ -86,20 +68,11 @@ struct PairingV2MessageExchanger: PairingV2MessageExchanging {
                                         parameters: ["after": String(sequence)],
                                         body: nil,
                                         contentType: nil)
-        do {
-            let result = try await request.execute()
-            guard result.response.statusCode.isSuccessfulHTTPStatusCode else {
-                throw SyncError.unexpectedStatusCode(result.response.statusCode)
-            }
-            guard let body = result.data else {
-                throw SyncError.noResponseBody
-            }
-            return try JSONDecoder.snakeCaseKeys.decode(FetchMessagesResponse.self, from: body).messages
-        } catch SyncError.unexpectedStatusCode(404) {
-            throw PairingV2Error.relayChannelUnavailable
-        } catch SyncError.unexpectedStatusCode(410) {
-            throw PairingV2Error.relayChannelExpired
+        let result = try await executeRequest(request, validatingStatusWith: validateMessageExchangeStatusCode)
+        guard let body = result.data else {
+            throw SyncError.noResponseBody
         }
+        return try JSONDecoder.snakeCaseKeys.decode(FetchMessagesResponse.self, from: body).messages
     }
 
     func closeChannel(_ channelID: String) async throws {
@@ -109,14 +82,7 @@ struct PairingV2MessageExchanger: PairingV2MessageExchanging {
                                         parameters: [:],
                                         body: nil,
                                         contentType: nil)
-        do {
-            let result = try await request.execute()
-            guard result.response.statusCode.isSuccessfulHTTPStatusCode else {
-                throw SyncError.unexpectedStatusCode(result.response.statusCode)
-            }
-        } catch SyncError.unexpectedStatusCode(404), SyncError.unexpectedStatusCode(410) {
-            return
-        }
+        try await executeRequestIgnoringResponse(request, validatingStatusWith: validateCloseChannelStatusCode)
     }
 
     private struct SendMessagesRequest: Encodable {
@@ -133,6 +99,90 @@ struct PairingV2MessageExchanger: PairingV2MessageExchanging {
 
     private func messagesURL(_ channelID: String) -> URL {
         channelURL(channelID).appendingPathComponent("messages")
+    }
+
+    private func executeRequest(_ request: HTTPRequesting, validatingStatusWith validateStatusCode: (Int) throws -> Void) async throws -> HTTPResult {
+        do {
+            let result = try await request.execute()
+            try validateStatusCode(result.response.statusCode)
+            return result
+        } catch SyncError.unexpectedStatusCode(let statusCode) {
+            try validateStatusCode(statusCode)
+            throw SyncError.unexpectedStatusCode(statusCode)
+        }
+    }
+
+    private func executeRequestIgnoringResponse(_ request: HTTPRequesting, validatingStatusWith validateStatusCode: (Int) throws -> Void) async throws {
+        do {
+            let result = try await request.execute()
+            try validateStatusCode(result.response.statusCode)
+        } catch SyncError.unexpectedStatusCode(let statusCode) {
+            try validateStatusCode(statusCode)
+        }
+    }
+
+    private func executeMessagePost(_ request: HTTPRequesting, to channelID: String) async throws {
+        var retryDelays = channelsWithCompletedFirstMessagePost.contains(channelID) ? [] : firstMessagePost404RetryDelays
+
+        while true {
+            do {
+                let result = try await request.execute()
+                try validateMessageExchangeStatusCode(result.response.statusCode)
+                channelsWithCompletedFirstMessagePost.insert(channelID)
+                return
+            } catch {
+                let error = normalizeMessageExchangeError(error)
+                if case PairingV2Error.relayChannelUnavailable = error,
+                   !channelsWithCompletedFirstMessagePost.contains(channelID),
+                   !retryDelays.isEmpty {
+                    let retryDelay = retryDelays.removeFirst()
+                    if retryDelay > 0 {
+                        try await Task.sleep(nanoseconds: retryDelay)
+                    }
+                    continue
+                }
+                throw error
+            }
+        }
+    }
+
+    private func normalizeMessageExchangeError(_ error: Error) -> Error {
+        guard case SyncError.unexpectedStatusCode(let statusCode) = error else {
+            return error
+        }
+
+        do {
+            try validateMessageExchangeStatusCode(statusCode)
+            return error
+        } catch {
+            return error
+        }
+    }
+
+    private func validateSuccessfulStatusCode(_ statusCode: Int) throws {
+        guard statusCode.isSuccessfulHTTPStatusCode else {
+            throw SyncError.unexpectedStatusCode(statusCode)
+        }
+    }
+
+    private func validateMessageExchangeStatusCode(_ statusCode: Int) throws {
+        switch statusCode {
+        case 404:
+            throw PairingV2Error.relayChannelUnavailable
+        case 410:
+            throw PairingV2Error.relayChannelExpired
+        default:
+            try validateSuccessfulStatusCode(statusCode)
+        }
+    }
+
+    private func validateCloseChannelStatusCode(_ statusCode: Int) throws {
+        switch statusCode {
+        case 404, 410:
+            return
+        default:
+            try validateSuccessfulStatusCode(statusCode)
+        }
     }
 }
 

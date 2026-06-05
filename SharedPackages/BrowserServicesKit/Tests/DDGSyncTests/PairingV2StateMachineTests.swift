@@ -144,6 +144,33 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(stateMachine.state, .failed(error))
     }
 
+    func testWhenPresentCodeRequestedWhileSessionIsActiveThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
+        let error = PairingV2Error.unexpectedEvent(.startRequestedWhileSessionActive)
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        let commands = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+
+        XCTAssertEqual(commands, [.abort(error)])
+        XCTAssertEqual(stateMachine.state, .failed(error))
+    }
+
+    func testWhenScannedCodeWhileSessionIsActiveThenFlowAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
+        let scannerClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
+        let error = PairingV2Error.unexpectedEvent(.startRequestedWhileSessionActive)
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        let commands = stateMachine.handle(
+            .scannedCode(.v2Linking(peerChannelID: "channel-1", localChannelID: "local-channel"), localClient: scannerClient, flags: enabledFlags)
+        )
+
+        XCTAssertEqual(commands, [.abort(error)])
+        XCTAssertEqual(stateMachine.state, .failed(error))
+    }
+
     func testWhenPresenterReceivesHelloThenSendsLocalRecoveryCodeStatus() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(name: "Presenter", kind: .ddg, hasAccount: true, isPresenter: true, userId: "local-user")
@@ -230,7 +257,7 @@ final class PairingV2StateMachineTests: XCTestCase {
     func testWhenScannerReceivesSecondHelloAfterAbsorbingSimultaneousScanHelloThenFlowAborts() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
-        let error = PairingV2Error.unexpectedEvent("hello received after peer hello was already established")
+        let error = PairingV2Error.secondHello
 
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(peerChannelID: "channel-1", localChannelID: "local-channel"), localClient: localClient, flags: enabledFlags)
@@ -245,7 +272,7 @@ final class PairingV2StateMachineTests: XCTestCase {
     func testWhenPresenterReceivesSecondHelloThenFlowAborts() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
-        let error = PairingV2Error.unexpectedEvent("hello received after peer hello was already established")
+        let error = PairingV2Error.secondHello
 
         _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
         _ = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key")))
@@ -258,7 +285,7 @@ final class PairingV2StateMachineTests: XCTestCase {
     func testWhenHelloArrivesAfterPeerStatusThenFlowAborts() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
-        let error = PairingV2Error.unexpectedEvent("hello received after peer status was already established")
+        let error = PairingV2Error.unexpectedEvent(.helloAfterPeerStatus)
 
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(peerChannelID: "channel-1", localChannelID: "local-channel"), localClient: localClient, flags: enabledFlags)
@@ -449,6 +476,32 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(stateMachine.state, .completed(.alreadyConnected))
     }
 
+    func testWhenFailureArrivesAfterCompletionThenCompletionIsPreserved() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false, userId: "same-user")
+
+        _ = stateMachine.handle(
+            .scannedCode(.v2Linking(peerChannelID: "channel-1", localChannelID: "local-channel"), localClient: localClient, flags: enabledFlags)
+        )
+        _ = stateMachine.handle(.receivedPeerStatus(.recoveryCodeAvailable(kind: .ddg, userId: "same-user")))
+        let commands = stateMachine.handle(.failed(.cancelled))
+
+        XCTAssertEqual(commands, [])
+        XCTAssertEqual(stateMachine.state, .completed(.alreadyConnected))
+    }
+
+    func testWhenFailureArrivesAfterFailureThenItDoesNotEmitAnotherAbort() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        _ = stateMachine.handle(.failed(.cancelled))
+        let commands = stateMachine.handle(.failed(.relayChannelUnavailable))
+
+        XCTAssertEqual(commands, [])
+        XCTAssertEqual(stateMachine.state, .failed(.cancelled))
+    }
+
     func testWhenNativeAccountScannerScansNativePresenterThenRequestsJoinerConfirmation() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
@@ -546,7 +599,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(peerChannelID: "channel-1", localChannelID: "local-channel"), localClient: localClient, flags: enabledFlags)
         )
-        let error = PairingV2Error.unexpectedEvent("recovery_code_confirmed received while not joining")
+        let error = PairingV2Error.unexpectedEvent(.recoveryCodeMessageReceivedWhileNotJoining(.confirmed))
         let commands = stateMachine.handle(.receivedRecoveryCodeConfirmed)
 
         XCTAssertEqual(commands, [.abort(error)])
@@ -575,7 +628,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         _ = stateMachine.handle(
             .scannedCode(.v2Linking(peerChannelID: "channel-1", localChannelID: "local-channel"), localClient: localClient, flags: enabledFlags)
         )
-        let error = PairingV2Error.unexpectedEvent("recovery_code_denied received while not joining")
+        let error = PairingV2Error.unexpectedEvent(.recoveryCodeMessageReceivedWhileNotJoining(.denied))
         let commands = stateMachine.handle(.receivedRecoveryCodeDenied)
 
         XCTAssertEqual(commands, [.abort(error)])
@@ -642,7 +695,7 @@ final class PairingV2StateMachineTests: XCTestCase {
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)
 
         _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
-        let error = PairingV2Error.unexpectedEvent("recovery code received while not joining")
+        let error = PairingV2Error.unexpectedEvent(.recoveryCodeMessageReceivedWhileNotJoining(.response))
         let commands = stateMachine.handle(.receivedRecoveryCode("recovery-code"))
 
         XCTAssertEqual(commands, [.abort(error)])

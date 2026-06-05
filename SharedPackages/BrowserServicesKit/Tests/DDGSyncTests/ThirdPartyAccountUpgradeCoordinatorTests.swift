@@ -87,6 +87,35 @@ final class ThirdPartyAccountUpgradeCoordinatorTests: XCTestCase {
         XCTAssertEqual(finalLoginPayload["scope"] as? String, "sync")
     }
 
+    func testWhenUpgradeSucceedsThenTemporaryThirdPartyDeviceIsLoggedOut() async throws {
+        let setup = try makeSUT()
+
+        _ = try await setup.coordinator.upgradeThirdPartyAccountToDefaultCredential(
+            recoveryCode(),
+            deviceName: "Mac",
+            deviceType: "desktop")
+
+        let loginBody = try XCTUnwrap(setup.api.createRequestCallArgs.first { $0.url == setup.endpoints.login }?.body)
+        let loginPayload = try decodeJSONObject(loginBody)
+        let temporaryDeviceId = try XCTUnwrap(loginPayload["device_id"] as? String)
+
+        XCTAssertEqual(setup.account.logoutCalls.map(\.deviceId), [temporaryDeviceId])
+        XCTAssertEqual(setup.account.logoutCalls.map(\.token), ["third-party-token"])
+    }
+
+    func testWhenTemporaryThirdPartyDeviceLogoutFailsThenUpgradeStillReturnsNativeAccount() async throws {
+        let setup = try makeSUT()
+        setup.account.logoutError = SyncError.unexpectedStatusCode(500)
+
+        let result = try await setup.coordinator.upgradeThirdPartyAccountToDefaultCredential(
+            recoveryCode(),
+            deviceName: "Mac",
+            deviceType: "desktop")
+
+        XCTAssertEqual(setup.account.logoutCalls.map(\.token), ["third-party-token"])
+        XCTAssertEqual(result.account.token, "native-token")
+    }
+
     func testWhenDDGCredentialAlreadyExistsThenUpgradeAborts() async throws {
         let accessCredentials = [AccessCredential(id: SyncCredentialID.defaultCredential, scope: "sync", encrypted3PartyCredential: nil)]
         let setup = try makeSUT(accessCredentials: accessCredentials)
@@ -97,7 +126,7 @@ final class ThirdPartyAccountUpgradeCoordinatorTests: XCTestCase {
                 deviceName: "Mac",
                 deviceType: "desktop")
             XCTFail("Expected existing ddg credential to abort upgrade")
-        } catch PairingV2Error.nativeCredentialAlreadyPresent {
+        } catch ThirdPartyAccountUpgradeError.nativeCredentialAlreadyPresent {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -114,8 +143,7 @@ final class ThirdPartyAccountUpgradeCoordinatorTests: XCTestCase {
                 deviceName: "Mac",
                 deviceType: "desktop")
             XCTFail("Expected missing 3party keys to abort upgrade")
-        } catch SyncError.invalidDataInResponse(let message) {
-            XCTAssertTrue(message.contains("no usable protected keys"))
+        } catch ThirdPartyAccountUpgradeError.noUsableThirdPartyProtectedKeys {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -126,8 +154,10 @@ final class ThirdPartyAccountUpgradeCoordinatorTests: XCTestCase {
     private func makeSUT(accessCredentials: [AccessCredential] = [],
                          protectedKeys: [ProtectedKey]? = nil) throws -> (coordinator: ThirdPartyAccountUpgradeCoordinator,
                                                                            api: RemoteAPIRequestCreatingMock,
+                                                                           account: AccountManagingMock,
                                                                            endpoints: Endpoints) {
         let api = RemoteAPIRequestCreatingMock()
+        let account = AccountManagingMock()
         let endpoints = Endpoints(baseURL: Self.baseURL)
         let userId = self.userId
         let defaultPrimaryKey = self.defaultPrimaryKey
@@ -155,7 +185,8 @@ final class ThirdPartyAccountUpgradeCoordinatorTests: XCTestCase {
         let coordinator = ThirdPartyAccountUpgradeCoordinator(endpoints: endpoints,
                                                               api: api,
                                                               crypter: crypter,
-                                                              scopedAccess: manager)
+                                                              scopedAccess: manager,
+                                                              account: account)
         let keys = try protectedKeys ?? [thirdPartyProtectedKey()]
 
         api.fakeRequests[endpoints.login] = SequencedHTTPRequestingMock(results: [
@@ -166,7 +197,7 @@ final class ThirdPartyAccountUpgradeCoordinatorTests: XCTestCase {
         api.fakeRequests[endpoints.keys] = makeRequest(statusCode: 200, body: try protectedKeysBody(keys))
         api.fakeRequests[endpoints.accessCredential(SyncCredentialID.defaultCredential)] = makeRequest(statusCode: 201)
 
-        return (coordinator, api, endpoints)
+        return (coordinator, api, account, endpoints)
     }
 
     private func recoveryCode() throws -> String {

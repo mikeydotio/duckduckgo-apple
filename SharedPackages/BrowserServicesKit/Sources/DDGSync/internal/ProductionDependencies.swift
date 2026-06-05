@@ -129,7 +129,8 @@ struct ProductionDependencies: SyncDependencies {
         ThirdPartyAccountUpgradeCoordinator(endpoints: endpoints,
                                             api: api,
                                             crypter: crypter,
-                                            scopedAccess: scopedAccess)
+                                            scopedAccess: scopedAccess,
+                                            account: account)
     }
 
     func createTokenRescope() -> TokenRescoping {

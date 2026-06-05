@@ -31,9 +31,8 @@ enum SyncErrorMessage {
     case unableToCreateRecoveryPdf
     case unableToRecognizeCode
     case updateRequired
-    case codeOnlyCompatibleWithDuckAI
-    case codeMustBeScannedWithDuckDuckGo
-    case syncFromAnotherConnectedDevice
+    case unsupportedThirdPartyRecoveryCode
+    case thirdPartyAccountAlreadyUpgraded
     case alreadyPairedWithAccount
     case syncCancelledFromOtherDevice
 
@@ -72,12 +71,10 @@ enum SyncErrorMessage {
             return UserText.unableToRecognizeCode
         case .updateRequired:
             return UserText.syncUpdateRequiredDescription
-        case .codeOnlyCompatibleWithDuckAI:
-            return UserText.syncCodeOnlyCompatibleWithDuckAIDescription
-        case .codeMustBeScannedWithDuckDuckGo:
-            return UserText.syncCodeMustBeScannedWithDuckDuckGoDescription
-        case .syncFromAnotherConnectedDevice:
-            return UserText.syncFromAnotherConnectedDeviceDescription
+        case .unsupportedThirdPartyRecoveryCode:
+            return UserText.syncUnsupportedThirdPartyRecoveryCodeDescription
+        case .thirdPartyAccountAlreadyUpgraded:
+            return UserText.syncThirdPartyAccountAlreadyUpgradedDescription
         case .alreadyPairedWithAccount:
             return UserText.syncAlreadyPairedWithAccountDescription
         case .syncCancelledFromOtherDevice:

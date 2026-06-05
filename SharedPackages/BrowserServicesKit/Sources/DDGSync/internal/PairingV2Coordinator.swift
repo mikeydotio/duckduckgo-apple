@@ -27,8 +27,6 @@ protocol PairingV2ConfirmationDelegate: AnyObject {
 
 final class PairingV2Coordinator {
 
-    private static let maximumToleratedUnavailablePollCount = 3
-
     private let syncService: DDGSyncing
     private let messageExchanger: PairingV2MessageExchanging
     private let messageCrypto: PairingV2MessageCrypto
@@ -43,7 +41,7 @@ final class PairingV2Coordinator {
     private var peerChannelID: String?
     private var peerPublicKey: String?
     private var lastProcessedSequence = 0
-    private var consecutiveUnavailablePollCount = 0
+    private var hasClosedLocalChannel = false
     private(set) var completedRegisteredDevices: [RegisteredDevice]?
     private(set) var pendingRecoveryKey: SyncCode.RecoveryKey?
 
@@ -75,7 +73,7 @@ final class PairingV2Coordinator {
         peerChannelID = nil
         peerPublicKey = nil
         lastProcessedSequence = 0
-        consecutiveUnavailablePollCount = 0
+        hasClosedLocalChannel = false
 
         let commands = stateMachine.handle(
             .presentCodeRequested(localClient: localClient(isPresenter: true), flags: flags)
@@ -91,7 +89,7 @@ final class PairingV2Coordinator {
         peerChannelID = qrPayload.channelId
         peerPublicKey = qrPayload.publicKey
         lastProcessedSequence = 0
-        consecutiveUnavailablePollCount = 0
+        hasClosedLocalChannel = false
 
         let commands = stateMachine.handle(
             .scannedCode(.v2Linking(peerChannelID: qrPayload.channelId, localChannelID: keyPair.channelID), localClient: localClient(isPresenter: false), flags: flags)
@@ -101,25 +99,21 @@ final class PairingV2Coordinator {
 
     func pollOnce() async throws {
         guard let channelID = localKeyPair?.channelID else {
-            throw SyncError.failedToPrepareForExchange("Pairing V2 local channel is not ready")
+            throw PairingV2Error.pairingSessionNotReady(.localKeyPair)
         }
 
         let messages: [PairingV2SequencedMessage]
         do {
             messages = try await messageExchanger.fetchMessages(from: channelID, after: lastProcessedSequence)
-            consecutiveUnavailablePollCount = 0
-        } catch SyncError.unexpectedStatusCode(404) {
-            try await handleRelayChannelUnavailableDuringPolling()
-            return
         } catch PairingV2Error.relayChannelUnavailable {
-            try await handleRelayChannelUnavailableDuringPolling()
-            return
-        } catch SyncError.unexpectedStatusCode(410), PairingV2Error.relayChannelExpired {
+            try await execute(stateMachine.handle(.failed(.relayChannelUnavailable)))
+            throw PairingV2Error.relayChannelUnavailable
+        } catch PairingV2Error.relayChannelExpired {
             try await execute(stateMachine.handle(.failed(.relayChannelExpired)))
             throw PairingV2Error.relayChannelExpired
         }
         for message in messages.sorted(by: { $0.seq < $1.seq }) {
-            guard !isTerminal else {
+            guard !hasFinishedPairing else {
                 return
             }
             try await handle(message.encryptedMessage, sequence: message.seq)
@@ -131,13 +125,8 @@ final class PairingV2Coordinator {
         let timeoutDate = Date().addingTimeInterval(timeout)
 
         while true {
-            switch stateMachine.state {
-            case .completed(let completion):
+            if let completion = try completedPairingOrThrowFailure() {
                 return completion
-            case .failed(let error):
-                throw error
-            default:
-                break
             }
 
             if Date() > timeoutDate {
@@ -145,6 +134,9 @@ final class PairingV2Coordinator {
             }
 
             try await pollOnce()
+            if let completion = try completedPairingOrThrowFailure() {
+                return completion
+            }
             try await Task.sleep(nanoseconds: pollInterval)
         }
     }
@@ -155,15 +147,19 @@ final class PairingV2Coordinator {
     }
 
     func closeLocalChannel() async {
+        guard !hasClosedLocalChannel else {
+            return
+        }
         guard let channelID = localKeyPair?.channelID else {
             return
         }
+        hasClosedLocalChannel = true
         try? await messageExchanger.closeChannel(channelID)
     }
 
     private func handle(_ encryptedMessage: PairingV2EncryptedMessage, sequence: Int? = nil) async throws {
         guard let privateKey = localKeyPair?.privateKey else {
-            throw SyncError.failedToPrepareForExchange("Pairing V2 private key is not ready")
+            throw PairingV2Error.pairingSessionNotReady(.localPrivateKey)
         }
 
         guard let message = try messageCrypto.decrypt(encryptedMessage, privateKey: privateKey, expectedSenderChannelID: peerChannelID) else {
@@ -175,11 +171,11 @@ final class PairingV2Coordinator {
         switch message {
         case .hello(let message):
             if shouldRejectRedundantHello(message, stateBeforeMessage: stateBeforeMessage) {
-                commands = stateMachine.handle(.failed(.unexpectedEvent("redundant hello did not match scanned Pairing V2 code")))
+                commands = stateMachine.handle(.failed(.secondHello))
             } else {
                 commands = stateMachine.handle(.receivedHello(message))
             }
-            if case .waitingForPeerHello = stateBeforeMessage, !isTerminal {
+            if case .waitingForPeerHello = stateBeforeMessage, !hasFinishedPairing {
                 peerChannelID = message.channelId
                 peerPublicKey = message.publicKey
             }
@@ -302,6 +298,16 @@ final class PairingV2Coordinator {
         case .upgradeThirdPartyAccountWithRecoveryCode(let recoveryCode):
             do {
                 try await upgradeThirdPartyAccount(with: recoveryCode)
+            } catch let error as ThirdPartyAccountUpgradeError {
+                let pairingError: PairingV2Error
+                switch error {
+                case .nativeCredentialAlreadyPresent:
+                    pairingError = .nativeCredentialAlreadyPresent
+                default:
+                    pairingError = .loginFailed
+                }
+                try await execute(stateMachine.handle(.failed(pairingError)))
+                throw pairingError
             } catch let error as PairingV2Error {
                 try await execute(stateMachine.handle(.failed(error)))
                 throw error
@@ -320,28 +326,15 @@ final class PairingV2Coordinator {
     }
 
     private func send(_ message: PairingV2ApplicationMessage) async throws {
-        guard let peerChannelID, let peerPublicKey else {
-            throw SyncError.failedToPrepareForExchange("Pairing V2 peer channel is not ready")
+        guard let peerChannelID else {
+            throw PairingV2Error.pairingSessionNotReady(.peerChannelID)
+        }
+        guard let peerPublicKey else {
+            throw PairingV2Error.pairingSessionNotReady(.peerPublicKey)
         }
 
         let encryptedMessage = try messageCrypto.encrypt(message, recipientPublicKey: peerPublicKey, senderChannelID: try requiredLocalChannelID())
-        do {
-            try await messageExchanger.send([encryptedMessage], to: peerChannelID)
-        } catch SyncError.unexpectedStatusCode(404) {
-            throw PairingV2Error.relayChannelUnavailable
-        } catch SyncError.unexpectedStatusCode(410) {
-            throw PairingV2Error.relayChannelExpired
-        }
-    }
-
-    private func handleRelayChannelUnavailableDuringPolling() async throws {
-        consecutiveUnavailablePollCount += 1
-        guard consecutiveUnavailablePollCount > Self.maximumToleratedUnavailablePollCount else {
-            return
-        }
-
-        try await execute(stateMachine.handle(.failed(.relayChannelUnavailable)))
-        throw PairingV2Error.relayChannelUnavailable
+        try await messageExchanger.send([encryptedMessage], to: peerChannelID)
     }
 
     private func recoveryCodeStatusMessage(for status: PairingV2PeerStatus) -> PairingV2ApplicationMessage {
@@ -364,7 +357,7 @@ final class PairingV2Coordinator {
         case .thirdParty:
             return try await syncService.prepareThirdPartyRecoveryCode(purpose: purpose)
         case .ddg:
-            guard let account = syncService.account, let recoveryCode = account.recoveryCodeV2 else {
+            guard let recoveryCode = syncService.account?.recoveryCodeV2 else {
                 throw SyncError.invalidRecoveryKey
             }
             return recoveryCode
@@ -418,7 +411,7 @@ final class PairingV2Coordinator {
 
     private func requiredLocalKeyPair() throws -> PairingV2KeyPair {
         guard let localKeyPair else {
-            throw SyncError.failedToPrepareForExchange("Pairing V2 local key pair is not ready")
+            throw PairingV2Error.pairingSessionNotReady(.localKeyPair)
         }
         return localKeyPair
     }
@@ -427,7 +420,18 @@ final class PairingV2Coordinator {
         try requiredLocalKeyPair().channelID
     }
 
-    private var isTerminal: Bool {
+    private func completedPairingOrThrowFailure() throws -> PairingV2State.Completion? {
+        switch stateMachine.state {
+        case .completed(let completion):
+            return completion
+        case .failed(let error):
+            throw error
+        default:
+            return nil
+        }
+    }
+
+    private var hasFinishedPairing: Bool {
         switch stateMachine.state {
         case .completed, .failed:
             return true

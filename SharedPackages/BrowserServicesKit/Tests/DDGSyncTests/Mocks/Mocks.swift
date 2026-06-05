@@ -104,7 +104,14 @@ class AccountManagingMock: AccountManaging {
         return refreshTokenStub ?? .mock
     }
 
-    func logout(deviceId: String, token: String) async throws {}
+    var logoutCalls: [(deviceId: String, token: String)] = []
+    var logoutError: Error?
+    func logout(deviceId: String, token: String) async throws {
+        logoutCalls.append((deviceId: deviceId, token: token))
+        if let logoutError {
+            throw logoutError
+        }
+    }
 
     func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice] {
         [.mock]
