@@ -207,6 +207,7 @@ class TabViewController: UIViewController {
     public var inferredOpenerContext: BrokenSiteReport.OpenerContext?
     private var refreshCountSinceLoad: Int = 0
     private var breakageReportingSubfeature: BreakageReportingSubfeature?
+    private var siteLoadingPerformanceSubfeature: SiteLoadingPerformanceSubfeature?
 
     private var detectedLoginURL: URL?
     private var fireproofingWorker: FireproofingWorking?
@@ -3537,6 +3538,9 @@ extension TabViewController: UserContentControllerDelegate {
         
         breakageReportingSubfeature = BreakageReportingSubfeature(targetWebview: webView)
         userScripts.contentScopeUserScriptIsolated.registerSubfeature(delegate: breakageReportingSubfeature!)
+
+        siteLoadingPerformanceSubfeature = SiteLoadingPerformanceSubfeature()
+        userScripts.contentScopeUserScriptIsolated.registerSubfeature(delegate: siteLoadingPerformanceSubfeature!)
 
         adClickAttributionLogic.onRulesChanged(latestRules: ContentBlocking.shared.contentBlockingManager.currentRules)
         
