@@ -399,8 +399,15 @@ public class SyncConnectionController: SyncConnectionControlling {
             }
 
             let setupRole = SyncSetupRole.sharer
+            var didNotifyPeerConnected = false
             do {
-                let completion = try await pollPairingV2PresenterUntilFinished(coordinator)
+                let completion = try await coordinator.pollUntilFinished(onStateUpdate: { state in
+                    guard !didNotifyPeerConnected && self.shouldDismissPairingV2PresenterCode(for: state) else {
+                        return
+                    }
+                    didNotifyPeerConnected = true
+                    await self.delegate?.controllerWillBeginTransmittingRecoveryKey()
+                })
                 await handlePairingV2Completion(completion, coordinator: coordinator, setupRole: setupRole)
             } catch SyncError.pollingDidTimeOut {
                 await delegate?.controllerDidError(.pollingForRecoveryKeyTimedOut, underlyingError: nil, setupRole: setupRole)
@@ -441,43 +448,6 @@ public class SyncConnectionController: SyncConnectionControlling {
             await delegate?.controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: credentialKind == .ddg)
         case .alreadyConnected:
             await delegate?.controllerDidCompletePairingWithAlreadyConnectedAccount(setupRole: setupRole)
-        }
-    }
-
-    private func pollPairingV2PresenterUntilFinished(_ coordinator: PairingV2Coordinator,
-                                                     timeout: TimeInterval = PairingV2PollingDefaults.sessionTimeout,
-                                                     pollInterval: UInt64 = PairingV2PollingDefaults.pollIntervalNanoseconds) async throws -> PairingV2State.Completion {
-        let timeoutDate = Date().addingTimeInterval(timeout)
-        var didNotifyPeerConnected = false
-
-        while true {
-            switch coordinator.state {
-            case .completed(let completion):
-                return completion
-            case .failed(let error):
-                throw error
-            default:
-                break
-            }
-
-            if Date() > timeoutDate {
-                throw SyncError.pollingDidTimeOut
-            }
-
-            try await coordinator.pollOnce()
-            if !didNotifyPeerConnected && shouldDismissPairingV2PresenterCode(for: coordinator.state) {
-                didNotifyPeerConnected = true
-                await delegate?.controllerWillBeginTransmittingRecoveryKey()
-            }
-            switch coordinator.state {
-            case .completed(let completion):
-                return completion
-            case .failed(let error):
-                throw error
-            default:
-                break
-            }
-            try await Task.sleep(nanoseconds: pollInterval)
         }
     }
 

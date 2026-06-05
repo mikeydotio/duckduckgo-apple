@@ -127,7 +127,8 @@ final class PairingV2Coordinator {
     }
 
     func pollUntilFinished(timeout: TimeInterval = PairingV2PollingDefaults.sessionTimeout,
-                           pollInterval: UInt64 = PairingV2PollingDefaults.pollIntervalNanoseconds) async throws -> PairingV2State.Completion {
+                           pollInterval: UInt64 = PairingV2PollingDefaults.pollIntervalNanoseconds,
+                           onStateUpdate: ((PairingV2State) async -> Void)? = nil) async throws -> PairingV2State.Completion {
         let timeoutDate = Date().addingTimeInterval(timeout)
 
         while true {
@@ -140,6 +141,7 @@ final class PairingV2Coordinator {
             }
 
             try await pollOnce()
+            await onStateUpdate?(state)
             if let completion = try completedPairingOrThrowFailure() {
                 return completion
             }
