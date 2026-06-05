@@ -1328,6 +1328,10 @@ class MainViewController: UIViewController {
         refreshOmniBar()
     }
 
+    /// True from the start of a rotation until its eased UTI-height settle completes, so the
+    /// keyboard handler defers the landscape cap to that settle instead of fighting it.
+    private var isUTIRotating = false
+
     /// Based on https://stackoverflow.com/a/46117073/73479
     ///  Handles iPhone X devices properly.
     @objc private func keyboardWillChangeFrame(_ notification: Notification) {
@@ -1362,6 +1366,11 @@ class MainViewController: UIViewController {
         let isBottomExpandedUTIKeyboardAnchored = coordinator?.isInputEditing == true
             && coordinator?.cardPosition == .bottom
             && viewCoordinator.isNavigationBarContainerBottomKeyboardBased
+
+        // Keep the field's cap current as the keyboard reframes; the eased recompute owns it during rotation.
+        if !isUTIRotating {
+            updateLandscapeEditingCap()
+        }
 
         let baseInputHeight: CGFloat
         if let coordinator, coordinator.isInputEditing {
@@ -2448,6 +2457,7 @@ class MainViewController: UIViewController {
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
+        isUTIRotating = true
 
         let isKeyboardShowing = omniBar.isTextFieldEditing
         if isKeyboardShowing && !AppWidthObserver.shared.isPad && minimalChromeSettings.isFeatureEnabled {
@@ -2485,6 +2495,11 @@ class MainViewController: UIViewController {
             if isShowingToolbar {
                 self.viewCoordinator.toolbar.alpha = 1
             }
+            // Re-sync within the rotation animation (applyWidth above resets the anchor) so the
+            // UTI rides the rotation to its keyboard position instead of snapping afterwards.
+            if let utiCoordinator = self.unifiedToggleInputCoordinator {
+                self.syncBottomOmnibarAnchorIfNeeded(for: utiCoordinator)
+            }
             self.swipeTabsCoordinator?.invalidateLayout()
             self.deferredFireOrientationPixel()
         } completion: { _ in
@@ -2503,7 +2518,14 @@ class MainViewController: UIViewController {
             }
 
             ViewHighlighter.updatePositions()
-            self.recomputeNavigationBarContainerHeightIfNeeded()
+            // iOS reframes the keyboard post-rotation with no animation, so the UTI height can only
+            // be corrected now; ease it so it settles into place instead of hard-snapping.
+            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+                self.recomputeNavigationBarContainerHeightIfNeeded()
+            } completion: { _ in
+                self.isUTIRotating = false
+            }
+            self.updateFloatingReturnKeyVisibility()
         }
 
         hideNotificationBarIfBrokenSitePromptShown()
@@ -2763,6 +2785,21 @@ class MainViewController: UIViewController {
         super.viewDidLayoutSubviews()
         ViewHighlighter.updatePositions()
         omniBar.refreshCustomizableButton()
+        reanchorAITabCollapsedFooterIfNeeded()
+    }
+
+    /// The AI-tab collapsed footer is a bottom chat input that must sit above the keyboard/home
+    /// indicator. `showUnifiedToggleInput()` defaults the nav-bar bottom to the toolbar, and the
+    /// show/hide churn around opening Duck.ai (some of it outside intent handling) can leave it
+    /// toolbar-anchored; in landscape the bottom toolbar is off-screen, dragging the footer off the
+    /// bottom edge. Re-assert the keyboard anchor (floored at the safe area). Guarded so it's a
+    /// no-op once correct — no loop, no per-frame work beyond the bool check.
+    private func reanchorAITabCollapsedFooterIfNeeded() {
+        guard let coordinator = unifiedToggleInputCoordinator,
+              coordinator.displayState == .aiTab(.collapsed),
+              coordinator.cardPosition == .bottom,
+              !viewCoordinator.isNavigationBarContainerBottomKeyboardBased else { return }
+        viewCoordinator.setNavBarContainerBottomToKeyboard()
     }
 
     private func showNotification(title: String, message: String, dismissHandler: @escaping NotificationView.DismissHandler) {
