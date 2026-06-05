@@ -259,18 +259,20 @@ final class SyncConnectionControllerTests: XCTestCase {
         XCTAssertTrue(messageExchanger.closeChannelCalls.contains(presenterPayload.channelId))
     }
 
-    func test_startExchangeMode_whenPairingV2CodeEnabledAndScopedAccessDisabled_returnsLegacyPairingInfo() async throws {
+    func test_startExchangeMode_whenPairingV2CodeEnabledAndScopedAccessDisabled_returnsV2PairingInfo() async throws {
         dependencies.isPairingV2CodeEnabled = { true }
         dependencies.isScopedAccessCredentialsEnabled = { false }
-        let expectedExchangeCode = "TestExchangerCode"
-        let mockRemoteKeyExchanger: MockRemoteKeyExchanging = .init()
-        dependencies.createRemoteKeyExchangerStub = mockRemoteKeyExchanger
-        mockRemoteKeyExchanger.code = expectedExchangeCode
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2Error.cancelled
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
 
         let pairingInfo = try await controller.startExchangeMode()
+        let url = try XCTUnwrap(URL(string: pairingInfo.base64Code))
+        let payload = try XCTUnwrap(PairingV2QRCodePayload(url: url))
 
-        XCTAssertEqual(pairingInfo.base64Code, expectedExchangeCode)
-        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 1)
+        XCTAssertEqual(messageExchanger.openChannelCalls, [payload.channelId])
+        XCTAssertEqual(pairingInfo.toURL(baseURL: URL(string: "https://example.com")!), url)
     }
 
     @MainActor
@@ -900,17 +902,20 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     @MainActor
-    func test_syncCodeEntered_withV2UrlAndScopedAccessCredentialsDisabled_returnsUnableToRecognizeCodeBeforeStartingPairingV2() async throws {
+    func test_syncCodeEntered_withV2UrlAndScopedAccessCredentialsDisabled_startsPairingV2() async throws {
         dependencies.isScopedAccessCredentialsEnabled = { false }
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2Error.cancelled
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
         let payload = PairingV2QRCodePayload(channelId: "channel-1", publicKey: "public-key")
         let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
 
         let result = await controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
 
         XCTAssertFalse(result)
-        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
-        XCTAssertNil(delegate.didErrorErrors?.underlyingError)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 1)
+        XCTAssertEqual(messageExchanger.openChannelCalls.count, 1)
+        XCTAssertNil(delegate.didErrorErrors)
     }
 
     @MainActor
@@ -1307,17 +1312,24 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     @MainActor
-    func test_syncCodeEntered_withDefaultCredentialV2RecoveryCodeWhenScopedAccessCredentialsDisabled_returnsUnableToRecognizeCode() async throws {
+    func test_syncCodeEntered_withDefaultCredentialV2RecoveryCodeWhenScopedAccessCredentialsDisabled_attemptsLogin() async throws {
+        let secret = Data("default credential primary key".utf8)
         dependencies.isScopedAccessCredentialsEnabled = { false }
-        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential)
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential,
+                                                       secret: Base64URL.encode(secret))
         let mockAccountManager = AccountManagingMock()
+        var receivedRecoveryKey: SyncCode.RecoveryKey?
+        mockAccountManager.loginSpy = { recoveryKey, _, _ in
+            receivedRecoveryKey = recoveryKey
+        }
         dependencies.account = mockAccountManager
 
         let result = await controller.syncCodeEntered(code: recoveryCode, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
 
-        XCTAssertFalse(result)
-        XCTAssertFalse(mockAccountManager.loginCalled)
-        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+        XCTAssertTrue(result)
+        XCTAssertTrue(mockAccountManager.loginCalled)
+        XCTAssertEqual(receivedRecoveryKey?.userId, "test-user-id")
+        XCTAssertEqual(receivedRecoveryKey?.primaryKey, secret)
     }
 
     @MainActor

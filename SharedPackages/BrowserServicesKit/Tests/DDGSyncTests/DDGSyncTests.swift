@@ -149,16 +149,20 @@ final class DDGSyncTests: XCTestCase {
         XCTAssertNoThrow(try XCTUnwrap(syncCode.recovery).defaultCredentialRecoveryKey())
     }
 
-    func testRecoveryCodeWhenScopedAccessCredentialsAreDisabledReturnsLegacyV1Code() throws {
+    func testRecoveryCodeWhenScopedAccessCredentialsAreDisabledAndPairingV2CodeIsEnabledReturnsV2Code() throws {
         dependencies.isScopedAccessCredentialsEnabled = { false }
         dependencies.isPairingV2CodeEnabled = { true }
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
 
         let recoveryCode = try XCTUnwrap(syncService.recoveryCode)
-        let syncCode = try SyncCode.decodeBase64String(recoveryCode)
+        let syncCode = try SyncCode.decodeBase64URLString(recoveryCode)
 
-        XCTAssertEqual(recoveryCode, try XCTUnwrap(SyncAccount.mock.legacyRecoveryCodeV1))
-        XCTAssertNoThrow(try XCTUnwrap(syncCode.recovery).defaultCredentialRecoveryKey())
+        XCTAssertEqual(recoveryCode, try XCTUnwrap(SyncAccount.mock.recoveryCodeV2))
+        guard case .v2(let payload) = syncCode.recovery else {
+            XCTFail("Expected v2 recovery payload")
+            return
+        }
+        XCTAssertEqual(payload.cid, SyncCredentialID.defaultCredential)
     }
 
     func testThatRegularSyncOperationsAreSerialized() {
@@ -717,6 +721,25 @@ final class DDGSyncTests: XCTestCase {
         XCTAssertEqual(scopedPassword.count, 32)
     }
 
+    func testWhenPreparingThirdPartyRecoveryCodeAndScopedAccessFeatureIsDisabledThenRecoveryCodeIsPrepared() async throws {
+        dependencies.isScopedAccessCredentialsEnabled = { false }
+        let scopedPassword = Data(repeating: 8, count: 32)
+        let scopedAccess = try XCTUnwrap(dependencies.scopedAccess as? ScopedAccessCredentialManagingMock)
+        scopedAccess.ensureThirdPartyScopedPasswordStub = EnsuredThirdPartyCredential(scopedPassword: scopedPassword,
+                                                                                     protectedKeysToCache: [])
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+
+        let code = try await syncService.prepareThirdPartyRecoveryCode(purpose: "ai_chats")
+        let decoded = try SyncCode.decodeBase64URLString(code)
+
+        XCTAssertEqual(scopedAccess.ensureThirdPartyScopedPasswordCalls.count, 1)
+        guard case .v2(let payload) = decoded.recovery else {
+            XCTFail("Expected v2 recovery payload")
+            return
+        }
+        XCTAssertEqual(Base64URL.decode(payload.secret), scopedPassword)
+    }
+
     func testWhenPreparingThirdPartyRecoveryCodeAndNewProtectedKeysAreReturnedThenKeysAreCached() async throws {
         let scopedAccess = try XCTUnwrap(dependencies.scopedAccess as? ScopedAccessCredentialManagingMock)
         let protectedKey = makeProtectedKey(kid: "key-ddg", encryptedWith: "ddg")
@@ -729,6 +752,22 @@ final class DDGSyncTests: XCTestCase {
         let cachedProtectedKeysData = try XCTUnwrap((dependencies.secureStore as? SecureStorageStub)?.theProtectedKeysData)
         let cachedProtectedKeys = try JSONDecoder.snakeCaseKeys.decode([ProtectedKey].self, from: cachedProtectedKeysData)
         XCTAssertEqual(cachedProtectedKeys.map(\.kid), ["key-ddg"])
+    }
+
+    func testWhenUpgradingThirdPartyAccountAndScopedAccessFeatureIsDisabledThenAccountIsUpgraded() async throws {
+        dependencies.isScopedAccessCredentialsEnabled = { false }
+        (dependencies.secureStore as? SecureStorageStub)?.theAccount = nil
+        let upgradeCoordinator = ThirdPartyAccountUpgradeCoordinatingMock()
+        dependencies.createThirdPartyAccountUpgradeCoordinatorStub = upgradeCoordinator
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+
+        let devices = try await syncService.upgradeThirdPartyAccountToDefaultCredential("third-party-recovery-code",
+                                                                                       deviceName: "Mac",
+                                                                                       deviceType: "desktop")
+
+        XCTAssertEqual(upgradeCoordinator.upgradeThirdPartyAccountCalls.map(\.recoveryCode), ["third-party-recovery-code"])
+        XCTAssertEqual(devices.map(\.id), [RegisteredDevice.mock.id])
+        XCTAssertEqual((dependencies.secureStore as? SecureStorageStub)?.theAccount?.userId, SyncAccount.mock.userId)
     }
 
     func testWhenGeneratingThirdPartyRecoveryCodeThenPayloadMatchesV2Spec() throws {

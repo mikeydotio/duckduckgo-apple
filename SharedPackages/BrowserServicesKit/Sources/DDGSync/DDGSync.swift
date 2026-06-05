@@ -61,7 +61,7 @@ public class DDGSync: DDGSyncing {
     }
 
     public var recoveryCode: String? {
-        guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled(), dependencies.syncFeatureFlags.isPairingV2CodeEnabled() else {
+        guard dependencies.syncFeatureFlags.isPairingV2CodeEnabled() else {
             return account?.legacyRecoveryCodeV1
         }
         return account?.recoveryCodeV2
@@ -280,9 +280,6 @@ public class DDGSync: DDGSyncing {
     }
 
     public func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
-        guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() else {
-            throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
-        }
         guard let account else {
             throw SyncError.accountNotFound
         }
@@ -300,9 +297,6 @@ public class DDGSync: DDGSyncing {
     public func upgradeThirdPartyAccountToDefaultCredential(_ recoveryCode: String,
                                                             deviceName: String,
                                                             deviceType: String) async throws -> [RegisteredDevice] {
-        guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() else {
-            throw SyncError.failedToEncryptValue("scopedAccessCredentials feature is disabled")
-        }
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }

@@ -167,6 +167,14 @@ public class SyncConnectionController: SyncConnectionControlling {
 
     private let state = SyncConnectionState()
 
+    private var isPairingV2PresentationEnabled: Bool {
+        dependencies.syncFeatureFlags.isPairingV2CodeEnabled()
+    }
+
+    private var isPairingV2ScanningEnabled: Bool {
+        dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
+    }
+
     init(deviceName: String, deviceType: String, delegate: SyncConnectionControllerDelegate? = nil, syncService: DDGSyncing, dependencies: SyncDependencies) {
         self.deviceName = deviceName
         self.deviceType = deviceType
@@ -311,7 +319,6 @@ public class SyncConnectionController: SyncConnectionControlling {
         let coordinator = makePairingV2Coordinator()
         let payload = try await coordinator.startPresenting()
         let url: URL
-
         do {
             url = try payload.toURL(baseURL: Self.pairingURLBase)
         } catch {
@@ -327,8 +334,6 @@ public class SyncConnectionController: SyncConnectionControlling {
 
     private func handlePairingV2(qrPayload: PairingV2QRCodePayload, codeSource: SyncCodeSource) async -> Bool {
         let setupRole: SyncSetupRole = .receiver(.exchange, codeSource)
-        let isPairingV2ScanningEnabled = dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
-
         guard isPairingV2ScanningEnabled else {
             await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: setupRole)
             return false
@@ -358,7 +363,10 @@ public class SyncConnectionController: SyncConnectionControlling {
             return false
         } catch SyncError.accountAlreadyExists {
             if let recoveryKey = coordinator.pendingRecoveryKey {
-                await delegate?.controllerDidFindTwoAccountsDuringRecovery(recoveryKey, setupRole: setupRole, shouldPromptBeforeSwitchingAccounts: false)
+                await delegate?.controllerDidFindTwoAccountsDuringRecovery(
+                    recoveryKey,
+                    setupRole: setupRole,
+                    shouldPromptBeforeSwitchingAccounts: false)
             } else {
                 await delegate?.controllerDidError(.failedToLogIn, underlyingError: SyncError.accountAlreadyExists, setupRole: setupRole)
             }
@@ -590,7 +598,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         let setupRole: SyncSetupRole = .receiver(.recovery, codeSource)
 
         if case .v2(let recoveryKey) = recovery {
-            guard dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled() else {
+            guard isPairingV2ScanningEnabled else {
                 await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: setupRole)
                 return false
             }
@@ -667,19 +675,14 @@ public class SyncConnectionController: SyncConnectionControlling {
         await delegate?.controllerWillPerformServerSyncOperation(setupRole: setupRole) ?? true
     }
 
-    private var isPairingV2PresentationEnabled: Bool {
-        dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2CodeEnabled()
-    }
-
     private func makePairingV2Coordinator() -> PairingV2Coordinator {
-        let isPairingV2ScanningEnabled = dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
         return PairingV2Coordinator(
             syncService: syncService,
             messageExchanger: dependencies.createPairingV2MessageExchanger(),
             deviceName: deviceName,
             deviceType: deviceType,
             flags: PairingV2RolloutFlags(isV2ScanningEnabled: isPairingV2ScanningEnabled,
-                                         isV2CodeEnabled: dependencies.syncFeatureFlags.isPairingV2CodeEnabled()),
+                                         isV2CodeEnabled: isPairingV2PresentationEnabled),
             confirmationDelegate: self
         )
     }
