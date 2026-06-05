@@ -39,27 +39,24 @@ struct VPNOnboardingActivationView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color(designSystemColor: .surface)
-                .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                SubscriptionOnboardingStepHeader(step: 1, totalSteps: 4) { dismiss() }
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                        SettingsDescriptionView(content: headerContent)
-                        contentCards
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                    .animation(.easeInOut, value: viewModel.isConnected)
+        SubscriptionOnboardingPage(
+            title: Text("Step 1 of 4")
+                .font(Font(UIFont.daxSubheadSemibold()))
+                .foregroundColor(Color(designSystemColor: .textSecondary)),
+            primaryButton: .init(title: viewModel.isConnected ? "Next" : "Turn on VPN") {
+                if viewModel.isConnected {
+                    onNext()
+                } else {
+                    Task { await viewModel.turnOnVPN() }
                 }
-
-                footer
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+            },
+            onClose: { dismiss() }
+        ) {
+            VStack(spacing: 24) {
+                SettingsDescriptionView(content: headerContent)
+                contentCards
             }
+            .animation(.easeInOut, value: viewModel.isConnected)
         }
         .task {
             await viewModel.fetchRealIPLocation()
@@ -72,8 +69,8 @@ struct VPNOnboardingActivationView: View {
             : "Connect to secure all of your device's internet traffic. [Learn More](https://duckduckgo.com/pro)"
         return SettingsDescription(
             image: viewModel.isConnected
-                ? (UIImage(named: "NetworkProtectionVPNUtilityON") ?? UIImage())
-                : (UIImage(named: "NetworkProtectionVPNUtilityOFF") ?? UIImage()),
+                ? DesignSystemImages.Color.Size128.networkProtectionVPN
+                : DesignSystemImages.Color.Size128.networkProtectionVPNDisabled,
             title: viewModel.isConnected ? "DuckDuckGo VPN is On" : "DuckDuckGo VPN is Off",
             status: nil,
             explanation: explanation
@@ -119,19 +116,6 @@ struct VPNOnboardingActivationView: View {
         }
     }
 
-    private var footer: some View {
-        Button {
-            if viewModel.isConnected {
-                onNext()
-            } else {
-                Task { await viewModel.turnOnVPN() }
-            }
-        } label: {
-            Text(viewModel.isConnected ? "Next" : "Turn on VPN")
-        }
-        .buttonStyle(PrimaryButtonStyle())
-    }
-
     private func groupedContainer<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
             .padding(16)
@@ -145,30 +129,6 @@ struct VPNOnboardingActivationView: View {
             .daxFootnoteRegular()
             .foregroundColor(Color(designSystemColor: .textPrimary))
             .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-struct SubscriptionOnboardingStepHeader: View {
-
-    let step: Int
-    let totalSteps: Int
-    let onBack: () -> Void
-
-    var body: some View {
-        ZStack {
-            Text("Step \(step) of \(totalSteps)")
-                .daxSubheadSemibold()
-                .foregroundColor(Color(designSystemColor: .textSecondary))
-
-            HStack {
-                Button("Back") { onBack() }
-                    .daxBodyRegular()
-                    .foregroundColor(Color(designSystemColor: .textPrimary))
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 }
 
@@ -339,9 +299,11 @@ final class VPNOnboardingActivationViewModel: ObservableObject {
 
 enum RealIPLocationFetcher {
 
-    struct Response: Decodable {
+    private struct IPResponse: Decodable {
         let ip: String
-        let city: String
+    }
+
+    private struct CountryResponse: Decodable {
         let country: String
     }
 
@@ -351,12 +313,23 @@ enum RealIPLocationFetcher {
     }
 
     static func fetch() async throws -> Result {
-        let url = URL(string: "https://ipapi.co/json/")!
+        async let ipResult = fetchIP()
+        async let countryResult = fetchCountry()
+        let (ip, country) = try await (ipResult, countryResult)
+        let labels = NetworkProtectionVPNCountryLabelsModel(country: country, useFullCountryName: true)
+        return Result(ip: ip, location: "\(labels.emoji) \(labels.title)")
+    }
+
+    private static func fetchIP() async throws -> String {
+        let url = URL(string: "http://leakcheck.netp.duckduckgo.com/")!
         let (data, _) = try await URLSession.shared.data(from: url)
-        let response = try JSONDecoder().decode(Response.self, from: data)
-        let location = NetworkProtectionLocationStatusModel.formattedLocation(city: response.city,
-                                                                              country: response.country)
-        return Result(ip: response.ip, location: location)
+        return try JSONDecoder().decode(IPResponse.self, from: data).ip
+    }
+
+    private static func fetchCountry() async throws -> String {
+        let url = URL(string: "https://duckduckgo.com/country.json")!
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(CountryResponse.self, from: data).country
     }
 }
 

@@ -29,9 +29,9 @@ struct DuckAIOnboardingActivationView: View {
 
     @StateObject private var viewModel: DuckAIOnboardingActivationViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var isShowingChat = false
+    @State private var presentedURL: URL?
 
-    private static let duckAIURLString = "https://duck.ai"
+    private static let duckAIURL = URL(string: "https://duck.ai")!
 
     init(viewModel: DuckAIOnboardingActivationViewModel = DuckAIOnboardingActivationViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -39,9 +39,9 @@ struct DuckAIOnboardingActivationView: View {
 
     var body: some View {
         Group {
-            if isShowingChat {
-                DuckAIChatWebScreen(urlString: Self.duckAIURLString) {
-                    isShowingChat = false
+            if let presentedURL {
+                DuckAIChatWebScreen(urlString: presentedURL.absoluteString) {
+                    self.presentedURL = nil
                 }
             } else {
                 onboardingContent
@@ -53,27 +53,28 @@ struct DuckAIOnboardingActivationView: View {
     }
 
     private var onboardingContent: some View {
-        ZStack {
-            Color(designSystemColor: .surface)
-                .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                SubscriptionOnboardingStepHeader(step: 4, totalSteps: 4) { dismiss() }
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                        SettingsDescriptionView(content: headerContent)
-                        modelList
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                }
-
-                footer
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+        SubscriptionOnboardingPage(
+            title: Text("Step 4 of 4")
+                .font(Font(UIFont.daxSubheadSemibold()))
+                .foregroundColor(Color(designSystemColor: .textSecondary)),
+            primaryButton: .init(title: "Start Duck.ai chat") { presentedURL = Self.duckAIURL },
+            secondaryButton: .init(title: "Not Now") { dismiss() },
+            onClose: { dismiss() }
+        ) {
+            VStack(spacing: 24) {
+                SettingsDescriptionView(content: headerContent)
+                AIModelPicker(
+                    models: viewModel.availableModels,
+                    selectedModelId: viewModel.selectedModelId,
+                    onSelect: { viewModel.select($0) }
+                )
+                .padding(.bottom, 16)
             }
         }
+        .environment(\.openURL, OpenURLAction { url in
+            presentedURL = url
+            return .handled
+        })
     }
 
     private var headerContent: SettingsDescription {
@@ -85,66 +86,6 @@ struct DuckAIOnboardingActivationView: View {
         )
     }
 
-    private var modelList: some View {
-        VStack(spacing: 4) {
-            ForEach(viewModel.availableModels, id: \.id) { model in
-                Button {
-                    viewModel.select(model.id)
-                } label: {
-                    modelRow(model)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(8)
-        .background(Color(designSystemColor: .surface))
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(Color(designSystemColor: .lines), lineWidth: 1)
-        )
-    }
-
-    private func modelRow(_ model: AIChatModel) -> some View {
-        HStack(spacing: 12) {
-            if let icon = model.menuIcon {
-                Image(uiImage: icon)
-                    .renderingMode(.template)
-                    .foregroundColor(Color(designSystemColor: .icons))
-            }
-
-            Text(model.name)
-                .daxHeadline()
-                .foregroundColor(Color(designSystemColor: .textPrimary))
-
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(model.id == viewModel.selectedModelId
-                    ? Color(designSystemColor: .controlsFillSecondary)
-                    : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    private var footer: some View {
-        VStack(spacing: 8) {
-            Button {
-                isShowingChat = true
-            } label: {
-                Text("Start Duck.ai chat")
-            }
-            .buttonStyle(PrimaryButtonStyle())
-
-            Button {
-                dismiss()
-            } label: {
-                Text("Not Now")
-            }
-            .buttonStyle(GhostButtonStyle())
-        }
-    }
 }
 
 struct DuckAIChatWebScreen: View {
@@ -207,13 +148,15 @@ final class DuckAIOnboardingActivationViewModel: ObservableObject {
     }
 
     var availableModels: [AIChatModel] {
-        models.filter { model in
-            guard model.entityHasAccess else { return false }
-            switch model.lowestPublicAccessTier {
-            case .plus, .pro: return true
-            default: return false
-            }
+        let accessible = models.filter { $0.entityHasAccess }
+        let premium = accessible.filter { model in
+            guard let tier = model.lowestPublicAccessTier else { return false }
+            return tier == .plus || tier == .pro
         }
+        let free = accessible.filter { model in
+            model.lowestPublicAccessTier == .free || model.lowestPublicAccessTier == nil
+        }
+        return premium + free
     }
 
     init(previewModels: [AIChatModel], selectedModelId: String? = nil) {
@@ -237,7 +180,7 @@ final class DuckAIOnboardingActivationViewModel: ObservableObject {
         store.onModelsUpdated = { [weak self] in
             guard let self else { return }
             self.models = store.models
-            self.selectedModelId = store.persistedModelId
+            self.selectedModelId = store.persistedModelId ?? self.availableModels.first?.id
         }
         store.fetchModels()
     }
