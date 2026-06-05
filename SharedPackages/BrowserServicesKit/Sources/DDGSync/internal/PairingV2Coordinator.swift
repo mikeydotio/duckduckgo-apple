@@ -403,7 +403,7 @@ final class PairingV2Coordinator {
                                                                                                            deviceName: deviceName,
                                                                                                            deviceType: deviceType)
         } catch {
-            Logger.sync.error("Pairing V2 3party account upgrade failed: \(error.localizedDescription, privacy: .public)")
+            Logger.sync.error("Pairing V2 3party account upgrade failed: \(String(reflecting: error))")
             throw error
         }
     }

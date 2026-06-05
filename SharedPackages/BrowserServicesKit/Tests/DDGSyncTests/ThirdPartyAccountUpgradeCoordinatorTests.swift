@@ -151,6 +151,79 @@ final class ThirdPartyAccountUpgradeCoordinatorTests: XCTestCase {
         XCTAssertFalse(setup.api.createRequestCallArgs.contains { $0.url == setup.endpoints.accessCredential(SyncCredentialID.defaultCredential) })
     }
 
+    func testWhenAccessCredentialsFetchFailsThenUpgradeAbortsWithTypedError() async throws {
+        let setup = try makeSUT()
+        let request = HTTPRequestingMock()
+        request.error = SyncError.unexpectedStatusCode(500)
+        setup.api.fakeRequests[setup.endpoints.accessCredentials] = request
+
+        do {
+            _ = try await setup.coordinator.upgradeThirdPartyAccountToDefaultCredential(
+                recoveryCode(),
+                deviceName: "Mac",
+                deviceType: "desktop")
+            XCTFail("Expected access credential fetch failure to abort upgrade")
+        } catch ThirdPartyAccountUpgradeError.accessCredentialsFetchFailed {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testWhenProtectedKeysFetchFailsThenUpgradeAbortsWithTypedError() async throws {
+        let setup = try makeSUT()
+        let request = HTTPRequestingMock()
+        request.error = SyncError.unexpectedStatusCode(500)
+        setup.api.fakeRequests[setup.endpoints.keys] = request
+
+        do {
+            _ = try await setup.coordinator.upgradeThirdPartyAccountToDefaultCredential(
+                recoveryCode(),
+                deviceName: "Mac",
+                deviceType: "desktop")
+            XCTFail("Expected protected key fetch failure to abort upgrade")
+        } catch ThirdPartyAccountUpgradeError.protectedKeysFetchFailed {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testWhenProtectedKeyRewrapFailsThenUpgradeAbortsWithTypedError() async throws {
+        let invalidProtectedKey = ProtectedKey(kid: "key-1",
+                                               encryptedPrivateKey: "not-jwe",
+                                               publicKey: .mock,
+                                               encryptedWith: SyncCode.RecoveryKeyV2.thirdPartyCredentialId,
+                                               purpose: "ai_chats")
+        let setup = try makeSUT(protectedKeys: [invalidProtectedKey])
+
+        do {
+            _ = try await setup.coordinator.upgradeThirdPartyAccountToDefaultCredential(
+                recoveryCode(),
+                deviceName: "Mac",
+                deviceType: "desktop")
+            XCTFail("Expected protected key rewrap failure to abort upgrade")
+        } catch ThirdPartyAccountUpgradeError.protectedKeyRewrapFailed {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testWhenNativeCredentialCreationReturnsUnexpectedStatusThenUpgradeAbortsWithTypedError() async throws {
+        let setup = try makeSUT()
+        setup.api.fakeRequests[setup.endpoints.accessCredential(SyncCredentialID.defaultCredential)] = makeRequest(statusCode: 500)
+
+        do {
+            _ = try await setup.coordinator.upgradeThirdPartyAccountToDefaultCredential(
+                recoveryCode(),
+                deviceName: "Mac",
+                deviceType: "desktop")
+            XCTFail("Expected native credential creation failure to abort upgrade")
+        } catch ThirdPartyAccountUpgradeError.nativeCredentialCreationFailed(let statusCode) {
+            XCTAssertEqual(statusCode, 500)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     private func makeSUT(accessCredentials: [AccessCredential] = [],
                          protectedKeys: [ProtectedKey]? = nil) throws -> (coordinator: ThirdPartyAccountUpgradeCoordinator,
                                                                            api: RemoteAPIRequestCreatingMock,
