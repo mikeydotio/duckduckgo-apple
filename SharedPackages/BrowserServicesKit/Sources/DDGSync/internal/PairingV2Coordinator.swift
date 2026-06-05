@@ -25,6 +25,11 @@ protocol PairingV2ConfirmationDelegate: AnyObject {
     func pairingV2CoordinatorDidCreateSyncAccount(credentialKind: PairingV2DeviceKind) async
 }
 
+enum PairingV2PollingDefaults {
+    static let sessionTimeout: TimeInterval = 300
+    static let pollIntervalNanoseconds: UInt64 = 1_000_000_000
+}
+
 final class PairingV2Coordinator {
 
     private let syncService: DDGSyncing
@@ -116,12 +121,13 @@ final class PairingV2Coordinator {
             guard !hasFinishedPairing else {
                 return
             }
-            try await handle(message.encryptedMessage, sequence: message.seq)
+            try await handle(message.encryptedMessage)
             lastProcessedSequence = max(lastProcessedSequence, message.seq)
         }
     }
 
-    func pollUntilFinished(timeout: TimeInterval = 300, pollInterval: UInt64 = 1_000_000_000) async throws -> PairingV2State.Completion {
+    func pollUntilFinished(timeout: TimeInterval = PairingV2PollingDefaults.sessionTimeout,
+                           pollInterval: UInt64 = PairingV2PollingDefaults.pollIntervalNanoseconds) async throws -> PairingV2State.Completion {
         let timeoutDate = Date().addingTimeInterval(timeout)
 
         while true {
@@ -157,7 +163,7 @@ final class PairingV2Coordinator {
         try? await messageExchanger.closeChannel(channelID)
     }
 
-    private func handle(_ encryptedMessage: PairingV2EncryptedMessage, sequence: Int? = nil) async throws {
+    private func handle(_ encryptedMessage: PairingV2EncryptedMessage) async throws {
         guard let privateKey = localKeyPair?.privateKey else {
             throw PairingV2Error.pairingSessionNotReady(.localPrivateKey)
         }
@@ -193,8 +199,7 @@ final class PairingV2Coordinator {
             commands = stateMachine.handle(.receivedRecoveryCodeConfirmed)
 
         case .recoveryCodeResponse(let message):
-            let recoveryCode = recoveryCode(from: message)
-            commands = stateMachine.handle(.receivedRecoveryCode(recoveryCode))
+            commands = stateMachine.handle(.receivedRecoveryCode(message.recoveryCode))
 
         case .recoveryCodeDenied:
             commands = stateMachine.handle(.receivedRecoveryCodeDenied)
@@ -378,10 +383,6 @@ final class PairingV2Coordinator {
             .init(recoveryCode: recoveryCode)
         )
         try await send(response)
-    }
-
-    private func recoveryCode(from response: PairingV2RecoveryCodeResponseMessage) -> String {
-        response.recoveryCode
     }
 
     private func login(with recoveryCode: String) async throws {

@@ -445,8 +445,8 @@ public class SyncConnectionController: SyncConnectionControlling {
     }
 
     private func pollPairingV2PresenterUntilFinished(_ coordinator: PairingV2Coordinator,
-                                                     timeout: TimeInterval = 300,
-                                                     pollInterval: UInt64 = 1_000_000_000) async throws -> PairingV2State.Completion {
+                                                     timeout: TimeInterval = PairingV2PollingDefaults.sessionTimeout,
+                                                     pollInterval: UInt64 = PairingV2PollingDefaults.pollIntervalNanoseconds) async throws -> PairingV2State.Completion {
         let timeoutDate = Date().addingTimeInterval(timeout)
         var didNotifyPeerConnected = false
 

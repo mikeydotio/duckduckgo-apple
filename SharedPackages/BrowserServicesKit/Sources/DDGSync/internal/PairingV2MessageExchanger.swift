@@ -154,8 +154,8 @@ final class PairingV2MessageExchanger: PairingV2MessageExchanging {
         do {
             try validateMessageExchangeStatusCode(statusCode)
             return error
-        } catch {
-            return error
+        } catch let normalizedError {
+            return normalizedError
         }
     }
 
