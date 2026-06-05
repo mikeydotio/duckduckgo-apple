@@ -30,6 +30,7 @@ struct VPNOnboardingActivationView: View {
     @StateObject private var viewModel: VPNOnboardingActivationViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var presentedURL: URL?
+    @State private var showsTapAllowHint = false
 
     private let onNext: () -> Void
 
@@ -63,7 +64,17 @@ struct VPNOnboardingActivationView: View {
                 if viewModel.isConnected {
                     onNext()
                 } else {
-                    Task { await viewModel.turnOnVPN() }
+                    Task {
+                        // Only show the "Tap allow" hint if the VPN configuration
+                        // is not yet installed — that's when the system permission
+                        // dialog appears. If the config is already installed,
+                        // toggling on doesn't prompt and the hint would be confusing.
+                        if !(await viewModel.isVPNConfigured()) {
+                            showsTapAllowHint = true
+                        }
+                        await viewModel.turnOnVPN()
+                        showsTapAllowHint = false
+                    }
                 }
             },
             onClose: { dismiss() }
@@ -78,6 +89,15 @@ struct VPNOnboardingActivationView: View {
             presentedURL = url
             return .handled
         })
+        .overlay(alignment: .topLeading) {
+            if showsTapAllowHint {
+                FloatingHint(text: "Tap allow")
+                    .padding(.top, 540)
+                    .padding(.leading, 60)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut, value: showsTapAllowHint)
     }
 
     private var headerContent: SettingsDescription {
@@ -177,6 +197,7 @@ struct VPNOnboardingIPCard: View {
                 Text(ipAddress)
                     .daxHeadline()
                     .foregroundColor(Color(designSystemColor: .textPrimary))
+                    .blur(radius: style == .hidden ? 4 : 0)
 
                 HStack(spacing: 4) {
                     Text(location)
@@ -189,11 +210,11 @@ struct VPNOnboardingIPCard: View {
                             .foregroundColor(Color(designSystemColor: .textSecondary))
                     }
                 }
+                .blur(radius: style == .hidden ? 4 : 0)
             }
 
             Spacer()
         }
-        .opacity(style == .hidden ? 0.5 : 1)
     }
 }
 
@@ -297,6 +318,18 @@ final class VPNOnboardingActivationViewModel: ObservableObject {
     @MainActor
     func turnOnVPN() async {
         await statusModel?.didToggleNetP(to: true)
+    }
+
+    @MainActor
+    func isVPNConfigured() async -> Bool {
+        // `isInstalled` is too eager — it returns true as soon as a manager exists in
+        // preferences, even when the system is still showing the permission dialog. The
+        // connection's NEVPNStatus is only non-`.invalid` after the OS has accepted the
+        // config, which is the state we actually care about.
+        guard let connection = await AppDependencyProvider.shared.networkProtectionTunnelController.connection else {
+            return false
+        }
+        return connection.status != .invalid
     }
 
     @MainActor

@@ -264,6 +264,7 @@
 		36A288A62FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */; };
 		36A288B12FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A288B02FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift */; };
 		36A96A0A2E6606CF003D4529 /* LocalNotificationsPlaygroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A96A092E6606C0003D4529 /* LocalNotificationsPlaygroundView.swift */; };
+		36CAEBF22FD344F700EB9D83 /* FloatingHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36CAEBF12FD344F700EB9D83 /* FloatingHint.swift */; };
 		36F2CA592E604C5100C7039D /* UNUserNotificationCenterRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2CA582E604C4700C7039D /* UNUserNotificationCenterRepresentable.swift */; };
 		36F2CA5B2E60589600C7039D /* MockUNUserNotificationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2CA5A2E60588F00C7039D /* MockUNUserNotificationCenter.swift */; };
 		36F2CA5C2E60589600C7039D /* MockUNUserNotificationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2CA5A2E60588F00C7039D /* MockUNUserNotificationCenter.swift */; };
@@ -2910,6 +2911,7 @@
 		36A288A42FD0CA5A001B8EC5 /* VPNOnboardingActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNOnboardingActivationView.swift; sourceTree = "<group>"; };
 		36A288B02FD0CA5A001B8EC5 /* DuckAIOnboardingActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAIOnboardingActivationView.swift; sourceTree = "<group>"; };
 		36A96A092E6606C0003D4529 /* LocalNotificationsPlaygroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotificationsPlaygroundView.swift; sourceTree = "<group>"; };
+		36CAEBF12FD344F700EB9D83 /* FloatingHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingHint.swift; sourceTree = "<group>"; };
 		36F2CA582E604C4700C7039D /* UNUserNotificationCenterRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UNUserNotificationCenterRepresentable.swift; sourceTree = "<group>"; };
 		36F2CA5A2E60588F00C7039D /* MockUNUserNotificationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockUNUserNotificationCenter.swift; sourceTree = "<group>"; };
 		36F2CA612E6098EF00C7039D /* InactivityNotificationSchedulerServiceIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InactivityNotificationSchedulerServiceIntegrationTests.swift; sourceTree = "<group>"; };
@@ -6443,6 +6445,7 @@
 		36A288A52FD0CA5A001B8EC5 /* SubscriptionOnboarding */ = {
 			isa = PBXGroup;
 			children = (
+				36CAEBF12FD344F700EB9D83 /* FloatingHint.swift */,
 				368190642FD3223300365269 /* AIModelPicker.swift */,
 				368190622FD31BB300365269 /* IconInfoRow.swift */,
 				368190602FD318E800365269 /* SubscriptionOnboardingPage.swift */,
@@ -12986,6 +12989,7 @@
 				C18128A32D737D8700807C09 /* AutofillSettingsViewController.swift in Sources */,
 				C18128A42D737D8700807C09 /* AutofillSettingsView.swift in Sources */,
 				36F2CA592E604C5100C7039D /* UNUserNotificationCenterRepresentable.swift in Sources */,
+				36CAEBF22FD344F700EB9D83 /* FloatingHint.swift in Sources */,
 				806DF4092F3B89BD00FBCA3F /* DataClearingCapability.swift in Sources */,
 				F1617C151E57336D00DEDCAF /* TabManager.swift in Sources */,
 				A1F4C4E22F8A1B9300D1A111 /* DataImportEntryPointHandler.swift in Sources */,
