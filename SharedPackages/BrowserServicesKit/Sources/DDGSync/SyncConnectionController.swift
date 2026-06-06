@@ -268,8 +268,19 @@ public class SyncConnectionController: SyncConnectionControlling {
 
         let syncCode: SyncCode
         do {
-            if let url = URL(string: code), let pairingV2Payload = PairingV2QRCodePayload(url: url) {
-                return await handlePairingV2(qrPayload: pairingV2Payload, codeSource: codeSource)
+            if let url = URL(string: code) {
+                if let pairingV2Payload = PairingV2QRCodePayload(url: url) {
+                    return await handlePairingV2(qrPayload: pairingV2Payload, codeSource: codeSource)
+                }
+                if let unsupportedVersion = PairingV2QRCodePayload.unsupportedMajorVersion(in: url) {
+                    let setupRole: SyncSetupRole = .receiver(.exchange, codeSource)
+                    guard isPairingV2ScanningEnabled else {
+                        await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: nil, setupRole: setupRole)
+                        return false
+                    }
+                    await delegate?.controllerDidError(.updateRequired, underlyingError: PairingV2Error.unsupportedVersion(unsupportedVersion), setupRole: setupRole)
+                    return false
+                }
             }
 
             if canScanLegacyURLBarcodes, let url = URL(string: code) {
@@ -379,6 +390,10 @@ public class SyncConnectionController: SyncConnectionControlling {
             await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: nil, setupRole: setupRole)
             await coordinator.cancel()
             return false
+        } catch PairingV2MessageCryptoError.unsupportedVersion(let version) {
+            await delegate?.controllerDidError(pairingV2ConnectionError(forUnsupportedVersion: version), underlyingError: PairingV2MessageCryptoError.unsupportedVersion(version), setupRole: setupRole)
+            await coordinator.cancel()
+            return false
         } catch let error as PairingV2MessageCryptoError {
             await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: setupRole)
             await coordinator.cancel()
@@ -427,6 +442,9 @@ public class SyncConnectionController: SyncConnectionControlling {
                     return
                 }
                 await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: nil, setupRole: setupRole)
+                await coordinator.cancel()
+            } catch PairingV2MessageCryptoError.unsupportedVersion(let version) {
+                await delegate?.controllerDidError(pairingV2ConnectionError(forUnsupportedVersion: version), underlyingError: PairingV2MessageCryptoError.unsupportedVersion(version), setupRole: setupRole)
                 await coordinator.cancel()
             } catch let error as PairingV2MessageCryptoError {
                 await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: setupRole)
@@ -667,8 +685,8 @@ public class SyncConnectionController: SyncConnectionControlling {
             return .thirdPartyAccountAlreadyUpgraded
         case .recoveryCodeDenied, .recoveryCodeUnavailable:
             return .syncCancelledFromOtherDevice
-        case .unsupportedVersion:
-            return .updateRequired
+        case .unsupportedVersion(let version):
+            return pairingV2ConnectionError(forUnsupportedVersion: version)
         case .v2ScanningDisabled, .unknownCode, .unsupportedFlow:
             return .unableToRecognizeCode
         case .incompatibleRecoveryCode(let scanningKind, let codeKind):
@@ -682,6 +700,14 @@ public class SyncConnectionController: SyncConnectionControlling {
         case .cancelled:
             return .syncCancelledFromOtherDevice
         }
+    }
+
+    private func pairingV2ConnectionError(forUnsupportedVersion version: String) -> SyncConnectionError {
+        guard let major = SyncProtocolVersion.parseMajor(version),
+              major > PairingV2ProtocolVersion.supportedMajor else {
+            return .unableToRecognizeCode
+        }
+        return .updateRequired
     }
 }
 

@@ -66,6 +66,19 @@ final class PairingV2MessageCryptoTests: XCTestCase {
         XCTAssertEqual(payload.publicKey, "public-key")
     }
 
+    func testWhenDecodingPairingURLWithNewMinorVersionThenReturnsQRCodePayload() throws {
+        let encodedPayload = Base64URL.encode(try JSONEncoder.snakeCaseKeys.encode(PairingV2QRCodePayload(version: "2.1",
+                                                                                                           channelId: "channel-1",
+                                                                                                           publicKey: "public-key")))
+        let url = try XCTUnwrap(URL(string: "https://duckduckgo.com/sync/pairing/#&code2=\(encodedPayload)"))
+
+        let payload = try XCTUnwrap(PairingV2QRCodePayload(url: url))
+
+        XCTAssertEqual(payload.version, "2.1")
+        XCTAssertEqual(payload.channelId, "channel-1")
+        XCTAssertEqual(payload.publicKey, "public-key")
+    }
+
     func testWhenEncodingRecoveryCodeAvailableThenUsesCanonicalShape() throws {
         let message = PairingV2RecoveryCodeStatusMessage(
             type: PairingV2ApplicationMessage.MessageType.recoveryCodeAvailable,
@@ -133,7 +146,7 @@ final class PairingV2MessageCryptoTests: XCTestCase {
         }
     }
 
-    func testWhenDecryptingDifferentMinorVersionThenThrowsUnsupportedVersion() throws {
+    func testWhenDecryptingDifferentMinorVersionThenSucceeds() throws {
         let keyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "channel-1")
         let crypto = PairingV2MessageCrypto()
         let message = try crypto.encrypt(
@@ -142,10 +155,28 @@ final class PairingV2MessageCryptoTests: XCTestCase {
             recipientPublicKey: keyPair.publicKey,
             senderChannelID: "sender-channel"
         )
-        let unsupportedMessage = PairingV2EncryptedMessage(version: "2.1", payload: message.payload)
+        let minorVersionMessage = PairingV2EncryptedMessage(version: "2.1", payload: message.payload)
 
-        XCTAssertThrowsError(try crypto.decrypt(unsupportedMessage, privateKey: keyPair.privateKey)) { error in
-            XCTAssertEqual(error as? PairingV2MessageCryptoError, .unsupportedVersion("2.1"))
+        let decryptedMessage = try crypto.decrypt(minorVersionMessage, privateKey: keyPair.privateKey)
+
+        XCTAssertEqual(
+            decryptedMessage,
+            .recoveryCodeRequest(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest, kind: .ddg))
+        )
+    }
+
+    func testWhenDecryptingMalformedVersionThenThrowsUnsupportedVersion() throws {
+        let keyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "channel-1")
+        let crypto = PairingV2MessageCrypto()
+        let message = try crypto.encrypt(
+            .recoveryCodeRequest(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest, kind: .ddg)),
+            recipientPublicKey: keyPair.publicKey,
+            senderChannelID: "sender-channel"
+        )
+        let malformedMessage = PairingV2EncryptedMessage(version: "not-a-version", payload: message.payload)
+
+        XCTAssertThrowsError(try crypto.decrypt(malformedMessage, privateKey: keyPair.privateKey)) { error in
+            XCTAssertEqual(error as? PairingV2MessageCryptoError, .unsupportedVersion("not-a-version"))
         }
     }
 

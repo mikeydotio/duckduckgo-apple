@@ -402,7 +402,7 @@ struct PairingV2StateMachine {
     }
 
     private mutating func handleReceivedHello(_ message: PairingV2HelloMessage) -> [PairingV2Command] {
-        guard Self.supports(version: message.version) else {
+        guard PairingV2ProtocolVersion.supports(message.version) else {
             return fail(with: .unsupportedVersion(message.version))
         }
 
@@ -570,10 +570,6 @@ struct PairingV2StateMachine {
             return .thirdParty
         }
         return hostKind
-    }
-
-    private static func supports(version: String) -> Bool {
-        version == PairingV2ProtocolVersion.current
     }
 
 }

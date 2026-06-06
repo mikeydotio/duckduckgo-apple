@@ -288,6 +288,17 @@ extension Sequence where Element == ProtectedKey {
     }
 }
 
+enum SyncProtocolVersion {
+    static func parseMajor(_ raw: String) -> Int? {
+        guard let majorString = raw.split(separator: ".").first,
+              let major = Int(majorString),
+              major >= 0 else {
+            return nil
+        }
+        return major
+    }
+}
+
 public struct SyncCode: Codable {
 
     public enum Base64Error: Error {
@@ -353,7 +364,9 @@ public struct SyncCode: Codable {
             case nil:
                 self = .v1(try RecoveryKey(from: decoder))
             case let raw?:
-                let major = try Self.parseMajor(raw)
+                guard let major = SyncProtocolVersion.parseMajor(raw) else {
+                    throw RecoveryCodeVersionError.malformed(raw)
+                }
                 guard major <= Self.supportedMajor else {
                     throw RecoveryCodeVersionError.unsupported(raw)
                 }
@@ -384,15 +397,6 @@ public struct SyncCode: Codable {
             }
         }
 
-        private static func parseMajor(_ raw: String) throws -> Int {
-            guard
-                let majorString = raw.split(separator: ".").first,
-                let major = Int(majorString)
-            else {
-                throw RecoveryCodeVersionError.malformed(raw)
-            }
-            return major
-        }
     }
 
     public var recovery: Recovery?

@@ -916,6 +916,33 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     @MainActor
+    func test_syncCodeEntered_withUnsupportedMajorPairingV2Url_returnsUpdateRequiredBeforeStartingPairingV2() async throws {
+        let payload = PairingV2QRCodePayload(version: "3.0", channelId: "channel-1", publicKey: "public-key")
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .updateRequired)
+        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2Error, .unsupportedVersion("3.0"))
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withUnsupportedMajorPairingV2UrlAndPairingV2ScanningDisabled_returnsUnableToRecognizeCode() async throws {
+        dependencies.isPairingV2ScanningEnabled = { false }
+        let payload = PairingV2QRCodePayload(version: "3.0", channelId: "channel-1", publicKey: "public-key")
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+        XCTAssertNil(delegate.didErrorErrors?.underlyingError)
+    }
+
+    @MainActor
     func test_syncCodeEntered_withV2UrlAndScopedAccessCredentialsDisabled_startsPairingV2() async throws {
         dependencies.isScopedAccessCredentialsEnabled = { false }
         let messageExchanger = PairingV2MessageExchangingMock()
@@ -1060,6 +1087,40 @@ final class SyncConnectionControllerTests: XCTestCase {
         XCTAssertFalse(result)
         XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
         XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2MessageCryptoError, .unsupportedProtectedHeader)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withUnsupportedMajorV2MessageCryptoError_notifiesUpdateRequired() async throws {
+        try dependencies.secureStore.persistAccount(SyncAccount.mock)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2MessageCryptoError.unsupportedVersion("3.0")
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .updateRequired)
+        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2MessageCryptoError, .unsupportedVersion("3.0"))
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withMalformedVersionV2MessageCryptoError_notifiesUnableToRecognizeCode() async throws {
+        try dependencies.secureStore.persistAccount(SyncAccount.mock)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        messageExchanger.fetchMessagesError = PairingV2MessageCryptoError.unsupportedVersion("not-a-version")
+        dependencies.createPairingV2MessageExchangerStub = messageExchanger
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let payload = PairingV2QRCodePayload(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)
+        let url = try payload.toURL(baseURL: URL(string: "https://duckduckgo.com")!)
+
+        let result = await controller.syncCodeEntered(code: url.absoluteString, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? PairingV2MessageCryptoError, .unsupportedVersion("not-a-version"))
     }
 
     @MainActor

@@ -161,7 +161,7 @@ final class PairingV2MessageCrypto {
     }
 
     private func validateSupportedVersion(_ version: String) throws {
-        guard version == PairingV2ProtocolVersion.current else {
+        guard PairingV2ProtocolVersion.supports(version) else {
             throw PairingV2MessageCryptoError.unsupportedVersion(version)
         }
     }

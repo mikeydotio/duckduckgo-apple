@@ -859,6 +859,24 @@ final class DDGSyncTests: XCTestCase {
         }
     }
 
+    func testWhenDecodingV2RecoveryCodeWithMalformedVersionThenDecodingFails() throws {
+        let json = """
+        {
+          "recovery": {
+            "user_id": "userId",
+            "secret": "secret",
+            "cid": "3party",
+            "v": "-1"
+          }
+        }
+        """
+        let code = Base64URL.encode(Data(json.utf8))
+
+        XCTAssertThrowsError(try SyncCode.decodeBase64URLString(code)) { error in
+            XCTAssertEqual(error as? SyncCode.RecoveryCodeVersionError, .malformed("-1"))
+        }
+    }
+
     private func makeProtectedKey(kid: String, encryptedWith: String) -> ProtectedKey {
         ProtectedKey(kid: kid,
                      encryptedPrivateKey: "encrypted-private-key",

@@ -31,6 +31,11 @@ enum PairingV2ApplicationMessage: Equatable {
 
 enum PairingV2ProtocolVersion {
     static let current = "2"
+    static let supportedMajor = 2
+
+    static func supports(_ version: String) -> Bool {
+        SyncProtocolVersion.parseMajor(version) == supportedMajor
+    }
 }
 
 struct PairingV2QRCodePayload: Codable, Equatable {
@@ -45,27 +50,22 @@ struct PairingV2QRCodePayload: Codable, Equatable {
     }
 
     init?(url: URL) {
-        guard Self.isPairing(url: url), let fragment = URLComponents(url: url, resolvingAgainstBaseURL: false)?.fragment else {
-            return nil
-        }
-
-        let params = fragment
-            .split(separator: "&")
-            .compactMap { part -> (String, String)? in
-                let keyValue = part.split(separator: "=", maxSplits: 1).map(String.init)
-                guard keyValue.count == 2 else { return nil }
-                return (keyValue[0], keyValue[1].removingPercentEncoding ?? keyValue[1])
-            }
-
-        let dict = Dictionary(uniqueKeysWithValues: params)
-        guard let payload = dict["code2"],
-              let payloadData = Self.decodePayload(payload),
-              let decoded = try? JSONDecoder.snakeCaseKeys.decode(Self.self, from: payloadData),
-              Self.supports(version: decoded.version) else {
+        guard let decoded = Self.decodedPayload(from: url),
+              PairingV2ProtocolVersion.supports(decoded.version) else {
             return nil
         }
 
         self = decoded
+    }
+
+    static func unsupportedMajorVersion(in url: URL) -> String? {
+        guard let decoded = Self.decodedPayload(from: url),
+              let major = SyncProtocolVersion.parseMajor(decoded.version),
+              major > PairingV2ProtocolVersion.supportedMajor else {
+            return nil
+        }
+
+        return decoded.version
     }
 
     func toURL(baseURL: URL) throws -> URL {
@@ -79,6 +79,33 @@ struct PairingV2QRCodePayload: Codable, Equatable {
         url.pathComponents.contains("sync") && url.pathComponents.last == "pairing" && url.isPart(ofDomain: "duckduckgo.com")
     }
 
+    private static func decodedPayload(from url: URL) -> Self? {
+        guard Self.isPairing(url: url),
+              let fragment = URLComponents(url: url, resolvingAgainstBaseURL: false)?.fragment else {
+            return nil
+        }
+
+        let dict = Self.fragmentParameters(from: fragment)
+        guard let payload = dict["code2"],
+              let payloadData = Self.decodePayload(payload) else {
+            return nil
+        }
+
+        return try? JSONDecoder.snakeCaseKeys.decode(Self.self, from: payloadData)
+    }
+
+    private static func fragmentParameters(from fragment: String) -> [String: String] {
+        let params = fragment
+            .split(separator: "&")
+            .compactMap { part -> (String, String)? in
+                let keyValue = part.split(separator: "=", maxSplits: 1).map(String.init)
+                guard keyValue.count == 2 else { return nil }
+                return (keyValue[0], keyValue[1].removingPercentEncoding ?? keyValue[1])
+            }
+
+        return Dictionary(uniqueKeysWithValues: params)
+    }
+
     private static func decodePayload(_ value: String) -> Data? {
         if let data = Data(base64Encoded: value) {
             return data
@@ -86,9 +113,6 @@ struct PairingV2QRCodePayload: Codable, Equatable {
         return Base64URL.decode(value)
     }
 
-    private static func supports(version: String) -> Bool {
-        version == PairingV2ProtocolVersion.current
-    }
 }
 
 struct PairingV2EncryptedMessage: Codable, Equatable {

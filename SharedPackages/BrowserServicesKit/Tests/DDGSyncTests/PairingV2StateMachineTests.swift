@@ -184,6 +184,30 @@ final class PairingV2StateMachineTests: XCTestCase {
         XCTAssertEqual(stateMachine.state, .waitingForPeerStatus(.init(localClient: localClient, peerChannelID: nil)))
     }
 
+    func testWhenPresenterReceivesHelloWithNewMinorVersionThenSendsLocalRecoveryCodeStatus() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(name: "Presenter", kind: .ddg, hasAccount: true, isPresenter: true, userId: "local-user")
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key", version: "2.1")))
+
+        XCTAssertEqual(commands, [
+            .sendRecoveryCodeStatus(.recoveryCodeAvailable(name: "Presenter", kind: .ddg, userId: "local-user"))
+        ])
+        XCTAssertEqual(stateMachine.state, .waitingForPeerStatus(.init(localClient: localClient, peerChannelID: nil)))
+    }
+
+    func testWhenPresenterReceivesHelloWithMalformedVersionThenAbortsAsUnsupportedVersion() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(name: "Presenter", kind: .ddg, hasAccount: true, isPresenter: true, userId: "local-user")
+
+        _ = stateMachine.handle(.presentCodeRequested(localClient: localClient, flags: enabledFlags))
+        let commands = stateMachine.handle(.receivedHello(.init(channelId: "peer-channel", publicKey: "public-key", version: "not-a-version")))
+
+        XCTAssertEqual(commands, [.abort(.unsupportedVersion("not-a-version"))])
+        XCTAssertEqual(stateMachine.state, .failed(.unsupportedVersion("not-a-version")))
+    }
+
     func testWhenNativeWithoutAccountScansV2LinkingCodeThenSendsHelloAndRecoveryCodeRequest() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: false, isPresenter: false)
