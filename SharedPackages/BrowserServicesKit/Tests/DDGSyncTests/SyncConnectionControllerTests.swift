@@ -191,6 +191,20 @@ final class SyncConnectionControllerTests: XCTestCase {
         XCTAssertEqual(pairingInfo.toURL(baseURL: URL(string: "https://example.com")!), url)
     }
 
+    func test_startExchangeMode_whenPairingV2CodeEnabledAndPairingV2ScanningDisabled_returnsLegacyPairingInfo() async throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        dependencies.isPairingV2ScanningEnabled = { false }
+        let expectedExchangeCode = "TestExchangerCode"
+        let mockRemoteKeyExchanger: MockRemoteKeyExchanging = .init()
+        dependencies.createRemoteKeyExchangerStub = mockRemoteKeyExchanger
+        mockRemoteKeyExchanger.code = expectedExchangeCode
+
+        let pairingInfo = try await controller.startExchangeMode()
+
+        XCTAssertEqual(pairingInfo.base64Code, expectedExchangeCode)
+        XCTAssertEqual(dependencies.createPairingV2MessageExchangerCallCount, 0)
+    }
+
     @MainActor
     func test_startExchangeMode_whenPairingV2ScannerIsActive_cancelsScannerCoordinator() async throws {
         dependencies.isPairingV2CodeEnabled = { true }

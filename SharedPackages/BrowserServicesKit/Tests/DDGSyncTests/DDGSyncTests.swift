@@ -149,6 +149,18 @@ final class DDGSyncTests: XCTestCase {
         XCTAssertNoThrow(try XCTUnwrap(syncCode.recovery).defaultCredentialRecoveryKey())
     }
 
+    func testRecoveryCodeWhenPairingV2CodeIsEnabledAndPairingV2ScanningIsDisabledReturnsLegacyV1Code() throws {
+        dependencies.isPairingV2CodeEnabled = { true }
+        dependencies.isPairingV2ScanningEnabled = { false }
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+
+        let recoveryCode = try XCTUnwrap(syncService.recoveryCode)
+        let syncCode = try SyncCode.decodeBase64String(recoveryCode)
+
+        XCTAssertEqual(recoveryCode, try XCTUnwrap(SyncAccount.mock.legacyRecoveryCodeV1))
+        XCTAssertNoThrow(try XCTUnwrap(syncCode.recovery).defaultCredentialRecoveryKey())
+    }
+
     func testRecoveryCodeWhenScopedAccessCredentialsAreDisabledAndPairingV2CodeIsEnabledReturnsV2Code() throws {
         dependencies.isScopedAccessCredentialsEnabled = { false }
         dependencies.isPairingV2CodeEnabled = { true }

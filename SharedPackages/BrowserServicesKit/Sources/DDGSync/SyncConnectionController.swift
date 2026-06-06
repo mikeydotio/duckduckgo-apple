@@ -168,7 +168,7 @@ public class SyncConnectionController: SyncConnectionControlling {
     private let state = SyncConnectionState()
 
     private var isPairingV2PresentationEnabled: Bool {
-        dependencies.syncFeatureFlags.isPairingV2CodeEnabled()
+        isPairingV2ScanningEnabled && dependencies.syncFeatureFlags.isPairingV2CodeEnabled()
     }
 
     private var isPairingV2ScanningEnabled: Bool {

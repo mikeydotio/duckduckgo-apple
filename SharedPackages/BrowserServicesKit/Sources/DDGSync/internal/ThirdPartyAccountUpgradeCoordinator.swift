@@ -245,7 +245,7 @@ struct ThirdPartyAccountUpgradeCoordinator: ThirdPartyAccountUpgradeCoordinating
         do {
             try await account.logout(deviceId: thirdPartyLogin.deviceId, token: thirdPartyLogin.token)
         } catch {
-            Logger.sync.error("3party account upgrade failed to log out temporary 3party device: \(String(reflecting: error), privacy: .public)")
+            Logger.sync.error("3party account upgrade failed to log out temporary 3party device: \(String(reflecting: error))")
         }
     }
 

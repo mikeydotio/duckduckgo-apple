@@ -61,7 +61,8 @@ public class DDGSync: DDGSyncing {
     }
 
     public var recoveryCode: String? {
-        guard dependencies.syncFeatureFlags.isPairingV2CodeEnabled() else {
+        guard dependencies.syncFeatureFlags.isPairingV2ScanningEnabled(),
+              dependencies.syncFeatureFlags.isPairingV2CodeEnabled() else {
             return account?.legacyRecoveryCodeV1
         }
         return account?.recoveryCodeV2
