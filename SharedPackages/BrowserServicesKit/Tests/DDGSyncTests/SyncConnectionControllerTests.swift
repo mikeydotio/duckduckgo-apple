@@ -653,12 +653,13 @@ final class SyncConnectionControllerTests: XCTestCase {
     }
 
     private static func makeRecoveryCodeV2(credentialId: String,
-                                           secret: String = "rUzlGqLLlbonAC_zIeh1nrCmuDsDAn6UooUUDz-6x3o") throws -> String {
+                                           secret: String = "rUzlGqLLlbonAC_zIeh1nrCmuDsDAn6UooUUDz-6x3o",
+                                           version: String = SyncCode.RecoveryKeyV2.currentVersion) throws -> String {
         let payload = SyncCode.RecoveryKeyV2(
             userId: "test-user-id",
             secret: secret,
             cid: credentialId,
-            v: SyncCode.RecoveryKeyV2.currentVersion
+            v: version
         )
         return Base64URL.encode(try SyncCode(recovery: .v2(payload)).toJSON())
     }
@@ -1384,6 +1385,48 @@ final class SyncConnectionControllerTests: XCTestCase {
         XCTAssertFalse(result)
         XCTAssertFalse(mockAccountManager.loginCalled)
         XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withUnsupportedDefaultCredentialV2RecoveryCodeVersion_returnsUpdateRequired() async throws {
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential, version: "3.0")
+        let mockAccountManager = AccountManagingMock()
+        dependencies.account = mockAccountManager
+
+        let result = await controller.syncCodeEntered(code: recoveryCode, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertFalse(mockAccountManager.loginCalled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .updateRequired)
+        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? SyncCode.RecoveryCodeVersionError, .unsupported("3.0"))
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withUnsupportedDefaultCredentialV2RecoveryCodeVersionWhenPairingV2ScanningDisabled_returnsUnableToRecognizeCode() async throws {
+        dependencies.isPairingV2ScanningEnabled = { false }
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential, version: "3.0")
+        let mockAccountManager = AccountManagingMock()
+        dependencies.account = mockAccountManager
+
+        let result = await controller.syncCodeEntered(code: recoveryCode, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertFalse(mockAccountManager.loginCalled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+    }
+
+    @MainActor
+    func test_syncCodeEntered_withMalformedDefaultCredentialV2RecoveryCodeVersion_returnsUnableToRecognizeCode() async throws {
+        let recoveryCode = try Self.makeRecoveryCodeV2(credentialId: SyncCredentialID.defaultCredential, version: "invalid")
+        let mockAccountManager = AccountManagingMock()
+        dependencies.account = mockAccountManager
+
+        let result = await controller.syncCodeEntered(code: recoveryCode, canScanLegacyURLBarcodes: true, codeSource: .pastedCode)
+
+        XCTAssertFalse(result)
+        XCTAssertFalse(mockAccountManager.loginCalled)
+        XCTAssertEqual(delegate.didErrorErrors?.error, .unableToRecognizeCode)
+        XCTAssertEqual(delegate.didErrorErrors?.underlyingError as? SyncCode.RecoveryCodeVersionError, .malformed("invalid"))
     }
 
     @MainActor

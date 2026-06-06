@@ -227,7 +227,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         do {
             syncCode = try SyncCode.decodeBase64String(pairingInfo.base64Code)
         } catch {
-            await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: .receiver(.unknown, codeSource))
+            await delegate?.controllerDidError(syncCodeDecodingConnectionError(for: error), underlyingError: error, setupRole: .receiver(.unknown, codeSource))
             return false
         }
 
@@ -294,7 +294,7 @@ public class SyncConnectionController: SyncConnectionControlling {
             } catch {
                 // Very important that this returning blocks further execution as it could be a camera scanning continuously
                 // and therefore call this multiple times.
-                await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: .receiver(.unknown, codeSource))
+                await delegate?.controllerDidError(syncCodeDecodingConnectionError(for: error), underlyingError: error, setupRole: .receiver(.unknown, codeSource))
                 return false
             }
         }
@@ -391,7 +391,10 @@ public class SyncConnectionController: SyncConnectionControlling {
             await coordinator.cancel()
             return false
         } catch PairingV2MessageCryptoError.unsupportedVersion(let version) {
-            await delegate?.controllerDidError(pairingV2ConnectionError(forUnsupportedVersion: version), underlyingError: PairingV2MessageCryptoError.unsupportedVersion(version), setupRole: setupRole)
+            await delegate?.controllerDidError(
+                unsupportedVersionConnectionError(for: version, supportedMajor: PairingV2ProtocolVersion.supportedMajor),
+                underlyingError: PairingV2MessageCryptoError.unsupportedVersion(version),
+                setupRole: setupRole)
             await coordinator.cancel()
             return false
         } catch let error as PairingV2MessageCryptoError {
@@ -444,7 +447,10 @@ public class SyncConnectionController: SyncConnectionControlling {
                 await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: nil, setupRole: setupRole)
                 await coordinator.cancel()
             } catch PairingV2MessageCryptoError.unsupportedVersion(let version) {
-                await delegate?.controllerDidError(pairingV2ConnectionError(forUnsupportedVersion: version), underlyingError: PairingV2MessageCryptoError.unsupportedVersion(version), setupRole: setupRole)
+                await delegate?.controllerDidError(
+                    unsupportedVersionConnectionError(for: version, supportedMajor: PairingV2ProtocolVersion.supportedMajor),
+                    underlyingError: PairingV2MessageCryptoError.unsupportedVersion(version),
+                    setupRole: setupRole)
                 await coordinator.cancel()
             } catch let error as PairingV2MessageCryptoError {
                 await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: setupRole)
@@ -686,7 +692,7 @@ public class SyncConnectionController: SyncConnectionControlling {
         case .recoveryCodeDenied, .recoveryCodeUnavailable:
             return .syncCancelledFromOtherDevice
         case .unsupportedVersion(let version):
-            return pairingV2ConnectionError(forUnsupportedVersion: version)
+            return unsupportedVersionConnectionError(for: version, supportedMajor: PairingV2ProtocolVersion.supportedMajor)
         case .v2ScanningDisabled, .unknownCode, .unsupportedFlow:
             return .unableToRecognizeCode
         case .incompatibleRecoveryCode(let scanningKind, let codeKind):
@@ -702,9 +708,20 @@ public class SyncConnectionController: SyncConnectionControlling {
         }
     }
 
-    private func pairingV2ConnectionError(forUnsupportedVersion version: String) -> SyncConnectionError {
+    private func syncCodeDecodingConnectionError(for error: Error) -> SyncConnectionError {
+        guard let error = error as? SyncCode.RecoveryCodeVersionError,
+              case .unsupported(let version) = error else {
+            return .unableToRecognizeCode
+        }
+        guard isPairingV2ScanningEnabled else {
+            return .unableToRecognizeCode
+        }
+        return unsupportedVersionConnectionError(for: version, supportedMajor: SyncCode.Recovery.supportedMajor)
+    }
+
+    private func unsupportedVersionConnectionError(for version: String, supportedMajor: Int) -> SyncConnectionError {
         guard let major = SyncProtocolVersion.parseMajor(version),
-              major > PairingV2ProtocolVersion.supportedMajor else {
+              major > supportedMajor else {
             return .unableToRecognizeCode
         }
         return .updateRequired
