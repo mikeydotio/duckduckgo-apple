@@ -119,6 +119,42 @@
         }
       }
     },
+    "alert.sync-already-paired-with-account-button" : {
+      "comment" : "Button title for Sync error shown when both devices are already paired with the same account",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Got It"
+          }
+        }
+      }
+    },
+    "alert.sync-already-paired-with-account-description" : {
+      "comment" : "Description for Sync error shown when both devices are already paired with the same account",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You're already paired with this account on both devices."
+          }
+        }
+      }
+    },
+    "alert.sync-already-paired-with-account-title" : {
+      "comment" : "Title for Sync error shown when both devices are already paired with the same account",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Already Paired"
+          }
+        }
+      }
+    },
     "alert.sync-cancelled-from-other-device-button" : {
       "comment" : "Button title for Sync error shown when setup is canceled from the other device",
       "extractionState" : "extracted_with_value",
@@ -155,20 +191,8 @@
         }
       }
     },
-    "alert.sync-code-must-be-scanned-with-duckduckgo-description" : {
-      "comment" : "Description for Sync error shown when a code must be scanned with DuckDuckGo",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Please scan this code with the DuckDuckGo browser."
-          }
-        }
-      }
-    },
     "alert.sync-code-only-compatible-with-duckai-description" : {
-      "comment" : "Description for Sync error shown when a code can only be used with Duck.ai",
+      "comment" : "Description for Sync error shown when a third-party recovery code can only be used with Duck.ai",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -360,7 +384,7 @@
       }
     },
     "alert.sync-from-another-connected-device-description" : {
-      "comment" : "Description for Sync error shown when the current device already has native credentials",
+      "comment" : "Description for Sync error shown when a third-party account already has a native DuckDuckGo Sync credential",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {

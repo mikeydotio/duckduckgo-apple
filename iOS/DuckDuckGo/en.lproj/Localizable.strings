@@ -274,6 +274,15 @@
 /* No comment provided by engineer. */
 "alert.message.bookmarkAll" = "Existing bookmarks will not be duplicated.";
 
+/* Button title for Sync error shown when both devices are already paired with the same account */
+"alert.sync-already-paired-with-account-button" = "Got It";
+
+/* Description for Sync error shown when both devices are already paired with the same account */
+"alert.sync-already-paired-with-account-description" = "You're already paired with this account on both devices.";
+
+/* Title for Sync error shown when both devices are already paired with the same account */
+"alert.sync-already-paired-with-account-title" = "Already Paired";
+
 /* Description for alert shown when sync error occurs because of bad bookmarks data */
 "alert.sync-bookmarks-bad-data-error-description" = "Some bookmarks are formatted incorrectly or too long and were not synced.";
 
@@ -292,10 +301,7 @@
 /* Title for Sync error shown when setup is canceled from the other device */
 "alert.sync-cancelled-from-other-device-title" = "Sync canceled from your other device.";
 
-/* Description for Sync error shown when a code must be scanned with DuckDuckGo */
-"alert.sync-code-must-be-scanned-with-duckduckgo-description" = "Please scan this code with the DuckDuckGo browser.";
-
-/* Description for Sync error shown when a code can only be used with Duck.ai */
+/* Description for Sync error shown when a third-party recovery code can only be used with Duck.ai */
 "alert.sync-code-only-compatible-with-duckai-description" = "This code is only compatible with Duck.ai website.";
 
 /* Description for alert shown when sync error occurs because of bad credentials data */
@@ -322,7 +328,7 @@
 /* Sync error alert action button title, takes the user to the sync settings page. */
 "alert.sync-error-action" = "Sync Settings";
 
-/* Description for Sync error shown when the current device already has native credentials */
+/* Description for Sync error shown when a third-party account already has a native DuckDuckGo Sync credential */
 "alert.sync-from-another-connected-device-description" = "Please Sync this device from an already-connected DuckDuckGo browser on another device.";
 
 /* Description for alert shown when user logged off from sync */
