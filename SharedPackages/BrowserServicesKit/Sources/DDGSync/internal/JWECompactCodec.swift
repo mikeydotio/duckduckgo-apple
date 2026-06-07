@@ -319,4 +319,3 @@ private struct CompactTokenComponents {
     let ciphertext: Data
     let authenticationTag: Data
 }
-

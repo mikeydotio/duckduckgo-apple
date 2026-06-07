@@ -527,11 +527,11 @@ extension SyncSettingsViewController: ScanOrPasteCodeViewModelDelegate {
         return await connectionController.syncCodeEntered(code: code, canScanLegacyURLBarcodes: featureFlagger.isFeatureOn(.canScanUrlBasedSyncSetupBarcodes), codeSource: codeSource)
     }
 
-    func dismissVCAndShowRecoveryPDF() {
+    @objc func dismissVCAndShowRecoveryPDF() {
         self.navigationController?.topViewController?.dismiss(animated: true, completion: self.showRecoveryPDF)
     }
 
-    func dismissVCAndShowDeviceSyncedToast() {
+    @objc func dismissVCAndShowDeviceSyncedToast() {
         self.navigationController?.topViewController?.dismiss(animated: true) {
             self.enableAutoRestoreByDefaultIfNeeded()
             ActionMessageView.present(message: UserText.simplifiedDeviceSyncedSuccessfullyToast)
