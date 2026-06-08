@@ -766,6 +766,19 @@ final class PairingV2StateMachineTests: XCTestCase {
         )
     }
 
+    func testWhenHostRecoveryCodePreparationFailsThenHostSendsUnavailableAndAborts() {
+        var stateMachine = PairingV2StateMachine()
+        let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: false)
+
+        _ = stateMachine.handle(.scannedCode(.v2Linking(peerChannelID: "channel-1", localChannelID: "local-channel"), localClient: localClient, flags: enabledFlags))
+        _ = stateMachine.handle(.receivedPeerStatus(.recoveryCodeRequest(kind: .thirdParty)))
+        _ = stateMachine.handle(.hostConfirmationAccepted)
+        let commands = stateMachine.handle(.failed(.recoveryCodePreparationFailed))
+
+        XCTAssertEqual(commands, [.sendRecoveryCodeUnavailable, .abort(.recoveryCodePreparationFailed)])
+        XCTAssertEqual(stateMachine.state, .failed(.recoveryCodePreparationFailed))
+    }
+
     func testWhenKnownRecoveryCodeMessageArrivesWhilePresenterWaitsForHelloThenFlowAbortsAsUnexpected() {
         var stateMachine = PairingV2StateMachine()
         let localClient = makeLocalClient(kind: .ddg, hasAccount: true, isPresenter: true)

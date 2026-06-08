@@ -154,6 +154,7 @@ enum PairingV2Command: Equatable {
     case sendRecoveryCodeAwaitingConfirmation
     case sendRecoveryCodeConfirmed
     case sendRecoveryCodeDenied
+    case sendRecoveryCodeUnavailable
     case requestHostConfirmation(peerName: String?, peerKind: PairingV2DeviceKind)
     case requestJoinerConfirmation(peerName: String?, peerKind: PairingV2DeviceKind)
     case prepareRecoveryCode(credentialKind: PairingV2DeviceKind, purpose: String)
@@ -561,8 +562,14 @@ struct PairingV2StateMachine {
     }
 
     private mutating func fail(with error: PairingV2Error) -> [PairingV2Command] {
+        let commands: [PairingV2Command]
+        if case .hostPreparingRecoveryCode = state, error == .recoveryCodePreparationFailed {
+            commands = [.sendRecoveryCodeUnavailable, .abort(error)]
+        } else {
+            commands = [.abort(error)]
+        }
         state = .failed(error)
-        return [.abort(error)]
+        return commands
     }
 
     private static func localRecoveryCodeStatus(for localClient: PairingV2LocalClient) -> PairingV2PeerStatus {

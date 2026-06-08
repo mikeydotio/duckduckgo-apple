@@ -392,6 +392,54 @@ final class PairingV2CoordinatorTests: XCTestCase {
         )
     }
 
+    func testWhenPresenterCannotPrepareThirdPartyRecoveryCodeThenSendsRecoveryCodeUnavailableAndStops() async throws {
+        let dependencies = MockSyncDependencies()
+        try dependencies.secureStore.persistAccount(SyncAccount.mock)
+        let scopedAccess = try XCTUnwrap(dependencies.scopedAccess as? ScopedAccessCredentialManagingMock)
+        scopedAccess.ensureThirdPartyScopedPasswordError = SyncError.failedToEncryptValue("test failure")
+        let syncService = DDGSync(dataProvidersSource: MockDataProvidersSource(), dependencies: dependencies)
+        let messageExchanger = PairingV2MessageExchangingMock()
+        let messageCrypto = PairingV2MessageCrypto()
+        let peerKeyPair = try PairingV2KeyPairFactory.makeKeyPair(channelID: "peer-channel")
+        let confirmationDelegate = PairingV2ConfirmationDelegateMock()
+        let coordinator = makeCoordinator(syncService: syncService,
+                                          messageExchanger: messageExchanger,
+                                          messageCrypto: messageCrypto,
+                                          confirmationDelegate: confirmationDelegate)
+
+        let payload = try await coordinator.startPresenting()
+        messageExchanger.fetchMessagesStub = try encryptedPeerMessages(
+            [
+                .hello(.init(channelId: peerKeyPair.channelID, publicKey: peerKeyPair.publicKey)),
+                .recoveryCodeRequest(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeRequest,
+                                           name: "Peer",
+                                           kind: .thirdParty))
+            ],
+            recipientPublicKey: payload.publicKey,
+            peerKeyPair: peerKeyPair,
+            messageCrypto: messageCrypto
+        )
+
+        do {
+            try await coordinator.pollOnce()
+            XCTFail("Expected PairingV2Error.recoveryCodePreparationFailed")
+        } catch PairingV2Error.recoveryCodePreparationFailed {
+        } catch {
+            XCTFail("Expected PairingV2Error.recoveryCodePreparationFailed, got \(error)")
+        }
+
+        XCTAssertEqual(coordinator.state, .failed(.recoveryCodePreparationFailed))
+        XCTAssertEqual(messageExchanger.closeChannelCalls, [payload.channelId])
+        XCTAssertEqual(
+            try decryptSentMessage(at: 2, from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto),
+            .recoveryCodeConfirmed(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeConfirmed))
+        )
+        XCTAssertEqual(
+            try decryptSentMessage(at: 3, from: messageExchanger, peerPrivateKey: peerKeyPair.privateKey, messageCrypto: messageCrypto),
+            .recoveryCodeUnavailable(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeUnavailable))
+        )
+    }
+
     func testWhenPresenterHostConfirmationIsDeniedThenSendsRecoveryCodeDeniedAndStops() async throws {
         let dependencies = MockSyncDependencies()
         try dependencies.secureStore.persistAccount(SyncAccount.mock)

@@ -251,6 +251,9 @@ final class PairingV2Coordinator {
         case .sendRecoveryCodeDenied:
             try await send(.recoveryCodeDenied(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeDenied)))
 
+        case .sendRecoveryCodeUnavailable:
+            try await send(.recoveryCodeUnavailable(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeUnavailable)))
+
         case .requestHostConfirmation(let peerName, let peerKind):
             guard let confirmationDelegate else {
                 try await execute(stateMachine.handle(.hostConfirmationDenied))
@@ -274,7 +277,11 @@ final class PairingV2Coordinator {
             do {
                 recoveryCode = try await prepareRecoveryCode(credentialKind: credentialKind, purpose: purpose)
             } catch {
-                try await execute(stateMachine.handle(.failed(.recoveryCodePreparationFailed)))
+                do {
+                    try await execute(stateMachine.handle(.failed(.recoveryCodePreparationFailed)))
+                } catch {
+                    await closeLocalChannel()
+                }
                 throw PairingV2Error.recoveryCodePreparationFailed
             }
             try await execute(stateMachine.handle(.recoveryCodePrepared(recoveryCode)))
