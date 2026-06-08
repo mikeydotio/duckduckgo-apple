@@ -992,7 +992,11 @@ extension LegacySyncPreferences: SyncConnectionControllerDelegate {
     private func confirmPairingV2Peer(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool {
         let peerName = pairingV2DisplayName(for: peerName)
         let message = UserText.syncPairingV2ConfirmationMessage(peerName, isThirdPartyPeer: peerKind == .thirdParty)
-        return await showPairingV2Confirmation(message: message)
+        let isConfirmed = await showPairingV2Confirmation(message: message)
+        if !isConfirmed {
+            managementDialogModel.endFlow()
+        }
+        return isConfirmed
     }
 
     private func pairingV2DisplayName(for peerName: String?) -> String {

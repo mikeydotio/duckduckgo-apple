@@ -619,15 +619,28 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
     }
 
     func controllerShouldAllowPairingV2PeerToJoin(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool {
-        let peerName = peerName ?? UserText.syncPairingV2UnknownPeerName
-        let message = UserText.syncPairingV2ConfirmationMessage(peerName, isThirdPartyPeer: peerKind == .thirdParty)
-        return await showPairingV2Confirmation(message: message)
+        await confirmPairingV2Peer(peerName: peerName, peerKind: peerKind)
     }
 
     func controllerShouldJoinPairingV2Peer(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool {
-        let peerName = peerName ?? UserText.syncPairingV2UnknownPeerName
+        await confirmPairingV2Peer(peerName: peerName, peerKind: peerKind)
+    }
+
+    private func confirmPairingV2Peer(peerName: String?, peerKind: PairingV2DeviceKind) async -> Bool {
+        let peerName = pairingV2DisplayName(for: peerName)
         let message = UserText.syncPairingV2ConfirmationMessage(peerName, isThirdPartyPeer: peerKind == .thirdParty)
-        return await showPairingV2Confirmation(message: message)
+        let isConfirmed = await showPairingV2Confirmation(message: message)
+        if !isConfirmed {
+            managementDialogModel.endFlow()
+        }
+        return isConfirmed
+    }
+
+    private func pairingV2DisplayName(for peerName: String?) -> String {
+        guard let peerName = peerName?.trimmingCharacters(in: .whitespacesAndNewlines), !peerName.isEmpty else {
+            return UserText.syncPairingV2UnknownPeerName
+        }
+        return peerName
     }
 
     func controllerDidCreateSyncAccount(shouldShowSyncEnabled: Bool) {
