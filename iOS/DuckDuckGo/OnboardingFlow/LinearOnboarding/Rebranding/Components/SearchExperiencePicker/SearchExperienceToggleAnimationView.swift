@@ -32,7 +32,7 @@ import UIKit
 ///  - **Coloured layer** (fades in when `isDuckAISelected` is `true`): the highlighted version.
 ///
 /// Both layers run the same loop sequence simultaneously so they stay perfectly in sync:
-///  1. 2-second initial delay before the first play.
+///  1. 4-second initial delay before the first play (accounts for screen reveal animation).
 ///  2. Play forward (frames 1 → 50): toggle switches to AI Chat.
 ///  3. 2.5-second pause.
 ///  4. Play in reverse (frames 50 → 1): toggle switches back to Search.
@@ -76,7 +76,7 @@ final class SearchExperienceToggleUIView: UIView {
 
     private enum Timing {
         /// Delay before the very first loop play after the view appears.
-        static let initialDelay: TimeInterval = 2.0
+        static let initialDelay: TimeInterval = 4.0
         /// Pause between the forward play and the reverse play within a single cycle.
         static let pauseAfterForward: TimeInterval = 2.5
         /// Pause after the reverse play before the next cycle starts.
