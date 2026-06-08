@@ -37,7 +37,7 @@ extension OnboardingView {
         static let queryFieldTopPadding: CGFloat = -12
         static let queryFieldContentSpacing: CGFloat = 8
         static let queryFieldHorizontalPadding: CGFloat = 16
-        static let queryFieldVerticalPadding: CGFloat = 16.33
+        static let queryFieldVerticalPadding: CGFloat = 7
         static let disabledPrimaryActionOpacity: CGFloat = 0.3
 
         // MARK: Sizing
@@ -70,7 +70,7 @@ extension OnboardingView {
 
         // MARK: Offset
         static let queryFieldActionOffsetX: CGFloat = 2.33
-        static let queryFieldActionOffsetY: CGFloat = 1
+        static let queryFieldActionOffsetY: CGFloat = 0
     }
 
     struct DuckAIExperimentSearchContent: View {
@@ -117,7 +117,7 @@ extension OnboardingView {
                 unselectedImage: Image(uiImage: DesignSystemImages.Glyphs.Size16.findSearch)
             ),
             ImageSegmentedPickerItem(
-                text: UserText.Onboarding.DuckAIQueryExperiment.toggleAILabel,
+                text: UserText.Onboarding.DuckAIQuery.toggleAILabel,
                 selectedImage: Image(uiImage: DesignSystemImages.Glyphs.Size16.aiChatGradientColor),
                 unselectedImage: Image(uiImage: DesignSystemImages.Glyphs.Size16.aiChat)
             )
@@ -125,9 +125,9 @@ extension OnboardingView {
 
         init(
             content: OnboardingDuckAIQueryContent = .init(
-                title: UserText.Onboarding.DuckAIQueryExperiment.title,
-                searchPlaceholder: UserText.Onboarding.DuckAIQueryExperiment.searchPlaceholder,
-                aiPlaceholder: UserText.Onboarding.DuckAIQueryExperiment.aiPlaceholder,
+                title: UserText.Onboarding.DuckAIQuery.title,
+                searchPlaceholder: UserText.Onboarding.DuckAIQuery.searchPlaceholder,
+                aiPlaceholder: UserText.Onboarding.DuckAIQuery.aiPlaceholder,
                 isToggleVisible: true
             ),
             defaultMode: DuckAIQueryMode,
@@ -498,6 +498,9 @@ extension OnboardingView {
 
 // MARK: - OnboardingQueryField
 private struct OnboardingQueryField: UIViewRepresentable {
+    private static let singleLineTopInset: CGFloat = 4.0 / 3.0
+    private static let multiLineTopInset: CGFloat = 9.0 / 3.0
+
     @Binding var text: String
     let placeholder: String
     @Binding var isFocused: Bool
@@ -554,6 +557,16 @@ private struct OnboardingQueryField: UIViewRepresentable {
         if context.coordinator.isSingleLine != isSingleLine {
             context.coordinator.isSingleLine = isSingleLine
             applyModeConfiguration(to: textView, isSingleLine: isSingleLine, context: context)
+        }
+
+        // Adjust UITextView‘s single-line and multiline text offset to match
+        // when switching between Search and Ask AI modes
+        let topInset = isSingleLine ? Self.singleLineTopInset : Self.multiLineTopInset
+
+        UIView.performWithoutAnimation {
+            textView.textContainerInset = UIEdgeInsets(top: topInset, left: 0, bottom: 0, right: 0)
+            context.coordinator.placeholderTopConstraint?.constant = topInset
+            textView.layoutIfNeeded()
         }
 
         if isFocused {
