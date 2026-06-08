@@ -70,7 +70,7 @@ extension OnboardingView {
 
         // MARK: Offset
         static let queryFieldActionOffsetX: CGFloat = 2.33
-        static let queryFieldActionOffsetY: CGFloat = 1
+        static let queryFieldActionOffsetY: CGFloat = 0
     }
 
     struct DuckAIExperimentSearchContent: View {
