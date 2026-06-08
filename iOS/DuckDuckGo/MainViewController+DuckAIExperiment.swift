@@ -171,7 +171,12 @@ extension MainViewController {
         // The experiment path skips fireButtonPulseStarted() so no timer auto-hides the highlight.
         // Dismiss it explicitly now that the fire step is complete.
         ViewHighlighter.hideAll()
-        daxDialogsManager.setAsChatFirstPath()
+        // The tracker-blocking demo post-fire sequence (visit-site -> tracker-blocked -> EOJ) is
+        // feature-flagged. When enabled, mark this as a chat-first path so DaxDialogs drives that
+        // sequence. When disabled, fall back to the standard contextual dialog flow.
+        if featureFlagger.isFeatureOn(.onboardingDuckAIQueryTrackersDemoExperiment) {
+            daxDialogsManager.setAsChatFirstPath()
+        }
         daxDialogsManager.setFireEducationMessageSeen()
         setExperimentFireControlsLocked(false)
         if !aiChatSettings.isAIChatSearchInputUserSettingsEnabled {
