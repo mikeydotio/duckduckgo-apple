@@ -62,6 +62,8 @@ final class AIChatTabChatHeaderView: UIView {
         /// title slot rather than flashing "Free Plan" before flipping to "Duck.ai".
         var isSubscriptionActive: Bool?
         var isVoiceSessionActive: Bool = false
+        /// Hides the free/upgrade title during the Duck.ai fire onboarding step.
+        var isOnboardingLocked: Bool = false
     }
 
     private var state = ViewState() {
@@ -372,11 +374,13 @@ final class AIChatTabChatHeaderView: UIView {
         chatListButtonPill.alpha = dimmedAlpha
         rightPairPill.alpha = dimmedAlpha
         titleContainer.alpha = dimmedAlpha
+        state.isOnboardingLocked = locked
         updateButtonShadows()
     }
 
     private func applyState() {
-        titleContainer.isHidden = state.isSubscriptionActive != false
+        // During fire onboarding, hide the free/upgrade title to avoid distraction.
+        titleContainer.isHidden = state.isOnboardingLocked || state.isSubscriptionActive != false
         paidTitleStack.isHidden = state.isSubscriptionActive != true
         let voiceActive = state.isVoiceSessionActive
         titleHolder.isHidden = voiceActive
