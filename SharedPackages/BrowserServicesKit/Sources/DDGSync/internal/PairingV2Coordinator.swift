@@ -47,6 +47,7 @@ final class PairingV2Coordinator {
     private var consecutiveUnavailablePollCount = 0
     private(set) var completedRegisteredDevices: [RegisteredDevice]?
     private(set) var pendingRecoveryKey: SyncCode.RecoveryKey?
+    private(set) var recoveryCodePreparationFailureError: Error?
 
     init(syncService: DDGSyncing,
          messageExchanger: PairingV2MessageExchanging,
@@ -84,6 +85,7 @@ final class PairingV2Coordinator {
         peerPublicKey = nil
         lastProcessedSequence = 0
         consecutiveUnavailablePollCount = 0
+        recoveryCodePreparationFailureError = nil
         debugSummary("* local channel \(keyPair.channelID)")
 
         let commands = stateMachine.handle(
@@ -108,6 +110,7 @@ final class PairingV2Coordinator {
         peerPublicKey = qrPayload.publicKey
         lastProcessedSequence = 0
         consecutiveUnavailablePollCount = 0
+        recoveryCodePreparationFailureError = nil
         debugSummary("* local channel \(keyPair.channelID)")
 
         let commands = stateMachine.handle(
@@ -206,7 +209,7 @@ final class PairingV2Coordinator {
         case .hello(let message):
             if shouldRejectRedundantHello(message, stateBeforeMessage: stateBeforeMessage) {
                 debugSummary("* redundant hello rejected: does not match scanned code")
-                commands = stateMachine.handle(.failed(.unexpectedEvent("redundant hello did not match scanned Pairing V2 code")))
+                commands = stateMachine.handle(.failed(.unexpectedEvent(.helloAfterPeerStatus)))
             } else {
                 if isRedundantHelloFromScannedPeer(message, stateBeforeMessage: stateBeforeMessage) {
                     debugSummary("* redundant hello accepted: matches scanned code")
@@ -309,6 +312,9 @@ final class PairingV2Coordinator {
         case .sendRecoveryCodeDenied:
             try await send(.recoveryCodeDenied(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeDenied)))
 
+        case .sendRecoveryCodeUnavailable:
+            try await send(.recoveryCodeUnavailable(.init(type: PairingV2ApplicationMessage.MessageType.recoveryCodeUnavailable)))
+
         case .requestHostConfirmation(let peerName, let peerKind):
             guard let confirmationDelegate else {
                 debugSummary("* no confirmation delegate; denying host confirmation")
@@ -336,6 +342,8 @@ final class PairingV2Coordinator {
             do {
                 recoveryCode = try await prepareRecoveryCode(credentialKind: credentialKind, purpose: purpose)
             } catch {
+                recoveryCodePreparationFailureError = error
+                debugSummary("* recovery code preparation failed: \(error.localizedDescription)")
                 try await execute(stateMachine.handle(.failed(.recoveryCodePreparationFailed)))
                 throw PairingV2Error.recoveryCodePreparationFailed
             }
@@ -427,15 +435,27 @@ final class PairingV2Coordinator {
     }
 
     private func prepareRecoveryCode(credentialKind: PairingV2DeviceKind, purpose: String) async throws -> String {
-        try await ensureSyncAccountExists(credentialKind: credentialKind)
+        do {
+            try await ensureSyncAccountExists(credentialKind: credentialKind)
+        } catch {
+            debugSummary("* failed to create sync account before recovery code preparation: \(String(reflecting: error))")
+            throw error
+        }
 
         switch credentialKind {
         case .thirdParty:
-            let recoveryCode = try await syncService.prepareThirdPartyRecoveryCode(purpose: purpose)
+            let recoveryCode: String
+            do {
+                recoveryCode = try await syncService.prepareThirdPartyRecoveryCode(purpose: purpose)
+            } catch {
+                debugSummary("* failed to prepare third-party recovery code: \(String(reflecting: error))")
+                throw error
+            }
             debugSummary("* prepared \(credentialKind.rawValue) recovery code")
             return recoveryCode
         case .ddg:
             guard let account = syncService.account, let recoveryCode = account.recoveryCodeV2 else {
+                debugSummary("* default recovery code unavailable")
                 throw SyncError.invalidRecoveryKey
             }
             debugSummary("* using native recovery code")
@@ -521,6 +541,8 @@ final class PairingV2Coordinator {
             return "send recovery_code_confirmed"
         case .sendRecoveryCodeDenied:
             return "send recovery_code_denied"
+        case .sendRecoveryCodeUnavailable:
+            return "send recovery_code_unavailable"
         case .requestHostConfirmation:
             return "request host confirmation"
         case .requestJoinerConfirmation:

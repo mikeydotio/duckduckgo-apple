@@ -384,7 +384,9 @@ public class SyncConnectionController: SyncConnectionControlling {
             guard error != .cancelled else {
                 return false
             }
-            await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: nil, setupRole: setupRole)
+            await delegate?.controllerDidError(pairingV2ConnectionError(for: error),
+                                               underlyingError: pairingV2DiagnosticUnderlyingError(for: error, coordinator: coordinator),
+                                               setupRole: setupRole)
             await coordinator.cancel()
             return false
         } catch let error as PairingV2MessageCryptoError {
@@ -427,7 +429,9 @@ public class SyncConnectionController: SyncConnectionControlling {
                 guard error != .cancelled else {
                     return
                 }
-                await delegate?.controllerDidError(pairingV2ConnectionError(for: error), underlyingError: error, setupRole: setupRole)
+                await delegate?.controllerDidError(pairingV2ConnectionError(for: error),
+                                                   underlyingError: pairingV2DiagnosticUnderlyingError(for: error, coordinator: coordinator) ?? error,
+                                                   setupRole: setupRole)
                 await coordinator.cancel()
             } catch let error as PairingV2MessageCryptoError {
                 await delegate?.controllerDidError(.unableToRecognizeCode, underlyingError: error, setupRole: setupRole)
@@ -675,10 +679,6 @@ public class SyncConnectionController: SyncConnectionControlling {
         await delegate?.controllerWillPerformServerSyncOperation(setupRole: setupRole) ?? true
     }
 
-    private var isPairingV2PresentationEnabled: Bool {
-        dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2CodeEnabled()
-    }
-
     private func makePairingV2Coordinator() -> PairingV2Coordinator {
         let isPairingV2ScanningEnabled = dependencies.syncFeatureFlags.isScopedAccessCredentialsEnabled() && dependencies.syncFeatureFlags.isPairingV2ScanningEnabled()
         return PairingV2Coordinator(
@@ -720,6 +720,13 @@ public class SyncConnectionController: SyncConnectionControlling {
             return .unableToRecognizeCode
         }
         return .updateRequired
+    }
+
+    private func pairingV2DiagnosticUnderlyingError(for error: PairingV2Error, coordinator: PairingV2Coordinator) -> Error? {
+        guard error == .recoveryCodePreparationFailed else {
+            return nil
+        }
+        return coordinator.recoveryCodePreparationFailureError
     }
 
 }

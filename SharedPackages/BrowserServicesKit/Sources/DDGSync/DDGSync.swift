@@ -293,13 +293,31 @@ public class DDGSync: DDGSyncing {
     }
 
     public func prepareThirdPartyRecoveryCode(purpose: String) async throws -> String {
-        guard let account else {
-            throw SyncError.accountNotFound
+        let account: SyncAccount
+        do {
+            guard let storedAccount = try dependencies.secureStore.account() else {
+                throw SyncError.accountNotFound
+            }
+            account = storedAccount
+        } catch {
+            throw ThirdPartyScopedPasswordPreparationError(stage: .accountUnavailableForThirdPartyRecoveryCode,
+                                                           underlyingError: error)
         }
 
         do {
-            let scopedPassword = try await ensureThirdPartyScopedPassword(for: account, purpose: purpose)
-            let code = try makeThirdPartyRecoveryCode(account: account, scopedPassword: scopedPassword)
+            let scopedPassword: Data
+            do {
+                scopedPassword = try await ensureThirdPartyScopedPassword(for: account, purpose: purpose)
+            } catch {
+                throw preparationError(stage: .ensureThirdPartyScopedPasswordForRecoveryCode, underlyingError: error)
+            }
+
+            let code: String
+            do {
+                code = try makeThirdPartyRecoveryCode(account: account, scopedPassword: scopedPassword)
+            } catch {
+                throw ThirdPartyScopedPasswordPreparationError(stage: .makeThirdPartyRecoveryCode, underlyingError: error)
+            }
             cacheScopedPasswordInBackground(scopedPassword)
             return code
         } catch {
@@ -802,7 +820,8 @@ public class DDGSync: DDGSyncing {
 
     private func handleUnauthenticatedAndMap(_ error: Error,
                                              policy: UnauthenticatedHandling = .logoutOn401) -> Error {
-        guard let syncError = error as? SyncError,
+        let mappedSyncError = syncError(from: error)
+        guard let syncError = mappedSyncError,
               case .unexpectedStatusCode(let statusCode) = syncError,
               statusCode == 401 else {
             return error
@@ -812,17 +831,40 @@ public class DDGSync: DDGSyncing {
             return error
         }
 
+        let originalError = error
         do {
             try removeAccount(reason: .unauthenticatedRequest)
-            throw SyncError.unauthenticatedWhileLoggedIn
         } catch {
             Logger.sync.error("Failed to delete account upon unauthenticated server response: \(error.localizedDescription, privacy: .public)")
+            if originalError is ThirdPartyScopedPasswordPreparationError {
+                return originalError
+            }
             if error is SyncError {
                 return error
-            } else {
-                return SyncError.failedToRemoveAccount
             }
+            return SyncError.failedToRemoveAccount
         }
+        if originalError is ThirdPartyScopedPasswordPreparationError {
+            return originalError
+        }
+        return SyncError.unauthenticatedWhileLoggedIn
+    }
+
+    private func syncError(from error: Error) -> SyncError? {
+        if let syncError = error as? SyncError {
+            return syncError
+        }
+        if let error = error as? ThirdPartyScopedPasswordPreparationError {
+            return error.underlyingSyncError
+        }
+        return nil
+    }
+
+    private func preparationError(stage: ThirdPartyScopedPasswordPreparationStage, underlyingError: Error) -> Error {
+        if let error = underlyingError as? ThirdPartyScopedPasswordPreparationError {
+            return error
+        }
+        return ThirdPartyScopedPasswordPreparationError(stage: stage, underlyingError: underlyingError)
     }
 
     private var startSyncCancellable: AnyCancellable?
