@@ -170,6 +170,7 @@ class MainViewController: UIViewController {
     let bookmarksDatabase: CoreDataDatabase
     private var favoritesViewModel: FavoritesListInteracting
     let syncService: DDGSyncing
+    let aiChatSyncCleaner: AIChatSyncCleaning?
     let syncDataProviders: SyncDataProviders
     let syncPausedStateManager: any SyncPausedStateManaging
 
@@ -357,6 +358,7 @@ class MainViewController: UIViewController {
         featureFlagger: featureFlagger,
         privacyConfigurationManager: privacyConfigurationManager,
         aiChatSettings: aiChatSettings,
+        aiChatSyncCleaner: aiChatSyncCleaner,
         iPadTabFeature: aichatIPadTabFeature,
         duckAiNativeStorageHandler: duckAiNativeStorageHandler
     )
@@ -414,6 +416,7 @@ class MainViewController: UIViewController {
         appDidFinishLaunchingStartTime: CFAbsoluteTime?,
         maliciousSiteProtectionPreferencesManager: MaliciousSiteProtectionPreferencesManaging,
         aiChatSettings: AIChatSettingsProvider,
+        aiChatSyncCleaner: AIChatSyncCleaning? = nil,
         aiChatAddressBarExperience: AIChatAddressBarExperienceProviding,
         experimentalAIChatManager: ExperimentalAIChatManager = ExperimentalAIChatManager(),
         featureDiscovery: FeatureDiscovery = DefaultFeatureDiscovery(wasUsedBeforeStorage: UserDefaults.standard),
@@ -458,6 +461,7 @@ class MainViewController: UIViewController {
         self.historyManager = historyManager
         self.homePageConfiguration = homePageConfiguration
         self.syncService = syncService
+        self.aiChatSyncCleaner = aiChatSyncCleaner
         self.syncDataProviders = syncDataProviders
         self.userScriptsDependencies = userScriptsDependencies
         self.contentBlockingAssetsPublisher = contentBlockingAssetsPublisher
@@ -625,6 +629,7 @@ class MainViewController: UIViewController {
 
         viewCoordinator = MainViewFactory.createViewHierarchy(self,
                                                               aiChatSettings: aiChatSettings,
+                                                              aiChatSyncCleaner: aiChatSyncCleaner,
                                                               aiChatAddressBarExperience: aiChatAddressBarExperience,
                                                               voiceSearchHelper: voiceSearchHelper,
                                                               featureFlagger: featureFlagger,
@@ -812,6 +817,7 @@ class MainViewController: UIViewController {
                                                       featureFlagger: featureFlagger,
                                                       aichatIPadTabFeature: aichatIPadTabFeature,
                                                       aiChatSettings: aiChatSettings,
+                                                      aiChatSyncCleaner: aiChatSyncCleaner,
                                                       aiChatAddressBarExperience: aiChatAddressBarExperience,
                                                       appSettings: appSettings,
                                                       daxEasterEggPresenter: daxEasterEggPresenter,
