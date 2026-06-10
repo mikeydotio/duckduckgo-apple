@@ -4835,6 +4835,10 @@ extension MainViewController: AutocompleteViewControllerDelegate {
         handleSuggestionSelected(suggestion)
     }
 
+    func autocomplete(deletedSuggestion suggestion: Suggestion) {
+        // NO-OP
+    }
+
     func autocomplete(pressedPlusButtonForSuggestion suggestion: Suggestion) {
         switch suggestion {
         case .phrase(phrase: let phrase), .askAIChat(let phrase):
