@@ -179,11 +179,27 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(notificationCenter.addedRequests.count, 1)
         let request = try XCTUnwrap(notificationCenter.addedRequests.first)
         XCTAssertEqual(request.identifier, identifier)
-        XCTAssertEqual(request.content.title, "Your Privacy Pro subscription is ending soon")
+        XCTAssertEqual(request.content.title, UserText.subscriptionExpirationReminderNotificationTitle(daysUntilTrialEnds: 7))
         XCTAssertEqual(request.content.categoryIdentifier, identifier)
         let trigger = try XCTUnwrap(request.trigger as? UNTimeIntervalNotificationTrigger)
         XCTAssertEqual(trigger.timeInterval, days(23), accuracy: 5)
         XCTAssertFalse(trigger.repeats)
+    }
+
+    func test_scheduleReminder_withDaysBeforeCancel_usesThatDayCountInTitle() async throws {
+        setSubscription(status: .autoRenewable)
+
+        await sut.scheduleReminder(daysBeforeCancel: 5)
+
+        let request = try XCTUnwrap(notificationCenter.addedRequests.first)
+        XCTAssertEqual(request.content.title, UserText.subscriptionExpirationReminderNotificationTitle(daysUntilTrialEnds: 5))
+    }
+
+    func test_notificationTitle_pluralisesByDayCount() {
+        XCTAssertEqual(UserText.subscriptionExpirationReminderNotificationTitle(daysUntilTrialEnds: 1),
+                       "Your free trial ends in 1 day")
+        XCTAssertEqual(UserText.subscriptionExpirationReminderNotificationTitle(daysUntilTrialEnds: 7),
+                       "Your free trial ends in 7 days")
     }
 
     func test_scheduleReminder_removesPreviouslyScheduledReminderBeforeAdding() async {

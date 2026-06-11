@@ -26,9 +26,12 @@ import os.log
 import Subscription
 
 protocol SubscriptionExpirationReminderScheduling: AnyObject {
-    /// Schedules a single local reminder firing `timeBeforeCancel` seconds before the active subscription's expiry/renewal date.
-    /// Silently skips when the feature flag is off, permission is unavailable, `timeBeforeCancel <= 0`, the subscription is not on a free trial, the subscription has no expiry, or the computed fire date is in the past.
+    /// Schedules a single local reminder firing `daysBeforeCancel` days before the active subscription's expiry/renewal date.
+    /// Silently skips when the feature flag is off, permission is unavailable, `daysBeforeCancel <= 0`, the subscription is not on a free trial, the subscription has no expiry, or the computed fire date is in the past.
     /// Cancels any previously scheduled reminder with the same identifier before scheduling the new one.
+    func scheduleReminder(daysBeforeCancel: Int) async
+
+    /// Seconds-precision variant used by tests and debug tooling that need exact control over the fire interval.
     func scheduleReminder(timeBeforeCancel: TimeInterval) async
 }
 
@@ -40,6 +43,8 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
                                                              actions: [],
                                                              intentIdentifiers: [],
                                                              options: [.customDismissAction])
+
+    private static let secondsPerDay: TimeInterval = 24 * 60 * 60
 
     private let subscriptionManager: SubscriptionManager
     private let isFeatureEnabled: () -> Bool
@@ -79,7 +84,19 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
             .store(in: &cancellables)
     }
 
+    func scheduleReminder(daysBeforeCancel: Int) async {
+        await scheduleReminder(daysUntilTrialEnds: daysBeforeCancel,
+                               timeBeforeCancel: TimeInterval(daysBeforeCancel) * Self.secondsPerDay)
+    }
+
+    // Exposed for testing so tests can drive the exact time interval (guards, fire-date math)
+    // independently of the displayed day count.
     func scheduleReminder(timeBeforeCancel: TimeInterval) async {
+        await scheduleReminder(daysUntilTrialEnds: Int((timeBeforeCancel / Self.secondsPerDay).rounded()),
+                               timeBeforeCancel: timeBeforeCancel)
+    }
+
+    private func scheduleReminder(daysUntilTrialEnds: Int, timeBeforeCancel: TimeInterval) async {
         guard isFeatureEnabled() else { return }
         guard timeBeforeCancel > 0 else { return }
 
@@ -102,10 +119,9 @@ final class DefaultSubscriptionExpirationReminderScheduler: SubscriptionExpirati
 
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [Self.notificationIdentifier])
 
-        // TODO: Revisit after copy finalized
         let content = UNMutableNotificationContent()
-        content.title = "Your Privacy Pro subscription is ending soon"
-        content.body = "Tap to review your subscription and stay protected."
+        content.title = UserText.subscriptionExpirationReminderNotificationTitle(daysUntilTrialEnds: daysUntilTrialEnds)
+        content.body = UserText.subscriptionExpirationReminderNotificationBody
         content.categoryIdentifier = Self.notificationIdentifier
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: fireDate.timeIntervalSince(dateProvider()), repeats: false)
