@@ -137,6 +137,22 @@ final class DuckPlayerPreferencesTests: XCTestCase {
         XCTAssertEqual(model.duckPlayerMode, .enabled)
     }
 
+    func testWhenPersistorBoolIsNilAndRolloutOnButOverlayEngagedThenModeIsAlwaysAsk() {
+        // Engaged = pressed a button on the YouTube overlay before. Such users keep "Ask"
+        // even while the rollout is active. Expected value is .alwaysAsk on every OS:
+        // supported+engaged -> Ask (the gate), unsupported -> Ask (historical default).
+        let persistor = DuckPlayerPreferencesPersistorMock(duckPlayerMode: .alwaysAsk,
+                                                           youtubeOverlayAnyButtonPressed: true)
+        let featureFlagger = MockFeatureFlagger(featuresStub: [
+            FeatureFlag.adBlockingExtensionEnabledByDefault.rawValue: true,
+            FeatureFlag.webExtensions.rawValue: true
+        ])
+        let model = DuckPlayerPreferences(persistor: persistor, featureFlagger: featureFlagger)
+
+        XCTAssertEqual(model.duckPlayerMode, .alwaysAsk, "Engaged users must retain Ask under the rollout")
+        XCTAssertNil(persistor.duckPlayerModeBool, "Rollout default must not be persisted")
+    }
+
     // MARK: - refreshDefaultModeIfNeeded (publisher-triggered)
 
     func testPublisherTriggerUpdatesCachedModeForNilPersistorWhenFeatureSupported() {
@@ -186,6 +202,21 @@ final class DuckPlayerPreferencesTests: XCTestCase {
 
         XCTAssertEqual(model.duckPlayerMode, .enabled, "Explicit user choice must be preserved")
         XCTAssertEqual(persistor.duckPlayerModeBool, true)
+    }
+
+    func testPublisherTriggerKeepsAlwaysAskForNilPersistorWhenOverlayEngaged() {
+        let persistor = DuckPlayerPreferencesPersistorMock(duckPlayerMode: .alwaysAsk,
+                                                           youtubeOverlayAnyButtonPressed: true)
+        let featureFlagger = MockFeatureFlagger(featuresStub: [FeatureFlag.webExtensions.rawValue: true])
+        let model = DuckPlayerPreferences(persistor: persistor, featureFlagger: featureFlagger)
+        XCTAssertEqual(model.duckPlayerMode, .alwaysAsk)
+
+        featureFlagger.featuresStub[FeatureFlag.adBlockingExtensionEnabledByDefault.rawValue] = true
+        featureFlagger.triggerUpdate()
+        drainMainQueue()
+
+        XCTAssertEqual(model.duckPlayerMode, .alwaysAsk, "Engaged users must retain Ask after a mid-session rollout flip")
+        XCTAssertNil(persistor.duckPlayerModeBool)
     }
 
     // MARK: - Helpers

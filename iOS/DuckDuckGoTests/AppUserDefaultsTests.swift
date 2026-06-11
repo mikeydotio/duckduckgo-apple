@@ -289,6 +289,17 @@ class AppUserDefaultsTests: XCTestCase {
         XCTAssertEqual(appUserDefaults.duckPlayerMode, .disabled)
     }
 
+    func testWhenDuckPlayerModeStorageIsNilAndRolloutOnButOverlayInteractedThenReturnsAlwaysAsk() {
+        // askModeOverlayHidden == true means the user interacted with the web overlay.
+        // Such users keep "Ask" even under the rollout. .alwaysAsk on every OS:
+        // supported+interacted -> Ask (gate), unsupported -> Ask (historical default).
+        let appUserDefaults = AppUserDefaults(groupName: testGroupName)
+        appUserDefaults.featureFlagger = MockFeatureFlagger(enabledFeatureFlags: [.adBlockingExtensionEnabledByDefault, .webExtensions])
+        appUserDefaults.duckPlayerAskModeOverlayHidden = true
+
+        XCTAssertEqual(appUserDefaults.duckPlayerMode, .alwaysAsk)
+    }
+
     // MARK: - duckPlayerNativeYoutubeMode rollout-aware default
 
     func testWhenDuckPlayerNativeYoutubeModeStorageIsNilAndRolloutOffThenReturnsAsk() {
@@ -331,6 +342,24 @@ class AppUserDefaultsTests: XCTestCase {
         appUserDefaults.duckPlayerNativeYoutubeMode = .never
 
         XCTAssertEqual(appUserDefaults.duckPlayerNativeYoutubeMode, .never)
+    }
+
+    func testWhenNativeYoutubeModeStorageIsNilAndRolloutOnButNativeUIWasUsedThenReturnsAsk() {
+        let appUserDefaults = AppUserDefaults(groupName: testGroupName)
+        defer { appUserDefaults.duckPlayerNativeUIWasUsed = false }
+        appUserDefaults.featureFlagger = MockFeatureFlagger(enabledFeatureFlags: [.adBlockingExtensionEnabledByDefault, .webExtensions])
+        appUserDefaults.duckPlayerNativeUIWasUsed = true
+
+        XCTAssertEqual(appUserDefaults.duckPlayerNativeYoutubeMode, .ask)
+    }
+
+    func testWhenNativeYoutubeModeStorageIsNilAndRolloutOnButWelcomeMessageShownThenReturnsAsk() {
+        let appUserDefaults = AppUserDefaults(groupName: testGroupName)
+        defer { appUserDefaults.duckPlayerWelcomeMessageShown = false }
+        appUserDefaults.featureFlagger = MockFeatureFlagger(enabledFeatureFlags: [.adBlockingExtensionEnabledByDefault, .webExtensions])
+        appUserDefaults.duckPlayerWelcomeMessageShown = true
+
+        XCTAssertEqual(appUserDefaults.duckPlayerNativeYoutubeMode, .ask)
     }
 
     // MARK: - Mock Creation

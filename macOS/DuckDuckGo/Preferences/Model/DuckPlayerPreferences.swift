@@ -151,7 +151,7 @@ final class DuckPlayerPreferences: ObservableObject {
         if let stored = persistor.duckPlayerModeBool {
             duckPlayerMode = .init(stored)
         } else {
-            duckPlayerMode = Self.rolloutDefaultsActive(featureFlagger: featureFlagger) ? .disabled : .alwaysAsk
+            duckPlayerMode = Self.rolloutDefaultsActive(featureFlagger: featureFlagger) && !persistor.youtubeOverlayAnyButtonPressed ? .disabled : .alwaysAsk
         }
         youtubeOverlayInteracted = persistor.youtubeOverlayInteracted
         youtubeOverlayAnyButtonPressed = persistor.youtubeOverlayAnyButtonPressed
@@ -187,7 +187,7 @@ final class DuckPlayerPreferences: ObservableObject {
 
     private func refreshDefaultModeIfNeeded() {
         guard persistor.duckPlayerModeBool == nil else { return }
-        let resolved: DuckPlayerMode = Self.rolloutDefaultsActive(featureFlagger: featureFlagger) ? .disabled : .alwaysAsk
+        let resolved: DuckPlayerMode = Self.rolloutDefaultsActive(featureFlagger: featureFlagger) && !persistor.youtubeOverlayAnyButtonPressed ? .disabled : .alwaysAsk
         guard resolved != duckPlayerMode else { return }
         isApplyingRolloutDefault = true
         duckPlayerMode = resolved
