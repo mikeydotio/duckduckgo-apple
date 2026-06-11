@@ -74,6 +74,12 @@ public final class PixelKit {
         /// Sent with sampling - only N% of calls result in actual pixel firing
         case sample(percentage: Int)
 
+        /// Sent at most once per `seconds`-long window per pixel name: suppressed if the pixel was fired
+        /// less than `seconds` ago. The window is anchored to the last actual fire (a suppressed call does
+        /// not extend it). `seconds: 0` is an empty window and never suppresses. This is the PixelKit
+        /// equivalent of the legacy `Pixel.fire(debounce:)` parameter.
+        case debounce(seconds: TimeInterval)
+
         fileprivate var description: String {
             switch self {
             case .standard:
@@ -100,6 +106,8 @@ public final class PixelKit {
                 "Legacy Daily No Suffix"
             case .sample(let percentage):
                 "Sample (\(percentage)%)"
+            case .debounce(let seconds):
+                "Debounce (\(seconds)s)"
             }
         }
 
@@ -119,6 +127,7 @@ public final class PixelKit {
             case .legacyDaily: return "legacyDaily"
             case .legacyDailyAndCount: return "legacyDailyAndCount"
             case .sample(let percentage): return "sample(\(percentage))"
+            case .debounce: return "debounce"
             }
         }
     }
@@ -403,6 +412,8 @@ public final class PixelKit {
             handleLegacyDailyNoSuffix(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .sample(let percentage):
             handleSample(pixelName, headers, newParams, allowedQueryReservedCharacters, percentage, onComplete)
+        case .debounce(let seconds):
+            handleDebounce(pixelName, headers, newParams, allowedQueryReservedCharacters, seconds, onComplete)
         }
     }
 
@@ -502,6 +513,28 @@ public final class PixelKit {
             }
         } else {
             printDebugInfo(pixelName: pixelName + "_daily", frequency: .daily, parameters: newParams, skipped: true)
+        }
+    }
+
+    private func handleDebounce(_ pixelName: String,
+                                _ headers: [String: String],
+                                _ newParams: [String: String],
+                                _ allowedQueryReservedCharacters: CharacterSet?,
+                                _ seconds: TimeInterval,
+                                _ onComplete: @escaping CompletionBlock) {
+        let frequency = Frequency.debounce(seconds: seconds)
+        if !pixelHasBeenFiredWithinDebounceInterval(pixelName, seconds: seconds) {
+            do {
+                try updatePixelLastFireDate(pixelName: pixelName, frequency: frequency)
+                fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+            } catch {
+                fireStorageWriteErrorPixel(suppressedPixelName: pixelName, error: error)
+                printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
+                onComplete(false, nil)
+            }
+        } else {
+            printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
+            onComplete(false, nil)
         }
     }
 
@@ -861,6 +894,28 @@ public final class PixelKit {
         )
     }
 
+    /// Evaluates `within` against the stored last-fire date for `frequency`'s `mapKey`.
+    /// Returns `false` when there's no stored date for that frequency, and fails closed
+    /// (returns `true`, suppressing the pixel) on a storage read error.
+    private func pixelHasBeenFired(_ name: String, frequency: Frequency, within: (Date) -> Bool) -> Bool {
+        do {
+            let map = try migratedLastFireDateMap(forKey: userDefaultsKeyName(forPixelName: name))
+            guard let lastFireDate = map[frequency.mapKey] else { return false }
+            return within(lastFireDate)
+        } catch {
+            return true
+        }
+    }
+
+    /// Returns `true` if the pixel was last fired less than `seconds` ago (so it should be suppressed).
+    /// The stored fire date is shared across debounce intervals (mapKey `"debounce"`), and the window is
+    /// evaluated against the passed `seconds`. Fails closed (suppresses) on a storage read error.
+    private func pixelHasBeenFiredWithinDebounceInterval(_ name: String, seconds: TimeInterval) -> Bool {
+        pixelHasBeenFired(name, frequency: .debounce(seconds: seconds)) { lastFireDate in
+            lastFireDate > dateGenerator().addingTimeInterval(-seconds)
+        }
+    }
+
     private func pixelHasBeenFiredDailyToday(_ name: String) -> Bool {
         guard !dryRun else {
             if let lastFireDate = try? pixelLastFireDate(pixelName: name, frequency: .daily),
@@ -871,14 +926,8 @@ public final class PixelKit {
             return false
         }
 
-        do {
-            let map = try migratedLastFireDateMap(forKey: userDefaultsKeyName(forPixelName: name))
-            if let lastFireDate = map[Frequency.daily.mapKey] {
-                return pixelCalendar.isDate(dateGenerator(), inSameDayAs: lastFireDate)
-            }
-            return false
-        } catch {
-            return true
+        return pixelHasBeenFired(name, frequency: .daily) { lastFireDate in
+            pixelCalendar.isDate(dateGenerator(), inSameDayAs: lastFireDate)
         }
     }
 
