@@ -160,11 +160,20 @@ public final class PixelKit {
     }()
 
     private static let weeksToCoalesceCohort = 6
+
+    /// Stable, filename-safe identity for this instance's retry-queue store and throttle key, so each
+    /// process (browser, VPN agent, packet tunnel, …) gets its own queue even when they share a `defaults`
+    /// suite (e.g. `UserDefaults.netP`). Decoupled from the telemetry `source`: `setUp` callers pass an
+    /// explicit `session`; it falls back to `source` only for direct `init` construction (e.g. tests).
+    private static func retryQueueIdentitySuffix(session: String?, source: String?) -> String {
+        (session ?? source ?? "default").replacingOccurrences(of: "/", with: "-")
+    }
     private let dateGenerator: () -> Date
     public private(set) static var shared: PixelKit?
     private let appVersion: String
     private let defaultHeaders: [String: String]
     private let fireRequest: FireRequest
+    private let retryQueue: PixelRetryQueue?
     private var dryRun: Bool
     private let source: String?
     private let channel: String?
@@ -175,11 +184,13 @@ public final class PixelKit {
     /// - Parameters:
     /// - `dryRun`: if `true`, simulate requests and "send" them at an accelerated rate (once every 2 minutes instead of once a day)
     /// - `source`: if set, adds a `pixelSource` parameter to the pixel call; this can be used to specify which target is sending the pixel
+    /// - `session`: a stable, non-telemetry identifier for this PixelKit instance, used to key its retry queue's storage and throttle so distinct instances never share or overwrite one queue
     /// - `channel`: if set, adds a `channel` parameter to pixel calls (e.g. "canary" for internal users, "dev" for alpha/review builds); omit for production builds
     /// - `fireRequest`: this is not triggered when `dryRun` is `true`
     public static func setUp(dryRun: Bool,
                              appVersion: String,
                              source: String? = nil,
+                             session: String,
                              channel: String? = nil,
                              defaultHeaders: [String: String],
                              pixelCalendar: Calendar? = nil,
@@ -189,6 +200,7 @@ public final class PixelKit {
         shared = PixelKit(dryRun: dryRun,
                           appVersion: appVersion,
                           source: source,
+                          session: session,
                           channel: channel,
                           defaultHeaders: defaultHeaders,
                           pixelCalendar: pixelCalendar,
@@ -206,6 +218,7 @@ public final class PixelKit {
     public init(dryRun: Bool,
                 appVersion: String,
                 source: String? = nil,
+                session: String? = nil,
                 channel: String? = nil,
                 defaultHeaders: [String: String],
                 pixelCalendar: Calendar? = nil,
@@ -222,6 +235,25 @@ public final class PixelKit {
         self.dateGenerator = dateGenerator
         self.defaults = defaults
         self.fireRequest = fireRequest
+
+        if dryRun {
+            self.retryQueue = nil
+        } else {
+            // Wrap the network fire-request with a retry queue so failed pixels are persisted and re-sent
+            // after the next successful fire (28-day expiry) — which, for a launching app, happens as soon
+            // as it fires its first pixel. Reuses the same `defaults` for throttling state. This is internal
+            // to PixelKit and hidden from its consumers; creating the queue performs no I/O.
+            let identity = Self.retryQueueIdentitySuffix(session: session, source: source)
+            self.retryQueue = PixelRetryQueue(
+                fireRequest: fireRequest,
+                store: PixelRetryQueueFileStore(fileName: "pixelkit-retry-queue-\(identity).json"),
+                lastProcessingDateStorage: defaults,
+                lastProcessingDateKey: "com.duckduckgo.pixelkit.retry-queue.last-processing-timestamp.\(identity)",
+                calendar: self.pixelCalendar,
+                dateGenerator: dateGenerator
+            )
+        }
+
         logger.debug("👾 PixelKit initialised: dryRun: \(self.dryRun, privacy: .public) appVersion: \(self.appVersion, privacy: .public) source: \(self.source ?? "-", privacy: .public) channel: \(self.channel ?? "-", privacy: .public) defaultHeaders: \(self.defaultHeaders, privacy: .public) pixelCalendar: \(self.pixelCalendar, privacy: .public)")
     }
 
@@ -687,7 +719,8 @@ public final class PixelKit {
                 }
                 return
             }
-            fireRequest(pixelName, headers, parameters, allowedQueryReservedCharacters, callBackOnMainThread, onComplete)
+            let effectiveFireRequest = retryQueue?.fireRequest ?? fireRequest
+            effectiveFireRequest(pixelName, headers, parameters, allowedQueryReservedCharacters, callBackOnMainThread, onComplete)
         }
 
     private func prefixedAndSuffixedName(for event: PixelKitEvent, namePrefix: String?, doNotEnforcePrefix: Bool = false) -> String {
