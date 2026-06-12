@@ -1125,6 +1125,19 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
         XCTAssertEqual(sut.displayState, .aiTab(.collapsed))
     }
 
+    func test_customizeResponsesTap_preservesSelectedTool() {
+        mockPreferences.selectedModelId = "gpt-5"
+        sut.modelStore.models = [makeModel(id: "gpt-5", access: true, supportedTools: [.webSearch])]
+        sut.showExpanded()
+        sut.handleToolsMenuSelection(.webSearch)
+        XCTAssertEqual(sut.selectedTool, .webSearch)
+
+        sut.handleToolsMenuSelection(.customizeResponses)
+
+        XCTAssertEqual(sut.selectedTool, .webSearch)
+        XCTAssertEqual(sut.viewController.selectedTool, .webSearch)
+    }
+
     func test_toolsMenu_containsCustomizeResponsesAction_onAITab() {
         sut.showExpanded()
 
