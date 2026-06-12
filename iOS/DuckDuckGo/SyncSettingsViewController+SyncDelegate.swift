@@ -476,17 +476,17 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
         }
     }
 
-    func showPreparingSync() async {
+    func showPreparingSync(context: SimplifiedConnectingSheetView.Context = .syncingDevices) async {
         await withCheckedContinuation { continuation in
-            showPreparingSync {
+            showPreparingSync(context: context) {
                 continuation.resume()
             }
         }
     }
 
-    func showPreparingSync(_ completion: (() -> Void)?) {
+    func showPreparingSync(context: SimplifiedConnectingSheetView.Context = .syncingDevices, _ completion: (() -> Void)?) {
         if useSimplifiedLayout {
-            let controller = UIHostingController(rootView: SimplifiedConnectingSheetView())
+            let controller = UIHostingController(rootView: SimplifiedConnectingSheetView(context: context))
             controller.view.backgroundColor = UIColor(designSystemColor: .backgroundSheets)
             if #available(iOS 16.4, *) {
                 controller.sizingOptions = .intrinsicContentSize
