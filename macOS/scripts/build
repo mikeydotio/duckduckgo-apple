@@ -1,0 +1,4 @@
+#!/bin/bash
+# Build a macOS scheme or local package. Usage: macOS/scripts/build <target> [extra xcodebuild args]
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "${SCRIPT_DIR}/../../scripts/build-scripts/core" build macos "$@"

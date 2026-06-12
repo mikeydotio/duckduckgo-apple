@@ -1,0 +1,202 @@
+#!/bin/bash
+#
+# Shared core for the build/test helpers. Not meant to be run directly — use the
+# thin wrappers that preset the action and platform:
+#
+#   scripts/build <ios|macos> <target>     iOS/scripts/build <target>
+#   scripts/test  <ios|macos> <target>     iOS/scripts/test  <target>
+#                                          macOS/scripts/build <target>
+#                                          macOS/scripts/test  <target>
+#
+# <target> is either an Xcode scheme in DuckDuckGo.xcworkspace, or the name of a
+# local Swift package (matched by directory name or Package.swift name). Packages
+# are discovered automatically under the known roots below, so new ones work
+# without editing this script.
+#
+# All xcodebuild output goes to a unique temp file. On success we print one line
+# plus the log path; on failure we print the extracted errors plus the log path
+# and exit non-zero. Any extra arguments are forwarded to xcodebuild.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+WORKSPACE="${REPO_ROOT}/DuckDuckGo.xcworkspace"
+
+# Roots scanned for local Swift packages. Each immediate subdirectory holding a
+# Package.swift is treated as a target you can build/test by name.
+PKG_ROOTS=("SharedPackages" "SharedPackages/Infrastructure" "macOS/LocalPackages" "iOS/LocalPackages")
+
+die() { echo "error: $*" >&2; exit 1; }
+
+ACTION="${1:-}"; shift || true
+PLATFORM="${1:-}"; shift || true
+TARGET="${1:-}"; shift || true
+
+case "${ACTION}" in build|test) ;; *) die "action must be 'build' or 'test' (got '${ACTION}')" ;; esac
+case "${PLATFORM}" in ios|macos) ;; *) die "platform must be 'ios' or 'macos' (got '${PLATFORM}')" ;; esac
+[[ -n "${TARGET}" ]] || die "no target given; pass a scheme or package name"
+
+# Resolve an iOS Simulator destination: prefer a booted device, else the newest
+# available iPhone, else a generic destination (builds, but tests need a concrete sim).
+ios_destination() {
+	local udid
+	udid="$(xcrun simctl list devices booted 2>/dev/null | grep -Eo '[0-9A-Fa-f-]{36}' | head -1)"
+	if [[ -z "${udid}" ]]; then
+		udid="$(xcrun simctl list devices available 2>/dev/null | grep -E 'iPhone' | grep -Eo '[0-9A-Fa-f-]{36}' | tail -1)"
+	fi
+	if [[ -n "${udid}" ]]; then
+		echo "platform=iOS Simulator,id=${udid}"
+	else
+		echo "generic/platform=iOS Simulator"
+	fi
+}
+
+if [[ "${PLATFORM}" == "macos" ]]; then
+	DESTINATION="platform=macOS"
+else
+	DESTINATION="$(ios_destination)"
+fi
+
+# Try to resolve TARGET to a local package. Sets PKG_DIR + PKG_SCHEME on a hit.
+PKG_DIR=""
+PKG_SCHEME=""
+resolve_package() {
+	local root dir base name
+	for root in "${PKG_ROOTS[@]}"; do
+		for dir in "${REPO_ROOT}/${root}"/*/; do
+			[[ -f "${dir}Package.swift" ]] || continue
+			base="$(basename "${dir}")"
+			name="$(grep -m1 -E 'name:[[:space:]]*"' "${dir}Package.swift" | sed -E 's/.*name:[[:space:]]*"([^"]+)".*/\1/')"
+			if [[ "${TARGET}" == "${base}" || "${TARGET}" == "${name}" ]]; then
+				PKG_DIR="${dir}"
+				PKG_SCHEME="${name:-${base}}"
+				return 0
+			fi
+		done
+	done
+	return 1
+}
+
+# Why xcodebuild (not SwiftPM) for packages: xcodebuild runs Xcode's asset-symbol
+# codegen (actool → ImageResource), which packages like DesignResourcesKitIcons
+# need to compile — bare `swift build/test` skips it.
+XCB_FLAGS=(-configuration Debug -destination "${DESTINATION}" -skipPackagePluginValidation -skipMacroValidation ONLY_ACTIVE_ARCH=YES)
+
+# Unique log file for this run. BSD/macOS mktemp only substitutes XXXXXX at the
+# very end of the template, so create it there and add the .log suffix after.
+SAFE_TARGET="$(echo "${TARGET}" | tr -c 'A-Za-z0-9._-' '_')"
+TMP_BASE="${TMPDIR:-/tmp}"; TMP_BASE="${TMP_BASE%/}"
+LOG="$(mktemp "${TMP_BASE}/ddg-${ACTION}-${PLATFORM}-${SAFE_TARGET}-XXXXXX")"
+mv "${LOG}" "${LOG}.log" && LOG="${LOG}.log"
+
+# Run a command in a directory, appending all output to the log. Piping through
+# xcbeautify when present; PIPESTATUS keeps xcodebuild's exit code, not the
+# formatter's. Appends (>>) so workspace-fallback schemes accumulate in one log.
+RUN_OUT=""
+trap 'rm -f "${RUN_OUT:-}"' EXIT
+run_to_log() {
+	local dir="$1"; shift
+	rm -f "${RUN_OUT:-}"
+	RUN_OUT="$(mktemp "${TMP_BASE}/ddg-run-XXXXXX")"
+	(
+		cd "${dir}" || exit 1
+		if command -v xcbeautify >/dev/null 2>&1; then
+			"$@" 2>&1 | xcbeautify
+			exit "${PIPESTATUS[0]}"
+		else
+			"$@" 2>&1
+		fi
+	) >"${RUN_OUT}" 2>&1
+	local rc=$?
+	cat "${RUN_OUT}" >> "${LOG}"
+	return ${rc}
+}
+
+# True when the last run failed only because a scheme has no tests — xcodebuild
+# reports this for the test action. We treat it as a clean skip, not a failure.
+is_no_tests() {
+	[[ "${ACTION}" == "test" ]] && grep -q "is not currently configured for the test action" "${RUN_OUT}"
+}
+
+# The auto-generated standalone scheme for a package: multi-product packages get
+# a "<name>-Package" aggregate (all targets + all tests), single-product packages
+# get a scheme named just "<name>". Ask xcodebuild -list and prefer the aggregate.
+standalone_package_scheme() {
+	local schemes
+	schemes="$(cd "${PKG_DIR}" && xcodebuild -list 2>/dev/null)"
+	if grep -qE "^[[:space:]]*${PKG_SCHEME}-Package$" <<<"${schemes}"; then
+		echo "${PKG_SCHEME}-Package"
+	else
+		echo "${PKG_SCHEME}"
+	fi
+}
+
+# Workspace schemes whose name starts with the package name. Used as a fallback
+# when a package can't build standalone because it references sibling packages by
+# a relative path that only resolves inside the workspace.
+workspace_package_schemes() {
+	xcodebuild -workspace "${WORKSPACE}" -list 2>/dev/null \
+		| awk '/Schemes:/{f=1; next} f {print}' \
+		| sed -E 's/^[[:space:]]+//' \
+		| grep -E "^${PKG_SCHEME}([A-Z]|$)" || true
+}
+
+NO_TESTS=0
+if resolve_package; then
+	KIND="package"
+	echo "Running ${ACTION} (${PLATFORM}, package: ${TARGET}) — output → ${LOG}" >&2
+	# Attempt 1: build/test the package standalone in its own directory.
+	run_to_log "${PKG_DIR}" xcodebuild "${ACTION}" -scheme "$(standalone_package_scheme)" "${XCB_FLAGS[@]}" "$@"
+	STATUS=$?
+	if [[ ${STATUS} -ne 0 ]] && is_no_tests; then
+		NO_TESTS=1; STATUS=0
+	# Fallback: a dependency-resolution failure means a sibling package resolves
+	# only inside the workspace — retry each matching workspace scheme there.
+	elif [[ ${STATUS} -ne 0 ]] && grep -q "Could not resolve package dependencies" "${RUN_OUT}"; then
+		echo "  standalone ${ACTION} couldn't resolve dependencies; retrying via workspace…" >&2
+		# Read schemes into an array (mapfile is bash 4+; macOS ships bash 3.2).
+		WS_SCHEMES=()
+		while IFS= read -r line; do
+			[[ -n "${line}" ]] && WS_SCHEMES+=("${line}")
+		done < <(workspace_package_schemes)
+		[[ ${#WS_SCHEMES[@]} -gt 0 ]] || die "no workspace scheme found for package '${TARGET}'"
+		: > "${LOG}"  # discard the failed standalone attempt's output
+		STATUS=0; TESTED=0
+		for s in "${WS_SCHEMES[@]}"; do
+			echo "=== ${ACTION} ${s} (workspace) ===" >> "${LOG}"
+			run_to_log "${REPO_ROOT}" xcodebuild "${ACTION}" -workspace "${WORKSPACE}" -scheme "${s}" "${XCB_FLAGS[@]}" "$@"
+			rc=$?
+			if [[ ${rc} -ne 0 ]] && is_no_tests; then
+				echo "  (skipped ${s}: no tests)" >&2; continue
+			fi
+			TESTED=1
+			[[ ${rc} -ne 0 ]] && STATUS=${rc}
+		done
+		# Every matching scheme was a no-test skip → nothing ran.
+		[[ "${ACTION}" == "test" && ${TESTED} -eq 0 && ${STATUS} -eq 0 ]] && NO_TESTS=1
+	fi
+else
+	KIND="scheme"
+	[[ -d "${WORKSPACE}" ]] || die "workspace not found at ${WORKSPACE}"
+	echo "Running ${ACTION} (${PLATFORM}, scheme: ${TARGET}) — output → ${LOG}" >&2
+	run_to_log "${REPO_ROOT}" xcodebuild "${ACTION}" -workspace "${WORKSPACE}" -scheme "${TARGET}" "${XCB_FLAGS[@]}" "$@"
+	STATUS=$?
+	if [[ ${STATUS} -ne 0 ]] && is_no_tests; then NO_TESTS=1; STATUS=0; fi
+fi
+
+if [[ ${STATUS} -eq 0 && ${NO_TESTS} -eq 1 ]]; then
+	echo "✅ no tests to run — ${PLATFORM} ${KIND} '${TARGET}' has no test target"
+	echo "Log: ${LOG}"
+elif [[ ${STATUS} -eq 0 ]]; then
+	echo "✅ ${ACTION} succeeded — ${PLATFORM} ${KIND} '${TARGET}'"
+	echo "Log: ${LOG}"
+else
+	echo "❌ ${ACTION} failed (exit ${STATUS}) — ${PLATFORM} ${KIND} '${TARGET}'"
+	echo "--- errors (see full log for context) ---"
+	grep -E 'error:|fatal error:|BUILD FAILED|Testing failed|TEST FAILED|error generated|❌|✖|✗' "${LOG}" | head -40
+	echo "--- end errors ---"
+	echo "Log: ${LOG}"
+fi
+
+exit ${STATUS}

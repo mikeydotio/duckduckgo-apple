@@ -1,0 +1,4 @@
+#!/bin/bash
+# Test a scheme or local package. Usage: scripts/test <ios|macos> <target> [extra xcodebuild args]
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "${SCRIPT_DIR}/build-scripts/core" test "$@"
