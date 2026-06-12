@@ -197,6 +197,7 @@ struct UTIToolsMenuFactory {
     ) -> UIAction {
         return UIAction(
             title: UserText.aiChatToolbarCustomizeResponsesMenuTitle,
+            subtitle: UserText.aiChatToolbarCustomizeResponsesMenuSubtitle,
             image: DesignSystemImages.Glyphs.Size24.options
         ) { _ in
             onSelect(.customizeResponses)
