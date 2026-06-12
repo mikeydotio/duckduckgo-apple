@@ -602,8 +602,12 @@ extension SyncDialogController: SyncConnectionControllerDelegate {
         presentDialog(for: .prepareToSync)
     }
 
-    func controllerDidFinishTransmittingRecoveryKey() {
-        waitForDevicesToChangeThenPresentSyncing()
+    func controllerDidFinishTransmittingRecoveryKey(shouldWaitForDevicesToChange: Bool) {
+        if shouldWaitForDevicesToChange {
+            waitForDevicesToChangeThenPresentSyncing()
+        } else {
+            presentDialog(for: .nowSyncing)
+        }
     }
 
     func controllerDidReceiveRecoveryKey() {
