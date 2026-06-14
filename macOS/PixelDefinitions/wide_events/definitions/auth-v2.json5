@@ -1,0 +1,29 @@
+{
+    "macos-authv2-token-adoption": {
+        "description": "Sent when AuthV2 completes a token adoption flow: an externally-provided token container is adopted and then force-refreshed to branch from the original token.",
+        "owners": ["samsymons"],
+        "meta": {
+            "type": "macos-authv2-token-adoption",
+            "version": "1.0"
+        },
+        "feature": {
+            "name": "authv2-token-adoption",
+            "status": ["SUCCESS", "FAILURE", "UNKNOWN"],
+            "data": {
+                "ext": {
+                    "status_reason": {
+                        "type": "string",
+                        "description": "The reason provided when the status is UNKNOWN. partial_data indicates the flow was recovered without a definitive outcome.",
+                        "enum": ["partial_data"]
+                    },
+                    "failing_step": {
+                        "type": "string",
+                        "description": "The step the flow failed on, when the status is FAILURE. token_adoption = adopting the token container failed; token_refresh = the subsequent force-refresh failed.",
+                        "enum": ["token_adoption", "token_refresh"]
+                    },
+                    "error": "errorParameters"
+                }
+            }
+        }
+    }
+}
