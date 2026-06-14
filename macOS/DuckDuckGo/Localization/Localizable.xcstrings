@@ -104186,6 +104186,66 @@
         }
       }
     },
+    "sync.pairing-v2.confirmation.action" : {
+      "comment" : "Caption for a button to confirm sync setup with another device",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sync Now"
+          }
+        }
+      }
+    },
+    "sync.pairing-v2.confirmation.ddg.message" : {
+      "comment" : "Message for the dialog to confirm sync setup with another DuckDuckGo device",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "\"%@\" will be able to access your synced DuckDuckGo passwords, autofill data, and Duck.ai chats."
+          }
+        }
+      }
+    },
+    "sync.pairing-v2.confirmation.third-party.message" : {
+      "comment" : "Message for the dialog to confirm sync setup with a third-party device",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "\"%@\" will be able to access your synced Duck.ai chats."
+          }
+        }
+      }
+    },
+    "sync.pairing-v2.confirmation.title" : {
+      "comment" : "Title of the dialog to confirm sync setup with another device",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sync new device?"
+          }
+        }
+      }
+    },
+    "sync.pairing-v2.unknown-peer-name" : {
+      "comment" : "Fallback device name for confirmation dialogs",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "the other device"
+          }
+        }
+      }
+    },
     "sync.promo.autofill.title" : {
       "comment" : "Title for the Sync Promotion banner",
       "extractionState" : "extracted_with_value",
