@@ -28,7 +28,7 @@ final class FaviconStoringMock: FaviconStoring {
         []
     }
 
-    func loadImage(for identifier: UUID) throws -> NSImage? {
+    func loadImage(for identifier: UUID) async throws -> NSImage? {
         nil
     }
 

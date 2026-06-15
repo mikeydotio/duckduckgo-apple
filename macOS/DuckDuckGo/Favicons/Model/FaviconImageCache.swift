@@ -75,6 +75,12 @@ final class FaviconImageCache: FaviconImageCaching {
         return cache
     }()
 
+    // URLs whose image is currently being decoded off the main thread, used to
+    // coalesce concurrent `get(faviconUrl:)` cache misses for the same favicon
+    // (e.g. several UI consumers requesting the same icon at once).
+    @MainActor
+    private var inFlightImageLoads = Set<URL>()
+
     init(faviconStoring: FaviconStoring) {
         storing = faviconStoring
     }
@@ -138,19 +144,40 @@ final class FaviconImageCache: FaviconImageCaching {
             return Favicon(metadata: metadata, image: cached)
         }
 
-        // Cold path: synchronous single-row fetch from the store. Per
-        // FaviconStore.loadImage, this is a `performAndWait` against the
-        // private-queue context — typically ~1 ms; under simultaneous write
-        // load it can briefly stall main. Documented trade-off.
-        let image: NSImage?
-        do {
-            image = try storing.loadImage(for: metadata.identifier)
-        } catch {
-            Logger.favicons.error("Loading favicon image failed for \(metadata.url.absoluteString): \(error.localizedDescription)")
-            image = nil
+        // Cold path: the image isn't decoded yet. Decoding a stored favicon means
+        // unarchiving an NSImage off disk (blobs reach 154 MB), so we must NOT do it
+        // synchronously on this `@MainActor` call. Kick off the decode on the store's
+        // private-queue context and return a metadata-only Favicon (nil image) now.
+        // When the decode finishes we populate the NSCache and post
+        // `.faviconCacheUpdated`, which UI consumers observe to re-resolve the favicon.
+        loadImageOffMain(for: metadata)
+        return Favicon(metadata: metadata, image: nil)
+    }
+
+    @MainActor
+    private func loadImageOffMain(for metadata: FaviconMetadata) {
+        let faviconUrl = metadata.url
+        // Coalesce duplicate in-flight loads for the same favicon URL.
+        guard !inFlightImageLoads.contains(faviconUrl) else { return }
+        inFlightImageLoads.insert(faviconUrl)
+
+        Task { [storing] in
+            let image: NSImage?
+            do {
+                image = try await storing.loadImage(for: metadata.identifier)
+            } catch {
+                Logger.favicons.error("Loading favicon image failed for \(metadata.url.absoluteString): \(error.localizedDescription)")
+                image = nil
+            }
+
+            await MainActor.run {
+                self.inFlightImageLoads.remove(faviconUrl)
+                guard let image else { return }
+                self.cacheImage(image, for: faviconUrl)
+                // Tell UI consumers the image is now available so they re-resolve.
+                NotificationCenter.default.post(name: .faviconCacheUpdated, object: nil)
+            }
         }
-        cacheImage(image, for: faviconUrl)
-        return Favicon(metadata: metadata, image: image)
     }
 
     func getFavicons(with urls: some Sequence<URL>) -> [Favicon]? {

@@ -82,6 +82,20 @@ final class FaviconsTabExtension {
                 }
             }
             .store(in: &cancellables)
+
+        // Favicon images now decode lazily off the main thread on a cache miss
+        // (see FaviconImageCache.get). The decode posts `.faviconCacheUpdated`
+        // once the image lands, so re-resolve the tab favicon then — otherwise
+        // the first display of a not-yet-decoded favicon would keep the
+        // placeholder until the next navigation re-triggered resolution.
+        NotificationCenter.default.publisher(for: .faviconCacheUpdated)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, self.content != nil else { return }
+                    self.loadCachedFavicon(isBurner: false)
+                }
+            }
+            .store(in: &cancellables)
     }
 
     @MainActor

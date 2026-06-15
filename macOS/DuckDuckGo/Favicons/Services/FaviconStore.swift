@@ -28,7 +28,7 @@ import os.log
 protocol FaviconStoring {
 
     func loadFaviconMetadata() async throws -> [FaviconMetadata]
-    func loadImage(for identifier: UUID) throws -> NSImage?
+    func loadImage(for identifier: UUID) async throws -> NSImage?
     func save(_ favicons: [Favicon]) async throws
     func removeFavicons(_ favicons: [Favicon]) async throws
 
@@ -93,22 +93,25 @@ final class FaviconStore: FaviconStoring, Sendable {
         }
     }
 
-    func loadImage(for identifier: UUID) throws -> NSImage? {
-        var image: NSImage?
-        try context.performAndWait {
+    func loadImage(for identifier: UUID) async throws -> NSImage? {
+        // Decode off the main thread on the store's private-queue context. Reading
+        // `imageEncrypted` makes Core Data unarchive the stored NSImage, which for
+        // large blobs (production images reach 154 MB) is expensive — running it via
+        // the async `context.perform` keeps the decode off `@MainActor` callers.
+        try await context.perform { [context] in
             let fetchRequest = FaviconManagedObject.fetchRequest() as NSFetchRequest<FaviconManagedObject>
             fetchRequest.predicate = NSPredicate(format: "%K == %@", #keyPath(FaviconManagedObject.identifier), identifier as NSUUID)
             fetchRequest.fetchLimit = 1
 
             let fetchResult: [FaviconManagedObject] = try context.fetch(fetchRequest)
 
-            // Reading `imageEncrypted` makes Core Data unarchive the stored NSImage. If the saved bitmap is corrupt,
-            // AppKit raises an Objective-C `NSInvalidUnarchiveOperationException` ("bad TIFF data") while unarchiving.
+            // If the saved bitmap is corrupt, AppKit raises an Objective-C
+            // `NSInvalidUnarchiveOperationException` ("bad TIFF data") while unarchiving.
             // Swift's `try`/`try?` cannot catch Objective-C exceptions, so this would otherwise crash the app.
             // `NSException.catch` bridges it to a Swift error; on failure we use a nil image, which the favicon system
             // re-fetches on the next visit.
             do {
-                image = try NSException.catch {
+                return try NSException.catch {
                     fetchResult.first?.imageEncrypted as? NSImage
                 }
             } catch {
@@ -116,7 +119,6 @@ final class FaviconStore: FaviconStoring, Sendable {
                 throw error
             }
         }
-        return image
     }
 
     func removeFavicons(_ favicons: [Favicon]) async throws {
