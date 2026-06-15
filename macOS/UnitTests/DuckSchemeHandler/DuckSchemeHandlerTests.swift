@@ -16,10 +16,12 @@
 //  limitations under the License.
 //
 
+import AppKit
 import Combine
 import Common
 import FoundationExtensions
 import MaliciousSiteProtection
+import NewTabPage
 import PrivacyConfig
 import WebKit
 import XCTest
@@ -42,6 +44,60 @@ final class DuckSchemeHandlerTests: XCTestCase {
         featureFlagger = nil
         handler = nil
         super.tearDown()
+    }
+
+    // MARK: - Favicon (async)
+
+    @MainActor
+    func testFaviconHandlerReturnsImageAfterAsyncDecode() async throws {
+        let faviconManager = FaviconManagerMock()
+        faviconManager.setImage(makeTestImage(), forHost: "example.com")
+        let handler = DuckURLSchemeHandler(featureFlagger: featureFlagger, faviconManager: faviconManager)
+
+        let pageURL = URL(string: "https://example.com")!
+        let requestURL = try XCTUnwrap(URL.duckFavicon(for: pageURL))
+        let task = MockSchemeTask(request: URLRequest(url: requestURL))
+        let finished = expectation(description: "favicon task finished")
+        task.onCompletion = { finished.fulfill() }
+
+        handler.handleFavicon(urlSchemeTask: task)
+        await fulfillment(of: [finished], timeout: 5)
+
+        XCTAssertEqual(task.response?.mimeType, "image/png")
+        XCTAssertNotNil(task.data)
+        XCTAssertFalse(task.data?.isEmpty ?? true)
+        XCTAssertNil(task.error)
+    }
+
+    @MainActor
+    func testFaviconHandlerDoesNotCompleteStoppedTask() async throws {
+        let faviconManager = FaviconManagerMock()
+        faviconManager.setImage(makeTestImage(), forHost: "example.com")
+        let handler = DuckURLSchemeHandler(featureFlagger: featureFlagger, faviconManager: faviconManager)
+
+        let pageURL = URL(string: "https://example.com")!
+        let requestURL = try XCTUnwrap(URL.duckFavicon(for: pageURL))
+        let task = MockSchemeTask(request: URLRequest(url: requestURL))
+
+        // Stop the task before the awaited decode completes; the pending completion must be skipped.
+        handler.handleFavicon(urlSchemeTask: task)
+        handler.webView(WKWebView(), stop: task)
+
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertFalse(task.didFinishCalled)
+        XCTAssertNil(task.response)
+        XCTAssertNil(task.error)
+    }
+
+    private func makeTestImage() -> NSImage {
+        let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: 16, pixelsHigh: 16,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        let image = NSImage(size: NSSize(width: 16, height: 16))
+        image.addRepresentation(rep)
+        return image
     }
 
     func testWebViewFromOnboardingHandlerReturnsResponseAndData() throws {

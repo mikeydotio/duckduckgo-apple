@@ -50,6 +50,11 @@ protocol FaviconManagement: AnyObject {
     @MainActor
     func getCachedFavicon(for documentUrl: URL, sizeCategory: Favicon.SizeCategory, fallBackToSmaller: Bool) -> Favicon?
 
+    /// Awaits the favicon image decode (used by the duck://favicon scheme handler so it returns the
+    /// image once decoded instead of a cache-missed 404).
+    @MainActor
+    func resolvedCachedFavicon(for documentUrl: URL, sizeCategory: Favicon.SizeCategory, fallBackToSmaller: Bool) async -> Favicon?
+
     @MainActor
     func getCachedFavicon(for host: String, sizeCategory: Favicon.SizeCategory, fallBackToSmaller: Bool) -> Favicon?
 
@@ -289,6 +294,15 @@ final class FaviconManager: FaviconManagement {
             return getCachedFaviconURL(for: documentUrl, sizeCategory: smallerSizeCategory, fallBackToSmaller: fallBackToSmaller)
         }
         return faviconURL
+    }
+
+    @MainActor
+    func resolvedCachedFavicon(for documentUrl: URL, sizeCategory: Favicon.SizeCategory, fallBackToSmaller: Bool) async -> Favicon? {
+        await awaitFaviconsLoaded()
+        guard let faviconURL = getCachedFaviconURL(for: documentUrl, sizeCategory: sizeCategory, fallBackToSmaller: fallBackToSmaller) else {
+            return nil
+        }
+        return await imageCache.resolvedFavicon(faviconUrl: faviconURL)
     }
 
     func getCachedFavicon(for documentUrl: URL, sizeCategory: Favicon.SizeCategory, fallBackToSmaller: Bool) -> Favicon? {

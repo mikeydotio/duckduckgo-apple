@@ -39,6 +39,12 @@ protocol FaviconImageCaching {
     @MainActor
     func get(faviconUrl: URL) -> Favicon?
 
+    /// Awaits the off-main image decode on a cache miss and returns the favicon with its image (or a
+    /// nil image when it can't be decoded). For callers that need the image now, e.g. the
+    /// duck://favicon scheme handler.
+    @MainActor
+    func resolvedFavicon(faviconUrl: URL) async -> Favicon?
+
     @MainActor
     func getFavicons(with urls: some Sequence<URL>) -> [Favicon]?
 
@@ -161,6 +167,29 @@ final class FaviconImageCache: FaviconImageCaching {
         // observe to re-resolve the favicon.
         loadImageOffMain(for: metadata)
         return Favicon(metadata: metadata, image: nil)
+    }
+
+    func resolvedFavicon(faviconUrl: URL) async -> Favicon? {
+        guard loaded, let metadata = entries[faviconUrl] else { return nil }
+
+        // Hot path: already decoded.
+        if let cached = imageCache.object(forKey: faviconUrl as NSURL) {
+            return Favicon(metadata: metadata, image: cached)
+        }
+
+        // Cold path: await the off-main decode, then cache + notify, and return the resolved favicon.
+        let image: NSImage?
+        do {
+            image = try await storing.loadImage(for: metadata.identifier)
+        } catch {
+            Logger.favicons.error("Loading favicon image failed for \(metadata.url.absoluteString): \(error.localizedDescription)")
+            image = nil
+        }
+        if let image {
+            cacheImage(image, for: faviconUrl)
+            NotificationCenter.default.postFaviconCacheUpdated(faviconURLs: [metadata.url], documentURLs: [metadata.documentUrl])
+        }
+        return Favicon(metadata: metadata, image: image)
     }
 
     @MainActor
@@ -423,6 +452,12 @@ final class EagerFaviconImageCache: FaviconImageCaching {
     func get(faviconUrl: URL) -> Favicon? {
         guard loaded else { return nil }
 
+        return entries[faviconUrl]
+    }
+
+    func resolvedFavicon(faviconUrl: URL) async -> Favicon? {
+        // The eager cache already holds decoded images, so there's nothing to await.
+        guard loaded else { return nil }
         return entries[faviconUrl]
     }
 

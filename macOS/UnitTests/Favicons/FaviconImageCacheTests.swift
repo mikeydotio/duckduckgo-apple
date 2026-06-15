@@ -149,4 +149,31 @@ final class FaviconImageCacheTests: XCTestCase {
         XCTAssertEqual(store.loadFaviconsCallCount, 1)
         XCTAssertEqual(store.loadImageCallCount, 0)
     }
+
+    // MARK: async get
+
+    @MainActor
+    func testAsyncGetAwaitsImageDecodeThenServesFromCache() async throws {
+        let store = FaviconStoringMock()
+        let faviconURL = try XCTUnwrap("https://example.com/favicon.ico".url)
+        let documentURL = try XCTUnwrap("https://example.com".url)
+        let identifier = UUID()
+        store.metadataToLoad = [
+            FaviconMetadata(identifier: identifier, url: faviconURL, documentUrl: documentURL, dateCreated: Date(), relation: .favicon)
+        ]
+        store.imagesByIdentifier = [identifier: makeBitmapImage(pixelsWide: 32, pixelsHigh: 32)]
+
+        let cache = FaviconImageCache(faviconStoring: store)
+        try await cache.load()
+
+        // Cache miss: the async get awaits the off-main decode and returns the favicon WITH its image.
+        let favicon = await cache.resolvedFavicon(faviconUrl: faviconURL)
+        XCTAssertNotNil(favicon?.image)
+        XCTAssertEqual(store.loadImageCallCount, 1)
+
+        // Second async get is a cache hit — no further decode.
+        let cached = await cache.resolvedFavicon(faviconUrl: faviconURL)
+        XCTAssertNotNil(cached?.image)
+        XCTAssertEqual(store.loadImageCallCount, 1)
+    }
 }

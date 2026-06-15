@@ -45,6 +45,11 @@ final class CapturingFaviconImageCache: FaviconImageCaching {
         return getFaviconWithURL(faviconUrl)
     }
 
+    func resolvedFavicon(faviconUrl: URL) async -> Favicon? {
+        getFaviconWithURLCalls.append(faviconUrl)
+        return getFaviconWithURL(faviconUrl)
+    }
+
     func getFavicons(with urls: some Sequence<URL>) -> [Favicon]? {
         getFaviconsWithURLsCalls.append(Array(urls))
         return getFaviconsWithURLs(urls)

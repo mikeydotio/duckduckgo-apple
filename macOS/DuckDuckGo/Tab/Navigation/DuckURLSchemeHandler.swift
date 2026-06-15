@@ -30,6 +30,10 @@ final class DuckURLSchemeHandler: NSObject, WKURLSchemeHandler {
     let isNTPSpecialPageSupported: Bool
     let userBackgroundImagesManager: UserBackgroundImagesManaging?
 
+    /// Identifiers of in-flight favicon scheme tasks that complete asynchronously (after awaiting the
+    /// image decode). Used to skip messaging a task that WebKit has already stopped.
+    private var runningFaviconTasks = Set<ObjectIdentifier>()
+
     init(
         featureFlagger: FeatureFlagger,
         faviconManager: FaviconManagement = NSApp.delegateTyped.faviconManager,
@@ -79,7 +83,11 @@ final class DuckURLSchemeHandler: NSObject, WKURLSchemeHandler {
         }
     }
 
-    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {}
+    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
+        // A favicon task may still be awaiting its image decode; drop it so the pending completion is
+        // skipped instead of messaging a stopped task (which would crash).
+        runningFaviconTasks.remove(ObjectIdentifier(urlSchemeTask))
+    }
 
     private lazy var faviconsFetcherOnboarding: FaviconsFetcherOnboarding? = {
         guard let syncService = NSApp.delegateTyped.syncService, let syncBookmarksAdapter = NSApp.delegateTyped.syncDataProviders?.bookmarksAdapter else {
@@ -147,13 +155,16 @@ private extension DuckURLSchemeHandler {
 
 // MARK: - Favicons
 
-private extension DuckURLSchemeHandler {
+extension DuckURLSchemeHandler {
     /**
      * This handler supports special Duck favicon URLs and uses `FaviconManager`
      * to return a favicon in response, based on the actual favicon URL that's
      * encoded in the URL path.
      *
-     * If favicon is not found, an `HTTP 404` response is returned.
+     * Favicon images are decoded lazily, so this awaits the decode (via the async
+     * `getCachedFavicon`) and completes the scheme task once the image is ready —
+     * rather than returning a cache-missed `HTTP 404` that the web layer would cache.
+     * If no favicon exists, an `HTTP 404` response is returned.
      */
     func handleFavicon(urlSchemeTask: WKURLSchemeTask) {
         guard let requestURL = urlSchemeTask.request.url else {
@@ -171,17 +182,28 @@ private extension DuckURLSchemeHandler {
             return
         }
 
-        guard let (response, data) = response(for: requestURL, withFaviconURL: faviconURL) else { return }
-        urlSchemeTask.didReceive(response)
-        urlSchemeTask.didReceive(data)
-        urlSchemeTask.didFinish()
+        let taskID = ObjectIdentifier(urlSchemeTask)
+        runningFaviconTasks.insert(taskID)
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let favicon = await self.faviconManager.resolvedCachedFavicon(for: faviconURL, sizeCategory: .medium, fallBackToSmaller: true)
+
+            // The task may have been stopped while we awaited the decode; `remove` returns nil if so.
+            guard self.runningFaviconTasks.remove(taskID) != nil else { return }
+
+            guard let (response, data) = self.response(for: requestURL, favicon: favicon) else {
+                urlSchemeTask.didFailWithError(URLError(.badServerResponse))
+                return
+            }
+            urlSchemeTask.didReceive(response)
+            urlSchemeTask.didReceive(data)
+            urlSchemeTask.didFinish()
+        }
     }
 
-    func response(for requestURL: URL, withFaviconURL faviconURL: URL) -> (URLResponse, Data)? {
-        guard faviconManager.isCacheLoaded,
-              let favicon = faviconManager.getCachedFavicon(for: faviconURL, sizeCategory: .medium, fallBackToSmaller: true),
-              let imagePNGData = favicon.image?.pngData()
-        else {
+    private func response(for requestURL: URL, favicon: Favicon?) -> (URLResponse, Data)? {
+        guard let imagePNGData = favicon?.image?.pngData() else {
             guard let response = HTTPURLResponse(url: requestURL, statusCode: 404, httpVersion: "HTTP/1.1", headerFields: nil) else {
                 return nil
             }
