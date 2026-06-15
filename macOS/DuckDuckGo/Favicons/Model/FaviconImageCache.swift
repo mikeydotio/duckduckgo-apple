@@ -333,3 +333,152 @@ private extension FaviconMetadata {
     }
 
 }
+
+// MARK: - Eager (legacy) favicon image cache
+
+/**
+ * Legacy eager favicon image cache, used when the `faviconLazyImageLoading` kill switch is disabled.
+ *
+ * Unlike `FaviconImageCache`, this loads every stored favicon — including its decoded image — into an
+ * in-memory `[URL: Favicon]` dictionary at launch via `FaviconStoring.loadFavicons()`. This is the
+ * behavior that shipped before lazy favicon loading was introduced; it is reachable as a remote
+ * kill-switch fallback. It conforms to the same `FaviconImageCaching` protocol as the lazy cache.
+ */
+final class EagerFaviconImageCache: FaviconImageCaching {
+
+    private let storing: FaviconStoring
+
+    @MainActor
+    private var entries = [URL: Favicon]()
+
+    init(faviconStoring: FaviconStoring) {
+        storing = faviconStoring
+    }
+
+    @MainActor
+    private(set) var loaded = false
+
+    func load() async throws {
+        let favicons: [Favicon]
+        do {
+            favicons = try await storing.loadFavicons()
+            Logger.favicons.debug("Favicons loaded successfully")
+        } catch {
+            Logger.favicons.error("Loading of favicons failed: \(error.localizedDescription)")
+            throw error
+        }
+
+        await MainActor.run {
+            for favicon in favicons {
+                entries[favicon.url] = favicon
+            }
+            loaded = true
+        }
+    }
+
+    func insert(_ favicons: [Favicon]) {
+        guard !favicons.isEmpty, loaded else {
+            return
+        }
+
+        // Remove existing favicon with the same URL
+        let oldFavicons = favicons.compactMap { entries[$0.url] }
+
+        // Save the new ones
+        for favicon in favicons {
+            entries[favicon.url] = favicon
+        }
+
+        Task {
+            do {
+                await self.removeFaviconsFromStore(oldFavicons)
+                try await self.storing.save(favicons)
+                Logger.favicons.debug("Favicon saved successfully. URL: \(favicons.map(\.url.absoluteString).description)")
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .faviconCacheUpdated, object: nil)
+                }
+            } catch {
+                Logger.favicons.error("Saving of favicon failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func get(faviconUrl: URL) -> Favicon? {
+        guard loaded else { return nil }
+
+        return entries[faviconUrl]
+    }
+
+    func getFavicons(with urls: some Sequence<URL>) -> [Favicon]? {
+        guard loaded else { return nil }
+
+        return urls.compactMap { faviconUrl in entries[faviconUrl] }
+    }
+
+    // MARK: - Clean
+
+    func cleanOld(except fireproofDomains: FireproofDomains, bookmarkManager: BookmarkManager) async {
+        let bookmarkedHosts = bookmarkManager.allHosts()
+        await removeFavicons { favicon in
+            guard let host = favicon.documentUrl.host else {
+                return false
+            }
+            return favicon.dateCreated < Date.monthAgo &&
+                !fireproofDomains.isFireproof(fireproofDomain: host) &&
+                !bookmarkedHosts.contains(host)
+        }
+    }
+
+    // MARK: - Burning
+
+    func burn(except fireproofDomains: FireproofDomains, bookmarkManager: BookmarkManager, savedLogins: Set<String>) async -> Result<Void, Error> {
+        let bookmarkedHosts = bookmarkManager.allHosts()
+        return await removeFavicons { favicon in
+            guard let host = favicon.documentUrl.host else {
+                return false
+            }
+            return !(fireproofDomains.isFireproof(fireproofDomain: host) ||
+                     bookmarkedHosts.contains(host) ||
+                     savedLogins.contains(host)
+            )
+        }
+    }
+
+    func burnDomains(_ baseDomains: Set<String>,
+                     exceptBookmarks bookmarkManager: BookmarkManager,
+                     exceptSavedLogins logins: Set<String>,
+                     exceptHistoryDomains history: Set<String>,
+                     tld: TLD) async -> Result<Void, Error> {
+        let bookmarkedHosts = bookmarkManager.allHosts()
+        return await removeFavicons { favicon in
+            guard let host = favicon.documentUrl.host, let baseDomain = tld.eTLDplus1(host) else { return false }
+            return baseDomains.contains(baseDomain)
+                && !bookmarkedHosts.contains(host)
+                && !logins.contains(host)
+                && !history.contains(host)
+        }
+    }
+
+    // MARK: - Private
+
+    @MainActor
+    private func removeFavicons(filter isRemoved: (Favicon) -> Bool) async -> Result<Void, Error> {
+        let faviconsToRemove = entries.values.filter(isRemoved)
+        faviconsToRemove.forEach { entries[$0.url] = nil }
+
+        return await removeFaviconsFromStore(faviconsToRemove)
+    }
+
+    private func removeFaviconsFromStore(_ favicons: [Favicon]) async -> Result<Void, Error> {
+        guard !favicons.isEmpty else { return .success(()) }
+
+        do {
+            try await storing.removeFavicons(favicons)
+            Logger.favicons.debug("Favicons removed successfully.")
+            return .success(())
+        } catch {
+            Logger.favicons.error("Removing of favicons failed: \(error.localizedDescription)")
+            return .failure(error)
+        }
+    }
+}

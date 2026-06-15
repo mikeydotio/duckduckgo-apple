@@ -24,6 +24,10 @@ import XCTest
 
 final class FaviconStoringMock: FaviconStoring {
 
+    func loadFavicons() async throws -> [Favicon] {
+        []
+    }
+
     func loadFaviconMetadata() async throws -> [FaviconMetadata] {
         []
     }

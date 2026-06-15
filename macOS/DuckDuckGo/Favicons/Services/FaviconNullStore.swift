@@ -22,6 +22,10 @@ import Foundation
 
 final class FaviconNullStore: FaviconStoring {
 
+    func loadFavicons() async throws -> [Favicon] {
+        return []
+    }
+
     func loadFaviconMetadata() async throws -> [FaviconMetadata] {
         return []
     }

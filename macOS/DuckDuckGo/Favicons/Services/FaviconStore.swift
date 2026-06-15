@@ -27,6 +27,9 @@ import os.log
 
 protocol FaviconStoring {
 
+    /// Eager full-image load used by `EagerFaviconImageCache` when the `faviconLazyImageLoading`
+    /// kill switch is disabled. Loads every stored favicon (including its image BLOB) into memory.
+    func loadFavicons() async throws -> [Favicon]
     func loadFaviconMetadata() async throws -> [FaviconMetadata]
     func loadImage(for identifier: UUID) async throws -> NSImage?
     func save(_ favicons: [Favicon]) async throws
@@ -55,6 +58,27 @@ final class FaviconStore: FaviconStoring, Sendable {
 
     init(context: NSManagedObjectContext) {
         self.context = context
+    }
+
+    func loadFavicons() async throws -> [Favicon] {
+        // Eager path (lazy loading kill switch off): fetch full managed objects (faults disabled) so
+        // every favicon's image BLOB is unarchived up front, matching the legacy pre-lazy behavior.
+        try await withCheckedThrowingContinuation { [context] continuation in
+            context.perform {
+                let fetchRequest = FaviconManagedObject.fetchRequest() as NSFetchRequest<FaviconManagedObject>
+                fetchRequest.sortDescriptors = [NSSortDescriptor(key: #keyPath(FaviconManagedObject.dateCreated), ascending: true)]
+                fetchRequest.returnsObjectsAsFaults = false
+                do {
+                    let faviconMOs = try context.fetch(fetchRequest)
+                    Logger.favicons.debug("\(faviconMOs.count) favicons loaded")
+                    let favicons = faviconMOs.compactMap { Favicon(faviconMO: $0) }
+
+                    continuation.resume(returning: favicons)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 
     func loadFaviconMetadata() async throws -> [FaviconMetadata] {
@@ -264,6 +288,41 @@ final class FaviconStore: FaviconStoring, Sendable {
                 }
             }
         }
+    }
+
+}
+
+fileprivate extension Favicon {
+
+    /// Builds a full `Favicon` (including its decoded image) from a fetched managed object.
+    /// Used by the eager `loadFavicons()` path when lazy favicon loading is disabled.
+    init?(faviconMO: FaviconManagedObject) {
+        guard let identifier = faviconMO.identifier,
+              let url = faviconMO.urlEncrypted as? URL,
+              let documentUrl = faviconMO.documentUrlEncrypted as? URL,
+              let dateCreated = faviconMO.dateCreated,
+              let relation = Favicon.Relation(rawValue: Int(faviconMO.relation)) else {
+            PixelKit.fire(DebugEvent(GeneralPixel.faviconDecryptionFailedUnique), frequency: .legacyDaily)
+            assertionFailure("Favicon: Failed to init Favicon from FaviconManagedObject")
+            return nil
+        }
+
+        // Reading `imageEncrypted` makes Core Data unarchive the stored NSImage. If the saved bitmap is corrupt,
+        // AppKit raises an Objective-C `NSInvalidUnarchiveOperationException` ("bad TIFF data") while unarchiving.
+        // Swift's `try`/`try?` cannot catch Objective-C exceptions, so this would otherwise crash the app.
+        // `NSException.catch` bridges it to a Swift error; on failure we use a nil image, which the favicon system
+        // re-fetches on the next visit.
+        let image: NSImage?
+        do {
+            image = try NSException.catch {
+                faviconMO.imageEncrypted as? NSImage
+            }
+        } catch {
+            PixelKit.fire(DebugEvent(GeneralPixel.faviconDecryptionFailedUnique), frequency: .legacyDaily)
+            image = nil
+        }
+
+        self.init(identifier: identifier, url: url, image: image, relation: relation, documentUrl: documentUrl, dateCreated: dateCreated)
     }
 
 }

@@ -141,6 +141,7 @@ final class FaviconManager: FaviconManagement {
 
     private let bookmarkManager: BookmarkManager
     private let faviconDownloader: FaviconDownloader
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
 
     @Published private var faviconsLoaded = false
     var faviconsLoadedPublisher: Published<Bool>.Publisher { $faviconsLoaded }
@@ -165,7 +166,14 @@ final class FaviconManager: FaviconManagement {
         }
         self.bookmarkManager = bookmarkManager
         self.faviconDownloader = FaviconDownloader(privacyConfigurationManager: privacyConfigurationManager)
-        self.imageCache = imageCache?(store) ?? FaviconImageCache(faviconStoring: store)
+        self.privacyConfigurationManager = privacyConfigurationManager
+        if let imageCache {
+            self.imageCache = imageCache(store)
+        } else if privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(MacOSBrowserConfigSubfeature.faviconLazyImageLoading, defaultValue: true) {
+            self.imageCache = FaviconImageCache(faviconStoring: store)
+        } else {
+            self.imageCache = EagerFaviconImageCache(faviconStoring: store)
+        }
         self.referenceCache = referenceCache?(store) ?? FaviconReferenceCache(faviconStoring: store)
 
         Task {
@@ -381,6 +389,12 @@ final class FaviconManager: FaviconManagement {
     private func fetchFavicons(faviconLinks: [FaviconUserScript.FaviconLink], documentUrl: URL, webView: WKWebView?) async -> [Favicon] {
         guard !faviconLinks.isEmpty else { return [] }
 
+        // When the downscaling kill switch is enabled (default), cap freshly downloaded favicons at
+        // `maxStoredFaviconPixelSize`; otherwise pass `nil` to store them at their original resolution.
+        let maxPixelSize: CGFloat? = privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(MacOSBrowserConfigSubfeature.faviconImageDownscaling, defaultValue: true)
+            ? NSImage.maxStoredFaviconPixelSize
+            : nil
+
         return await withTaskGroup(of: Favicon?.self) { [faviconDownloader] group in
             for faviconLink in faviconLinks {
                 let faviconUrl = faviconLink.href
@@ -396,7 +410,7 @@ final class FaviconManager: FaviconManagement {
                         guard !data.isEmpty else {
                             throw URLError(.zeroByteResource, userInfo: [NSURLErrorKey: faviconUrl])
                         }
-                        guard let image = NSImage(dataUsingCIImage: data) else {
+                        guard let image = NSImage(dataUsingCIImage: data, maxPixelSize: maxPixelSize) else {
                             throw CocoaError(.fileReadCorruptFile, userInfo: [NSURLErrorKey: faviconUrl])
                         }
 
@@ -491,37 +505,39 @@ fileprivate extension NSImage {
      * This helps to preserve transparency on some PNG images, and fixes
      * storing `NSImage` initialized with `ico` files in NSKeyedArchiver.
      *
-     * Freshly decoded images are downscaled to `maxStoredFaviconPixelSize` (longest side, aspect ratio
-     * preserved) so that both the in-memory image and the archived blob stay small. Images that are already
-     * at or below the cap are left untouched (downscale only, never upscale).
+     * When `maxPixelSize` is non-nil, freshly decoded images are downscaled to that cap (longest side,
+     * aspect ratio preserved) so that both the in-memory image and the archived blob stay small; images
+     * already at or below the cap are left untouched (downscale only, never upscale). When `maxPixelSize`
+     * is `nil` (downscaling kill switch off), the image is stored at its original resolution.
      */
-    convenience init?(dataUsingCIImage data: Data) {
+    convenience init?(dataUsingCIImage data: Data, maxPixelSize: CGFloat?) {
         guard let ciImage = CIImage(data: data) else {
             self.init(data: data)
             return
         }
 
-        let downscaledRep = NSImage.downscaledBitmapRep(from: ciImage)
-        self.init(size: downscaledRep.size)
-        addRepresentation(downscaledRep)
+        let rep = NSImage.bitmapRep(from: ciImage, maxPixelSize: maxPixelSize)
+        self.init(size: rep.size)
+        addRepresentation(rep)
     }
 
     /**
-     * Renders the given `CIImage` into a bitmap-backed image representation whose pixel dimensions are
-     * capped at `maxStoredFaviconPixelSize` on the longest side (aspect ratio preserved, downscale only).
+     * Renders the given `CIImage` into a bitmap-backed image representation. When `maxPixelSize` is
+     * non-nil, the pixel dimensions are capped at that value on the longest side (aspect ratio preserved,
+     * downscale only); when `nil`, the image is rendered at its original resolution.
      *
      * The result is always a concrete `NSBitmapImageRep` (not a lazy `NSCIImageRep`), so the backing bitmap
-     * and the archived blob are guaranteed small. Its `size` (in points) equals its pixel dimensions, which
-     * keeps `Favicon.SizeCategory` classification (driven by `image.size`) consistent with the actual pixels.
+     * and the archived blob are concrete. Its `size` (in points) equals its pixel dimensions, which keeps
+     * `Favicon.SizeCategory` classification (driven by `image.size`) consistent with the actual pixels.
      */
-    private static func downscaledBitmapRep(from ciImage: CIImage) -> NSImageRep {
+    private static func bitmapRep(from ciImage: CIImage, maxPixelSize: CGFloat?) -> NSImageRep {
         let extent = ciImage.extent
         let longestSide = max(extent.width, extent.height)
 
-        // Downscale only when the image exceeds the cap; never upscale.
+        // Downscale only when a cap is provided and the image exceeds it; never upscale.
         let scaledImage: CIImage
-        if longestSide > maxStoredFaviconPixelSize, longestSide.isFinite, longestSide > 0 {
-            let scaleFactor = maxStoredFaviconPixelSize / longestSide
+        if let maxPixelSize, longestSide > maxPixelSize, longestSide.isFinite, longestSide > 0 {
+            let scaleFactor = maxPixelSize / longestSide
             // High-quality (Lanczos) downscaling keeps small favicons crisp; fall back to an affine
             // transform if the filter is unavailable for the input.
             let lanczos = CIFilter(name: "CILanczosScaleTransform", parameters: [
