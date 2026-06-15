@@ -28,8 +28,12 @@ import os.log
 protocol FaviconStoring {
 
     /// Eager full-image load used by `EagerFaviconImageCache` when the `faviconLazyImageLoading`
-    /// kill switch is disabled. Loads every stored favicon (including its image BLOB) into memory.
+    /// feature flag is disabled. Loads every stored favicon (including its image BLOB) into memory.
+    ///
+    /// This function is not used by lazy-loading `FaviconImageCache` (replaced by `loadFaviconMetadata`).
+    ///
     func loadFavicons() async throws -> [Favicon]
+
     func loadFaviconMetadata() async throws -> [FaviconMetadata]
     func loadImage(for identifier: UUID) async throws -> NSImage?
     func save(_ favicons: [Favicon]) async throws
@@ -61,8 +65,6 @@ final class FaviconStore: FaviconStoring, Sendable {
     }
 
     func loadFavicons() async throws -> [Favicon] {
-        // Eager path (lazy loading kill switch off): fetch full managed objects (faults disabled) so
-        // every favicon's image BLOB is unarchived up front, matching the legacy pre-lazy behavior.
         try await withCheckedThrowingContinuation { [context] continuation in
             context.perform {
                 let fetchRequest = FaviconManagedObject.fetchRequest() as NSFetchRequest<FaviconManagedObject>
@@ -89,7 +91,7 @@ final class FaviconStore: FaviconStoring, Sendable {
             // Fetch only the columns needed to build `FaviconMetadata`, deliberately
             // excluding the `imageEncrypted` BLOB. With `.dictionaryResultType` and an
             // explicit `propertiesToFetch`, the generated SQL SELECTs just these
-            // columns, so the (~1.2 GB) image bytes are never read off disk at launch.
+            // columns, so the (potentially very large) image bytes are never read off disk at launch.
             let fetchRequest = NSFetchRequest<NSDictionary>(entityName: FaviconManagedObject.className())
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: #keyPath(FaviconManagedObject.dateCreated), ascending: true)]
             fetchRequest.resultType = .dictionaryResultType
@@ -120,12 +122,15 @@ final class FaviconStore: FaviconStoring, Sendable {
     func loadImage(for identifier: UUID) async throws -> NSImage? {
         // Decode off the main thread on the store's private-queue context. Reading
         // `imageEncrypted` makes Core Data unarchive the stored NSImage, which for
-        // large blobs (production images reach 154 MB) is expensive — running it via
-        // the async `context.perform` keeps the decode off `@MainActor` callers.
+        // large blobs is expensive — running it via the async `context.perform`
+        // keeps the decode off `@MainActor` callers.
         try await context.perform { [context] in
             let fetchRequest = FaviconManagedObject.fetchRequest() as NSFetchRequest<FaviconManagedObject>
             fetchRequest.predicate = NSPredicate(format: "%K == %@", #keyPath(FaviconManagedObject.identifier), identifier as NSUUID)
             fetchRequest.fetchLimit = 1
+            fetchRequest.propertiesToFetch = [
+                #keyPath(FaviconManagedObject.imageEncrypted)
+            ]
 
             let fetchResult: [FaviconManagedObject] = try context.fetch(fetchRequest)
 
@@ -301,7 +306,8 @@ fileprivate extension Favicon {
               let url = faviconMO.urlEncrypted as? URL,
               let documentUrl = faviconMO.documentUrlEncrypted as? URL,
               let dateCreated = faviconMO.dateCreated,
-              let relation = Favicon.Relation(rawValue: Int(faviconMO.relation)) else {
+              let relation = Favicon.Relation(rawValue: Int(faviconMO.relation))
+        else {
             PixelKit.fire(DebugEvent(GeneralPixel.faviconDecryptionFailedUnique), frequency: .legacyDaily)
             assertionFailure("Favicon: Failed to init Favicon from FaviconManagedObject")
             return nil
@@ -352,7 +358,8 @@ fileprivate extension FaviconMetadata {
               let documentUrl = decodeURL(forKey: #keyPath(FaviconManagedObject.documentUrlEncrypted)),
               let dateCreated = dictionary[#keyPath(FaviconManagedObject.dateCreated)] as? Date,
               let relationRawValue = dictionary[#keyPath(FaviconManagedObject.relation)] as? Int,
-              let relation = Favicon.Relation(rawValue: relationRawValue) else {
+              let relation = Favicon.Relation(rawValue: relationRawValue)
+        else {
             PixelKit.fire(DebugEvent(GeneralPixel.faviconDecryptionFailedUnique), frequency: .legacyDaily)
             assertionFailure("FaviconMetadata: Failed to init from fetched dictionary")
             return nil

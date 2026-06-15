@@ -132,16 +132,10 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// Use WKDownload for favicon fetching to bypass App Transport Security restrictions on HTTP URLs
     case faviconWKDownload
 
-    /// Default-ON kill switch for lazy favicon image loading. Enabled by default; set to `disabled`
-    /// in privacy config to revert to the legacy eager full-image favicon cache (loads every stored
-    /// favicon image into memory at launch).
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215720761295352
+    /// Load favicon images from disk on demand and store them in an in-memory cache.
     case faviconLazyImageLoading
 
-    /// Default-ON kill switch for downscaling freshly downloaded favicons to <=64 px (longest side).
-    /// Enabled by default; set to `disabled` in privacy config to store favicons at their original
-    /// resolution.
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215720760576164
+    /// Downscale freshly downloaded favicons to <=64 px (longest side).
     case faviconImageDownscaling
 
     /// Hide manual update option and always use automatic updates

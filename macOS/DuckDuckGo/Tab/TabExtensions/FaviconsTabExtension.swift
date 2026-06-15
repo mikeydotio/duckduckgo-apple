@@ -83,7 +83,7 @@ final class FaviconsTabExtension {
             }
             .store(in: &cancellables)
 
-        // Favicon images now decode lazily off the main thread on a cache miss
+        // Favicon images decode lazily off the main thread on a cache miss
         // (see FaviconImageCache.get). The decode posts `.faviconCacheUpdated`
         // once the image lands, so re-resolve the tab favicon then — otherwise
         // the first display of a not-yet-decoded favicon would keep the

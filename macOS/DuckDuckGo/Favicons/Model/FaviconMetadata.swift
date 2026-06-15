@@ -18,6 +18,13 @@
 
 import Foundation
 
+/**
+ * Describes a favicon stored in the database.
+ *
+ * This struct provides information about a favicon, except for its actual image data.
+ * It's used by `FaviconStore` and `FaviconImageCache` to optimize memory when loading
+ * favicons.
+ */
 struct FaviconMetadata: Sendable, Equatable {
 
     let identifier: UUID

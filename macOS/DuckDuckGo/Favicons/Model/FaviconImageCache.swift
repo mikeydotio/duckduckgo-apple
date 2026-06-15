@@ -58,6 +58,10 @@ protocol FaviconImageCaching {
 
 final class FaviconImageCache: FaviconImageCaching {
 
+    /// Max cost is set to 32MB.
+    ///
+    /// At 64x64px, decoded RGBA should be 16kB per favicon and 32MB
+    /// should be able to store >2000 favicons.
     private static let imageCacheTotalCostLimit = 32 * 1024 * 1024
 
     private let storing: FaviconStoring
@@ -65,10 +69,12 @@ final class FaviconImageCache: FaviconImageCaching {
     @MainActor
     private var entries = [URL: FaviconMetadata]()
 
-    // Bounded image cache. Cost is the image's real pixel byte size (see
-    // `pixelCost(of:)`), so `totalCostLimit` reflects actual resident memory
-    // rather than point-based dimensions, which on Retina displays undercount
-    // the backing bitmap by ~4×.
+    /// Bounded image cache.
+    ///
+    /// Cost is the image's real pixel byte size (see `pixelCost(of:)`),
+    /// so `totalCostLimit` reflects actual resident memory rather than
+    /// point-based dimensions, which on Retina displays undercount
+    /// the backing bitmap by ~4×.
     private let imageCache: NSCache<NSURL, NSImage> = {
         let cache = NSCache<NSURL, NSImage>()
         cache.totalCostLimit = imageCacheTotalCostLimit

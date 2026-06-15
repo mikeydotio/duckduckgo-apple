@@ -391,8 +391,8 @@ final class FaviconManager: FaviconManagement {
     private func fetchFavicons(faviconLinks: [FaviconUserScript.FaviconLink], documentUrl: URL, webView: WKWebView?) async -> [Favicon] {
         guard !faviconLinks.isEmpty else { return [] }
 
-        // When the downscaling kill switch is enabled (default), cap freshly downloaded favicons at
-        // `maxStoredFaviconPixelSize`; otherwise pass `nil` to store them at their original resolution.
+        // When the downscaling is enabled, cap freshly downloaded favicons at `maxStoredFaviconPixelSize`.
+        // Otherwise pass `nil` to store them at their original resolution.
         let maxPixelSize: CGFloat? = featureFlagger.isFeatureOn(.faviconImageDownscaling)
             ? NSImage.maxStoredFaviconPixelSize
             : nil
@@ -495,7 +495,7 @@ extension NSImage {
      * The maximum pixel size (longest side) at which freshly downloaded favicons are stored and cached.
      *
      * The largest size the app ever *displays* a favicon is the New Tab Page favorites tile, which is
-     * 32 pt; at 2x Retina that is 64 device px (the NTP itself requests favicons at `DDG_DEFAULT_ICON_SIZE = 64`).
+     * 32 pt; at 2x Retina that is 64 device px (the NTP itself requests favicons at 64px).
      * Anything larger is wasted memory and disk space, so downloaded favicons are downscaled to this cap
      * before being stored. Bump this if a larger favicon display surface is ever introduced.
      */
@@ -510,7 +510,7 @@ extension NSImage {
      * When `maxPixelSize` is non-nil, freshly decoded images are downscaled to that cap (longest side,
      * aspect ratio preserved) so that both the in-memory image and the archived blob stay small; images
      * already at or below the cap are left untouched (downscale only, never upscale). When `maxPixelSize`
-     * is `nil` (downscaling kill switch off), the image is stored at its original resolution.
+     * is `nil` (downscaling disabled), the image is stored at its original resolution.
      */
     convenience init?(dataUsingCIImage data: Data, maxPixelSize: CGFloat?) {
         guard let ciImage = CIImage(data: data) else {
