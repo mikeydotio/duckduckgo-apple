@@ -17,6 +17,7 @@
 //
 
 import Combine
+import PrivacyConfig
 import PrivacyConfigTestsUtils
 import XCTest
 
@@ -36,6 +37,7 @@ class FaviconManagerTests: XCTestCase {
             bookmarkManager: MockBookmarkManager(),
             fireproofDomains: MockFireproofDomains(domains: []),
             privacyConfigurationManager: MockPrivacyConfigurationManager(),
+            featureFlagger: MockFeatureFlagger(),
             imageCache: { _ in self.imageCache },
             referenceCache: { _ in self.referenceCache }
         )
@@ -53,7 +55,8 @@ class FaviconManagerTests: XCTestCase {
             cacheType: .inMemory,
             bookmarkManager: MockBookmarkManager(),
             fireproofDomains: MockFireproofDomains(domains: []),
-            privacyConfigurationManager: MockPrivacyConfigurationManager()
+            privacyConfigurationManager: MockPrivacyConfigurationManager(),
+            featureFlagger: MockFeatureFlagger()
         )
         XCTAssertNotNil(faviconManager.store as? FaviconNullStore)
     }

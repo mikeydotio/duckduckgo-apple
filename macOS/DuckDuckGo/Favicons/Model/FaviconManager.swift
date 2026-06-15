@@ -18,6 +18,7 @@
 
 import Bookmarks
 import BrowserServicesKit
+import FeatureFlags
 import Cocoa
 import Combine
 import Common
@@ -141,7 +142,7 @@ final class FaviconManager: FaviconManagement {
 
     private let bookmarkManager: BookmarkManager
     private let faviconDownloader: FaviconDownloader
-    private let privacyConfigurationManager: PrivacyConfigurationManaging
+    private let featureFlagger: FeatureFlagger
 
     @Published private var faviconsLoaded = false
     var faviconsLoadedPublisher: Published<Bool>.Publisher { $faviconsLoaded }
@@ -155,6 +156,7 @@ final class FaviconManager: FaviconManagement {
         bookmarkManager: BookmarkManager,
         fireproofDomains: FireproofDomains,
         privacyConfigurationManager: PrivacyConfigurationManaging,
+        featureFlagger: FeatureFlagger,
         imageCache: ((FaviconStoring) -> FaviconImageCaching)? = nil,
         referenceCache: ((FaviconStoring) -> FaviconReferenceCaching)? = nil
     ) {
@@ -166,10 +168,10 @@ final class FaviconManager: FaviconManagement {
         }
         self.bookmarkManager = bookmarkManager
         self.faviconDownloader = FaviconDownloader(privacyConfigurationManager: privacyConfigurationManager)
-        self.privacyConfigurationManager = privacyConfigurationManager
+        self.featureFlagger = featureFlagger
         if let imageCache {
             self.imageCache = imageCache(store)
-        } else if privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(MacOSBrowserConfigSubfeature.faviconLazyImageLoading, defaultValue: true) {
+        } else if featureFlagger.isFeatureOn(.faviconLazyImageLoading) {
             self.imageCache = FaviconImageCache(faviconStoring: store)
         } else {
             self.imageCache = EagerFaviconImageCache(faviconStoring: store)
@@ -391,7 +393,7 @@ final class FaviconManager: FaviconManagement {
 
         // When the downscaling kill switch is enabled (default), cap freshly downloaded favicons at
         // `maxStoredFaviconPixelSize`; otherwise pass `nil` to store them at their original resolution.
-        let maxPixelSize: CGFloat? = privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(MacOSBrowserConfigSubfeature.faviconImageDownscaling, defaultValue: true)
+        let maxPixelSize: CGFloat? = featureFlagger.isFeatureOn(.faviconImageDownscaling)
             ? NSImage.maxStoredFaviconPixelSize
             : nil
 

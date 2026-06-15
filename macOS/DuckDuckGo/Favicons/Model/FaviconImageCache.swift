@@ -145,11 +145,11 @@ final class FaviconImageCache: FaviconImageCaching {
         }
 
         // Cold path: the image isn't decoded yet. Decoding a stored favicon means
-        // unarchiving an NSImage off disk (blobs reach 154 MB), so we must NOT do it
-        // synchronously on this `@MainActor` call. Kick off the decode on the store's
-        // private-queue context and return a metadata-only Favicon (nil image) now.
-        // When the decode finishes we populate the NSCache and post
-        // `.faviconCacheUpdated`, which UI consumers observe to re-resolve the favicon.
+        // unarchiving an NSImage off disk, so we must NOT do it synchronously on this
+        // `@MainActor` call. Kick off the decode on the store's private-queue context
+        // and return a metadata-only Favicon (nil image) now. When the decode finishes
+        // we populate the NSCache and post `.faviconCacheUpdated`, which UI consumers
+        // observe to re-resolve the favicon.
         loadImageOffMain(for: metadata)
         return Favicon(metadata: metadata, image: nil)
     }
@@ -231,6 +231,7 @@ final class FaviconImageCache: FaviconImageCaching {
 
     // MARK: - Private
 
+    @discardableResult
     @MainActor
     private func removeFavicons(filter isRemoved: (FaviconMetadata) -> Bool) async -> Result<Void, Error> {
         let toRemove = entries.values.filter(isRemoved)
@@ -241,6 +242,7 @@ final class FaviconImageCache: FaviconImageCaching {
         return await removeFaviconsFromStore(Array(toRemove))
     }
 
+    @discardableResult
     private func removeFaviconsFromStore(_ metadatas: [FaviconMetadata]) async -> Result<Void, Error> {
         guard !metadatas.isEmpty else { return .success(()) }
 
@@ -461,6 +463,7 @@ final class EagerFaviconImageCache: FaviconImageCaching {
 
     // MARK: - Private
 
+    @discardableResult
     @MainActor
     private func removeFavicons(filter isRemoved: (Favicon) -> Bool) async -> Result<Void, Error> {
         let faviconsToRemove = entries.values.filter(isRemoved)
