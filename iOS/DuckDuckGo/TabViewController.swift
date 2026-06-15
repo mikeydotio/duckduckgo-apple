@@ -3100,7 +3100,11 @@ extension TabViewController {
 
                 if self.shouldTriggerDownloadAction(for: navigationResponse) && !FilePreviewHelper.canAutoPreviewMIMEType(downloadMetadata.mimeType) {
                     // Show alert to the file download
-                    self.presentSaveToDownloadsAlert(with: downloadMetadata) {
+                    self.presentSaveToDownloadsAlert(with: downloadMetadata) { [weak self] in
+                        guard let self else {
+                            callback(nil)
+                            return
+                        }
                         callback(self.transfer(download,
                                                to: downloadManager,
                                                with: navigationResponse.response,
