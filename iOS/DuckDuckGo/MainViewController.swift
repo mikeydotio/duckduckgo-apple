@@ -5492,7 +5492,9 @@ extension MainViewController: TabDelegate {
             storageHandler: duckAiNativeStorageHandler,
             modelDisplays: modelDisplays
         )
-        let pinner: ChatPinning? = duckAiNativeStorageHandler.map(ChatPinner.init(storageHandler:))
+        let pinner: ChatPinning? = duckAiNativeStorageHandler.map { storage in
+            ChatPinner(storageHandler: storage, syncCleaner: aiChatSyncCleaner)
+        }
         let viewModel = AIChatHistoryViewModel(
             reader: reader,
             fireExecutor: fireExecutor,
