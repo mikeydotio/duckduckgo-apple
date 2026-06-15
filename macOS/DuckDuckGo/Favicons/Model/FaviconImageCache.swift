@@ -65,10 +65,10 @@ final class FaviconImageCache: FaviconImageCaching {
     @MainActor
     private var entries = [URL: FaviconMetadata]()
 
-    // Bounded image cache. Cost is approximated as RGBA size-units in points
-    // (so retina images undercount by ~4×); NSCache only requires the cost to
-    // be proportional, not byte-accurate, and computing real PNG bytes would
-    // mean re-encoding on every insert.
+    // Bounded image cache. Cost is the image's real pixel byte size (see
+    // `pixelCost(of:)`), so `totalCostLimit` reflects actual resident memory
+    // rather than point-based dimensions, which on Retina displays undercount
+    // the backing bitmap by ~4×.
     private let imageCache: NSCache<NSURL, NSImage> = {
         let cache = NSCache<NSURL, NSImage>()
         cache.totalCostLimit = imageCacheTotalCostLimit
@@ -261,8 +261,39 @@ final class FaviconImageCache: FaviconImageCaching {
     @MainActor
     private func cacheImage(_ image: NSImage?, for url: URL) {
         guard let image else { return }
-        let cost = Int(image.size.width * image.size.height * 4)
-        imageCache.setObject(image, forKey: url as NSURL, cost: cost)
+        imageCache.setObject(image, forKey: url as NSURL, cost: Self.pixelCost(of: image))
+    }
+
+    /// Approximate resident memory of `image` in bytes, derived from the real
+    /// pixel dimensions of its largest bitmap representation (RGBA, 4 bytes per
+    /// pixel). `image.size` is in points, so on Retina displays the backing
+    /// bitmap holds ~4× the pixels per point²; using points would undercount the
+    /// cost and let the cache hold far more memory than `totalCostLimit` implies.
+    private static func pixelCost(of image: NSImage) -> Int {
+        var maxCost = 0
+        for rep in image.representations {
+            let cost: Int
+            if let bitmap = rep as? NSBitmapImageRep, bitmap.pixelsWide > 0, bitmap.pixelsHigh > 0 {
+                // `bytesPerRow * pixelsHigh` is the most accurate, accounting for
+                // row padding and the actual bytes-per-pixel of the bitmap.
+                cost = bitmap.bytesPerRow * bitmap.pixelsHigh
+            } else if rep.pixelsWide > 0, rep.pixelsHigh > 0 {
+                cost = rep.pixelsWide * rep.pixelsHigh * 4
+            } else {
+                // Vector/PDF reps report `NSImageRepMatchesDevice` (0) for pixel
+                // dimensions; estimate from points scaled to a Retina backing.
+                let scale = 2.0
+                cost = Int(image.size.width * scale * image.size.height * scale * 4)
+            }
+            maxCost = max(maxCost, cost)
+        }
+        // Never report 0 for a non-empty image: an NSCache cost of 0 is treated
+        // as free and the entry would never be evicted. Fall back to the
+        // point-based size as a last resort.
+        if maxCost == 0 {
+            maxCost = Int(image.size.width * image.size.height * 4)
+        }
+        return max(maxCost, 1)
     }
 
 }
