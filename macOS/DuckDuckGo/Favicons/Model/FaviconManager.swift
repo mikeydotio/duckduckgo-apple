@@ -487,7 +487,7 @@ extension FaviconManager: Bookmarks.FaviconStoring {
     }
 }
 
-fileprivate extension NSImage {
+extension NSImage {
 
     /**
      * The maximum pixel size (longest side) at which freshly downloaded favicons are stored and cached.

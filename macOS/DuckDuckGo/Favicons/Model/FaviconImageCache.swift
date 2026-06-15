@@ -269,7 +269,7 @@ final class FaviconImageCache: FaviconImageCaching {
     /// pixel). `image.size` is in points, so on Retina displays the backing
     /// bitmap holds ~4× the pixels per point²; using points would undercount the
     /// cost and let the cache hold far more memory than `totalCostLimit` implies.
-    private static func pixelCost(of image: NSImage) -> Int {
+    static func pixelCost(of image: NSImage) -> Int {
         var maxCost = 0
         for rep in image.representations {
             let cost: Int

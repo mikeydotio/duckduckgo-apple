@@ -24,16 +24,31 @@ import XCTest
 
 final class FaviconStoringMock: FaviconStoring {
 
+    // Seeded return values for tests.
+    var faviconsToLoad: [Favicon] = []
+    var metadataToLoad: [FaviconMetadata] = []
+    var imagesByIdentifier: [UUID: NSImage] = [:]
+
+    // Call recording.
+    private(set) var loadFaviconsCallCount = 0
+    private(set) var loadFaviconMetadataCallCount = 0
+    private(set) var loadImageCallCount = 0
+    private(set) var loadImageIdentifiers: [UUID] = []
+
     func loadFavicons() async throws -> [Favicon] {
-        []
+        loadFaviconsCallCount += 1
+        return faviconsToLoad
     }
 
     func loadFaviconMetadata() async throws -> [FaviconMetadata] {
-        []
+        loadFaviconMetadataCallCount += 1
+        return metadataToLoad
     }
 
     func loadImage(for identifier: UUID) async throws -> NSImage? {
-        nil
+        loadImageCallCount += 1
+        loadImageIdentifiers.append(identifier)
+        return imagesByIdentifier[identifier]
     }
 
     func save(_ favicons: [Favicon]) async throws {
