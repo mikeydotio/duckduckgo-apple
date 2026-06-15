@@ -133,7 +133,10 @@ final class FaviconImageCache: FaviconImageCaching {
                 try await self.storing.save(favicons)
                 Logger.favicons.debug("Favicon saved successfully. URL: \(favicons.map(\.url.absoluteString).description)")
                 await MainActor.run {
-                    NotificationCenter.default.post(name: .faviconCacheUpdated, object: nil)
+                    NotificationCenter.default.postFaviconCacheUpdated(
+                        faviconURLs: Set(favicons.map(\.url)),
+                        documentURLs: Set(favicons.map(\.documentUrl))
+                    )
                 }
             } catch {
                 Logger.favicons.error("Saving of favicon failed: \(error.localizedDescription)")
@@ -181,7 +184,10 @@ final class FaviconImageCache: FaviconImageCaching {
                 guard let image else { return }
                 self.cacheImage(image, for: faviconUrl)
                 // Tell UI consumers the image is now available so they re-resolve.
-                NotificationCenter.default.post(name: .faviconCacheUpdated, object: nil)
+                NotificationCenter.default.postFaviconCacheUpdated(
+                    faviconURLs: [metadata.url],
+                    documentURLs: [metadata.documentUrl]
+                )
             }
         }
     }
@@ -403,7 +409,10 @@ final class EagerFaviconImageCache: FaviconImageCaching {
                 try await self.storing.save(favicons)
                 Logger.favicons.debug("Favicon saved successfully. URL: \(favicons.map(\.url.absoluteString).description)")
                 await MainActor.run {
-                    NotificationCenter.default.post(name: .faviconCacheUpdated, object: nil)
+                    NotificationCenter.default.postFaviconCacheUpdated(
+                        faviconURLs: Set(favicons.map(\.url)),
+                        documentURLs: Set(favicons.map(\.documentUrl))
+                    )
                 }
             } catch {
                 Logger.favicons.error("Saving of favicon failed: \(error.localizedDescription)")

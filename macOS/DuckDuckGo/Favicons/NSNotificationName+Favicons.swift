@@ -23,3 +23,41 @@ extension NSNotification.Name {
     static let faviconCacheUpdated = NSNotification.Name("FaviconCacheUpdatedNotification")
 
 }
+
+/// Payload of `.faviconCacheUpdated`: the favicons whose image just became available in the cache.
+/// Observers use it to decide whether they actually need to reload, instead of reloading unconditionally.
+struct FaviconsCacheUpdate {
+
+    fileprivate static let userInfoKey = "favicons.cacheUpdate"
+
+    /// Favicon image URLs whose image just became available.
+    let faviconURLs: Set<URL>
+
+    /// Document (page) URLs the favicons belong to.
+    let documentURLs: Set<URL>
+
+    /// Hosts of `documentURLs`, for observers keyed by host.
+    var hosts: Set<String> { Set(documentURLs.compactMap(\.host)) }
+
+}
+
+extension Notification {
+
+    /// The `FaviconsCacheUpdate` carried by a `.faviconCacheUpdated` notification, if present.
+    var faviconsCacheUpdate: FaviconsCacheUpdate? {
+        userInfo?[FaviconsCacheUpdate.userInfoKey] as? FaviconsCacheUpdate
+    }
+
+}
+
+extension NotificationCenter {
+
+    /// Posts `.faviconCacheUpdated` describing which favicons just became available, so observers
+    /// can reload selectively.
+    func postFaviconCacheUpdated(faviconURLs: Set<URL>, documentURLs: Set<URL>) {
+        post(name: .faviconCacheUpdated,
+             object: nil,
+             userInfo: [FaviconsCacheUpdate.userInfoKey: FaviconsCacheUpdate(faviconURLs: faviconURLs, documentURLs: documentURLs)])
+    }
+
+}
