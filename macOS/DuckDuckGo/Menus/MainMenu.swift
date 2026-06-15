@@ -690,12 +690,28 @@ final class MainMenu: NSMenu {
     private var folderDelegates: [LazyBookmarkFolderMenuDelegate] = []
 
     var faviconsCancellable: AnyCancellable?
+    var faviconsCacheUpdateCancellable: AnyCancellable?
     @MainActor
     private func subscribeToFavicons(faviconManager: FaviconManagement) {
         faviconsCancellable = faviconManager.faviconsLoadedPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] loaded in
                 guard let self, loaded else { return }
+                if self.isLazyMenuRebuild {
+                    self.bookmarkFaviconsNeedUpdate = true
+                } else {
+                    self.updateFavicons(in: bookmarksMenu)
+                    self.updateFavicons(in: favoritesMenu)
+                }
+            }
+
+        // `faviconsLoadedPublisher` fires when favicon metadata loads, before the
+        // images are decoded. Favicon images become available lazily and post
+        // `.faviconCacheUpdated`, so also refresh the menus on that notification.
+        faviconsCacheUpdateCancellable = NotificationCenter.default.publisher(for: .faviconCacheUpdated)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
                 if self.isLazyMenuRebuild {
                     self.bookmarkFaviconsNeedUpdate = true
                 } else {
