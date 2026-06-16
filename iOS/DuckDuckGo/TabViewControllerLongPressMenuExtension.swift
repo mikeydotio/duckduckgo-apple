@@ -117,19 +117,101 @@ extension TabViewController {
     func webView(_ webView: WKWebView, contextMenuConfigurationForElement elementInfo: WKContextMenuElementInfo,
                  completionHandler: @escaping (UIContextMenuConfiguration?) -> Void) {
 
-        guard let url = elementInfo.linkURL else {
-            completionHandler(nil)
+        // When the "Ask Duck.ai" image action is unavailable, preserve the original link-only behaviour.
+        guard delegate?.isAIChatImageAttachmentEnabled == true else {
+            guard let url = elementInfo.linkURL else {
+                completionHandler(nil)
+                return
+            }
+            completionHandler(linkContextMenuConfiguration(for: url, imageAttachmentURL: nil))
             return
         }
 
-        let config = UIContextMenuConfiguration(identifier: nil, previewProvider: {
+        // `WKContextMenuElementInfo` only exposes `linkURL`, so the long-pressed image (if any) is
+        // resolved in JavaScript by `DuckAIImageContextMenuUserScript`. Note: on iPhone, iOS routes
+        // *bare* image long-presses through its image-analysis interaction and never calls this
+        // delegate, so the image action here is reached for linked images (and pointer right-clicks
+        // on iPad). Bare-image coverage is handled separately via the share sheet.
+        resolveLongPressedImageURL { [weak self] imageURL in
+            guard let self else {
+                completionHandler(nil)
+                return
+            }
+
+            if let url = elementInfo.linkURL {
+                completionHandler(self.linkContextMenuConfiguration(for: url, imageAttachmentURL: imageURL))
+            } else if let imageURL {
+                // Keep WebKit's default image actions (Save, Copy, Share) and append "Ask Duck.ai".
+                let config = UIContextMenuConfiguration(identifier: nil, previewProvider: nil, actionProvider: { suggestedActions in
+                    UIMenu(title: "", children: suggestedActions + [self.askDuckAIImageAction(imageURL: imageURL)])
+                })
+                completionHandler(config)
+            } else {
+                completionHandler(nil)
+            }
+        }
+    }
+
+    private func linkContextMenuConfiguration(for url: URL, imageAttachmentURL: URL?) -> UIContextMenuConfiguration {
+        UIContextMenuConfiguration(identifier: nil, previewProvider: {
             return AppUserDefaults().longPressPreviews ? self.buildOpenLinkPreview(for: url) : nil
         }, actionProvider: { _ in
             // We don't use provided elements as they are not built with correct URL in case of AMP links
-            return self.buildLinkPreviewMenu(for: url, withProvided: [])
+            var provided: [UIMenuElement] = []
+            if let imageAttachmentURL {
+                provided.append(UIMenu(title: "", options: .displayInline, children: [self.askDuckAIImageAction(imageURL: imageAttachmentURL)]))
+            }
+            return self.buildLinkPreviewMenu(for: url, withProvided: provided)
         })
+    }
 
-        completionHandler(config)
+    private func resolveLongPressedImageURL(completion: @escaping (URL?) -> Void) {
+        guard let webView else {
+            completion(nil)
+            return
+        }
+        let js = "window.\(DuckAIImageContextMenuUserScript.imageURLGlobalName) || null"
+        webView.evaluateJavaScript(js) { result, _ in
+            guard let urlString = result as? String,
+                  let url = URL(string: urlString),
+                  let scheme = url.scheme?.lowercased(),
+                  scheme == "http" || scheme == "https" else {
+                completion(nil)
+                return
+            }
+            completion(url)
+        }
+    }
+
+    private func askDuckAIImageAction(imageURL: URL) -> UIAction {
+        UIAction(title: UserText.aiChatLongPressAttachImage,
+                 image: DesignSystemImages.Glyphs.Size16.aiChat) { [weak self] _ in
+            self?.attachLongPressedImageToAIChat(imageURL)
+        }
+    }
+
+    private func attachLongPressedImageToAIChat(_ imageURL: URL) {
+        guard let webView else { return }
+        let configuration = URLSessionConfiguration.ephemeral
+        let userAgent = DefaultUserAgentManager.shared.userAgent(isDesktop: false, url: imageURL)
+        configuration.httpAdditionalHeaders = ["user-agent": userAgent]
+
+        // Re-download sharing the web view's cookies so login-gated images resolve where possible.
+        webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
+            guard let self else { return }
+            cookies.forEach { configuration.httpCookieStorage?.setCookie($0) }
+            let session = URLSession(configuration: configuration)
+            Task { @MainActor in
+                defer { session.finishTasksAndInvalidate() }
+                do {
+                    let fetcher = RemoteImageAttachmentFetcher(urlSession: session)
+                    let result = try await fetcher.fetchImage(from: imageURL)
+                    self.delegate?.tab(self, didRequestAttachImageToAIChat: result.image, fileName: result.fileName)
+                } catch {
+                    // First cut: a failed fetch is non-fatal — the image simply isn't attached.
+                }
+            }
+        }
     }
 
     func webView(_ webView: WKWebView, contextMenuForElement elementInfo: WKContextMenuElementInfo,

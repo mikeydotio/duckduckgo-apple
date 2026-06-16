@@ -58,6 +58,7 @@ final class UserScripts: UserScriptsProvider {
 
     private(set) var faviconScript = FaviconUserScript()
     private(set) var findInPageScript = FindInPageUserScript()
+    private(set) var duckAIImageContextMenuUserScript = DuckAIImageContextMenuUserScript()
     private(set) var fullScreenVideoScript = FullScreenVideoUserScript()
     private(set) var printingSubfeature = PrintingSubfeature()
     private(set) var trackerProtectionSubfeature = TrackerProtectionSubfeature()
@@ -190,6 +191,7 @@ final class UserScripts: UserScriptsProvider {
     lazy var userScripts: [UserScript] = {
         var scripts: [UserScript?] = [
             findInPageScript,
+            duckAIImageContextMenuUserScript,
             fullScreenVideoScript,
             autofillUserScript,
             loginFormDetectionScript,

@@ -236,6 +236,7 @@ extension MainViewController {
         coordinator.activateForTab(tab.tabModel.uid)
 
         let action = refreshAction(for: tab, coordinator: coordinator)
+        Swift.print("[ASKDUCKAI] refreshUnifiedToggleInput tab=\(tab.tabModel.uid) isAITab=\(tab.isAITab) action=\(action)")
 
         switch action {
         case .unbindInactiveNonAITab:
@@ -1188,8 +1189,10 @@ extension MainViewController {
 extension MainViewController: UnifiedToggleInputOmnibarActivating {
 
     func activateFromOmnibarIfNeeded(currentText: String?, tapped: Bool, textEntryMode: TextEntryMode?) -> UnifiedToggleInputActivationDecision {
+        Swift.print("[ASKDUCKAI] activateFromOmnibarIfNeeded ENTER tapped=\(tapped) textEntryMode=\(String(describing: textEntryMode)) currentTab.isAITab=\(String(describing: currentTab?.isAITab))")
         guard let coordinator = unifiedToggleInputCoordinator,
               currentTab?.isAITab != true else {
+            Swift.print("[ASKDUCKAI] activateFromOmnibarIfNeeded -> allowDefault (coordinator nil or current tab is AI)")
             return .allowDefault
         }
         if tapped {
@@ -1199,6 +1202,7 @@ extension MainViewController: UnifiedToggleInputOmnibarActivating {
         let inputMode = textEntryMode
             ?? tabManager.currentTabsModel.currentTab.map { initialOmnibarToggleMode(for: $0) }
             ?? .search
+        Swift.print("[ASKDUCKAI] activateFromOmnibarIfNeeded resolved inputMode=\(inputMode) position=\(position); calling updateInputMode + updateToggleEnabled + activateFromOmnibar")
         coordinator.updateInputMode(inputMode, animated: false)
         let isToggleEnabled = isAIChatSearchInputToggleEnabledForCurrentOnboardingState()
         coordinator.updateToggleEnabled(isToggleEnabled)
@@ -1290,6 +1294,56 @@ extension MainViewController: UnifiedToggleInputDelegate {
             text: AddressDisplayHelper.plainDisplayString(for: tab?.link?.url),
             placeholderMode: preferredTextEntryModeForCurrentTab() ?? .search
         )
+    }
+}
+
+// MARK: - Duck.ai image attachment (long-press)
+
+extension MainViewController {
+
+    /// Offered only when the Unified Toggle Input is available (it owns the attachment UI) and AI Chat is enabled.
+    var isAIChatImageAttachmentEnabled: Bool {
+        unifiedToggleInputFeature.isAvailable && isAIChatEnabled
+    }
+
+    func tab(_ tab: TabViewController, didRequestAttachImageToAIChat image: UIImage, fileName: String) {
+        attachImageToAIChat(image, fileName: fileName)
+    }
+
+    /// Attaches an image shared via the "Ask Duck.ai" action extension (handed off through the App
+    /// Group) to a freshly-opened Duck.ai tab's UTI.
+    func attachSharedImageToAIChat(token: String) {
+        Swift.print("[ASKDUCKAI] attachSharedImageToAIChat ENTER token=\(token) coordinator=\(unifiedToggleInputCoordinator == nil ? "nil" : "set") currentTab.isAITab=\(String(describing: currentTab?.isAITab)) ntp=\(newTabPageViewController != nil)")
+        guard let data = SharedAIChatImageStore.loadAndRemove(token: token) else {
+            Swift.print("[ASKDUCKAI] attachSharedImageToAIChat ABORT — no image data for token")
+            return
+        }
+        guard let image = UIImage(data: data) else {
+            Swift.print("[ASKDUCKAI] attachSharedImageToAIChat ABORT — \(data.count) bytes is not a decodable image")
+            return
+        }
+        Swift.print("[ASKDUCKAI] attachSharedImageToAIChat loaded image size=\(image.size) bytes=\(data.count); calling newTab(allowingKeyboard: false)")
+        // Open an empty New Tab Page WITHOUT auto-focusing the omnibar (so it isn't activated twice),
+        // then switch the omnibar's unified input to Duck.ai and attach the image.
+        newTab(allowingKeyboard: false)
+        Swift.print("[ASKDUCKAI] attachSharedImageToAIChat newTab returned; scheduling async activate+attach")
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { Swift.print("[ASKDUCKAI] async ABORT — self deallocated"); return }
+            guard let coordinator = self.unifiedToggleInputCoordinator else {
+                Swift.print("[ASKDUCKAI] async ABORT — unifiedToggleInputCoordinator is nil (UI not ready — likely cold launch)")
+                return
+            }
+            Swift.print("[ASKDUCKAI] async: coordinator ready; calling activateFromOmnibarIfNeeded(.aiChat)")
+            let decision = self.activateFromOmnibarIfNeeded(currentText: nil, tapped: true, textEntryMode: .aiChat)
+            Swift.print("[ASKDUCKAI] async: activate decision=\(decision); calling attachImageWhenModelReady")
+            coordinator.attachImageWhenModelReady(image: image, fileName: "shared-image")
+        }
+    }
+
+    private func attachImageToAIChat(_ image: UIImage, fileName: String) {
+        guard let coordinator = unifiedToggleInputCoordinator else { return }
+        coordinator.showExpanded(inputMode: .aiChat)
+        coordinator.addImageAttachment(image: image, fileName: fileName)
     }
 }
 

@@ -756,6 +756,7 @@ extension MainCoordinator: URLHandling {
         case .openPasswords:
             handleOpenPasswords(url: url)
         case .openAIChat:
+            Swift.print("[ASKDUCKAI] MainCoordinator routing .openAIChat url=\(url.absoluteString) controller=\(type(of: controller))")
             AIChatDeepLinkHandler().handleDeepLink(url, on: controller)
         case .openAIVoiceChat:
             AIChatDeepLinkHandler().handleDeepLink(url, on: controller, voiceMode: true)

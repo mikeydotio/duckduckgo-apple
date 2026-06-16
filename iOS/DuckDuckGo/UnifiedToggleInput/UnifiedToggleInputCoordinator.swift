@@ -795,6 +795,7 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
     // MARK: - Omnibar State
 
     func activateFromOmnibar(prefilledText: String? = nil, inputMode: TextEntryMode = .search, cardPosition: UnifiedToggleInputCardPosition = .top) {
+        Swift.print("[ASKDUCKAI] coordinator.activateFromOmnibar prefilled=\(prefilledText ?? "nil") inputMode=\(inputMode) cardPosition=\(cardPosition) displayState(before)=\(displayState)")
         cancelTopOmnibarKeyboardPresentationFallback()
         isAwaitingTopOmnibarKeyboardPresentation = cardPosition == .top
         displayState = .omnibar(.active)
@@ -934,6 +935,7 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
     // MARK: - Input Management
 
     func updateInputMode(_ mode: TextEntryMode, animated: Bool) {
+        Swift.print("[ASKDUCKAI] coordinator.updateInputMode mode=\(mode) animated=\(animated) currentInputMode=\(inputMode) displayState=\(displayState)")
         let effectiveMode = effectiveInputMode(for: mode)
         let didModeChange = inputMode != effectiveMode
         let needsViewSync = viewController.inputMode != effectiveMode
@@ -1205,6 +1207,7 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
     // MARK: - Toggle State Persistence
 
     private func setInitialInputMode(_ mode: TextEntryMode) {
+        Swift.print("[ASKDUCKAI] coordinator.setInitialInputMode mode=\(mode) (was inputMode=\(inputMode))")
         inputMode = mode
         committedInputMode = mode
         syncInputBehaviorToHandler()
@@ -1720,10 +1723,51 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
         selectedModelSupportedFileTypes.compactMap(Self.contentType(for:))
     }
 
+    /// Image shared via the "Ask Duck.ai" action extension, awaiting an image-capable model.
+    private var pendingSharedImageAttachment: (image: UIImage, fileName: String)?
+
+    /// Attaches a shared image now if the selected model supports images, otherwise stashes it and
+    /// attaches once models load (`handleModelsUpdated`), auto-selecting an image-capable model if
+    /// the default one can't take images.
+    func attachImageWhenModelReady(image: UIImage, fileName: String) {
+        Swift.print("[ASKDUCKAI] attachImageWhenModelReady canAttachImages=\(attachmentPolicy.canAttachImages) models=\(modelStore.models.count) selectedSupportsImage=\(selectedModelSupportsImageUpload)")
+        if attachmentPolicy.canAttachImages {
+            addImageAttachment(image: image, fileName: fileName)
+            return
+        }
+        pendingSharedImageAttachment = (image, fileName)
+        flushPendingSharedImageAttachmentIfNeeded()
+        if pendingSharedImageAttachment != nil {
+            fetchModels()
+        }
+    }
+
+    private func flushPendingSharedImageAttachmentIfNeeded() {
+        guard let pending = pendingSharedImageAttachment else { return }
+        Swift.print("[ASKDUCKAI] flushPendingSharedImage canAttachImages=\(attachmentPolicy.canAttachImages) selectedSupportsImage=\(selectedModelSupportsImageUpload) models=\(modelStore.models.count)")
+        if attachmentPolicy.canAttachImages {
+            pendingSharedImageAttachment = nil
+            addImageAttachment(image: pending.image, fileName: pending.fileName)
+            return
+        }
+        // Default model can't take images; switch to the first image-capable model (once). That
+        // re-enters `handleModelsUpdated` → this method runs again with `canAttachImages == true`.
+        if !selectedModelSupportsImageUpload,
+           let visionModel = modelStore.models.first(where: { $0.supportsImageUpload }) {
+            Swift.print("[ASKDUCKAI] flushPendingSharedImage selecting image-capable model \(visionModel.id)")
+            updateSelectedModel(visionModel.id)
+        }
+    }
+
     func addImageAttachment(image: UIImage, fileName: String) {
-        guard attachmentPolicy.canAttachImages else { return }
+        Swift.print("[ASKDUCKAI] coordinator.addImageAttachment fileName=\(fileName) canAttachImages=\(attachmentPolicy.canAttachImages) existingAttachments=\(viewController.currentAttachments.count) displayState=\(displayState)")
+        guard attachmentPolicy.canAttachImages else {
+            Swift.print("[ASKDUCKAI] coordinator.addImageAttachment ABORTED — canAttachImages=false (no image-capable model selected?)")
+            return
+        }
         let attachment = UnifiedToggleInputAttachment.image(AIChatImageAttachment(image: image, fileName: fileName))
         viewController.addAttachment(attachment)
+        Swift.print("[ASKDUCKAI] coordinator.addImageAttachment ADDED — now \(viewController.currentAttachments.count) attachment(s)")
         persistDraftToStore()
         clearAttachmentValidationErrorIfPossible()
         updateAttachButtonPresentation()
@@ -2376,6 +2420,7 @@ private extension UnifiedToggleInputCoordinator {
         applyPendingGatedReasoningSelectionIfPossible()
         updateImageButtonVisibility()
         refreshToolsPresentation()
+        flushPendingSharedImageAttachmentIfNeeded()
     }
 
     func refreshToolsPresentation() {

@@ -35,9 +35,14 @@ protocol AIChatDeepLinkPresenting: UIViewController {
         files: [AIChatNativePrompt.NativePromptFile]?,
         fromDeepLink: Bool
     )
+
+    /// Attaches an image shared via the "Ask Duck.ai" share extension to a new Duck.ai prompt.
+    func attachSharedImageToAIChat(token: String)
 }
 
 extension AIChatDeepLinkPresenting {
+
+    func attachSharedImageToAIChat(token: String) {}
 
     func openAIChat(fromDeepLink: Bool) {
         openAIChat(
@@ -66,7 +71,19 @@ struct AIChatDeepLinkHandler {
             firePixel(url)
         }
 
+        Swift.print("[ASKDUCKAI] AIChatDeepLinkHandler.handleDeepLink url=\(url.absoluteString) voiceMode=\(voiceMode)")
+
         if !voiceMode {
+            // Image shared via the "Ask Duck.ai" share extension: attach it to a new prompt.
+            if let imageToken = url.getParameter(named: "image") {
+                Swift.print("[ASKDUCKAI] handleDeepLink found image token=\(imageToken); dismissing presented VC then attaching")
+                mainViewController.dismiss(animated: true) {
+                    Swift.print("[ASKDUCKAI] handleDeepLink dismiss complete; calling attachSharedImageToAIChat")
+                    mainViewController.attachSharedImageToAIChat(token: imageToken)
+                }
+                return
+            }
+
             guard !isAIChatAlreadyPresented(on: mainViewController) else {
                 return
             }

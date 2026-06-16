@@ -175,6 +175,12 @@ protocol TabDelegate: AnyObject {
     func tabDidRequestSetYouTubeAdBlockingEnabled(_ enabled: Bool, tab: TabViewController)
 
     func tabDidRequestYouTubeAdBlockUnavailableDialog(tab: TabViewController)
+
+    /// Whether the long-press "Ask Duck.ai" image action should be offered for this tab.
+    var isAIChatImageAttachmentEnabled: Bool { get }
+
+    /// The user asked to attach a long-pressed web image to a Duck.ai prompt.
+    func tab(_ tab: TabViewController, didRequestAttachImageToAIChat image: UIImage, fileName: String)
 }
 
 extension TabDelegate {
@@ -188,5 +194,9 @@ extension TabDelegate {
     func tabDidRequestNewVoiceChat(_ tab: TabViewController) {}
 
     func tab(_ tab: TabViewController, didFailDuckAINavigationFor url: URL, error: Error) {}
+
+    var isAIChatImageAttachmentEnabled: Bool { false }
+
+    func tab(_ tab: TabViewController, didRequestAttachImageToAIChat image: UIImage, fileName: String) {}
 
 }

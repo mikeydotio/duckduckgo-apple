@@ -289,6 +289,9 @@
 /* Title for the New Voice Chat row in the Duck.ai tab header Plus (+) menu */
 "aichat.header.plusMenu.newVoiceChat" = "New Voice Chat";
 
+/* Long-press image menu action title to attach the image to a Duck.ai prompt */
+"aichat.longpress.attach-image" = "Ask Duck.ai";
+
 /* Subtitle for the extended reasoning mode in the Duck.ai reasoning picker */
 "aichat.reasoning.extended.subtitle" = "For analytical tasks";
 
