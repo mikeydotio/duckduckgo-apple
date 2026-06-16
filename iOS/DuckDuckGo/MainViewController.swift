@@ -3927,6 +3927,10 @@ extension MainViewController: OmniBarDelegate {
         loadUrlRespectingAIBoundary(url)
     }
 
+    func onViewAllChatsSelected() {
+        openAIChatHistory()
+    }
+
     func onAIChatQueryUpdated(_ query: String) {
         iPadAIChatQuery = query
         iPadTabChatHistoryCoordinator.updateQuery(query)
@@ -5482,6 +5486,9 @@ extension MainViewController: TabDelegate {
     }
 
     func openAIChatHistory() {
+        // The native chat history sheet is an iPhone-only experience; entrypoints are hidden on iPad,
+        // and this guard ensures the sheet can never be presented there.
+        guard UIDevice.current.userInterfaceIdiom != .pad else { return }
         // The disk-backed storage handler also conforms to `DuckAiNativeChatsObserving`
         // (forwarding to its GRDB `ValueObservation` backing). When storage failed to
         // configure at launch the cast yields `nil`, and the reader surfaces a
@@ -7113,6 +7120,10 @@ extension MainViewController: AIChatHistoryManagerDelegate {
 
     func aiChatHistoryManager(_ manager: AIChatHistoryManager, didSelectChatURL url: URL) {
         onChatHistorySelected(url: url)
+    }
+
+    func aiChatHistoryManagerDidSelectViewAllChats(_ manager: AIChatHistoryManager) {
+        openAIChatHistory()
     }
 }
 
