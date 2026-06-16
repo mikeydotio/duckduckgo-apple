@@ -3,6 +3,8 @@ appId: com.duckduckgo.mobile.ios
 tags:
     - iphone
     - release
+    # Temporary tag for CI scope reduction during firebutton flake fix validation.
+    - firebutton_validation
 
 ---
 
