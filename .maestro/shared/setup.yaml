@@ -16,3 +16,6 @@ appId: com.duckduckgo.mobile.ios
         currentAppVariant: ${APP_VARIANT} # Renaming `currentAppVariant` requires to update LaunchOptionsHandler `currentAppVariant` key
         isRunningUITests: true
         isInternalUser: ${INTERNAL_USER_MODE}
+        # TEMPORARY: force-disable UTI to isolate it as a possible cause of the CI
+        # internal-mode firebutton/local-storage flake.
+        "ff.unifiedToggleInput": "false"
