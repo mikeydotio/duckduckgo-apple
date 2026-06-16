@@ -151,6 +151,9 @@ tags:
     id: "alert.forget-data.confirm"
 - waitForAnimationToEnd:
     timeout: 5000
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 1000
 - tapOn: "Settings"
 - tapOn: "Done"
 
