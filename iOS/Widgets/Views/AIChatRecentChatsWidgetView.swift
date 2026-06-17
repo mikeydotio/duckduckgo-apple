@@ -21,6 +21,7 @@ import SwiftUI
 import WidgetKit
 import Core
 import DesignResourcesKit
+import DesignResourcesKitIcons
 
 struct AIChatRecentChatsWidgetView: View {
     @Environment(\.widgetFamily) private var family
@@ -61,8 +62,7 @@ private struct AIChatRecentChatsHeaderView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            DuckAiLogo()
-                .frame(width: 24, height: 24)
+            DuckAiLogo(size: 24)
 
             Text(UserText.recentChatsWidgetBrandTitle)
                 .daxBodyBold()
@@ -127,8 +127,7 @@ struct AIChatChatRowView: View {
 private struct AIChatRecentChatsEmptyView: View {
     var body: some View {
         VStack(spacing: 10) {
-            DuckAiLogo()
-                .frame(width: 40, height: 40)
+            DuckAiLogo(size: 44)
             Text(UserText.recentChatsWidgetEmptyMessage)
                 .daxFootnoteRegular()
                 .multilineTextAlignment(.center)
@@ -140,11 +139,18 @@ private struct AIChatRecentChatsEmptyView: View {
 
 // MARK: - Logo
 
-/// The Duck.ai brand mark, rendered full-color on standard widgets and tintable on accented/
-/// Lock Screen render modes.
+/// The Duck.ai brand icon, rendered app-icon style: the Duck.ai glyph in white on an accent circle.
 private struct DuckAiLogo: View {
+    var size: CGFloat = 24
+
     var body: some View {
-        ResizableTintableImage(fullColor: UIImage(resource: .widgetDaxLogo),
-                               tintable: UIImage(resource: .widgetDaxLogoTinted))
+        Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChat)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(.white)
+            .frame(width: size * 0.62, height: size * 0.62)
+            .frame(width: size, height: size)
+            .background(Color(designSystemColor: .accent), in: Circle())
     }
 }

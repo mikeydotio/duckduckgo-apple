@@ -96,6 +96,13 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         return image.jpegData(compressionQuality: 0.8)!
     }
 
+    /// Mirrors how native storage actually persists files: a JSON envelope with base64 `data`.
+    private func makeImageEnvelope() -> Data {
+        let base64 = makeJPEGData().base64EncodedString()
+        let json = "{ \"chatId\": \"x\", \"mimeType\": \"image/jpeg\", \"fileName\": \"img.jpeg\", \"data\": \"\(base64)\" }"
+        return Data(json.utf8)
+    }
+
     private func makeLocation() -> AIChatWidgetDataLocation {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString, isDirectory: true)
         return AIChatWidgetDataLocation(containerURL: dir)
@@ -178,7 +185,7 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
     func testWhenImageGenChatThenThumbnailWrittenAndFlagged() throws {
         let storage = MockObservableStorage()
         storage.chats = [DuckAiChatRecord(chatId: "img", data: imageGenChatData(id: "img", lastEdit: "2026-05-01T00:00:00.000Z", fileRef: "file-1"))]
-        storage.files = ["file-1": makeJPEGData()]
+        storage.files = ["file-1": makeImageEnvelope()]
         let location = makeLocation()
         let engine = makeEngine(storage: storage, location: location)
 
@@ -192,7 +199,7 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
     func testWhenChatNoLongerImageGenThenStaleThumbnailRemoved() throws {
         let storage = MockObservableStorage()
         storage.chats = [DuckAiChatRecord(chatId: "img", data: imageGenChatData(id: "img", lastEdit: "2026-05-01T00:00:00.000Z", fileRef: "file-1"))]
-        storage.files = ["file-1": makeJPEGData()]
+        storage.files = ["file-1": makeImageEnvelope()]
         let location = makeLocation()
         let engine = makeEngine(storage: storage, location: location)
 
@@ -202,6 +209,28 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         storage.chats = [DuckAiChatRecord(chatId: "img", data: chatData(id: "img", title: "Now text", lastEdit: "2026-05-02T00:00:00.000Z"))]
         engine.syncNow()
         XCTAssertFalse(FileManager.default.fileExists(atPath: location.thumbnailURL(forChatId: "img").path))
+    }
+
+    // MARK: - File envelope decoding
+
+    func testWhenEnvelopeHasPlainBase64ThenBytesDecoded() {
+        let payload = Data([0x01, 0x02, 0x03, 0x04])
+        let envelope = Data("{ \"data\": \"\(payload.base64EncodedString())\" }".utf8)
+        XCTAssertEqual(AIChatWidgetSyncEngine.decodedFileBytes(fromEnvelope: envelope), payload)
+    }
+
+    func testWhenEnvelopeHasDataURLThenBytesDecoded() {
+        let payload = Data([0xFF, 0xD8, 0xFF, 0xE0])
+        let envelope = Data("{ \"data\": \"data:image/jpeg;base64,\(payload.base64EncodedString())\" }".utf8)
+        XCTAssertEqual(AIChatWidgetSyncEngine.decodedFileBytes(fromEnvelope: envelope), payload)
+    }
+
+    func testWhenEnvelopeIsNotJSONThenNil() {
+        XCTAssertNil(AIChatWidgetSyncEngine.decodedFileBytes(fromEnvelope: Data([0xFF, 0xD8, 0xFF])))
+    }
+
+    func testWhenEnvelopeMissingDataFieldThenNil() {
+        XCTAssertNil(AIChatWidgetSyncEngine.decodedFileBytes(fromEnvelope: Data("{ \"mimeType\": \"image/jpeg\" }".utf8)))
     }
 
     // MARK: - Gating + subscription (Task 6)

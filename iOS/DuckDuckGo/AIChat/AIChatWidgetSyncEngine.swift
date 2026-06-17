@@ -117,10 +117,13 @@ final class AIChatWidgetSyncEngine {
         }
 
         do {
-            let allChats = try storage.getAllChats()
+            let records = try storage.getAllChats()
+            let allChats = records
                 .compactMap { try? DuckAiChat.decode(from: $0.data).chat }
                 .sorted { $0.lastEdit > $1.lastEdit }
             let chats = allChats.prefix(Self.maxChats)
+
+            logNativeStorageSnapshot(records: records, chats: allChats, storage: storage)
 
             try FileManager.default.createDirectory(at: dataLocation.thumbnailsDirectoryURL, withIntermediateDirectories: true)
 
@@ -148,6 +151,68 @@ final class AIChatWidgetSyncEngine {
         }
     }
 
+    /// DEBUG-only diagnostics. Leads with the short, high-signal lines (file inventory + per-fileRef
+    /// `getFile` results) because Xcode's console drops large/rapid output; the bulky raw chat JSON
+    /// is written to a file whose path is printed, so it can be opened and copied in full.
+    /// Compiled out of release.
+    private func logNativeStorageSnapshot(records: [DuckAiChatRecord],
+                                          chats: [DuckAiChat],
+                                          storage: DuckAiNativeObservableStorage) {
+        #if DEBUG
+        print("DUCKAI-WIDGET ===== snapshot: \(records.count) chats =====")
+
+        // 1) File inventory — the key question is whether image bytes exist in native storage at all.
+        if let files = try? storage.listFiles() {
+            print("DUCKAI-WIDGET [files] count=\(files.count)")
+            for file in files {
+                print("DUCKAI-WIDGET [file] uuid=\(file.uuid) chatId=\(file.chatId) size=\(file.dataSize)")
+            }
+        } else {
+            print("DUCKAI-WIDGET [files] listFiles() threw")
+        }
+
+        // 2) Per-chat fileRefs + what getFile actually returns for each.
+        for chat in chats {
+            print("DUCKAI-WIDGET [chat] \(chat.chatId) imageGen=\(chat.isImageGeneration) fileRefs=\(chat.fileRefs)")
+            for ref in chat.fileRefs {
+                if let file = try? storage.getFile(uuid: ref) {
+                    let bytes = Self.decodedFileBytes(fromEnvelope: file.data)
+                    let decodes = bytes.flatMap { UIImage(data: $0) } != nil
+                    print("DUCKAI-WIDGET   [getFile \(ref)] envelope=\(file.data.count)B decoded=\(bytes?.count ?? 0)B UIImage=\(decodes)")
+                } else {
+                    print("DUCKAI-WIDGET   [getFile \(ref)] nil")
+                }
+            }
+        }
+
+        // 3) Full raw chat JSON → a file (console truncates large prints).
+        let dump = records
+            .map { "// chat \($0.chatId)\n" + (String(data: $0.data, encoding: .utf8) ?? "<non-utf8 \($0.data.count) bytes>") }
+            .joined(separator: "\n\n")
+        let dumpURL = FileManager.default.temporaryDirectory.appendingPathComponent("duck-ai-widget-chats-dump.json")
+        try? dump.data(using: .utf8)?.write(to: dumpURL)
+        print("DUCKAI-WIDGET [dump] full chat JSON → \(dumpURL.path)")
+        print("DUCKAI-WIDGET ===== end snapshot =====")
+        #endif
+    }
+
+    /// Native storage persists files as a JSON envelope — `{ chatId, mimeType, fileName, data }` —
+    /// where `data` is the base64-encoded file contents (optionally wrapped in a `data:` URL), not
+    /// raw image bytes. Returns the decoded raw bytes, or nil if the envelope can't be parsed.
+    static func decodedFileBytes(fromEnvelope envelope: Data) -> Data? {
+        guard let object = try? JSONSerialization.jsonObject(with: envelope) as? [String: Any],
+              let dataString = object["data"] as? String else {
+            return nil
+        }
+        let base64: String
+        if dataString.hasPrefix("data:"), let comma = dataString.firstIndex(of: ",") {
+            base64 = String(dataString[dataString.index(after: comma)...])
+        } else {
+            base64 = dataString
+        }
+        return Data(base64Encoded: base64, options: .ignoreUnknownCharacters)
+    }
+
     /// Writes a downscaled JPEG thumbnail for an image-generation chat. Best-effort: any failure
     /// returns false so the row renders title-only.
     private func writeThumbnail(forChatId chatId: String,
@@ -155,7 +220,11 @@ final class AIChatWidgetSyncEngine {
                                 storage: DuckAiNativeObservableStorage,
                                 location: AIChatWidgetDataLocation) -> Bool {
         guard let content = try? storage.getFile(uuid: fileRef),
-              let image = UIImage(data: content.data) else {
+              let bytes = Self.decodedFileBytes(fromEnvelope: content.data),
+              let image = UIImage(data: bytes) else {
+            #if DEBUG
+            print("[DUCK.AI WIDGET] thumbnail FAILED for chat \(chatId) fileRef \(fileRef): envelope decode or UIImage init returned nil")
+            #endif
             return false
         }
 
