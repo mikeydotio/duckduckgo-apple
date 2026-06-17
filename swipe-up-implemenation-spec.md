@@ -256,6 +256,62 @@ Consider extracting the pure decisions — `progress(forTranslation:reference:)`
 - `iOS/DuckDuckGo/MainViewController+UnifiedToggleInput.swift` (~`:124`) — call
   `installSwipeUpToTabSwitcherGesture()`.
 
+## 7. UX polish during the drag
+
+Two visual refinements layered on top of the working interactive transition. Both stay behind the
+`swipeUpToTabSwitcher` flag and leave the button-tap path untouched.
+
+### A. Fade out the whole bottom bar
+
+As the page lifts toward the overview, the bottom bar (the address-bar container **and** the toolbar)
+fades away so the chrome gets out of the content's way.
+
+- **Both** `viewCoordinator.navigationBarContainer` and `viewCoordinator.toolbar` fade together —
+  alpha 1 → 0 over `barFadeDuration` (0.2s). It is a **fade**, not a slide.
+- **Hysteresis** stops boundary flicker: fade out once `progress` rises above
+  `hideBarsAboveProgress` (0.05); fade back in once it drops below `showBarsBelowProgress` (0.03).
+  A new stored `Bool` on `MainViewController`, `isBottomBarHiddenForSwipeUp` (beside
+  `tabSwitcherInteractor`), tracks shown/hidden state so each fade fires only once per crossing
+  (`updateBottomBarVisibilityForSwipeUp(progress:)`, driven from the pan's `.changed`).
+- **Restore.** On **cancel** (`.ended` not committing, plus `.cancelled`/`.failed`) the bars fade back
+  to alpha 1 so the chrome returns as the page snaps back, and the `Bool` resets. On **commit**
+  (`finish()`) the bars stay hidden through the finish (the switcher takes over); they are reset to
+  alpha 1 and the `Bool` cleared in the `beginInteractiveTabSwitcherPresentation` transition-coordinator
+  completion — that runs behind the presented switcher (invisible) and guarantees correct chrome when
+  the user later dismisses back to the page. Because that completion also runs on cancel, it doubles as
+  a safety net.
+- **Correctness:** fade `alpha`, **never** `isHidden`. UIKit uses alpha only for hit-testing the
+  *start* of new touches, not the continuation of an active touch, so the in-flight pan keeps tracking
+  after its host bar fades to 0; `isHidden` would drop the gesture mid-drag.
+
+Lives in `iOS/DuckDuckGo/Transitions/MainViewController+SwipeUpToTabSwitcher.swift` (thresholds + fade
+helpers + `.changed`/`.ended`/`.cancelled` wiring) and `iOS/DuckDuckGo/MainViewController+Segues.swift`
+(commit-path restore). The `Bool` is declared in `iOS/DuckDuckGo/MainViewController.swift`.
+
+### B. Keep the NTP Dax logo circular during the drag
+
+**Symptom:** on a fresh New Tab Page the circular Dax logo squeezed vertically as the drag progressed.
+Invisible on the button tap (fast 0.2s) but obvious during the slow interactive drag. Web-page previews
+are unaffected — this is **NTP-only**.
+
+**Root cause** (`FromHomeScreenTransition` in `iOS/DuckDuckGo/Transitions/HomeScreenTransition.swift`):
+`prepareSnapshots` snapshots the whole NTP via `resizableSnapshotView` and pins
+`homeScreenSnapshot.frame = imageContainer.bounds`. As `imageContainer` animates from the full-screen
+aspect ratio down to the tab-switcher cell's aspect ratio, the snapshot — a `.scaleToFill`-style view —
+stretched **non-uniformly**, squeezing the circular logo inside it. The snapshot also faded over the
+full drag (`relativeDuration 1.0`) while the crisp settled-state logo (`imageView`, contentMode
+`.center`) only began fading in at `startTime 0.6`, so the stretched snapshot was on screen for most of
+the gesture.
+
+**Fix** (scoped to `FromHomeScreenTransition`, so `FromWebViewTransition` and the button-tap NTP
+transition are unchanged):
+- Give `homeScreenSnapshot` `contentMode = .scaleAspectFill` + `clipsToBounds = true` so it keeps its
+  contents proportional (cropping, not squeezing) while the container morphs; `imageContainer` already
+  clips.
+- Accelerate the snapshot's fade-out to `relativeDuration 0.3` and bring the `.center` logo's fade-in
+  forward to `startTime 0.2` so the aspect-correct logo carries the middle of the drag. The end state
+  (snapshot at alpha 0, logo settled in the cell) is identical to the existing button-tap transition.
+
 ## Verification / testing
 
 **Manual (the primary verification — feel is the point of the project).** Build & run on an iPhone sim
@@ -269,6 +325,11 @@ separately on a fresh NTP), from the bottom bar:
 - Rapidly reverse up/down within one gesture → view follows smoothly.
 - Confirm: horizontal swipe-to-switch-tabs still works on the same bar; **top** address bar and **iPad**
   show no gesture; tapping the tabs button mid-drag is inert; single-tab case lands in a one-tab overview.
+- **Bottom-bar fade (Tweak A):** at the start of the drag the whole bottom bar fades out; the gesture
+  keeps tracking after it fades (it does not get cut off). On cancel the bar fades back in with the page;
+  after committing then dismissing the switcher back to the page, the bar is fully visible (alpha 1).
+- **NTP Dax logo (Tweak B):** on a fresh NTP, drag slowly to ~50% — the Dax logo stays circular (no
+  vertical squeeze) throughout, and the settled overview cell looks identical to the button-tap result.
 
 **Unit tests.** Cover the pure `progress(forTranslation:reference:)` and
 `shouldCommit(progress:velocity:)` helpers (flick at low progress commits; below-threshold lift cancels;

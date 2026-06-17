@@ -297,6 +297,12 @@ extension MainViewController {
             Logger.swipeUpToTabSwitcher.debug("beginInteractive: transition settled cancelled=\(context.isCancelled, privacy: .public)")
             self?.tabSwitcherTransition.activeInteractor = nil
             self?.tabSwitcherInteractor = nil
+            // Restore the bottom bar that the gesture faded out. On commit this runs behind the now-
+            // presented switcher (invisible) and guarantees the chrome is correct when the user later
+            // dismisses back to this page; on cancel it doubles as a safety net (already restored).
+            self?.viewCoordinator.navigationBarContainer.alpha = 1
+            self?.viewCoordinator.toolbar.alpha = 1
+            self?.isBottomBarHiddenForSwipeUp = false
         }
         return true
     }

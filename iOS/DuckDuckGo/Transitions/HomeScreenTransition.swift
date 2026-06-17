@@ -109,15 +109,24 @@ class FromHomeScreenTransition: HomeScreenTransition {
         
         prepareSnapshots(with: homeScreen, transitionContext: transitionContext, addressBarPosition: mainViewController.appSettings.currentAddressBarPosition, addressBarHeight: mainViewController.omniBar.barView.expectedHeight)
 
+        // The home-screen snapshot is resized from the full-screen aspect ratio down to the cell's
+        // aspect ratio. A plain resize stretches its contents (the circular Dax logo) vertically. On
+        // the 0.2s button tap that is imperceptible, but the slow interactive swipe makes it obvious.
+        // Aspect-fill keeps the snapshot's contents proportional (cropping instead of squeezing) while
+        // the container morphs; `imageContainer` already clips, and the crisp `.center` logo below
+        // cross-fades in to define the settled state.
+        homeScreenSnapshot?.contentMode = .scaleAspectFill
+        homeScreenSnapshot?.clipsToBounds = true
+
         imageView.alpha = 0
         imageView.frame = imageContainer.bounds
         imageView.contentMode = .center
         if tabSwitcherSettings.isGridViewEnabled {
             imageView.image = TabViewCell.logoImage(for: tab)
         }
-        
+
         UIView.animateKeyframes(withDuration: TabSwitcherTransition.Constants.duration, delay: 0, options: .calculationModeLinear, animations: {
-            
+
             UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 1.0) {
                 let containerFrame = self.tabSwitcherCellFrame(for: layoutAttr)
                 self.imageContainer.frame = containerFrame
@@ -127,17 +136,19 @@ class FromHomeScreenTransition: HomeScreenTransition {
                 self.homeScreenSnapshot?.frame = self.imageContainer.bounds
             }
 
-            // Slowly fade out to create a cross fade effect
-            UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 1.0) {
+            // Fade the (aspect-filled, hence cropping) snapshot out early so the crisp `.center` logo
+            // carries most of the drag. This hides the brief snapshot crop and keeps the logo circular
+            // throughout; the end state (snapshot gone, logo settled) is unchanged from the button tap.
+            UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.3) {
                 self.homeScreenSnapshot?.alpha = 0
             }
-            
+
             UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.7) {
                 self.tabSwitcherViewController.view.alpha = 1
             }
-            
+
             if self.tabSwitcherSettings.isGridViewEnabled {
-                UIView.addKeyframe(withRelativeStartTime: 0.6, relativeDuration: 0.3) {
+                UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.3) {
                     self.imageView.alpha = 1
                     self.settingsButtonSnapshot?.alpha = 0
                 }

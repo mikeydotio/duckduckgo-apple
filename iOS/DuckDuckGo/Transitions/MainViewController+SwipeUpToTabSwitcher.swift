@@ -42,6 +42,14 @@ enum SwipeUpToTabSwitcher {
     /// Upward velocity (points/second magnitude) that commits as a "flick" regardless of progress.
     static let flickVelocity: CGFloat = 800
 
+    /// Progress past which the bottom bar fades out. Above `showBarsBelowProgress` so the pair forms a
+    /// hysteresis band that stops the bars flickering when the finger lingers around the threshold.
+    static let hideBarsAboveProgress: CGFloat = 0.05
+    /// Progress below which a faded-out bottom bar fades back in.
+    static let showBarsBelowProgress: CGFloat = 0.03
+    /// Duration of the bottom-bar fade in/out during the drag.
+    static let barFadeDuration: TimeInterval = 0.2
+
     /// Maps an upward drag (negative `translationY`) to 0...1 transition progress.
     static func progress(translationY: CGFloat, referenceDistance: CGFloat) -> CGFloat {
         guard referenceDistance > 0 else { return 0 }
@@ -128,7 +136,12 @@ extension MainViewController {
 
         case .changed:
             Logger.swipeUpToTabSwitcher.debug("pan .changed progress=\(Double(progress), privacy: .public) hasInteractor=\(self.tabSwitcherInteractor != nil, privacy: .public)")
-            tabSwitcherInteractor?.update(progress)
+            // Only drive the transition + bar fade while an interactor is live. If the present failed
+            // at `.began` (interactor nil), doing nothing here keeps the bottom bar from being faded
+            // out with no settled transition to restore it.
+            guard let interactor = tabSwitcherInteractor else { return }
+            interactor.update(progress)
+            updateBottomBarVisibilityForSwipeUp(progress: progress)
 
         case .ended:
             guard let interactor = tabSwitcherInteractor else {
@@ -142,18 +155,58 @@ extension MainViewController {
                 // Finish a touch faster after a flick so the tail feels responsive.
                 interactor.completionSpeed = velocity.y < -SwipeUpToTabSwitcher.flickVelocity ? 1.2 : 1.0
                 fireTabSwitcherOpenedPixels()
+                // Leave the bars hidden through the finish — the switcher takes over the screen. They
+                // are restored (and the flag reset) by the presentation's transition-coordinator
+                // completion in `beginInteractiveTabSwitcherPresentation`.
                 interactor.finish()
             } else {
+                // Snapping back to the page: fade the chrome back in so it returns with the content.
+                showBottomBarForSwipeUp()
                 interactor.cancel()
             }
             // `tabSwitcherInteractor` is released by the presentation's transition-coordinator completion.
 
         case .cancelled, .failed:
             Logger.swipeUpToTabSwitcher.debug("pan .cancelled/.failed")
+            showBottomBarForSwipeUp()
             tabSwitcherInteractor?.cancel()
 
         default:
             break
+        }
+    }
+
+    /// Fades the whole bottom bar (address-bar container + toolbar) in/out as the drag crosses the
+    /// hysteresis thresholds, so the chrome gets out of the way while the page lifts toward the
+    /// overview. Each fade fires only once per crossing, tracked by `isBottomBarHiddenForSwipeUp`.
+    private func updateBottomBarVisibilityForSwipeUp(progress: CGFloat) {
+        if !isBottomBarHiddenForSwipeUp, progress > SwipeUpToTabSwitcher.hideBarsAboveProgress {
+            hideBottomBarForSwipeUp()
+        } else if isBottomBarHiddenForSwipeUp, progress < SwipeUpToTabSwitcher.showBarsBelowProgress {
+            showBottomBarForSwipeUp()
+        }
+    }
+
+    private func hideBottomBarForSwipeUp() {
+        guard !isBottomBarHiddenForSwipeUp else { return }
+        isBottomBarHiddenForSwipeUp = true
+        Logger.swipeUpToTabSwitcher.debug("bottom bar fade out")
+        // IMPORTANT: fade `alpha`, never set `isHidden`. Alpha 0 only affects hit-testing for the START
+        // of new touches, so the in-flight pan keeps tracking; `isHidden` would drop it mid-gesture.
+        UIView.animate(withDuration: SwipeUpToTabSwitcher.barFadeDuration) {
+            self.viewCoordinator.navigationBarContainer.alpha = 0
+            self.viewCoordinator.toolbar.alpha = 0
+        }
+    }
+
+    /// Fades the bottom bar back to fully visible. Safe to call when already shown (no-op).
+    private func showBottomBarForSwipeUp() {
+        guard isBottomBarHiddenForSwipeUp else { return }
+        isBottomBarHiddenForSwipeUp = false
+        Logger.swipeUpToTabSwitcher.debug("bottom bar fade in")
+        UIView.animate(withDuration: SwipeUpToTabSwitcher.barFadeDuration) {
+            self.viewCoordinator.navigationBarContainer.alpha = 1
+            self.viewCoordinator.toolbar.alpha = 1
         }
     }
 

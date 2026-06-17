@@ -255,6 +255,10 @@ class MainViewController: UIViewController {
     /// swipe-up gesture is in flight; released by the presentation's transition coordinator. See
     /// `MainViewController+SwipeUpToTabSwitcher`.
     var tabSwitcherInteractor: UIPercentDrivenInteractiveTransition?
+    /// Tracks whether the bottom bar (navigation bar container + toolbar) is currently faded out for
+    /// an in-flight swipe-up gesture, so each fade fires only once per hide/show crossing (hysteresis).
+    /// See `MainViewController+SwipeUpToTabSwitcher`.
+    var isBottomBarHiddenForSwipeUp = false
     var currentTab: TabViewController? {
         return tabManager.current(createIfNeeded: false)
     }
