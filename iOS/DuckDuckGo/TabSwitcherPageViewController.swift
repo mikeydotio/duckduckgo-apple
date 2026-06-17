@@ -35,6 +35,7 @@ import BrowserServicesKit
 import PrivacyConfig
 import AIChat
 import UIComponents
+import FoundationModels
 
 protocol TabSwitcherPageDelegate: AnyObject {
     func page(_ page: TabSwitcherPageViewController, didSelectTabAt index: Int)
@@ -80,6 +81,11 @@ class TabSwitcherPageViewController: UIViewController {
 
     /// Display model for the grid. A single untitled section in flat mode; one section per group when arranged.
     var gridSections: [TabGridSection] = []
+
+    /// On-device activity summaries keyed by section content. An empty string means "generated, but no summary".
+    private var sectionSummaries: [String: String] = [:]
+    /// Section keys whose summary is currently being generated, so we don't kick off duplicate requests.
+    private var summariesInFlight: Set<String> = []
 
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
@@ -386,11 +392,27 @@ extension TabSwitcherPageViewController {
     struct TabGridSection {
         let title: String?
         let tabs: [Tab]
+        /// Whether this section is eligible for an on-device activity summary (the recent recency buckets).
+        var summarizable: Bool = false
     }
 
     /// True when an arrangement is active and the grid is split into titled sections rather than a flat list.
     var isGrouped: Bool {
         tabSwitcherSettings.tabArrangement != nil
+    }
+
+    /// Whether on-device activity summaries can be produced at all (iOS 26+ with the model available).
+    var canSummarize: Bool {
+        if #available(iOS 26.0, *) {
+            return TabSectionActivitySummarizer.isAvailable
+        }
+        return false
+    }
+
+    /// Whether the given section should reserve space for, and show, an activity summary.
+    func sectionShowsSummary(_ section: Int) -> Bool {
+        guard canSummarize, gridSections.indices.contains(section) else { return false }
+        return gridSections[section].summarizable
     }
 
     func rebuildSections() {
@@ -425,7 +447,7 @@ extension TabSwitcherPageViewController {
 
     /// One horizontally-scrolling row of cards per section, with a section header above each.
     private func makeSectionedLayout() -> UICollectionViewCompositionalLayout {
-        return UICollectionViewCompositionalLayout { [weak self] _, environment in
+        return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             let containerWidth = environment.container.effectiveContentSize.width
             let cardWidth = min(180, max(130, containerWidth * 0.42))
             let cardHeight = self?.calculateRowHeight(columnWidth: cardWidth) ?? cardWidth
@@ -440,8 +462,12 @@ extension TabSwitcherPageViewController {
             section.orthogonalScrollingBehavior = .continuous
             section.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 14, bottom: 14, trailing: 14)
 
+            // Sections that show an activity summary reserve a second line for it.
+            let headerHeight = (self?.sectionShowsSummary(sectionIndex) ?? false)
+                ? TabSwitcherSectionHeaderView.summarizedHeight
+                : TabSwitcherSectionHeaderView.height
             let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
-                                                    heightDimension: .absolute(TabSwitcherSectionHeaderView.height))
+                                                    heightDimension: .absolute(headerHeight))
             let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize,
                                                                      elementKind: UICollectionView.elementKindSectionHeader,
                                                                      alignment: .top)
@@ -462,37 +488,64 @@ extension TabSwitcherPageViewController {
         }
     }
 
+    /// A section is summarized only when its hosted-tab count falls in this range. The lower bound skips
+    /// single-tab sections (a tab's title is its own summary); the upper bound is the point past which a
+    /// 1–3 topic summary can't represent the section and not every tab would fit the model's prompt, so
+    /// we summarize all tabs of a section rather than a misleading sample.
+    static let summarizableTabCountRange = 2...25
+
     /// Groups tabs by when they were last viewed into descending time buckets, most-recent first within each.
+    /// Recent days are broken out individually — Today, Yesterday, then a bucket per earlier day of the current
+    /// week labelled by weekday name — before collapsing into larger windows (previous 7 days, months, older).
     private static func makeRecencySections(tabs: [Tab]) -> [TabGridSection] {
         let calendar = Calendar.current
         let now = Date()
         let startOfToday = calendar.startOfDay(for: now)
         let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday) ?? startOfToday
+        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? startOfToday
         let startOf7Days = calendar.date(byAdding: .day, value: -7, to: startOfToday) ?? startOfToday
         let startOfThisMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now)) ?? startOfToday
         let startOfLastMonth = calendar.date(byAdding: .month, value: -1, to: startOfThisMonth) ?? startOfThisMonth
 
-        // Buckets are checked most-recent first, so each tab lands in exactly one.
-        let buckets: [(title: String, contains: (Date) -> Bool)] = [
-            (UserText.tabSwitcherArrangeRecencyToday, { $0 >= startOfToday }),
-            (UserText.tabSwitcherArrangeRecencyYesterday, { $0 >= startOfYesterday }),
-            (UserText.tabSwitcherArrangeRecencyPrevious7Days, { $0 >= startOf7Days }),
-            (UserText.tabSwitcherArrangeRecencyThisMonth, { $0 >= startOfThisMonth }),
-            (UserText.tabSwitcherArrangeRecencyLastMonth, { $0 >= startOfLastMonth }),
-            (UserText.tabSwitcherArrangeRecencyOlder, { _ in true }),
+        // Each bucket matches dates on or after its start; checked most-recent first, so a tab lands in exactly one.
+        var buckets: [(title: String, start: Date)] = [
+            (UserText.tabSwitcherArrangeRecencyToday, startOfToday),
+            (UserText.tabSwitcherArrangeRecencyYesterday, startOfYesterday),
         ]
+
+        // One bucket per remaining earlier day of the current week, labelled by weekday name (unambiguous within the week).
+        let weekdayFormatter = DateFormatter()
+        weekdayFormatter.setLocalizedDateFormatFromTemplate("EEEE")
+        var day = calendar.date(byAdding: .day, value: -1, to: startOfYesterday) ?? startOfYesterday
+        while day >= startOfWeek {
+            buckets.append((weekdayFormatter.string(from: day), day))
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { break }
+            day = previous
+        }
+
+        buckets.append(contentsOf: [
+            (UserText.tabSwitcherArrangeRecencyPrevious7Days, startOf7Days),
+            (UserText.tabSwitcherArrangeRecencyThisMonth, startOfThisMonth),
+            (UserText.tabSwitcherArrangeRecencyLastMonth, startOfLastMonth),
+            (UserText.tabSwitcherArrangeRecencyOlder, .distantPast),
+        ])
 
         var grouped: [[Tab]] = Array(repeating: [], count: buckets.count)
         for tab in tabs {
             // Tabs never viewed have no date and fall into the oldest bucket.
             let date = tab.lastViewedDate ?? .distantPast
-            let index = buckets.firstIndex { $0.contains(date) } ?? buckets.count - 1
+            let index = buckets.firstIndex { date >= $0.start } ?? buckets.count - 1
             grouped[index].append(tab)
         }
 
         return buckets.indices.compactMap { index in
             let tabs = grouped[index].sorted { ($0.lastViewedDate ?? .distantPast) > ($1.lastViewedDate ?? .distantPast) }
-            return tabs.isEmpty ? nil : TabGridSection(title: buckets[index].title, tabs: tabs)
+            guard !tabs.isEmpty else { return nil }
+            // Summarize only sections whose hosted-tab count is in range: enough to be worth it, few enough to fit.
+            let hostedTabCount = tabs.filter { ($0.link?.url.host?.droppingWwwPrefix()).map { !$0.isEmpty } ?? false }.count
+            return TabGridSection(title: buckets[index].title,
+                                  tabs: tabs,
+                                  summarizable: Self.summarizableTabCountRange.contains(hostedTabCount))
         }
     }
 
@@ -506,6 +559,7 @@ extension TabSwitcherPageViewController {
                 hostless.append(tab)
             }
         }
+        // Website sections are not summarized: the header already names the domain and its tabs share one topic.
         var sections = groups.keys
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
             .map { TabGridSection(title: $0, tabs: groups[$0] ?? []) }
@@ -547,6 +601,101 @@ extension TabSwitcherPageViewController {
         for tab in tabs {
             guard let indexPath = indexPath(for: tab) else { continue }
             collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        }
+    }
+}
+
+// MARK: - Section activity summaries
+
+extension TabSwitcherPageViewController {
+
+    /// The summary line to show for a section header: a cached label, a loading placeholder while one
+    /// is generated on-device, or nothing when the section isn't summarizable or the model is unavailable.
+    func summaryState(for section: TabGridSection?) -> TabSwitcherSectionHeaderView.SummaryState {
+        guard let section, section.summarizable else { return .none }
+
+        if #available(iOS 26.0, *), TabSectionActivitySummarizer.isAvailable {
+            let key = summaryKey(for: section)
+            if let cached = sectionSummaries[key] {
+                return cached.isEmpty ? .none : .text(cached)
+            }
+            let sites = summarySites(for: section)
+            guard !sites.isEmpty else { return .none }
+            requestSummary(forKey: key, sites: sites)
+            return .loading
+        }
+        return .none
+    }
+
+    /// A cache key that stays stable across reloads but changes when the section's set of sites changes,
+    /// so the summary is regenerated only when its content actually changes.
+    private func summaryKey(for section: TabGridSection) -> String {
+        let hosts = section.tabs
+            .compactMap { $0.link?.url.host?.droppingWwwPrefix() }
+            .sorted()
+        return "\(section.title ?? "")|\(hosts.joined(separator: ","))"
+    }
+
+    @available(iOS 26.0, *)
+    private func summarySites(for section: TabGridSection) -> [TabSectionActivitySummarizer.Site] {
+        section.tabs.compactMap { tab in
+            guard let url = tab.link?.url,
+                  let host = url.host?.droppingWwwPrefix(),
+                  !host.isEmpty else { return nil }
+            return TabSectionActivitySummarizer.Site(host: host,
+                                                     title: tab.link?.displayTitle ?? host,
+                                                     detail: Self.readableSlug(from: url))
+        }
+    }
+
+    /// A short, human-readable hint from a URL path (e.g. "/wiki/Frederic_Tudor" -> "Frederic Tudor"),
+    /// used as a fallback signal when a title is vague. Kept to a few words so it stays a hint rather than a
+    /// headline to copy. Returns `nil` when the path has no meaningful words. Query strings are intentionally
+    /// ignored to avoid feeding tokens or PII into the prompt.
+    private static func readableSlug(from url: URL) -> String? {
+        let segments = url.path.split(separator: "/").map(String.init).filter { !$0.isEmpty }
+        guard let last = segments.last else { return nil }
+        // Drop a trailing file extension (e.g. ".html").
+        let base = last.split(separator: ".").first.map(String.init) ?? last
+        let words = base
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "+", with: " ")
+            .split(separator: " ")
+            .map(String.init)
+            .filter { $0.contains(where: { $0.isLetter }) } // drop pure-number / id tokens like "1.12345"
+            .prefix(4)                                       // keep it a hint, not the whole headline
+        let slug = words.joined(separator: " ")
+        // Require a few letters so we skip slugs that are just IDs.
+        guard slug.filter({ $0.isLetter }).count >= 3 else { return nil }
+        return slug
+    }
+
+    @available(iOS 26.0, *)
+    private func requestSummary(forKey key: String, sites: [TabSectionActivitySummarizer.Site]) {
+        guard !summariesInFlight.contains(key) else { return }
+        summariesInFlight.insert(key)
+        Task { [weak self] in
+            let topics = await TabSectionActivitySummarizer.summarize(sites: sites)
+            self?.summariesInFlight.remove(key)
+            self?.sectionSummaries[key] = (topics ?? []).joined(separator: " · ")
+            self?.refreshSummaryHeader(forKey: key)
+        }
+    }
+
+    /// Updates any visible header for `key` in place once its summary lands. The header height is fixed for
+    /// recency sections, so swapping the text needs no layout invalidation.
+    private func refreshSummaryHeader(forKey key: String) {
+        let kind = UICollectionView.elementKindSectionHeader
+        for indexPath in collectionView.indexPathsForVisibleSupplementaryElements(ofKind: kind) {
+            guard gridSections.indices.contains(indexPath.section) else { continue }
+            let section = gridSections[indexPath.section]
+            guard section.summarizable, summaryKey(for: section) == key,
+                  let header = collectionView.supplementaryView(forElementKind: kind, at: indexPath) as? TabSwitcherSectionHeaderView else {
+                continue
+            }
+            let text = sectionSummaries[key] ?? ""
+            header.updateSummary(text.isEmpty ? .none : .text(text))
         }
     }
 }
@@ -608,7 +757,8 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
             let section = gridSections.indices.contains(indexPath.section) ? gridSections[indexPath.section] : nil
             header.configure(title: section?.title,
                              count: section?.tabs.count ?? 0,
-                             menu: pageDelegate?.page(self, menuForSectionAt: indexPath.section))
+                             menu: pageDelegate?.page(self, menuForSectionAt: indexPath.section),
+                             summary: summaryState(for: section))
             return header
         }
 
@@ -871,13 +1021,32 @@ private extension UITapGestureRecognizer {
 final class TabSwitcherSectionHeaderView: UICollectionReusableView {
 
     static let reuseIdentifier = "TabSwitcherSectionHeaderView"
+    /// Height for a single-line header (title only).
     static let height: CGFloat = 36
+    /// Height for a header that reserves room for the activity summary (up to two lines of topics).
+    static let summarizedHeight: CGFloat = 62
 
-    private let label: UILabel = {
+    /// The optional activity line shown under the section title.
+    enum SummaryState {
+        case none
+        case loading
+        case text(String)
+    }
+
+    private let titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = .daxFootnoteSemibold()
         label.textColor = UIColor(designSystemColor: .textSecondary)
+        return label
+    }()
+
+    private let summaryLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .daxCaption()
+        label.textColor = UIColor(designSystemColor: .textTertiary)
+        label.numberOfLines = 2
         return label
     }()
 
@@ -893,16 +1062,23 @@ final class TabSwitcherSectionHeaderView: UICollectionReusableView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        addSubview(label)
+
+        let textStack = UIStackView(arrangedSubviews: [titleLabel, summaryLabel])
+        textStack.axis = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 1
+        textStack.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(textStack)
         addSubview(menuButton)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
-            label.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
+            textStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textStack.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 4),
 
-            menuButton.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 8),
+            menuButton.leadingAnchor.constraint(greaterThanOrEqualTo: textStack.trailingAnchor, constant: 8),
             menuButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
-            menuButton.centerYAnchor.constraint(equalTo: label.centerYAnchor),
+            menuButton.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
 
@@ -911,13 +1087,98 @@ final class TabSwitcherSectionHeaderView: UICollectionReusableView {
         fatalError("Not implemented")
     }
 
-    func configure(title: String?, count: Int, menu: UIMenu?) {
+    func configure(title: String?, count: Int, menu: UIMenu?, summary: SummaryState = .none) {
         if let title {
-            label.text = "\(title) · \(count)"
+            titleLabel.text = "\(title) · \(count)"
         } else {
-            label.text = nil
+            titleLabel.text = nil
         }
         menuButton.menu = menu
         menuButton.isHidden = menu == nil
+        updateSummary(summary)
+    }
+
+    func updateSummary(_ summary: SummaryState) {
+        switch summary {
+        case .none:
+            summaryLabel.text = nil
+            summaryLabel.isHidden = true
+        case .loading:
+            summaryLabel.text = UserText.tabSwitcherArrangeRecencySummarizing
+            summaryLabel.isHidden = false
+        case .text(let value):
+            summaryLabel.text = value
+            summaryLabel.isHidden = false
+        }
+    }
+}
+
+// MARK: - Activity summarizer
+
+/// Generates a short, human-readable label describing the browsing activity represented by a group of
+/// tabs, using Apple's on-device foundation model. Everything runs on-device: tab titles and hosts are
+/// never sent off the device.
+@available(iOS 26.0, *)
+enum TabSectionActivitySummarizer {
+
+    /// A site feeding the summary: the host (site name), its page title, and an optional readable
+    /// slug pulled from the URL path for extra signal when the title is vague.
+    struct Site: Sendable {
+        let host: String
+        let title: String
+        let detail: String?
+    }
+
+    @Generable
+    struct ActivitySummary {
+        @Guide(description: "One to three short labels for what the tabs are about, ordered most prominent first. Each is a concise 2 to 4 word paraphrase of the topic in your own words — never a page title copied or lightly edited, and never a single generic category word. Drop site names and boilerplate such as 'Log In' or 'Thank You For Your Order'. One label per distinct topic; never repeat one. No trailing punctuation.", .count(1...3))
+        var activities: [String]
+    }
+
+    /// Upper bound on tabs fed to a single summary. Matches the section cutoff so a summarized section's tabs
+    /// all fit the prompt — the summary reflects the whole section, never a misleading sample.
+    private static let maxSites = TabSwitcherPageViewController.summarizableTabCountRange.upperBound
+
+    private static let instructions = """
+    You label what a group of open browser tabs are about, from each tab's page title (plus a parenthetical \
+    address hint). For each topic write a short 2 to 4 word phrase IN YOUR OWN WORDS that captures it. Two \
+    rules pull in opposite directions — respect both: (1) do not copy or lightly reword a page title; \
+    describe the underlying topic instead. (2) do not shrink it to a single broad category word like News, \
+    Shopping, or Tech; keep it specific. Strip away site names, domains, and boilerplate such as \
+    "Log In to My Account" or "Thank You For Your Order". Merge tabs about the same topic into one label and \
+    add another only for a clearly different topic; never repeat a topic, and never copy the address hint verbatim.
+    """
+
+    /// Whether the on-device model is ready to use right now (device eligible, Apple Intelligence enabled, model downloaded).
+    static var isAvailable: Bool {
+        SystemLanguageModel.default.isAvailable
+    }
+
+    /// Returns short topic labels describing the given sites, or `nil` if the model is unavailable, there is
+    /// nothing to summarize, or generation fails.
+    static func summarize(sites: [Site]) async -> [String]? {
+        guard SystemLanguageModel.default.isAvailable, !sites.isEmpty else { return nil }
+
+        let lines = sites.prefix(maxSites)
+            .map { site -> String in
+                guard let detail = site.detail, !detail.isEmpty else {
+                    return "- \(site.title) — \(site.host)"
+                }
+                return "- \(site.title) — \(site.host) (\(detail))"
+            }
+            .joined(separator: "\n")
+        let prompt = "These tabs are open together:\n\(lines)"
+
+        do {
+            let session = LanguageModelSession(instructions: instructions)
+            let response = try await session.respond(to: prompt, generating: ActivitySummary.self)
+            let activities = response.content.activities
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            return activities.isEmpty ? nil : activities
+        } catch {
+            Logger.general.error("Tab section activity summary failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 }

@@ -4471,8 +4471,8 @@ Take back control of your personal information with the browser designed for dat
 /* Submenu title for arranging the open tabs */
 "tab.switcher.arrange-tabs-by" = "Arrange Tabs By";
 
-/* Menu item to arrange the open tabs by how recently they were used */
-"tab.switcher.arrange-tabs-by-recency" = "Arrange Tabs By Recency";
+/* Menu item to arrange the open tabs by the date they were last used */
+"tab.switcher.arrange-tabs-by-recency" = "Arrange Tabs By Date";
 
 /* Menu item to arrange the open tabs by website */
 "tab.switcher.arrange-tabs-by-website" = "Arrange Tabs By Website";
@@ -4488,6 +4488,9 @@ Take back control of your personal information with the browser designed for dat
 
 /* Tab switcher section header for tabs last used in the previous 7 days */
 "tab.switcher.arrange.recency.previous-7-days" = "Previous 7 Days";
+
+/* Placeholder shown under a tab switcher section header while its activity summary is being generated on-device */
+"tab.switcher.arrange.recency.summarizing" = "Summarizing activity…";
 
 /* Tab switcher section header for tabs last used earlier this month */
 "tab.switcher.arrange.recency.this-month" = "This Month";

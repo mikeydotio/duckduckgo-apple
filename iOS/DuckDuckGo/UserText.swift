@@ -436,7 +436,7 @@ public struct UserText {
 
     public static let tabSwitcherArrangeTabsByWebsite = NSLocalizedString("tab.switcher.arrange-tabs-by-website", value: "Arrange Tabs By Website", comment: "Menu item to arrange the open tabs by website")
 
-    public static let tabSwitcherArrangeTabsByRecency = NSLocalizedString("tab.switcher.arrange-tabs-by-recency", value: "Arrange Tabs By Recency", comment: "Menu item to arrange the open tabs by how recently they were used")
+    public static let tabSwitcherArrangeTabsByRecency = NSLocalizedString("tab.switcher.arrange-tabs-by-recency", value: "Arrange Tabs By Date", comment: "Menu item to arrange the open tabs by the date they were last used")
 
     public static let tabSwitcherArrangeOtherSectionTitle = NSLocalizedString("tab.switcher.arrange.other-section", value: "Other", comment: "Tab switcher section header for tabs that have no website (e.g. the home tab)")
 
@@ -451,6 +451,8 @@ public struct UserText {
     public static let tabSwitcherArrangeRecencyLastMonth = NSLocalizedString("tab.switcher.arrange.recency.last-month", value: "Last Month", comment: "Tab switcher section header for tabs last used last month")
 
     public static let tabSwitcherArrangeRecencyOlder = NSLocalizedString("tab.switcher.arrange.recency.older", value: "Older", comment: "Tab switcher section header for tabs last used more than a month ago")
+
+    public static let tabSwitcherArrangeRecencySummarizing = NSLocalizedString("tab.switcher.arrange.recency.summarizing", value: "Summarizing activity…", comment: "Placeholder shown under a tab switcher section header while its activity summary is being generated on-device")
 
     public static func tabSwitcherSelectTabs(withCount count: Int) -> String {
         let format = Bundle.main.localizedString(forKey: "tab.switcher.select-tabs.withCount", value: nil, table: nil)
