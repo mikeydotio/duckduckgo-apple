@@ -37,9 +37,12 @@ import os.log
 final class AIChatWidgetSyncEngine {
 
     static let maxChats = 6
+    static let maxGalleryImages = 12
 
     /// Longest edge of a generated-image thumbnail, in points.
     private static let thumbnailMaxDimension: CGFloat = 100
+    /// Longest edge of a gallery image, in points (larger — shown in a grid, not a tiny row icon).
+    private static let galleryMaxDimension: CGFloat = 320
 
     private let storage: DuckAiNativeObservableStorage?
     private let settings: AIChatSettingsProvider
@@ -145,9 +148,87 @@ final class AIChatWidgetSyncEngine {
             let snapshot = WidgetChatSnapshot(totalChatCount: allChats.count, chats: entries)
             let data = try JSONEncoder().encode(snapshot)
             try data.write(to: dataLocation.chatsFileURL, options: .atomic)
+
+            syncImageGallery(from: allChats, storage: storage, location: dataLocation)
+
             reloadWidgets()
         } catch {
             Logger.aiChat.error("[Widget] sync failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Builds the image gallery mirror: gallery-resolution JPEGs for the most recent generated
+    /// images plus an `images.json` index, and removes images no longer in the set.
+    private func syncImageGallery(from chats: [DuckAiChat],
+                                  storage: DuckAiNativeObservableStorage,
+                                  location: AIChatWidgetDataLocation) {
+        do {
+            try FileManager.default.createDirectory(at: location.galleryDirectoryURL, withIntermediateDirectories: true)
+
+            var entries: [WidgetImageEntry] = []
+            for chat in chats where chat.isImageGeneration {
+                for fileRef in chat.fileRefs {
+                    guard entries.count < Self.maxGalleryImages else { break }
+                    if writeGalleryImage(imageId: fileRef, storage: storage, location: location) {
+                        entries.append(WidgetImageEntry(imageId: fileRef, chatId: chat.chatId))
+                    }
+                }
+                if entries.count >= Self.maxGalleryImages { break }
+            }
+
+            removeStaleGalleryImages(keeping: Set(entries.map(\.imageId)), location: location)
+
+            let data = try JSONEncoder().encode(entries)
+            try data.write(to: location.imagesFileURL, options: .atomic)
+
+            #if DEBUG
+            let galleryFiles = (try? FileManager.default.contentsOfDirectory(atPath: location.galleryDirectoryURL.path)) ?? []
+            print("DUCKAI-WIDGET [gallery] wrote \(entries.count) entries: \(entries.map(\.imageId))")
+            print("DUCKAI-WIDGET [gallery] gallery dir has \(galleryFiles.count) files: \(galleryFiles)")
+            print("DUCKAI-WIDGET [gallery] images.json → \(location.imagesFileURL.path)")
+            #endif
+        } catch {
+            #if DEBUG
+            print("DUCKAI-WIDGET [gallery] FAILED: \(error)")
+            #endif
+            Logger.aiChat.error("[Widget] gallery sync failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Writes a gallery-resolution JPEG for an image id, reusing an existing one (images are
+    /// immutable by UUID). Returns true when a usable file exists afterwards.
+    private func writeGalleryImage(imageId: String,
+                                   storage: DuckAiNativeObservableStorage,
+                                   location: AIChatWidgetDataLocation) -> Bool {
+        let destination = location.galleryImageURL(forImageId: imageId)
+        if FileManager.default.fileExists(atPath: destination.path) {
+            return true
+        }
+        guard let content = try? storage.getFile(uuid: imageId),
+              let bytes = Self.decodedFileBytes(fromEnvelope: content.data),
+              let image = UIImage(data: bytes),
+              let jpeg = Self.downscaledJPEG(from: image, maxDimension: Self.galleryMaxDimension) else {
+            return false
+        }
+        do {
+            try jpeg.write(to: destination, options: .atomic)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func removeStaleGalleryImages(keeping ids: Set<String>, location: AIChatWidgetDataLocation) {
+        let fileManager = FileManager.default
+        guard let files = try? fileManager.contentsOfDirectory(at: location.galleryDirectoryURL,
+                                                               includingPropertiesForKeys: nil) else {
+            return
+        }
+        for file in files where file.pathExtension == "jpg" {
+            let imageId = file.deletingPathExtension().lastPathComponent
+            if !ids.contains(imageId) {
+                try? fileManager.removeItem(at: file)
+            }
         }
     }
 
@@ -228,22 +309,25 @@ final class AIChatWidgetSyncEngine {
             return false
         }
 
-        let longestEdge = max(image.size.width, image.size.height, 1)
-        let scale = min(Self.thumbnailMaxDimension / longestEdge, 1)
-        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
-        let scaled = renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: targetSize))
-        }
-
-        guard let jpeg = scaled.jpegData(compressionQuality: 0.7) else { return false }
+        guard let jpeg = Self.downscaledJPEG(from: image, maxDimension: Self.thumbnailMaxDimension) else { return false }
         do {
             try jpeg.write(to: location.thumbnailURL(forChatId: chatId), options: .atomic)
             return true
         } catch {
             return false
         }
+    }
+
+    /// Aspect-preserving downscale to fit within `maxDimension` (never upscales), encoded as JPEG.
+    private static func downscaledJPEG(from image: UIImage, maxDimension: CGFloat) -> Data? {
+        let longestEdge = max(image.size.width, image.size.height, 1)
+        let scale = min(maxDimension / longestEdge, 1)
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let scaled = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return scaled.jpegData(compressionQuality: 0.8)
     }
 
     private func removeStaleThumbnails(keeping ids: Set<String>, location: AIChatWidgetDataLocation) {

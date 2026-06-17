@@ -123,6 +123,8 @@ struct AIChatDeepLinkHandler {
                 DailyPixel.fireDailyAndCount(pixel: .openAIChatFromWidgetControlCenter)
             case WidgetSourceType.recentChatsWidget.rawValue:
                 DailyPixel.fireDailyAndCount(pixel: .openAIChatFromWidgetRecentChat)
+            case WidgetSourceType.imageGalleryWidget.rawValue:
+                DailyPixel.fireDailyAndCount(pixel: .openAIChatFromWidgetImageGallery)
             default:
                 break
             }

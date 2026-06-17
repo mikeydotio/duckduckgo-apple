@@ -57,6 +57,18 @@ struct UserText {
                                                                value: "Chats",
                                                                comment: "Label next to the chat count in the recent chats widget header, e.g. the word after the number in “5 Chats”")
 
+    static let imageGalleryWidgetGalleryDisplayName = NSLocalizedString("widget.gallery.images.display.name",
+                                                                        value: "Duck.ai Images",
+                                                                        comment: "Display name for the Duck.ai image gallery widget in the widget gallery")
+
+    static let imageGalleryWidgetGalleryDescription = NSLocalizedString("widget.gallery.images.description",
+                                                                        value: "See the images you’ve generated with Duck.ai.",
+                                                                        comment: "Description of the Duck.ai image gallery widget in the widget gallery")
+
+    static let imageGalleryWidgetEmptyMessage = NSLocalizedString("widget.images.empty",
+                                                                  value: "Images you generate with Duck.ai will appear here.",
+                                                                  comment: "Empty-state message shown in the image gallery widget when there are no images")
+
     static let searchDuckDuckGo = NSLocalizedString("widget.search.duckduckgo",
                                                     value: "Search DuckDuckGo",
                                                     comment: "Placeholder text in search field on the search and favorites widget")

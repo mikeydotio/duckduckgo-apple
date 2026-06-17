@@ -32,7 +32,7 @@ struct AIChatRecentChatsWidgetView: View {
 
     var body: some View {
         DesignSystemWidgetContainerView {
-            if !entry.isEnabled || entry.chats.isEmpty {
+            if entry.chats.isEmpty {
                 AIChatRecentChatsEmptyView()
             } else {
                 VStack(alignment: .leading, spacing: 0) {
@@ -62,7 +62,7 @@ private struct AIChatRecentChatsHeaderView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            DuckAiLogo(size: 24)
+            DuckAiLogo(size: 25)
 
             Text(UserText.recentChatsWidgetBrandTitle)
                 .daxBodyBold()
@@ -113,11 +113,14 @@ struct AIChatChatRowView: View {
                 .frame(width: iconSize, height: iconSize)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         } else {
-            Image(systemName: "bubble.left.fill")
-                .font(.system(size: 12, weight: .semibold))
+            Image(uiImage: DesignSystemImages.Glyphs.Size24.chat)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
                 .foregroundStyle(Color(designSystemColor: .accent))
+                .frame(width: 15, height: 15)
                 .frame(width: iconSize, height: iconSize)
-                .background(Color(designSystemColor: .accent).opacity(0.12), in: Circle())
+                .background(Color(designSystemColor: .accent).opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
     }
 }
@@ -127,7 +130,7 @@ struct AIChatChatRowView: View {
 private struct AIChatRecentChatsEmptyView: View {
     var body: some View {
         VStack(spacing: 10) {
-            DuckAiLogo(size: 44)
+            DuckAiLogo(size: 52)
             Text(UserText.recentChatsWidgetEmptyMessage)
                 .daxFootnoteRegular()
                 .multilineTextAlignment(.center)
@@ -139,18 +142,17 @@ private struct AIChatRecentChatsEmptyView: View {
 
 // MARK: - Logo
 
-/// The Duck.ai brand icon, rendered app-icon style: the Duck.ai glyph in white on an accent circle.
-private struct DuckAiLogo: View {
-    var size: CGFloat = 24
+/// The Duck.ai icon, rendered the same way as the Quick Actions widget: the monochrome glyph
+/// tinted with the design-system icon color, no background.
+struct DuckAiLogo: View {
+    var size: CGFloat = 30
 
     var body: some View {
         Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChat)
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(.white)
-            .frame(width: size * 0.62, height: size * 0.62)
+            .foregroundStyle(Color(designSystemColor: .icons))
             .frame(width: size, height: size)
-            .background(Color(designSystemColor: .accent), in: Circle())
     }
 }

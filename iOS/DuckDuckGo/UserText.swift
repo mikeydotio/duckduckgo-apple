@@ -2260,7 +2260,7 @@ public struct UserText {
 
     public static let settingsAiChatWidgets = NSLocalizedString("settings.aifeatures.widgets.title", value: "Duck.ai Widgets", comment: "Settings screen cell title for the Duck.ai recent-chats home screen widget toggle")
 
-    public static let settingsAiChatWidgetsSubtitle = NSLocalizedString("settings.aifeatures.widgets.subtitle", value: "Show your recent chats in home screen widgets", comment: "Settings screen cell subtitle explaining the Duck.ai widgets toggle")
+    public static let settingsAiChatWidgetsSubtitle = NSLocalizedString("settings.aifeatures.widgets.subtitle", value: "Show your recent chats and images in home screen widgets", comment: "Settings screen cell subtitle explaining the Duck.ai widgets toggle")
 
     public static let settingsAutomaticPageContextTitle = NSLocalizedString("settings.aifeatures.automatic.context.title", value: "Automatically Send Content", comment: "Settings screen cell title for enabling automatic page content attachment")
 

@@ -3539,7 +3539,7 @@ Take back control of your personal information with the browser designed for dat
 "settings.aifeatures.hide.ai.generated.images.subtitle" = "Filters out AI-Generated images from image search results";
 
 /* Settings screen cell subtitle explaining the Duck.ai widgets toggle */
-"settings.aifeatures.widgets.subtitle" = "Show your recent chats in home screen widgets";
+"settings.aifeatures.widgets.subtitle" = "Show your recent chats and images in home screen widgets";
 
 /* Settings screen cell title for the Duck.ai recent-chats home screen widget toggle */
 "settings.aifeatures.widgets.title" = "Duck.ai Widgets";

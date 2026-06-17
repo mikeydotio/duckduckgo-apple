@@ -27,7 +27,6 @@ struct AIChatRecentChatsEntry: TimelineEntry {
     let chats: [WidgetChatEntry]
     let totalChatCount: Int
     let thumbnails: [String: UIImage]
-    let isEnabled: Bool
     let isPreview: Bool
 
     /// Deep link that opens a specific chat from a widget row.
@@ -43,7 +42,7 @@ struct AIChatRecentChatsEntry: TimelineEntry {
             WidgetChatEntry(chatId: "3", title: "Dinner recipe with salmon", lastEdit: "", hasImageThumbnail: false),
             WidgetChatEntry(chatId: "4", title: "Summarize this article", lastEdit: "", hasImageThumbnail: false)
         ]
-        return AIChatRecentChatsEntry(date: Date(), chats: chats, totalChatCount: chats.count, thumbnails: [:], isEnabled: true, isPreview: true)
+        return AIChatRecentChatsEntry(date: Date(), chats: chats, totalChatCount: chats.count, thumbnails: [:], isPreview: true)
     }
 }
 
@@ -68,8 +67,10 @@ struct AIChatRecentChatsProvider: TimelineProvider {
             return .sample
         }
 
-        guard isWidgetEnabled, let location = AIChatWidgetDataLocation.appGroup() else {
-            return AIChatRecentChatsEntry(date: Date(), chats: [], totalChatCount: 0, thumbnails: [:], isEnabled: isWidgetEnabled, isPreview: false)
+        // No flag gate: the sync engine wipes the mirror when the setting is off, so "no data on
+        // disk" is the safety guarantee. The widget just renders whatever exists.
+        guard let location = AIChatWidgetDataLocation.appGroup() else {
+            return AIChatRecentChatsEntry(date: Date(), chats: [], totalChatCount: 0, thumbnails: [:], isPreview: false)
         }
 
         let snapshot = (try? JSONDecoder().decode(WidgetChatSnapshot.self, from: Data(contentsOf: location.chatsFileURL)))
@@ -87,18 +88,7 @@ struct AIChatRecentChatsProvider: TimelineProvider {
                                       chats: snapshot.chats,
                                       totalChatCount: snapshot.totalChatCount,
                                       thumbnails: thumbnails,
-                                      isEnabled: true,
                                       isPreview: false)
-    }
-
-    /// Both the global AI Chat toggle and the widget toggle must be on. This is defense in depth:
-    /// the sync engine already wipes the mirror when either is off, but the widget also refuses to
-    /// render stale data if it somehow lingers.
-    private var isWidgetEnabled: Bool {
-        let defaults = UserDefaults(suiteName: Global.appConfigurationGroupName) ?? UserDefaults()
-        let aiChatOn = (defaults.object(forKey: AppConfigurationKeyNames.isAIChatEnabled) as? Bool) ?? true
-        let widgetOn = (defaults.object(forKey: AppConfigurationKeyNames.aiChatRecentChatsWidgetEnabled) as? Bool) ?? true
-        return aiChatOn && widgetOn
     }
 }
 

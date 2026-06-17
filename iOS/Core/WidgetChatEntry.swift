@@ -56,3 +56,16 @@ public struct WidgetChatSnapshot: Codable, Equatable {
         self.chats = chats
     }
 }
+
+/// A single Duck.ai generated image surfaced by the image gallery widget. `imageId` is the native
+/// file UUID (also the gallery thumbnail filename); `chatId` is the chat that produced it, used to
+/// deep link back into the conversation.
+public struct WidgetImageEntry: Codable, Equatable {
+    public let imageId: String
+    public let chatId: String
+
+    public init(imageId: String, chatId: String) {
+        self.imageId = imageId
+        self.chatId = chatId
+    }
+}

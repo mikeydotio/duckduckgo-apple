@@ -233,6 +233,45 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         XCTAssertNil(AIChatWidgetSyncEngine.decodedFileBytes(fromEnvelope: Data("{ \"mimeType\": \"image/jpeg\" }".utf8)))
     }
 
+    // MARK: - Image gallery
+
+    private func readImages(_ location: AIChatWidgetDataLocation) throws -> [WidgetImageEntry] {
+        let data = try Data(contentsOf: location.imagesFileURL)
+        return try JSONDecoder().decode([WidgetImageEntry].self, from: data)
+    }
+
+    func testWhenImageGenChatsThenGalleryWritten() throws {
+        let storage = MockObservableStorage()
+        storage.chats = [DuckAiChatRecord(chatId: "img", data: imageGenChatData(id: "img", lastEdit: "2026-05-01T00:00:00.000Z", fileRef: "file-1"))]
+        storage.files = ["file-1": makeImageEnvelope()]
+        let location = makeLocation()
+        let engine = makeEngine(storage: storage, location: location)
+
+        engine.syncNow()
+
+        let images = try readImages(location)
+        XCTAssertEqual(images.map(\.imageId), ["file-1"])
+        XCTAssertEqual(images.first?.chatId, "img")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: location.galleryImageURL(forImageId: "file-1").path))
+    }
+
+    func testWhenImageNoLongerPresentThenStaleGalleryImageRemoved() throws {
+        let storage = MockObservableStorage()
+        storage.chats = [DuckAiChatRecord(chatId: "img", data: imageGenChatData(id: "img", lastEdit: "2026-05-01T00:00:00.000Z", fileRef: "file-1"))]
+        storage.files = ["file-1": makeImageEnvelope()]
+        let location = makeLocation()
+        let engine = makeEngine(storage: storage, location: location)
+
+        engine.syncNow()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: location.galleryImageURL(forImageId: "file-1").path))
+
+        storage.chats = [DuckAiChatRecord(chatId: "img", data: chatData(id: "img", title: "Now text", lastEdit: "2026-05-02T00:00:00.000Z"))]
+        engine.syncNow()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: location.galleryImageURL(forImageId: "file-1").path))
+        XCTAssertEqual(try readImages(location).count, 0)
+    }
+
     // MARK: - Gating + subscription (Task 6)
 
     func testWhenSettingDisabledThenSyncWipesInsteadOfWriting() throws {

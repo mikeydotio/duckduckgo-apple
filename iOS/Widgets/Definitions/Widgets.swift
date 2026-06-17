@@ -244,7 +244,7 @@ struct Widgets: WidgetBundle {
                                                   PasswordsWidget(),
                                                   VPNBundle().body,
                                                   SearchWidget(),
-                                                  AIChatRecentChatsWidget(),
+                                                  AIChatWidgetsBundle().body,
                                                   lockScreenWidgets)
         }
 
@@ -252,13 +252,21 @@ struct Widgets: WidgetBundle {
             return WidgetBundleBuilder.buildBlock(SearchWidget(),
                                                   PasswordsWidget(),
                                                   FavoritesWidget(),
-                                                  AIChatRecentChatsWidget(),
+                                                  AIChatWidgetsBundle().body,
                                                   lockScreenWidgets)
         } else {
             return WidgetBundleBuilder.buildBlock(SearchWidget(),
                                                   PasswordsWidget(),
                                                   FavoritesWidget())
         }
+    }
+}
+
+struct AIChatWidgetsBundle: WidgetBundle {
+    @WidgetBundleBuilder
+    var body: some Widget {
+        AIChatRecentChatsWidget()
+        AIChatImageGalleryWidget()
     }
 }
 

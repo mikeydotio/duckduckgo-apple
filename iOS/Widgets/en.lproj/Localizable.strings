@@ -85,6 +85,12 @@
 /* Title for editing custom shortcuts */
 "widget.gallery.customshortcuts.edit.title" = "Configure Shortcuts";
 
+/* Description of the Duck.ai image gallery widget in the widget gallery */
+"widget.gallery.images.description" = "See the images you’ve generated with Duck.ai.";
+
+/* Display name for the Duck.ai image gallery widget in the widget gallery */
+"widget.gallery.images.display.name" = "Duck.ai Images";
+
 /* Label for first shortcut slot in medium widget configuration */
 "widget.gallery.medium.customshortcuts.edit.shortcut1" = "Shortcut 1";
 
@@ -126,6 +132,9 @@
 
 /* Display name for VPN widget in widget gallery */
 "widget.gallery.vpn.display.name" = "VPN";
+
+/* Empty-state message shown in the image gallery widget when there are no images */
+"widget.images.empty" = "Images you generate with Duck.ai will appear here.";
 
 /* CTA shown in the favorites widget empty state. */
 "widget.no.favorites.cta" = "Add Favorites";

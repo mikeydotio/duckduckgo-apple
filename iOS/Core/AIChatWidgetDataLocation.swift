@@ -54,4 +54,21 @@ public struct AIChatWidgetDataLocation {
     public func thumbnailURL(forChatId chatId: String) -> URL {
         thumbnailsDirectoryURL.appendingPathComponent("\(chatId).jpg")
     }
+
+    // MARK: - Image gallery
+
+    /// JSON file holding the `[WidgetImageEntry]` list for the image gallery widget.
+    public var imagesFileURL: URL {
+        rootURL.appendingPathComponent("images.json")
+    }
+
+    /// Directory holding gallery-resolution image JPEGs (larger than the chat row thumbnails).
+    public var galleryDirectoryURL: URL {
+        rootURL.appendingPathComponent("gallery", isDirectory: true)
+    }
+
+    /// Gallery JPEG location for a given image id (the native file UUID).
+    public func galleryImageURL(forImageId imageId: String) -> URL {
+        galleryDirectoryURL.appendingPathComponent("\(imageId).jpg")
+    }
 }
