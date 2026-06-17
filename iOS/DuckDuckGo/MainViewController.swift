@@ -907,23 +907,24 @@ class MainViewController: UIViewController {
             // Home screen with logo
             if let image = viewCoordinator.logoContainer.createImageSnapshot(inBounds: viewCoordinator.contentContainer.frame) {
                 previewsSource.update(preview: image, forTab: tab)
-                completion?()
             }
+            completion?()
 
         } else if let currentTab = self.tabManager.current(), currentTab.link != nil {
             // Web view
             currentTab.preparePreview(completion: { image in
-                guard let image else { return }
-                self.previewsSource.update(preview: image,
-                                           forTab: currentTab.tabModel)
+                if let image {
+                    self.previewsSource.update(preview: image,
+                                               forTab: currentTab.tabModel)
+                }
                 completion?()
             })
         } else if let tab = self.tabManager.currentTabsModel.currentTab {
             // Favorites, etc
             if let image = viewCoordinator.contentContainer.createImageSnapshot() {
                 previewsSource.update(preview: image, forTab: tab)
-                completion?()
             }
+            completion?()
         } else {
             completion?()
         }
@@ -5950,6 +5951,12 @@ extension MainViewController: BookmarksDelegate {
 
 extension MainViewController: TabSwitcherButtonDelegate {
 
+    private enum TabPreviewWarmupConstants {
+        static let loadingPollNanoseconds: UInt64 = 100_000_000
+        static let maximumLoadingPolls = 15
+        static let renderPassDelayNanoseconds: UInt64 = 250_000_000
+    }
+
     func launchNewTabWithCurrentMode(_ button: TabSwitcherButton) {
         newTabShortcutAction()
     }
@@ -5998,10 +6005,58 @@ extension MainViewController: TabSwitcherButtonDelegate {
         // Don't clear `openedAfterIdle` on switcher open — the after-idle session
         // ends on actual tab transition (see `transitionTo`), not on peeking.
         hideNotificationBarIfBrokenSitePromptShown()
-        updatePreviewForCurrentTab {
+        Task { @MainActor in
+            await warmUpTabSwitcherPreviews()
             ViewHighlighter.hideAll()
-            Task { @MainActor in
-                await self.segueToTabSwitcher(forceFireTabsTip: forceFireTabsTip)
+            await self.segueToTabSwitcher(forceFireTabsTip: forceFireTabsTip)
+        }
+    }
+
+    private func warmUpTabSwitcherPreviews() async {
+        let originalTab = tabManager.currentTabsModel.currentTab
+        let tabs = tabManager.currentTabsModel.tabs
+
+        guard !tabs.isEmpty else { return }
+
+        for tab in tabs {
+            guard tabManager.currentTabsModel.tabs.contains(where: { $0 === tab }) else { continue }
+
+            selectTabForPreviewWarmup(tab)
+            await waitForTabPreviewWarmupRenderPass()
+            await updatePreviewForCurrentTabAsync()
+        }
+
+        guard let originalTab,
+              tabManager.currentTabsModel.tabs.contains(where: { $0 === originalTab }) else {
+            return
+        }
+
+        selectTabForPreviewWarmup(originalTab)
+        await waitForTabPreviewWarmupRenderPass()
+        await updatePreviewForCurrentTabAsync()
+    }
+
+    private func selectTabForPreviewWarmup(_ tab: Tab) {
+        guard tabManager.currentTabsModel.currentTab !== tab else { return }
+
+        let previousTab = tabManager.current()
+        guard let selectedTab = tabManager.select(tab, dismissCurrent: false) else { return }
+        transitionTo(tab: selectedTab, from: previousTab)
+    }
+
+    private func waitForTabPreviewWarmupRenderPass() async {
+        for _ in 0..<TabPreviewWarmupConstants.maximumLoadingPolls {
+            guard currentTab?.isLoading == true else { break }
+            try? await Task.sleep(nanoseconds: TabPreviewWarmupConstants.loadingPollNanoseconds)
+        }
+
+        try? await Task.sleep(nanoseconds: TabPreviewWarmupConstants.renderPassDelayNanoseconds)
+    }
+
+    private func updatePreviewForCurrentTabAsync() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            updatePreviewForCurrentTab {
+                continuation.resume()
             }
         }
     }

@@ -92,10 +92,6 @@ class TabSwitcherPageViewController: UIViewController {
     private var topicCache: TabTopicClassificationCache { .shared }
     /// Guards against overlapping classification passes within this instance.
     private var topicClassificationInFlight = false
-    /// True while a coalesced topic reflow is pending, so rapid classification results batch into one reflow.
-    private var topicReflowScheduled = false
-    /// How long classification results are batched before the grid reflows them together.
-    private static let topicReflowInterval: TimeInterval = 1.0
 
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
@@ -612,11 +608,10 @@ extension TabSwitcherPageViewController {
         }
     }
 
-    /// A section is summarized only when its hosted-tab count falls in this range. The lower bound skips
-    /// single-tab sections (a tab's title is its own summary); the upper bound is the point past which a
-    /// 1–3 topic summary can't represent the section and not every tab would fit the model's prompt, so
-    /// we summarize all tabs of a section rather than a misleading sample.
-    static let summarizableTabCountRange = 2...25
+    /// A section is summarized only when it has enough hosted tabs to be worth it. Larger sections are still
+    /// summarized, but only from their most recent hosted tabs so the prompt stays bounded.
+    static let minimumSummarizableTabCount = 2
+    static let maximumSummarySiteCount = 25
 
     /// Groups tabs by when they were last viewed into descending time buckets, most-recent first within each.
     /// Recent days are broken out individually — Today, Yesterday, then a bucket per earlier day of the current
@@ -665,11 +660,11 @@ extension TabSwitcherPageViewController {
         return buckets.indices.compactMap { index in
             let tabs = grouped[index].sorted { ($0.lastViewedDate ?? now) > ($1.lastViewedDate ?? now) }
             guard !tabs.isEmpty else { return nil }
-            // Summarize only sections whose hosted-tab count is in range: enough to be worth it, few enough to fit.
+            // Summarize sections with enough hosted tabs to be worth it; large buckets summarize their most recent tabs.
             let hostedTabCount = tabs.filter { ($0.link?.url.host?.droppingWwwPrefix()).map { !$0.isEmpty } ?? false }.count
             return TabGridSection(title: buckets[index].title,
                                   tabs: tabs,
-                                  summarizable: Self.summarizableTabCountRange.contains(hostedTabCount))
+                                  summarizable: hostedTabCount >= Self.minimumSummarizableTabCount)
         }
     }
 
@@ -840,6 +835,8 @@ extension TabSwitcherPageViewController {
 
 extension TabSwitcherPageViewController {
 
+    private static let summaryPromptVersion = "activity-summary-v2"
+
     /// The summary line to show for a section header: a cached label, a loading placeholder while one
     /// is generated on-device, or nothing when the section isn't summarizable or the model is unavailable.
     func summaryState(for section: TabGridSection?) -> TabSwitcherSectionHeaderView.SummaryState {
@@ -861,15 +858,20 @@ extension TabSwitcherPageViewController {
     /// A cache key that stays stable across reloads but changes when the section's set of sites changes,
     /// so the summary is regenerated only when its content actually changes.
     private func summaryKey(for section: TabGridSection) -> String {
-        let hosts = section.tabs
-            .compactMap { $0.link?.url.host?.droppingWwwPrefix() }
+        let sites = Self.summaryCandidateTabs(from: section.tabs)
+            .compactMap { tab -> String? in
+                guard let url = tab.link?.url,
+                      let host = url.host?.droppingWwwPrefix(),
+                      !host.isEmpty else { return nil }
+                return "\(host)\(url.path)"
+            }
             .sorted()
-        return "\(section.title ?? "")|\(hosts.joined(separator: ","))"
+        return "\(Self.summaryPromptVersion)|\(section.title ?? "")|\(sites.joined(separator: ","))"
     }
 
     @available(iOS 26.0, *)
     private func summarySites(for section: TabGridSection) -> [TabSectionActivitySummarizer.Site] {
-        section.tabs.compactMap { tab in
+        Self.summaryCandidateTabs(from: section.tabs).compactMap { tab in
             guard let url = tab.link?.url,
                   let host = url.host?.droppingWwwPrefix(),
                   !host.isEmpty else { return nil }
@@ -877,6 +879,22 @@ extension TabSwitcherPageViewController {
                                                      title: tab.link?.displayTitle ?? host,
                                                      detail: Self.readableSlug(from: url))
         }
+    }
+
+    private static func summaryCandidateTabs(from tabs: [Tab]) -> [Tab] {
+        let now = Date()
+        return tabs.enumerated()
+            .filter { ($0.element.link?.url.host?.droppingWwwPrefix()).map { !$0.isEmpty } ?? false }
+            .sorted { lhs, rhs in
+                let lhsDate = lhs.element.lastViewedDate ?? now
+                let rhsDate = rhs.element.lastViewedDate ?? now
+                if lhsDate != rhsDate {
+                    return lhsDate > rhsDate
+                }
+                return lhs.offset < rhs.offset
+            }
+            .prefix(maximumSummarySiteCount)
+            .map { $0.element }
     }
 
     /// A short, human-readable hint from a URL path (e.g. "/wiki/Frederic_Tudor" -> "Frederic Tudor"),
@@ -945,32 +963,23 @@ extension TabSwitcherPageViewController {
         guard #available(iOS 26.0, *) else { return }
         topicClassificationInFlight = true
         Task { [weak self] in
-            // One focused call per domain, biggest first. Results land in the cache as they arrive but the grid
-            // reflows on a coalescing timer rather than per result, so many domains settle into their topics
-            // together instead of the list jumping on every single result. Cached, so first-seen domains only.
+            // One focused call per domain, biggest first. Results land in the cache as they arrive, then the
+            // grid reflows once when this pass completes so chips don't jump repeatedly while classifications stream in.
             for entry in pending {
                 let topic = await TabDomainTopicClassifier.classify(host: entry.host, sampleTitles: entry.titles)
                 guard let self else { return }
                 self.topicCache.store(topic.map { [entry.host: $0] } ?? [:], attempted: [entry.host])
-                self.scheduleCoalescedReflow()
             }
             self?.topicClassificationInFlight = false
+            self?.reflowTopicSections()
         }
     }
 
-    /// Coalesces classification reflows: results arrive in quick succession, so instead of moving chips on every
-    /// result (which makes the list jump), batch them into at most one crossfaded reflow per interval.
-    private func scheduleCoalescedReflow() {
-        guard !topicReflowScheduled else { return }
-        topicReflowScheduled = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.topicReflowInterval) { [weak self] in
-            guard let self else { return }
-            self.topicReflowScheduled = false
-            UIView.transition(with: self.collectionView,
-                              duration: 0.3,
-                              options: [.transitionCrossDissolve, .allowUserInteraction]) {
-                self.reloadData()
-            }
+    private func reflowTopicSections() {
+        UIView.transition(with: collectionView,
+                          duration: 0.3,
+                          options: [.transitionCrossDissolve, .allowUserInteraction]) {
+            self.reloadData()
         }
     }
 
@@ -984,7 +993,14 @@ extension TabSwitcherPageViewController {
         }
         return domainTabs.keys
             .filter { topicCache.domainTopics[$0] == nil && !topicCache.attemptedDomains.contains($0) }
-            .sorted { (domainTabs[$0]?.count ?? 0) > (domainTabs[$1]?.count ?? 0) }
+            .sorted { lhs, rhs in
+                let lhsCount = domainTabs[lhs]?.count ?? 0
+                let rhsCount = domainTabs[rhs]?.count ?? 0
+                if lhsCount != rhsCount {
+                    return lhsCount > rhsCount
+                }
+                return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
+            }
             .map { host in
                 let titles = (domainTabs[host] ?? []).prefix(4).compactMap { $0.link?.displayTitle }
                 return (host, Array(titles))
@@ -1503,13 +1519,12 @@ enum TabSectionActivitySummarizer {
 
     @Generable
     struct ActivitySummary {
-        @Guide(description: "One to three short labels for what the tabs are about, ordered most prominent first. Each is a concise 2 to 4 word paraphrase of the topic in your own words — never a page title copied or lightly edited, and never a single generic category word. Drop site names and boilerplate such as 'Log In' or 'Thank You For Your Order'. One label per distinct topic; never repeat one. No trailing punctuation.", .count(1...3))
+        @Guide(description: "One to three short labels for what the tabs are about, ordered most prominent first. Each is a concise 2 to 4 word phrase for a concrete subject from the tabs — never a page title copied or lightly edited, never a site name, and never broad category labels such as Programming, Technology, Learning, Research, Reference, Documentation, Productivity, Entertainment, Shopping, News, or Business. Drop boilerplate such as 'Log In' or 'Thank You For Your Order'. One label per distinct topic; never repeat one. No trailing punctuation.", .count(1...3))
         var activities: [String]
     }
 
-    /// Upper bound on tabs fed to a single summary. Matches the section cutoff so a summarized section's tabs
-    /// all fit the prompt — the summary reflects the whole section, never a misleading sample.
-    private static let maxSites = TabSwitcherPageViewController.summarizableTabCountRange.upperBound
+    /// Upper bound on tabs fed to a single summary. Large recency sections pass only their most recent sites.
+    private static let maxSites = TabSwitcherPageViewController.maximumSummarySiteCount
 
     private static let instructions = """
     You label what a group of open browser tabs are about, from each tab's page title (plus a parenthetical \
@@ -1518,8 +1533,28 @@ enum TabSectionActivitySummarizer {
     describe the underlying topic instead. (2) do not shrink it to a single broad category word like News, \
     Shopping, or Tech; keep it specific. Strip away site names, domains, and boilerplate such as \
     "Log In to My Account" or "Thank You For Your Order". Merge tabs about the same topic into one label and \
-    add another only for a clearly different topic; never repeat a topic, and never copy the address hint verbatim.
+    add another only for a clearly different topic; never repeat a topic, and never copy the address hint verbatim. \
+    Forbidden labels include Programming, Technology, Learning, Research, Reference, Documentation, Productivity, \
+    Entertainment, Shopping, News, and Business. If you are tempted to use one, replace it with the concrete subject \
+    from the page titles or address hints.
     """
+
+    private static let genericLabels = Set([
+        "programming",
+        "technology",
+        "learning",
+        "research",
+        "reference",
+        "documentation",
+        "productivity",
+        "entertainment",
+        "shopping",
+        "news",
+        "business",
+        "tools",
+        "tutorials",
+        "development"
+    ])
 
     /// Whether the on-device model is ready to use right now (device eligible, Apple Intelligence enabled, model downloaded).
     static var isAvailable: Bool {
@@ -1547,6 +1582,7 @@ enum TabSectionActivitySummarizer {
             let activities = response.content.activities
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
+                .filter { !genericLabels.contains($0.lowercased()) }
             return activities.isEmpty ? nil : activities
         } catch {
             Logger.general.error("Tab section activity summary failed: \(error.localizedDescription, privacy: .public)")
