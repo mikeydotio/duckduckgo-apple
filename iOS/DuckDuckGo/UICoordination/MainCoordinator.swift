@@ -667,6 +667,8 @@ final class MainCoordinator {
         controller.showBars()
         controller.onForeground()
 
+        controller.currentTab?.becomeCurrentActivity()
+
         fireDailyAdBlockingPixel()
 
         if #available(iOS 18.4, *) {
@@ -849,6 +851,10 @@ extension MainCoordinator: UserActivityHandling {
 
     @discardableResult
     func handleUserActivity(_ userActivity: NSUserActivity) -> Bool {
+        if handleHandoffUserActivity(userActivity) {
+            return true
+        }
+
         if dataImportUserActivityHandler == nil {
             dataImportUserActivityHandler = makeDataImportUserActivityHandler()
         }
@@ -858,6 +864,15 @@ extension MainCoordinator: UserActivityHandling {
             return false
         }
 
+        return true
+    }
+
+    private func handleHandoffUserActivity(_ userActivity: NSUserActivity) -> Bool {
+        // Receiving is always allowed — it transmits nothing. Only advertising is gated by the user setting.
+        guard let url = HandoffUserActivity.incomingURL(from: userActivity) else {
+            return false
+        }
+        controller.loadUrlInNewTab(url, reuseExisting: .any, inheritedAttribution: nil)
         return true
     }
 

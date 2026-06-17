@@ -73,6 +73,7 @@ public class AppUserDefaults: AppSettings {
         static let notificationsEnabled = "com.duckduckgo.app.notificationsEnabled"
         static let allowUniversalLinks = "com.duckduckgo.app.allowUniversalLinks"
         static let longPressPreviews = "com.duckduckgo.app.longPressPreviews"
+        static let handoffEnabled = "com.duckduckgo.app.handoffEnabled"
         
         static let currentFireButtonAnimationKey = "com.duckduckgo.app.currentFireButtonAnimationKey"
         
@@ -220,6 +221,16 @@ public class AppUserDefaults: AppSettings {
 
         set {
             userDefaults?.set(newValue, forKey: Keys.longPressPreviews)
+        }
+    }
+
+    var handoffEnabled: Bool {
+        get {
+            return userDefaults?.object(forKey: Keys.handoffEnabled) as? Bool ?? true
+        }
+
+        set {
+            userDefaults?.set(newValue, forKey: Keys.handoffEnabled)
         }
     }
     

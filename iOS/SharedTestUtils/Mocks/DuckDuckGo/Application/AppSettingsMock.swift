@@ -64,6 +64,8 @@ class AppSettingsMock: AppSettings {
 
     var allowUniversalLinks: Bool = false
 
+    var handoffEnabled: Bool = true
+
     var sendDoNotSell: Bool = true
 
     var currentFireButtonAnimation: DuckDuckGo.FireButtonAnimationType = .fireRising

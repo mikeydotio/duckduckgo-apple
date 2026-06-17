@@ -895,6 +895,13 @@ final class SettingsViewModel: ObservableObject {
         )
     }
 
+    var handoffEnabledBinding: Binding<Bool> {
+        Binding<Bool>(
+            get: { self.appSettings.handoffEnabled },
+            set: { self.appSettings.handoffEnabled = $0 }
+        )
+    }
+
     var crashCollectionOptInStatusBinding: Binding<Bool> {
         Binding<Bool>(
             get: { self.state.crashCollectionOptInStatus == .optedIn },

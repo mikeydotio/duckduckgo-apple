@@ -1337,6 +1337,9 @@ struct UserText {
     static let tabs = NSLocalizedString("preferences-tabs.title", value: "Tabs", comment: "Title for tabs section in settings")
     static let preferNewTabsToWindows = NSLocalizedString("preferences-tabs.prefer.new.tabs.to.windows", value: "Open links in new tabs instead of new windows whenever possible", comment: "Option to prefer opening new tabs instead of windows when opening links")
     static let switchToNewTabWhenOpened = NSLocalizedString("preferences-tabs.switch.tab.when.opened", value: "When opening links, switch to the new tab or window immediately", comment: "Option to switch to a new tab/window when it is opened")
+    static let handoff = NSLocalizedString("preferences.handoff.title", value: "Handoff", comment: "Title for the Handoff section in General settings")
+    static let handoffPreferenceToggle = NSLocalizedString("preferences.handoff.toggle", value: "Hand off the current page to your other devices", comment: "Option to enable Handoff of the current page to the user's other devices")
+    static let handoffPreferenceCaption = NSLocalizedString("preferences.handoff.caption", value: "Shared only with the DuckDuckGo browser, never with us.", comment: "Caption explaining Handoff only shares the page with the user's other DuckDuckGo apps, never with the company")
     static let newTabPositionTitle = NSLocalizedString("preferences-tabs.new.tab.position.title", value: "When creating a new tab", comment: "Title for new tab positioning")
 
     static func newTabPositionMode(for position: NewTabPosition) -> String {

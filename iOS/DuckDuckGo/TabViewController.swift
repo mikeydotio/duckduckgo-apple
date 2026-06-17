@@ -338,6 +338,7 @@ class TabViewController: UIViewController {
             checkLoginDetectionAfterNavigation()
             updateTrackerAnimationDomainState(for: url)
             urlSubject.send(url)
+            updateCurrentActivity(url: url)
         }
     }
     
@@ -4767,4 +4768,75 @@ extension TabViewController: SafariRedirectHandlerDelegate {
         shouldUseSafariOnlyUserAgentForNextMainFrameNavigation = false
         showSafariRedirectLoopError(for: url)
     }
+}
+
+// MARK: - Handoff (NSUserActivity)
+
+enum HandoffUserActivity {
+    /// Private activity type used to advertise the current tab URL so only another DuckDuckGo app picks it up.
+    static let browsingWebType = "com.duckduckgo.mobile.ios.web-browsing"
+
+    /// The advertised URL travels in `userInfo`, not `webpageURL`, so the activity can't fall back to opening
+    /// in another browser — only a DuckDuckGo app reading this key can continue it.
+    static let urlKey = "url"
+
+    /// URL for an incoming Handoff we accept: our private type (URL in `userInfo`), or the system web-browsing
+    /// type advertised by any browser (URL in `webpageURL`) when DuckDuckGo is the default browser here.
+    static func incomingURL(from userActivity: NSUserActivity) -> URL? {
+        switch userActivity.activityType {
+        case browsingWebType:
+            return userActivity.userInfo?[urlKey] as? URL
+        case NSUserActivityTypeBrowsingWeb:
+            return userActivity.webpageURL
+        default:
+            return nil
+        }
+    }
+}
+
+extension TabViewController {
+
+    func becomeCurrentActivity() {
+        guard advertisesHandoff else { return }
+
+        if currentHandoffURL == nil {
+            resetToInertActivity()
+        }
+
+        userActivity?.becomeCurrent()
+    }
+
+    private func updateCurrentActivity(url: URL?) {
+        guard advertisesHandoff else { return }
+
+        let handoffURL: URL? = {
+            guard let url, let scheme = url.scheme, ["http", "https"].contains(scheme) else { return nil }
+            return url.isDuckDuckGo ? url.removingInternalSearchParameters() : url
+        }()
+        guard handoffURL != currentHandoffURL else { return }
+
+        userActivity?.invalidate()
+        if let handoffURL {
+            let activity = NSUserActivity(activityType: HandoffUserActivity.browsingWebType)
+            activity.userInfo = [HandoffUserActivity.urlKey: handoffURL]
+            userActivity = activity
+        } else {
+            resetToInertActivity()
+        }
+
+        userActivity?.becomeCurrent()
+    }
+
+    private var currentHandoffURL: URL? {
+        userActivity?.userInfo?[HandoffUserActivity.urlKey] as? URL
+    }
+
+    /// Replace the current activity with one that advertises nothing, so a previously shared URL stops broadcasting.
+    private func resetToInertActivity() {
+        userActivity?.invalidate()
+        userActivity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
+    }
+
+    // TODO: Also gate behind the `.handoff` feature flag once it is added.
+    private var advertisesHandoff: Bool { appSettings.handoffEnabled }
 }

@@ -90,6 +90,7 @@ extension UserDefaults {
         case showAutocompleteSuggestions = "preferences.appearance.show-autocomplete-suggestions"
         case preferNewTabsToWindows = "preferences.tabs.prefer-new-tabs-to-windows"
         case switchToNewTabWhenOpened = "preferences.tabs.switch-to-new-tab-when-opened"
+        case handoffEnabled = "preferences.handoff.enabled"
         case newTabPosition = "preferences.tabs.new-tab-position"
         case defaultPageZoom = "preferences.appearance.default-page-zoom"
         case websitePageZoom = "preferences.appearance.website-page-zoom"

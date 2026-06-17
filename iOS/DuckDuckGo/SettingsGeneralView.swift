@@ -149,6 +149,12 @@ struct SettingsGeneralView: View {
                                  accessory: .toggle(isOn: viewModel.universalLinksBinding))
             }
 
+            // Handoff
+            Section(footer: Text(UserText.settingsHandoffDescription)) {
+                SettingsCellView(label: UserText.settingsHandoff,
+                                 accessory: .toggle(isOn: viewModel.handoffEnabledBinding))
+            }
+
             // Media
             Section(header: Text(UserText.settingsMediaSection)) {
                 NavigationLink(destination: SettingsAutoplayView().environmentObject(viewModel)) {

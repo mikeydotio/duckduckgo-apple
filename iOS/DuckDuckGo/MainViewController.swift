@@ -1684,6 +1684,7 @@ class MainViewController: UIViewController {
         
         currentTab?.dismiss()
         removeHomeScreen()
+        invalidateCurrentActivity()
 
         let hatch = buildEscapeHatch(openedAfterIdle: openedAfterIdle)
         homePageConfiguration.refresh(openedAfterIdle: hatch != nil)
@@ -2264,6 +2265,8 @@ class MainViewController: UIViewController {
         }
 
         refreshControls()
+
+        tab.becomeCurrentActivity()
     }
 
     private func addToContentContainer(controller: UIViewController) {
@@ -7197,4 +7200,21 @@ extension MainViewController {
         guard let scope = currentDuckAIWideEventFlowScope else { return }
         duckAIWideEventInstrumentation.frontendSubmissionAcknowledged(scope: scope)
     }
+}
+
+// MARK: - Handoff (NSUserActivity)
+
+extension MainViewController {
+
+    func invalidateCurrentActivity() {
+        guard advertisesHandoff else { return }
+
+        userActivity?.invalidate()
+        userActivity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
+        userActivity?.webpageURL = nil
+        userActivity?.becomeCurrent()
+    }
+
+    // TODO: Also gate behind the `.handoff` feature flag once it is added.
+    private var advertisesHandoff: Bool { appSettings.handoffEnabled }
 }

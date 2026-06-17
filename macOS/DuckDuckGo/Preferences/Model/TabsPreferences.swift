@@ -26,6 +26,7 @@ protocol TabsPreferencesPersistor {
     var sharedPinnedTabs: Bool { get set }
     var warnBeforeQuitting: Bool { get set }
     var warnBeforeClosingPinnedTabs: Bool { get set }
+    var handoffEnabled: Bool { get set }
 }
 
 struct TabsPreferencesUserDefaultsPersistor: TabsPreferencesPersistor {
@@ -87,6 +88,15 @@ struct TabsPreferencesUserDefaultsPersistor: TabsPreferencesPersistor {
         }
     }
 
+    var handoffEnabled: Bool {
+        get {
+            (try? keyValueStore.object(forKey: UserDefaultsWrapper<Any>.Key.handoffEnabled.rawValue) as? Bool) ?? true
+        }
+        set {
+            try? keyValueStore.set(newValue, forKey: UserDefaultsWrapper<Any>.Key.handoffEnabled.rawValue)
+        }
+    }
+
     init(keyValueStore: ThrowingKeyValueStoring) {
         self.keyValueStore = keyValueStore
     }
@@ -132,6 +142,12 @@ final class TabsPreferences: ObservableObject, PreferencesTabOpening {
         }
     }
 
+    @Published var handoffEnabled: Bool {
+        didSet {
+            persistor.handoffEnabled = handoffEnabled
+        }
+    }
+
     init(
         persistor: TabsPreferencesPersistor,
         windowControllersManager: WindowControllersManagerProtocol
@@ -144,6 +160,7 @@ final class TabsPreferences: ObservableObject, PreferencesTabOpening {
         pinnedTabsMode = persistor.sharedPinnedTabs ? .shared : .separate
         warnBeforeQuitting = persistor.warnBeforeQuitting
         warnBeforeClosingPinnedTabs = persistor.warnBeforeClosingPinnedTabs
+        handoffEnabled = persistor.handoffEnabled
     }
 
     let windowControllersManager: WindowControllersManagerProtocol
@@ -185,5 +202,6 @@ final class MockTabsPreferencesPersistor: TabsPreferencesPersistor {
     var sharedPinnedTabs: Bool = false
     var warnBeforeQuitting: Bool = true
     var warnBeforeClosingPinnedTabs: Bool = true
+    var handoffEnabled: Bool = true
 }
 #endif

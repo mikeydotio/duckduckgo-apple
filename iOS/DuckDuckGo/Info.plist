@@ -184,6 +184,8 @@
 	<array>
 		<string>ConfigurationIntent</string>
 		<string>ASCredentialExchangeActivityType</string>
+		<string>com.duckduckgo.mobile.ios.web-browsing</string>
+		<string>NSUserActivityTypeBrowsingWeb</string>
 	</array>
 	<key>OSLogPreferences</key>
 	<dict>

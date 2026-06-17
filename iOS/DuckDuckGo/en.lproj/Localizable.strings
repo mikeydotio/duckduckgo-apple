@@ -3748,6 +3748,12 @@ Take back control of your personal information with the browser designed for dat
 /* Settings screen cell text for GPC */
 "settings.gpc" = "Global Privacy Control (GPC)";
 
+/* Settings screen cell for the Handoff feature */
+"settings.handoff" = "Handoff";
+
+/* Description explaining that Handoff only shares the current page with the user's other DuckDuckGo apps, never with the company */
+"settings.handoff.description" = "Pages are shared only with the DuckDuckGo browser on your other devices, never with us.";
+
 /* Settings screen cell text for app icon selection */
 "settings.icon" = "App Icon";
 

@@ -97,7 +97,9 @@ protocol AppSettings: AnyObject, OnboardingDebugAppSettings {
     var longPressPreviews: Bool { get set }
 
     var allowUniversalLinks: Bool { get set }
-    
+
+    var handoffEnabled: Bool { get set }
+
     var sendDoNotSell: Bool { get set }
     
     var currentFireButtonAnimation: FireButtonAnimationType { get set }

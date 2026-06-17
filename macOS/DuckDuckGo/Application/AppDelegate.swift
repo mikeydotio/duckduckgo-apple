@@ -1565,6 +1565,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             await autoconsentStatsPopoverCoordinator.checkAndShowDialogIfNeeded()
         }
+
+        windowControllersManager.lastKeyMainWindowController?.mainViewController.browserTabViewController.becomeCurrentActivity()
     }
 
     private func fireDailyActiveUserPixels() {
@@ -1874,6 +1876,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func application(_ sender: NSApplication, openFiles files: [String]) {
         urlEventHandler.handleFiles(files)
+    }
+
+    func application(_ application: NSApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void) -> Bool {
+        guard HandoffUserActivity.incomingURL(from: userActivity) != nil,
+              let mainViewController = windowControllersManager.lastKeyMainWindowController?.mainViewController else {
+            return false
+        }
+
+        restorationHandler([mainViewController.browserTabViewController])
+
+        return true
     }
 
     // MARK: - Web Extensions

@@ -1754,6 +1754,8 @@ public struct UserText {
     public static let settingsVoiceSearch = NSLocalizedString("settings.voice.search", value: "Private Voice Search", comment: "Settings screen cell for voice search")
     public static let settingsAssociatedApps = NSLocalizedString("settings.associated.apps", value: "Open Links in Associated Apps", comment: "Settings screen cell for opening links in associated apps")
     public static let settingsAssociatedAppsDescription = NSLocalizedString("settings.associated.apps.description", value: "Disable to prevent links from automatically opening in other installed apps.", comment: "Description for associated apps description")
+    public static let settingsHandoff = NSLocalizedString("settings.handoff", value: "Handoff", comment: "Settings screen cell for the Handoff feature")
+    public static let settingsHandoffDescription = NSLocalizedString("settings.handoff.description", value: "Pages are shared only with the DuckDuckGo browser on your other devices, never with us.", comment: "Description explaining that Handoff only shares the current page with the user's other DuckDuckGo apps, never with the company")
 
     // More Section
     public static let settingsMoreSection = NSLocalizedString("settings.more", value: "More from DuckDuckGo", comment: "Settings title for the 'More' section")
