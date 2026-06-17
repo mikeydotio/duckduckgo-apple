@@ -87,6 +87,9 @@ struct TabSwitcherEditMenuActions {
     var onCloseAll: () -> Void
     var onArrangeByWebsite: () -> Void
     var onArrangeByRecency: () -> Void
+    var onArrangeByTopic: () -> Void
+    /// Topic arrangement needs the on-device model, so the menu item is hidden when it isn't available.
+    var canArrangeByTopic: Bool
 }
 
 struct TabSwitcherSectionMenuState {
@@ -229,7 +232,10 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
                     action(UserText.tabSwitcherArrangeTabsByRecency,
                            DesignSystemImages.Glyphs.Size16.history,
                            actions.onArrangeByRecency),
-                   ]),
+                    actions.canArrangeByTopic ? action(UserText.tabSwitcherArrangeTabsByTopic,
+                                                       DesignSystemImages.Glyphs.Size16.wand,
+                                                       actions.onArrangeByTopic) : nil,
+                   ].compactMap { $0 }),
 
             UIMenu(title: "", options: [.displayInline], children: [
                 destructive(UserText.closeAllTabs,

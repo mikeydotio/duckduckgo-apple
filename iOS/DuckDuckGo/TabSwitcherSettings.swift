@@ -24,6 +24,7 @@ import Persistence
 enum TabArrangement: String {
     case website
     case recency
+    case topic
 }
 
 protocol TabSwitcherSettings: AnyObject {

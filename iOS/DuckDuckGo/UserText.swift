@@ -438,6 +438,10 @@ public struct UserText {
 
     public static let tabSwitcherArrangeTabsByRecency = NSLocalizedString("tab.switcher.arrange-tabs-by-recency", value: "Arrange Tabs By Date", comment: "Menu item to arrange the open tabs by the date they were last used")
 
+    public static let tabSwitcherArrangeTabsByTopic = NSLocalizedString("tab.switcher.arrange-tabs-by-topic", value: "Arrange Tabs By Topic", comment: "Menu item to arrange the open tabs by topic, grouped further by website")
+
+    public static let tabSwitcherArrangeTopicSorting = NSLocalizedString("tab.switcher.arrange.topic.sorting", value: "Sorting…", comment: "Temporary tab switcher topic header shown while websites are still being classified on-device")
+
     public static let tabSwitcherArrangeOtherSectionTitle = NSLocalizedString("tab.switcher.arrange.other-section", value: "Other", comment: "Tab switcher section header for tabs that have no website (e.g. the home tab)")
 
     public static let tabSwitcherArrangeRecencyToday = NSLocalizedString("tab.switcher.arrange.recency.today", value: "Today", comment: "Tab switcher section header for tabs last used today")

@@ -45,6 +45,7 @@ protocol TabSwitcherPageDelegate: AnyObject {
     func page(_ page: TabSwitcherPageViewController, didReorderTabs: Void)
     func page(_ page: TabSwitcherPageViewController, contextMenuForTabsAt indexPaths: [IndexPath]) -> UIMenu?
     func page(_ page: TabSwitcherPageViewController, menuForSectionAt section: Int) -> UIMenu?
+    func page(_ page: TabSwitcherPageViewController, menuForTopicContainingSection section: Int) -> UIMenu?
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController)
     func pageCellDidBeginSwipe(_ page: TabSwitcherPageViewController)
     func pageCellDidEndSwipe(_ page: TabSwitcherPageViewController)
@@ -86,6 +87,15 @@ class TabSwitcherPageViewController: UIViewController {
     private var sectionSummaries: [String: String] = [:]
     /// Section keys whose summary is currently being generated, so we don't kick off duplicate requests.
     private var summariesInFlight: Set<String> = []
+
+    /// Cached topic classification per domain (host -> topic) for the topic arrangement.
+    private var domainTopics: [String: String] = [:]
+    /// Domains we've already tried to classify, so failures aren't retried on every reload.
+    private var topicClassificationAttempted: Set<String> = []
+    /// Guards against overlapping classification passes.
+    private var topicClassificationInFlight = false
+    /// Domains (hosts) whose thumbnails are revealed in the topic arrangement; each chip toggles independently.
+    private var expandedDomains: Set<String> = []
 
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
@@ -135,6 +145,7 @@ class TabSwitcherPageViewController: UIViewController {
 
         collectionView.register(TabViewGridCell.self, forCellWithReuseIdentifier: TabViewGridCell.reuseIdentifier)
         collectionView.register(TabViewListCell.self, forCellWithReuseIdentifier: TabViewListCell.reuseIdentifier)
+        collectionView.register(TabDomainChipCell.self, forCellWithReuseIdentifier: TabDomainChipCell.reuseIdentifier)
         collectionView.register(
             TabSwitcherTrackerInfoHeaderView.self,
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
@@ -144,6 +155,11 @@ class TabSwitcherPageViewController: UIViewController {
             TabSwitcherSectionHeaderView.self,
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
             withReuseIdentifier: TabSwitcherSectionHeaderView.reuseIdentifier
+        )
+        collectionView.register(
+            TabSwitcherTopicHeaderView.self,
+            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier: TabSwitcherTopicHeaderView.reuseIdentifier
         )
 
         view.addSubview(collectionView)
@@ -180,6 +196,7 @@ class TabSwitcherPageViewController: UIViewController {
         super.viewWillAppear(animated)
         trackerCountViewModel?.refresh()
         reconcileLayoutWithArrangement()
+        classifyPendingTopicsIfNeeded()
     }
 
     /// Ensures the layout matches the current arrangement, e.g. when a page is shown after the
@@ -297,6 +314,7 @@ class TabSwitcherPageViewController: UIViewController {
         rebuildSections()
         collectionView.reloadData()
         updateEmptyStateVisibility()
+        classifyPendingTopicsIfNeeded()
     }
 
     func refreshCurrentTabIndicators() {
@@ -360,6 +378,7 @@ class TabSwitcherPageViewController: UIViewController {
         collectionView.performBatchUpdates {
             pageDelegate.isProcessingUpdates = true
             pageDelegate.page(self, willDeleteTabs: tabsToClose, allDeleted: allTabsDeleted)
+            rebuildSections()
             collectionView.deleteItems(at: indexPaths)
             currentSelection = tabsModel.currentIndex
             refreshCurrentTabIndicators()
@@ -389,11 +408,26 @@ class TabSwitcherPageViewController: UIViewController {
 
 extension TabSwitcherPageViewController {
 
+    /// A domain pill shown under a topic in the topic arrangement.
+    struct DomainChip {
+        let domain: String
+        let count: Int
+    }
+
     struct TabGridSection {
         let title: String?
         let tabs: [Tab]
         /// Whether this section is eligible for an on-device activity summary (the recent recency buckets).
         var summarizable: Bool = false
+        /// Topic arrangement only: the topic this section belongs to.
+        var topicTitle: String?
+        /// Topic arrangement only: total tabs across the whole topic, shown in the topic band header.
+        var topicTabCount: Int = 0
+        /// Topic arrangement only: when non-nil, this is a topic's chips section (the row of domain pills) rather
+        /// than a domain's thumbnail section.
+        var chipDomains: [DomainChip]?
+
+        var isTopicChips: Bool { chipDomains != nil }
     }
 
     /// True when an arrangement is active and the grid is split into titled sections rather than a flat list.
@@ -401,22 +435,58 @@ extension TabSwitcherPageViewController {
         tabSwitcherSettings.tabArrangement != nil
     }
 
-    /// Whether on-device activity summaries can be produced at all (iOS 26+ with the model available).
-    var canSummarize: Bool {
+    /// Whether the on-device foundation model can be used at all (iOS 26+ with the model available). Gates both
+    /// the activity summaries and the topic arrangement.
+    var isFoundationModelAvailable: Bool {
         if #available(iOS 26.0, *) {
-            return TabSectionActivitySummarizer.isAvailable
+            return SystemLanguageModel.default.isAvailable
         }
         return false
     }
 
+    /// True when tabs are grouped into model-derived topics (each topic further split into domain sections).
+    var isTopicArranged: Bool {
+        tabSwitcherSettings.tabArrangement == .topic
+    }
+
+    /// Whether a domain's thumbnails are revealed. Non-topic arrangements are always "expanded".
+    func isDomainExpanded(_ domain: String?) -> Bool {
+        guard isTopicArranged, let domain else { return true }
+        return expandedDomains.contains(domain)
+    }
+
+    /// Whether the section's content is currently rendered (chips sections always are; a domain's thumbnail
+    /// section only when that domain's chip is expanded).
+    func isSectionDisplayed(_ section: Int) -> Bool {
+        guard gridSections.indices.contains(section) else { return true }
+        let gridSection = gridSections[section]
+        if gridSection.isTopicChips { return true }
+        guard isTopicArranged, gridSection.topicTitle != nil else { return true }
+        return isDomainExpanded(gridSection.title)
+    }
+
+    /// Reveals or hides a single domain's thumbnails. Domains expand independently.
+    func toggleDomainExpansion(_ domain: String?) {
+        guard let domain else { return }
+        if expandedDomains.contains(domain) {
+            expandedDomains.remove(domain)
+        } else {
+            expandedDomains.insert(domain)
+        }
+        reloadData()
+    }
+
     /// Whether the given section should reserve space for, and show, an activity summary.
     func sectionShowsSummary(_ section: Int) -> Bool {
-        guard canSummarize, gridSections.indices.contains(section) else { return false }
+        guard isFoundationModelAvailable, gridSections.indices.contains(section) else { return false }
         return gridSections[section].summarizable
     }
 
     func rebuildSections() {
-        gridSections = Self.makeSections(tabs: tabsModel.tabs, arrangement: tabSwitcherSettings.tabArrangement)
+        gridSections = Self.makeSections(tabs: tabsModel.tabs,
+                                         arrangement: tabSwitcherSettings.tabArrangement,
+                                         domainTopics: domainTopics,
+                                         attemptedDomains: topicClassificationAttempted)
     }
 
     /// Swaps the layout for the current arrangement and reloads. Call after the arrangement changes.
@@ -445,38 +515,117 @@ extension TabSwitcherPageViewController {
         return layout
     }
 
-    /// One horizontally-scrolling row of cards per section, with a section header above each.
+    /// One horizontally-scrolling row of cards per section, with a section header above each. In the topic
+    /// arrangement a topic's chips section instead lays out a wrapping row of domain pills.
     private func makeSectionedLayout() -> UICollectionViewCompositionalLayout {
         return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
-            let containerWidth = environment.container.effectiveContentSize.width
-            let cardWidth = min(180, max(130, containerWidth * 0.42))
-            let cardHeight = self?.calculateRowHeight(columnWidth: cardWidth) ?? cardWidth
-
-            let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth),
-                                                  heightDimension: .absolute(cardHeight))
-            let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: itemSize, subitems: [item])
-
-            let section = NSCollectionLayoutSection(group: group)
-            section.interGroupSpacing = 14
-            section.orthogonalScrollingBehavior = .continuous
-            section.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 14, bottom: 14, trailing: 14)
-
-            // Sections that show an activity summary reserve a second line for it.
-            let headerHeight = (self?.sectionShowsSummary(sectionIndex) ?? false)
-                ? TabSwitcherSectionHeaderView.summarizedHeight
-                : TabSwitcherSectionHeaderView.height
-            let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
-                                                    heightDimension: .absolute(headerHeight))
-            let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize,
-                                                                     elementKind: UICollectionView.elementKindSectionHeader,
-                                                                     alignment: .top)
-            section.boundarySupplementaryItems = [header]
-            return section
+            guard let self else {
+                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
+                                                                                     heightDimension: .absolute(1)))
+                return NSCollectionLayoutSection(group: NSCollectionLayoutGroup.horizontal(layoutSize: item.layoutSize, subitems: [item]))
+            }
+            let chips = self.gridSections.indices.contains(sectionIndex) ? self.gridSections[sectionIndex].chipDomains : nil
+            if let chips {
+                return self.makeChipsSection(chips: chips, sectionIndex: sectionIndex, environment: environment)
+            }
+            return self.makeCardsSection(sectionIndex: sectionIndex, environment: environment)
         }
     }
 
-    static func makeSections(tabs: [Tab], arrangement: TabArrangement?) -> [TabGridSection] {
+    /// A wrapping (multi-line) flow of domain pills, with the topic band as the section header.
+    private func makeChipsSection(chips: [DomainChip],
+                                  sectionIndex: Int,
+                                  environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let available = max(environment.container.effectiveContentSize.width - 28, 1)
+        let (frames, flowHeight) = Self.chipFlowFrames(for: chips, availableWidth: available)
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
+                                               heightDimension: .absolute(max(flowHeight, TabDomainChipCell.height)))
+        let group = NSCollectionLayoutGroup.custom(layoutSize: groupSize) { _ in
+            frames.map { NSCollectionLayoutGroupCustomItem(frame: $0) }
+        }
+        let section = NSCollectionLayoutSection(group: group)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 14, bottom: 10, trailing: 14)
+        addHeader(to: section, forSection: sectionIndex)
+        return section
+    }
+
+    /// A horizontally-scrolling shelf of card thumbnails (the default for grouped sections).
+    private func makeCardsSection(sectionIndex: Int,
+                                  environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let containerWidth = environment.container.effectiveContentSize.width
+        let cardWidth = min(180, max(130, containerWidth * 0.42))
+        let cardHeight = calculateRowHeight(columnWidth: cardWidth)
+        let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: itemSize, subitems: [item])
+
+        let section = NSCollectionLayoutSection(group: group)
+        section.interGroupSpacing = 14
+        section.orthogonalScrollingBehavior = .continuous
+        // A collapsed domain section renders nothing, so zero its padding to avoid stacking empty slivers.
+        section.contentInsets = isSectionDisplayed(sectionIndex)
+            ? NSDirectionalEdgeInsets(top: 4, leading: 14, bottom: 14, trailing: 14)
+            : .zero
+        addHeader(to: section, forSection: sectionIndex)
+        return section
+    }
+
+    private func addHeader(to section: NSCollectionLayoutSection, forSection sectionIndex: Int) {
+        let headerHeight = headerHeight(forSection: sectionIndex)
+        guard headerHeight > 0 else { return }
+        let header = NSCollectionLayoutBoundarySupplementaryItem(
+            layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(headerHeight)),
+            elementKind: UICollectionView.elementKindSectionHeader,
+            alignment: .top)
+        section.boundarySupplementaryItems = [header]
+    }
+
+    /// Lays domain pills out left-to-right, wrapping to new lines, and returns each pill's frame plus the total
+    /// height. Pill widths are measured from the same text and font the chip cell renders.
+    private static func chipFlowFrames(for chips: [DomainChip], availableWidth: CGFloat) -> (frames: [CGRect], height: CGFloat) {
+        let font = UIFont.daxFootnoteSemibold()
+        let horizontalPadding: CGFloat = 12
+        let interItemSpacing: CGFloat = 8
+        let lineSpacing: CGFloat = 8
+        let chipHeight = TabDomainChipCell.height
+
+        var frames: [CGRect] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        for chip in chips {
+            let text = "\(chip.domain) · \(chip.count)" as NSString
+            let textWidth = text.size(withAttributes: [.font: font]).width
+            let chipWidth = min(ceil(textWidth) + horizontalPadding * 2, availableWidth)
+            if x > 0, x + chipWidth > availableWidth {
+                x = 0
+                y += chipHeight + lineSpacing
+            }
+            frames.append(CGRect(x: x, y: y, width: chipWidth, height: chipHeight))
+            x += chipWidth + interItemSpacing
+        }
+        return (frames, chips.isEmpty ? 0 : y + chipHeight)
+    }
+
+    /// The header height for a section: the topic band above a chips row, a domain label above revealed
+    /// thumbnails (zero when that domain is collapsed), or the activity-summary header for other arrangements.
+    func headerHeight(forSection section: Int) -> CGFloat {
+        guard gridSections.indices.contains(section) else { return TabSwitcherSectionHeaderView.height }
+        if isTopicArranged {
+            let gridSection = gridSections[section]
+            if gridSection.isTopicChips {
+                return TabSwitcherTopicHeaderView.bandHeight
+            }
+            return isDomainExpanded(gridSection.title) ? TabSwitcherSectionHeaderView.height : 0
+        }
+        return sectionShowsSummary(section)
+            ? TabSwitcherSectionHeaderView.summarizedHeight
+            : TabSwitcherSectionHeaderView.height
+    }
+
+    static func makeSections(tabs: [Tab],
+                             arrangement: TabArrangement?,
+                             domainTopics: [String: String] = [:],
+                             attemptedDomains: Set<String> = []) -> [TabGridSection] {
         guard let arrangement else {
             return [TabGridSection(title: nil, tabs: tabs)]
         }
@@ -485,6 +634,8 @@ extension TabSwitcherPageViewController {
             return makeWebsiteSections(tabs: tabs)
         case .recency:
             return makeRecencySections(tabs: tabs)
+        case .topic:
+            return makeTopicSections(tabs: tabs, domainTopics: domainTopics, attemptedDomains: attemptedDomains)
         }
     }
 
@@ -532,14 +683,14 @@ extension TabSwitcherPageViewController {
 
         var grouped: [[Tab]] = Array(repeating: [], count: buckets.count)
         for tab in tabs {
-            // Tabs never viewed have no date and fall into the oldest bucket.
-            let date = tab.lastViewedDate ?? .distantPast
+            // Newly created tabs can briefly have no viewed date; for display purposes they belong with today's activity.
+            let date = tab.lastViewedDate ?? now
             let index = buckets.firstIndex { date >= $0.start } ?? buckets.count - 1
             grouped[index].append(tab)
         }
 
         return buckets.indices.compactMap { index in
-            let tabs = grouped[index].sorted { ($0.lastViewedDate ?? .distantPast) > ($1.lastViewedDate ?? .distantPast) }
+            let tabs = grouped[index].sorted { ($0.lastViewedDate ?? now) > ($1.lastViewedDate ?? now) }
             guard !tabs.isEmpty else { return nil }
             // Summarize only sections whose hosted-tab count is in range: enough to be worth it, few enough to fit.
             let hostedTabCount = tabs.filter { ($0.link?.url.host?.droppingWwwPrefix()).map { !$0.isEmpty } ?? false }.count
@@ -570,6 +721,81 @@ extension TabSwitcherPageViewController {
         return sections
     }
 
+    /// Groups tabs into model-derived topics, then sub-groups each topic by domain. Domains not yet classified
+    /// collect under a transient "Sorting…" topic until classification lands; domains that were tried but
+    /// couldn't be classified fall into "Other".
+    private static func makeTopicSections(tabs: [Tab],
+                                          domainTopics: [String: String],
+                                          attemptedDomains: Set<String>) -> [TabGridSection] {
+        let otherTopic = UserText.tabSwitcherArrangeOtherSectionTitle
+        let pendingTopic = UserText.tabSwitcherArrangeTopicSorting
+
+        var byDomain: [String: [Tab]] = [:]
+        var hostless: [Tab] = []
+        for tab in tabs {
+            if let host = tab.link?.url.host?.droppingWwwPrefix(), !host.isEmpty {
+                byDomain[host, default: []].append(tab)
+            } else {
+                hostless.append(tab)
+            }
+        }
+
+        var topicToDomains: [String: [(domain: String, tabs: [Tab])]] = [:]
+        for (domain, domainTabs) in byDomain {
+            let topic: String
+            if let cached = domainTopics[domain] {
+                topic = cached
+            } else if attemptedDomains.contains(domain) {
+                topic = otherTopic
+            } else {
+                topic = pendingTopic
+            }
+            topicToDomains[topic, default: []].append((domain, domainTabs))
+        }
+        if !hostless.isEmpty {
+            topicToDomains[otherTopic, default: []].append((otherTopic, hostless))
+        }
+
+        func topicTotal(_ topic: String) -> Int {
+            (topicToDomains[topic] ?? []).reduce(0) { $0 + $1.tabs.count }
+        }
+        // "Sorting…" stays on top to show progress; most populated topics next; "Other" always sinks to the bottom.
+        let orderedTopics = topicToDomains.keys.sorted { lhs, rhs in
+            if lhs == pendingTopic { return true }
+            if rhs == pendingTopic { return false }
+            if lhs == otherTopic { return false }
+            if rhs == otherTopic { return true }
+            return topicTotal(lhs) > topicTotal(rhs)
+        }
+
+        var sections: [TabGridSection] = []
+        for topic in orderedTopics {
+            let domains = (topicToDomains[topic] ?? []).sorted { $0.tabs.count > $1.tabs.count }
+            let total = topicTotal(topic)
+            // A topic leads with its chips row (the domain pills), followed by a thumbnail section per domain
+            // (only rendered when that domain's chip is expanded).
+            sections.append(TabGridSection(title: topic,
+                                           tabs: [],
+                                           topicTitle: topic,
+                                           topicTabCount: total,
+                                           chipDomains: domains.map { DomainChip(domain: $0.domain, count: $0.tabs.count) }))
+            for entry in domains {
+                let sortedTabs = entry.tabs.sorted { ($0.lastViewedDate ?? .distantPast) > ($1.lastViewedDate ?? .distantPast) }
+                sections.append(TabGridSection(title: entry.domain, tabs: sortedTabs, topicTitle: topic))
+            }
+        }
+        return sections
+    }
+
+    /// All tabs belonging to the same topic as `section` (across its domain sub-sections), for the topic menu.
+    func tabsInSameTopic(asSection section: Int) -> [Tab] {
+        guard gridSections.indices.contains(section),
+              let topic = gridSections[section].topicTitle else {
+            return tabs(inSection: section)
+        }
+        return gridSections.filter { $0.topicTitle == topic }.flatMap { $0.tabs }
+    }
+
     func tab(at indexPath: IndexPath) -> Tab? {
         guard gridSections.indices.contains(indexPath.section) else { return nil }
         let tabs = gridSections[indexPath.section].tabs
@@ -584,6 +810,16 @@ extension TabSwitcherPageViewController {
             }
         }
         return nil
+    }
+
+    /// The index path for a tab only if it is actually rendered. Tabs inside a collapsed topic section have no
+    /// cell, so this returns `nil` there — letting presentation transitions fall back to a crossfade instead of
+    /// scrolling to a non-existent item (which raises an out-of-bounds exception).
+    func displayIndexPath(for tab: Tab) -> IndexPath? {
+        guard let indexPath = indexPath(for: tab), isSectionDisplayed(indexPath.section) else {
+            return nil
+        }
+        return indexPath
     }
 
     /// Every populated index path across all sections, in display order.
@@ -700,21 +936,84 @@ extension TabSwitcherPageViewController {
     }
 }
 
+// MARK: - Topic classification
+
+extension TabSwitcherPageViewController {
+
+    /// Classifies any not-yet-known domains into topics on-device, biggest domains first, then rebuilds the
+    /// grid so their tabs reflow under the right topic. Cheap because it classifies per-domain, not per-tab.
+    func classifyPendingTopicsIfNeeded() {
+        guard isTopicArranged, isFoundationModelAvailable, !topicClassificationInFlight else { return }
+        let pending = pendingTopicDomainSamples()
+        guard !pending.isEmpty else { return }
+
+        guard #available(iOS 26.0, *) else { return }
+        topicClassificationInFlight = true
+        let attemptedHosts = pending.map { $0.host }
+        Task { [weak self] in
+            var merged: [String: String] = [:]
+            // Classify in chunks so a large number of domains stays within the model's context window.
+            let chunkSize = 20
+            for start in stride(from: 0, to: pending.count, by: chunkSize) {
+                let chunk = pending[start..<min(start + chunkSize, pending.count)]
+                let inputs = chunk.map { TabDomainTopicClassifier.DomainInput(host: $0.host, sampleTitles: $0.titles) }
+                let result = await TabDomainTopicClassifier.classify(domains: inputs)
+                merged.merge(result) { _, new in new }
+            }
+            guard let self else { return }
+            self.topicClassificationInFlight = false
+            self.topicClassificationAttempted.formUnion(attemptedHosts)
+            self.domainTopics.merge(merged) { _, new in new }
+            self.reloadData()
+        }
+    }
+
+    /// Domains present in the open tabs that haven't been classified or attempted yet, ordered by tab count
+    /// (most populated first) with a few sample titles each to disambiguate.
+    private func pendingTopicDomainSamples() -> [(host: String, titles: [String])] {
+        var domainTabs: [String: [Tab]] = [:]
+        for tab in tabsModel.tabs {
+            guard let host = tab.link?.url.host?.droppingWwwPrefix(), !host.isEmpty else { continue }
+            domainTabs[host, default: []].append(tab)
+        }
+        return domainTabs.keys
+            .filter { domainTopics[$0] == nil && !topicClassificationAttempted.contains($0) }
+            .sorted { (domainTabs[$0]?.count ?? 0) > (domainTabs[$1]?.count ?? 0) }
+            .map { host in
+                let titles = (domainTabs[host] ?? []).prefix(4).compactMap { $0.link?.displayTitle }
+                return (host, Array(titles))
+            }
+    }
+}
+
 // MARK: - UICollectionViewDataSource
 
 extension TabSwitcherPageViewController: UICollectionViewDataSource {
 
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        rebuildSections()
         return gridSections.count
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         guard gridSections.indices.contains(section) else { return 0 }
-        return gridSections[section].tabs.count
+        let gridSection = gridSections[section]
+        // A topic's chips row lists one pill per domain; a domain's thumbnails appear only when its chip is expanded.
+        if let chips = gridSection.chipDomains { return chips.count }
+        guard isSectionDisplayed(section) else { return 0 }
+        return gridSection.tabs.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        if let chips = gridSections[safe: indexPath.section]?.chipDomains, indexPath.item < chips.count {
+            guard let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: TabDomainChipCell.reuseIdentifier, for: indexPath) as? TabDomainChipCell else {
+                return UICollectionViewCell()
+            }
+            let chip = chips[indexPath.item]
+            cell.configure(domain: chip.domain, count: chip.count, isExpanded: isDomainExpanded(chip.domain))
+            return cell
+        }
+
         // Arranged sections are horizontal shelves of cards, so always use the grid cell when grouped.
         let useGridCell = isGrouped || tabSwitcherSettings.isGridViewEnabled
         let cellIdentifier = useGridCell ? TabViewGridCell.reuseIdentifier : TabViewListCell.reuseIdentifier
@@ -744,6 +1043,38 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
                         at indexPath: IndexPath) -> UICollectionReusableView {
         guard kind == UICollectionView.elementKindSectionHeader else {
             return UICollectionReusableView()
+        }
+
+        let topicSection = isTopicArranged && gridSections.indices.contains(indexPath.section) ? gridSections[indexPath.section] : nil
+        if let topicSection, topicSection.isTopicChips {
+            guard let header = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier: TabSwitcherTopicHeaderView.reuseIdentifier,
+                for: indexPath
+            ) as? TabSwitcherTopicHeaderView else {
+                return UICollectionReusableView()
+            }
+            header.configure(topicTitle: topicSection.topicTitle,
+                             topicCount: topicSection.topicTabCount,
+                             isPending: topicSection.topicTitle == UserText.tabSwitcherArrangeTopicSorting,
+                             topicMenu: pageDelegate?.page(self, menuForTopicContainingSection: indexPath.section))
+            return header
+        }
+
+        if isGrouped {
+            guard let header = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier: TabSwitcherSectionHeaderView.reuseIdentifier,
+                for: indexPath
+            ) as? TabSwitcherSectionHeaderView else {
+                return UICollectionReusableView()
+            }
+            let section = gridSections.indices.contains(indexPath.section) ? gridSections[indexPath.section] : nil
+            header.configure(title: section?.title,
+                             count: section?.tabs.count ?? 0,
+                             menu: pageDelegate?.page(self, menuForSectionAt: indexPath.section),
+                             summary: summaryState(for: section))
+            return header
         }
 
         if isGrouped {
@@ -780,6 +1111,11 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
 extension TabSwitcherPageViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if let chips = gridSections[safe: indexPath.section]?.chipDomains, indexPath.item < chips.count {
+            collectionView.deselectItem(at: indexPath, animated: false)
+            toggleDomainExpansion(chips[indexPath.item].domain)
+            return
+        }
         if pageDelegate?.isEditing == true {
             Pixel.fire(pixel: .tabSwitcherTabSelected)
             (collectionView.cellForItem(at: indexPath) as? TabViewCell)?.refreshSelectionAppearance()
@@ -821,6 +1157,8 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemsAt indexPaths: [IndexPath], point: CGPoint) -> UIContextMenuConfiguration? {
         guard !indexPaths.isEmpty else { return nil }
+        // Domain chips aren't tabs; no long-press menu.
+        guard !indexPaths.contains(where: { gridSections[safe: $0.section]?.isTopicChips ?? false }) else { return nil }
 
         let configuration = UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             guard let self else { return nil }
@@ -967,6 +1305,7 @@ extension TabSwitcherPageViewController: UICollectionViewDropDelegate {
         collectionView.performBatchUpdates {
             guard let tab = tabsModel.get(tabAt: source.row) else { return }
             tabsModel.move(tab: tab, to: destination.row)
+            rebuildSections()
             currentSelection = tabsModel.currentIndex
             collectionView.deleteItems(at: [source])
             collectionView.insertItems(at: [destination])
@@ -1179,6 +1518,208 @@ enum TabSectionActivitySummarizer {
         } catch {
             Logger.general.error("Tab section activity summary failed: \(error.localizedDescription, privacy: .public)")
             return nil
+        }
+    }
+}
+
+// MARK: - Topic header
+
+/// The topic band shown above a topic's row of domain chips: an emoji, the topic name and total count, and a
+/// topic menu. While a topic is still being classified it shows a spinner instead of an emoji.
+final class TabSwitcherTopicHeaderView: UICollectionReusableView {
+
+    static let reuseIdentifier = "TabSwitcherTopicHeaderView"
+    static let bandHeight: CGFloat = 48
+
+    private let topicLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .daxBodyBold()
+        label.textColor = UIColor(designSystemColor: .textPrimary)
+        return label
+    }()
+
+    private let spinner: UIActivityIndicatorView = {
+        let view = UIActivityIndicatorView(style: .medium)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.hidesWhenStopped = true
+        return view
+    }()
+
+    private let menuButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(DesignSystemImages.Glyphs.Size24.moreApple, for: .normal)
+        button.tintColor = UIColor(designSystemColor: .iconsSecondary)
+        button.showsMenuAsPrimaryAction = true
+        button.setContentHuggingPriority(.required, for: .horizontal)
+        return button
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        addSubview(topicLabel)
+        addSubview(spinner)
+        addSubview(menuButton)
+
+        let labelTrailing = topicLabel.trailingAnchor.constraint(lessThanOrEqualTo: menuButton.leadingAnchor, constant: -8)
+        labelTrailing.priority = .defaultHigh
+
+        NSLayoutConstraint.activate([
+            topicLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            topicLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            topicLabel.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 8),
+            labelTrailing,
+
+            spinner.trailingAnchor.constraint(equalTo: menuButton.leadingAnchor, constant: -8),
+            spinner.centerYAnchor.constraint(equalTo: topicLabel.centerYAnchor),
+
+            menuButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            menuButton.centerYAnchor.constraint(equalTo: topicLabel.centerYAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("Not implemented")
+    }
+
+    func configure(topicTitle: String?, topicCount: Int, isPending: Bool, topicMenu: UIMenu?) {
+        if let topicTitle {
+            let prefix = isPending ? "" : "\(Self.emoji(forTopic: topicTitle)) "
+            topicLabel.text = "\(prefix)\(topicTitle) · \(topicCount)"
+        } else {
+            topicLabel.text = nil
+        }
+        if isPending {
+            spinner.startAnimating()
+        } else {
+            spinner.stopAnimating()
+        }
+        menuButton.menu = topicMenu
+        menuButton.isHidden = topicMenu == nil
+    }
+
+    private static func emoji(forTopic topic: String) -> String {
+        switch topic {
+        case "Shopping": return "🛒"
+        case "News": return "📰"
+        case "Travel": return "✈️"
+        case "Work": return "💼"
+        case "Social": return "💬"
+        case "Finance": return "💰"
+        case "Reference": return "📚"
+        case "Entertainment": return "🎬"
+        default: return "🗂️"
+        }
+    }
+}
+
+// MARK: - Domain chip cell
+
+/// A tappable pill representing one website within a topic. Tapping it reveals or hides that domain's tabs.
+final class TabDomainChipCell: UICollectionViewCell {
+
+    static let reuseIdentifier = "TabDomainChipCell"
+    static let height: CGFloat = 34
+
+    private let label: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .daxFootnoteSemibold()
+        return label
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        contentView.layer.cornerRadius = Self.height / 2
+        contentView.layer.borderWidth = 1
+        contentView.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
+            label.topAnchor.constraint(equalTo: contentView.topAnchor),
+            label.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("Not implemented")
+    }
+
+    func configure(domain: String, count: Int, isExpanded: Bool) {
+        label.text = "\(domain) · \(count)"
+        if isExpanded {
+            contentView.backgroundColor = UIColor(designSystemColor: .accent)
+            contentView.layer.borderColor = UIColor.clear.cgColor
+            label.textColor = UIColor(designSystemColor: .surface)
+        } else {
+            contentView.backgroundColor = UIColor(designSystemColor: .surface)
+            contentView.layer.borderColor = UIColor(designSystemColor: .lines).cgColor
+            label.textColor = UIColor(designSystemColor: .textPrimary)
+        }
+    }
+}
+
+// MARK: - Topic classifier
+
+/// Classifies websites into a small fixed set of topics using Apple's on-device foundation model. Classification
+/// is per-domain (not per-tab) — a domain almost always maps to one topic — so it's cheap and caches well.
+/// Everything runs on-device.
+@available(iOS 26.0, *)
+enum TabDomainTopicClassifier {
+
+    /// The allowed topics. Kept in sync with the inline lists in the @Guide below and the header's emoji map.
+    static let topics = ["Shopping", "News", "Travel", "Work", "Social", "Finance", "Reference", "Entertainment", "Other"]
+
+    struct DomainInput: Sendable {
+        let host: String
+        let sampleTitles: [String]
+    }
+
+    @Generable
+    struct Classification {
+        @Guide(description: "One topic per website, in the SAME ORDER as the numbered list.",
+               .element(.anyOf(["Shopping", "News", "Travel", "Work", "Social", "Finance", "Reference", "Entertainment", "Other"])))
+        var topics: [String]
+    }
+
+    static var isAvailable: Bool {
+        SystemLanguageModel.default.isAvailable
+    }
+
+    private static let instructions = """
+    You sort websites into topics. Each numbered website comes with its domain and a few example page titles. \
+    Reply with one topic per website, in the same order, each chosen only from: Shopping, News, Travel, Work, \
+    Social, Finance, Reference, Entertainment, Other. Pick the closest fit from the domain and titles; use \
+    Other only when nothing else fits.
+    """
+
+    /// Returns a host -> topic map for the given domains. Domains the model omits are simply absent from the result.
+    static func classify(domains: [DomainInput]) async -> [String: String] {
+        guard SystemLanguageModel.default.isAvailable, !domains.isEmpty else { return [:] }
+
+        let listing = domains.enumerated().map { index, domain -> String in
+            let titles = domain.sampleTitles.prefix(4).map { "\"\($0)\"" }.joined(separator: ", ")
+            return titles.isEmpty ? "\(index + 1). \(domain.host)" : "\(index + 1). \(domain.host) — \(titles)"
+        }.joined(separator: "\n")
+        let prompt = "Classify these websites:\n\(listing)"
+
+        do {
+            let session = LanguageModelSession(instructions: instructions)
+            let response = try await session.respond(to: prompt, generating: Classification.self)
+            let valid = Set(topics)
+            var result: [String: String] = [:]
+            for (index, domain) in domains.enumerated() where index < response.content.topics.count {
+                let topic = response.content.topics[index]
+                result[domain.host] = valid.contains(topic) ? topic : "Other"
+            }
+            return result
+        } catch {
+            Logger.general.error("Tab domain topic classification failed: \(error.localizedDescription, privacy: .public)")
+            return [:]
         }
     }
 }

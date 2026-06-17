@@ -312,12 +312,29 @@ extension TabSwitcherViewController {
             onEnterSelectMode: { [weak self] in self?.editMenuEnterSelectMode() },
             onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() },
             onArrangeByWebsite: { [weak self] in self?.editMenuArrangeTabs(by: .website) },
-            onArrangeByRecency: { [weak self] in self?.editMenuArrangeTabs(by: .recency) }
+            onArrangeByRecency: { [weak self] in self?.editMenuArrangeTabs(by: .recency) },
+            onArrangeByTopic: { [weak self] in self?.editMenuArrangeTabs(by: .topic) },
+            canArrangeByTopic: activePageController.isFoundationModelAvailable
         ))
     }
 
     func createSectionMenu(forSection section: Int) -> UIMenu? {
         let tabs = activePageController.tabs(inSection: section)
+        guard !tabs.isEmpty else { return nil }
+        let state = TabSwitcherSectionMenuState(
+            count: tabs.count,
+            containsWebPages: tabs.contains { $0.link != nil }
+        )
+        return menuBuilder.sectionMenu(state: state, actions: TabSwitcherSectionMenuActions(
+            onSelect: { [weak self] in self?.sectionSelectTabs(tabs) },
+            onShare: { [weak self] in self?.shareTabs(tabs.filter { $0.link != nil }) },
+            onBookmarkAll: { [weak self] in self?.sectionBookmarkTabs(tabs) },
+            onCloseAll: { [weak self] in self?.sectionCloseTabs(tabs) }
+        ))
+    }
+
+    func createTopicMenu(forSection section: Int) -> UIMenu? {
+        let tabs = activePageController.tabsInSameTopic(asSection: section)
         guard !tabs.isEmpty else { return nil }
         let state = TabSwitcherSectionMenuState(
             count: tabs.count,

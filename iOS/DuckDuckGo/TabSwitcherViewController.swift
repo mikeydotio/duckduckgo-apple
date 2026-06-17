@@ -117,7 +117,7 @@ class TabSwitcherViewController: UIViewController {
 
     /// The collection-view index path for a tab in the active page, honouring the current arrangement.
     func displayIndexPath(for tab: Tab) -> IndexPath? {
-        activePageController.indexPath(for: tab)
+        activePageController.displayIndexPath(for: tab)
     }
 
     var currentSelection: Int? {
@@ -930,6 +930,10 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
 
     func page(_ page: TabSwitcherPageViewController, menuForSectionAt section: Int) -> UIMenu? {
         return createSectionMenu(forSection: section)
+    }
+
+    func page(_ page: TabSwitcherPageViewController, menuForTopicContainingSection section: Int) -> UIMenu? {
+        return createTopicMenu(forSection: section)
     }
 
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController) {

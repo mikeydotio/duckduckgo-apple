@@ -37,7 +37,7 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
             onBookmarkSelected: {}, onCloseOther: {}, onCloseSelected: {}, onBookmarkAll: {}
         )
         noopEditActions = TabSwitcherEditMenuActions(
-            onEnterSelectMode: {}, onCloseAll: {}, onArrangeByWebsite: {}, onArrangeByRecency: {}
+            onEnterSelectMode: {}, onCloseAll: {}, onArrangeByWebsite: {}, onArrangeByRecency: {}, onArrangeByTopic: {}, canArrangeByTopic: true
         )
         noopLongPressActions = TabSwitcherLongPressMenuActions(
             onShare: {}, onBookmark: {}, onSelect: {}, onClose: {}, onCloseOther: {}
@@ -323,6 +323,27 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
             }
             return []
         }
+    }
+}
+
+// MARK: - Tab Switcher Sections
+
+final class TabSwitcherPageViewControllerSectionTests: XCTestCase {
+
+    func testMakeSections_whenArrangedByRecency_placesTabWithoutLastViewedDateInToday() {
+        let undatedTab = makeTab(urlString: "https://example.com/new", lastViewedDate: nil)
+        let olderTab = makeTab(urlString: "https://example.com/older",
+                               lastViewedDate: Calendar.current.date(byAdding: .month, value: -2, to: Date()))
+
+        let sections = TabSwitcherPageViewController.makeSections(tabs: [olderTab, undatedTab], arrangement: .recency)
+
+        let todaySection = sections.first { $0.title == UserText.tabSwitcherArrangeRecencyToday }
+        XCTAssertTrue(todaySection?.tabs.contains { $0 === undatedTab } == true)
+    }
+
+    private func makeTab(urlString: String, lastViewedDate: Date?) -> Tab {
+        let url = URL(string: urlString)!
+        return Tab(link: Link(title: nil, url: url), lastViewedDate: lastViewedDate)
     }
 }
 
