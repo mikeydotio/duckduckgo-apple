@@ -88,14 +88,10 @@ class TabSwitcherPageViewController: UIViewController {
     /// Section keys whose summary is currently being generated, so we don't kick off duplicate requests.
     private var summariesInFlight: Set<String> = []
 
-    /// Cached topic classification per domain (host -> topic) for the topic arrangement.
-    private var domainTopics: [String: String] = [:]
-    /// Domains we've already tried to classify, so failures aren't retried on every reload.
-    private var topicClassificationAttempted: Set<String> = []
-    /// Guards against overlapping classification passes.
+    /// Shared, process-lifetime classification cache so re-opening the switcher doesn't reclassify known domains.
+    private var topicCache: TabTopicClassificationCache { .shared }
+    /// Guards against overlapping classification passes within this instance.
     private var topicClassificationInFlight = false
-    /// Domains (hosts) whose thumbnails are revealed in the topic arrangement; each chip toggles independently.
-    private var expandedDomains: Set<String> = []
 
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
@@ -145,7 +141,7 @@ class TabSwitcherPageViewController: UIViewController {
 
         collectionView.register(TabViewGridCell.self, forCellWithReuseIdentifier: TabViewGridCell.reuseIdentifier)
         collectionView.register(TabViewListCell.self, forCellWithReuseIdentifier: TabViewListCell.reuseIdentifier)
-        collectionView.register(TabDomainChipCell.self, forCellWithReuseIdentifier: TabDomainChipCell.reuseIdentifier)
+        collectionView.register(TabDomainChipsCell.self, forCellWithReuseIdentifier: TabDomainChipsCell.reuseIdentifier)
         collectionView.register(
             TabSwitcherTrackerInfoHeaderView.self,
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
@@ -452,7 +448,7 @@ extension TabSwitcherPageViewController {
     /// Whether a domain's thumbnails are revealed. Non-topic arrangements are always "expanded".
     func isDomainExpanded(_ domain: String?) -> Bool {
         guard isTopicArranged, let domain else { return true }
-        return expandedDomains.contains(domain)
+        return topicCache.expandedDomains.contains(domain)
     }
 
     /// Whether the section's content is currently rendered (chips sections always are; a domain's thumbnail
@@ -465,13 +461,13 @@ extension TabSwitcherPageViewController {
         return isDomainExpanded(gridSection.title)
     }
 
-    /// Reveals or hides a single domain's thumbnails. Domains expand independently.
+    /// Reveals or hides a single domain's thumbnails. Domains expand independently; state persists in the cache.
     func toggleDomainExpansion(_ domain: String?) {
         guard let domain else { return }
-        if expandedDomains.contains(domain) {
-            expandedDomains.remove(domain)
+        if topicCache.expandedDomains.contains(domain) {
+            topicCache.expandedDomains.remove(domain)
         } else {
-            expandedDomains.insert(domain)
+            topicCache.expandedDomains.insert(domain)
         }
         reloadData()
     }
@@ -485,8 +481,8 @@ extension TabSwitcherPageViewController {
     func rebuildSections() {
         gridSections = Self.makeSections(tabs: tabsModel.tabs,
                                          arrangement: tabSwitcherSettings.tabArrangement,
-                                         domainTopics: domainTopics,
-                                         attemptedDomains: topicClassificationAttempted)
+                                         domainTopics: topicCache.domainTopics,
+                                         attemptedDomains: topicCache.attemptedDomains)
     }
 
     /// Swaps the layout for the current arrangement and reloads. Call after the arrangement changes.
@@ -524,25 +520,22 @@ extension TabSwitcherPageViewController {
                                                                                      heightDimension: .absolute(1)))
                 return NSCollectionLayoutSection(group: NSCollectionLayoutGroup.horizontal(layoutSize: item.layoutSize, subitems: [item]))
             }
-            let chips = self.gridSections.indices.contains(sectionIndex) ? self.gridSections[sectionIndex].chipDomains : nil
-            if let chips {
-                return self.makeChipsSection(chips: chips, sectionIndex: sectionIndex, environment: environment)
+            let isChips = self.gridSections.indices.contains(sectionIndex) && self.gridSections[sectionIndex].isTopicChips
+            if isChips {
+                return self.makeChipsSection(sectionIndex: sectionIndex)
             }
             return self.makeCardsSection(sectionIndex: sectionIndex, environment: environment)
         }
     }
 
     /// A wrapping (multi-line) flow of domain pills, with the topic band as the section header.
-    private func makeChipsSection(chips: [DomainChip],
-                                  sectionIndex: Int,
-                                  environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        let available = max(environment.container.effectiveContentSize.width - 28, 1)
-        let (frames, flowHeight) = Self.chipFlowFrames(for: chips, availableWidth: available)
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
-                                               heightDimension: .absolute(max(flowHeight, TabDomainChipCell.height)))
-        let group = NSCollectionLayoutGroup.custom(layoutSize: groupSize) { _ in
-            frames.map { NSCollectionLayoutGroupCustomItem(frame: $0) }
-        }
+    /// A single self-sizing cell that wraps all of a topic's domain pills, below the topic band header. The cell
+    /// owns the wrapping so each pill sizes to its own content — no externally-measured frames to drift.
+    private func makeChipsSection(sectionIndex: Int) -> NSCollectionLayoutSection {
+        let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
+                                          heightDimension: .estimated(TabDomainChipsCell.pillHeight))
+        let item = NSCollectionLayoutItem(layoutSize: size)
+        let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 14, bottom: 10, trailing: 14)
         addHeader(to: section, forSection: sectionIndex)
@@ -578,32 +571,6 @@ extension TabSwitcherPageViewController {
             elementKind: UICollectionView.elementKindSectionHeader,
             alignment: .top)
         section.boundarySupplementaryItems = [header]
-    }
-
-    /// Lays domain pills out left-to-right, wrapping to new lines, and returns each pill's frame plus the total
-    /// height. Pill widths are measured from the same text and font the chip cell renders.
-    private static func chipFlowFrames(for chips: [DomainChip], availableWidth: CGFloat) -> (frames: [CGRect], height: CGFloat) {
-        let font = UIFont.daxFootnoteSemibold()
-        let horizontalPadding: CGFloat = 12
-        let interItemSpacing: CGFloat = 8
-        let lineSpacing: CGFloat = 8
-        let chipHeight = TabDomainChipCell.height
-
-        var frames: [CGRect] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        for chip in chips {
-            let text = "\(chip.domain) · \(chip.count)" as NSString
-            let textWidth = text.size(withAttributes: [.font: font]).width
-            let chipWidth = min(ceil(textWidth) + horizontalPadding * 2, availableWidth)
-            if x > 0, x + chipWidth > availableWidth {
-                x = 0
-                y += chipHeight + lineSpacing
-            }
-            frames.append(CGRect(x: x, y: y, width: chipWidth, height: chipHeight))
-            x += chipWidth + interItemSpacing
-        }
-        return (frames, chips.isEmpty ? 0 : y + chipHeight)
     }
 
     /// The header height for a section: the topic band above a chips row, a domain label above revealed
@@ -759,13 +726,17 @@ extension TabSwitcherPageViewController {
         func topicTotal(_ topic: String) -> Int {
             (topicToDomains[topic] ?? []).reduce(0) { $0 + $1.tabs.count }
         }
-        // "Sorting…" stays on top to show progress; most populated topics next; "Other" always sinks to the bottom.
+        // Real categories first (most populated on top), then "Other", then the transient "Sorting…" pile at the
+        // very bottom so the in-progress churn stays out of the way.
+        func rank(_ topic: String) -> Int {
+            switch topic {
+            case pendingTopic: return 2
+            case otherTopic: return 1
+            default: return 0
+            }
+        }
         let orderedTopics = topicToDomains.keys.sorted { lhs, rhs in
-            if lhs == pendingTopic { return true }
-            if rhs == pendingTopic { return false }
-            if lhs == otherTopic { return false }
-            if rhs == otherTopic { return true }
-            return topicTotal(lhs) > topicTotal(rhs)
+            rank(lhs) != rank(rhs) ? rank(lhs) < rank(rhs) : topicTotal(lhs) > topicTotal(rhs)
         }
 
         var sections: [TabGridSection] = []
@@ -949,22 +920,16 @@ extension TabSwitcherPageViewController {
 
         guard #available(iOS 26.0, *) else { return }
         topicClassificationInFlight = true
-        let attemptedHosts = pending.map { $0.host }
         Task { [weak self] in
-            var merged: [String: String] = [:]
-            // Classify in chunks so a large number of domains stays within the model's context window.
-            let chunkSize = 20
-            for start in stride(from: 0, to: pending.count, by: chunkSize) {
-                let chunk = pending[start..<min(start + chunkSize, pending.count)]
-                let inputs = chunk.map { TabDomainTopicClassifier.DomainInput(host: $0.host, sampleTitles: $0.titles) }
-                let result = await TabDomainTopicClassifier.classify(domains: inputs)
-                merged.merge(result) { _, new in new }
+            // One focused call per domain, biggest first; reflow the grid as each result lands so chips move out
+            // of "Sorting…" progressively. Results are cached, so this only runs for domains seen for the first time.
+            for entry in pending {
+                let topic = await TabDomainTopicClassifier.classify(host: entry.host, sampleTitles: entry.titles)
+                guard let self else { return }
+                self.topicCache.store(topic.map { [entry.host: $0] } ?? [:], attempted: [entry.host])
+                self.reloadData()
             }
-            guard let self else { return }
-            self.topicClassificationInFlight = false
-            self.topicClassificationAttempted.formUnion(attemptedHosts)
-            self.domainTopics.merge(merged) { _, new in new }
-            self.reloadData()
+            self?.topicClassificationInFlight = false
         }
     }
 
@@ -977,7 +942,7 @@ extension TabSwitcherPageViewController {
             domainTabs[host, default: []].append(tab)
         }
         return domainTabs.keys
-            .filter { domainTopics[$0] == nil && !topicClassificationAttempted.contains($0) }
+            .filter { topicCache.domainTopics[$0] == nil && !topicCache.attemptedDomains.contains($0) }
             .sorted { (domainTabs[$0]?.count ?? 0) > (domainTabs[$1]?.count ?? 0) }
             .map { host in
                 let titles = (domainTabs[host] ?? []).prefix(4).compactMap { $0.link?.displayTitle }
@@ -997,20 +962,21 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         guard gridSections.indices.contains(section) else { return 0 }
         let gridSection = gridSections[section]
-        // A topic's chips row lists one pill per domain; a domain's thumbnails appear only when its chip is expanded.
-        if let chips = gridSection.chipDomains { return chips.count }
+        // A topic's chips row is one self-sizing cell that wraps all its pills; thumbnails appear per expanded domain.
+        if gridSection.isTopicChips { return 1 }
         guard isSectionDisplayed(section) else { return 0 }
         return gridSection.tabs.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if let chips = gridSections[safe: indexPath.section]?.chipDomains, indexPath.item < chips.count {
+        if let chips = gridSections[safe: indexPath.section]?.chipDomains {
             guard let cell = collectionView.dequeueReusableCell(
-                withReuseIdentifier: TabDomainChipCell.reuseIdentifier, for: indexPath) as? TabDomainChipCell else {
+                withReuseIdentifier: TabDomainChipsCell.reuseIdentifier, for: indexPath) as? TabDomainChipsCell else {
                 return UICollectionViewCell()
             }
-            let chip = chips[indexPath.item]
-            cell.configure(domain: chip.domain, count: chip.count, isExpanded: isDomainExpanded(chip.domain))
+            cell.configure(chips: chips, expandedHosts: topicCache.expandedDomains) { [weak self] host in
+                self?.toggleDomainExpansion(host)
+            }
             return cell
         }
 
@@ -1111,9 +1077,9 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
 extension TabSwitcherPageViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        if let chips = gridSections[safe: indexPath.section]?.chipDomains, indexPath.item < chips.count {
+        // The chips cell handles its own pill taps internally; ignore selection of the container itself.
+        if gridSections[safe: indexPath.section]?.isTopicChips == true {
             collectionView.deselectItem(at: indexPath, animated: false)
-            toggleDomainExpansion(chips[indexPath.item].domain)
             return
         }
         if pageDelegate?.isEditing == true {
@@ -1604,43 +1570,105 @@ final class TabSwitcherTopicHeaderView: UICollectionReusableView {
     private static func emoji(forTopic topic: String) -> String {
         switch topic {
         case "Shopping": return "🛒"
-        case "News": return "📰"
+        case "Food & Drink": return "🍽️"
         case "Travel": return "✈️"
-        case "Work": return "💼"
-        case "Social": return "💬"
-        case "Finance": return "💰"
-        case "Reference": return "📚"
+        case "News": return "📰"
         case "Entertainment": return "🎬"
+        case "Games": return "🎮"
+        case "Sports": return "🏅"
+        case "Finance": return "💰"
+        case "Business": return "💼"
+        case "Education": return "🎓"
+        case "Reference": return "📚"
+        case "Health & Fitness": return "💪"
+        case "Social": return "💬"
+        case "Technology": return "💻"
         default: return "🗂️"
         }
     }
 }
 
-// MARK: - Domain chip cell
+// MARK: - Domain chips
 
-/// A tappable pill representing one website within a topic. Tapping it reveals or hides that domain's tabs.
-final class TabDomainChipCell: UICollectionViewCell {
+/// A single self-sizing cell that wraps a topic's domain pills onto as many lines as needed. It owns the wrapping
+/// layout, so each pill sizes to its own content and the cell reports its own height — no externally-measured
+/// frames that can drift out of sync with the pills.
+final class TabDomainChipsCell: UICollectionViewCell {
 
-    static let reuseIdentifier = "TabDomainChipCell"
-    static let height: CGFloat = 34
+    static let reuseIdentifier = "TabDomainChipsCell"
+    static let pillHeight: CGFloat = 30
+    private static let interItemSpacing: CGFloat = 8
+    private static let lineSpacing: CGFloat = 8
+
+    private var pills: [DomainPillView] = []
+    private var onTap: ((String) -> Void)?
+
+    func configure(chips: [TabSwitcherPageViewController.DomainChip], expandedHosts: Set<String>, onTap: @escaping (String) -> Void) {
+        self.onTap = onTap
+        pills.forEach { $0.removeFromSuperview() }
+        pills = chips.map { chip in
+            let pill = DomainPillView()
+            pill.configure(text: "\(chip.domain) · \(chip.count)", isExpanded: expandedHosts.contains(chip.domain))
+            let host = chip.domain
+            pill.addAction(UIAction { [weak self] _ in self?.onTap?(host) }, for: .touchUpInside)
+            contentView.addSubview(pill)
+            return pill
+        }
+        setNeedsLayout()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layoutPills(width: contentView.bounds.width, apply: true)
+    }
+
+    override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
+        layoutAttributes.frame.size.height = layoutPills(width: layoutAttributes.size.width, apply: false)
+        return layoutAttributes
+    }
+
+    @discardableResult
+    private func layoutPills(width: CGFloat, apply: Bool) -> CGFloat {
+        guard width > 0 else { return Self.pillHeight }
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        for pill in pills {
+            let pillWidth = min(pill.intrinsicContentSize.width, width)
+            if x > 0, x + pillWidth > width {
+                x = 0
+                y += Self.pillHeight + Self.lineSpacing
+            }
+            if apply {
+                pill.frame = CGRect(x: x, y: y, width: pillWidth, height: Self.pillHeight)
+            }
+            x += pillWidth + Self.interItemSpacing
+        }
+        return pills.isEmpty ? Self.pillHeight : y + Self.pillHeight
+    }
+}
+
+/// A tappable pill for one website within a topic. Sizes to its own label, so it always fits its text.
+final class DomainPillView: UIControl {
+
+    private static let horizontalPadding: CGFloat = 12
 
     private let label: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = .daxFootnoteSemibold()
+        label.font = .daxCaption()
+        label.isUserInteractionEnabled = false
         return label
     }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        contentView.layer.cornerRadius = Self.height / 2
-        contentView.layer.borderWidth = 1
-        contentView.addSubview(label)
+        layer.cornerRadius = 8
+        layer.borderWidth = 1
+        addSubview(label)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
-            label.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
-            label.topAnchor.constraint(equalTo: contentView.topAnchor),
-            label.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.horizontalPadding),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.horizontalPadding),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
 
@@ -1649,41 +1677,68 @@ final class TabDomainChipCell: UICollectionViewCell {
         fatalError("Not implemented")
     }
 
-    func configure(domain: String, count: Int, isExpanded: Bool) {
-        label.text = "\(domain) · \(count)"
+    func configure(text: String, isExpanded: Bool) {
+        label.text = text
         if isExpanded {
-            contentView.backgroundColor = UIColor(designSystemColor: .accent)
-            contentView.layer.borderColor = UIColor.clear.cgColor
+            backgroundColor = UIColor(designSystemColor: .accent)
+            layer.borderColor = UIColor.clear.cgColor
             label.textColor = UIColor(designSystemColor: .surface)
         } else {
-            contentView.backgroundColor = UIColor(designSystemColor: .surface)
-            contentView.layer.borderColor = UIColor(designSystemColor: .lines).cgColor
+            backgroundColor = UIColor(designSystemColor: .surface)
+            layer.borderColor = UIColor(designSystemColor: .lines).cgColor
             label.textColor = UIColor(designSystemColor: .textPrimary)
         }
+    }
+
+    override var intrinsicContentSize: CGSize {
+        CGSize(width: label.intrinsicContentSize.width + Self.horizontalPadding * 2, height: TabDomainChipsCell.pillHeight)
+    }
+}
+
+// MARK: - Topic classification cache
+
+/// Process-lifetime, in-memory cache of website → topic classifications, shared across tab switcher instances so
+/// re-opening the switcher (e.g. after navigating between tabs) doesn't reclassify domains it already knows.
+/// Intentionally not persisted to disk — it's derived browsing data and cheap to rebuild on next launch.
+@MainActor
+final class TabTopicClassificationCache {
+
+    static let shared = TabTopicClassificationCache()
+
+    private init() {}
+
+    private(set) var domainTopics: [String: String] = [:]
+    /// Domains already attempted (including failures), so we don't retry them every time the grid rebuilds.
+    private(set) var attemptedDomains: Set<String> = []
+    /// Domains (hosts) whose chips are expanded; persisted so expansion survives navigating between tabs.
+    var expandedDomains: Set<String> = []
+
+    func store(_ classifications: [String: String], attempted: [String]) {
+        domainTopics.merge(classifications) { _, new in new }
+        attemptedDomains.formUnion(attempted)
     }
 }
 
 // MARK: - Topic classifier
 
-/// Classifies websites into a small fixed set of topics using Apple's on-device foundation model. Classification
-/// is per-domain (not per-tab) — a domain almost always maps to one topic — so it's cheap and caches well.
+/// Classifies a website into one App Store–style category using Apple's on-device foundation model. One focused
+/// call per domain (a domain almost always maps to one category), so results are accurate and cache well.
 /// Everything runs on-device.
 @available(iOS 26.0, *)
 enum TabDomainTopicClassifier {
 
-    /// The allowed topics. Kept in sync with the inline lists in the @Guide below and the header's emoji map.
-    static let topics = ["Shopping", "News", "Travel", "Work", "Social", "Finance", "Reference", "Entertainment", "Other"]
-
-    struct DomainInput: Sendable {
-        let host: String
-        let sampleTitles: [String]
-    }
+    /// The allowed categories. Kept in sync with the inline list in the @Guide below and the header's emoji map.
+    static let categories = ["Shopping", "Food & Drink", "Travel", "News", "Entertainment", "Games", "Sports",
+                             "Finance", "Business", "Education", "Reference", "Health & Fitness", "Social",
+                             "Technology", "Other"]
 
     @Generable
     struct Classification {
-        @Guide(description: "One topic per website, in the SAME ORDER as the numbered list.",
-               .element(.anyOf(["Shopping", "News", "Travel", "Work", "Social", "Finance", "Reference", "Entertainment", "Other"])))
-        var topics: [String]
+        @Guide(description: "The single best-fitting category for this website.",
+               .anyOf(["Shopping", "Food & Drink", "Travel", "News", "Entertainment", "Games", "Sports",
+                       "Finance", "Business", "Education", "Reference", "Health & Fitness", "Social",
+                       "Technology", "Other"]))
+        var category: String
     }
 
     static var isAvailable: Bool {
@@ -1691,35 +1746,32 @@ enum TabDomainTopicClassifier {
     }
 
     private static let instructions = """
-    You sort websites into topics. Each numbered website comes with its domain and a few example page titles. \
-    Reply with one topic per website, in the same order, each chosen only from: Shopping, News, Travel, Work, \
-    Social, Finance, Reference, Entertainment, Other. Pick the closest fit from the domain and titles; use \
-    Other only when nothing else fits.
+    You assign a website to exactly one category from this list: Shopping, Food & Drink, Travel, News, \
+    Entertainment, Games, Sports, Finance, Business, Education, Reference, Health & Fitness, Social, Technology, \
+    Other. Decide from the domain and its example page titles. Guidance: an online store → Shopping; restaurants \
+    or food delivery → Food & Drink; flights or hotels → Travel; a newspaper or current events → News; movies, \
+    TV or celebrities → Entertainment; video games → Games; a bank or investing → Finance; a company or work \
+    tool → Business; courses or schools → Education; encyclopedias, wikis, docs or government info → Reference; \
+    gadgets, software or tech blogs → Technology; a social network → Social. Use Other only when nothing fits.
     """
 
-    /// Returns a host -> topic map for the given domains. Domains the model omits are simply absent from the result.
-    static func classify(domains: [DomainInput]) async -> [String: String] {
-        guard SystemLanguageModel.default.isAvailable, !domains.isEmpty else { return [:] }
+    /// The best-fitting category for a single website, or `nil` if the model is unavailable or generation fails.
+    static func classify(host: String, sampleTitles: [String]) async -> String? {
+        guard SystemLanguageModel.default.isAvailable else { return nil }
 
-        let listing = domains.enumerated().map { index, domain -> String in
-            let titles = domain.sampleTitles.prefix(4).map { "\"\($0)\"" }.joined(separator: ", ")
-            return titles.isEmpty ? "\(index + 1). \(domain.host)" : "\(index + 1). \(domain.host) — \(titles)"
-        }.joined(separator: "\n")
-        let prompt = "Classify these websites:\n\(listing)"
+        let titles = sampleTitles.prefix(5).map { "\"\($0)\"" }.joined(separator: ", ")
+        let prompt = titles.isEmpty
+            ? "Website: \(host)\nWhich category fits best?"
+            : "Website: \(host)\nExample pages: \(titles)\nWhich category fits best?"
 
         do {
             let session = LanguageModelSession(instructions: instructions)
             let response = try await session.respond(to: prompt, generating: Classification.self)
-            let valid = Set(topics)
-            var result: [String: String] = [:]
-            for (index, domain) in domains.enumerated() where index < response.content.topics.count {
-                let topic = response.content.topics[index]
-                result[domain.host] = valid.contains(topic) ? topic : "Other"
-            }
-            return result
+            let category = response.content.category.trimmingCharacters(in: .whitespacesAndNewlines)
+            return categories.contains(category) ? category : nil
         } catch {
             Logger.general.error("Tab domain topic classification failed: \(error.localizedDescription, privacy: .public)")
-            return [:]
+            return nil
         }
     }
 }
