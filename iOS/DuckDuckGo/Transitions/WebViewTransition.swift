@@ -107,12 +107,19 @@ class FromWebViewTransition: WebViewTransition {
         imageView.frame = imageContainer.bounds
         imageView.image = preview
 
+        // Ramp a border in lockstep with the corner radius (see keyframe below) so a white page
+        // doesn't blend into the light-gray overview. Matches the all-tabs current-tab cell border
+        // (`updateCurrentTabBorder` uses `.decorationTertiary` for the current tab).
+        imageContainer.layer.borderWidth = 0
+        imageContainer.layer.borderColor = UIColor(designSystemColor: .decorationTertiary).cgColor
+
         UIView.animateKeyframes(withDuration: TabSwitcherTransition.Constants.duration, delay: 0, options: .calculationModeLinear, animations: {
 
             UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 1.0) {
                 let containerFrame = self.tabSwitcherCellFrame(for: layoutAttr)
                 self.imageContainer.frame = containerFrame
                 self.imageContainer.layer.cornerRadius = TabViewCell.Constants.cellCornerRadius
+                self.imageContainer.layer.borderWidth = TabViewCell.Constants.selectedBorderWidth
                 self.imageView.frame = self.previewFrame(for: containerFrame.size, preview: preview)
             }
             

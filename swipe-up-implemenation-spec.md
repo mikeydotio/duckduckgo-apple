@@ -312,6 +312,30 @@ transition are unchanged):
   forward to `startTime 0.2` so the aspect-correct logo carries the middle of the drag. The end state
   (snapshot at alpha 0, logo settled in the cell) is identical to the existing button-tap transition.
 
+### C. Ramp a border on the dragged page preview
+
+**Symptom:** on the light-gray all-tabs background a white page — a web page **or** the New Tab Page —
+blends in, so you can't see the page edge or the already-animating rounded corners as the drag
+progresses.
+
+**Fix** (applied to **both** `FromWebViewTransition` in
+`iOS/DuckDuckGo/Transitions/WebViewTransition.swift` and `FromHomeScreenTransition` in
+`iOS/DuckDuckGo/Transitions/HomeScreenTransition.swift`):
+- The dragged page-preview (`imageContainer`) ramps a **border** in lockstep with the corner radius
+  that already animates over the full-span keyframe (`relativeStartTime 0`, `relativeDuration 1.0`):
+  width grows `0 → TabViewCell.Constants.selectedBorderWidth` (2pt) as the radius grows `0 → 12pt`
+  (`TabViewCell.Constants.cellCornerRadius`). Because `layer.borderWidth` animates inside a `UIView`
+  animation block just like `cornerRadius`, the border width scrubs with the percent-driven drag, and
+  since it shares `imageContainer.layer` it automatically follows the rounded corners.
+- The max border matches the all-tabs **current-tab** cell: `selectedBorderWidth` and the current-tab
+  border **color** `.decorationTertiary` (from `updateCurrentTabBorder` in `TabViewCell.swift`, the
+  `isCurrent` / non-selection-mode branch). `borderColor` is set once before the keyframe block;
+  `borderWidth` starts at 0 and is bumped to `selectedBorderWidth` inside the shared keyframe.
+- At progress 1 the preview is a 12pt-corner, 2pt-bordered card matching the destination cell, then
+  it's removed and the real cell shows — seamless. The shared keyframe also runs on the 0.2s
+  button-tap present, which is fine/desirable since that path already lands on a bordered current-tab
+  cell; there is no interactive-only branching.
+
 ## Verification / testing
 
 **Manual (the primary verification — feel is the point of the project).** Build & run on an iPhone sim
