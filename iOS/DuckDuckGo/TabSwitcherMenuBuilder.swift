@@ -89,12 +89,26 @@ struct TabSwitcherEditMenuActions {
     var onArrangeByRecency: () -> Void
 }
 
+struct TabSwitcherSectionMenuState {
+    let count: Int
+    let containsWebPages: Bool
+}
+
+struct TabSwitcherSectionMenuActions {
+    var onSelect: () -> Void
+    var onShare: () -> Void
+    var onBookmarkAll: () -> Void
+    var onCloseAll: () -> Void
+}
+
 // MARK: - Protocol
 
 protocol TabSwitcherMenuBuilding {
     func multiSelectionMenu(state: TabSwitcherMultiSelectMenuState,
                             actions: TabSwitcherMultiSelectMenuActions) -> UIMenu
     func editMenu(actions: TabSwitcherEditMenuActions) -> UIMenu
+    func sectionMenu(state: TabSwitcherSectionMenuState,
+                     actions: TabSwitcherSectionMenuActions) -> UIMenu
     func longPressMenu(state: TabSwitcherLongPressMenuState,
                        actions: TabSwitcherLongPressMenuActions) -> UIMenu
 }
@@ -122,12 +136,40 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
         return UIMenu(children: [deferredElement])
     }
 
+    func sectionMenu(state: TabSwitcherSectionMenuState,
+                     actions: TabSwitcherSectionMenuActions) -> UIMenu {
+        return UIMenu(children: sectionMenuItems(state: state, actions: actions))
+    }
+
     func longPressMenu(state: TabSwitcherLongPressMenuState,
                        actions: TabSwitcherLongPressMenuActions) -> UIMenu {
         return UIMenu(title: state.title, children: longPressMenuItems(state: state, actions: actions))
     }
 
     // MARK: - Internal item builders (exposed for testing)
+
+    func sectionMenuItems(state: TabSwitcherSectionMenuState,
+                          actions: TabSwitcherSectionMenuActions) -> [UIMenuElement] {
+        return [
+            UIMenu(title: "", options: .displayInline, children: [
+                action(UserText.tabSwitcherSelectTabs(withCount: state.count),
+                       DesignSystemImages.Glyphs.Size16.checkCircle,
+                       actions.onSelect),
+                state.containsWebPages ? action(UserText.shareLinks(withCount: state.count),
+                                                DesignSystemImages.Glyphs.Size16.shareApple,
+                                                actions.onShare) : nil,
+                state.containsWebPages ? action(UserText.bookmarkSelectedTabs(withCount: state.count),
+                                                DesignSystemImages.Glyphs.Size16.bookmarkAdd,
+                                                actions.onBookmarkAll) : nil,
+            ].compactMap { $0 }),
+
+            UIMenu(title: "", options: .displayInline, children: [
+                destructive(UserText.closeTabs(withCount: state.count),
+                            imageForCloseTabs(state.count),
+                            actions.onCloseAll),
+            ]),
+        ]
+    }
 
     func multiSelectionMenuItems(state: TabSwitcherMultiSelectMenuState,
                                  actions: TabSwitcherMultiSelectMenuActions) -> [UIMenuElement] {

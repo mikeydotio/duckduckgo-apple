@@ -928,6 +928,10 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
         return createLongPressMenuForTabs(atIndexPaths: indexPaths)
     }
 
+    func page(_ page: TabSwitcherPageViewController, menuForSectionAt section: Int) -> UIMenu? {
+        return createSectionMenu(forSection: section)
+    }
+
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController) {
         if isEditing {
             transitionFromMultiSelect()

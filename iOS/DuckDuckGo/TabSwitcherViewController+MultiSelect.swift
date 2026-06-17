@@ -316,6 +316,48 @@ extension TabSwitcherViewController {
         ))
     }
 
+    func createSectionMenu(forSection section: Int) -> UIMenu? {
+        let tabs = activePageController.tabs(inSection: section)
+        guard !tabs.isEmpty else { return nil }
+        let state = TabSwitcherSectionMenuState(
+            count: tabs.count,
+            containsWebPages: tabs.contains { $0.link != nil }
+        )
+        return menuBuilder.sectionMenu(state: state, actions: TabSwitcherSectionMenuActions(
+            onSelect: { [weak self] in self?.sectionSelectTabs(tabs) },
+            onShare: { [weak self] in self?.shareTabs(tabs.filter { $0.link != nil }) },
+            onBookmarkAll: { [weak self] in self?.sectionBookmarkTabs(tabs) },
+            onCloseAll: { [weak self] in self?.sectionCloseTabs(tabs) }
+        ))
+    }
+
+    /// Re-resolves the live index paths for the given tabs, so a stale section snapshot can't close the wrong tabs.
+    private func indexPaths(for tabs: [Tab]) -> [IndexPath] {
+        tabs.compactMap { activePageController.indexPath(for: $0) }
+    }
+
+    private func sectionCloseTabs(_ tabs: [Tab]) {
+        let indexPaths = indexPaths(for: tabs)
+        closeTabs(withIndexPaths: indexPaths,
+                  confirmTitle: UserText.alertTitleCloseSelectedTabs(withCount: indexPaths.count),
+                  confirmMessage: UserText.alertMessageCloseTabs(withCount: indexPaths.count))
+    }
+
+    private func sectionBookmarkTabs(_ tabs: [Tab]) {
+        bookmarkTabs(withIndexPaths: indexPaths(for: tabs),
+                     title: UserText.alertTitleBookmarkSelectedTabs(withCount: tabs.count),
+                     message: UserText.alertBookmarkAllMessage,
+                     pixel: .tabSwitcherSelectModeMenuBookmarkTabs,
+                     dailyPixel: .tabSwitcherSelectModeMenuBookmarkTabsDaily)
+    }
+
+    private func sectionSelectTabs(_ tabs: [Tab]) {
+        transitionToMultiSelect()
+        activePageController.selectTabs(tabs)
+        updateUIForSelectionMode()
+        refreshTitleViews()
+    }
+
     /// Takes indexes of tabs to create long menu for.  Internally creates tab array for those
     /// indexes, then passes either tabs or indexes to the handlers to reduce [Int] -> [Tab] conversions.
     func createLongPressMenuForTabs(atIndexPaths indexPaths: [IndexPath]) -> UIMenu {

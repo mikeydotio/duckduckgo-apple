@@ -79,6 +79,9 @@ class TabViewCell: UICollectionViewCell {
     var isDeleting = false
     var canDelete = false
     var isSelectionModeEnabled = false
+    /// Swipe-to-close is disabled while the grid is arranged into horizontal shelves, where it
+    /// would conflict with sideways scrolling. Tabs are still closable via the button or menus.
+    var allowsSwipeToClose = true
     
     var isFireTab: Bool {
         tab?.fireTab ?? false
@@ -670,6 +673,7 @@ extension TabViewCell: UIGestureRecognizerDelegate {
 
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
+        guard allowsSwipeToClose else { return false }
         let velocity = pan.velocity(in: self)
         return abs(velocity.y) < abs(velocity.x)
     }

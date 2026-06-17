@@ -172,6 +172,31 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
         XCTAssertTrue(closeAllAction!.attributes.contains(.destructive))
     }
 
+    // MARK: - Section Menu
+
+    private var noopSectionActions: TabSwitcherSectionMenuActions {
+        TabSwitcherSectionMenuActions(onSelect: {}, onShare: {}, onBookmarkAll: {}, onCloseAll: {})
+    }
+
+    func testSectionMenu_withWebPages_showsAllActions() {
+        let state = TabSwitcherSectionMenuState(count: 3, containsWebPages: true)
+        let actions = flatActions(builder.sectionMenuItems(state: state, actions: noopSectionActions))
+
+        XCTAssertTrue(actions.contains(title: UserText.tabSwitcherSelectTabs(withCount: 3)))
+        XCTAssertTrue(actions.contains(title: UserText.shareLinks(withCount: 3)))
+        XCTAssertTrue(actions.contains(title: UserText.bookmarkSelectedTabs(withCount: 3)))
+        XCTAssertTrue(actions.contains(title: UserText.closeTabs(withCount: 3)))
+    }
+
+    func testSectionMenu_withoutWebPages_hidesShareAndBookmark() {
+        let state = TabSwitcherSectionMenuState(count: 2, containsWebPages: false)
+        let actions = flatActions(builder.sectionMenuItems(state: state, actions: noopSectionActions))
+
+        XCTAssertFalse(actions.contains(title: UserText.shareLinks(withCount: 2)))
+        XCTAssertFalse(actions.contains(title: UserText.bookmarkSelectedTabs(withCount: 2)))
+        XCTAssertTrue(actions.contains(title: UserText.closeTabs(withCount: 2)))
+    }
+
     // MARK: - Long Press Menu
 
     func testLongPressMenu_singleWebPageTab_showsAllItems() {

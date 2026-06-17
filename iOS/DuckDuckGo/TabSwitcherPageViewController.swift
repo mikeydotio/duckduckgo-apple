@@ -43,6 +43,7 @@ protocol TabSwitcherPageDelegate: AnyObject {
     func pageDidDeleteTabs(_ page: TabSwitcherPageViewController, allDeleted: Bool)
     func page(_ page: TabSwitcherPageViewController, didReorderTabs: Void)
     func page(_ page: TabSwitcherPageViewController, contextMenuForTabsAt indexPaths: [IndexPath]) -> UIMenu?
+    func page(_ page: TabSwitcherPageViewController, menuForSectionAt section: Int) -> UIMenu?
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController)
     func pageCellDidBeginSwipe(_ page: TabSwitcherPageViewController)
     func pageCellDidEndSwipe(_ page: TabSwitcherPageViewController)
@@ -537,6 +538,17 @@ extension TabSwitcherPageViewController {
             section.tabs.indices.map { IndexPath(item: $0, section: sectionIndex) }
         }
     }
+
+    func tabs(inSection section: Int) -> [Tab] {
+        gridSections.indices.contains(section) ? gridSections[section].tabs : []
+    }
+
+    func selectTabs(_ tabs: [Tab]) {
+        for tab in tabs {
+            guard let indexPath = indexPath(for: tab) else { continue }
+            collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        }
+    }
 }
 
 // MARK: - UICollectionViewDataSource
@@ -562,6 +574,7 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
         }
         cell.delegate = self
         cell.isDeleting = false
+        cell.allowsSwipeToClose = !isGrouped
 
         if let tab = tab(at: indexPath) {
             tab.removeObserver(self)
@@ -592,8 +605,10 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
             ) as? TabSwitcherSectionHeaderView else {
                 return UICollectionReusableView()
             }
-            let title = gridSections.indices.contains(indexPath.section) ? gridSections[indexPath.section].title : nil
-            header.configure(title: title)
+            let section = gridSections.indices.contains(indexPath.section) ? gridSections[indexPath.section] : nil
+            header.configure(title: section?.title,
+                             count: section?.tabs.count ?? 0,
+                             menu: pageDelegate?.page(self, menuForSectionAt: indexPath.section))
             return header
         }
 
@@ -866,14 +881,28 @@ final class TabSwitcherSectionHeaderView: UICollectionReusableView {
         return label
     }()
 
+    private let menuButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(DesignSystemImages.Glyphs.Size24.moreApple, for: .normal)
+        button.tintColor = UIColor(designSystemColor: .iconsSecondary)
+        button.showsMenuAsPrimaryAction = true
+        button.setContentHuggingPriority(.required, for: .horizontal)
+        return button
+    }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         addSubview(label)
+        addSubview(menuButton)
         NSLayoutConstraint.activate([
             label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
             label.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
+
+            menuButton.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 8),
+            menuButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            menuButton.centerYAnchor.constraint(equalTo: label.centerYAnchor),
         ])
     }
 
@@ -882,7 +911,13 @@ final class TabSwitcherSectionHeaderView: UICollectionReusableView {
         fatalError("Not implemented")
     }
 
-    func configure(title: String?) {
-        label.text = title
+    func configure(title: String?, count: Int, menu: UIMenu?) {
+        if let title {
+            label.text = "\(title) · \(count)"
+        } else {
+            label.text = nil
+        }
+        menuButton.menu = menu
+        menuButton.isHidden = menu == nil
     }
 }
