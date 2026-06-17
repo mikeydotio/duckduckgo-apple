@@ -54,6 +54,7 @@ final class TabSwitcherTrackerCountViewModelTests: XCTestCase {
         var hasSeenNewLayout: Bool = false
         var showTrackerCountInTabSwitcher: Bool = true
         var lastTrackerCountInTabSwitcher: Int64?
+        var tabArrangement: TabArrangement?
     }
 
     func testRefreshHiddenWhenSettingDisabled() async {

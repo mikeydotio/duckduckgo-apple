@@ -37,11 +37,6 @@ public class TabsModel: NSObject, NSCoding, TabsModelManaging {
         case replacing(Tab)
     }
 
-    enum TabArrangement {
-        case title
-        case website
-    }
-
     let mode: BrowsingMode
     
     var currentIndex: Int? {
@@ -229,31 +224,6 @@ public class TabsModel: NSObject, NSCoding, TabsModelManaging {
         moveTab(from: sourceIndex, to: destIndex)
     }
     
-    func arrange(by arrangement: TabArrangement) {
-        let previouslyCurrentTab = currentTab
-        let sortKey: (Tab) -> String?
-        switch arrangement {
-        case .title:
-            sortKey = { $0.link?.displayTitle }
-        case .website:
-            sortKey = { $0.link?.url.host?.droppingWwwPrefix() }
-        }
-        tabs.sort { lhs, rhs in
-            // Tabs without a link (e.g. the home tab) have no sort key and stay at the end.
-            switch (sortKey(lhs), sortKey(rhs)) {
-            case let (left?, right?):
-                return left.localizedCaseInsensitiveCompare(right) == .orderedAscending
-            case (.some, nil):
-                return true
-            case (nil, .some), (nil, nil):
-                return false
-            }
-        }
-        if let previouslyCurrentTab {
-            _currentIndex = indexOf(tab: previouslyCurrentTab) ?? 0
-        }
-    }
-
     private func moveTab(from sourceIndex: Int, to destIndex: Int) {
         guard sourceIndex >= 0, sourceIndex < tabs.count,
             destIndex >= 0, destIndex < tabs.count else {

@@ -77,6 +77,9 @@ class TabSwitcherPageViewController: UIViewController {
 
     var canUpdateCollection = true
 
+    /// Display model for the grid. A single untitled section in flat mode; one section per group when arranged.
+    var gridSections: [TabGridSection] = []
+
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
     }
@@ -135,6 +138,11 @@ class TabSwitcherPageViewController: UIViewController {
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
             withReuseIdentifier: TabSwitcherTrackerInfoHeaderView.reuseIdentifier
         )
+        collectionView.register(
+            TabSwitcherSectionHeaderView.self,
+            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier: TabSwitcherSectionHeaderView.reuseIdentifier
+        )
 
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -148,6 +156,7 @@ class TabSwitcherPageViewController: UIViewController {
         backgroundView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleBackgroundTap(gesture:))))
         collectionView.backgroundView = backgroundView
         
+        rebuildSections()
         subscribeToTabChanges()
         bindTrackerCount()
         trackerCountViewModel?.refresh()
@@ -271,6 +280,7 @@ class TabSwitcherPageViewController: UIViewController {
     }
 
     func reloadData() {
+        rebuildSections()
         collectionView.reloadData()
         updateEmptyStateVisibility()
     }
@@ -286,9 +296,12 @@ class TabSwitcherPageViewController: UIViewController {
     }
     
     func scrollToInitialTab() {
-        guard let index = tabsModel.currentIndex,
-              index < collectionView.numberOfItems(inSection: 0) else { return }
-        collectionView.scrollToItem(at: IndexPath(row: index, section: 0), at: .bottom, animated: false)
+        rebuildSections()
+        guard let currentTab = tabsModel.currentTab,
+              let indexPath = indexPath(for: currentTab),
+              indexPath.section < collectionView.numberOfSections,
+              indexPath.item < collectionView.numberOfItems(inSection: indexPath.section) else { return }
+        collectionView.scrollToItem(at: indexPath, at: .bottom, animated: false)
     }
 
     func enterEditingMode() {
@@ -302,8 +315,8 @@ class TabSwitcherPageViewController: UIViewController {
     }
 
     func selectAll() {
-        for row in 0..<tabsModel.count {
-            collectionView.selectItem(at: IndexPath(row: row, section: 0), animated: false, scrollPosition: [])
+        for indexPath in allIndexPaths {
+            collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
         }
     }
 
@@ -316,7 +329,19 @@ class TabSwitcherPageViewController: UIViewController {
     func deleteTabsAtIndexPaths(_ indexPaths: [IndexPath]) {
         guard let pageDelegate else { return }
         let allTabsDeleted = tabsModel.count == indexPaths.count
-        let tabsToClose = indexPaths.compactMap { tabsModel.get(tabAt: $0.row) }
+        let tabsToClose = indexPaths.compactMap { tab(at: $0) }
+
+        // While grouped, deleting items can empty whole sections; an animated batch
+        // update would then mismatch the rebuilt section count, so reload instead.
+        if isGrouped {
+            pageDelegate.isProcessingUpdates = true
+            pageDelegate.page(self, willDeleteTabs: tabsToClose, allDeleted: allTabsDeleted)
+            currentSelection = tabsModel.currentIndex
+            reloadData()
+            pageDelegate.isProcessingUpdates = false
+            pageDelegate.pageDidDeleteTabs(self, allDeleted: allTabsDeleted)
+            return
+        }
 
         collectionView.performBatchUpdates {
             pageDelegate.isProcessingUpdates = true
@@ -346,16 +371,90 @@ class TabSwitcherPageViewController: UIViewController {
     }
 }
 
+// MARK: - Tab grouping / sections
+
+extension TabSwitcherPageViewController {
+
+    struct TabGridSection {
+        let title: String?
+        let tabs: [Tab]
+    }
+
+    /// True when an arrangement is active and the grid is split into titled sections rather than a flat list.
+    var isGrouped: Bool {
+        tabSwitcherSettings.tabArrangement != nil
+    }
+
+    func rebuildSections() {
+        gridSections = Self.makeSections(tabs: tabsModel.tabs, arrangement: tabSwitcherSettings.tabArrangement)
+    }
+
+    static func makeSections(tabs: [Tab], arrangement: TabArrangement?) -> [TabGridSection] {
+        guard let arrangement else {
+            return [TabGridSection(title: nil, tabs: tabs)]
+        }
+        switch arrangement {
+        case .website:
+            return makeWebsiteSections(tabs: tabs)
+        }
+    }
+
+    private static func makeWebsiteSections(tabs: [Tab]) -> [TabGridSection] {
+        var groups: [String: [Tab]] = [:]
+        var hostless: [Tab] = []
+        for tab in tabs {
+            if let host = tab.link?.url.host?.droppingWwwPrefix(), !host.isEmpty {
+                groups[host, default: []].append(tab)
+            } else {
+                hostless.append(tab)
+            }
+        }
+        var sections = groups.keys
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+            .map { TabGridSection(title: $0, tabs: groups[$0] ?? []) }
+        // Tabs without a host (e.g. the home tab) collect into a trailing section.
+        if !hostless.isEmpty {
+            sections.append(TabGridSection(title: UserText.tabSwitcherArrangeOtherSectionTitle, tabs: hostless))
+        }
+        return sections
+    }
+
+    func tab(at indexPath: IndexPath) -> Tab? {
+        guard gridSections.indices.contains(indexPath.section) else { return nil }
+        let tabs = gridSections[indexPath.section].tabs
+        guard tabs.indices.contains(indexPath.item) else { return nil }
+        return tabs[indexPath.item]
+    }
+
+    func indexPath(for tab: Tab) -> IndexPath? {
+        for (sectionIndex, section) in gridSections.enumerated() {
+            if let item = section.tabs.firstIndex(where: { $0 === tab }) {
+                return IndexPath(item: item, section: sectionIndex)
+            }
+        }
+        return nil
+    }
+
+    /// Every populated index path across all sections, in display order.
+    var allIndexPaths: [IndexPath] {
+        gridSections.enumerated().flatMap { sectionIndex, section in
+            section.tabs.indices.map { IndexPath(item: $0, section: sectionIndex) }
+        }
+    }
+}
+
 // MARK: - UICollectionViewDataSource
 
 extension TabSwitcherPageViewController: UICollectionViewDataSource {
 
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return 1
+        rebuildSections()
+        return gridSections.count
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return tabsModel.count
+        guard gridSections.indices.contains(section) else { return 0 }
+        return gridSections[section].tabs.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -366,8 +465,7 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
         cell.delegate = self
         cell.isDeleting = false
 
-        if indexPath.row < tabsModel.count,
-           let tab = tabsModel.get(tabAt: indexPath.row) {
+        if let tab = tab(at: indexPath) {
             tab.removeObserver(self)
             tab.addObserver(self)
             cell.update(withTab: tab,
@@ -386,6 +484,19 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
                         at indexPath: IndexPath) -> UICollectionReusableView {
         guard kind == UICollectionView.elementKindSectionHeader else {
             return UICollectionReusableView()
+        }
+
+        if isGrouped {
+            guard let header = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier: TabSwitcherSectionHeaderView.reuseIdentifier,
+                for: indexPath
+            ) as? TabSwitcherSectionHeaderView else {
+                return UICollectionReusableView()
+            }
+            let title = gridSections.indices.contains(indexPath.section) ? gridSections[indexPath.section].title : nil
+            header.configure(title: title)
+            return header
         }
 
         guard let header = collectionView.dequeueReusableSupplementaryView(
@@ -411,11 +522,11 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
             (collectionView.cellForItem(at: indexPath) as? TabViewCell)?.refreshSelectionAppearance()
             pageDelegate?.page(self, didSelectTabAt: indexPath.row)
         } else {
-            currentSelection = indexPath.row
+            currentSelection = tab(at: indexPath).flatMap { tabsModel.indexOf(tab: $0) }
             Pixel.fire(pixel: .tabSwitcherSwitchTabs, withAdditionalParameters: [
                 PixelParameters.browsingMode: browsingMode.pixelParamValue
             ])
-            if let tab = tabsModel.get(tabAt: indexPath.row) {
+            if let tab = tab(at: indexPath) {
                 if tab.isAITab {
                     DailyPixel.fireDailyAndCount(pixel: .tabManagerSwitchToAITab)
                 } else {
@@ -437,7 +548,7 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
     }
 
     func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool {
-        return !(pageDelegate?.isEditing ?? false)
+        return !(pageDelegate?.isEditing ?? false) && !isGrouped
     }
 
     func collectionView(_ collectionView: UICollectionView, targetIndexPathForMoveFromItemAt originalIndexPath: IndexPath,
@@ -498,6 +609,9 @@ extension TabSwitcherPageViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         referenceSizeForHeaderInSection section: Int) -> CGSize {
+        if isGrouped {
+            return CGSize(width: collectionView.bounds.width, height: TabSwitcherSectionHeaderView.height)
+        }
         guard trackerInfoModel != nil else { return .zero }
         return CGSize(width: collectionView.bounds.width, height: TabSwitcherTrackerInfoHeaderView.estimatedHeight)
     }
@@ -552,7 +666,7 @@ extension TabSwitcherPageViewController: TabObserver {
 extension TabSwitcherPageViewController: UICollectionViewDragDelegate {
 
     func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: any UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
-        return (pageDelegate?.isEditing ?? false) ? [] : [UIDragItem(itemProvider: NSItemProvider())]
+        return (pageDelegate?.isEditing ?? false) || isGrouped ? [] : [UIDragItem(itemProvider: NSItemProvider())]
     }
 
     func collectionView(_ collectionView: UICollectionView, itemsForAddingTo session: any UIDragSession, at indexPath: IndexPath, point: CGPoint) -> [UIDragItem] {
@@ -581,6 +695,7 @@ extension TabSwitcherPageViewController: UICollectionViewDropDelegate {
     }
 
     func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: any UICollectionViewDropCoordinator) {
+        guard !isGrouped else { return }
         guard let destination = coordinator.destinationIndexPath,
               let item = coordinator.items.first,
               let source = item.sourceIndexPath
@@ -632,7 +747,44 @@ private extension UITapGestureRecognizer {
             // The tap is in the whitespace area at the end
         return true
     }
-    
+
         return false
+    }
+}
+
+// MARK: - Section header
+
+/// Section header shown above each group of tabs when the tab switcher grid is arranged.
+final class TabSwitcherSectionHeaderView: UICollectionReusableView {
+
+    static let reuseIdentifier = "TabSwitcherSectionHeaderView"
+    static let height: CGFloat = 36
+
+    private let label: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .daxFootnoteSemibold()
+        label.textColor = UIColor(designSystemColor: .textSecondary)
+        return label
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            label.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("Not implemented")
+    }
+
+    func configure(title: String?) {
+        label.text = title
     }
 }

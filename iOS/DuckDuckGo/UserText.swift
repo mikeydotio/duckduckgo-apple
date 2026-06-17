@@ -434,9 +434,9 @@ public struct UserText {
 
     public static let tabSwitcherArrangeTabsBy = NSLocalizedString("tab.switcher.arrange-tabs-by", value: "Arrange Tabs By", comment: "Submenu title for arranging the open tabs")
 
-    public static let tabSwitcherArrangeTabsByTitle = NSLocalizedString("tab.switcher.arrange-tabs-by-title", value: "Arrange Tabs By Title", comment: "Menu item to arrange the open tabs alphabetically by title")
-
     public static let tabSwitcherArrangeTabsByWebsite = NSLocalizedString("tab.switcher.arrange-tabs-by-website", value: "Arrange Tabs By Website", comment: "Menu item to arrange the open tabs by website")
+
+    public static let tabSwitcherArrangeOtherSectionTitle = NSLocalizedString("tab.switcher.arrange.other-section", value: "Other", comment: "Tab switcher section header for tabs that have no website (e.g. the home tab)")
 
     public static func tabSwitcherSelectTabs(withCount count: Int) -> String {
         let format = Bundle.main.localizedString(forKey: "tab.switcher.select-tabs.withCount", value: nil, table: nil)

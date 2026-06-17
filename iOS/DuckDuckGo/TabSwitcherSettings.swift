@@ -20,12 +20,18 @@
 import Foundation
 import Persistence
 
+/// How the tab switcher grid groups open tabs into sections. Absence means no grouping (flat grid).
+enum TabArrangement: String {
+    case website
+}
+
 protocol TabSwitcherSettings: AnyObject {
 
     var isGridViewEnabled: Bool { get set }
     var hasSeenNewLayout: Bool { get set }
     var showTrackerCountInTabSwitcher: Bool { get set }
     var lastTrackerCountInTabSwitcher: Int64? { get set }
+    var tabArrangement: TabArrangement? { get set }
 
 }
 
@@ -36,6 +42,7 @@ final class DefaultTabSwitcherSettings: TabSwitcherSettings {
         case gridViewSeen = "com.duckduckgo.ios.tabs.seen"
         case showTrackerCount = "com.duckduckgo.ios.tabswitcher.showTrackerCount"
         case lastTrackerCount = "com.duckduckgo.ios.tabswitcher.lastTrackerCount"
+        case tabArrangement = "com.duckduckgo.ios.tabswitcher.arrangement"
     }
 
     private let keyValueStore: KeyValueStoring
@@ -62,6 +69,11 @@ final class DefaultTabSwitcherSettings: TabSwitcherSettings {
     var lastTrackerCountInTabSwitcher: Int64? {
         get { keyValueStore.object(forKey: Key.lastTrackerCount.rawValue) as? Int64 }
         set { keyValueStore.set(newValue, forKey: Key.lastTrackerCount.rawValue) }
+    }
+
+    var tabArrangement: TabArrangement? {
+        get { (keyValueStore.object(forKey: Key.tabArrangement.rawValue) as? String).flatMap(TabArrangement.init(rawValue:)) }
+        set { keyValueStore.set(newValue?.rawValue, forKey: Key.tabArrangement.rawValue) }
     }
 
 }

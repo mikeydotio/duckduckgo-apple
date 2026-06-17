@@ -55,7 +55,7 @@ extension TabSwitcherViewController {
     }
 
     func bookmarkTabAt(_ indexPath: IndexPath) {
-        guard let tab = tabsModel.get(tabAt: indexPath.row), let link = tab.link else { return }
+        guard let tab = activePageController.tab(at: indexPath), let link = tab.link else { return }
         let viewModel = MenuBookmarksViewModel(bookmarksDatabase: self.bookmarksDatabase, syncService: self.syncService)
         viewModel.createBookmark(title: link.displayTitle, url: link.url)
         ActionMessageView.present(message: UserText.tabsBookmarked(withCount: 1),
@@ -238,9 +238,7 @@ extension TabSwitcherViewController {
         Pixel.fire(pixel: pixel)
         DailyPixel.fire(pixel: dailyPixel)
 
-        let otherIndexPaths = Set<IndexPath>(tabsModel.tabs.indices.map {
-            IndexPath(row: $0, section: 0)
-        }).subtracting(indexPaths)
+        let otherIndexPaths = Set<IndexPath>(activePageController.allIndexPaths).subtracting(indexPaths)
         
         self.closeTabs(withIndexPaths: [IndexPath](otherIndexPaths),
                        confirmTitle: UserText.alertTitleCloseOtherTabs(withCount: otherIndexPaths.count),
@@ -290,7 +288,7 @@ extension TabSwitcherViewController {
     
     func createMultiSelectionMenu() -> UIMenu {
         let selectedIndexPaths = selectedTabs
-        let selectedTabObjects = selectedIndexPaths.map { tabsModel.get(tabAt: $0.row) }.compactMap { $0 }
+        let selectedTabObjects = selectedIndexPaths.compactMap { activePageController.tab(at: $0) }
         let state = TabSwitcherMultiSelectMenuState(
             selectedCount: selectedTabObjects.count,
             totalCount: tabsModel.count,
@@ -313,7 +311,6 @@ extension TabSwitcherViewController {
         return menuBuilder.editMenu(actions: TabSwitcherEditMenuActions(
             onEnterSelectMode: { [weak self] in self?.editMenuEnterSelectMode() },
             onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() },
-            onArrangeByTitle: { [weak self] in self?.editMenuArrangeTabs(by: .title) },
             onArrangeByWebsite: { [weak self] in self?.editMenuArrangeTabs(by: .website) }
         ))
     }
@@ -321,7 +318,7 @@ extension TabSwitcherViewController {
     /// Takes indexes of tabs to create long menu for.  Internally creates tab array for those
     /// indexes, then passes either tabs or indexes to the handlers to reduce [Int] -> [Tab] conversions.
     func createLongPressMenuForTabs(atIndexPaths indexPaths: [IndexPath]) -> UIMenu {
-        let tabs = indexPaths.map { tabsModel.get(tabAt: $0.row) }.compactMap { $0 }
+        let tabs = indexPaths.compactMap { activePageController.tab(at: $0) }
         let containsWebPages = tabs.contains(where: { $0.link != nil })
 
         let title = tabs.count > 1 ? UserText.numberOfSelectedTabsForMenuTitle(withCount: tabs.count)
@@ -373,10 +370,10 @@ extension TabSwitcherViewController {
         closeAllTabs()
     }
 
-    func editMenuArrangeTabs(by arrangement: TabsModel.TabArrangement) {
-        tabsModel.arrange(by: arrangement)
-        currentSelection = tabsModel.currentIndex
-        delegate.tabSwitcherDidReorderTabs(tabSwitcher: self)
+    func editMenuArrangeTabs(by arrangement: TabArrangement) {
+        tabSwitcherSettings.tabArrangement = arrangement
+        activePageController.reloadData()
+        activePageController.scrollToInitialTab()
     }
 
 }
@@ -397,7 +394,7 @@ extension TabSwitcherViewController {
     }
 
     func selectModeBookmarkAll() {
-        bookmarkTabs(withIndexPaths: tabsModel.tabs.indices.map { IndexPath(row: $0, section: 0) },
+        bookmarkTabs(withIndexPaths: activePageController.allIndexPaths,
                      title: UserText.alertTitleBookmarkAll(withCount: tabsModel.count),
                      message: UserText.alertBookmarkAllMessage,
                      pixel: .tabSwitcherSelectModeMenuBookmarkAllTabs,
@@ -413,7 +410,7 @@ extension TabSwitcherViewController {
     }
 
     func selectModeShareLinks() {
-        shareTabs(selectedTabs.compactMap { tabsModel.get(tabAt: $0.row) })
+        shareTabs(selectedTabs.compactMap { activePageController.tab(at: $0) })
     }
 
 }
@@ -426,7 +423,7 @@ extension TabSwitcherViewController {
     }
 
     func longPressMenuShareSelectedLinks() {
-        shareTabs(selectedTabs.map { tabsModel.get(tabAt: $0.row) }.compactMap { $0 })
+        shareTabs(selectedTabs.compactMap { activePageController.tab(at: $0) })
     }
 
     func longPressMenuBookmarkTabs(indexPaths: [IndexPath]) {

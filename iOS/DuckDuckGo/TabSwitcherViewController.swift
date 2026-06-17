@@ -736,7 +736,7 @@ class TabSwitcherViewController: UIViewController {
         var urls = [URL]()
 
         indexPaths.compactMap {
-            tabsModel.get(tabAt: $0.row)
+            activePageController.tab(at: $0)
         }.forEach { tab in
             guard let link = tab.link else { return }
             if viewModel.bookmark(for: link.url) == nil {

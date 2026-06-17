@@ -4471,11 +4471,11 @@ Take back control of your personal information with the browser designed for dat
 /* Submenu title for arranging the open tabs */
 "tab.switcher.arrange-tabs-by" = "Arrange Tabs By";
 
-/* Menu item to arrange the open tabs alphabetically by title */
-"tab.switcher.arrange-tabs-by-title" = "Arrange Tabs By Title";
-
 /* Menu item to arrange the open tabs by website */
 "tab.switcher.arrange-tabs-by-website" = "Arrange Tabs By Website";
+
+/* Tab switcher section header for tabs that have no website (e.g. the home tab) */
+"tab.switcher.arrange.other-section" = "Other";
 
 /* Bookmark all tabs menu item */
 "tab.switcher.bookmarkAll" = "Bookmark All Tabs";
