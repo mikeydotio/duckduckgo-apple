@@ -4468,6 +4468,15 @@ Take back control of your personal information with the browser designed for dat
 /* Tab Switcher Accessibility Label */
 "tab.switcher.accessibility.label" = "Tab Switcher";
 
+/* Submenu title for arranging the open tabs */
+"tab.switcher.arrange-tabs-by" = "Arrange Tabs By";
+
+/* Menu item to arrange the open tabs alphabetically by title */
+"tab.switcher.arrange-tabs-by-title" = "Arrange Tabs By Title";
+
+/* Menu item to arrange the open tabs by website */
+"tab.switcher.arrange-tabs-by-website" = "Arrange Tabs By Website";
+
 /* Bookmark all tabs menu item */
 "tab.switcher.bookmarkAll" = "Bookmark All Tabs";
 

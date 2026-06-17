@@ -312,7 +312,9 @@ extension TabSwitcherViewController {
     func createEditMenu() -> UIMenu {
         return menuBuilder.editMenu(actions: TabSwitcherEditMenuActions(
             onEnterSelectMode: { [weak self] in self?.editMenuEnterSelectMode() },
-            onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() }
+            onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() },
+            onArrangeByTitle: { [weak self] in self?.editMenuArrangeTabs(by: .title) },
+            onArrangeByWebsite: { [weak self] in self?.editMenuArrangeTabs(by: .website) }
         ))
     }
 
@@ -369,6 +371,12 @@ extension TabSwitcherViewController {
         Pixel.fire(pixel: .tabSwitcherEditMenuCloseAllTabs)
         DailyPixel.fire(pixel: .tabSwitcherEditMenuCloseAllTabsDaily)
         closeAllTabs()
+    }
+
+    func editMenuArrangeTabs(by arrangement: TabsModel.TabArrangement) {
+        tabsModel.arrange(by: arrangement)
+        currentSelection = tabsModel.currentIndex
+        delegate.tabSwitcherDidReorderTabs(tabSwitcher: self)
     }
 
 }

@@ -85,6 +85,8 @@ struct TabSwitcherLongPressMenuActions {
 struct TabSwitcherEditMenuActions {
     var onEnterSelectMode: () -> Void
     var onCloseAll: () -> Void
+    var onArrangeByTitle: () -> Void
+    var onArrangeByWebsite: () -> Void
 }
 
 // MARK: - Protocol
@@ -175,6 +177,17 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
             action(UserText.tabSwitcherSelectTabs(withCount: 2),
                    DesignSystemImages.Glyphs.Size16.checkCircle,
                    actions.onEnterSelectMode),
+
+            UIMenu(title: UserText.tabSwitcherArrangeTabsBy,
+                   image: DesignSystemImages.Glyphs.Size16.sortAscending,
+                   children: [
+                    action(UserText.tabSwitcherArrangeTabsByTitle,
+                           DesignSystemImages.Glyphs.Size16.sortAscending,
+                           actions.onArrangeByTitle),
+                    action(UserText.tabSwitcherArrangeTabsByWebsite,
+                           DesignSystemImages.Glyphs.Size16.globe,
+                           actions.onArrangeByWebsite),
+                   ]),
 
             UIMenu(title: "", options: [.displayInline], children: [
                 destructive(UserText.closeAllTabs,
