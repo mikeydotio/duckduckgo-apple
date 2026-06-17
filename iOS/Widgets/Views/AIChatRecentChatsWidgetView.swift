@@ -22,6 +22,7 @@ import WidgetKit
 import Core
 import DesignResourcesKit
 import DesignResourcesKitIcons
+import os.log
 
 struct AIChatRecentChatsWidgetView: View {
     @Environment(\.widgetFamily) private var family
@@ -31,7 +32,8 @@ struct AIChatRecentChatsWidgetView: View {
     private var rowSpacing: CGFloat { family == .systemLarge ? 14 : 11 }
 
     var body: some View {
-        DesignSystemWidgetContainerView {
+        let _ = Logger.duckAiWidget.notice("DUCKAI-WIDGET [ext/chats VIEW] body: family=\(String(describing: family), privacy: .public) chats=\(entry.chats.count, privacy: .public)")
+        return DesignSystemWidgetContainerView {
             if entry.chats.isEmpty {
                 AIChatRecentChatsEmptyView()
             } else {
@@ -42,7 +44,7 @@ struct AIChatRecentChatsWidgetView: View {
                     VStack(alignment: .leading, spacing: rowSpacing) {
                         ForEach(entry.chats.prefix(maxRows), id: \.chatId) { chat in
                             Link(destination: AIChatRecentChatsEntry.deepLink(forChatId: chat.chatId)) {
-                                AIChatChatRowView(chat: chat, thumbnail: entry.thumbnails[chat.chatId])
+                                AIChatChatRowView(chat: chat)
                             }
                         }
                     }
@@ -87,7 +89,6 @@ private struct AIChatRecentChatsHeaderView: View {
 
 struct AIChatChatRowView: View {
     let chat: WidgetChatEntry
-    let thumbnail: UIImage?
 
     private let iconSize: CGFloat = 26
 
@@ -107,25 +108,34 @@ struct AIChatChatRowView: View {
     private var icon: some View {
         if chat.pinned {
             glyphIcon(DesignSystemImages.Glyphs.Size16.pin)
-        } else if let thumbnail {
-            Image(uiImage: thumbnail)
-                .resizable()
-                .useFullColorRendering()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: iconSize, height: iconSize)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        } else if chat.isImageGeneration {
+            symbolIcon("photo")
         } else {
             glyphIcon(DesignSystemImages.Glyphs.Size24.chat)
         }
     }
 
     private func glyphIcon(_ image: UIImage) -> some View {
-        Image(uiImage: image)
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
-            .foregroundStyle(Color(designSystemColor: .accent))
-            .frame(width: 15, height: 15)
+        iconContainer {
+            Image(uiImage: image)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(Color(designSystemColor: .accent))
+                .frame(width: 15, height: 15)
+        }
+    }
+
+    private func symbolIcon(_ systemName: String) -> some View {
+        iconContainer {
+            Image(systemName: systemName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color(designSystemColor: .accent))
+        }
+    }
+
+    private func iconContainer<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
             .frame(width: iconSize, height: iconSize)
             .background(Color(designSystemColor: .accent).opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }

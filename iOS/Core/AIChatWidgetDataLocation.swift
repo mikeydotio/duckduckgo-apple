@@ -18,6 +18,14 @@
 //
 
 import Foundation
+import os.log
+
+public extension Logger {
+    /// Shared logger for Duck.ai widget diagnostics. Fixed subsystem so the main app and the
+    /// widget extension log to the same place — filter Console.app on
+    /// `subsystem: com.duckduckgo.duckai.widget` to see both.
+    static let duckAiWidget = Logger(subsystem: "com.duckduckgo.duckai.widget", category: "DuckAiWidget")
+}
 
 /// Resolves the on-disk locations of the Duck.ai widget mirror inside a shared app-group
 /// container. Both the main app (writer) and the widget extension (reader) construct this

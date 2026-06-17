@@ -39,9 +39,7 @@ final class AIChatWidgetSyncEngine {
     static let maxChats = 6
     static let maxGalleryImages = 12
 
-    /// Longest edge of a generated-image thumbnail, in points.
-    private static let thumbnailMaxDimension: CGFloat = 100
-    /// Longest edge of a gallery image, in points (larger — shown in a grid, not a tiny row icon).
+    /// Longest edge of a gallery image, in points.
     private static let galleryMaxDimension: CGFloat = 320
 
     private let storage: DuckAiNativeObservableStorage?
@@ -49,6 +47,7 @@ final class AIChatWidgetSyncEngine {
     private let dataLocation: AIChatWidgetDataLocation?
     private let notificationCenter: NotificationCenter
     private let reloadWidgets: () -> Void
+    private let liveUpdateDebounce: DispatchQueue.SchedulerTimeType.Stride
     private let queue = DispatchQueue(label: "com.duckduckgo.aichat.widget.sync")
 
     private var cancellable: AnyCancellable?
@@ -58,11 +57,13 @@ final class AIChatWidgetSyncEngine {
          settings: AIChatSettingsProvider,
          dataLocation: AIChatWidgetDataLocation?,
          notificationCenter: NotificationCenter = .default,
-         reloadWidgets: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() }) {
+         liveUpdateDebounce: DispatchQueue.SchedulerTimeType.Stride = .seconds(2),
+         reloadWidgets: @escaping () -> Void = { DispatchQueue.main.async { WidgetCenter.shared.reloadAllTimelines() } }) {
         self.storage = storage
         self.settings = settings
         self.dataLocation = dataLocation
         self.notificationCenter = notificationCenter
+        self.liveUpdateDebounce = liveUpdateDebounce
         self.reloadWidgets = reloadWidgets
     }
 
@@ -75,7 +76,13 @@ final class AIChatWidgetSyncEngine {
     /// Begins mirroring: subscribes to storage changes and settings changes, then does an
     /// initial sync. Call once at app launch.
     func start() {
+        // Debounce live storage changes: the FE can write many times in quick succession (each
+        // message, etc.) and reloading the widget on every write would exhaust the system reload
+        // budget. Coalesce into one sync after activity settles; the app also syncs on
+        // background/foreground (see AIChatService) so the home-screen widgets stay current.
+        // Debounce on a background queue distinct from `queue` so `syncNow`'s `queue.sync` can't deadlock.
         cancellable = storage?.chatsPublisher()
+            .debounce(for: liveUpdateDebounce, scheduler: DispatchQueue.global(qos: .utility))
             .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] _ in
                 self?.syncNow()
             })
@@ -119,6 +126,8 @@ final class AIChatWidgetSyncEngine {
             return
         }
 
+        Logger.duckAiWidget.notice("DUCKAI-WIDGET [app] writes to container=\(dataLocation.rootURL.path, privacy: .public)")
+
         do {
             let records = try storage.getAllChats()
             let allChats = records
@@ -131,23 +140,16 @@ final class AIChatWidgetSyncEngine {
 
             logNativeStorageSnapshot(records: records, chats: allChats, storage: storage)
 
-            try FileManager.default.createDirectory(at: dataLocation.thumbnailsDirectoryURL, withIntermediateDirectories: true)
-
-            var keptThumbnailIds = Set<String>()
             let entries: [WidgetChatEntry] = chats.map { chat in
-                var hasThumbnail = false
-                if chat.isImageGeneration, let ref = chat.fileRefs.first {
-                    hasThumbnail = writeThumbnail(forChatId: chat.chatId, fileRef: ref, storage: storage, location: dataLocation)
-                    if hasThumbnail { keptThumbnailIds.insert(chat.chatId) }
-                }
-                return WidgetChatEntry(chatId: chat.chatId,
-                                       title: chat.title,
-                                       lastEdit: chat.lastEdit,
-                                       hasImageThumbnail: hasThumbnail,
-                                       pinned: chat.pinned)
+                WidgetChatEntry(chatId: chat.chatId,
+                                title: chat.title,
+                                lastEdit: chat.lastEdit,
+                                isImageGeneration: chat.isImageGeneration,
+                                pinned: chat.pinned)
             }
 
-            removeStaleThumbnails(keeping: keptThumbnailIds, location: dataLocation)
+            // Ensure the mirror directory exists (it won't on a fresh install / after a wipe).
+            try FileManager.default.createDirectory(at: dataLocation.rootURL, withIntermediateDirectories: true)
 
             let snapshot = WidgetChatSnapshot(totalChatCount: allChats.count, chats: entries)
             let data = try JSONEncoder().encode(snapshot)
@@ -157,7 +159,7 @@ final class AIChatWidgetSyncEngine {
 
             reloadWidgets()
         } catch {
-            Logger.aiChat.error("[Widget] sync failed: \(error.localizedDescription, privacy: .public)")
+            Logger.duckAiWidget.error("DUCKAI-WIDGET [app] sync FAILED: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -185,17 +187,10 @@ final class AIChatWidgetSyncEngine {
             let data = try JSONEncoder().encode(entries)
             try data.write(to: location.imagesFileURL, options: .atomic)
 
-            #if DEBUG
-            let galleryFiles = (try? FileManager.default.contentsOfDirectory(atPath: location.galleryDirectoryURL.path)) ?? []
-            print("DUCKAI-WIDGET [gallery] wrote \(entries.count) entries: \(entries.map(\.imageId))")
-            print("DUCKAI-WIDGET [gallery] gallery dir has \(galleryFiles.count) files: \(galleryFiles)")
-            print("DUCKAI-WIDGET [gallery] images.json → \(location.imagesFileURL.path)")
-            #endif
+            let imagesExist = FileManager.default.fileExists(atPath: location.imagesFileURL.path)
+            Logger.duckAiWidget.notice("DUCKAI-WIDGET [gallery] wrote \(entries.count, privacy: .public) entries → images.json exists=\(imagesExist, privacy: .public) at \(location.imagesFileURL.path, privacy: .public)")
         } catch {
-            #if DEBUG
-            print("DUCKAI-WIDGET [gallery] FAILED: \(error)")
-            #endif
-            Logger.aiChat.error("[Widget] gallery sync failed: \(error.localizedDescription, privacy: .public)")
+            Logger.duckAiWidget.error("DUCKAI-WIDGET [gallery] sync FAILED: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -236,49 +231,12 @@ final class AIChatWidgetSyncEngine {
         }
     }
 
-    /// DEBUG-only diagnostics. Leads with the short, high-signal lines (file inventory + per-fileRef
-    /// `getFile` results) because Xcode's console drops large/rapid output; the bulky raw chat JSON
-    /// is written to a file whose path is printed, so it can be opened and copied in full.
-    /// Compiled out of release.
     private func logNativeStorageSnapshot(records: [DuckAiChatRecord],
                                           chats: [DuckAiChat],
                                           storage: DuckAiNativeObservableStorage) {
-        #if DEBUG
-        print("DUCKAI-WIDGET ===== snapshot: \(records.count) chats =====")
-
-        // 1) File inventory — the key question is whether image bytes exist in native storage at all.
-        if let files = try? storage.listFiles() {
-            print("DUCKAI-WIDGET [files] count=\(files.count)")
-            for file in files {
-                print("DUCKAI-WIDGET [file] uuid=\(file.uuid) chatId=\(file.chatId) size=\(file.dataSize)")
-            }
-        } else {
-            print("DUCKAI-WIDGET [files] listFiles() threw")
-        }
-
-        // 2) Per-chat fileRefs + what getFile actually returns for each.
-        for chat in chats {
-            print("DUCKAI-WIDGET [chat] \(chat.chatId) imageGen=\(chat.isImageGeneration) fileRefs=\(chat.fileRefs)")
-            for ref in chat.fileRefs {
-                if let file = try? storage.getFile(uuid: ref) {
-                    let bytes = Self.decodedFileBytes(fromEnvelope: file.data)
-                    let decodes = bytes.flatMap { UIImage(data: $0) } != nil
-                    print("DUCKAI-WIDGET   [getFile \(ref)] envelope=\(file.data.count)B decoded=\(bytes?.count ?? 0)B UIImage=\(decodes)")
-                } else {
-                    print("DUCKAI-WIDGET   [getFile \(ref)] nil")
-                }
-            }
-        }
-
-        // 3) Full raw chat JSON → a file (console truncates large prints).
-        let dump = records
-            .map { "// chat \($0.chatId)\n" + (String(data: $0.data, encoding: .utf8) ?? "<non-utf8 \($0.data.count) bytes>") }
-            .joined(separator: "\n\n")
-        let dumpURL = FileManager.default.temporaryDirectory.appendingPathComponent("duck-ai-widget-chats-dump.json")
-        try? dump.data(using: .utf8)?.write(to: dumpURL)
-        print("DUCKAI-WIDGET [dump] full chat JSON → \(dumpURL.path)")
-        print("DUCKAI-WIDGET ===== end snapshot =====")
-        #endif
+        let fileCount = (try? storage.listFiles().count) ?? -1
+        let imageChats = chats.filter { $0.isImageGeneration }.count
+        Logger.duckAiWidget.notice("DUCKAI-WIDGET [app] snapshot: \(records.count, privacy: .public) chats, \(imageChats, privacy: .public) image-gen, \(fileCount, privacy: .public) files in storage")
     }
 
     /// Native storage persists files as a JSON envelope — `{ chatId, mimeType, fileName, data }` —
@@ -298,30 +256,6 @@ final class AIChatWidgetSyncEngine {
         return Data(base64Encoded: base64, options: .ignoreUnknownCharacters)
     }
 
-    /// Writes a downscaled JPEG thumbnail for an image-generation chat. Best-effort: any failure
-    /// returns false so the row renders title-only.
-    private func writeThumbnail(forChatId chatId: String,
-                                fileRef: String,
-                                storage: DuckAiNativeObservableStorage,
-                                location: AIChatWidgetDataLocation) -> Bool {
-        guard let content = try? storage.getFile(uuid: fileRef),
-              let bytes = Self.decodedFileBytes(fromEnvelope: content.data),
-              let image = UIImage(data: bytes) else {
-            #if DEBUG
-            print("[DUCK.AI WIDGET] thumbnail FAILED for chat \(chatId) fileRef \(fileRef): envelope decode or UIImage init returned nil")
-            #endif
-            return false
-        }
-
-        guard let jpeg = Self.downscaledJPEG(from: image, maxDimension: Self.thumbnailMaxDimension) else { return false }
-        do {
-            try jpeg.write(to: location.thumbnailURL(forChatId: chatId), options: .atomic)
-            return true
-        } catch {
-            return false
-        }
-    }
-
     /// Aspect-preserving downscale to fit within `maxDimension` (never upscales), encoded as JPEG.
     private static func downscaledJPEG(from image: UIImage, maxDimension: CGFloat) -> Data? {
         let longestEdge = max(image.size.width, image.size.height, 1)
@@ -332,19 +266,5 @@ final class AIChatWidgetSyncEngine {
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
         return scaled.jpegData(compressionQuality: 0.8)
-    }
-
-    private func removeStaleThumbnails(keeping ids: Set<String>, location: AIChatWidgetDataLocation) {
-        let fileManager = FileManager.default
-        guard let files = try? fileManager.contentsOfDirectory(at: location.thumbnailsDirectoryURL,
-                                                               includingPropertiesForKeys: nil) else {
-            return
-        }
-        for file in files where file.pathExtension == "jpg" {
-            let chatId = file.deletingPathExtension().lastPathComponent
-            if !ids.contains(chatId) {
-                try? fileManager.removeItem(at: file)
-            }
-        }
     }
 }

@@ -33,22 +33,22 @@ public struct WidgetChatEntry: Codable, Equatable {
     /// ISO-8601 string as supplied by native storage, used for ordering.
     public let lastEdit: String
 
-    /// True when a thumbnail JPEG exists for this chat in the widget thumbnails directory.
-    public let hasImageThumbnail: Bool
+    /// Whether this chat produced generated images (shown with a photo icon in the widget).
+    public let isImageGeneration: Bool
 
     /// Whether the user pinned this chat. Pinned chats sort to the top and show a pin icon.
     public let pinned: Bool
 
-    public init(chatId: String, title: String, lastEdit: String, hasImageThumbnail: Bool, pinned: Bool = false) {
+    public init(chatId: String, title: String, lastEdit: String, isImageGeneration: Bool, pinned: Bool = false) {
         self.chatId = chatId
         self.title = title
         self.lastEdit = lastEdit
-        self.hasImageThumbnail = hasImageThumbnail
+        self.isImageGeneration = isImageGeneration
         self.pinned = pinned
     }
 
     private enum CodingKeys: String, CodingKey {
-        case chatId, title, lastEdit, hasImageThumbnail, pinned
+        case chatId, title, lastEdit, isImageGeneration, pinned
     }
 
     public init(from decoder: Decoder) throws {
@@ -56,8 +56,8 @@ public struct WidgetChatEntry: Codable, Equatable {
         chatId = try container.decode(String.self, forKey: .chatId)
         title = try container.decode(String.self, forKey: .title)
         lastEdit = try container.decode(String.self, forKey: .lastEdit)
-        hasImageThumbnail = try container.decode(Bool.self, forKey: .hasImageThumbnail)
-        // Tolerate older mirrors written before `pinned` existed.
+        // Tolerate older mirrors written before these fields existed / were renamed.
+        isImageGeneration = try container.decodeIfPresent(Bool.self, forKey: .isImageGeneration) ?? false
         pinned = try container.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
     }
 }

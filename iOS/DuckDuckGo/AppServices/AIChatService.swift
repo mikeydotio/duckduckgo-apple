@@ -38,13 +38,16 @@ final class AIChatService: NSObject {
 
     @MainActor
     func resume() {
-        // No-op
+        // Refresh the widget mirror in case chats changed while we were backgrounded.
+        widgetSyncEngine?.syncNow()
     }
 
     // MARK: - Suspend
 
     func suspend() {
-        // No-op
+        // Sync + reload as the app leaves the foreground so the home-screen widgets show the
+        // latest chats/images when the user looks at them.
+        widgetSyncEngine?.syncNow()
     }
 
     func shortcutItem() -> UIApplicationShortcutItem? {

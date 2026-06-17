@@ -127,6 +127,7 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
                                       settings: settings,
                                       dataLocation: location,
                                       notificationCenter: notificationCenter,
+                                      liveUpdateDebounce: .seconds(0),
                                       reloadWidgets: {})
     }
 
@@ -196,35 +197,22 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         XCTAssertEqual(snapshot.chats.count, 6)
     }
 
-    // MARK: - Thumbnails (Task 5)
+    // MARK: - Image-generation flag
 
-    func testWhenImageGenChatThenThumbnailWrittenAndFlagged() throws {
+    func testWhenImageGenChatThenEntryFlaggedAsImageGeneration() throws {
         let storage = MockObservableStorage()
-        storage.chats = [DuckAiChatRecord(chatId: "img", data: imageGenChatData(id: "img", lastEdit: "2026-05-01T00:00:00.000Z", fileRef: "file-1"))]
-        storage.files = ["file-1": makeImageEnvelope()]
+        storage.chats = [
+            DuckAiChatRecord(chatId: "img", data: imageGenChatData(id: "img", lastEdit: "2026-05-02T00:00:00.000Z", fileRef: "file-1")),
+            DuckAiChatRecord(chatId: "txt", data: chatData(id: "txt", title: "Text", lastEdit: "2026-05-01T00:00:00.000Z"))
+        ]
         let location = makeLocation()
         let engine = makeEngine(storage: storage, location: location)
 
         engine.syncNow()
 
         let entries = try readEntries(location)
-        XCTAssertEqual(entries.first?.hasImageThumbnail, true)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: location.thumbnailURL(forChatId: "img").path))
-    }
-
-    func testWhenChatNoLongerImageGenThenStaleThumbnailRemoved() throws {
-        let storage = MockObservableStorage()
-        storage.chats = [DuckAiChatRecord(chatId: "img", data: imageGenChatData(id: "img", lastEdit: "2026-05-01T00:00:00.000Z", fileRef: "file-1"))]
-        storage.files = ["file-1": makeImageEnvelope()]
-        let location = makeLocation()
-        let engine = makeEngine(storage: storage, location: location)
-
-        engine.syncNow()
-        XCTAssertTrue(FileManager.default.fileExists(atPath: location.thumbnailURL(forChatId: "img").path))
-
-        storage.chats = [DuckAiChatRecord(chatId: "img", data: chatData(id: "img", title: "Now text", lastEdit: "2026-05-02T00:00:00.000Z"))]
-        engine.syncNow()
-        XCTAssertFalse(FileManager.default.fileExists(atPath: location.thumbnailURL(forChatId: "img").path))
+        XCTAssertEqual(entries.first(where: { $0.chatId == "img" })?.isImageGeneration, true)
+        XCTAssertEqual(entries.first(where: { $0.chatId == "txt" })?.isImageGeneration, false)
     }
 
     // MARK: - File envelope decoding
@@ -307,7 +295,7 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: location.rootURL.path))
     }
 
-    func testWhenStorageEmitsThenMirrorUpdates() throws {
+    func testWhenStorageEmitsThenMirrorUpdates() {
         let storage = MockObservableStorage()
         let location = makeLocation()
         let engine = makeEngine(storage: storage, location: location)
@@ -316,8 +304,18 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         storage.chats = [DuckAiChatRecord(chatId: "z", data: chatData(id: "z", title: "Z", lastEdit: "2026-06-01T00:00:00.000Z"))]
         storage.emit()
 
-        let entries = try readEntries(location)
-        XCTAssertEqual(entries.map(\.chatId), ["z"])
+        // The live path debounces + syncs on a background queue, so poll for the result.
+        let synced = expectation(description: "mirror updated from storage emission")
+        DispatchQueue.global().async {
+            for _ in 0..<60 {
+                if let entries = try? self.readEntries(location), entries.map(\.chatId) == ["z"] {
+                    synced.fulfill()
+                    return
+                }
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+        }
+        wait(for: [synced], timeout: 5)
     }
 
     func testWhenWipeWidgetDataThenMirrorRemoved() throws {

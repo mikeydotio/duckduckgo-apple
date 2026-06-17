@@ -21,12 +21,12 @@ import WidgetKit
 import SwiftUI
 import UIKit
 import Core
+import os.log
 
 struct AIChatRecentChatsEntry: TimelineEntry {
     let date: Date
     let chats: [WidgetChatEntry]
     let totalChatCount: Int
-    let thumbnails: [String: UIImage]
     let isPreview: Bool
 
     /// Deep link that opens a specific chat from a widget row.
@@ -37,12 +37,12 @@ struct AIChatRecentChatsEntry: TimelineEntry {
     /// Sample content shown in the widget gallery / previews.
     static var sample: AIChatRecentChatsEntry {
         let chats = [
-            WidgetChatEntry(chatId: "1", title: "Trip ideas for Lisbon", lastEdit: "", hasImageThumbnail: false),
-            WidgetChatEntry(chatId: "2", title: "Explain quantum computing", lastEdit: "", hasImageThumbnail: false),
-            WidgetChatEntry(chatId: "3", title: "Dinner recipe with salmon", lastEdit: "", hasImageThumbnail: false),
-            WidgetChatEntry(chatId: "4", title: "Summarize this article", lastEdit: "", hasImageThumbnail: false)
+            WidgetChatEntry(chatId: "1", title: "Trip ideas for Lisbon", lastEdit: "", isImageGeneration: false),
+            WidgetChatEntry(chatId: "2", title: "A watercolor fox", lastEdit: "", isImageGeneration: true),
+            WidgetChatEntry(chatId: "3", title: "Dinner recipe with salmon", lastEdit: "", isImageGeneration: false),
+            WidgetChatEntry(chatId: "4", title: "Summarize this article", lastEdit: "", isImageGeneration: false)
         ]
-        return AIChatRecentChatsEntry(date: Date(), chats: chats, totalChatCount: chats.count, thumbnails: [:], isPreview: true)
+        return AIChatRecentChatsEntry(date: Date(), chats: chats, totalChatCount: chats.count, isPreview: true)
     }
 }
 
@@ -57,8 +57,10 @@ struct AIChatRecentChatsProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<AIChatRecentChatsEntry>) -> Void) {
-        // `.never`: the main app drives reloads via WidgetCenter when the mirror changes.
-        completion(Timeline(entries: [makeEntry(isPreview: context.isPreview)], policy: .never))
+        // The main app pushes reloads via WidgetCenter when the mirror changes; the periodic
+        // policy is a fallback so the widget re-reads on its own even if a push is missed.
+        let refresh = Date().addingTimeInterval(15 * 60)
+        completion(Timeline(entries: [makeEntry(isPreview: context.isPreview)], policy: .after(refresh)))
     }
 
     private func makeEntry(isPreview: Bool) -> AIChatRecentChatsEntry {
@@ -70,24 +72,20 @@ struct AIChatRecentChatsProvider: TimelineProvider {
         // No flag gate: the sync engine wipes the mirror when the setting is off, so "no data on
         // disk" is the safety guarantee. The widget just renders whatever exists.
         guard let location = AIChatWidgetDataLocation.appGroup() else {
-            return AIChatRecentChatsEntry(date: Date(), chats: [], totalChatCount: 0, thumbnails: [:], isPreview: false)
+            Logger.duckAiWidget.error("DUCKAI-WIDGET [ext/chats] appGroup() returned nil")
+            return AIChatRecentChatsEntry(date: Date(), chats: [], totalChatCount: 0, isPreview: false)
         }
 
         let snapshot = (try? JSONDecoder().decode(WidgetChatSnapshot.self, from: Data(contentsOf: location.chatsFileURL)))
             ?? WidgetChatSnapshot(totalChatCount: 0, chats: [])
 
-        var thumbnails: [String: UIImage] = [:]
-        for chat in snapshot.chats where chat.hasImageThumbnail {
-            if let data = try? Data(contentsOf: location.thumbnailURL(forChatId: chat.chatId)),
-               let image = UIImage(data: data) {
-                thumbnails[chat.chatId] = image.toSRGB()
-            }
-        }
+        let exists = FileManager.default.fileExists(atPath: location.chatsFileURL.path)
+        let dir = (try? FileManager.default.contentsOfDirectory(atPath: location.rootURL.path)) ?? ["<read failed>"]
+        Logger.duckAiWidget.notice("DUCKAI-WIDGET [ext/chats] reads container=\(location.rootURL.path, privacy: .public) chats.json exists=\(exists, privacy: .public) decoded=\(snapshot.chats.count, privacy: .public) dir=[\(dir.joined(separator: ", "), privacy: .public)]")
 
         return AIChatRecentChatsEntry(date: Date(),
                                       chats: snapshot.chats,
                                       totalChatCount: snapshot.totalChatCount,
-                                      thumbnails: thumbnails,
                                       isPreview: false)
     }
 }
