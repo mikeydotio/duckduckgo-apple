@@ -239,6 +239,7 @@ struct SettingsPickerCellView<T: Hashable & CustomStringConvertible>: View {
 
     let label: String
     let subtitle: String?
+    let image: Image?
     let options: [T?]
     @Binding var selectedOption: T
 
@@ -252,29 +253,37 @@ struct SettingsPickerCellView<T: Hashable & CustomStringConvertible>: View {
     /// - Parameters:
     ///   - label: The label to display above the Picker.
     ///   - subtitle: Optional subtitle text displayed below the label.
+    ///   - image: Optional image displayed to the left of the label.
     ///   - options: An array of options of generic type `T` that conforms to CustomStringConvertible.
     ///   - selectedOption: A binding to a state variable that represents the selected option.
-    init(label: String, subtitle: String? = nil, options: [T?], selectedOption: Binding<T>, iconProvider: ((T) -> Image?)? = nil) {
+    init(label: String, subtitle: String? = nil, image: Image? = nil, options: [T?], selectedOption: Binding<T>, iconProvider: ((T) -> Image?)? = nil) {
         self.label = label
         self.subtitle = subtitle
+        self.image = image
         self.options = options
         self._selectedOption = selectedOption
         self.iconProvider = iconProvider
     }
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(label)
-                    .daxBodyRegular()
-                    .foregroundColor(isEnabled ? Color(designSystemColor: .textPrimary): Color(designSystemColor: .textSecondary))
-                if let subtitle {
-                    Text(subtitle)
-                        .daxFootnoteRegular()
-                        .foregroundColor(Color(designSystemColor: .textSecondary))
+        HStack(alignment: .center) {
+            HStack(alignment: .top) {
+                if let image {
+                    image
+                        .padding(.top, -2)
                 }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(label)
+                        .daxBodyRegular()
+                        .foregroundColor(isEnabled ? Color(designSystemColor: .textPrimary): Color(designSystemColor: .textSecondary))
+                    if let subtitle {
+                        Text(subtitle)
+                            .daxFootnoteRegular()
+                            .foregroundColor(Color(designSystemColor: .textSecondary))
+                    }
+                }
+                .layoutPriority(-1)
             }
-            .layoutPriority(-1)
             Spacer(minLength: 16)
             Menu {
                 ForEach(options, id: \.self) { option in
