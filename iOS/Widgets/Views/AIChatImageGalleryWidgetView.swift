@@ -27,8 +27,14 @@ struct AIChatImageGalleryWidgetView: View {
     @Environment(\.widgetFamily) private var family
     var entry: AIChatImageGalleryEntry
 
-    private let cornerRadius: CGFloat = 8
     private let gap: CGFloat = 3
+    private let inset: CGFloat = 8
+
+    /// iOS rounds the home-screen widget container at ~21.5pt. Insetting the grid by `inset` and
+    /// rounding each cell to (container radius − inset) keeps the gap uniform around the corner, so
+    /// the image cells read as concentric with the widget itself (Apple HIG).
+    private let widgetCornerRadius: CGFloat = 21.5
+    private var cornerRadius: CGFloat { max(widgetCornerRadius - inset, 8) }
 
     private var columnsPerRow: Int { family == .systemLarge ? 3 : 4 }
     /// Fixed row height keeps cells from collapsing to zero in the widget's non-scrolling layout.
@@ -83,7 +89,6 @@ struct AIChatImageGalleryWidgetView: View {
     // against a flexible (`maxWidth: .infinity`) width does not render inside a widget; a fixed frame does.
     private var grid: some View {
         GeometryReader { geo in
-            let inset: CGFloat = 8
             let availableWidth = geo.size.width - inset * 2
             let cellWidth = (availableWidth - gap * CGFloat(columnsPerRow - 1)) / CGFloat(columnsPerRow)
             let images = Array(entry.images.prefix(maxImages))
