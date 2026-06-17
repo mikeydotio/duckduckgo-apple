@@ -105,7 +105,9 @@ struct AIChatChatRowView: View {
 
     @ViewBuilder
     private var icon: some View {
-        if let thumbnail {
+        if chat.pinned {
+            glyphIcon(DesignSystemImages.Glyphs.Size16.pin)
+        } else if let thumbnail {
             Image(uiImage: thumbnail)
                 .resizable()
                 .useFullColorRendering()
@@ -113,15 +115,19 @@ struct AIChatChatRowView: View {
                 .frame(width: iconSize, height: iconSize)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         } else {
-            Image(uiImage: DesignSystemImages.Glyphs.Size24.chat)
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(Color(designSystemColor: .accent))
-                .frame(width: 15, height: 15)
-                .frame(width: iconSize, height: iconSize)
-                .background(Color(designSystemColor: .accent).opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            glyphIcon(DesignSystemImages.Glyphs.Size24.chat)
         }
+    }
+
+    private func glyphIcon(_ image: UIImage) -> some View {
+        Image(uiImage: image)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(Color(designSystemColor: .accent))
+            .frame(width: 15, height: 15)
+            .frame(width: iconSize, height: iconSize)
+            .background(Color(designSystemColor: .accent).opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }
 

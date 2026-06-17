@@ -123,7 +123,10 @@ final class AIChatWidgetSyncEngine {
             let records = try storage.getAllChats()
             let allChats = records
                 .compactMap { try? DuckAiChat.decode(from: $0.data).chat }
-                .sorted { $0.lastEdit > $1.lastEdit }
+                .sorted { lhs, rhs in
+                    // Pinned chats first, then most-recently edited — matches the in-app history order.
+                    lhs.pinned == rhs.pinned ? lhs.lastEdit > rhs.lastEdit : lhs.pinned
+                }
             let chats = allChats.prefix(Self.maxChats)
 
             logNativeStorageSnapshot(records: records, chats: allChats, storage: storage)
@@ -140,7 +143,8 @@ final class AIChatWidgetSyncEngine {
                 return WidgetChatEntry(chatId: chat.chatId,
                                        title: chat.title,
                                        lastEdit: chat.lastEdit,
-                                       hasImageThumbnail: hasThumbnail)
+                                       hasImageThumbnail: hasThumbnail,
+                                       pinned: chat.pinned)
             }
 
             removeStaleThumbnails(keeping: keptThumbnailIds, location: dataLocation)

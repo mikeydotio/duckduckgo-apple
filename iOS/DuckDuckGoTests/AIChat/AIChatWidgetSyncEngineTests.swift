@@ -71,9 +71,9 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func chatData(id: String, title: String, lastEdit: String) -> Data {
+    private func chatData(id: String, title: String, lastEdit: String, pinned: Bool = false) -> Data {
         let json = """
-        { "chatId": "\(id)", "title": "\(title)", "model": "gpt", "lastEdit": "\(lastEdit)", "pinned": false, "messages": [] }
+        { "chatId": "\(id)", "title": "\(title)", "model": "gpt", "lastEdit": "\(lastEdit)", "pinned": \(pinned), "messages": [] }
         """
         return Data(json.utf8)
     }
@@ -146,6 +146,22 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         let entries = try readEntries(location)
         XCTAssertEqual(entries.map(\.chatId), ["b", "a"])
         XCTAssertEqual(entries.first?.title, "Newer")
+    }
+
+    func testWhenChatPinnedThenSortsAboveNewerUnpinnedChat() throws {
+        let storage = MockObservableStorage()
+        storage.chats = [
+            DuckAiChatRecord(chatId: "newer", data: chatData(id: "newer", title: "Newer", lastEdit: "2026-09-01T00:00:00.000Z")),
+            DuckAiChatRecord(chatId: "pinnedOld", data: chatData(id: "pinnedOld", title: "Pinned", lastEdit: "2026-01-01T00:00:00.000Z", pinned: true))
+        ]
+        let location = makeLocation()
+        let engine = makeEngine(storage: storage, location: location)
+
+        engine.syncNow()
+
+        let entries = try readEntries(location)
+        XCTAssertEqual(entries.map(\.chatId), ["pinnedOld", "newer"])
+        XCTAssertEqual(entries.first?.pinned, true)
     }
 
     func testWhenMoreThanSixChatsThenOnlyTopSixWritten() throws {

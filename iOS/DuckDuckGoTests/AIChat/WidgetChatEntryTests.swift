@@ -26,10 +26,18 @@ final class WidgetChatEntryTests: XCTestCase {
         let entry = WidgetChatEntry(chatId: "abc",
                                     title: "Hello",
                                     lastEdit: "2026-04-01T21:31:54.260Z",
-                                    hasImageThumbnail: true)
+                                    hasImageThumbnail: true,
+                                    pinned: true)
         let data = try JSONEncoder().encode([entry])
         let decoded = try JSONDecoder().decode([WidgetChatEntry].self, from: data)
         XCTAssertEqual(decoded, [entry])
+        XCTAssertEqual(decoded.first?.pinned, true)
+    }
+
+    func testWhenLegacyJSONHasNoPinnedFieldThenDefaultsToFalse() throws {
+        let json = Data(#"[{"chatId":"x","title":"T","lastEdit":"","hasImageThumbnail":false}]"#.utf8)
+        let decoded = try JSONDecoder().decode([WidgetChatEntry].self, from: json)
+        XCTAssertEqual(decoded.first?.pinned, false)
     }
 
     func testWhenDataLocationBuiltFromContainerThenPathsAreNestedUnderRoot() {

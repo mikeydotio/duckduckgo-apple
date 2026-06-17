@@ -36,11 +36,29 @@ public struct WidgetChatEntry: Codable, Equatable {
     /// True when a thumbnail JPEG exists for this chat in the widget thumbnails directory.
     public let hasImageThumbnail: Bool
 
-    public init(chatId: String, title: String, lastEdit: String, hasImageThumbnail: Bool) {
+    /// Whether the user pinned this chat. Pinned chats sort to the top and show a pin icon.
+    public let pinned: Bool
+
+    public init(chatId: String, title: String, lastEdit: String, hasImageThumbnail: Bool, pinned: Bool = false) {
         self.chatId = chatId
         self.title = title
         self.lastEdit = lastEdit
         self.hasImageThumbnail = hasImageThumbnail
+        self.pinned = pinned
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case chatId, title, lastEdit, hasImageThumbnail, pinned
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        chatId = try container.decode(String.self, forKey: .chatId)
+        title = try container.decode(String.self, forKey: .title)
+        lastEdit = try container.decode(String.self, forKey: .lastEdit)
+        hasImageThumbnail = try container.decode(Bool.self, forKey: .hasImageThumbnail)
+        // Tolerate older mirrors written before `pinned` existed.
+        pinned = try container.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
     }
 }
 
