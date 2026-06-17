@@ -37,7 +37,7 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
             onBookmarkSelected: {}, onCloseOther: {}, onCloseSelected: {}, onBookmarkAll: {}
         )
         noopEditActions = TabSwitcherEditMenuActions(
-            onEnterSelectMode: {}, onCloseAll: {}, onArrangeByWebsite: {}
+            onEnterSelectMode: {}, onCloseAll: {}, onArrangeByWebsite: {}, onArrangeByRecency: {}
         )
         noopLongPressActions = TabSwitcherLongPressMenuActions(
             onShare: {}, onBookmark: {}, onSelect: {}, onClose: {}, onCloseOther: {}
@@ -156,11 +156,12 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
         XCTAssertTrue(actions.contains(title: UserText.closeAllTabs))
     }
 
-    func testEditMenu_containsArrangeByWebsite() {
+    func testEditMenu_containsArrangeByWebsiteAndRecency() {
         let items = builder.editMenuItems(actions: noopEditActions)
         let actions = flatActions(items)
 
         XCTAssertTrue(actions.contains(title: UserText.tabSwitcherArrangeTabsByWebsite))
+        XCTAssertTrue(actions.contains(title: UserText.tabSwitcherArrangeTabsByRecency))
     }
 
     func testEditMenu_closeAllIsDestructive() {

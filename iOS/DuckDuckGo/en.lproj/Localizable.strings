@@ -4471,11 +4471,32 @@ Take back control of your personal information with the browser designed for dat
 /* Submenu title for arranging the open tabs */
 "tab.switcher.arrange-tabs-by" = "Arrange Tabs By";
 
+/* Menu item to arrange the open tabs by how recently they were used */
+"tab.switcher.arrange-tabs-by-recency" = "Arrange Tabs By Recency";
+
 /* Menu item to arrange the open tabs by website */
 "tab.switcher.arrange-tabs-by-website" = "Arrange Tabs By Website";
 
 /* Tab switcher section header for tabs that have no website (e.g. the home tab) */
 "tab.switcher.arrange.other-section" = "Other";
+
+/* Tab switcher section header for tabs last used last month */
+"tab.switcher.arrange.recency.last-month" = "Last Month";
+
+/* Tab switcher section header for tabs last used more than a month ago */
+"tab.switcher.arrange.recency.older" = "Older";
+
+/* Tab switcher section header for tabs last used in the previous 7 days */
+"tab.switcher.arrange.recency.previous-7-days" = "Previous 7 Days";
+
+/* Tab switcher section header for tabs last used earlier this month */
+"tab.switcher.arrange.recency.this-month" = "This Month";
+
+/* Tab switcher section header for tabs last used today */
+"tab.switcher.arrange.recency.today" = "Today";
+
+/* Tab switcher section header for tabs last used yesterday */
+"tab.switcher.arrange.recency.yesterday" = "Yesterday";
 
 /* Bookmark all tabs menu item */
 "tab.switcher.bookmarkAll" = "Bookmark All Tabs";

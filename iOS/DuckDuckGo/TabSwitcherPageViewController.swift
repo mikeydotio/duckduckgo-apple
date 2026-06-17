@@ -152,6 +152,7 @@ class TabSwitcherPageViewController: UIViewController {
         collectionView.backgroundView = backgroundView
         
         rebuildSections()
+        updateDragInteraction()
         subscribeToTabChanges()
         bindTrackerCount()
         trackerCountViewModel?.refresh()
@@ -180,6 +181,7 @@ class TabSwitcherPageViewController: UIViewController {
         let isCompositional = collectionView.collectionViewLayout is UICollectionViewCompositionalLayout
         guard isCompositional != isGrouped else { return }
         collectionView.setCollectionViewLayout(makeLayout(), animated: false)
+        updateDragInteraction()
         reloadData()
     }
     
@@ -397,8 +399,15 @@ extension TabSwitcherPageViewController {
     /// Swaps the layout for the current arrangement and reloads. Call after the arrangement changes.
     func applyArrangementChange() {
         collectionView.setCollectionViewLayout(makeLayout(), animated: false)
+        updateDragInteraction()
         reloadData()
         scrollToInitialTab()
+    }
+
+    /// Disables tab dragging entirely while grouped (the order is defined by the arrangement);
+    /// restores the platform default when flat.
+    func updateDragInteraction() {
+        collectionView.dragInteractionEnabled = !isGrouped && UIDevice.current.userInterfaceIdiom == .pad
     }
 
     func makeLayout() -> UICollectionViewLayout {
@@ -447,6 +456,42 @@ extension TabSwitcherPageViewController {
         switch arrangement {
         case .website:
             return makeWebsiteSections(tabs: tabs)
+        case .recency:
+            return makeRecencySections(tabs: tabs)
+        }
+    }
+
+    /// Groups tabs by when they were last viewed into descending time buckets, most-recent first within each.
+    private static func makeRecencySections(tabs: [Tab]) -> [TabGridSection] {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday) ?? startOfToday
+        let startOf7Days = calendar.date(byAdding: .day, value: -7, to: startOfToday) ?? startOfToday
+        let startOfThisMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now)) ?? startOfToday
+        let startOfLastMonth = calendar.date(byAdding: .month, value: -1, to: startOfThisMonth) ?? startOfThisMonth
+
+        // Buckets are checked most-recent first, so each tab lands in exactly one.
+        let buckets: [(title: String, contains: (Date) -> Bool)] = [
+            (UserText.tabSwitcherArrangeRecencyToday, { $0 >= startOfToday }),
+            (UserText.tabSwitcherArrangeRecencyYesterday, { $0 >= startOfYesterday }),
+            (UserText.tabSwitcherArrangeRecencyPrevious7Days, { $0 >= startOf7Days }),
+            (UserText.tabSwitcherArrangeRecencyThisMonth, { $0 >= startOfThisMonth }),
+            (UserText.tabSwitcherArrangeRecencyLastMonth, { $0 >= startOfLastMonth }),
+            (UserText.tabSwitcherArrangeRecencyOlder, { _ in true }),
+        ]
+
+        var grouped: [[Tab]] = Array(repeating: [], count: buckets.count)
+        for tab in tabs {
+            // Tabs never viewed have no date and fall into the oldest bucket.
+            let date = tab.lastViewedDate ?? .distantPast
+            let index = buckets.firstIndex { $0.contains(date) } ?? buckets.count - 1
+            grouped[index].append(tab)
+        }
+
+        return buckets.indices.compactMap { index in
+            let tabs = grouped[index].sorted { ($0.lastViewedDate ?? .distantPast) > ($1.lastViewedDate ?? .distantPast) }
+            return tabs.isEmpty ? nil : TabGridSection(title: buckets[index].title, tabs: tabs)
         }
     }
 

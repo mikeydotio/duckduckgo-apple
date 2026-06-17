@@ -86,6 +86,7 @@ struct TabSwitcherEditMenuActions {
     var onEnterSelectMode: () -> Void
     var onCloseAll: () -> Void
     var onArrangeByWebsite: () -> Void
+    var onArrangeByRecency: () -> Void
 }
 
 // MARK: - Protocol
@@ -183,6 +184,9 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
                     action(UserText.tabSwitcherArrangeTabsByWebsite,
                            DesignSystemImages.Glyphs.Size16.globe,
                            actions.onArrangeByWebsite),
+                    action(UserText.tabSwitcherArrangeTabsByRecency,
+                           DesignSystemImages.Glyphs.Size16.history,
+                           actions.onArrangeByRecency),
                    ]),
 
             UIMenu(title: "", options: [.displayInline], children: [

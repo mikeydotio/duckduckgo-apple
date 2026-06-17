@@ -23,6 +23,7 @@ import Persistence
 /// How the tab switcher grid groups open tabs into sections. Absence means no grouping (flat grid).
 enum TabArrangement: String {
     case website
+    case recency
 }
 
 protocol TabSwitcherSettings: AnyObject {

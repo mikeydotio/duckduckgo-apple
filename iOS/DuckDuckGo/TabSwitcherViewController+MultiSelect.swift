@@ -311,7 +311,8 @@ extension TabSwitcherViewController {
         return menuBuilder.editMenu(actions: TabSwitcherEditMenuActions(
             onEnterSelectMode: { [weak self] in self?.editMenuEnterSelectMode() },
             onCloseAll: { [weak self] in self?.editMenuCloseAllTabs() },
-            onArrangeByWebsite: { [weak self] in self?.editMenuArrangeTabs(by: .website) }
+            onArrangeByWebsite: { [weak self] in self?.editMenuArrangeTabs(by: .website) },
+            onArrangeByRecency: { [weak self] in self?.editMenuArrangeTabs(by: .recency) }
         ))
     }
 
