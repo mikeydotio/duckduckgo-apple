@@ -109,9 +109,6 @@
 /* Device SyncedSheet Button to go get DuckDuckGo on other devices */
 "device.synced.sheet.button.get.other.devices" = "Αποκτήστε το DuckDuckGo σε άλλες συσκευές";
 
-/* Device SyncedSheet - Title */
-"device.synced.sheet.title" = "Η συσκευή συγχρονίστηκε!";
-
 /* Standard Buttons - Done Button */
 "done.button" = "Ολοκληρώθηκε";
 
@@ -186,9 +183,6 @@
 
 /* Preparing To Sync Sheet - Title */
 "preparing.to.sync.sheet.title" = "Ρύθμιση συγχρονισμού και δημιουργίας αντιγράφων ασφάλειας";
-
-/* Preparing to sync title */
-"preparing.to.sync.title" = "Προετοιμασία για συγχρονισμό";
 
 /* Link label for recovering synced data */
 "recover.synced.data.link" = "Ανάκτηση συγχρονισμένων δεδομένων";

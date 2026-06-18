@@ -109,9 +109,6 @@
 /* Device SyncedSheet Button to go get DuckDuckGo on other devices */
 "device.synced.sheet.button.get.other.devices" = "Hanki DuckDuckGo toiselle laitteelle";
 
-/* Device SyncedSheet - Title */
-"device.synced.sheet.title" = "Laite synkronoitu!";
-
 /* Standard Buttons - Done Button */
 "done.button" = "Valmis";
 
@@ -186,9 +183,6 @@
 
 /* Preparing To Sync Sheet - Title */
 "preparing.to.sync.sheet.title" = "Synkronoinnin ja varmuuskopioinnin määrittäminen";
-
-/* Preparing to sync title */
-"preparing.to.sync.title" = "Synkronoinnin valmistelu";
 
 /* Link label for recovering synced data */
 "recover.synced.data.link" = "Palauta synkronoidut tiedot";

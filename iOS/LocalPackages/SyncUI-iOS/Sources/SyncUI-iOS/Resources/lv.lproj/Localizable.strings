@@ -109,9 +109,6 @@
 /* Device SyncedSheet Button to go get DuckDuckGo on other devices */
 "device.synced.sheet.button.get.other.devices" = "Iegūt DuckDuckGo citās ierīcēs";
 
-/* Device SyncedSheet - Title */
-"device.synced.sheet.title" = "Ierīce sinhronizēta!";
-
 /* Standard Buttons - Done Button */
 "done.button" = "Gatavs";
 
@@ -186,9 +183,6 @@
 
 /* Preparing To Sync Sheet - Title */
 "preparing.to.sync.sheet.title" = "Sinhronizācijas un dublēšanas sagatavošana";
-
-/* Preparing to sync title */
-"preparing.to.sync.title" = "Sagatavojas sinhronizācijai";
 
 /* Link label for recovering synced data */
 "recover.synced.data.link" = "Sinhronizēto datu atgūšana";
