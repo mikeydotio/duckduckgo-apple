@@ -443,9 +443,11 @@ class TabSwitcherPageViewController: UIViewController {
         let tabsToClose = tabsModel.tabs.filter { $0 !== retainedTab }
         guard !tabsToClose.isEmpty else { return }
 
+        pageDelegate.isProcessingUpdates = true
         pageDelegate.page(self, willDeleteTabs: tabsToClose, allDeleted: false)
         reloadData()
         currentSelection = tabsModel.currentIndex
+        pageDelegate.isProcessingUpdates = false
         pageDelegate.pageDidDeleteTabs(self, allDeleted: false)
     }
 
