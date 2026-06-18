@@ -3438,6 +3438,15 @@ class MainViewController: UIViewController {
                     files: [AIChatNativePrompt.NativePromptFile]? = nil,
                     fromDeepLink: Bool = false) {
 
+        // Deep-link entry points that request a specific tool (e.g. the image-gallery widget's new-chat
+        // button asking for image generation) need to update the live UTI state, not just the URL's
+        // `toolChoice` param — the UTI's active-tool chip is read from `UnifiedInputStateStore`'s
+        // in-memory `lastUsed` snapshot, so a persistor write alone wouldn't be reflected until app
+        // relaunch. Apply BEFORE opening so the new tab seeded by `reconcileFromSnapshots` picks it up.
+        if fromDeepLink, let firstTool = tools?.first {
+            unifiedInputStateStore?.applyExternalToolSelection(firstTool)
+        }
+
         if aichatFullModeFeature.isAvailable || aichatIPadTabFeature.isAvailable {
             openAIChatInTab(
                 query,

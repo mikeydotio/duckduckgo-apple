@@ -126,9 +126,9 @@ struct AIChatImageGalleryWidgetView: View {
                 .accessibilityLabel(UserText.recentChatsWidgetNewChatAccessibilityLabel)
             }
         } else {
-            // Past the end of `cells` (only ever the trailing slots of a partial final row): fill with
-            // surface so the grid keeps a clean rectangular fill.
-            Color(designSystemColor: .surface)
+            // Past the end of `cells`: transparent so the empty trailing slots inherit the widget
+            // background — the same effective color as the (background-less) new-chat cell.
+            Color.clear
                 .frame(width: width, height: height)
         }
     }
@@ -149,29 +149,28 @@ struct AIChatImageGalleryWidgetView: View {
     }
 
     private func newChatCell(width: CGFloat, height: CGFloat) -> some View {
+        // No background fill — the icon sits over the widget's own surface, in line with the rest of
+        // the grid. Cell size is preserved for layout.
         let iconSize = min(width, height) * 0.4
-        return ZStack {
-            Color(designSystemColor: .accent).opacity(0.12)
-            Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChatAdd)
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(Color(designSystemColor: .accent))
-                .frame(width: iconSize, height: iconSize)
-        }
-        .frame(width: width, height: height)
-        .clipped()
+        return Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChatAdd)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(Color(designSystemColor: .accent))
+            .frame(width: iconSize, height: iconSize)
+            .frame(width: width, height: height)
     }
 
-    // Small-widget overlay version of the new-chat affordance — a Duck.ai-tinted icon chip.
+    // Small-widget overlay version of the new-chat affordance — sized for an HIG-friendly tap target
+    // (≥44pt). A Duck.ai-tinted icon on an ultraThinMaterial circle so it reads against any photo.
     private var newChatChip: some View {
         Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChatAdd)
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
             .foregroundStyle(Color(designSystemColor: .accent))
-            .frame(width: 18, height: 18)
-            .padding(8)
+            .frame(width: 24, height: 24)
+            .padding(12)
             .background(.ultraThinMaterial, in: Circle())
     }
 }

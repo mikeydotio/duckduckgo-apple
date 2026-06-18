@@ -29,6 +29,10 @@ public enum AIChatWidgetDeepLink {
     /// Must match `WidgetSourceType.sourceKey` (defined in the app/widget targets, not Core).
     public static let sourceParameterName = "source"
 
+    /// When present and == "1", the deep link should open a brand-new chat with the image-generation
+    /// tool pre-selected. Used by the image-gallery widget's new-chat button.
+    public static let imageGenerationParameterName = "imageGen"
+
     /// Builds `ddgOpenAIChat://?chatID=<id>&source=<source>`.
     public static func url(forChatId chatId: String, source: String) -> URL {
         let base = AppDeepLinkSchemes.openAIChat.url
@@ -45,5 +49,11 @@ public enum AIChatWidgetDeepLink {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
         let value = components.queryItems?.first(where: { $0.name == chatIDParameterName })?.value
         return (value?.isEmpty == false) ? value : nil
+    }
+
+    /// Returns true when the deep link requests the image-generation tool be pre-selected.
+    public static func requestsImageGeneration(from url: URL) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
+        return components.queryItems?.first(where: { $0.name == imageGenerationParameterName })?.value == "1"
     }
 }

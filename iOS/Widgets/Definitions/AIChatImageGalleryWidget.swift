@@ -34,10 +34,14 @@ struct AIChatImageGalleryEntry: TimelineEntry {
         AIChatWidgetDeepLink.url(forChatId: chatId, source: WidgetSourceType.imageGalleryWidget.rawValue)
     }
 
-    /// Deep link that opens a brand-new Duck.ai chat from the gallery's new-chat cell.
+    /// Deep link that opens a brand-new Duck.ai chat from the gallery's new-chat cell, with the
+    /// image-generation tool pre-selected. The `imageGen=1` flag is decoded app-side by
+    /// `AIChatDeepLinkHandler`.
     static var newChatDeepLink: URL {
-        DeepLinks.openAIChat.appendingParameter(name: WidgetSourceType.sourceKey,
-                                                value: WidgetSourceType.imageGalleryWidget.rawValue)
+        DeepLinks.openAIChat
+            .appendingParameter(name: WidgetSourceType.sourceKey,
+                                value: WidgetSourceType.imageGalleryWidget.rawValue)
+            .appendingParameter(name: AIChatWidgetDeepLink.imageGenerationParameterName, value: "1")
     }
 }
 

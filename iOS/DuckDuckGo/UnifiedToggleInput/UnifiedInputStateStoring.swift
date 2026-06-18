@@ -53,4 +53,10 @@ protocol UnifiedInputStateStoring: AnyObject {
     /// The seedable defaults used for new tabs. Reflects the user's most recent
     /// deliberate choice — not affected by tab switching.
     var lastUsed: LastUsedInputDefaults { get }
+
+    /// Applies a tool selection that originates outside the UTI UI (e.g. a deep link from the
+    /// image-gallery widget's new-chat button, which requests image-generation pre-selected).
+    /// Updates both the persisted preference and the in-memory `lastUsed` snapshot so the
+    /// very next tab seeded by `reconcileFromSnapshots` picks up the new tool.
+    func applyExternalToolSelection(_ tool: AIChatRAGTool?)
 }

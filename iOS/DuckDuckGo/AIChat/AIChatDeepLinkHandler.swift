@@ -41,12 +41,18 @@ protocol AIChatDeepLinkPresenting: UIViewController {
 extension AIChatDeepLinkPresenting {
 
     func openAIChat(fromDeepLink: Bool) {
+        openAIChat(tools: nil, fromDeepLink: fromDeepLink)
+    }
+
+    /// Convenience that opens a fresh deep-linked AI Chat with a specific set of RAG tools
+    /// pre-selected (e.g. `[.imageGeneration]` from the image-gallery widget's new-chat button).
+    func openAIChat(tools: [AIChatRAGTool]?, fromDeepLink: Bool) {
         openAIChat(
             nil,
             autoSend: false,
             payload: nil,
             flowType: .default,
-            tools: nil,
+            tools: tools,
             modelId: nil,
             reasoningEffort: nil,
             images: nil,
@@ -54,7 +60,7 @@ extension AIChatDeepLinkPresenting {
             fromDeepLink: fromDeepLink
         )
     }
-    
+
 }
 
 struct AIChatDeepLinkHandler {
@@ -78,6 +84,10 @@ struct AIChatDeepLinkHandler {
                 mainViewController.openAIVoiceChatFromDeepLink()
             } else if let chatId = self.chatID(from: url) {
                 mainViewController.openAIChat(chatId: chatId)
+            } else if AIChatWidgetDeepLink.requestsImageGeneration(from: url) {
+                // Image-gallery widget "new chat" — pre-select the image-generation tool so the
+                // user lands directly in the image flow.
+                mainViewController.openAIChat(tools: [.imageGeneration], fromDeepLink: true)
             } else {
                 mainViewController.openAIChat(fromDeepLink: true)
             }

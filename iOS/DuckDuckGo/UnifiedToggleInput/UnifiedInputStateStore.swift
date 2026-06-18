@@ -104,6 +104,19 @@ final class UnifiedInputStateStore: UnifiedInputStateStoring {
         Logger.unifiedInputState.debug("remove for tab [\(uid)]")
     }
 
+    func applyExternalToolSelection(_ tool: AIChatRAGTool?) {
+        // Persist + update lastUsed so the next tab seeded by `reconcileFromSnapshots`
+        // (typically the one that loadUrlInNewTab is about to create) inherits the tool.
+        preferences.selectedTool = tool
+        trackedLastUsed = LastUsedInputDefaults(
+            toggleMode: trackedLastUsed.toggleMode,
+            selectedModelID: trackedLastUsed.selectedModelID,
+            selectedReasoningMode: trackedLastUsed.selectedReasoningMode,
+            selectedTool: tool
+        )
+        Logger.unifiedInputState.debug("applyExternalToolSelection → \(String(describing: tool))")
+    }
+
     func observeTabsModel(_ tabsModel: TabsModelManaging) {
         let modelID = ObjectIdentifier(tabsModel)
         tabsModel.tabsPublisher

@@ -37,4 +37,18 @@ final class AIChatDeepLinkHandlerTests: XCTestCase {
         let url = AppDeepLinkSchemes.openAIChat.url.appendingParameter(name: "chatID", value: "")
         XCTAssertNil(AIChatDeepLinkHandler().chatID(from: url))
     }
+
+    func testWhenURLHasImageGenFlagThenRequestsImageGeneration() {
+        let url = AppDeepLinkSchemes.openAIChat.url.appendingParameter(name: "imageGen", value: "1")
+        XCTAssertTrue(AIChatWidgetDeepLink.requestsImageGeneration(from: url))
+    }
+
+    func testWhenURLLacksImageGenFlagThenDoesNotRequestImageGeneration() {
+        XCTAssertFalse(AIChatWidgetDeepLink.requestsImageGeneration(from: AppDeepLinkSchemes.openAIChat.url))
+    }
+
+    func testWhenURLHasImageGenZeroThenDoesNotRequestImageGeneration() {
+        let url = AppDeepLinkSchemes.openAIChat.url.appendingParameter(name: "imageGen", value: "0")
+        XCTAssertFalse(AIChatWidgetDeepLink.requestsImageGeneration(from: url))
+    }
 }

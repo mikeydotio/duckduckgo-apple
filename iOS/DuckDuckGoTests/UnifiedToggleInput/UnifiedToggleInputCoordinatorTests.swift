@@ -2857,6 +2857,15 @@ private final class FakeInputStateStore: UnifiedInputStateStoring {
     func remove(for uid: TabUID) {
         states.removeValue(forKey: uid)
     }
+
+    func applyExternalToolSelection(_ tool: AIChatRAGTool?) {
+        lastUsedDefaults = LastUsedInputDefaults(
+            toggleMode: lastUsedDefaults.toggleMode,
+            selectedModelID: lastUsedDefaults.selectedModelID,
+            selectedReasoningMode: lastUsedDefaults.selectedReasoningMode,
+            selectedTool: tool
+        )
+    }
 }
 
 // MARK: - Per-tab state regression tests
