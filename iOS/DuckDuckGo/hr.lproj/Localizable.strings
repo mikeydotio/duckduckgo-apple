@@ -3001,6 +3001,12 @@
 /* Title for the data volume section in the VPN status screen */
 "network.protection.vpn.data-volume" = "Količina podataka";
 
+/* Footer text for the Exclude CGNAT setting item. */
+"network.protection.vpn.exclude.cgnat.setting.footer" = "Preporučuje se biti isključeno kako bi sav tvoj promet prolazio kroz VPN. Ako imaš problema sa značajkama poput Wi-Fi poziva, slanja poruka ili govorne pošte, pokušaj uključiti ovu postavku.";
+
+/* Title for the Exclude CGNAT setting item. */
+"network.protection.vpn.exclude.cgnat.setting.title" = "Isključi usluge operatera";
+
 /* Footer text for the Exclude Local Networks setting item. */
 "network.protection.vpn.exclude.local.networks.setting.footer" = "Neka lokalni promet zaobiđe VPN i poveže se s uređajima na tvojoj lokalnoj mreži, poput pisača.";
 

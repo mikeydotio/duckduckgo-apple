@@ -1187,6 +1187,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             configurationResult = try await deviceManager.generateTunnelConfiguration(
                 resolvedSelectionMethod: resolvedServerSelectionMethod,
                 excludeLocalNetworks: settings.excludeLocalNetworks,
+                excludeCGNAT: settings.excludeCGNAT,
                 dnsSettings: dnsSettings,
                 regenerateKey: regenerateKey
             )
@@ -1262,6 +1263,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setDNSSettings,
                 .setEnforceRoutes,
                 .setExcludeLocalNetworks,
+                .setExcludeCGNAT,
                 .setExcludeAPNs,
                 .setExcludeCellularServices,
                 .setExcludeDeviceCommunication,

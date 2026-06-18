@@ -69,6 +69,17 @@ extension Preferences {
                             spacing: 12
                         )
                     }
+
+                    if model.isExcludeCGNATAvailable {
+                        SpacedCheckbox {
+                            ToggleMenuItemWithDescription(
+                                UserText.vpnExcludeCGNATSettingTitle,
+                                UserText.vpnExcludeCGNATSettingDescription,
+                                isOn: $model.excludeCGNAT,
+                                spacing: 12
+                            )
+                        }
+                    }
                 }
                 .padding(.bottom, 12)
 
@@ -193,6 +204,9 @@ extension Preferences {
                         }
                     }
                 }
+            }
+            .onAppear {
+                model.onViewAppeared()
             }
         }
 

@@ -621,6 +621,10 @@ public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     /// https://app.asana.com/0/1204186595873227/1206489252288889
     case riskyDomainsProtection
 
+    /// Exclude Carrier-Grade NAT (100.64.0.0/10) from the VPN tunnel.
+    /// Keeps Wi-Fi calling, Visual Voicemail, and mesh VPNs (Tailscale/ZeroTier) working.
+    case excludeCGNAT
+
     /// Kill switch for the orphaned-proxy detection machinery (tunnel heartbeat + proxy detection loop + pixel).
     /// Off by default → detection runs; enable remotely to disable it.
     case orphanProxyDetectionKillSwitch
