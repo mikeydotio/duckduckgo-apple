@@ -1956,6 +1956,12 @@ extension Pixel {
         case webExtensionDarkReaderEnabled
         case webExtensionDarkReaderDisabled
 
+        case webExtensionStateChecked
+        case webExtensionEmbeddedNotLoaded
+        case webExtensionDarkReaderNotLoaded
+        case webExtensionAdBlockingNotLoaded
+        case webExtensionAdBlockingScriptletsNotFetched
+
         case webExtensionAdBlockingInstalled
         case webExtensionAdBlockingUpgraded
         case webExtensionAdBlockingInstallError
@@ -3883,6 +3889,12 @@ extension Pixel.Event {
         case .webExtensionDarkReaderInstallError: return "m_web_extension_dark_reader_install_error"
         case .webExtensionDarkReaderEnabled: return "m_web_extension_dark_reader_enabled"
         case .webExtensionDarkReaderDisabled: return "m_web_extension_dark_reader_disabled"
+
+        case .webExtensionStateChecked: return "web_extension_state_checked"
+        case .webExtensionEmbeddedNotLoaded: return "web_extension_embedded_not_loaded"
+        case .webExtensionDarkReaderNotLoaded: return "web_extension_dark_reader_not_loaded"
+        case .webExtensionAdBlockingNotLoaded: return "web_extension_ad_blocking_not_loaded"
+        case .webExtensionAdBlockingScriptletsNotFetched: return "web_extension_ad_blocking_scriptlets_not_fetched"
 
         case .webExtensionAdBlockingInstalled: return "m_web_extension_ad_blocking_installed"
         case .webExtensionAdBlockingUpgraded: return "m_web_extension_ad_blocking_upgraded"

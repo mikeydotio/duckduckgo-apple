@@ -1983,7 +1983,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             self.webExtensionManager = webExtensionManager
 
-            let coordinator = WebExtensionLifecycleCoordinator(manager: webExtensionManager) { [weak self] in
+            let coordinator = WebExtensionLifecycleCoordinator(
+                manager: webExtensionManager,
+                pixelFiring: MacOSWebExtensionPixelFiring()
+            ) { [weak self] in
                 self?.enabledEmbeddedExtensionTypes() ?? []
             }
             self.webExtensionLifecycleCoordinator = coordinator
@@ -2011,7 +2014,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.webExtensionManager = webExtensionManager
 
-        let coordinator = WebExtensionLifecycleCoordinator(manager: webExtensionManager) { [weak self] in
+        let coordinator = WebExtensionLifecycleCoordinator(
+            manager: webExtensionManager,
+            pixelFiring: MacOSWebExtensionPixelFiring()
+        ) { [weak self] in
             self?.enabledEmbeddedExtensionTypes() ?? []
         }
         self.webExtensionLifecycleCoordinator = coordinator
