@@ -44,6 +44,8 @@ class TabSwitcherViewController: UIViewController {
         static let cellMinHeight: CGFloat = 140.0
         static let cellMaxHeight: CGFloat = 209.0
         static let modePickerWidth: CGFloat = 120
+        static let searchContainerPadding: CGFloat = 12
+        static let searchCancelButtonSize: CGFloat = 44
     }
 
     struct BookmarkAllResult {
@@ -146,6 +148,48 @@ class TabSwitcherViewController: UIViewController {
     var interfaceMode: InterfaceMode = .regularSize
     var canShowSelectionMenu = false
     var menuBuilder: TabSwitcherMenuBuilding = DefaultTabSwitcherMenuBuilder()
+
+    // 🟣 redundant comment - remove later
+    // The search field is docked just above the keyboard via `keyboardLayoutGuide`,
+    // so it sits correctly regardless of address-bar position. While searching, the active page
+    // filters its tabs (see `TabSwitcherPageViewController.beginSearch()`) and Normal/Fire paging
+    // is locked. Search applies to the currently visible page only.
+    private(set) var isSearching = false
+
+    private(set) lazy var searchBar: UISearchBar = {
+        let searchBar = UISearchBar()
+        searchBar.placeholder = TabsSearch.placeholder
+        searchBar.searchBarStyle = .minimal
+        searchBar.delegate = self
+        searchBar.showsCancelButton = false
+        searchBar.autocapitalizationType = .none
+        searchBar.autocorrectionType = .no
+        searchBar.spellCheckingType = .no
+        searchBar.accessibilityIdentifier = "TabSwitcher.SearchBar"
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        return searchBar
+    }()
+
+    private lazy var searchCancelButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(DesignSystemImages.Glyphs.Size24.close, for: .normal)
+        button.tintColor = UIColor(designSystemColor: .icons)
+        button.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
+        button.layer.cornerRadius = Constants.searchCancelButtonSize / 2
+        button.layer.cornerCurve = .continuous
+        button.accessibilityLabel = UserText.actionCancel
+        button.accessibilityIdentifier = "TabSwitcher.SearchCancel"
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addAction(UIAction { [weak self] _ in self?.exitSearchMode() }, for: .touchUpInside)
+        return button
+    }()
+
+    private lazy var searchContainerView: UIView = {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.isHidden = true
+        return container
+    }()
 
     let featureFlagger: FeatureFlagger
     let tabManager: TabManager
@@ -313,6 +357,12 @@ class TabSwitcherViewController: UIViewController {
         guard newMode != selectedBrowsingMode else {
             return
         }
+        // 🟣 redundant comment - remove later
+        // Switching Normal/Fire (via the top picker) leaves search entirely — keyboard and search
+        // field are dismissed before the page changes.
+        if isSearching {
+            exitSearchMode()
+        }
         let source = modeChangeFromSwipe ? "swipe" : "tap"
         modeChangeFromSwipe = false
         selectedBrowsingMode = newMode
@@ -423,6 +473,7 @@ class TabSwitcherViewController: UIViewController {
         decorate()
         becomeFirstResponder()
         setupBarButtonActions()
+        setupSearchContainer()
     }
 
     private func setupPagingScrollView() {
@@ -532,6 +583,10 @@ class TabSwitcherViewController: UIViewController {
     private func setupBarButtonActions() {
         barsHandler.onPlusButtonTapped = { [weak self] in
             self?.addNewTab()
+        }
+
+        barsHandler.onSearchButtonTapped = { [weak self] in
+            self?.enterSearchMode()
         }
 
         barsHandler.onNewFireTabTapped = { [weak self] in
@@ -923,6 +978,13 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
         return createLongPressMenuForTabs(atIndexPaths: indexPaths)
     }
 
+    func page(_ page: TabSwitcherPageViewController, searchContextMenuForTab tab: Tab) -> UIMenu? {
+        // 🟣 redundant comment - remove later
+        // Drop the keyboard so the menu — and any resulting toast (e.g. Bookmark) — aren't hidden behind it.
+        dismissSearchKeyboard()
+        return createSearchLongPressMenu(forTab: tab)
+    }
+
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController) {
         if isEditing {
             transitionFromMultiSelect()
@@ -935,8 +997,15 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
         pagingScrollView.isScrollEnabled = false
     }
 
+    func pageDidScrollSearchResults(_ page: TabSwitcherPageViewController) {
+        // 🟣 redundant comment - remove later
+        // Dragging the results list dismisses the keyboard.
+        dismissSearchKeyboard()
+    }
+
     func pageCellDidEndSwipe(_ page: TabSwitcherPageViewController) {
-        pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing
+        // Keep paging locked while searching — a swipe-to-close must not re-enable Normal/Fire paging.
+        pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing && !isSearching
     }
 
     func pageCellDidBeginDrag(_ page: TabSwitcherPageViewController) {
@@ -944,7 +1013,94 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
     }
 
     func pageCellDidEndDrag(_ page: TabSwitcherPageViewController) {
+        pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing && !isSearching
+    }
+}
+
+// MARK: - Search
+
+extension TabSwitcherViewController {
+
+    /// Builds the keyboard-docked search container and pins it  above the keyboard.
+    /// The container collapses to the safe-area bottom while
+    /// hidden and rides up with the keyboard once the search field becomes first responder.
+    func setupSearchContainer() {
+        searchContainerView.addSubview(searchBar)
+        searchContainerView.addSubview(searchCancelButton)
+        view.addSubview(searchContainerView)
+
+        NSLayoutConstraint.activate([
+            searchContainerView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: Constants.searchContainerPadding),
+            searchContainerView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -Constants.searchContainerPadding),
+            searchContainerView.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: 0),
+
+            searchBar.leadingAnchor.constraint(equalTo: searchContainerView.leadingAnchor),
+            searchBar.topAnchor.constraint(equalTo: searchContainerView.topAnchor),
+            searchBar.bottomAnchor.constraint(equalTo: searchContainerView.bottomAnchor),
+
+            searchCancelButton.leadingAnchor.constraint(equalTo: searchBar.trailingAnchor,
+                                                         constant: Constants.searchContainerPadding),
+            searchCancelButton.trailingAnchor.constraint(equalTo: searchContainerView.trailingAnchor),
+            searchCancelButton.centerYAnchor.constraint(equalTo: searchContainerView.centerYAnchor),
+            searchCancelButton.widthAnchor.constraint(equalToConstant: Constants.searchCancelButtonSize),
+            searchCancelButton.heightAnchor.constraint(equalToConstant: Constants.searchCancelButtonSize),
+        ])
+    }
+
+    // 🟣 redundant comment - remove later
+    /// Enters search mode for the currently visible page: docks the search field above the
+    /// keyboard, locks Normal/Fire paging, and switches the active page into its filtered view.
+    func enterSearchMode() {
+        guard !isSearching, !isEditing else { return }
+        isSearching = true
+        pagingScrollView.isScrollEnabled = false
+        activePageController.beginSearch()
+        searchContainerView.isHidden = false
+        view.bringSubviewToFront(searchContainerView)
+        searchBar.becomeFirstResponder()
+    }
+
+    // 🟣 redundant comment - remove later
+    /// Leaves search mode: clears the query, hides the search field and re-enables paging.
+    func exitSearchMode() {
+        guard isSearching else { return }
+        isSearching = false
+        searchBar.text = ""
+        searchBar.resignFirstResponder()
+        searchContainerView.isHidden = true
+        activePageController.endSearch()
         pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing
+    }
+
+    // 🟣 redundant comment - remove later
+    /// Dismisses the keyboard while staying in search mode. The search field stays visible and
+    /// docks to the bottom (keyboardLayoutGuide collapses), so results behind the keyboard — and
+    /// the bookmark toast — become visible. Used on long-press and when the results list is scrolled.
+    ///
+    /// Hops to the next runloop: resigning the first responder *synchronously* from inside a
+    /// UIKit callback that's mid-touch-tracking (e.g. `scrollViewWillBeginDragging`) can be deferred,
+    /// so the keyboard wouldn't actually drop. `view.endEditing(true)` is the forced, hierarchy-wide
+    /// dismissal (more reliable than `resignFirstResponder` on the search bar alone).
+    func dismissSearchKeyboard() {
+        guard isSearching else { return }
+        searchBar.resignFirstResponder()
+    }
+}
+
+// MARK: - UISearchBarDelegate
+
+extension TabSwitcherViewController: UISearchBarDelegate {
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        activePageController.updateSearch(query: searchText)
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        exitSearchMode()
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
     }
 }
 

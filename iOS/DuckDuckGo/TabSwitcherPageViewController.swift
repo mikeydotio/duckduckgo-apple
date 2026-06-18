@@ -43,11 +43,17 @@ protocol TabSwitcherPageDelegate: AnyObject {
     func pageDidDeleteTabs(_ page: TabSwitcherPageViewController, allDeleted: Bool)
     func page(_ page: TabSwitcherPageViewController, didReorderTabs: Void)
     func page(_ page: TabSwitcherPageViewController, contextMenuForTabsAt indexPaths: [IndexPath]) -> UIMenu?
+    // 🟣 redundant comment - remove later
+    /// Long-press menu while searching. Resolved by `Tab` object (not index) because the
+    /// collection shows a filtered view; offers the safe subset of actions.
+    func page(_ page: TabSwitcherPageViewController, searchContextMenuForTab tab: Tab) -> UIMenu?
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController)
     func pageCellDidBeginSwipe(_ page: TabSwitcherPageViewController)
     func pageCellDidEndSwipe(_ page: TabSwitcherPageViewController)
     func pageCellDidBeginDrag(_ page: TabSwitcherPageViewController)
     func pageCellDidEndDrag(_ page: TabSwitcherPageViewController)
+    /// The user started dragging the results list while searching — used to dismiss the keyboard.
+    func pageDidScrollSearchResults(_ page: TabSwitcherPageViewController)
 
     var isEditing: Bool { get }
     var isProcessingUpdates: Bool { get set }
@@ -76,6 +82,16 @@ class TabSwitcherPageViewController: UIViewController {
     private let duckAIGridContentProvider: DuckAIGridContentProviding?
 
     var canUpdateCollection = true
+
+    // 🟣 redundant comment - remove later - or rather update, swipe & context menu are updated
+    // Non-mutating, presentation-only filtering. `tabsModel` stays the full source of
+    // truth; while searching, the collection view reads from `filteredTabs` (a derived
+    // copy) instead. Mutating interactions (reorder, swipe-to-delete, context menu) are
+    // disabled while searching so filtered indices never have to be translated back into
+    // model indices for membership/order changes.
+    private(set) var isSearchActive = false
+    private var searchQuery = ""
+    private var filteredTabs: [Tab] = []
 
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
@@ -271,8 +287,67 @@ class TabSwitcherPageViewController: UIViewController {
     }
 
     func reloadData() {
+        if isSearchActive {
+            rebuildFilteredTabs()
+        }
         collectionView.reloadData()
         updateEmptyStateVisibility()
+    }
+
+    // MARK: - Search
+
+    /// Enters search mode showing all tabs of this page (empty query matches everything).
+    func beginSearch() {
+        isSearchActive = true
+        searchQuery = ""
+        // 🟣 redundant comment - remove later
+        // Allow a vertical drag even when the (few) results fit the frame, so the drag registers
+        // and `scrollViewWillBeginDragging` fires — that's what dismisses the keyboard.
+        collectionView.alwaysBounceVertical = true
+        rebuildFilteredTabs()
+        collectionView.reloadData()
+    }
+
+    /// Updates the active query and re-filters the displayed tabs.
+    func updateSearch(query: String) {
+        guard isSearchActive else { return }
+        searchQuery = query
+        rebuildFilteredTabs()
+        collectionView.reloadData()
+    }
+
+    /// Leaves search mode and restores the full, model-backed list.
+    func endSearch() {
+        isSearchActive = false
+        searchQuery = ""
+        filteredTabs = []
+        collectionView.alwaysBounceVertical = false
+        collectionView.reloadData()
+    }
+
+    private func rebuildFilteredTabs() {
+        filteredTabs = TabsSearch.filter(tabsModel.tabs, query: searchQuery)
+    }
+
+    /// Number of items the collection view should display, honoring an active search.
+    private var displayedCount: Int {
+        isSearchActive ? filteredTabs.count : tabsModel.count
+    }
+
+    /// The tab shown at a given displayed row (filtered while searching, model order otherwise).
+    private func displayedTab(at row: Int) -> Tab? {
+        if isSearchActive {
+            return filteredTabs.indices.contains(row) ? filteredTabs[row] : nil
+        }
+        return tabsModel.get(tabAt: row)
+    }
+
+    /// The displayed row for a tab, used to refresh the right cell when a tab changes.
+    private func displayedIndex(of tab: Tab) -> Int? {
+        if isSearchActive {
+            return filteredTabs.firstIndex { $0 === tab }
+        }
+        return tabsModel.indexOf(tab: tab)
     }
 
     func refreshCurrentTabIndicators() {
@@ -329,6 +404,50 @@ class TabSwitcherPageViewController: UIViewController {
             pageDelegate.pageDidDeleteTabs(self, allDeleted: allTabsDeleted)
         }
     }
+    /// Closes a single tab while searching, using the same animated batch-update pattern as
+    /// `deleteTabsAtIndexPaths` (and `performDropWith`).
+    ///
+    /// The safety invariant differs only in *which* index space stays consistent: instead of
+    /// "collection index == model index", here it's "collection index == `filteredTabs` index".
+    /// We uphold it by mutating `filteredTabs` and calling `deleteItems(at:)` on the same filtered
+    /// index inside one `performBatchUpdates`, so the post-update item count matches exactly. The
+    /// model is still mutated *by object* via `bulkRemoveTabs` (index-agnostic); the filter array
+    /// is never written back to storage — it stays a derived view.
+    private func deleteSearchResult(at displayedRow: Int) {
+        guard let pageDelegate, filteredTabs.indices.contains(displayedRow) else { return }
+        let tab = filteredTabs[displayedRow]
+        let wasLastTab = tabsModel.count == 1
+
+        collectionView.performBatchUpdates {
+            pageDelegate.isProcessingUpdates = true
+            pageDelegate.page(self, willDeleteTabs: [tab], allDeleted: wasLastTab)
+            filteredTabs.remove(at: displayedRow)
+            collectionView.deleteItems(at: [IndexPath(row: displayedRow, section: 0)])
+            currentSelection = tabsModel.currentIndex
+            refreshCurrentTabIndicators()
+        } completion: { [weak self] _ in
+            guard let self else { return }
+            pageDelegate.isProcessingUpdates = false
+            pageDelegate.pageDidDeleteTabs(self, allDeleted: wasLastTab)
+        }
+    }
+
+    /// Closes every tab except `retainedTab` while searching ("Close Other Tabs").
+    ///
+    /// The removed set spans tabs that aren't in the filtered collection (results *and* non-results),
+    /// so this can't use animated index-based batch updates. The model is mutated by object via
+    /// `bulkRemoveTabs`, then `reloadData()` rebuilds the filtered view. One tab is always retained,
+    /// so the model is never emptied (`allDeleted: false`).
+    func closeOtherSearchTabs(retaining retainedTab: Tab) {
+        guard let pageDelegate else { return }
+        let tabsToClose = tabsModel.tabs.filter { $0 !== retainedTab }
+        guard !tabsToClose.isEmpty else { return }
+
+        pageDelegate.page(self, willDeleteTabs: tabsToClose, allDeleted: false)
+        reloadData()
+        currentSelection = tabsModel.currentIndex
+        pageDelegate.pageDidDeleteTabs(self, allDeleted: false)
+    }
 
     // MARK: - Private
 
@@ -355,7 +474,7 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return tabsModel.count
+        return displayedCount
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -366,8 +485,7 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
         cell.delegate = self
         cell.isDeleting = false
 
-        if indexPath.row < tabsModel.count,
-           let tab = tabsModel.get(tabAt: indexPath.row) {
+        if let tab = displayedTab(at: indexPath.row) {
             tab.removeObserver(self)
             tab.addObserver(self)
             cell.update(withTab: tab,
@@ -411,11 +529,14 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
             (collectionView.cellForItem(at: indexPath) as? TabViewCell)?.refreshSelectionAppearance()
             pageDelegate?.page(self, didSelectTabAt: indexPath.row)
         } else {
-            currentSelection = indexPath.row
+            // While searching the tapped row is a filtered index — resolve the tab and map
+            // it back to its real position so `selectedTab` (model-indexed) stays correct.
+            let tab = displayedTab(at: indexPath.row)
+            currentSelection = tab.flatMap { tabsModel.indexOf(tab: $0) } ?? indexPath.row
             Pixel.fire(pixel: .tabSwitcherSwitchTabs, withAdditionalParameters: [
                 PixelParameters.browsingMode: browsingMode.pixelParamValue
             ])
-            if let tab = tabsModel.get(tabAt: indexPath.row) {
+            if let tab {
                 if tab.isAITab {
                     DailyPixel.fireDailyAndCount(pixel: .tabManagerSwitchToAITab)
                 } else {
@@ -436,8 +557,16 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
         return true
     }
 
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        // 🟣 redundant comment - remove later
+        // The user started scrolling the results list — dismiss the keyboard.
+        // Only relevant while searching; ignored for normal browsing scrolls.
+        guard isSearchActive else { return }
+        pageDelegate?.pageDidScrollSearchResults(self)
+    }
+
     func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool {
-        return !(pageDelegate?.isEditing ?? false)
+        return !(pageDelegate?.isEditing ?? false) && !isSearchActive
     }
 
     func collectionView(_ collectionView: UICollectionView, targetIndexPathForMoveFromItemAt originalIndexPath: IndexPath,
@@ -448,14 +577,27 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemsAt indexPaths: [IndexPath], point: CGPoint) -> UIContextMenuConfiguration? {
         guard !indexPaths.isEmpty else { return nil }
 
-        let configuration = UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+        // While searching the collection shows a filtered view, so the default index-based menu
+        // would resolve the wrong tabs. Resolve the long-pressed tab by object up-front; the menu
+        // is then built by object (search) or by index (normal). Config creation and pixels are
+        // shared — only the menu source differs.
+        var searchTab: Tab?
+        // 🚩feature flag entry point?
+        if isSearchActive {
+            guard let row = indexPaths.first?.row, let tab = displayedTab(at: row) else { return nil }
+            searchTab = tab
+        }
+
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             guard let self else { return nil }
             let modeParam = [PixelParameters.browsingMode: self.browsingMode.pixelParamValue]
             Pixel.fire(pixel: .tabSwitcherLongPress, withAdditionalParameters: modeParam)
             DailyPixel.fire(pixel: .tabSwitcherLongPressDaily, withAdditionalParameters: modeParam)
+            if let searchTab {
+                return self.pageDelegate?.page(self, searchContextMenuForTab: searchTab)
+            }
             return self.pageDelegate?.page(self, contextMenuForTabsAt: indexPaths)
         }
-        return configuration
     }
 }
 
@@ -508,8 +650,15 @@ extension TabSwitcherPageViewController: UICollectionViewDelegateFlowLayout {
 extension TabSwitcherPageViewController: TabViewCellDelegate {
 
     func deleteTab(tab: Tab) {
-        guard let index = tabsModel.indexOf(tab: tab) else { return }
-        deleteTabsAtIndexPaths([IndexPath(row: index, section: 0)])
+        if isSearchActive {
+            // Collection shows the filtered view, so delete on the *filtered* index and keep
+            // `filteredTabs` + the collection in lockstep (see deleteSearchResult).
+            guard let displayedRow = filteredTabs.firstIndex(where: { $0 === tab }) else { return }
+            deleteSearchResult(at: displayedRow)
+        } else {
+            guard let index = tabsModel.indexOf(tab: tab) else { return }
+            deleteTabsAtIndexPaths([IndexPath(row: index, section: 0)])
+        }
     }
 
     func isCurrent(tab: Tab) -> Bool {
@@ -530,7 +679,7 @@ extension TabSwitcherPageViewController: TabViewCellDelegate {
 extension TabSwitcherPageViewController: TabObserver {
 
     func didChange(tab: Tab) {
-        guard let index = tabsModel.indexOf(tab: tab),
+        guard let index = displayedIndex(of: tab),
               let cell = collectionView.cellForItem(at: IndexPath(row: index, section: 0)) as? TabViewCell else {
             return
         }
@@ -552,7 +701,7 @@ extension TabSwitcherPageViewController: TabObserver {
 extension TabSwitcherPageViewController: UICollectionViewDragDelegate {
 
     func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: any UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
-        return (pageDelegate?.isEditing ?? false) ? [] : [UIDragItem(itemProvider: NSItemProvider())]
+        return ((pageDelegate?.isEditing ?? false) || isSearchActive) ? [] : [UIDragItem(itemProvider: NSItemProvider())]
     }
 
     func collectionView(_ collectionView: UICollectionView, itemsForAddingTo session: any UIDragSession, at indexPath: IndexPath, point: CGPoint) -> [UIDragItem] {
@@ -634,5 +783,42 @@ private extension UITapGestureRecognizer {
     }
     
         return false
+    }
+}
+
+// MARK: - TabsSearch
+
+/// Stateless, non-mutating search over a snapshot of open tabs.
+///
+/// Filtering happens entirely on a derived copy of the tabs array — the source
+/// `TabsModel` is never modified. Matching is performed against the website title
+/// and URL carried by `Tab.link`, using Foundation's locale-aware, case- and
+/// diacritic-insensitive comparison (`localizedStandardContains`).
+enum TabsSearch {
+    // 🟣 redundant comment - remove later
+    // PoC copy, intentionally not localized: keeps the prototype self-contained and avoids the
+    // build-time string-extraction step. For production these should become localized `UserText`.
+    static let buttonTitle = "Search"
+    static let placeholder = "Search open tabs"
+
+    /// Returns the subset of `tabs` whose website title or URL matches `query`.
+    ///
+    /// - An empty or whitespace-only query returns all tabs unchanged.
+    /// - Tabs without a `link` (e.g. the home/NTP tab) have no searchable content and are excluded from non-empty queries.
+    static func filter(_ tabs: [Tab], query: String) -> [Tab] {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else { return tabs }
+
+        return tabs.filter { tab in
+            guard let link = tab.link else { return false }
+
+            if link.displayTitle.localizedStandardContains(trimmedQuery) {
+                return true
+            }
+            if let title = link.title, title.localizedStandardContains(trimmedQuery) {
+                return true
+            }
+            return link.url.absoluteString.localizedStandardContains(trimmedQuery)
+        }
     }
 }

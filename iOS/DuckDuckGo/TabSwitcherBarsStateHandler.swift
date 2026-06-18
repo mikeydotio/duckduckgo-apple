@@ -42,6 +42,7 @@ protocol TabSwitcherBarsStateHandling {
 
     var plusButton: UIBarButtonItem { get }
     var fireButton: UIBarButtonItem { get }
+    var searchButton: UIBarButtonItem { get }
     var doneIconButton: UIBarButtonItem { get }
     var doneTextButton: UIBarButtonItem { get }
     var doneButton: UIBarButtonItem { get }
@@ -60,6 +61,7 @@ protocol TabSwitcherBarsStateHandling {
     var isBottomBarHidden: Bool { get }
 
     var onPlusButtonTapped: (() -> Void)? { get set }
+    var onSearchButtonTapped: (() -> Void)? { get set }
     var onNewFireTabTapped: (() -> Void)? { get set }
     var onNewNormalTabTapped: (() -> Void)? { get set }
     var onFireButtonTapped: (() -> Void)? { get set }
@@ -94,6 +96,13 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
     lazy var fireButton: UIBarButtonItem = {
         let item = BrowserChromeButton.createToolbarButtonItem(title: "Close all tabs and clear data", image: DesignSystemImages.Glyphs.Size24.fireSolid) { [weak self] in
             self?.onFireButtonTapped?()
+        }
+        return item
+    }()
+
+    lazy var searchButton: UIBarButtonItem = {
+        let item = BrowserChromeButton.createToolbarButtonItem(title: TabsSearch.buttonTitle, image: DesignSystemImages.Glyphs.Size24.searchFind) { [weak self] in
+            self?.onSearchButtonTapped?()
         }
         return item
     }()
@@ -172,6 +181,7 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
     private(set) var isFirstUpdate = true
 
     var onPlusButtonTapped: (() -> Void)?
+    var onSearchButtonTapped: (() -> Void)?
     var onNewFireTabTapped: (() -> Void)?
     var onNewNormalTabTapped: (() -> Void)?
     var onFireButtonTapped: (() -> Void)?
@@ -267,6 +277,7 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
     private func configureButtons() {
         configureAccessibility(fireButton, label: "Close all tabs and clear data", identifier: "Browser.Toolbar.Button.Fire")
         configureAccessibility(duckChatButton, label: UserText.duckAiFeatureName, identifier: "TabSwitcher.Button.DuckChat")
+        configureAccessibility(searchButton, label: TabsSearch.buttonTitle, identifier: "TabSwitcher.Button.Search")
         configureAccessibility(plusButton, label: UserText.keyCommandNewTab)
         configureAccessibility(doneIconButton, label: UserText.navigationTitleDone)
         configureAccessibility(doneTextButton, label: UserText.navigationTitleDone)
@@ -307,7 +318,9 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
 
                 .flexibleSpace(),
 
-                invisibleBalancingButton(),
+                // invisibleBalancingButton(),
+                // 🚩Feature Flag entry point. Show buttons depending on flag availability!
+                searchButton,
 
                 .flexibleSpace(),
 

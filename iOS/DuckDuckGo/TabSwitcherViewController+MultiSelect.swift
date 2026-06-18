@@ -342,6 +342,69 @@ extension TabSwitcherViewController {
         ))
     }
 
+    /// Long-press menu for a single tab while searching.
+    ///
+    /// Everything is resolved/operated on by `Tab` object — never by a collection index — because
+    /// the search view is filtered. Each action routes through a sanctioned, safe path:
+    /// - Share: read-only.
+    /// - Bookmark: resolves the tab's *real* model index for a read-only bookmark operation.
+    /// - Select: exits search, then enters the standard multi-select mode with the tab selected.
+    /// - Close: `deleteTab(tab:)` → `deleteSearchResult` (filtered-index aware).
+    /// - Close Other: closes every other tab in the model by object, then reloads.
+    func createSearchLongPressMenu(forTab tab: Tab) -> UIMenu {
+        let state = TabSwitcherLongPressMenuState(
+            pressedCount: 1,
+            totalCount: tabsModel.count,
+            pressedContainsWebPages: tab.link != nil,
+            isEditing: false,
+            title: tab.link?.url.host?.droppingWwwPrefix() ?? ""
+        )
+        return menuBuilder.longPressMenu(state: state, actions: TabSwitcherLongPressMenuActions(
+            onShare: { [weak self] in self?.longPressMenuShareLinks(tabs: [tab]) },
+            onBookmark: { [weak self] in
+                guard let self, let index = self.tabsModel.indexOf(tab: tab) else { return }
+                self.longPressMenuBookmarkTabs(indexPaths: [IndexPath(row: index, section: 0)])
+            },
+            onSelect: { [weak self] in self?.searchMenuSelectTab(tab) },
+            onClose: { [weak self] in self?.searchMenuCloseTab(tab) },
+            onCloseOther: { [weak self] in self?.searchMenuCloseOtherTabs(retaining: tab) }
+        ))
+    }
+
+    /// Closes a single tab from the search long-press menu. The deletion itself routes through the
+    /// filtered-index-aware `deleteSearchResult` (via `deleteTab(tab:)`).
+    func searchMenuCloseTab(_ tab: Tab) {
+        Pixel.fire(pixel: .tabSwitcherLongPressCloseTab)
+        activePageController.deleteTab(tab: tab)
+    }
+
+    /// Exits search and enters the standard multi-select mode with `tab` selected. After leaving
+    /// search the collection is unfiltered, so the tab's model index is a valid collection index.
+    func searchMenuSelectTab(_ tab: Tab) {
+        exitSearchMode()
+        guard let index = tabsModel.indexOf(tab: tab) else { return }
+        longPressMenuSelectTabs(indexPaths: [IndexPath(row: index, section: 0)])
+    }
+
+    /// Closes every tab except `tab` (model-wide, including tabs outside the current results),
+    /// after a confirmation.
+    func searchMenuCloseOtherTabs(retaining tab: Tab) {
+        Pixel.fire(pixel: .tabSwitcherLongPressCloseOtherTabs)
+        DailyPixel.fire(pixel: .tabSwitcherLongPressCloseOtherTabsDaily)
+
+        let othersCount = max(0, tabsModel.count - 1)
+        guard othersCount > 0 else { return }
+
+        let alert = UIAlertController(title: UserText.alertTitleCloseOtherTabs(withCount: othersCount),
+                                      message: UserText.alertMessageCloseOtherTabs(withCount: othersCount),
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: UserText.actionCancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: UserText.closeTabs(withCount: othersCount), style: .destructive) { [weak self] _ in
+            self?.activePageController.closeOtherSearchTabs(retaining: tab)
+        })
+        present(alert, animated: true)
+    }
+
     private func shouldShowBookmarkThisPageLongPressMenuItem(_ tab: Tab, _ bookmarksModel: MenuBookmarksViewModel) -> Bool {
         return tab.link?.url != nil &&
         bookmarksModel.bookmark(for: tab.link!.url) == nil &&
