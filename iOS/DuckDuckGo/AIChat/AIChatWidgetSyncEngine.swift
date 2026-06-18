@@ -36,7 +36,12 @@ import os.log
 /// engine does nothing.
 final class AIChatWidgetSyncEngine {
 
-    static let maxChats = 6
+    /// How many of each kind the snapshot carries. The widget picks from this pool with its own
+    /// per-family cap: large shows 6 rows total with ≤2 pinned, medium shows 3 with ≤1 pinned.
+    /// Storing them separately (rather than a single pinned-first prefix) means a user with many
+    /// pinned chats still gets recent unpinned ones in the snapshot.
+    static let maxPinnedInSnapshot = 3
+    static let maxRecentInSnapshot = 6
     static let maxGalleryImages = 12
 
     /// Longest edge of a gallery image, in points.
@@ -53,12 +58,28 @@ final class AIChatWidgetSyncEngine {
     private var cancellable: AnyCancellable?
     private var settingsObserver: NSObjectProtocol?
 
+    /// Hash of the most recently written chats.json bytes, used to suppress no-op
+    /// `WidgetCenter.reloadAllTimelines()` calls. iOS rate-limits the reload budget (~40/day per
+    /// widget); pulse triggers (resume/suspend, settings observer, repeated FE saves with no chat
+    /// change) would otherwise burn that budget and leave the on-screen widget stale.
+    private var lastWrittenSnapshotHash: Int?
+
     init(storage: DuckAiNativeObservableStorage?,
          settings: AIChatSettingsProvider,
          dataLocation: AIChatWidgetDataLocation?,
          notificationCenter: NotificationCenter = .default,
          liveUpdateDebounce: DispatchQueue.SchedulerTimeType.Stride = .seconds(2),
-         reloadWidgets: @escaping () -> Void = { DispatchQueue.main.async { WidgetCenter.shared.reloadAllTimelines() } }) {
+         reloadWidgets: @escaping () -> Void = {
+             // Targeted reloads instead of `reloadAllTimelines()`: the latter consumes the daily
+             // reload budget for *every* widget the app exposes (search, favorites, VPN, lock-screen,
+             // etc.). Once any one of those is hammered the whole pool is starved and on-screen
+             // widgets freeze on the previous render. Reloading only the two AIChat widget kinds
+             // keeps the chat/gallery widgets in their own budget bucket.
+             DispatchQueue.main.async {
+                 WidgetCenter.shared.reloadTimelines(ofKind: "AIChatRecentChatsWidget")
+                 WidgetCenter.shared.reloadTimelines(ofKind: "AIChatImageGalleryWidget")
+             }
+         }) {
         self.storage = storage
         self.settings = settings
         self.dataLocation = dataLocation
@@ -109,6 +130,7 @@ final class AIChatWidgetSyncEngine {
         queue.sync {
             guard let dataLocation else { return }
             try? FileManager.default.removeItem(at: dataLocation.rootURL)
+            lastWrittenSnapshotHash = nil
             reloadWidgets()
         }
     }
@@ -122,25 +144,30 @@ final class AIChatWidgetSyncEngine {
         // must not exist. `isAIChatRecentChatsWidgetUserSettingsEnabled` is AND-gated on the global flag.
         guard settings.isAIChatRecentChatsWidgetUserSettingsEnabled else {
             try? FileManager.default.removeItem(at: dataLocation.rootURL)
+            lastWrittenSnapshotHash = nil
             reloadWidgets()
             return
         }
 
-        Logger.duckAiWidget.notice("DUCKAI-WIDGET [app] writes to container=\(dataLocation.rootURL.path, privacy: .public)")
-
         do {
             let records = try storage.getAllChats()
-            let allChats = records
+            // Single pass: decode + sort by recency. Downstream code (chat snapshot pools, gallery
+            // sync) all want most-recent first; pinned/unpinned filtering is layered on top.
+            let chatsByRecency = records
                 .compactMap { try? DuckAiChat.decode(from: $0.data).chat }
-                .sorted { lhs, rhs in
-                    // Pinned chats first, then most-recently edited — matches the in-app history order.
-                    lhs.pinned == rhs.pinned ? lhs.lastEdit > rhs.lastEdit : lhs.pinned
-                }
-            let chats = allChats.prefix(Self.maxChats)
+                .sorted { $0.lastEdit > $1.lastEdit }
 
-            logNativeStorageSnapshot(records: records, chats: allChats, storage: storage)
+            // Split pools by lastEdit-desc, separately. Snapshot carries top N pinned + top M
+            // unpinned so the widget can apply its per-family pinned cap without the snapshot
+            // having starved it of unpinned chats (e.g., a user with many pinned chats).
+            let topPinned = chatsByRecency.filter(\.pinned).prefix(Self.maxPinnedInSnapshot)
+            let topUnpinned = chatsByRecency.filter { !$0.pinned }.prefix(Self.maxRecentInSnapshot)
 
-            let entries: [WidgetChatEntry] = chats.map { chat in
+            logNativeStorageSnapshot(records: records, chats: chatsByRecency, storage: storage)
+
+            // Pinned-first ordering preserves the user's request that pinned chats sit at the top
+            // — the widget view re-orders/caps as needed.
+            let entries: [WidgetChatEntry] = (Array(topPinned) + Array(topUnpinned)).map { chat in
                 WidgetChatEntry(chatId: chat.chatId,
                                 title: chat.title,
                                 lastEdit: chat.lastEdit,
@@ -148,14 +175,37 @@ final class AIChatWidgetSyncEngine {
                                 pinned: chat.pinned)
             }
 
+            let snapshot = WidgetChatSnapshot(totalChatCount: chatsByRecency.count, chats: entries)
+            let data = try JSONEncoder().encode(snapshot)
+            // Hash only the *view-relevant* fields, in display order. The user typing inside one
+            // existing chat updates that chat's `lastEdit` per save (sometimes many times a second)
+            // without changing what the widget actually shows — same titles, same order, same icons.
+            // Hashing the raw encoded JSON would treat each tick as a new snapshot and burn the
+            // WidgetCenter reload budget for visually-identical updates. If `lastEdit` ticks
+            // *enough* to reorder the top N, the (chatId, title, …) tuples shift position and the
+            // hash naturally changes — so genuine ordering changes still trigger a reload.
+            let snapshotHash = Self.viewRelevantHash(totalCount: chatsByRecency.count, entries: entries)
+            let fileExists = FileManager.default.fileExists(atPath: dataLocation.chatsFileURL.path)
+
+            // No-op pulse guard: lifecycle / settings notifications fire even when chats haven't
+            // changed. Calling reloadAllTimelines on those would burn the iOS reload budget
+            // (~40/day/widget) and starve real changes later — exactly the bug that surfaces as
+            // "the widget shows stale data." Skip the write+reload when the snapshot is identical
+            // to the previous one AND the file is still on disk; rewrite if the file is missing
+            // (fresh install, wiped on toggle-off).
+            if snapshotHash == lastWrittenSnapshotHash && fileExists {
+                Logger.duckAiWidget.notice("DUCKAI-WIDGET [app] sync skipped: unchanged visible snapshot")
+                return
+            }
+
+            Logger.duckAiWidget.notice("DUCKAI-WIDGET [app] writes to container=\(dataLocation.rootURL.path, privacy: .public)")
+
             // Ensure the mirror directory exists (it won't on a fresh install / after a wipe).
             try FileManager.default.createDirectory(at: dataLocation.rootURL, withIntermediateDirectories: true)
-
-            let snapshot = WidgetChatSnapshot(totalChatCount: allChats.count, chats: entries)
-            let data = try JSONEncoder().encode(snapshot)
             try data.write(to: dataLocation.chatsFileURL, options: .atomic)
+            lastWrittenSnapshotHash = snapshotHash
 
-            syncImageGallery(from: allChats, storage: storage, location: dataLocation)
+            syncImageGallery(from: chatsByRecency, storage: storage, location: dataLocation)
 
             reloadWidgets()
         } catch {
@@ -237,6 +287,22 @@ final class AIChatWidgetSyncEngine {
         let fileCount = (try? storage.listFiles().count) ?? -1
         let imageChats = chats.filter { $0.isImageGeneration }.count
         Logger.duckAiWidget.notice("DUCKAI-WIDGET [app] snapshot: \(records.count, privacy: .public) chats, \(imageChats, privacy: .public) image-gen, \(fileCount, privacy: .public) files in storage")
+    }
+
+    /// Hash of the chat list using only the fields the widget actually renders, in display order.
+    /// Excludes `lastEdit` because it ticks per-keystroke during a save without changing the visual
+    /// output — but ordering *is* captured since the (chatId, title, pinned, isImageGeneration)
+    /// tuples shift position when an edit reorders the top N.
+    static func viewRelevantHash(totalCount: Int, entries: [WidgetChatEntry]) -> Int {
+        var hasher = Hasher()
+        hasher.combine(totalCount)
+        for entry in entries {
+            hasher.combine(entry.chatId)
+            hasher.combine(entry.title)
+            hasher.combine(entry.pinned)
+            hasher.combine(entry.isImageGeneration)
+        }
+        return hasher.finalize()
     }
 
     /// Native storage persists files as a JSON envelope — `{ chatId, mimeType, fileName, data }` —

@@ -120,7 +120,8 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
     private func makeEngine(storage: MockObservableStorage,
                             location: AIChatWidgetDataLocation,
                             widgetEnabled: Bool = true,
-                            notificationCenter: NotificationCenter = NotificationCenter()) -> AIChatWidgetSyncEngine {
+                            notificationCenter: NotificationCenter = NotificationCenter(),
+                            reloadWidgets: @escaping () -> Void = {}) -> AIChatWidgetSyncEngine {
         let settings = MockAIChatSettingsProvider()
         settings.isAIChatRecentChatsWidgetUserSettingsEnabled = widgetEnabled
         return AIChatWidgetSyncEngine(storage: storage,
@@ -128,7 +129,7 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
                                       dataLocation: location,
                                       notificationCenter: notificationCenter,
                                       liveUpdateDebounce: .seconds(0),
-                                      reloadWidgets: {})
+                                      reloadWidgets: reloadWidgets)
     }
 
     // MARK: - Mirror write (Task 4)
@@ -329,5 +330,131 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
 
         engine.wipeWidgetData()
         XCTAssertFalse(FileManager.default.fileExists(atPath: location.rootURL.path))
+    }
+
+    // MARK: - Reload deduping (protects WidgetCenter's daily reload budget)
+
+    func testWhenSyncCalledRepeatedlyWithSameChatsThenReloadFiresOnce() throws {
+        let storage = MockObservableStorage()
+        storage.chats = [DuckAiChatRecord(chatId: "a", data: chatData(id: "a", title: "X", lastEdit: "2026-01-01T00:00:00.000Z"))]
+        let location = makeLocation()
+        var reloads = 0
+        let engine = makeEngine(storage: storage, location: location, reloadWidgets: { reloads += 1 })
+
+        engine.syncNow()
+        engine.syncNow()
+        engine.syncNow()
+
+        XCTAssertEqual(reloads, 1, "Pulses with identical snapshots must not consume the WidgetCenter reload budget")
+    }
+
+    func testWhenSnapshotChangesThenReloadFiresAgain() throws {
+        let storage = MockObservableStorage()
+        storage.chats = [DuckAiChatRecord(chatId: "a", data: chatData(id: "a", title: "X", lastEdit: "2026-01-01T00:00:00.000Z"))]
+        let location = makeLocation()
+        var reloads = 0
+        let engine = makeEngine(storage: storage, location: location, reloadWidgets: { reloads += 1 })
+
+        engine.syncNow()                                  // initial write → 1
+        engine.syncNow()                                  // same data → suppressed
+        storage.chats.append(DuckAiChatRecord(chatId: "b", data: chatData(id: "b", title: "Y", lastEdit: "2026-02-01T00:00:00.000Z")))
+        engine.syncNow()                                  // new chat → 2
+
+        XCTAssertEqual(reloads, 2)
+    }
+
+    func testWhenMirrorFileMissingThenSyncRewritesEvenWhenSnapshotUnchanged() throws {
+        let storage = MockObservableStorage()
+        storage.chats = [DuckAiChatRecord(chatId: "a", data: chatData(id: "a", title: "X", lastEdit: "2026-01-01T00:00:00.000Z"))]
+        let location = makeLocation()
+        let engine = makeEngine(storage: storage, location: location)
+
+        engine.syncNow()
+        try FileManager.default.removeItem(at: location.chatsFileURL)
+        engine.syncNow()
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: location.chatsFileURL.path),
+                      "When the mirror file disappears (e.g. user wiped data), the next sync must rewrite it even if in-memory snapshot is unchanged")
+    }
+
+    func testWhenLastEditTicksWithoutChangingOrderThenReloadSuppressed() throws {
+        // Simulates: user types in chat "a" → FE saves repeatedly with new lastEdit per save.
+        // Nothing the widget displays (title/pinned/icon/position) changes, so the dedupe
+        // should suppress these no-op reloads to preserve the iOS reload budget.
+        let storage = MockObservableStorage()
+        storage.chats = [
+            DuckAiChatRecord(chatId: "a", data: chatData(id: "a", title: "Active chat", lastEdit: "2026-02-01T00:00:00.000Z")),
+            DuckAiChatRecord(chatId: "b", data: chatData(id: "b", title: "Older",       lastEdit: "2026-01-01T00:00:00.000Z"))
+        ]
+        let location = makeLocation()
+        var reloads = 0
+        let engine = makeEngine(storage: storage, location: location, reloadWidgets: { reloads += 1 })
+
+        engine.syncNow()                                                                                      // initial → 1
+        storage.chats[0] = DuckAiChatRecord(chatId: "a", data: chatData(id: "a", title: "Active chat",
+                                                                        lastEdit: "2026-02-01T00:00:01.000Z")) // typing tick
+        engine.syncNow()                                                                                      // visible unchanged → suppressed
+        storage.chats[0] = DuckAiChatRecord(chatId: "a", data: chatData(id: "a", title: "Active chat",
+                                                                        lastEdit: "2026-02-01T00:00:02.000Z")) // another tick
+        engine.syncNow()                                                                                      // visible unchanged → suppressed
+
+        XCTAssertEqual(reloads, 1)
+    }
+
+    // MARK: - Split pool: snapshot guarantees both pinned and unpinned slots
+
+    func testWhenManyPinnedAndFewRecentThenSnapshotIncludesBothInsteadOfStarvingRecents() throws {
+        // Before the split-pool fix, the snapshot was top-6 pinned-first sorted, so a user with 6+
+        // pinned chats had ZERO recent unpinned chats in chats.json — the widget could never show
+        // their actual recent activity. Now the snapshot reserves up to maxPinnedInSnapshot
+        // pinned + up to maxRecentInSnapshot unpinned, so the widget always has both pools to
+        // pick from.
+        let storage = MockObservableStorage()
+        let pinned = (0..<5).map { idx in
+            let day = String(format: "%02d", idx + 1)
+            return DuckAiChatRecord(chatId: "p\(idx)",
+                                    data: chatData(id: "p\(idx)", title: "Pinned \(idx)",
+                                                   lastEdit: "2026-01-\(day)T00:00:00.000Z",
+                                                   pinned: true))
+        }
+        let recent = (0..<4).map { idx in
+            let day = String(format: "%02d", idx + 1)
+            return DuckAiChatRecord(chatId: "r\(idx)",
+                                    data: chatData(id: "r\(idx)", title: "Recent \(idx)",
+                                                   lastEdit: "2026-02-\(day)T00:00:00.000Z"))
+        }
+        storage.chats = pinned + recent
+        let location = makeLocation()
+        let engine = makeEngine(storage: storage, location: location)
+
+        engine.syncNow()
+
+        let entries = try readEntries(location)
+        let pinnedCount = entries.filter(\.pinned).count
+        let recentCount = entries.filter { !$0.pinned }.count
+        XCTAssertEqual(pinnedCount, AIChatWidgetSyncEngine.maxPinnedInSnapshot,
+                       "Snapshot must cap pinned at maxPinnedInSnapshot even when many exist")
+        XCTAssertEqual(recentCount, 4,
+                       "Snapshot must include all (up to maxRecentInSnapshot) unpinned chats, never starved by pinned")
+    }
+
+    func testWhenLastEditTicksAndChangesTopOrderThenReloadFires() throws {
+        // If a tick actually reorders the top N (chat "b" overtakes "a"), the widget shows different
+        // content and the reload must fire. This is the case that must NOT be suppressed.
+        let storage = MockObservableStorage()
+        storage.chats = [
+            DuckAiChatRecord(chatId: "a", data: chatData(id: "a", title: "First",  lastEdit: "2026-02-01T00:00:00.000Z")),
+            DuckAiChatRecord(chatId: "b", data: chatData(id: "b", title: "Second", lastEdit: "2026-01-01T00:00:00.000Z"))
+        ]
+        let location = makeLocation()
+        var reloads = 0
+        let engine = makeEngine(storage: storage, location: location, reloadWidgets: { reloads += 1 })
+
+        engine.syncNow()  // initial: order is [a, b] → 1 reload
+        storage.chats[1] = DuckAiChatRecord(chatId: "b", data: chatData(id: "b", title: "Second",
+                                                                        lastEdit: "2026-03-01T00:00:00.000Z"))
+        engine.syncNow()  // now order is [b, a] → must reload → 2
+
+        XCTAssertEqual(reloads, 2)
     }
 }

@@ -23,7 +23,7 @@ import UIKit
 import Core
 import os.log
 
-struct AIChatRecentChatsEntry: TimelineEntry {
+struct AIChatRecentChatsEntry: TimelineEntry, Equatable {
     let date: Date
     let chats: [WidgetChatEntry]
     let totalChatCount: Int
@@ -63,9 +63,11 @@ struct AIChatRecentChatsProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<AIChatRecentChatsEntry>) -> Void) {
-        // The main app pushes reloads via WidgetCenter when the mirror changes; the periodic
-        // policy is a fallback so the widget re-reads on its own even if a push is missed.
-        let refresh = Date().addingTimeInterval(15 * 60)
+        // App-side pushes via WidgetCenter are the primary refresh trigger, but `reloadAllTimelines`
+        // is hard-rate-limited (~40/day per widget) — once that budget runs out, the on-screen
+        // widget only updates via this auto-refresh policy. Keep it tight (2min) so users don't
+        // see stale chats when the budget is exhausted; sync engine dedupes to protect the budget.
+        let refresh = Date().addingTimeInterval(2 * 60)
         completion(Timeline(entries: [makeEntry(isPreview: context.isPreview)], policy: .after(refresh)))
     }
 

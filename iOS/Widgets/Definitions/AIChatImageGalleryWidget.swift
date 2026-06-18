@@ -23,11 +23,20 @@ import UIKit
 import Core
 import os.log
 
-struct AIChatImageGalleryEntry: TimelineEntry {
+struct AIChatImageGalleryEntry: TimelineEntry, Equatable {
     let date: Date
     let images: [WidgetImageEntry]
     let thumbnails: [String: UIImage]
     let isPreview: Bool
+
+    static func == (lhs: AIChatImageGalleryEntry, rhs: AIChatImageGalleryEntry) -> Bool {
+        // UIImage isn't Equatable; thumbnails are 1:1 with image IDs so comparing the keys is
+        // sufficient (a changed image keeps the same UUID and only matters if the entry list shifts).
+        lhs.date == rhs.date
+            && lhs.images == rhs.images
+            && lhs.thumbnails.keys.sorted() == rhs.thumbnails.keys.sorted()
+            && lhs.isPreview == rhs.isPreview
+    }
 
     /// Deep link that opens the chat that produced a given image.
     static func deepLink(forChatId chatId: String) -> URL {
@@ -56,9 +65,11 @@ struct AIChatImageGalleryProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<AIChatImageGalleryEntry>) -> Void) {
-        // The main app pushes reloads via WidgetCenter when the mirror changes; the periodic
-        // policy is a fallback so the widget re-reads on its own even if a push is missed.
-        let refresh = Date().addingTimeInterval(15 * 60)
+        // App-side pushes via WidgetCenter are the primary refresh trigger, but `reloadAllTimelines`
+        // is hard-rate-limited (~40/day per widget) — once that budget runs out, the on-screen
+        // widget only updates via this auto-refresh policy. Keep it tight (2min) so users don't
+        // see a stale gallery when the budget is exhausted; sync engine dedupes to protect the budget.
+        let refresh = Date().addingTimeInterval(2 * 60)
         completion(Timeline(entries: [makeEntry()], policy: .after(refresh)))
     }
 

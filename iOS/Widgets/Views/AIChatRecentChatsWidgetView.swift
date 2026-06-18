@@ -31,8 +31,33 @@ struct AIChatRecentChatsWidgetView: View {
     private var maxRows: Int { family == .systemLarge ? 6 : 3 }
     private var rowSpacing: CGFloat { family == .systemLarge ? 14 : 11 }
 
+    /// Hard cap on pinned chats visible in the widget. With small row counts a user's pinned
+    /// chats can otherwise crowd out their actually-recent activity (medium has only 3 rows;
+    /// 2 pinned + 1 recent leaves the widget feeling frozen). Capping pinned and filling the
+    /// remaining rows with the most-recently-edited unpinned chats keeps the widget feeling
+    /// alive while still giving pinned chats top billing.
+    private var maxPinnedRows: Int { family == .systemLarge ? 2 : 1 }
+
+    /// Mixes capped pinned + most-recent unpinned chats. Pinned chats remain at the top, but
+    /// they can never consume more than `maxPinnedRows` of the available rows.
+    private var displayedChats: [WidgetChatEntry] {
+        let allPinned = entry.chats.filter(\.pinned)
+        let allUnpinned = entry.chats.filter { !$0.pinned }
+        let pinnedSlice = Array(allPinned.prefix(maxPinnedRows))
+        let unpinnedSlice = Array(allUnpinned.prefix(maxRows - pinnedSlice.count))
+        // If pinned were capped AND there aren't enough unpinned to fill, fall back to any
+        // remaining pinned to keep the widget full.
+        var combined = pinnedSlice + unpinnedSlice
+        if combined.count < maxRows {
+            let used = Set(combined.map(\.chatId))
+            let fillers = allPinned.filter { !used.contains($0.chatId) }
+            combined.append(contentsOf: fillers.prefix(maxRows - combined.count))
+        }
+        return combined
+    }
+
     var body: some View {
-        let _ = Logger.duckAiWidget.notice("DUCKAI-WIDGET [ext/chats VIEW] body: family=\(String(describing: family), privacy: .public) chats=\(entry.chats.count, privacy: .public)")
+        let _ = Logger.duckAiWidget.notice("DUCKAI-WIDGET [ext/chats VIEW] body: family=\(String(describing: family), privacy: .public) chats=\(entry.chats.count, privacy: .public) titles=[\(entry.chats.prefix(maxRows).map(\.title).joined(separator: " | "), privacy: .public)] displayed=[\(displayedChats.map(\.title).joined(separator: " | "), privacy: .public)]")
         return DesignSystemWidgetContainerView {
             if entry.chats.isEmpty {
                 AIChatRecentChatsEmptyView()
@@ -42,7 +67,7 @@ struct AIChatRecentChatsWidgetView: View {
                         .padding(.bottom, family == .systemLarge ? 14 : 10)
 
                     VStack(alignment: .leading, spacing: rowSpacing) {
-                        ForEach(entry.chats.prefix(maxRows), id: \.chatId) { chat in
+                        ForEach(displayedChats, id: \.chatId) { chat in
                             Link(destination: AIChatRecentChatsEntry.deepLink(forChatId: chat.chatId)) {
                                 AIChatChatRowView(chat: chat)
                             }
