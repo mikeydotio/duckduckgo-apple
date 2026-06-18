@@ -34,6 +34,12 @@ struct AIChatRecentChatsEntry: TimelineEntry {
         AIChatWidgetDeepLink.url(forChatId: chatId, source: WidgetSourceType.recentChatsWidget.rawValue)
     }
 
+    /// Deep link that opens a brand-new Duck.ai chat from the header's "new chat" button.
+    static var newChatDeepLink: URL {
+        DeepLinks.openAIChat.appendingParameter(name: WidgetSourceType.sourceKey,
+                                                value: WidgetSourceType.recentChatsWidget.rawValue)
+    }
+
     /// Sample content shown in the widget gallery / previews.
     static var sample: AIChatRecentChatsEntry {
         let chats = [

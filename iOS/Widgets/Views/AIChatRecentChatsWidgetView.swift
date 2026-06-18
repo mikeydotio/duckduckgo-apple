@@ -38,7 +38,7 @@ struct AIChatRecentChatsWidgetView: View {
                 AIChatRecentChatsEmptyView()
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    AIChatRecentChatsHeaderView(count: entry.totalChatCount)
+                    AIChatRecentChatsHeaderView()
                         .padding(.bottom, family == .systemLarge ? 14 : 10)
 
                     VStack(alignment: .leading, spacing: rowSpacing) {
@@ -60,8 +60,6 @@ struct AIChatRecentChatsWidgetView: View {
 // MARK: - Header
 
 private struct AIChatRecentChatsHeaderView: View {
-    let count: Int
-
     var body: some View {
         HStack(spacing: 8) {
             DuckAiLogo(size: 25)
@@ -72,15 +70,19 @@ private struct AIChatRecentChatsHeaderView: View {
 
             Spacer(minLength: 8)
 
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("\(count)")
-                    .daxBodyBold()
+            // Opens a brand-new Duck.ai chat. Uses the "new chat" glyph (chat bubble + plus).
+            Link(destination: AIChatRecentChatsEntry.newChatDeepLink) {
+                Image(uiImage: DesignSystemImages.Glyphs.Size24.aiChatAdd)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
                     .foregroundStyle(Color(designSystemColor: .accent))
-                Text(UserText.recentChatsWidgetCountLabel)
-                    .daxFootnoteRegular()
-                    .foregroundStyle(Color(designSystemColor: .textSecondary))
+                    .frame(width: 25, height: 25)
+                    .frame(width: 30, height: 30)
+                    .background(Color(designSystemColor: .accent).opacity(0.12),
+                                in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .accessibilityElement(children: .combine)
+            .accessibilityLabel(UserText.recentChatsWidgetNewChatAccessibilityLabel)
         }
     }
 }

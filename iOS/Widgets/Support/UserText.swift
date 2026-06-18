@@ -53,9 +53,9 @@ struct UserText {
                                                                value: "Duck.ai",
                                                                comment: "Brand title shown in the header of the recent chats widget")
 
-    static let recentChatsWidgetCountLabel = NSLocalizedString("widget.recentchats.count.label",
-                                                               value: "Chats",
-                                                               comment: "Label next to the chat count in the recent chats widget header, e.g. the word after the number in “5 Chats”")
+    static let recentChatsWidgetNewChatAccessibilityLabel = NSLocalizedString("widget.recentchats.newchat.accessibility.label",
+                                                                              value: "New chat",
+                                                                              comment: "Accessibility label for the button in the recent chats widget header that starts a new Duck.ai chat")
 
     static let imageGalleryWidgetGalleryDisplayName = NSLocalizedString("widget.gallery.images.display.name",
                                                                         value: "Duck.ai Images",

@@ -151,11 +151,11 @@
 /* Brand title shown in the header of the recent chats widget */
 "widget.recentchats.brand.title" = "Duck.ai";
 
-/* Label next to the chat count in the recent chats widget header, e.g. the word after the number in “5 Chats” */
-"widget.recentchats.count.label" = "Chats";
-
 /* Empty-state message shown in the recent chats widget when there are no chats */
 "widget.recentchats.empty" = "Your recent Duck.ai chats will appear here.";
+
+/* Accessibility label for the button in the recent chats widget header that starts a new Duck.ai chat */
+"widget.recentchats.newchat.accessibility.label" = "New chat";
 
 /* Placeholder text in search field on the search and favorites widget */
 "widget.search.duckduckgo" = "Search DuckDuckGo";
