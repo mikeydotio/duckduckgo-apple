@@ -3934,7 +3934,7 @@ extension MainViewController: OmniBarDelegate {
     }
 
     func onViewAllChatsSelected() {
-        openAIChatHistory()
+        openAIChatHistory(source: .addressBar)
     }
 
     func onAIChatQueryUpdated(_ query: String) {
@@ -5496,11 +5496,11 @@ extension MainViewController: TabDelegate {
         openAIChat()
     }
 
-    func tabDidRequestAIChatHistory(tab: TabViewController) {
-        openAIChatHistory()
+    func tabDidRequestAIChatHistory(tab: TabViewController, source: AIChatHistorySource) {
+        openAIChatHistory(source: source)
     }
 
-    func openAIChatHistory() {
+    func openAIChatHistory(source: AIChatHistorySource = .browserMenu) {
         // The native chat history sheet is an iPhone-only experience; entrypoints are hidden on iPad,
         // and this guard ensures the sheet can never be presented there.
         guard UIDevice.current.userInterfaceIdiom != .pad else { return }
@@ -5528,7 +5528,8 @@ extension MainViewController: TabDelegate {
             reader: reader,
             fireExecutor: fireExecutor,
             downloader: downloader,
-            pinner: pinner
+            pinner: pinner,
+            source: source
         )
         viewModel.delegate = self
         let content = AIChatHistoryViewController(viewModel: viewModel, fireButtonAnimator: fireButtonAnimator)
@@ -7138,7 +7139,7 @@ extension MainViewController: AIChatHistoryManagerDelegate {
     }
 
     func aiChatHistoryManagerDidSelectViewAllChats(_ manager: AIChatHistoryManager) {
-        openAIChatHistory()
+        openAIChatHistory(source: .addressBar)
     }
 }
 
