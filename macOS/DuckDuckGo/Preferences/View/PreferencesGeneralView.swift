@@ -227,7 +227,7 @@ extension Preferences {
                     }
                 }
 
-                if featureFlagger.isFeatureOn(.handoff) {
+                if HandoffUserActivity.isSendingAvailable(featureFlagger: featureFlagger) {
                     // SECTION: Handoff
                     PreferencePaneSection(UserText.handoff) {
                         PreferencePaneSubSection {

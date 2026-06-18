@@ -40,7 +40,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         } else if let urlContext = connectionOptions.urlContexts.first {
             // We should be supporting opening multiple URLs at once
             appStateMachine.handle(.openURL(urlContext.url))
-        } else if let userActivity = connectionOptions.userActivities.first {
+        } else if let userActivity = connectionOptions.userActivities.first(where: { HandoffUserActivity.incomingURL(from: $0) != nil }) ?? connectionOptions.userActivities.first {
             appStateMachine.handle(.handleUserActivity(userActivity))
         }
     }

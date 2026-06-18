@@ -868,10 +868,7 @@ extension MainCoordinator: UserActivityHandling {
     }
 
     private func handleHandoffUserActivity(_ userActivity: NSUserActivity) -> Bool {
-        // The feature flag kill-switches both directions; the user setting gates advertising only, so
-        // receiving is not checked against it.
-        guard featureFlagger.isFeatureOn(.handoff),
-              let url = HandoffUserActivity.incomingURL(from: userActivity) else {
+        guard let url = HandoffUserActivity.incomingURL(from: userActivity) else {
             return false
         }
         controller.loadUrlInNewTab(url, reuseExisting: .any, inheritedAttribution: nil)

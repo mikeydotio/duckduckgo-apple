@@ -903,7 +903,7 @@ final class SettingsViewModel: ObservableObject {
     }
 
     var isHandoffFeatureEnabled: Bool {
-        featureFlagger.isFeatureOn(.handoff)
+        HandoffUserActivity.isSendingAvailable(featureFlagger: featureFlagger)
     }
 
     var crashCollectionOptInStatusBinding: Binding<Bool> {

@@ -1945,27 +1945,52 @@ enum HandoffUserActivity {
     /// in another browser — only a DuckDuckGo app reading this key can continue it.
     static let urlKey = "url"
 
-    /// URL for an incoming Handoff we accept: our private type (URL in `userInfo`), or the system web-browsing
-    /// type advertised by any browser (URL in `webpageURL`) when DuckDuckGo is the default browser here.
+    static func isSendingAvailable(featureFlagger: FeatureFlagger) -> Bool {
+        featureFlagger.internalUserDecider.isInternalUser || featureFlagger.isFeatureOn(.handoff)
+    }
+
+    static func addURL(_ url: URL, to activity: NSUserActivity) {
+        activity.addUserInfoEntries(from: [urlKey: url.absoluteString])
+        activity.requiredUserInfoKeys = [urlKey]
+        activity.needsSave = true
+    }
+
+    /// URL for an incoming Handoff we accept: our private type with a URL in `userInfo`, or a system
+    /// web-browsing activity with a URL in `webpageURL`.
     static func incomingURL(from userActivity: NSUserActivity) -> URL? {
         switch userActivity.activityType {
         case browsingWebType:
-            return userActivity.userInfo?[urlKey] as? URL
+            return url(from: userActivity.userInfo?[urlKey])
         case NSUserActivityTypeBrowsingWeb:
             return userActivity.webpageURL
         default:
             return nil
         }
     }
+
+    private static func url(from value: Any?) -> URL? {
+        switch value {
+        case let url as URL:
+            return url
+        case let url as NSURL:
+            return url as URL
+        case let string as String:
+            return URL(string: string)
+        default:
+            return nil
+        }
+    }
+
+    static func outgoingURL(from url: URL?) -> URL? {
+        guard let url, let scheme = url.scheme, ["http", "https"].contains(scheme) else { return nil }
+        return url
+    }
 }
 
 extension BrowserTabViewController {
 
     override func restoreUserActivityState(_ userActivity: NSUserActivity) {
-        // The feature flag kill-switches both directions; the user setting gates advertising only, so
-        // receiving is not checked against it.
-        guard featureFlagger.isFeatureOn(.handoff),
-              let url = HandoffUserActivity.incomingURL(from: userActivity) else {
+        guard let url = HandoffUserActivity.incomingURL(from: userActivity) else {
             return
         }
         openNewTab(with: .url(url, credential: nil, source: .appOpenUrl))
@@ -1990,16 +2015,14 @@ extension BrowserTabViewController {
             return
         }
 
-        let handoffURL: URL? = {
-            guard let url, let scheme = url.scheme, ["http", "https"].contains(scheme) else { return nil }
-            return url
-        }()
+        let handoffURL = HandoffUserActivity.outgoingURL(from: url)
         guard handoffURL != currentHandoffURL else { return }
 
         userActivity?.invalidate()
         if let handoffURL {
             let activity = NSUserActivity(activityType: HandoffUserActivity.browsingWebType)
-            activity.userInfo = [HandoffUserActivity.urlKey: handoffURL]
+            activity.isEligibleForHandoff = true
+            HandoffUserActivity.addURL(handoffURL, to: activity)
             userActivity = activity
         } else {
             resetToInertActivity()
@@ -2008,14 +2031,24 @@ extension BrowserTabViewController {
         userActivity?.becomeCurrent()
     }
 
-    private var currentHandoffURL: URL? {
-        userActivity?.userInfo?[HandoffUserActivity.urlKey] as? URL
+    override func updateUserActivityState(_ activity: NSUserActivity) {
+        super.updateUserActivityState(activity)
+
+        guard activity.activityType == HandoffUserActivity.browsingWebType,
+              let handoffURL = HandoffUserActivity.outgoingURL(from: tabViewModel?.tab.content.urlForWebView) else { return }
+
+        HandoffUserActivity.addURL(handoffURL, to: activity)
     }
 
-    /// Replace the current activity with one that advertises nothing, so a previously shared URL stops broadcasting.
+    private var currentHandoffURL: URL? {
+        guard let userActivity else { return nil }
+        return HandoffUserActivity.incomingURL(from: userActivity)
+    }
+
+    /// Clear the current activity so a previously shared URL stops broadcasting.
     private func resetToInertActivity() {
         userActivity?.invalidate()
-        userActivity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
+        userActivity = nil
     }
 
     private func invalidateCurrentActivity() {
@@ -2024,7 +2057,7 @@ extension BrowserTabViewController {
     }
 
     private var advertisesHandoff: Bool {
-        featureFlagger.isFeatureOn(.handoff)
+        HandoffUserActivity.isSendingAvailable(featureFlagger: featureFlagger)
         && !tabCollectionViewModel.isBurner
         && tabsPreferences.handoffEnabled
         && tabViewModel?.tab.content.isSettings != true

@@ -7226,16 +7226,6 @@ extension MainViewController {
 
     func invalidateCurrentActivity() {
         userActivity?.invalidate()
-
-        guard advertisesHandoff else {
-            userActivity = nil
-            return
-        }
-
-        userActivity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
-        userActivity?.webpageURL = nil
-        userActivity?.becomeCurrent()
+        userActivity = nil
     }
-
-    private var advertisesHandoff: Bool { featureFlagger.isFeatureOn(.handoff) && appSettings.handoffEnabled }
 }
