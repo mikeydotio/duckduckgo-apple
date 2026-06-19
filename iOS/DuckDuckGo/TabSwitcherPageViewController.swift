@@ -43,9 +43,6 @@ protocol TabSwitcherPageDelegate: AnyObject {
     func pageDidDeleteTabs(_ page: TabSwitcherPageViewController, allDeleted: Bool)
     func page(_ page: TabSwitcherPageViewController, didReorderTabs: Void)
     func page(_ page: TabSwitcherPageViewController, contextMenuForTabsAt indexPaths: [IndexPath]) -> UIMenu?
-    // 🟣 redundant comment - remove later
-    /// Long-press menu while searching. Resolved by `Tab` object (not index) because the
-    /// collection shows a filtered view; offers the safe subset of actions.
     func page(_ page: TabSwitcherPageViewController, searchContextMenuForTab tab: Tab) -> UIMenu?
     func pageDidRequestDismiss(_ page: TabSwitcherPageViewController)
     func pageCellDidBeginSwipe(_ page: TabSwitcherPageViewController)
@@ -83,12 +80,6 @@ class TabSwitcherPageViewController: UIViewController {
 
     var canUpdateCollection = true
 
-    // 🟣 redundant comment - remove later - or rather update, swipe & context menu are updated
-    // Non-mutating, presentation-only filtering. `tabsModel` stays the full source of
-    // truth; while searching, the collection view reads from `filteredTabs` (a derived
-    // copy) instead. Mutating interactions (reorder, swipe-to-delete, context menu) are
-    // disabled while searching so filtered indices never have to be translated back into
-    // model indices for membership/order changes.
     private(set) var isSearchActive = false
     private var searchQuery = ""
     private var filteredTabs: [Tab] = []
@@ -300,9 +291,6 @@ class TabSwitcherPageViewController: UIViewController {
     func beginSearch() {
         isSearchActive = true
         searchQuery = ""
-        // 🟣 redundant comment - remove later
-        // Allow a vertical drag even when the (few) results fit the frame, so the drag registers
-        // and `scrollViewWillBeginDragging` fires — that's what dismisses the keyboard.
         collectionView.alwaysBounceVertical = true
         rebuildFilteredTabs()
         collectionView.reloadData()
@@ -560,9 +548,6 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
     }
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        // 🟣 redundant comment - remove later
-        // The user started scrolling the results list — dismiss the keyboard.
-        // Only relevant while searching; ignored for normal browsing scrolls.
         guard isSearchActive else { return }
         pageDelegate?.pageDidScrollSearchResults(self)
     }
@@ -797,9 +782,6 @@ private extension UITapGestureRecognizer {
 /// and URL carried by `Tab.link`, using Foundation's locale-aware, case- and
 /// diacritic-insensitive comparison (`localizedStandardContains`).
 enum TabsSearch {
-    // 🟣 redundant comment - remove later
-    // PoC copy, intentionally not localized: keeps the prototype self-contained and avoids the
-    // build-time string-extraction step. For production these should become localized `UserText`.
     static let buttonTitle = "Search"
     static let placeholder = "Search open tabs"
 

@@ -149,11 +149,6 @@ class TabSwitcherViewController: UIViewController {
     var canShowSelectionMenu = false
     var menuBuilder: TabSwitcherMenuBuilding = DefaultTabSwitcherMenuBuilder()
 
-    // 🟣 redundant comment - remove later
-    // The search field is docked just above the keyboard via `keyboardLayoutGuide`,
-    // so it sits correctly regardless of address-bar position. While searching, the active page
-    // filters its tabs (see `TabSwitcherPageViewController.beginSearch()`) and Normal/Fire paging
-    // is locked. Search applies to the currently visible page only.
     private(set) var isSearching = false
 
     private(set) lazy var searchBar: UISearchBar = {
@@ -357,9 +352,6 @@ class TabSwitcherViewController: UIViewController {
         guard newMode != selectedBrowsingMode else {
             return
         }
-        // 🟣 redundant comment - remove later
-        // Switching Normal/Fire (via the top picker) leaves search entirely — keyboard and search
-        // field are dismissed before the page changes.
         if isSearching {
             exitSearchMode()
         }
@@ -987,8 +979,6 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
     }
 
     func page(_ page: TabSwitcherPageViewController, searchContextMenuForTab tab: Tab) -> UIMenu? {
-        // 🟣 redundant comment - remove later
-        // Drop the keyboard so the menu — and any resulting toast (e.g. Bookmark) — aren't hidden behind it.
         dismissSearchKeyboard()
         return createSearchLongPressMenu(forTab: tab)
     }
@@ -1006,8 +996,6 @@ extension TabSwitcherViewController: TabSwitcherPageDelegate {
     }
 
     func pageDidScrollSearchResults(_ page: TabSwitcherPageViewController) {
-        // 🟣 redundant comment - remove later
-        // Dragging the results list dismisses the keyboard.
         dismissSearchKeyboard()
     }
 
@@ -1060,9 +1048,6 @@ extension TabSwitcherViewController {
         ])
     }
 
-    // 🟣 redundant comment - remove later
-    /// Enters search mode for the currently visible page: docks the search field above the
-    /// keyboard, locks Normal/Fire paging, and switches the active page into its filtered view.
     func enterSearchMode() {
         guard !isSearching, !isEditing else { return }
         isSearching = true
@@ -1076,8 +1061,6 @@ extension TabSwitcherViewController {
         searchBar.becomeFirstResponder()
     }
 
-    // 🟣 redundant comment - remove later
-    /// Leaves search mode: clears the query, hides the search field and re-enables paging.
     func exitSearchMode() {
         guard isSearching else { return }
         isSearching = false
@@ -1089,15 +1072,6 @@ extension TabSwitcherViewController {
         pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing
     }
 
-    // 🟣 redundant comment - remove later
-    /// Dismisses the keyboard while staying in search mode. The search field stays visible and
-    /// docks to the bottom (keyboardLayoutGuide collapses), so results behind the keyboard — and
-    /// the bookmark toast — become visible. Used on long-press and when the results list is scrolled.
-    ///
-    /// Hops to the next runloop: resigning the first responder *synchronously* from inside a
-    /// UIKit callback that's mid-touch-tracking (e.g. `scrollViewWillBeginDragging`) can be deferred,
-    /// so the keyboard wouldn't actually drop. `view.endEditing(true)` is the forced, hierarchy-wide
-    /// dismissal (more reliable than `resignFirstResponder` on the search bar alone).
     func dismissSearchKeyboard() {
         guard isSearching else { return }
         searchBar.resignFirstResponder()
