@@ -56,20 +56,23 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
         // MARK: Blur (inverted: heaviest at the bottom, eases as the finger rises; only commit clears it)
 
         /// Blur fraction (0...1 of the property animator) at the very start of the drag — the heaviest
-        /// the overview gets. 1.0 = the full `.systemThinMaterial`.
-        static let maxBlur: CGFloat = 1.0
-        /// Floor the blur eases down to at the top of the drag: it never fully clears mid-drag (only the
-        /// commit sharpens to 0), so you always retain a little frosting over the overview.
-        static let minBlurDuringDrag: CGFloat = 0.18
+        /// the overview gets. 1.0 = the full `.systemThinMaterial`; ~0.7 keeps it visibly frosted at the
+        /// bottom while leaving headroom so the grid reads clearly once it eases to the floor.
+        static let maxBlur: CGFloat = 0.7
+        /// Floor the blur eases down to by ~⅓ of the way up: light enough that the grid is clearly
+        /// legible, but it never fully clears mid-drag (only the commit sharpens to 0) so a little
+        /// frosting remains over the overview.
+        static let minBlurDuringDrag: CGFloat = 0.10
         /// Smoothstep window (in *blur progress*, 0 = bottom, 1 = top) over which the blur eases from
-        /// `maxBlur` down to `minBlurDuringDrag`. Below `blurEaseStart` it stays heavy (grid not really
-        /// visible); past `blurEaseEnd` it has reached the floor. Centring the window past the midpoint
-        /// keeps it "still very blurry" around halfway while clearing meaningfully up high.
-        static let blurEaseStart: CGFloat = 0.30
-        static let blurEaseEnd: CGFloat = 0.85
+        /// `maxBlur` down to `minBlurDuringDrag`. Below `blurEaseStart` it stays heavy (grid not yet
+        /// legible at the very bottom); by `blurEaseEnd` it has reached the floor. With the 0.9 reference
+        /// below, `blurEaseEnd ≈ 0.35` puts the floor at ≈⅓ of the screen height, so the grid is clearly
+        /// legible by ~⅓ of the way up while still starting heavy at the bottom.
+        static let blurEaseStart: CGFloat = 0.05
+        static let blurEaseEnd: CGFloat = 0.35
         /// Fraction of the full content/screen height the finger must travel for blur progress to reach
-        /// 1. Bigger than the visual (card-shrink) reference so the blur keeps easing across the UPPER
-        /// half of the screen rather than saturating at mid-screen.
+        /// 1. Bigger than the visual (card-shrink) reference; combined with `blurEaseEnd ≈ 0.35` the blur
+        /// reaches its floor at roughly ⅓ of the screen height.
         static let blurProgressReferenceFraction: CGFloat = 0.9
     }
 
@@ -78,6 +81,10 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
     private var animator: (UIViewControllerAnimatedTransitioning & SwipeUpInteractiveTransition)?
     private var preview: SwipeUpInteractivePreview?
     private weak var toView: UIView?
+    /// The presented tab overview, retained weakly so `finish()`/`cancel()` can restore the dragged tab's
+    /// hidden cell (Update 2b). Weak because UIKit owns the presented VC; the transition context also
+    /// vends it, but caching it lets the completion blocks reach it without re-querying a torn-down context.
+    private weak var toVC: TabSwitcherViewController?
 
     private var blurView: UIVisualEffectView?
     private var blurAnimator: UIViewPropertyAnimator?
@@ -101,6 +108,7 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
             finishImmediatelyAsCancel()
             return
         }
+        self.toVC = toVC
 
         let finalFrame = transitionContext.finalFrame(for: toVC)
         toVC.view.frame = finalFrame
@@ -149,6 +157,12 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
             return
         }
         self.preview = preview
+
+        // Update 2b: hide the dragged tab's real cell in the overview for the whole transition, so the
+        // dragged card is the only visible copy of that tab until it lands (zero doubling/seam). Done after
+        // `prepareForPresentation()` + the scroll-to-current-tab inside `prepareInteractivePreview` so the
+        // cell exists and is positioned. Restored in BOTH `finish()` and `cancel()` completion blocks.
+        toVC.setTransitioningTabCellHidden(true)
 
         // Z-order, bottom → top: solidBackground (hides the from-VC) under the overview + blur under the
         // dragged card, with the card header on top of the card. The presenting VC's real content sits
@@ -217,10 +231,10 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
             preview.imageView.alpha = min(1, max(0, (progress - 0.2) / 0.3))
         }
 
-        // Inverted blur: heaviest at the bottom, easing toward `minBlurDuringDrag` as the finger rises so
-        // you see more of the overview the higher you go (where you care about where you'll land). Driven
-        // off a separate, near-full-height blur progress (not the card-shrink `verticalProgress`, which
-        // saturates at mid-screen) so it keeps clearing across the upper half.
+        // Inverted blur: heaviest at the bottom, easing toward `minBlurDuringDrag` so the grid is clearly
+        // legible by ~⅓ of the way up (where you care about where you'll land). Driven off a separate,
+        // near-full-height blur progress (not the card-shrink `verticalProgress`, which saturates at
+        // mid-screen) so the ease window maps onto a predictable fraction of the screen height.
         let blur = currentBlurFraction()
         blurAnimator?.fractionComplete = blur
         transitionContext.updateInteractiveTransition(progress)
@@ -307,6 +321,8 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
             toView.alpha = 1
             self.blurAnimator?.fractionComplete = 0 // sharpen: land in a crisp overview
         } completion: { _ in
+            // Update 2b: the card is gone now — reveal the real cell so the overview shows the tab again.
+            self.toVC?.setTransitioningTabCellHidden(false)
             self.tearDown()
             transitionContext.finishInteractiveTransition()
             transitionContext.completeTransition(true)
@@ -341,6 +357,9 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
             toView.alpha = 0
             self.blurAnimator?.fractionComplete = 0
         } completion: { _ in
+            // Update 2b: restore the dragged tab's cell so the overview is intact if it's revisited (the
+            // page is what's shown after a cancel, but the flag must be cleared and the cell un-hidden).
+            self.toVC?.setTransitioningTabCellHidden(false)
             self.tearDown()
             transitionContext.cancelInteractiveTransition()
             transitionContext.completeTransition(false)
@@ -405,10 +424,14 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
         blurView = nil
         preview = nil
         animator = nil
+        toVC = nil
     }
 
     /// Last-resort teardown when we can't drive a real animation (missing context/preview).
     private func finishImmediatelyAsCancel() {
+        // Update 2b: restore the dragged tab's cell on the fallback path too (it's a no-op if we never
+        // hid it, e.g. when the start guard fails before the hide call).
+        toVC?.setTransitioningTabCellHidden(false)
         let context = transitionContext
         tearDown()
         context?.cancelInteractiveTransition()

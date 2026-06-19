@@ -448,8 +448,9 @@ and `HomeScreenTransition.swift`; the button-tap and dismissal paths stay untouc
 reveals it — blurred by `blurView` (already z-ordered between the overview and the card) — as it shrinks.
 `finish()` keeps alpha 1 + blur → 0 (sharpen); `cancel()` fades alpha → 0 as the page returns; the
 nil-preview fallback now resets alpha → 0 before its fade-in so that path still animates. The inverted-blur
-curve and `Constants` are unchanged (product owner fine-tunes). `interactive.update` / `interactive.start`
-now log `overviewAlpha` next to `blur` so it's confirmable that the real grid is what's blurred.
+`Constants` were later retuned in §7.F.1 (grid legible by ~⅓ up); the `currentBlurFraction()` curve is
+unchanged. `interactive.update` / `interactive.start` log `overviewAlpha` next to `blur` so it's
+confirmable that the real grid is what's blurred.
 
 **E.2 — Commit snaps pixel-perfect on the real cell (no jump).** The overview is presented with the
 tracker-count banner hidden (synchronous present; `initialTrackerCountState: .hidden`). The page controller
@@ -485,6 +486,54 @@ cell's header → pixel-match on handoff (the ±4pt header/preview boundary is t
 transition approximation, unchanged). `cancel()` fades the header back out and returns it to the full-screen
 card's top edge; `tearDown` removes it. Applies to **both** web and NTP.
 
+### F. Final polish (legible blur by ~⅓ up; opaque cell-matching card; hide the dragged cell)
+
+Three further refinements on top of §7.E. All stay behind the `swipeUpToTabSwitcher` flag; the button-tap and
+dismissal paths are untouched.
+
+**F.1 — Grid legible by ~⅓ of the way up (blur retune).** The blur previously stayed heavy until ~50% drag
+(its ease window cleared too late). Per the product owner the grid should be clearly legible by ~⅓ of the way
+up while still starting heavy at the very bottom. Only the inverted-blur `Constants` in
+`SwipeUpToTabSwitcherInteractiveTransition.swift` change (the `currentBlurFraction()` math is unchanged):
+`maxBlur 1.0 → 0.7` (≈30% less peak — visibly frosted but with headroom), `minBlurDuringDrag 0.18 → 0.10`
+(light enough that the grid reads clearly at the floor), `blurEaseStart 0.30 → 0.05` and
+`blurEaseEnd 0.85 → 0.35`. With the unchanged `blurProgressReferenceFraction 0.9`, the smoothstep reaches its
+floor at `blurProgress ≈ 0.35` — i.e. ≈⅓ of the screen height — so the blur ramps from heavy at the bottom to
+its legible floor by ~⅓ up, then holds (commit still sharpens to 0). All five remain tunable `Constants` for
+the product owner to fine-tune.
+
+**F.2 — Opaque, cell-matching card background (fix the "doubled title").** During the commit spring the card's
+background behind the header strip was transparent (web) or the page `theme.backgroundColor` (NTP), so the real
+cell's title showed through → the title looked doubled for a split second. The all-tabs grid cell's card is the
+`RoundedRectangleView background`, whose colour is `.surfaceTertiary` (set in `TabViewCell.decorate()`); the
+cell's header (favicon/title/X) is added to that `background`. Fix: set
+`imageContainer.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)` from the START of the drag in
+**both** `prepareInteractivePreview` paths (`FromWebViewTransition` in `WebViewTransition.swift` — previously no
+background; `FromHomeScreenTransition` in `HomeScreenTransition.swift` — previously `theme.backgroundColor`), so
+the card is opaque on the same surface as the real cell throughout, not just at commit. The `SwipeUpCardHeaderView`
+(in `TabSwitcherTransition.swift`) also gets `backgroundColor = .surfaceTertiary` in its `init`, so the header
+strip is opaque over that surface and nothing shows through behind the title. (No `finish()` background change is
+needed — the container is already the right colour the whole time.)
+
+**F.3 — Hide the dragged tab's cell in the grid during the transition.** The dragged card and the dragged tab's
+real overview cell were both visible, risking a doubled tab / seam at the landing. Fix: hide the
+currently-dragged tab's cell in the overview's collection view for the whole transition and restore it on
+completion. New API `TabSwitcherViewController.setTransitioningTabCellHidden(_:)` delegates to the visible
+`TabSwitcherPageViewController`. **Robust to layout changes:** the page controller tracks a
+`hiddenTransitioningIndexPath` (the current tab, `tabsModel.currentIndex`, section 0) and applies
+`cell.isHidden = (indexPath == hiddenTransitioningIndexPath)` in **both** `collectionView(_:cellForItemAt:)` and
+`collectionView(_:willDisplay:forItemAt:)` — so the tracker-count banner inserting mid-transition (which
+invalidates layout and re-displays cells, undoing a one-shot `isHidden`) cannot un-hide it. On hide it also sets
+the currently-visible cell's `isHidden = true` immediately; on restore it clears the flag and sets the visible
+cell's `isHidden = false` (no `reloadItems`, which would be unsafe mid-batch-update). The interaction controller
+(`SwipeUpToTabSwitcherInteractiveTransition.swift`) calls `setTransitioningTabCellHidden(true)` in
+`startInteractiveTransition` (after `prepareForPresentation()` + the scroll-to-current-tab in
+`prepareInteractivePreview`) and `setTransitioningTabCellHidden(false)` in **both** the `finish()` and `cancel()`
+completion blocks **and** the `finishImmediatelyAsCancel()` fallback (no-op if never hidden). On commit the cell
+reappears once the card is gone; on cancel it's cleaned up (the page is shown). This does **not** affect Fix
+E.2's commit recompute (`layoutAttributesForItem` is position, not visibility) or the scroll-to-current-tab. An
+`os_log` line is logged on both hide and restore.
+
 ## Verification / testing
 
 **Manual (the primary verification — feel is the point of the project).** Build & run on an iPhone sim
@@ -513,6 +562,18 @@ separately on a fresh NTP), from the bottom bar:
   the card's top; on landing it coincides exactly with the real cell's header (favicon, title, X all in
   place, no empty strip, no jump). Verify on a web page (real favicon + title) and on a fresh NTP (Dax logo
   + home-tab title). The X is inert (tapping it does nothing — the card is removed on commit anyway).
+- **Legible blur by ~⅓ up (F.1):** at the very bottom of the drag the grid is heavily frosted; by ~⅓ of the
+  way up the screen the grid is clearly legible (and stays legible higher up). Commit still sharpens to a
+  crisp overview. Web + NTP.
+- **No doubled title (F.2):** during the commit spring the card's header/title sits on an opaque,
+  cell-matching surface — the real cell's title does NOT show through behind it (no doubled title for a
+  split second). Verify web (real title) and NTP (home-tab title); light and dark mode (the surface adapts).
+- **Dragged cell hidden (F.3):** during the whole transition the dragged tab's cell is hidden in the grid
+  (only the card represents it — no second copy / seam). On **commit** the cell reappears once the card has
+  landed (the overview shows the tab normally afterward). On **cancel** there's no leftover hidden cell if
+  the overview is revisited. Re-check on a tab **with trackers** (so the "N trackers blocked" banner inserts
+  mid-transition) — the cell stays hidden through the banner insertion and still reappears after commit.
+  Web + NTP.
 
 **Unit tests.** Cover the pure `progress(forTranslation:reference:)` and
 `shouldCommit(progress:velocity:)` helpers (flick at low progress commits; below-threshold lift cancels;

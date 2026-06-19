@@ -77,6 +77,14 @@ class TabSwitcherPageViewController: UIViewController {
 
     var canUpdateCollection = true
 
+    /// Index path of the cell hidden for the duration of the interactive swipe-up transition (the dragged
+    /// tab), or nil when nothing is hidden. The dragged page's card is the only visible copy of that tab
+    /// until it lands, so we hide the real cell to avoid a doubled tab / seam during the transition. Read
+    /// in BOTH `cellForItemAt` and `willDisplay:forItemAt:` (not a one-shot `cellForItem(at:)?.isHidden`)
+    /// so it survives layout changes — notably the tracker-count banner being inserted mid-transition,
+    /// which invalidates layout and re-displays cells.
+    private var hiddenTransitioningIndexPath: IndexPath?
+
     var selectedIndexPaths: [IndexPath] {
         collectionView.indexPathsForSelectedItems ?? []
     }
@@ -284,6 +292,34 @@ class TabSwitcherPageViewController: UIViewController {
             tabCell.updateCurrentTabBorder()
         }
     }
+
+    /// Hides (or restores) the currently-dragged tab's cell for the duration of the interactive swipe-up
+    /// transition. While hidden the dragged page's card is the only visible copy of that tab — zero
+    /// doubling/seam — and the real cell takes over once the card lands. Robust to layout changes
+    /// (e.g. the tracker-count banner inserting mid-transition): the flag is honoured in both
+    /// `cellForItemAt` and `willDisplay:forItemAt:`, not just a one-shot `isHidden`.
+    func setTransitioningTabCellHidden(_ hidden: Bool) {
+        let indexPath = tabsModel.currentIndex.map { IndexPath(row: $0, section: 0) }
+        if hidden {
+            hiddenTransitioningIndexPath = indexPath
+            Logger.swipeUpToTabSwitcher.debug("setTransitioningTabCellHidden(true) indexPath=\(String(describing: indexPath), privacy: .public)")
+            // Apply immediately to the currently-visible cell (if it's on screen) so it disappears the
+            // instant the drag starts, before any re-display cycle.
+            if let indexPath {
+                (collectionView.cellForItem(at: indexPath) as? TabViewCell)?.isHidden = true
+            }
+        } else {
+            let restored = hiddenTransitioningIndexPath
+            hiddenTransitioningIndexPath = nil
+            Logger.swipeUpToTabSwitcher.debug("setTransitioningTabCellHidden(false) indexPath=\(String(describing: restored), privacy: .public)")
+            // Clear the flag and make the cell visible again so the real cell takes over after the card
+            // lands. `reloadItems` would crash mid-batch-update; setting the visible cell's `isHidden`
+            // directly is safe and sufficient (the flag is already cleared so future re-displays show it).
+            if let restored, let cell = collectionView.cellForItem(at: restored) as? TabViewCell {
+                cell.isHidden = false
+            }
+        }
+    }
     
     func scrollToInitialTab() {
         guard let index = tabsModel.currentIndex,
@@ -378,6 +414,10 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
                         thumbnailLoader: duckAIGridContentProvider)
         }
 
+        // Keep the dragged tab's cell hidden during the interactive swipe-up transition. `update(...)`
+        // resets `isHidden = false`, so apply this after it (and again in `willDisplay` for re-displays).
+        cell.isHidden = (indexPath == hiddenTransitioningIndexPath)
+
         return cell
     }
 
@@ -404,6 +444,15 @@ extension TabSwitcherPageViewController: UICollectionViewDataSource {
 // MARK: - UICollectionViewDelegate
 
 extension TabSwitcherPageViewController: UICollectionViewDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        // Re-assert the hidden state right before display. The tracker-count banner inserting mid-transition
+        // invalidates layout and can re-display the dragged cell; a one-shot `isHidden` would get undone,
+        // so honour `hiddenTransitioningIndexPath` here as well as in `cellForItemAt`.
+        if let cell = cell as? TabViewCell {
+            cell.isHidden = (indexPath == hiddenTransitioningIndexPath)
+        }
+    }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if pageDelegate?.isEditing == true {

@@ -635,6 +635,14 @@ class TabSwitcherViewController: UIViewController {
         self.scrollToInitialTab()
     }
 
+    /// Hides (or restores) the currently-dragged tab's cell in the overview for the duration of the
+    /// interactive swipe-up transition, so the dragged card is the only visible copy of that tab until it
+    /// lands. Delegates to the visible page controller. Called by `SwipeUpToTabSwitcherInteractiveTransition`
+    /// (true at setup, false on both the commit and cancel completion).
+    func setTransitioningTabCellHidden(_ hidden: Bool) {
+        activePageController.setTransitioningTabCellHidden(hidden)
+    }
+
     private func syncPagingScrollViewToCurrentMode(animated: Bool) {
         guard firePageController != nil else { return }
         let targetX: CGFloat = selectedBrowsingMode == .fire ? 0 : pagingScrollView.frame.width

@@ -230,6 +230,12 @@ final class SwipeUpCardHeaderView: UIView {
         super.init(frame: .zero)
         isUserInteractionEnabled = false // decorative; never intercepts touches
 
+        // Opaque, cell-matching background so nothing shows through behind the title during the commit
+        // spring. Matches the all-tabs cell's card `background` (`.surfaceTertiary`, see
+        // `TabViewCell.decorate()`), which is what the real cell's header sits on — so the card header is
+        // opaque over the same surface as the card body it caps.
+        backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
+
         favicon.contentMode = .scaleAspectFit
         favicon.layer.cornerRadius = TabViewCell.Constants.faviconCornerRadius
         favicon.layer.cornerCurve = .continuous

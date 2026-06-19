@@ -219,7 +219,13 @@ extension FromHomeScreenTransition: SwipeUpInteractiveTransition {
         solidBackground.backgroundColor = theme.backgroundColor
 
         imageContainer.frame = initialFrame
-        imageContainer.backgroundColor = theme.backgroundColor
+        // Opaque, cell-matching card background from the START of the drag. The all-tabs grid cell's card
+        // is the `.surfaceTertiary` `background` view the header sits on (`TabViewCell.decorate()`);
+        // matching it here (rather than the page `theme.backgroundColor`, and rather than only at commit)
+        // keeps the card opaque behind the header strip the whole drag, so the real cell's title never
+        // shows through during the commit spring. The full-bleed NTP snapshot covers it at the start and
+        // cross-fades out to reveal the matching surface as the card shrinks.
+        imageContainer.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
 
         prepareSnapshots(with: homeScreen,
                          addressBarPosition: mainViewController.appSettings.currentAddressBarPosition,

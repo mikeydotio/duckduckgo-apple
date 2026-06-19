@@ -191,6 +191,11 @@ extension FromWebViewTransition: SwipeUpInteractiveTransition {
                                    forAddressBarPosition: mainViewController.appSettings.currentAddressBarPosition,
                                    byHeight: -mainViewController.omniBar.barView.expectedHeight)
         imageContainer.frame = initialFrame
+        // Opaque, cell-matching card background from the START of the drag (not just on commit). The
+        // all-tabs grid cell's card is the `.surfaceTertiary` `background` view the header sits on
+        // (`TabViewCell.decorate()`); matching it here keeps the card opaque behind the header strip the
+        // whole drag, so the real cell's title never shows through (no "doubled title" on the commit spring).
+        imageContainer.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
         imageView.frame = imageContainer.bounds
         imageView.image = preview
 
