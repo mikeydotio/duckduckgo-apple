@@ -487,6 +487,7 @@ public extension DesignSystemImages {
             public static var crossRecolorable: DesignSystemImage { .init(resource: .crossRecolorable24) }
             public static var crossSolidSmall: DesignSystemImage { .init(resource: .crossSolidSmall24) }
             public static var cut: DesignSystemImage { .init(resource: .cut24) }
+            public static var deviceAll: DesignSystemImage { .init(resource: .deviceAll24) }
             public static var deviceDesktop: DesignSystemImage { .init(resource: .deviceDesktop24) }
             public static var deviceMobile: DesignSystemImage { .init(resource: .deviceMobile24) }
             public static var deviceMobileDouble: DesignSystemImage { .init(resource: .deviceMobileDouble24) }
@@ -538,6 +539,7 @@ public extension DesignSystemImages {
             public static var image: DesignSystemImage { .init(resource: .image24) }
             public static var images: DesignSystemImage { .init(resource: .images24) }
             public static var imageAIHide: DesignSystemImage { .init(resource: .imageAIHide24) }
+            public static var imagesPinned: DesignSystemImage { .init(resource: .imagesPinned24) }
             public static var info: DesignSystemImage { .init(resource: .info24) }
             public static var infoSolid: DesignSystemImage { .init(resource: .infoSolid24) }
             public static var key: DesignSystemImage { .init(resource: .key24) }
@@ -607,6 +609,7 @@ public extension DesignSystemImages {
             public static var timer: DesignSystemImage { .init(resource: .timer24) }
             public static var trash: DesignSystemImage { .init(resource: .trash24) }
             public static var typeSize: DesignSystemImage { .init(resource: .typeSize24) }
+            public static var unpin: DesignSystemImage { .init(resource: .unpin24) }
             public static var uploadFile: DesignSystemImage { .init(resource: .uploadFile24) }
             public static var vpn: DesignSystemImage { .init(resource: .VPN_24) }
             public static var vpnUnlocked: DesignSystemImage { .init(resource: .vpnUnlocked24) }
