@@ -569,7 +569,6 @@ extension TabSwitcherPageViewController: UICollectionViewDelegate {
         // is then built by object (search) or by index (normal). Config creation and pixels are
         // shared — only the menu source differs.
         var searchTab: Tab?
-        // 🚩feature flag entry point?
         if isSearchActive {
             guard let row = indexPaths.first?.row, let tab = displayedTab(at: row) else { return nil }
             searchTab = tab

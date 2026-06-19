@@ -23,8 +23,8 @@ import BrowserServicesKit
 import DesignResourcesKitIcons
 
 enum TabSwitcherToolbarState: Equatable {
-    case regularSize(selectedCount: Int, totalCount: Int, containsWebPages: Bool, showAIChat: Bool, canDismissOnEmpty: Bool)
-    case largeSize(selectedCount: Int, totalCount: Int, containsWebPages: Bool, showAIChat: Bool, canDismissOnEmpty: Bool)
+    case regularSize(selectedCount: Int, totalCount: Int, containsWebPages: Bool, showAIChat: Bool, showSearch: Bool, canDismissOnEmpty: Bool)
+    case largeSize(selectedCount: Int, totalCount: Int, containsWebPages: Bool, showAIChat: Bool, showSearch: Bool, canDismissOnEmpty: Bool)
     case editingRegularSize(selectedCount: Int, totalCount: Int)
     case editingLargeSize(selectedCount: Int, totalCount: Int)
 
@@ -318,9 +318,7 @@ class DefaultTabSwitcherBarsStateHandler: TabSwitcherBarsStateHandling {
 
                 .flexibleSpace(),
 
-                // invisibleBalancingButton(),
-                // 🚩Feature Flag entry point. Show buttons depending on flag availability!
-                searchButton,
+                params.showSearch ? searchButton : invisibleBalancingButton(),
 
                 .flexibleSpace(),
 
@@ -443,6 +441,7 @@ extension DefaultTabSwitcherBarsStateHandler {
         var totalCount: Int = 0
         var containsWebPages: Bool = false
         var showAIChat: Bool = false
+        var showSearch: Bool = false
         var canDismissOnEmpty: Bool = true
         var interfaceMode: TabSwitcherViewController.InterfaceMode = .regularSize
 
@@ -450,12 +449,13 @@ extension DefaultTabSwitcherBarsStateHandler {
 
         init(from state: TabSwitcherToolbarState) {
             switch state {
-            case .regularSize(let selectedCount, let totalCount, let containsWebPages, let showAIChat, let canDismissOnEmpty),
-                 .largeSize(let selectedCount, let totalCount, let containsWebPages, let showAIChat, let canDismissOnEmpty):
+            case .regularSize(let selectedCount, let totalCount, let containsWebPages, let showAIChat, let showSearch, let canDismissOnEmpty),
+                 .largeSize(let selectedCount, let totalCount, let containsWebPages, let showAIChat, let showSearch, let canDismissOnEmpty):
                 self.selectedCount = selectedCount
                 self.totalCount = totalCount
                 self.containsWebPages = containsWebPages
                 self.showAIChat = showAIChat
+                self.showSearch = showSearch
                 self.canDismissOnEmpty = canDismissOnEmpty
             case .editingRegularSize(let selectedCount, let totalCount),
                  .editingLargeSize(let selectedCount, let totalCount):

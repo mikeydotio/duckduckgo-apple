@@ -263,6 +263,7 @@ extension TabSwitcherViewController {
         }
 
         let showAIChatButton = aiChatSettings.isAIChatTabSwitcherUserSettingsEnabled
+        let showSearchButton = searchableTabsFeature.isAvailable
         let containsWebPages = tabsModel.tabs.contains(where: { $0.link != nil })
 
         let state: TabSwitcherToolbarState
@@ -274,10 +275,10 @@ extension TabSwitcherViewController {
             state = AppWidthObserver.shared.isLargeWidth
                 ? .largeSize(selectedCount: selectedTabs.count, totalCount: tabsModel.count,
                              containsWebPages: containsWebPages, showAIChat: showAIChatButton,
-                             canDismissOnEmpty: canDismissOnEmpty)
+                             showSearch: showSearchButton, canDismissOnEmpty: canDismissOnEmpty)
                 : .regularSize(selectedCount: selectedTabs.count, totalCount: tabsModel.count,
                                containsWebPages: containsWebPages, showAIChat: showAIChatButton,
-                               canDismissOnEmpty: canDismissOnEmpty)
+                               showSearch: showSearchButton, canDismissOnEmpty: canDismissOnEmpty)
         }
 
         barsHandler.update(state)

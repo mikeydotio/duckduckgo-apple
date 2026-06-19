@@ -205,6 +205,8 @@ class TabSwitcherViewController: UIViewController {
     
     var barsHandler: TabSwitcherBarsStateHandling = DefaultTabSwitcherBarsStateHandler()
 
+    private(set) lazy var searchableTabsFeature = SearchableTabsFeature(featureFlagger: featureFlagger)
+
     private let appSettings: AppSettings
     private let initialTrackerCountState: TabSwitcherTrackerCountViewModel.State
     
@@ -1049,6 +1051,7 @@ extension TabSwitcherViewController {
     }
 
     func enterSearchMode() {
+        guard searchableTabsFeature.isAvailable else { return }
         guard !isSearching, !isEditing else { return }
         isSearching = true
         pagingScrollView.isScrollEnabled = false

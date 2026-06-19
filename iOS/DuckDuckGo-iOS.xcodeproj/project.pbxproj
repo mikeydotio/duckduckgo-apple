@@ -775,6 +775,7 @@
 		850365F323DE087800D0F787 /* UIImageViewExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850365F223DE087800D0F787 /* UIImageViewExtension.swift */; };
 		85047C772A0D5D3D00D2FF3F /* SyncSettingsViewController+SyncDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85047C762A0D5D3D00D2FF3F /* SyncSettingsViewController+SyncDelegate.swift */; };
 		8504E9EA2D8883BA00FF1352 /* TabSwitcherBarsStateHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8504E9E92D8883AE00FF1352 /* TabSwitcherBarsStateHandlerTests.swift */; };
+		492BAFF0359349C2835D3A5E /* SearchableTabsFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45F8806FD84E4BE4856A47E0 /* SearchableTabsFeatureTests.swift */; };
 		7A1B2C3D2E0000000000F001 /* TabsBarViewControllerSizingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1B2C3D2E0000000000F002 /* TabsBarViewControllerSizingTests.swift */; };
 		850559C923C61B5D0055C0D5 /* login-form-detection.js in Resources */ = {isa = PBXBuildFile; fileRef = 850559C823C61B5D0055C0D5 /* login-form-detection.js */; };
 		850559D023CF647C0055C0D5 /* Fireproofing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850559CF23CF647C0055C0D5 /* Fireproofing.swift */; };
@@ -1067,6 +1068,7 @@
 		9847C00527A41A0A00DB07AA /* WebViewTestHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9847C00327A419D500DB07AA /* WebViewTestHelper.swift */; };
 		984D035A24ACCC7D0066CFB8 /* TabViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984D035924ACCC7D0066CFB8 /* TabViewCell.swift */; };
 		984D035C24AE15CD0066CFB8 /* TabSwitcherSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984D035B24AE15CD0066CFB8 /* TabSwitcherSettings.swift */; };
+		E09879FF557642CDAD779090 /* SearchableTabsFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C10C3A0E9064A7D92973544 /* SearchableTabsFeature.swift */; };
 		984D036124AF49B80066CFB8 /* TabPreviewsSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984D035F24AF49160066CFB8 /* TabPreviewsSourceTests.swift */; };
 		984D60B2222A1284003B9E3B /* FeedbackFormViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984D60B1222A1284003B9E3B /* FeedbackFormViewController.swift */; };
 		9856A1992933D2EB00ACB44F /* BookmarksModelsErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9856A1982933D2EB00ACB44F /* BookmarksModelsErrorHandling.swift */; };
@@ -3431,6 +3433,7 @@
 		850365F223DE087800D0F787 /* UIImageViewExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImageViewExtension.swift; sourceTree = "<group>"; };
 		85047C762A0D5D3D00D2FF3F /* SyncSettingsViewController+SyncDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SyncSettingsViewController+SyncDelegate.swift"; sourceTree = "<group>"; };
 		8504E9E92D8883AE00FF1352 /* TabSwitcherBarsStateHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSwitcherBarsStateHandlerTests.swift; sourceTree = "<group>"; };
+		45F8806FD84E4BE4856A47E0 /* SearchableTabsFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchableTabsFeatureTests.swift; sourceTree = "<group>"; };
 		7A1B2C3D2E0000000000F002 /* TabsBarViewControllerSizingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabsBarViewControllerSizingTests.swift; sourceTree = "<group>"; };
 		850559C823C61B5D0055C0D5 /* login-form-detection.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "login-form-detection.js"; sourceTree = "<group>"; };
 		850559CF23CF647C0055C0D5 /* Fireproofing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fireproofing.swift; sourceTree = "<group>"; };
@@ -3759,6 +3762,7 @@
 		9848DA0B251EAC3000A8F0AE /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		984D035924ACCC7D0066CFB8 /* TabViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabViewCell.swift; sourceTree = "<group>"; };
 		984D035B24AE15CD0066CFB8 /* TabSwitcherSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSwitcherSettings.swift; sourceTree = "<group>"; };
+		6C10C3A0E9064A7D92973544 /* SearchableTabsFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchableTabsFeature.swift; sourceTree = "<group>"; };
 		984D035F24AF49160066CFB8 /* TabPreviewsSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabPreviewsSourceTests.swift; sourceTree = "<group>"; };
 		984D60B1222A1284003B9E3B /* FeedbackFormViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackFormViewController.swift; sourceTree = "<group>"; };
 		9852CD8B251EABCC001A1575 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -10879,6 +10883,7 @@
 				6FF9AD3E2CE63DC200C5A406 /* TabSwitcherOpenDailyPixel.swift */,
 				804BC3F02F7CB43D0048FFB6 /* TabSwitcherPageViewController.swift */,
 				984D035B24AE15CD0066CFB8 /* TabSwitcherSettings.swift */,
+				6C10C3A0E9064A7D92973544 /* SearchableTabsFeature.swift */,
 				AA1000010000000000000002 /* TabSwitcherTrackerInfoHeaderView.swift */,
 				F1617C121E572E0300DEDCAF /* TabSwitcherViewController.swift */,
 				85F2FFCE2211F8E5006BB258 /* TabSwitcherViewController+KeyCommands.swift */,
@@ -10987,6 +10992,7 @@
 				5B4F88C32F465B70003999E2 /* TabExternalLaunchTests.swift */,
 				5B4F88C22F465B0D003999E2 /* TabManagerExternalLaunchTests.swift */,
 				8504E9E92D8883AE00FF1352 /* TabSwitcherBarsStateHandlerTests.swift */,
+				45F8806FD84E4BE4856A47E0 /* SearchableTabsFeatureTests.swift */,
 				7A1B2C3D2E0000000000F002 /* TabsBarViewControllerSizingTests.swift */,
 				8581F4D22D8AE04700D93DA6 /* TabManagerTests.swift */,
 				6F1422832D314DC900B6D3DE /* TabInteractionStateDiskSourceTests.swift */,
@@ -13693,6 +13699,7 @@
 				1E7A71192934EC6100B7EA19 /* OmniBarNotificationContainerView.swift in Sources */,
 				D60B1F272B9DDE5A00AE4760 /* SubscriptionGoogleView.swift in Sources */,
 				984D035C24AE15CD0066CFB8 /* TabSwitcherSettings.swift in Sources */,
+				E09879FF557642CDAD779090 /* SearchableTabsFeature.swift in Sources */,
 				D6E83C562B21ECC1006C8AFB /* SettingsLegacyViewProvider.swift in Sources */,
 				650552A22D67768E0067D4F2 /* DuckPlayerEntryPillViewModel.swift in Sources */,
 				CBF259C32D4EC10400AC63E4 /* CrashHandlersConfiguration.swift in Sources */,
@@ -14459,6 +14466,7 @@
 				5651F5342EE887DD009C7490 /* SubscriptionFlowTypeTests.swift in Sources */,
 				8588026A24E424EE00C24AB6 /* AppWidthObserverTests.swift in Sources */,
 				8504E9EA2D8883BA00FF1352 /* TabSwitcherBarsStateHandlerTests.swift in Sources */,
+				492BAFF0359349C2835D3A5E /* SearchableTabsFeatureTests.swift in Sources */,
 				7A1B2C3D2E0000000000F001 /* TabsBarViewControllerSizingTests.swift in Sources */,
 				857229882BBEE74100E2E802 /* AppRatingPromptDatabaseMigrationTests.swift in Sources */,
 				8588026624E420BD00C24AB6 /* LargeOmniBarStateTests.swift in Sources */,
