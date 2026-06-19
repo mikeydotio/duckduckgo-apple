@@ -159,6 +159,7 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
                     .init(bookmarkEntries.favorite, tag: .favorite),
                     .init(entryBuilder.makeShareEntry()),
                     .init(entryBuilder.makeFindInPageEntry()),
+                    .init(entryBuilder.makeExtractPageTextPOCEntry()),
                     .init(entryBuilder.makeZoomEntry()),
                     .init(entryBuilder.makeDesktopSiteEntry())
                 ].compactMap { $0 }
@@ -178,6 +179,7 @@ final class BrowsingMenuBuilder: BrowsingMenuBuilding {
             // MARK: Tab actions group
             let tabActionItems: [BrowsingMenuModel.Entry] = [
                 .init(entryBuilder.makeFindInPageEntry()),
+                .init(entryBuilder.makeExtractPageTextPOCEntry()),
                 .init(entryBuilder.makeZoomEntry()),
                 .init(entryBuilder.makeDesktopSiteEntry())
             ].compactMap { $0 }

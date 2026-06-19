@@ -347,6 +347,8 @@ extension TabViewController {
         entries.append(buildDesktopSiteEntry(forLink: link))
 
         entries.append(buildFindInPageEntry(forLink: link))
+
+        entries.append(buildExtractPageTextPOCEntry(forLink: link))
                 
         return entries
     }
@@ -429,6 +431,21 @@ extension TabViewController {
             PixelParameters.browsingMode: BrowsingMode.fire.pixelParamValue
         ])
         delegate?.tabDidRequestNewTab(self)
+    }
+
+    private func buildExtractPageTextPOCEntry(forLink link: Link, useSmallIcon: Bool = true) -> BrowsingMenuEntry {
+        let image = useSmallIcon ? DesignSystemImages.Glyphs.Size16.globe : DesignSystemImages.Glyphs.Size24.globe
+        let title = webPageTranslationPOCIsActive ? "Show Original" : "Translate Page"
+        return BrowsingMenuEntry.regular(name: title, image: image, action: { [weak self] in
+            self?.extractPageTextPOC()
+        })
+    }
+
+    private func buildTranslateFoundationPOCEntry(forLink link: Link, useSmallIcon: Bool = true) -> BrowsingMenuEntry {
+        let image = useSmallIcon ? DesignSystemImages.Glyphs.Size16.globe : DesignSystemImages.Glyphs.Size24.globe
+        return BrowsingMenuEntry.regular(name: "Translate · Foundation Model", image: image, action: { [weak self] in
+            self?.translateFoundationModelPOC()
+        })
     }
 
     private func buildFindInPageEntry(forLink link: Link, useSmallIcon: Bool = true) -> BrowsingMenuEntry {
@@ -1109,6 +1126,16 @@ extension TabViewController: BrowsingMenuEntryBuilding {
     func makeFindInPageEntry() -> BrowsingMenuEntry? {
         guard let link = validLink else { return nil }
         return buildFindInPageEntry(forLink: link, useSmallIcon: false)
+    }
+
+    func makeExtractPageTextPOCEntry() -> BrowsingMenuEntry? {
+        guard let link = validLink else { return nil }
+        return buildExtractPageTextPOCEntry(forLink: link, useSmallIcon: false)
+    }
+
+    func makeTranslateFoundationPOCEntry() -> BrowsingMenuEntry? {
+        guard let link = validLink else { return nil }
+        return buildTranslateFoundationPOCEntry(forLink: link, useSmallIcon: false)
     }
     
     func makeDesktopSiteEntry() -> BrowsingMenuEntry? {

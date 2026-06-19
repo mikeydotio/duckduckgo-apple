@@ -1862,6 +1862,7 @@ extension TabViewController: WKNavigationDelegate {
         let httpsForced = tld.domain(lastUpgradedURL?.host) == tld.domain(webView.url?.host)
         onWebpageDidStartLoading(httpsForced: httpsForced)
         textZoomCoordinator.onNavigationCommitted(applyToWebView: webView)
+        resetWebPageTranslationPOCStateForNavigation()
         
         // Check cache for instant logo display during back navigation
         checkDaxEasterEggCacheIfDuckDuckGoSearch(webView)

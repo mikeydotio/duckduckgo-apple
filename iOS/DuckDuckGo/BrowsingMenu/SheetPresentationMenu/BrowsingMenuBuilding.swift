@@ -51,6 +51,8 @@ protocol BrowsingMenuEntryBuilding: AnyObject {
     func makeOpenBookmarksEntry() -> BrowsingMenuEntry
     func makeBookmarkEntries(with bookmarksInterface: MenuBookmarksInteracting) -> (bookmark: BrowsingMenuEntry, favorite: BrowsingMenuEntry)?
     func makeFindInPageEntry() -> BrowsingMenuEntry?
+    func makeExtractPageTextPOCEntry() -> BrowsingMenuEntry?
+    func makeTranslateFoundationPOCEntry() -> BrowsingMenuEntry?
     func makeZoomEntry() -> BrowsingMenuEntry?
     func makeDesktopSiteEntry() -> BrowsingMenuEntry?
     func makeReloadEntry() -> BrowsingMenuEntry?
