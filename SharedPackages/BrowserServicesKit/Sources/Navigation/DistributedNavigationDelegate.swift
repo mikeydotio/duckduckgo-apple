@@ -1160,3 +1160,51 @@ extension DistributedNavigationDelegate {
     }
 
 }
+
+// MARK: - Content-rule-list actions (site-breakage diagnostics)
+
+extension DistributedNavigationDelegate {
+
+    /// Observes content-rule-list actions (engine-truth blocks / cookie-blocks / https-upgrades / redirects /
+    /// header modifications) via the `_WKContentRuleListAction` SPI on `WKNavigationDelegatePrivate`. The action
+    /// object is read via KVC so we need no WebKit private headers. Forwarded to the current navigation's responders.
+    @MainActor
+    @objc(_webView:contentRuleListWithIdentifier:performedAction:forURL:)
+    public func webView(_ webView: WKWebView,
+                        contentRuleListWithIdentifier identifier: String,
+                        performedAction action: NSObject,
+                        forURL url: URL) {
+        let ruleAction = ContentRuleListAction(
+            blockedLoad: (action.value(forKey: "blockedLoad") as? Bool) ?? false,
+            blockedCookies: (action.value(forKey: "blockedCookies") as? Bool) ?? false,
+            madeHTTPS: (action.value(forKey: "madeHTTPS") as? Bool) ?? false,
+            redirected: (action.value(forKey: "redirected") as? Bool) ?? false,
+            modifiedHeaders: (action.value(forKey: "modifiedHeaders") as? Bool) ?? false)
+
+        for responder in (startedNavigation?.navigationResponders ?? responders) {
+            responder.navigationDidPerformContentRuleListAction(ruleAction, forURL: url, ruleListIdentifier: identifier)
+        }
+    }
+
+    /// Observes loads failed by network-connection-integrity protections via the `_WKNavigationDelegatePrivate`
+    /// SPI. WebKit's explicit "this load failed because of protections" marker — forwarded to the current
+    /// navigation's responders for site-breakage diagnostics.
+    @MainActor
+    @objc(_webView:didFailLoadDueToNetworkConnectionIntegrityWithURL:)
+    public func webView(_ webView: WKWebView, didFailLoadDueToNetworkConnectionIntegrityWithURL url: URL) {
+        for responder in (startedNavigation?.navigationResponders ?? responders) {
+            responder.navigationDidFailLoadDueToNetworkConnectionIntegrity(forURL: url)
+        }
+    }
+
+    /// Observes storage-access prompts via the `_WKNavigationDelegatePrivate` SPI. The `forQuirk` flag means WebKit
+    /// applied a known-breakage compatibility quirk for the site — forwarded to the current navigation's responders
+    /// for site-breakage diagnostics.
+    @MainActor
+    @objc(_webView:didPromptForStorageAccess:forSubFrameDomain:forQuirk:)
+    public func webView(_ webView: WKWebView, didPromptForStorageAccess topFrameDomain: String, forSubFrameDomain subFrameDomain: String, forQuirk quirk: Bool) {
+        for responder in (startedNavigation?.navigationResponders ?? responders) {
+            responder.navigationDidPromptForStorageAccess(topFrameDomain: topFrameDomain, subFrameDomain: subFrameDomain, forQuirk: quirk)
+        }
+    }
+}

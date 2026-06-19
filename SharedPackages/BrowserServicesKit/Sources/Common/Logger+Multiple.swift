@@ -23,6 +23,7 @@ public extension Logger {
     static let general = Logger(subsystem: "General", category: "")
 
     static let contentBlocking = Logger(subsystem: "Content Blocking", category: "")
+    static let siteBreakage = Logger(subsystem: "Privacy Dashboard", category: "Site Breakage")
     static let passwordManager = Logger(subsystem: "Password Manager", category: "")
     static let autoconsent = Logger(subsystem: "Autoconsent", category: "")
     static let nativeStorageDebug = Logger(subsystem: "AIChatNativeStorage", category: "AIChat")

@@ -19,8 +19,11 @@
 import Carbon.HIToolbox
 import Cocoa
 import Combine
+import Common
 import CommonObjCExtensions
 import FeatureFlags
+import ObjectiveC
+import os.log
 import PrivacyConfig
 import WebKit
 
@@ -67,6 +70,9 @@ final class WebView: WKWebView {
         isInspectorShown && window != nil
     }
 
+    /// Observes subresource load completions via WebKit SPI to feed site-breakage diagnostics. See `BreakageResourceLoadObserver`.
+    private(set) var breakageObserver: BreakageResourceLoadObserver?
+
     init(frame: CGRect = .zero,
          configuration: WKWebViewConfiguration = .init(),
          featureFlagger: FeatureFlagger,
@@ -77,6 +83,8 @@ final class WebView: WKWebView {
         _=Self.swizzleImmediateActionAnimationControllerOnce
 
         super.init(frame: frame, configuration: configuration)
+
+        self.breakageObserver = BreakageResourceLoadObserver.attach(to: self)
     }
 
     required init?(coder: NSCoder) {
@@ -546,5 +554,81 @@ private extension WebView {
         ControlClickFixCache.domains = domains
         ControlClickFixCache.configIdentifier = currentIdentifier
         return domains
+    }
+}
+
+// MARK: - Site Breakage Signals
+//
+// Observes per-resource load completions via the WKWebView `_setResourceLoadDelegate:` SPI and forwards
+// failed / errored subresources to `BreakageSignalsTabExtension`, which logs an export-safe digest under
+// `Logger.siteBreakage`. SPI types are read loosely via KVC so we need no WebKit private headers.
+// Resource URLs are NOT logged here — the observer only forwards; reduction and hashing happen downstream.
+
+/// A single failed / errored subresource completion, forwarded to `BreakageSignalsTabExtension`.
+struct BreakageResourceObservation {
+    let url: URL?
+    let resourceTypeName: String
+    let error: NSError?
+    let httpStatusCode: Int?
+}
+
+/// Observes per-resource load completions. Set as the `_resourceLoadDelegate` on a WKWebView.
+/// WebKit dispatches via `respondsToSelector:`, so we don't declare conformance to the SPI protocol.
+final class BreakageResourceLoadObserver: NSObject {
+
+    private static var associatedKey: UInt8 = 0
+
+    /// Invoked for each failed / errored subresource completion (successful loads are not forwarded).
+    var onObservation: ((BreakageResourceObservation) -> Void)?
+
+    /// Attaches a resource-load observer to a web view via the `_setResourceLoadDelegate:` SPI.
+    /// The delegate property is weak, so we retain the observer as an associated object on the web view.
+    @discardableResult
+    static func attach(to webView: WKWebView) -> BreakageResourceLoadObserver? {
+        let setter = NSSelectorFromString("_setResourceLoadDelegate:")
+        guard webView.responds(to: setter) else {
+            Logger.siteBreakage.error("resource-load SPI unavailable — subresource failures will not be observed")
+            return nil
+        }
+        let observer = BreakageResourceLoadObserver()
+        objc_setAssociatedObject(webView, &associatedKey, observer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        webView.perform(setter, with: observer)
+        return observer
+    }
+
+    @objc(webView:resourceLoad:didCompleteWithError:response:)
+    func webView(_ webView: WKWebView,
+                 resourceLoad: NSObject,
+                 didCompleteWithError error: NSError?,
+                 response: URLResponse?) {
+        let httpStatusCode = (response as? HTTPURLResponse)?.statusCode
+        // Successful 2xx/3xx loads carry no breakage signal — ignore them.
+        guard error != nil || (httpStatusCode.map { $0 >= 400 } ?? false) else { return }
+
+        let url = resourceLoad.value(forKey: "originalURL") as? URL
+        let typeName = Self.resourceTypeName((resourceLoad.value(forKey: "resourceType") as? Int) ?? -1)
+        onObservation?(BreakageResourceObservation(url: url, resourceTypeName: typeName, error: error, httpStatusCode: httpStatusCode))
+    }
+
+    private static func resourceTypeName(_ raw: Int) -> String {
+        // Mirrors _WKResourceLoadInfoResourceType.
+        switch raw {
+        case 0: return "ApplicationManifest"
+        case 1: return "Beacon"
+        case 2: return "CSPReport"
+        case 3: return "Document"
+        case 4: return "Image"
+        case 5: return "Fetch"
+        case 6: return "Font"
+        case 7: return "Media"
+        case 8: return "Object"
+        case 9: return "Ping"
+        case 10: return "Script"
+        case 11: return "Stylesheet"
+        case 12: return "XMLHTTPRequest"
+        case 13: return "XSLT"
+        case -1: return "Other"
+        default: return "Unknown(\(raw))"
+        }
     }
 }

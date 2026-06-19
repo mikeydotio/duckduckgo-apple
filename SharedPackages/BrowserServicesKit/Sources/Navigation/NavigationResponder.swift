@@ -19,6 +19,24 @@
 import Foundation
 import WebKit
 
+/// Summary of a content-rule-list action WebKit performed for a single resource load
+/// (engine-truth, surfaced via the `_WKContentRuleListAction` SPI). Used for site-breakage diagnostics.
+public struct ContentRuleListAction {
+    public let blockedLoad: Bool
+    public let blockedCookies: Bool
+    public let madeHTTPS: Bool
+    public let redirected: Bool
+    public let modifiedHeaders: Bool
+
+    public init(blockedLoad: Bool, blockedCookies: Bool, madeHTTPS: Bool, redirected: Bool, modifiedHeaders: Bool) {
+        self.blockedLoad = blockedLoad
+        self.blockedCookies = blockedCookies
+        self.madeHTTPS = madeHTTPS
+        self.redirected = redirected
+        self.modifiedHeaders = modifiedHeaders
+    }
+}
+
 public protocol NavigationResponder {
 
     // A tab extension will receive these calls only if registered in Tab+Navigation.swift file
@@ -97,6 +115,21 @@ public protocol NavigationResponder {
     @MainActor
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?)
 
+    /// Called when WebKit performs a content-rule-list action (block / cookie-block / https-upgrade / redirect /
+    /// header-modification) for a resource load. Engine-truth, surfaced via SPI; used for site-breakage diagnostics.
+    @MainActor
+    func navigationDidPerformContentRuleListAction(_ action: ContentRuleListAction, forURL url: URL, ruleListIdentifier identifier: String)
+
+    /// Called when WebKit fails a load because of network-connection-integrity protections — the SPI's explicit
+    /// "blocked by protections" signal. Engine-truth attribution; used for site-breakage diagnostics.
+    @MainActor
+    func navigationDidFailLoadDueToNetworkConnectionIntegrity(forURL url: URL)
+
+    /// Called when WebKit prompts for storage access for a subframe. `forQuirk` is true when WebKit applied a
+    /// known-breakage compatibility quirk — i.e. it already considers this site fragile. Used for diagnostics.
+    @MainActor
+    func navigationDidPromptForStorageAccess(topFrameDomain: String, subFrameDomain: String, forQuirk: Bool)
+
     // MARK: - Private
 #if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     @MainActor
@@ -160,6 +193,12 @@ public extension NavigationResponder {
     func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload) {}
 
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {}
+
+    func navigationDidPerformContentRuleListAction(_ action: ContentRuleListAction, forURL url: URL, ruleListIdentifier identifier: String) {}
+
+    func navigationDidFailLoadDueToNetworkConnectionIntegrity(forURL url: URL) {}
+
+    func navigationDidPromptForStorageAccess(topFrameDomain: String, subFrameDomain: String, forQuirk: Bool) {}
 
     @MainActor
     func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval) {}
