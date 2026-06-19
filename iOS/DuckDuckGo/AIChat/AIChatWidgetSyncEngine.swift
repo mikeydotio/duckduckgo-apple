@@ -36,12 +36,10 @@ import os.log
 /// engine does nothing.
 final class AIChatWidgetSyncEngine {
 
-    /// How many of each kind the snapshot carries. The widget picks from this pool with its own
-    /// per-family cap: large shows 6 rows total with ≤2 pinned, medium shows 3 with ≤1 pinned.
-    /// Storing them separately (rather than a single pinned-first prefix) means a user with many
-    /// pinned chats still gets recent unpinned ones in the snapshot.
-    static let maxPinnedInSnapshot = 3
-    static let maxRecentInSnapshot = 6
+    /// Maximum chat rows the largest supported widget family can show. The snapshot mirrors that
+    /// many entries, pinned-first (pinned chats sit at the top of the widget regardless of their
+    /// edit date — explicit user preference).
+    static let maxChats = 6
     static let maxGalleryImages = 12
 
     /// Longest edge of a gallery image, in points.
@@ -151,23 +149,23 @@ final class AIChatWidgetSyncEngine {
 
         do {
             let records = try storage.getAllChats()
-            // Single pass: decode + sort by recency. Downstream code (chat snapshot pools, gallery
-            // sync) all want most-recent first; pinned/unpinned filtering is layered on top.
-            let chatsByRecency = records
-                .compactMap { try? DuckAiChat.decode(from: $0.data).chat }
-                .sorted { $0.lastEdit > $1.lastEdit }
+            let allChats = records.compactMap { try? DuckAiChat.decode(from: $0.data).chat }
 
-            // Split pools by lastEdit-desc, separately. Snapshot carries top N pinned + top M
-            // unpinned so the widget can apply its per-family pinned cap without the snapshot
-            // having starved it of unpinned chats (e.g., a user with many pinned chats).
-            let topPinned = chatsByRecency.filter(\.pinned).prefix(Self.maxPinnedInSnapshot)
-            let topUnpinned = chatsByRecency.filter { !$0.pinned }.prefix(Self.maxRecentInSnapshot)
+            // Chats widget: pinned-first, then most-recently edited. Pinned chats always sit at the
+            // top of the widget regardless of their edit date (explicit user preference) — the sort
+            // and `prefix(maxChats)` together mean a user with many pinned chats may fill the widget
+            // entirely with pinned rows, which is the desired behavior.
+            let chatsByRank = allChats.sorted { lhs, rhs in
+                lhs.pinned == rhs.pinned ? lhs.lastEdit > rhs.lastEdit : lhs.pinned
+            }
 
-            logNativeStorageSnapshot(records: records, chats: chatsByRecency, storage: storage)
+            // Gallery widget: pure recency. Image-gen chats shouldn't get pin priority over fresher
+            // image generations.
+            let chatsByRecency = allChats.sorted { $0.lastEdit > $1.lastEdit }
 
-            // Pinned-first ordering preserves the user's request that pinned chats sit at the top
-            // — the widget view re-orders/caps as needed.
-            let entries: [WidgetChatEntry] = (Array(topPinned) + Array(topUnpinned)).map { chat in
+            logNativeStorageSnapshot(records: records, chats: chatsByRank, storage: storage)
+
+            let entries: [WidgetChatEntry] = chatsByRank.prefix(Self.maxChats).map { chat in
                 WidgetChatEntry(chatId: chat.chatId,
                                 title: chat.title,
                                 lastEdit: chat.lastEdit,
@@ -175,7 +173,7 @@ final class AIChatWidgetSyncEngine {
                                 pinned: chat.pinned)
             }
 
-            let snapshot = WidgetChatSnapshot(totalChatCount: chatsByRecency.count, chats: entries)
+            let snapshot = WidgetChatSnapshot(totalChatCount: allChats.count, chats: entries)
             let data = try JSONEncoder().encode(snapshot)
             // Hash only the *view-relevant* fields, in display order. The user typing inside one
             // existing chat updates that chat's `lastEdit` per save (sometimes many times a second)
@@ -184,7 +182,7 @@ final class AIChatWidgetSyncEngine {
             // WidgetCenter reload budget for visually-identical updates. If `lastEdit` ticks
             // *enough* to reorder the top N, the (chatId, title, …) tuples shift position and the
             // hash naturally changes — so genuine ordering changes still trigger a reload.
-            let snapshotHash = Self.viewRelevantHash(totalCount: chatsByRecency.count, entries: entries)
+            let snapshotHash = Self.viewRelevantHash(totalCount: allChats.count, entries: entries)
             let fileExists = FileManager.default.fileExists(atPath: dataLocation.chatsFileURL.path)
 
             // No-op pulse guard: lifecycle / settings notifications fire even when chats haven't

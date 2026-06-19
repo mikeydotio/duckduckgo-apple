@@ -401,23 +401,21 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         XCTAssertEqual(reloads, 1)
     }
 
-    // MARK: - Split pool: snapshot guarantees both pinned and unpinned slots
+    // MARK: - Pinned-first ordering (pinned chats always at top regardless of edit date)
 
-    func testWhenManyPinnedAndFewRecentThenSnapshotIncludesBothInsteadOfStarvingRecents() throws {
-        // Before the split-pool fix, the snapshot was top-6 pinned-first sorted, so a user with 6+
-        // pinned chats had ZERO recent unpinned chats in chats.json — the widget could never show
-        // their actual recent activity. Now the snapshot reserves up to maxPinnedInSnapshot
-        // pinned + up to maxRecentInSnapshot unpinned, so the widget always has both pools to
-        // pick from.
+    func testWhenManyPinnedThenAllSnapshotSlotsCanBePinned() throws {
+        // User preference: pinned chats always sit on top of the widget regardless of edit date.
+        // If a user has 6+ pinned chats, the entire widget can be filled with pinned rows — even
+        // when fresher unpinned chats exist. Recents only appear when pinned doesn't fill the cap.
         let storage = MockObservableStorage()
-        let pinned = (0..<5).map { idx in
+        let pinned = (0..<7).map { idx in
             let day = String(format: "%02d", idx + 1)
             return DuckAiChatRecord(chatId: "p\(idx)",
                                     data: chatData(id: "p\(idx)", title: "Pinned \(idx)",
                                                    lastEdit: "2026-01-\(day)T00:00:00.000Z",
                                                    pinned: true))
         }
-        let recent = (0..<4).map { idx in
+        let recent = (0..<3).map { idx in
             let day = String(format: "%02d", idx + 1)
             return DuckAiChatRecord(chatId: "r\(idx)",
                                     data: chatData(id: "r\(idx)", title: "Recent \(idx)",
@@ -430,12 +428,9 @@ final class AIChatWidgetSyncEngineTests: XCTestCase {
         engine.syncNow()
 
         let entries = try readEntries(location)
-        let pinnedCount = entries.filter(\.pinned).count
-        let recentCount = entries.filter { !$0.pinned }.count
-        XCTAssertEqual(pinnedCount, AIChatWidgetSyncEngine.maxPinnedInSnapshot,
-                       "Snapshot must cap pinned at maxPinnedInSnapshot even when many exist")
-        XCTAssertEqual(recentCount, 4,
-                       "Snapshot must include all (up to maxRecentInSnapshot) unpinned chats, never starved by pinned")
+        XCTAssertEqual(entries.count, AIChatWidgetSyncEngine.maxChats)
+        XCTAssertTrue(entries.allSatisfy(\.pinned),
+                      "When the user has more pinned chats than the widget can show, the snapshot is all pinned — fresher unpinned chats wait their turn")
     }
 
     func testWhenLastEditTicksAndChangesTopOrderThenReloadFires() throws {
