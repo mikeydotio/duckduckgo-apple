@@ -1068,6 +1068,9 @@ extension TabSwitcherViewController {
         isSearching = true
         pagingScrollView.isScrollEnabled = false
         activePageController.beginSearch()
+        if appSettings.currentAddressBarPosition.isBottom {
+            segmentedPickerHostingController?.view.isHidden = true
+        }
         searchContainerView.isHidden = false
         view.bringSubviewToFront(searchContainerView)
         searchBar.becomeFirstResponder()
@@ -1081,6 +1084,7 @@ extension TabSwitcherViewController {
         searchBar.text = ""
         searchBar.resignFirstResponder()
         searchContainerView.isHidden = true
+        segmentedPickerHostingController?.view.isHidden = false
         activePageController.endSearch()
         pagingScrollView.isScrollEnabled = firePageController != nil && !isEditing
     }
@@ -1097,6 +1101,9 @@ extension TabSwitcherViewController {
     func dismissSearchKeyboard() {
         guard isSearching else { return }
         searchBar.resignFirstResponder()
+        if appSettings.currentAddressBarPosition.isBottom {
+            segmentedPickerHostingController?.view.isHidden = false
+        }
     }
 }
 
@@ -1114,6 +1121,11 @@ extension TabSwitcherViewController: UISearchBarDelegate {
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
+    }
+
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        guard isSearching, appSettings.currentAddressBarPosition.isBottom else { return }
+        segmentedPickerHostingController?.view.isHidden = true
     }
 }
 
