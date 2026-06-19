@@ -162,6 +162,13 @@ final class SwipeUpToTabSwitcherInteractiveTransition: NSObject, UIViewControlle
         // dragged card is the only visible copy of that tab until it lands (zero doubling/seam). Done after
         // `prepareForPresentation()` + the scroll-to-current-tab inside `prepareInteractivePreview` so the
         // cell exists and is positioned. Restored in BOTH `finish()` and `cancel()` completion blocks.
+        //
+        // Robustness (hidden-cell race): the scroll-to-current-tab above applies a new content offset but
+        // leaves cell realization PENDING, so the current cell may not be realized at its index path yet.
+        // Force the layout pass HERE — after the scroll, before the hide — so the post-scroll visible cells
+        // are realized when `setTransitioningTabCellHidden` sweeps them (it also flushes layout itself, so
+        // this is belt-and-suspenders to make the ordering guarantee explicit at the call site).
+        toVC.view.layoutIfNeeded()
         toVC.setTransitioningTabCellHidden(true)
 
         // Z-order, bottom → top: solidBackground (hides the from-VC) under the overview + blur under the

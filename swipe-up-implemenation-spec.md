@@ -534,6 +534,36 @@ reappears once the card is gone; on cancel it's cleaned up (the page is shown). 
 E.2's commit recompute (`layoutAttributesForItem` is position, not visibility) or the scroll-to-current-tab. An
 `os_log` line is logged on both hide and restore.
 
+**F.3 robustness fix — eliminate the hidden-cell timing race.** The original hide applied a one-shot
+`collectionView.cellForItem(at: indexPath)?.isHidden = true`. That call returns **nil when the post-scroll
+layout hasn't been flushed**: `setTransitioningTabCellHidden(true)` runs immediately after the
+`scrollToItem(animated:false)` in `prepareInteractivePreview`, whose new content offset is applied but whose
+cell realization is still pending, so the hide silently no-opped and the cell stayed visible mid-drag (the
+"still visible" flake). A late reflow (the tracker banner) would then re-display it hidden, after which a
+direct `cell.update(...)` (which resets `isHidden = false`) on the still-on-screen cell un-hid it again (the
+"disappears then reappears" flake). Fixes:
+1. `setTransitioningTabCellHidden(_:)` now **forces `collectionView.layoutIfNeeded()`** before acting, then
+   **sweeps `indexPathsForVisibleItems`** (via a `sweepVisibleCells(hidingMatching:)` helper) and sets
+   `isHidden` on the cell matching `hiddenTransitioningIndexPath` — instead of relying on a single
+   `cellForItem(at:)` that can be nil. Restore (`false`) clears the flag and sweeps to un-hide.
+2. The call site (`startInteractiveTransition`) also calls `toVC.view.layoutIfNeeded()` **after** the scroll
+   and **before** the hide, making the "cells realized before the sweep" ordering explicit (belt-and-suspenders
+   with (1)).
+3. `didChange(tab:)` (the `TabObserver` path, which calls `cell.update(...)` directly and bypasses
+   `cellForItemAt`/`willDisplay`) now **re-asserts** `isHidden = true` when the updated row is the hidden slot,
+   so a favicon/title/preview load mid-drag can't un-hide the dragged cell. (`cellForItemAt` already applies the
+   flag after `update(...)`; the tracker banner is a supplementary header whose re-display is handled by
+   `willDisplay` and does not reconfigure the cell.)
+4. Diagnostic `Logger.swipeUpToTabSwitcher` lines (all `privacy: .public`) were added so the race can be
+   confirmed on-device: hide/restore log the index path, `currentIndex`, visible-cell count, and whether the
+   matching cell was found at hide-time; `cellForItemAt`/`willDisplay`/the `didChange` re-assert each log when
+   they hide the row.
+
+The empty-gap / no-reflow behavior is unchanged: `isHidden` keeps the slot in the layout, so the other tabs do
+not reflow — the dragged slot stays an empty gap for the whole interaction and the cell reappears exactly on
+commit. Page-controller + index targeting is unchanged (`activePageController`, `tabsModel.currentIndex`,
+section 0).
+
 ## Verification / testing
 
 **Manual (the primary verification — feel is the point of the project).** Build & run on an iPhone sim
