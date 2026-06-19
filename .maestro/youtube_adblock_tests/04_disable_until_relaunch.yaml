@@ -39,6 +39,9 @@ tags:
     arguments:
         clearState: false
         isRunningUITests: true
+        ff.webExtensions: "true"
+        ff.adBlockingExtension: "true"
+        ff.adBlockingExtensionEnabledByDefault: "true"
 - waitForAnimationToEnd
 
 # Settings now shows the toggle back on and no subtitle
