@@ -887,6 +887,10 @@ public struct UserText {
     static let networkProtectionSnoozeTipMessage = NSLocalizedString("network.protection.snooze.tip.message", value: "You can use sites or apps that block VPN traffic by snoozing the VPN connection.", comment: "Message for tooltip about VPN snooze mode")
     static let networkProtectionSnoozeTipAction = NSLocalizedString("network.protection.snooze.tip.action", value: "Learn more", comment: "Button title for tooltip about VPN snooze mode")
 
+    static let networkProtectionStrictRoutingTipTitle = NSLocalizedString("network.protection.strict.routing.tip.title", value: "Turn On Strict Routing", comment: "Title for tip reminding the user to re-enable the VPN Strict routing setting")
+    static let networkProtectionStrictRoutingTipMessage = NSLocalizedString("network.protection.strict.routing.tip.message", value: "Strict routing is off. Turning it back on strengthens protection against traffic leaks on untrusted networks.", comment: "Message for tip reminding the user to re-enable the VPN Strict routing setting")
+    static let networkProtectionStrictRoutingTipAction = NSLocalizedString("network.protection.strict.routing.tip.action", value: "Turn On Strict Routing", comment: "Button title for tip reminding the user to re-enable the VPN Strict routing setting")
+
     // MARK: Unified Feedback Form
     static let browserFeedbackReportProblem = NSLocalizedString("send.browser.feedback.report-problem", value: "Report a problem", comment: "Name of the option the user can chose to give browser feedback about a problem they enountered")
     static let browserFeedbackRequestFeature = NSLocalizedString("send.browser.feedback.request-feature", value: "Request a feature", comment: "Name of the option the user can chose to give browser feedback about a feature they would like")

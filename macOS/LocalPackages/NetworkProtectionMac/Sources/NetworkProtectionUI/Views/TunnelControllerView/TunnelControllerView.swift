@@ -121,16 +121,60 @@ public struct TunnelControllerView: View {
                 connectionStatusView()
                     .disabled(on: !isEnabled)
             }
+
+            // Placed after all other tips so it's the last piece of messaging the user sees.
+            strictRoutingTipView()
         }
         .onAppear {
             if #available(macOS 14.0, *) {
                 tipsModel.handleTunnelControllerAppear()
+            } else {
+                tipsModel.handleStrictRoutingReminderViewAppear()
             }
         }
         .onDisappear {
             if #available(macOS 14.0, *) {
                 tipsModel.handleTunnelControllerDisappear()
             }
+        }
+    }
+
+    @ViewBuilder
+    private func strictRoutingTipView() -> some View {
+        if tipsModel.showStrictRoutingFallbackReminder {
+            StrictRoutingReminderView(
+                onEnable: { tipsModel.handleStrictRoutingFallbackEnable() },
+                onDismiss: { tipsModel.handleStrictRoutingFallbackDismiss() }
+            )
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .onAppear {
+                tipsModel.handleStrictRoutingFallbackShown()
+            }
+        } else if #available(macOS 14.0, *),
+                  tipsModel.canShowStrictRoutingTip {
+
+            TipView(tipsModel.strictRoutingTip, action: tipsModel.strictRoutingTipActionHandler)
+                .tipImageSize(VPNTipsModel.imageSize)
+                .tipBackground(Color(.tipBackground))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 6)
+                .onAppear {
+                    tipsModel.handleStrictRoutingTipShown()
+                }
+                .task {
+                    var previousStatus = tipsModel.strictRoutingTip.status
+
+                    for await status in tipsModel.strictRoutingTip.statusUpdates {
+                        if case .invalidated(let reason) = status {
+                            if case .available = previousStatus {
+                                tipsModel.handleStrictRoutingTipInvalidated(reason)
+                            }
+                        }
+
+                        previousStatus = status
+                    }
+                }
         }
     }
 
@@ -363,5 +407,47 @@ public struct TunnelControllerView: View {
             .fixedSize()
         }
         .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 9))
+    }
+}
+
+/// A pre-macOS-14 stand-in for the Strict routing reminder, styled to match the TipKit tip used on
+/// newer systems (leading glyph, title, message, primary action, and a dismiss control).
+private struct StrictRoutingReminderView: View {
+    let onEnable: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "shield")
+                .font(.system(size: 22))
+                .frame(width: 32, height: 32)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(UserText.networkProtectionStrictRoutingTipTitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                Text(UserText.networkProtectionStrictRoutingTipMessage)
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(action: onEnable) {
+                    Text(UserText.networkProtectionStrictRoutingTipAction)
+                }
+                .padding(.top, 4)
+            }
+
+            Spacer(minLength: 0)
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(Color(.tipBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

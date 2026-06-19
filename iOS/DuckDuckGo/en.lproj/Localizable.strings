@@ -2812,6 +2812,15 @@ https://duckduckgo.com/mac";
 /* Title label text for the status view when netP is disconnected */
 "network.protection.status.view.title" = "VPN";
 
+/* Button title for tip reminding the user to re-enable the VPN Strict routing setting */
+"network.protection.strict.routing.tip.action" = "Turn On Strict Routing";
+
+/* Message for tip reminding the user to re-enable the VPN Strict routing setting */
+"network.protection.strict.routing.tip.message" = "Strict routing is off. Turning it back on strengthens protection against traffic leaks on untrusted networks.";
+
+/* Title for tip reminding the user to re-enable the VPN Strict routing setting */
+"network.protection.strict.routing.tip.title" = "Turn On Strict Routing";
+
 /* The body of the notification shown when VPN reconnects successfully */
 "network.protection.success.notification.body" = "DuckDuckGo VPN is On. Your location and online activity are protected.";
 

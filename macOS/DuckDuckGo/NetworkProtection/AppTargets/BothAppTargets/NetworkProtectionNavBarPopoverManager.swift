@@ -265,6 +265,7 @@ final class NetworkProtectionNavBarPopoverManager: NetPPopoverManager {
                                          vpnAppState: vpnAppState,
                                          vpnSettings: vpnSettings,
                                          proxySettings: proxySettings,
+                                         strictRoutingReminderStore: DefaultVPNStrictRoutingReminderStore(userDefaults: .netP),
                                          logger: Logger(subsystem: "DuckDuckGo", category: "TipKit"))
 
             let popover = NetworkProtectionPopover(

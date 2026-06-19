@@ -843,6 +843,11 @@ extension Pixel {
         case networkProtectionWidgetTipDismissed
         case networkProtectionWidgetTipIgnored
 
+        case networkProtectionStrictRoutingTipShown
+        case networkProtectionStrictRoutingTipActioned
+        case networkProtectionStrictRoutingTipDismissed
+        case networkProtectionStrictRoutingTipIgnored
+
         // MARK: remote messaging pixels
         
         case remoteMessageShown
@@ -2775,6 +2780,11 @@ extension Pixel.Event {
         case .networkProtectionWidgetTipActioned: return "m_vpn_tip_widget_actioned"
         case .networkProtectionWidgetTipDismissed: return "m_vpn_tip_widget_dismissed"
         case .networkProtectionWidgetTipIgnored: return "m_vpn_tip_widget_ignored"
+
+        case .networkProtectionStrictRoutingTipShown: return "m_vpn_tip_strict_routing_shown"
+        case .networkProtectionStrictRoutingTipActioned: return "m_vpn_tip_strict_routing_actioned"
+        case .networkProtectionStrictRoutingTipDismissed: return "m_vpn_tip_strict_routing_dismissed"
+        case .networkProtectionStrictRoutingTipIgnored: return "m_vpn_tip_strict_routing_ignored"
 
             // MARK: remote messaging pixels
             

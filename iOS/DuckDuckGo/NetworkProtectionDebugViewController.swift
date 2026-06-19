@@ -74,6 +74,8 @@ final class NetworkProtectionDebugViewController: UITableViewController {
     enum DebugFeatureRows: Int, CaseIterable {
         case toggleAlwaysOn
         case showDebugEventNotifications
+        case strictRoutingReminderInterval
+        case forceStrictRoutingFallback
     }
 
     enum TunnelSettingsRows: Int, CaseIterable {
@@ -418,6 +420,13 @@ final class NetworkProtectionDebugViewController: UITableViewController {
             } else {
                 cell.accessoryType = .checkmark
             }
+        case .strictRoutingReminderInterval:
+            let isOverridden = DefaultVPNStrictRoutingReminderStore().overriddenInterval != nil
+            cell.textLabel?.text = "Strict Routing Reminder: \(isOverridden ? "30 seconds" : "default (7 days)")"
+            cell.accessoryType = .disclosureIndicator
+        case .forceStrictRoutingFallback:
+            cell.textLabel?.text = "Force Strict Routing Fallback View"
+            cell.accessoryType = DefaultVPNStrictRoutingReminderStore().forceFallbackReminder ? .checkmark : .none
         default:
             break
         }
@@ -430,6 +439,12 @@ final class NetworkProtectionDebugViewController: UITableViewController {
             tableView.reloadRows(at: [indexPath], with: .none)
         case .showDebugEventNotifications:
             AppDependencyProvider.shared.vpnSettings.showDebugVPNEventNotifications.toggle()
+            tableView.reloadRows(at: [indexPath], with: .none)
+        case .strictRoutingReminderInterval:
+            presentStrictRoutingReminderIntervalPrompt(at: indexPath)
+        case .forceStrictRoutingFallback:
+            var store = DefaultVPNStrictRoutingReminderStore()
+            store.forceFallbackReminder.toggle()
             tableView.reloadRows(at: [indexPath], with: .none)
         default:
             break
@@ -524,6 +539,32 @@ final class NetworkProtectionDebugViewController: UITableViewController {
         case .none:
             break
         }
+    }
+
+    private func presentStrictRoutingReminderIntervalPrompt(at indexPath: IndexPath) {
+        let alert = UIAlertController(
+            title: "Strict Routing Reminder Interval",
+            message: "How long Strict routing must be disabled before the reminder appears, and how often it recurs.",
+            preferredStyle: .actionSheet)
+
+        alert.addAction(UIAlertAction(title: "Default (7 days)", style: .default) { [weak self] _ in
+            var store = DefaultVPNStrictRoutingReminderStore()
+            store.overriddenInterval = nil
+            self?.tableView.reloadRows(at: [indexPath], with: .none)
+        })
+
+        alert.addAction(UIAlertAction(title: "30 seconds", style: .default) { [weak self] _ in
+            var store = DefaultVPNStrictRoutingReminderStore()
+            store.overriddenInterval = 30
+            self?.tableView.reloadRows(at: [indexPath], with: .none)
+        })
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        alert.popoverPresentationController?.sourceView = tableView.cellForRow(at: indexPath)
+        alert.popoverPresentationController?.sourceRect = tableView.cellForRow(at: indexPath)?.bounds ?? .zero
+
+        present(alert, animated: true)
     }
 
     // MARK: Registration Key
