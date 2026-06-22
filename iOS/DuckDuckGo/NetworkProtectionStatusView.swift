@@ -511,6 +511,8 @@ private struct StrictRoutingReminderView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(uiImage: DesignSystemImages.Glyphs.Size24.shield)
+                .renderingMode(.template)
+                .foregroundColor(Color(designSystemColor: .accentPrimary))
                 .frame(width: 32, height: 32)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -539,6 +541,7 @@ private struct StrictRoutingReminderView: View {
             }
             .buttonStyle(.plain)
         }
+        .padding(.horizontal, 3)
         .padding(.vertical, 4)
         .listRowBackground(Color(designSystemColor: .surface))
     }
