@@ -18,6 +18,7 @@
 
 import SwiftUI
 import TipKit
+import DesignResourcesKitIcons
 
 /// A tip that reminds the user to turn Strict routing back on after they've disabled it.
 ///
@@ -54,7 +55,7 @@ extension VPNStrictRoutingTip: Tip {
     }
 
     var image: Image? {
-        Image(systemName: "shield")
+        Image(nsImage: DesignSystemImages.Glyphs.Size24.shield)
     }
 
     var actions: [Action] {

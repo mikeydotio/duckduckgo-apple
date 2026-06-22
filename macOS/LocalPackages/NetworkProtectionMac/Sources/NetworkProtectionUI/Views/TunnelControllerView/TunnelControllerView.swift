@@ -18,6 +18,7 @@
 
 import SwiftUI
 import SwiftUIExtensions
+import DesignResourcesKitIcons
 import Combine
 import VPN
 import Lottie
@@ -418,8 +419,7 @@ private struct StrictRoutingReminderView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "shield")
-                .font(.system(size: 22))
+            Image(nsImage: DesignSystemImages.Glyphs.Size24.shield)
                 .frame(width: 32, height: 32)
 
             VStack(alignment: .leading, spacing: 4) {
