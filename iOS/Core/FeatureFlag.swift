@@ -225,6 +225,7 @@ public enum FeatureFlag: String {
     case vpnStrictRoutingToggle
 
     /// Gates the periodic reminder to turn "Strict routing" back on.
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215912210278432?focus=true
     case vpnStrictRoutingReminder
 
     /// Gates the "Exclude Carrier-Grade NAT" VPN toggle.
