@@ -28,16 +28,6 @@ class WebViewTransition: TabSwitcherTransition {
                                                                      to: self.tabSwitcherViewController.view)
     }
 
-    /// Absolute (tab-switcher-view space) frame of the card's header in the settled cell: the top strip of
-    /// the cell, full width, `cellHeaderHeight` tall — the area `previewFrame` reserves above the preview
-    /// image. For web the container snaps to the full `cellFrame`, so the header is its top strip.
-    fileprivate func headerFrame(forCellFrame cellFrame: CGRect) -> CGRect {
-        return CGRect(x: cellFrame.minX,
-                      y: cellFrame.minY,
-                      width: cellFrame.width,
-                      height: TabViewCell.Constants.cellHeaderHeight)
-    }
-    
     fileprivate func previewFrame(for cellBounds: CGSize, preview: UIImage) -> CGRect {
         guard tabSwitcherSettings.isGridViewEnabled else {
             return CGRect(origin: .zero, size: cellBounds)
@@ -162,8 +152,9 @@ extension FromWebViewTransition: SwipeUpInteractiveTransition {
     /// `tabSwitcherCellFrame` + `previewFrame` so the snap on commit lands pixel-identical to the
     /// button-tap end state.
     func prepareInteractivePreview(finalFrame: CGRect) -> SwipeUpInteractivePreview? {
+        // The card clips its subviews so the ramping border + rounded corners frame the WHOLE card (header
+        // strip + snapshot holder) — like the real cell, whose header sits inside the rounded `background`.
         imageContainer.clipsToBounds = true
-        imageContainer.addSubview(imageView)
 
         guard let webView = mainViewController.currentTab?.webView,
               let tab = mainViewController.tabManager.currentTabsModel.currentTab,
@@ -196,40 +187,48 @@ extension FromWebViewTransition: SwipeUpInteractiveTransition {
         // (`TabViewCell.decorate()`); matching it here keeps the card opaque behind the header strip the
         // whole drag, so the real cell's title never shows through (no "doubled title" on the commit spring).
         imageContainer.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
-        imageView.frame = imageContainer.bounds
+
+        // Snapshot holder (analogue of the grid cell's `previewClipView`) holds the page preview filling it.
+        // The controller ramps the holder's frame (full-bleed → preview region) + corner radius, so it starts
+        // edge-to-edge and insets below the header as the drag rises. Frame set by the controller's layout.
+        let snapshotHolder = makeSnapshotHolder()
+        imageContainer.addSubview(snapshotHolder)
+        // Fill the holder, cropping to fill (matches the real cell's `.scaleAspectFill` preview) so the page
+        // reads edge-to-edge at full bleed and fills the preview region cleanly when inset.
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
         imageView.image = preview
+        snapshotHolder.addSubview(imageView)
 
         imageContainer.layer.borderColor = UIColor(designSystemColor: .decorationTertiary).cgColor
         imageContainer.layer.borderWidth = 0
         imageContainer.layer.cornerRadius = 0
 
         let cellFrame = tabSwitcherCellFrame(for: layoutAttr)
-        let destinationImageViewFrame = previewFrame(for: cellFrame.size, preview: preview)
 
-        // Card header (favicon + title + X). Built here (populated from `tab`) but z-ordered/added by the
-        // controller as a sibling above `imageContainer`, so it can be animated independently to the cell's
-        // header strip. Starts at alpha 0 (the controller fades it in with progress).
+        // Card header (favicon + title + X), populated from `tab`. Added as the TOP subview of the card so the
+        // card's border/rounded corners frame it (like the real cell). Starts alpha 0; controller fades it in.
         let cardHeader = makeSwipeUpCardHeader(for: tab)
         cardHeader.alpha = 0
+        imageContainer.addSubview(cardHeader)
 
         return SwipeUpInteractivePreview(solidBackground: solidBackground,
                                          imageContainer: imageContainer,
+                                         snapshotHolder: snapshotHolder,
                                          imageView: imageView,
                                          homeScreenSnapshot: nil,
                                          cardHeader: cardHeader,
                                          initialContainerFrame: initialFrame,
-                                         destinationCellFrame: cellFrame,
-                                         destinationImageViewFrame: destinationImageViewFrame,
-                                         destinationHeaderFrame: headerFrame(forCellFrame: cellFrame))
+                                         destinationCellFrame: cellFrame)
     }
 
-    /// Recompute the destination cell / preview / header frames against the CURRENT layout (after the
-    /// tracker banner may have been inserted, pushing cells down). `layoutIfNeeded()` flushes a pending
-    /// banner insertion before we re-query the layout attributes.
+    /// Recompute the destination cell frame against the CURRENT layout (after the tracker banner may have been
+    /// inserted, pushing cells down). `layoutIfNeeded()` flushes a pending banner insertion before we re-query
+    /// the layout attributes. The header strip + snapshot region are derived from the cell size by the
+    /// controller, so only the cell frame needs recomputing.
     func currentDestinationFrames() -> SwipeUpDestinationFrames? {
         guard let tab = mainViewController.tabManager.currentTabsModel.currentTab,
-              let rowIndex = tabSwitcherViewController.tabsModel.indexOf(tab: tab),
-              let preview = tabSwitcherViewController.previewsSource.preview(for: tab) else {
+              let rowIndex = tabSwitcherViewController.tabsModel.indexOf(tab: tab) else {
             return nil
         }
         let collectionView = tabSwitcherViewController.collectionView
@@ -237,10 +236,7 @@ extension FromWebViewTransition: SwipeUpInteractiveTransition {
         guard let layoutAttr = collectionView.layoutAttributesForItem(at: IndexPath(row: rowIndex, section: 0)) else {
             return nil
         }
-        let cellFrame = tabSwitcherCellFrame(for: layoutAttr)
-        return SwipeUpDestinationFrames(cell: cellFrame,
-                                        imageView: previewFrame(for: cellFrame.size, preview: preview),
-                                        header: headerFrame(forCellFrame: cellFrame))
+        return SwipeUpDestinationFrames(cell: tabSwitcherCellFrame(for: layoutAttr))
     }
 }
 

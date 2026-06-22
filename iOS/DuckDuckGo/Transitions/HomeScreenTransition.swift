@@ -51,29 +51,27 @@ class HomeScreenTransition: TabSwitcherTransition {
     fileprivate func tabSwitcherCellFrame(for attributes: UICollectionViewLayoutAttributes) -> CGRect {
         var targetFrame = self.tabSwitcherViewController.collectionView.convert(attributes.frame,
                                                                                 to: self.tabSwitcherViewController.view)
-        
+
         guard tabSwitcherSettings.isGridViewEnabled else {
             return targetFrame
         }
-        
+
         targetFrame.origin.y += TabViewCell.Constants.cellHeaderHeight
         targetFrame.size.height -= TabViewCell.Constants.cellHeaderHeight
         return targetFrame
+    }
+
+    /// The FULL cell frame (header strip + preview region), unlike `tabSwitcherCellFrame` which carves off the
+    /// header for the button-tap keyframe path. The free-form interactive card is the whole cell (header is a
+    /// subview), so it snaps to this; `SwipeUpCardLayout` then derives the header/preview split from the size.
+    fileprivate func fullCellFrame(for attributes: UICollectionViewLayoutAttributes) -> CGRect {
+        self.tabSwitcherViewController.collectionView.convert(attributes.frame,
+                                                              to: self.tabSwitcherViewController.view)
     }
     
     fileprivate func previewFrame(for cellBounds: CGSize) -> CGRect {
         return CGRect(origin: .zero, size: cellBounds)
             .offsetBy(dx: 0, dy: -TabViewCell.Constants.previewPadding)
-    }
-
-    /// Absolute (tab-switcher-view space) frame of the card's header in the settled cell. For the NTP,
-    /// `tabSwitcherCellFrame` already returns the *preview-region* frame (header excluded), so the header
-    /// sits in the `cellHeaderHeight` strip directly ABOVE it.
-    fileprivate func headerFrame(forCellFrame cellFrame: CGRect) -> CGRect {
-        return CGRect(x: cellFrame.minX,
-                      y: cellFrame.minY - TabViewCell.Constants.cellHeaderHeight,
-                      width: cellFrame.width,
-                      height: TabViewCell.Constants.cellHeaderHeight)
     }
 
 }
@@ -195,8 +193,9 @@ extension FromHomeScreenTransition: SwipeUpInteractiveTransition {
     /// interaction controller cross-fades the snapshot out to the `.center` logo as the drag rises, so
     /// the circular logo never squeezes; the snap lands on the same `tabSwitcherCellFrame` end state.
     func prepareInteractivePreview(finalFrame: CGRect) -> SwipeUpInteractivePreview? {
+        // The card clips its subviews so the ramping border + rounded corners frame the WHOLE card (header
+        // strip + snapshot holder) — like the real cell, whose header sits inside the rounded `background`.
         imageContainer.clipsToBounds = true
-        imageContainer.addSubview(imageView)
 
         guard let homeScreen = mainViewController.newTabPageViewController,
               let tab = mainViewController.tabManager.currentTabsModel.currentTab,
@@ -227,49 +226,62 @@ extension FromHomeScreenTransition: SwipeUpInteractiveTransition {
         // cross-fades out to reveal the matching surface as the card shrinks.
         imageContainer.backgroundColor = UIColor(designSystemColor: .surfaceTertiary)
 
-        prepareSnapshots(with: homeScreen,
-                         addressBarPosition: mainViewController.appSettings.currentAddressBarPosition,
-                         addressBarHeight: mainViewController.omniBar.barView.expectedHeight)
+        // Snapshot holder (analogue of the grid cell's `previewClipView`) holds the NTP snapshot + the crisp
+        // `.center` Dax logo. The controller ramps the holder full-bleed → preview region (+ corner radius),
+        // so the home-screen snapshot starts edge-to-edge and insets below the header as the drag rises.
+        let snapshotHolder = makeSnapshotHolder()
+        imageContainer.addSubview(snapshotHolder)
 
-        // Squeeze fix: keep the snapshot's contents proportional (crop, don't stretch) as the container
-        // morphs toward the cell aspect ratio. Mirrors the keyframe path's fix.
-        homeScreenSnapshot?.contentMode = .scaleAspectFill
-        homeScreenSnapshot?.clipsToBounds = true
-
+        // The centred Dax logo sits inside the holder (below the home-screen snapshot in z-order).
         imageView.alpha = 0
-        imageView.frame = imageContainer.bounds
         imageView.contentMode = .center
         if tabSwitcherSettings.isGridViewEnabled {
             imageView.image = TabViewCell.logoImage(for: tab)
+        }
+        snapshotHolder.addSubview(imageView)
+
+        // `prepareSnapshots` adds the home-screen snapshot to `imageContainer`; re-parent it into the holder
+        // (above the logo) so it insets/rounds with the holder and the logo cross-fades in beneath it.
+        prepareSnapshots(with: homeScreen,
+                         addressBarPosition: mainViewController.appSettings.currentAddressBarPosition,
+                         addressBarHeight: mainViewController.omniBar.barView.expectedHeight)
+        if let homeScreenSnapshot {
+            snapshotHolder.addSubview(homeScreenSnapshot)
+            // Squeeze fix: keep the snapshot's contents proportional (crop, don't stretch) as the holder
+            // morphs toward the cell aspect ratio. Mirrors the keyframe path's fix.
+            homeScreenSnapshot.contentMode = .scaleAspectFill
+            homeScreenSnapshot.clipsToBounds = true
         }
 
         imageContainer.layer.borderColor = UIColor(designSystemColor: .decorationTertiary).cgColor
         imageContainer.layer.borderWidth = 0
         imageContainer.layer.cornerRadius = 0
 
-        let cellFrame = tabSwitcherCellFrame(for: layoutAttr)
-        let destinationImageViewFrame = previewFrame(for: cellFrame.size)
+        // Full cell frame (header + preview): the card is the whole cell, with the header as a subview, so the
+        // controller derives the header strip + preview region from this frame's size (NTP and web identical).
+        let cellFrame = fullCellFrame(for: layoutAttr)
 
-        // Card header (favicon + title + X). Built here (populated from the NTP tab — Dax logo + title) but
-        // z-ordered/added by the controller as a sibling above `imageContainer`, so it can be animated into
-        // the strip ABOVE the NTP preview-region cell frame. Starts at alpha 0 (controller fades it in).
+        // Card header (favicon + title + X), populated from the NTP tab (Dax logo + home-tab title). Added as
+        // the TOP subview of the card so the card's border/rounded corners frame it (like the real cell).
+        // Starts alpha 0; controller fades it in with progress.
         let cardHeader = makeSwipeUpCardHeader(for: tab)
         cardHeader.alpha = 0
+        imageContainer.addSubview(cardHeader)
 
         return SwipeUpInteractivePreview(solidBackground: solidBackground,
                                          imageContainer: imageContainer,
+                                         snapshotHolder: snapshotHolder,
                                          imageView: imageView,
                                          homeScreenSnapshot: homeScreenSnapshot,
                                          cardHeader: cardHeader,
                                          initialContainerFrame: initialFrame,
-                                         destinationCellFrame: cellFrame,
-                                         destinationImageViewFrame: destinationImageViewFrame,
-                                         destinationHeaderFrame: headerFrame(forCellFrame: cellFrame))
+                                         destinationCellFrame: cellFrame)
     }
 
-    /// Recompute the destination cell / preview / header frames against the CURRENT layout (after the
-    /// tracker banner may have been inserted, pushing cells down). `layoutIfNeeded()` flushes a pending
-    /// banner insertion before we re-query the layout attributes.
+    /// Recompute the destination cell frame against the CURRENT layout (after the tracker banner may have
+    /// been inserted, pushing cells down). `layoutIfNeeded()` flushes a pending banner insertion before we
+    /// re-query the layout attributes. The header strip + snapshot region are derived from the cell size by
+    /// the controller, so only the cell frame needs recomputing.
     func currentDestinationFrames() -> SwipeUpDestinationFrames? {
         guard let tab = mainViewController.tabManager.currentTabsModel.currentTab,
               let rowIndex = tabSwitcherViewController.tabsModel.indexOf(tab: tab) else {
@@ -280,10 +292,7 @@ extension FromHomeScreenTransition: SwipeUpInteractiveTransition {
         guard let layoutAttr = collectionView.layoutAttributesForItem(at: IndexPath(row: rowIndex, section: 0)) else {
             return nil
         }
-        let cellFrame = tabSwitcherCellFrame(for: layoutAttr)
-        return SwipeUpDestinationFrames(cell: cellFrame,
-                                        imageView: previewFrame(for: cellFrame.size),
-                                        header: headerFrame(forCellFrame: cellFrame))
+        return SwipeUpDestinationFrames(cell: fullCellFrame(for: layoutAttr))
     }
 }
 

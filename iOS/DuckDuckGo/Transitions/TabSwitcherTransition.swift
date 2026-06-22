@@ -87,34 +87,63 @@ class TabSwitcherTransition: NSObject, UIViewControllerAnimatedTransitioning {
 struct SwipeUpInteractivePreview {
     /// Hides the from-VC content; the controller inserts it at the bottom of the container view.
     let solidBackground: UIView
-    /// The page-preview card the finger drags; transforms freely and snaps to `destinationCellFrame`.
+    /// The page-preview **card** the finger drags — the structural analogue of `TabViewCell.background`
+    /// (`.surfaceTertiary`, ramps to `cellCornerRadius` + the 2pt `.decorationTertiary` border). It clips
+    /// its subviews (the header strip + the snapshot holder) so the border frames the WHOLE card including
+    /// the header. Transforms freely under the finger and snaps to `destinationCellFrame` on commit.
     let imageContainer: UIView
-    /// The preview image inside the card (web preview, or the NTP `.center` logo).
+    /// Clipping holder for the page snapshot, a **subview of `imageContainer`** below the header strip — the
+    /// analogue of the grid cell's `previewClipView`. Ramps from full-bleed (progress 0, covering the whole
+    /// card so the page is edge-to-edge) to the cell's preview region (progress 1: 4pt side/bottom insets,
+    /// `cellHeaderHeight` top inset) and rounds **all four** corners `0 → previewCornerRadius` so the snapshot
+    /// upper corners don't snap at handoff. Holds `imageView` (+ `homeScreenSnapshot`), each filling it.
+    let snapshotHolder: UIView
+    /// The preview image inside the snapshot holder (web preview filling the holder, or the NTP `.center`
+    /// logo). Fills `snapshotHolder.bounds`.
     let imageView: UIImageView
     /// NTP-only resizable snapshot that should fade out early to avoid the Dax-logo squeeze; nil for web.
+    /// Fills `snapshotHolder.bounds`.
     let homeScreenSnapshot: UIView?
-    /// The all-tabs cell's top bar (favicon + title + X) replicated for the card. The controller adds it as
-    /// a **sibling above `imageContainer`** (not a subview, so the NTP header can sit above the preview-only
-    /// container too), starts it at alpha 0, fades it in with progress, tracks the card's top edge during the
-    /// drag, and at commit snaps it to `destinationHeaderFrame` — pixel-matching the real cell's header.
+    /// The all-tabs cell's top bar (favicon + title + X) replicated for the card. The controller adds it as a
+    /// **subview of `imageContainer`** pinned to the card's top edge (so the card's border/rounded corners
+    /// frame it, like the real cell), starts it at alpha 0, and fades it in with progress in lockstep with the
+    /// border/corner/inset ramp — coinciding with the real cell's header on commit.
     let cardHeader: SwipeUpCardHeaderView
     /// Full-content frame of `imageContainer` at progress 0 (where the page sits, minus the omnibar).
     let initialContainerFrame: CGRect
     /// Destination grid-cell frame `imageContainer` snaps to on commit (collection pre-scrolled to it).
     let destinationCellFrame: CGRect
-    /// `imageView` frame inside the settled cell (web: `previewFrame`; NTP: centered logo frame).
-    let destinationImageViewFrame: CGRect
-    /// Absolute (tab-switcher-view space) `cardHeader` frame in the settled cell — the cell's top strip,
-    /// full width, `cellHeaderHeight` tall — so it coincides exactly with the real cell's header on commit.
-    let destinationHeaderFrame: CGRect
 }
 
-/// Live destination frames recomputed at commit (after the tracker-count banner has laid out), so the
-/// card snaps onto the cell where it *now* sits rather than where it sat at gesture start.
+/// Live destination cell frame recomputed at commit (after the tracker-count banner has laid out), so the
+/// card snaps onto the cell where it *now* sits rather than where it sat at gesture start. The header strip
+/// and snapshot-holder end-states are derived from this cell frame's size by the interaction controller
+/// (they are subviews of the card laid out in its bounds), so only the cell frame needs recomputing.
 struct SwipeUpDestinationFrames {
     let cell: CGRect
-    let imageView: CGRect
-    let header: CGRect
+}
+
+/// Container-local geometry for the dragged card's subviews, mirroring `TabViewGridCell`'s layout
+/// (`headerStack` pinned to the top + `previewClipView` inset below it). Shared by the interaction
+/// controller's per-frame ramp and its commit snap so the card lands matching the real cell.
+enum SwipeUpCardLayout {
+    /// Header strip pinned to the card's top edge, full width, `cellHeaderHeight` tall (matches
+    /// `tabSwitcherCellFrame` / `previewFrame`'s 40pt split — the pre-existing 40-vs-44 approximation).
+    static func headerFrame(forCardSize size: CGSize) -> CGRect {
+        CGRect(x: 0, y: 0, width: size.width, height: TabViewCell.Constants.cellHeaderHeight)
+    }
+
+    /// The cell's preview-clip region inside the card: inset `previewPadding` (4pt) on the sides and
+    /// bottom, and `cellHeaderHeight` from the top (directly below the header strip). Matches
+    /// `TabViewGridCell.previewClipView` (width = background − 8, top = header bottom, bottom inset = 4).
+    static func snapshotRegion(forCardSize size: CGSize) -> CGRect {
+        let inset = TabViewCell.Constants.previewPadding
+        let top = TabViewCell.Constants.cellHeaderHeight
+        return CGRect(x: inset,
+                      y: top,
+                      width: max(0, size.width - inset * 2),
+                      height: max(0, size.height - top - inset))
+    }
 }
 
 /// Implemented by the `From*` presentation animators so the interactive swipe-up controller can build
@@ -202,13 +231,27 @@ extension TabSwitcherTransition {
         return header
     }
 
+    /// Builds the clipping holder for the dragged card's page snapshot — the structural analogue of the grid
+    /// cell's `previewClipView`. Clips its content to a ramping corner radius (driven by the interaction
+    /// controller, all four corners) so the snapshot rounds in lockstep with the card. Shared by both
+    /// `From*` animators' interactive setup.
+    func makeSnapshotHolder() -> UIView {
+        let holder = UIView()
+        holder.clipsToBounds = true
+        holder.layer.cornerCurve = .continuous
+        holder.backgroundColor = .clear
+        return holder
+    }
+
 }
 
 /// The all-tabs grid cell's top bar (favicon + title + close X), replicated at the top of the dragged
-/// swipe-up card so it lands without empty space above the preview. Frame-driven (not Auto Layout) so the
-/// interaction controller can animate its `frame` alongside the rest of the card; it lays its content out
-/// in `layoutSubviews` to mirror `TabViewGridCell`'s header metrics, and at the commit snap it coincides
-/// exactly with the real cell's header. The X is purely decorative (the card is removed on commit).
+/// swipe-up card so it lands without empty space above the snapshot. Added by the interaction controller
+/// as a **subview of the card (`imageContainer`)** pinned to its top edge, so the card's ramping border +
+/// rounded corners frame the header just like the real cell (the cell's header sits inside `background`).
+/// Frame-driven (not Auto Layout) so the controller can size it from the card's bounds each frame; it lays
+/// its content out in `layoutSubviews` to mirror `TabViewGridCell`'s header metrics, and at the commit snap
+/// it coincides exactly with the real cell's header. The X is purely decorative (card removed on commit).
 final class SwipeUpCardHeaderView: UIView {
 
     /// Mirror `TabViewGridCell.Constants` so the favicon/title/X line up with the real cell's header.

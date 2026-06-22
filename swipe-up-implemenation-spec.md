@@ -564,6 +564,91 @@ not reflow — the dragged slot stays an empty gap for the whole interaction and
 commit. Page-controller + index targeting is unchanged (`activePageController`, `tabsModel.currentIndex`,
 section 0).
 
+### G. Structural card rebuild — header inside the bordered card, snapshot insets below it (3 visual fixes)
+
+Three visual issues with the committed free-form card, all in the card's top region, all fixed by rebuilding
+the dragged card to **structurally mirror the all-tabs grid cell** (`TabViewCell` / `TabViewGridCell`)
+instead of layering a header *over* a full-bleed snapshot:
+
+1. **Top border was missing.** The header (favicon/title/X) was a **sibling** added *on top of* the card
+   (`imageContainer`), covering the card's top border edge — so the ramped 2pt `.decorationTertiary` border
+   didn't frame the top of the card. The real cell's header sits *inside* the rounded `background`, so the
+   border frames it. **Fix:** the header is now a **subview of `imageContainer`**, and the card
+   **clips to bounds**, so the border + rounded corners frame the WHOLE card, header included.
+2. **Header overlapped the page.** The snapshot was full-bleed and the header sat over its top strip. In the
+   cell the preview (`previewClipView`) sits *below* the header. **Decision: the page insets below the header**
+   as the header fades in — full-bleed at progress 0, inset to below-header by progress 1. **Fix:** a new
+   `snapshotHolder` (the structural analogue of `previewClipView`) ramps its frame from full-bleed (covers the
+   whole card) to the cell's preview region.
+3. **Snapshot upper corners snapped.** Only the lower corners rounded during the drag (the card clipped the
+   lower corners but the upper ones met the header at radius 0), so the upper corners snapped at handoff.
+   **Fix:** the `snapshotHolder` rounds **all four** corners, ramping `0 → previewCornerRadius`.
+
+**Cell metrics matched** (from `TabViewCell.Constants` + `TabViewGridCell`): card background `.surfaceTertiary`,
+`cellCornerRadius` **12**, continuous corners (`TabViewCell.decorate()` / `setupSubviews`); border 2pt
+(`selectedBorderWidth`) `.decorationTertiary` for the current tab (`updateCurrentTabBorder()`); header strip
+**`cellHeaderHeight` (40)** tall pinned to the card top (favicon 16pt / leading 12 / `faviconCornerRadius` 4,
+title `daxFootnoteSemibold` / `.textPrimary`, 44pt close-X — `SwipeUpCardHeaderView`, mirroring the grid cell's
+header stack); preview region inset `previewPadding` **4pt** on the sides + bottom and `cellHeaderHeight` from
+the top (`TabViewGridCell.previewClipView`: width = background − 8, top = header bottom, bottom inset = 4),
+corner radius `previewCornerRadius` **8**. (The real cell's `previewClipView` masks only the *lower* two
+corners; the dragged holder rounds **all four** during the drag to kill the upper-corner snap — the snapshot is
+removed on commit, so the brief 4-vs-2 difference at the handoff instant is imperceptible and far better than a
+corner snapping from 0. The 40-vs-44 header/preview boundary is the pre-existing transition approximation,
+unchanged.)
+
+**New card structure (in the transition).** `imageContainer` is the **card** (the `background` analogue:
+`.surfaceTertiary`, ramps `cornerRadius 0→12` + `borderWidth 0→2`, **clips to bounds**). Its subviews:
+- `cardHeader` (`SwipeUpCardHeaderView`) — pinned to the card's top edge, full width, `cellHeaderHeight` tall,
+  the TOP subview so the border frames it; alpha ramps `0→1`.
+- `snapshotHolder` (`makeSnapshotHolder()` — the `previewClipView` analogue, clips to a ramping corner radius)
+  below the header, holding `imageView` (web preview filling it `.scaleAspectFill`, matching the real cell; or
+  the NTP `.center` Dax logo) and the NTP `homeScreenSnapshot`, each filling the holder.
+
+The header was previously a sibling (a workaround so the NTP header could sit above a full-bleed preview). With
+the snapshot now insetting below the header, the header becomes a subview of the card, which is what makes #1
+work. `SwipeUpInteractivePreview` gains `snapshotHolder` and drops `destinationImageViewFrame` /
+`destinationHeaderFrame` (the header strip + preview region are now derived **card-locally** from the cell's
+*size* via `SwipeUpCardLayout.headerFrame(forCardSize:)` / `snapshotRegion(forCardSize:)`, shared by the
+per-frame ramp and the commit snap), so `SwipeUpDestinationFrames` carries only `cell`.
+
+**Morph ramp (lockstep with the existing border/corner/header ramps), driven by `progress`:** `layoutCardSubviews(_:progress:)`
+lays the header (top strip) and lerps the holder `full-bleed → snapshotRegion` while rounding the holder
+`0 → previewCornerRadius` (all four). Progress 0 = full-bleed page (header alpha 0, holder covers the whole card,
+holder corner 0, card border 0, card corner 0); progress 1 = header alpha 1 + holder inset below it (top inset
+`cellHeaderHeight`, 4pt sides/bottom) + holder corners 8 + card border 2 + card corner 12 — the exact cell
+appearance. The card scales under the existing bottom-centre transform; header + holder are subviews so they
+scale with it.
+
+**Commit handoff stays pixel-perfect.** `finish()` recomputes the **full cell frame** via
+`currentDestinationFrames()` (Fix E.2 path — flushes the tracker banner, re-queries layout), then snaps the card
+to it and the subviews to their progress-1 end-states derived from that cell's size: `imageContainer.frame =
+targetCell`, `snapshotHolder.frame = snapshotRegion(targetCell.size)` (corner `previewCornerRadius`),
+`cardHeader.frame = headerFrame(targetCell.size)` (alpha 1), image/snapshot fill the holder. For **NTP** the
+interactive path uses the **full** cell frame (`fullCellFrame(for:)`, header included) — *not*
+`tabSwitcherCellFrame` which carves off the header for the button-tap keyframe path — because the card is now
+the whole cell with the header as a subview. `bakeCurrentTransformIntoFrame` clears the drag transform and
+re-pins the subviews by scaling their current container-local frames by `lastScale` (folding the visual scale
+into the card's baked bounds), so the bake is visually continuous; the spring then drives every frame + corner
+to the cell. `cancel()` reverses to progress 0 (full-bleed) via `layoutCardSubviews(_:progress: 0)`.
+
+**Both surfaces.** Identical structure for web and NTP. NTP's `snapshotHolder` holds the home-screen snapshot +
+the Dax-logo `.center` cross-fade (preserved) below the header; the NTP header shows the Dax logo + home-tab
+title.
+
+**Preserved (unchanged):** bottom-edge anchor + no-drift, scale, inverted blur, commit spring, pixel-perfect
+snap recompute, hide-dragged-cell, NTP Dax cross-fade, bottom-bar fade, flick/threshold commit, open pixels,
+cleanup, opaque `.surfaceTertiary` card bg, feature-flag + gating, button-tap path, `SwipeUpToTabSwitcher`
+`os_log` logging.
+
+**Files:** `SwipeUpToTabSwitcherInteractiveTransition.swift` (new `layoutCardSubviews` + `lerp`/`scaleRect`
+helpers; header/holder driven card-locally in `update`/`finish`/`cancel`/`bake`; z-order no longer adds the
+header separately), `TabSwitcherTransition.swift` (`SwipeUpInteractivePreview` + `SwipeUpDestinationFrames`
+reshaped; new `SwipeUpCardLayout` enum + `makeSnapshotHolder()`; `SwipeUpCardHeaderView` re-documented as a card
+subview), `WebViewTransition.swift` + `HomeScreenTransition.swift` (`prepareInteractivePreview` builds the
+holder + parents the header/snapshot into the card; NTP `fullCellFrame(for:)` added; dead `headerFrame(forCellFrame:)`
+removed).
+
 ## Verification / testing
 
 **Manual (the primary verification — feel is the point of the project).** Build & run on an iPhone sim
@@ -604,6 +689,20 @@ separately on a fresh NTP), from the bottom bar:
   the overview is revisited. Re-check on a tab **with trackers** (so the "N trackers blocked" banner inserts
   mid-transition) — the cell stays hidden through the banner insertion and still reappears after commit.
   Web + NTP.
+- **Structural card rebuild (G):** drag slowly up and watch the card's top region.
+  - *Top border (Fix 1):* the 2pt border frames the WHOLE card including the header strip — the top edge of
+    the card has a visible border above the favicon/title/X (the header is inside the bordered/rounded card,
+    not overlaying its top edge).
+  - *Header above the page (Fix 2):* as the header fades in, the page/snapshot **insets down** to sit fully
+    below the header — no overlap (page is edge-to-edge at the very start, recedes below the header as you
+    drag up).
+  - *All-four-corner snapshot (Fix 3):* the snapshot's upper AND lower corners are rounded (ramping with the
+    drag); at the handoff to the real cell there is **no upper-corner snap**.
+  - On commit the card lands exactly on the destination cell (header strip + rounded preview region match the
+    real cell, no jump). Verify on a **web page** (real favicon + title, preview fills the region) and a fresh
+    **NTP** (Dax logo + home-tab title, centred Dax logo in the preview region, snapshot cross-fades to the
+    logo). Re-check with the tracker banner present (no jump). Everything else — hide-cell, blur, bottom-edge
+    anchor, scale, commit/cancel spring, bottom-bar fade — unchanged.
 
 **Unit tests.** Cover the pure `progress(forTranslation:reference:)` and
 `shouldCommit(progress:velocity:)` helpers (flick at low progress commits; below-threshold lift cancels;
