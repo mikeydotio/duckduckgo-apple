@@ -2999,6 +2999,42 @@
         }
       }
     },
+    "network.protection.strict.routing.tip.action" : {
+      "comment" : "Action button title for tooltip reminding the user to re-enable the VPN Strict routing setting",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn On Strict Routing"
+          }
+        }
+      }
+    },
+    "network.protection.strict.routing.tip.message" : {
+      "comment" : "Message for tooltip reminding the user to re-enable the VPN Strict routing setting",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Strict routing is off. Turning it back on strengthens protection against traffic leaks on untrusted networks."
+          }
+        }
+      }
+    },
+    "network.protection.strict.routing.tip.title" : {
+      "comment" : "Title for tooltip reminding the user to re-enable the VPN Strict routing setting",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn On Strict Routing"
+          }
+        }
+      }
+    },
     "network.protection.subscription.expired.resubscribe.button" : {
       "comment" : "Button for the prompt that takes the user to the page to resubscribe.",
       "extractionState" : "extracted_with_value",

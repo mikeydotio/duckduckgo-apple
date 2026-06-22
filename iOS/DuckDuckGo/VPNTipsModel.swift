@@ -52,13 +52,16 @@ public final class VPNTipsModel: ObservableObject {
 
     private let vpnSettings: VPNSettings
     private let strictRoutingReminderStore: VPNStrictRoutingReminderStore = DefaultVPNStrictRoutingReminderStore()
+    private let strictRoutingReminderFeatureEnabled: Bool
     private var cancellables = Set<AnyCancellable>()
 
     public init(statusObserver: ConnectionStatusObserver,
-                vpnSettings: VPNSettings) {
+                vpnSettings: VPNSettings,
+                strictRoutingReminderFeatureEnabled: Bool) {
 
         self.connectionStatus = statusObserver.recentValue
         self.vpnSettings = vpnSettings
+        self.strictRoutingReminderFeatureEnabled = strictRoutingReminderFeatureEnabled
 
         // The strict-routing reminder runs on all OS versions (TipKit on iOS 18+, a custom
         // fallback view below that), so its subscriptions aren't gated.
@@ -121,6 +124,14 @@ public final class VPNTipsModel: ObservableObject {
     /// routing has been disabled for the interval, then recurs at the same interval until the user
     /// turns it back on (which clears the dates) or dismisses the tip (which invalidates it).
     private func refreshStrictRoutingReminder() {
+        guard strictRoutingReminderFeatureEnabled else {
+            showStrictRoutingFallbackReminder = false
+            if #available(iOS 18.0, *) {
+                VPNStrictRoutingTip.shouldShow = false
+            }
+            return
+        }
+
         // Debug override: force the fallback view to show immediately, on any OS version and
         // regardless of timing, so it can be exercised without an older device.
         if strictRoutingReminderStore.forceFallbackReminder {
@@ -200,11 +211,6 @@ public final class VPNTipsModel: ObservableObject {
     }
 
     func handleStrictRoutingFallbackShown() {
-        // Don't mute the forced debug reminder, so it stays put while being tested.
-        if !strictRoutingReminderStore.forceFallbackReminder {
-            strictRoutingReminderStore.recordReminderShown()
-        }
-
         Pixel.fire(pixel: .networkProtectionStrictRoutingTipShown,
                    withAdditionalParameters: [:],
                    includedParameters: [.appVersion])
@@ -331,6 +337,10 @@ public final class VPNTipsModel: ObservableObject {
                        withAdditionalParameters: [:],
                        includedParameters: [.appVersion])
         default:
+            // Dismissing with the close button mutes the reminder for the current interval; it
+            // recurs at the next one. The tip otherwise stays visible until the user acts on it.
+            strictRoutingReminderStore.recordReminderShown()
+
             Pixel.fire(pixel: .networkProtectionStrictRoutingTipDismissed,
                        withAdditionalParameters: [:],
                        includedParameters: [.appVersion])
@@ -392,8 +402,6 @@ public final class VPNTipsModel: ObservableObject {
 
     @available(iOS 18.0, *)
     func handleStrictRoutingTipShown() {
-        strictRoutingReminderStore.recordReminderShown()
-
         Pixel.fire(pixel: .networkProtectionStrictRoutingTipShown,
                    withAdditionalParameters: [:],
                    includedParameters: [.appVersion])

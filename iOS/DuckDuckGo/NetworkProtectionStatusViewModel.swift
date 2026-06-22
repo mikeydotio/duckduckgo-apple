@@ -199,7 +199,8 @@ final class NetworkProtectionStatusViewModel: ObservableObject {
 
         self.tipsModel = VPNTipsModel(
             statusObserver: statusObserver,
-            vpnSettings: settings)
+            vpnSettings: settings,
+            strictRoutingReminderFeatureEnabled: AppDependencyProvider.shared.featureFlagger.isFeatureOn(.vpnStrictRoutingReminder))
 
         let recentServerInfo = serverInfoObserver.recentValue
         if let attributes = recentServerInfo.serverLocation {

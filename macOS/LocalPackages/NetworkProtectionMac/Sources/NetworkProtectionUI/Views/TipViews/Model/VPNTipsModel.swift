@@ -70,6 +70,7 @@ public final class VPNTipsModel: ObservableObject {
     private let vpnSettings: VPNSettings
     private let proxySettings: TransparentProxySettings
     private let strictRoutingReminderStore: VPNStrictRoutingReminderStore
+    private let strictRoutingReminderFeatureEnabled: Bool
     private let logger: Logger
     private var cancellables = Set<AnyCancellable>()
 
@@ -80,6 +81,7 @@ public final class VPNTipsModel: ObservableObject {
                 vpnSettings: VPNSettings,
                 proxySettings: TransparentProxySettings,
                 strictRoutingReminderStore: VPNStrictRoutingReminderStore,
+                strictRoutingReminderFeatureEnabled: Bool,
                 logger: Logger) {
 
         self.activeSiteInfo = activeSitePublisher.value
@@ -90,6 +92,7 @@ public final class VPNTipsModel: ObservableObject {
         self.vpnSettings = vpnSettings
         self.proxySettings = proxySettings
         self.strictRoutingReminderStore = strictRoutingReminderStore
+        self.strictRoutingReminderFeatureEnabled = strictRoutingReminderFeatureEnabled
 
         guard !isMenuApp else {
             return
@@ -240,6 +243,14 @@ public final class VPNTipsModel: ObservableObject {
     private func refreshStrictRoutingReminder() {
         guard !isMenuApp else { return }
 
+        guard strictRoutingReminderFeatureEnabled else {
+            showStrictRoutingFallbackReminder = false
+            if #available(macOS 14.0, *) {
+                VPNStrictRoutingTip.shouldShow = false
+            }
+            return
+        }
+
         // Debug override: force the fallback view to show immediately, on any OS version and
         // regardless of timing, so it can be exercised without an older device.
         if strictRoutingReminderStore.forceFallbackReminder {
@@ -377,6 +388,10 @@ public final class VPNTipsModel: ObservableObject {
         case .actionPerformed:
             PixelKit.fire(VPNTipPixel.strictRoutingTip(step: .actioned))
         default:
+            // Dismissing with the close button mutes the reminder for the current interval; it
+            // recurs at the next one. The tip otherwise stays visible until the user acts on it.
+            strictRoutingReminderStore.recordReminderShown()
+
             PixelKit.fire(VPNTipPixel.strictRoutingTip(step: .dismissed))
         }
     }
@@ -391,11 +406,6 @@ public final class VPNTipsModel: ObservableObject {
 
     func handleStrictRoutingFallbackShown() {
         guard !isMenuApp else { return }
-
-        // Don't mute the forced debug reminder, so it stays put while being tested.
-        if !strictRoutingReminderStore.forceFallbackReminder {
-            strictRoutingReminderStore.recordReminderShown()
-        }
 
         PixelKit.fire(VPNTipPixel.strictRoutingTip(step: .shown))
     }
@@ -486,8 +496,6 @@ public final class VPNTipsModel: ObservableObject {
     @available(macOS 14.0, *)
     func handleStrictRoutingTipShown() {
         guard !isMenuApp else { return }
-
-        strictRoutingReminderStore.recordReminderShown()
 
         PixelKit.fire(VPNTipPixel.strictRoutingTip(step: .shown))
     }
