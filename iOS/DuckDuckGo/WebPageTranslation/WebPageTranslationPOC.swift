@@ -329,9 +329,10 @@ extension TabViewController {
         var viewportSeconds = Date().timeIntervalSince(start)
         var isFirstBatch = true
 
+        let targetCode = TranslationLanguageStore().targetLanguageCode
         let stream = translator.run(batches: requestBatches,
-                                    source: Locale.Language(identifier: "en"),
-                                    target: Locale.Language(identifier: "es"))
+                                    source: nil,
+                                    target: Locale.Language(identifier: targetCode))
         for try await responses in stream {
             if Task.isCancelled { break }   // Show Original tapped: stop applying; revert handles the rest.
 
@@ -422,7 +423,7 @@ private final class POCTranslator: ObservableObject {
 
     /// Runs the given request batches sequentially in one session, yielding one response array per batch.
     func run(batches: [[TranslationSession.Request]],
-             source: Locale.Language,
+             source: Locale.Language?,
              target: Locale.Language) -> AsyncThrowingStream<[TranslationSession.Response], Error> {
         pendingBatches = batches
         return AsyncThrowingStream { continuation in

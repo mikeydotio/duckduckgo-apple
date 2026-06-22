@@ -665,6 +665,9 @@ public class AppUserDefaults: AppSettings {
     @UserDefaultsWrapper(key: .autoClearAIChatHistory, defaultValue: false)
     var autoClearAIChatHistory: Bool
 
+    @UserDefaultsWrapper(key: .webPageTranslationTargetLanguage, defaultValue: nil)
+    var webPageTranslationTargetLanguage: String?
+
 }
 
 extension AppUserDefaults: AppConfigurationFetchStatistics {

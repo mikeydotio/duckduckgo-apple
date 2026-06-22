@@ -188,6 +188,9 @@ public struct UserDefaultsWrapper<T> {
         // AI Chat
         case autoClearAIChatHistory = "com.duckduckgo.ios.autoClearAIChatHistory"
 
+        // Web Page Translation
+        case webPageTranslationTargetLanguage = "com.duckduckgo.ios.webPageTranslationTargetLanguage"
+
         // Dax Easter Egg Logo
         case daxEasterEggLogoURL = "com.duckduckgo.ios.daxEasterEggLogoURL"
 

@@ -49,6 +49,7 @@ struct SettingsMainSettingsView: View {
         SettingsEntry(label: UserText.accessibility, build: Self.viewBuilder.buildAccessibility),
         SettingsEntry(label: UserText.dataClearing, build: Self.viewBuilder.buildDataClearing),
         SettingsEntry(label: UserText.duckPlayerFeatureName, build: Self.viewBuilder.buildDuckPlayer),
+        SettingsEntry(label: "Translation", build: Self.viewBuilder.buildTranslation),
     ].sorted(by: { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending })
 
     var body: some View {
@@ -124,6 +125,16 @@ struct SettingsMainSettingsView: View {
                              action: { viewModel.presentLegacyView(.autofill) },
                              disclosureIndicator: true,
                              isButton: true))
+        }
+
+        // Web page translation settings (POC). iOS 18+ only; returns nil below that so the row is hidden.
+        @ViewBuilder func buildTranslation(viewModel: SettingsViewModel) -> AnyView? {
+            if #available(iOS 18.0, *) {
+                AnyView(NavigationLink(destination: TranslationSettingsView()) {
+                    SettingsCellView(label: "Translation",
+                                     image: Image(uiImage: DesignSystemImages.Color.Size24.globe))
+                })
+            }
         }
 
     }
