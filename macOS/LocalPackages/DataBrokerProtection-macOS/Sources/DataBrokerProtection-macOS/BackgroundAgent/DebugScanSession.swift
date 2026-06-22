@@ -161,6 +161,7 @@ final class DebugSessionStageDurationCalculator: StageDurationCalculator, DebugE
     func fireOptOutFillForm() {}
     func fireOptOutEmailReceive() {}
     func fireOptOutEmailConfirm() {}
+    func fireOptOutEmailGetData() {}
     func fireOptOutValidate() {}
     func fireOptOutSubmitSuccess(tries: Int) {}
     func fireOptOutFailure(tries: Int, error: Error) {}

@@ -109,7 +109,6 @@ extension DataBrokerProtectionAgentManager {
                 }
 
                 // Include profile query info for get_profile_queries extraction
-                let uniqueQueries = Set(items.map { "\($0.profileQuery.firstName) \($0.profileQuery.lastName)" })
                 if let firstQuery = items.first?.profileQuery {
                     summary["profileQuery"] = [
                         "firstName": firstQuery.firstName,
@@ -498,7 +497,7 @@ extension DataBrokerProtectionAgentManager {
                     emailConfirmationDataService: emailService,
                     captchaService: debugCaptchaService,
                     featureFlagger: mcpJobDependencies.featureFlagger,
-                    applicationNameForUserAgent: mcpJobDependencies.applicationNameForUserAgent,
+                    applicationNameForUserAgentProvider: mcpJobDependencies.applicationNameForUserAgentProvider,
                     stageDurationCalculator: stageCalculator,
                     pixelHandler: debugPixelHandler,
                     executionConfig: .init(),
@@ -613,7 +612,7 @@ extension DataBrokerProtectionAgentManager {
                 emailConfirmationDataService: emailService,
                 captchaService: debugCaptchaService,
                 featureFlagger: mcpJobDependencies.featureFlagger,
-                applicationNameForUserAgent: mcpJobDependencies.applicationNameForUserAgent,
+                applicationNameForUserAgentProvider: mcpJobDependencies.applicationNameForUserAgentProvider,
                 stageCalculator: stageCalculator,
                 pixelHandler: debugPixelHandler,
                 executionConfig: .init(),
@@ -823,7 +822,7 @@ extension DataBrokerProtectionAgentManager {
                 emailConfirmationDataService: emailService,
                 captchaService: debugCaptchaService,
                 featureFlagger: mcpJobDependencies.featureFlagger,
-                applicationNameForUserAgent: mcpJobDependencies.applicationNameForUserAgent,
+                applicationNameForUserAgentProvider: mcpJobDependencies.applicationNameForUserAgentProvider,
                 stageCalculator: stageCalculator,
                 pixelHandler: debugPixelHandler,
                 executionConfig: .init(),

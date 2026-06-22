@@ -165,15 +165,15 @@ public final class DataBrokerProtectionWebViewHandler: NSObject, WebViewHandler 
         }
     }
 
-    var currentURL: URL? {
+    public var currentURL: URL? {
         webView?.url
     }
 
-    func getPageHTML() async -> String? {
+    public func getPageHTML() async -> String? {
         try? await webView?.evaluateJavaScript("document.body.innerHTML") as? String
     }
 
-    func evaluateJavaScriptReturningResult(_ javaScript: String) async throws -> Any? {
+    public func evaluateJavaScriptReturningResult(_ javaScript: String) async throws -> Any? {
         try await webView?.evaluateJavaScript(javaScript)
     }
 

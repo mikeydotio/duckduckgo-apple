@@ -26,8 +26,6 @@
 	<key>DBP_BACKGROUND_AGENT_BUNDLE_ID</key>
 	<string>$(DBP_BACKGROUND_AGENT_BUNDLE_ID)</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>DuckDuckGo doesn’t need access to the local network.
-
-Please select DON’T ALLOW.</string>
+	<string>This prompt is due to a known OS issue. Rest assured, your privacy is safe, and no settings will change. We've reported it to Apple, and a fix is underway. Please select Don't Allow.</string>
 </dict>
 </plist>
