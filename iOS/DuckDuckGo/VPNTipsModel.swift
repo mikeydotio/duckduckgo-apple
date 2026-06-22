@@ -132,16 +132,6 @@ public final class VPNTipsModel: ObservableObject {
             return
         }
 
-        // Debug override: force the fallback view to show immediately, on any OS version and
-        // regardless of timing, so it can be exercised without an older device.
-        if strictRoutingReminderStore.forceFallbackReminder {
-            if #available(iOS 18.0, *) {
-                VPNStrictRoutingTip.shouldShow = false
-            }
-            showStrictRoutingFallbackReminder = true
-            return
-        }
-
         let interval = strictRoutingReminderStore.overriddenInterval ?? Self.defaultStrictRoutingReminderInterval
 
         // Strict routing only affects traffic while the tunnel is up, so the reminder is only
@@ -160,16 +150,14 @@ public final class VPNTipsModel: ObservableObject {
         }
 
         guard #available(iOS 18.0, *) else {
-            // No TipKit below iOS 18, so drive the custom fallback view directly.
+            // No TipKit below iOS 18, so the custom fallback view is the only option.
             showStrictRoutingFallbackReminder = isDue
             return
         }
 
-        // iOS 18+ uses TipKit, so the fallback view stays hidden.
-        showStrictRoutingFallbackReminder = false
-
         guard isDue,
               let secondsSinceDisabled = strictRoutingReminderStore.secondsSinceDisabled() else {
+            showStrictRoutingFallbackReminder = false
             VPNStrictRoutingTip.shouldShow = false
             return
         }
@@ -181,9 +169,20 @@ public final class VPNTipsModel: ObservableObject {
             return false
         }
         guard !otherTipAvailable else {
+            showStrictRoutingFallbackReminder = false
             VPNStrictRoutingTip.shouldShow = false
             return
         }
+
+        // Debug override: render the pre-iOS-18 fallback view in place of the TipKit tip under the
+        // same showing conditions, so it can be previewed on a modern OS.
+        if strictRoutingReminderStore.forceFallbackReminder {
+            VPNStrictRoutingTip.shouldShow = false
+            showStrictRoutingFallbackReminder = true
+            return
+        }
+
+        showStrictRoutingFallbackReminder = false
 
         // Rotate the tip's identity each interval so a previous permanent dismissal (the X button)
         // doesn't suppress the next recurrence — TipKit treats each interval as a brand-new tip.

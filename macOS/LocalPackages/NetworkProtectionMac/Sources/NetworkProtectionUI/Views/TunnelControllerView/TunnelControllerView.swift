@@ -418,36 +418,43 @@ private struct StrictRoutingReminderView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(nsImage: DesignSystemImages.Glyphs.Size24.shield)
-                .frame(width: 32, height: 32)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(nsImage: DesignSystemImages.Glyphs.Size24.shield)
+                    .renderingMode(.template)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 24, height: 24)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(UserText.networkProtectionStrictRoutingTipTitle)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(UserText.networkProtectionStrictRoutingTipTitle)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
 
-                Text(UserText.networkProtectionStrictRoutingTipMessage)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Button(action: onEnable) {
-                    Text(UserText.networkProtectionStrictRoutingTipAction)
+                    Text(UserText.networkProtectionStrictRoutingTipMessage)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.top, 4)
+
+                Spacer(minLength: 0)
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
             }
 
-            Spacer(minLength: 0)
-
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .foregroundColor(.secondary)
+            Button(action: onEnable) {
+                Text(UserText.networkProtectionStrictRoutingTipAction)
+                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
         }
         .padding(12)
         .background(Color(.tipBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
