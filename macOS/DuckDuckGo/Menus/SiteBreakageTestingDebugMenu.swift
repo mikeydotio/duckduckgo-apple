@@ -30,11 +30,18 @@ final class SiteBreakageTestingDebugMenu: NSMenu {
         super.init(title: "")
 
         buildItems {
+            NSMenuItem(title: "Open Dashboard", action: #selector(openDashboard))
+                .targetting(self)
+            NSMenuItem.separator()
             NSMenuItem(title: "Set up site-breakage testing environment…", action: #selector(setupEnvironment))
                 .targetting(self)
             NSMenuItem(title: "Open testing folder", action: #selector(openFolder))
                 .targetting(self)
         }
+    }
+
+    @MainActor @objc func openDashboard() {
+        SiteBreakageDashboardWindowController.show()
     }
 
     required init(coder: NSCoder) {

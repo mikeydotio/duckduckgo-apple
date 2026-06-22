@@ -374,7 +374,12 @@ final class BreakageSignalsTabExtension {
 
     /// Mutable signal accumulator for a single main-frame page load — one instance per navigation.
     private final class PageSignals {
-        var pageHost: String?
+        /// Stable identity for the visit so the dashboard keeps its row across live polls and after the
+        /// visit is snapshotted into history.
+        let visitID = UUID()
+        let startedAt = Date()
+        var pageHost: String?       // landing site (eTLD+1)
+        var pageURL: URL?           // full main-frame URL, for the local dashboard only (never logged)
         let resources = ResourceFailures()
         let blocks = ContentBlocks()
         let integrity = IntegrityFailures()
@@ -387,10 +392,12 @@ final class BreakageSignalsTabExtension {
 
     private let tld: TLD
     private var page = PageSignals()
+    private var visits: [VisitSnapshot] = [] // in-memory, capped, never persisted to disk
     private var cancellables = Set<AnyCancellable>()
 
     private static let maxResources = 200
     private static let maxDigestEntries = 20
+    private static let maxVisits = 10
     private static let ignoredResourceTypes: Set<String> = ["Beacon", "Ping", "CSPReport"] // telemetry, not breakage
     private static let ignoredHosts: Set<String> = ["external-content.duckduckgo.com"] // DDG favicon proxy
 
@@ -451,8 +458,54 @@ final class BreakageSignalsTabExtension {
 
     @MainActor
     private func resetPage(for navigation: Navigation) {
+        // Snapshot the finishing visit into the in-memory history before discarding it, so the dashboard can
+        // show it after the user has navigated away. Skip the initial empty page (no site yet).
+        if page.pageHost != nil {
+            visits.append(makeSnapshot(from: page))
+            if visits.count > Self.maxVisits { visits.removeFirst(visits.count - Self.maxVisits) }
+        }
+
         page = PageSignals()
-        page.pageHost = tld.eTLDplus1(navigation.url.host)
+        // Fall back to the raw host: localhost and other non-public-suffix hosts have no eTLD+1, and we still
+        // want those visits to register (e.g. the local test harness on localhost).
+        page.pageHost = tld.eTLDplus1(navigation.url.host) ?? navigation.url.host
+        page.pageURL = navigation.url
+    }
+
+    /// Recent visits plus the in-progress one, oldest first. Read-only snapshot for the internal dashboard;
+    /// in-memory only, never persisted.
+    @MainActor
+    func visitSnapshots() -> [VisitSnapshot] {
+        var result = visits
+        if page.pageHost != nil { result.append(makeSnapshot(from: page)) }
+        return result
+    }
+
+    /// Flattens the live mutable signal groups into an immutable value snapshot for display.
+    private func makeSnapshot(from page: PageSignals) -> VisitSnapshot {
+        let resourceRows = page.resources.resources.values
+            .map { VisitSnapshot.ResourceFailure(host: $0.domain, fileName: $0.fileName, resourceType: $0.resourceType ?? "?",
+                                                 outcome: $0.outcome.label, failureClass: $0.failureClass.rawValue,
+                                                 isThirdParty: $0.isThirdParty, count: $0.count) }
+            .sorted { $0.count > $1.count }
+        let blocks = VisitSnapshot.Blocks(blockedLoads: page.blocks.blockedLoads, blockedCookies: page.blocks.blockedCookies,
+                                          madeHTTPS: page.blocks.madeHTTPS, redirected: page.blocks.redirected,
+                                          modifiedHeaders: page.blocks.modifiedHeaders,
+                                          domains: page.blocks.blockedDomains.hostCounts())
+        return VisitSnapshot(id: page.visitID,
+                             site: page.pageHost ?? "<?>",
+                             url: page.pageURL?.absoluteString ?? page.pageHost ?? "<?>",
+                             startedAt: page.startedAt,
+                             resourceFailures: resourceRows,
+                             blocks: blocks,
+                             integrityFailures: page.integrity.total,
+                             integrityDomains: page.integrity.domains.hostCounts(),
+                             storagePrompts: page.storage.prompts,
+                             storageQuirks: page.storage.quirks,
+                             storageQuirkDomains: page.storage.quirkDomains.hostCounts(),
+                             renderHealth: page.render.health,
+                             renderFinished: page.render.navigationFinished,
+                             renderMilestones: page.render.renderMilestones)
     }
 
     /// On-demand emission (wired to the site-protections button). Reads the live buffer, so post-load /
@@ -559,6 +612,65 @@ extension BreakageSignalsTabExtension: NavigationResponder {
 
 protocol BreakageSignalsTabExtensionProtocol: AnyObject, NavigationResponder {
     @MainActor func emitDigestOnDemand()
+    @MainActor func visitSnapshots() -> [VisitSnapshot]
+}
+
+/// Immutable, value-type view of one visit's accumulated signals for the internal site-breakage dashboard.
+/// Local display only — holds cleartext hosts/URLs and is never logged or persisted.
+struct VisitSnapshot: Identifiable {
+    struct ResourceFailure: Identifiable {
+        let id = UUID()
+        let host: String
+        let fileName: String
+        let resourceType: String
+        let outcome: String       // e.g. "err-1003" / "http404"
+        let failureClass: String  // resolve / unreachable / cert / http4xx / http5xx / other
+        let isThirdParty: Bool
+        let count: Int
+    }
+
+    struct HostCount: Identifiable {
+        let id = UUID()
+        let host: String
+        let count: Int
+    }
+
+    struct Blocks {
+        let blockedLoads: Int
+        let blockedCookies: Int
+        let madeHTTPS: Int
+        let redirected: Int
+        let modifiedHeaders: Int
+        let domains: [HostCount]
+        var total: Int { blockedLoads + blockedCookies + madeHTTPS + redirected + modifiedHeaders }
+    }
+
+    let id: UUID
+    let site: String
+    let url: String
+    let startedAt: Date
+    let resourceFailures: [ResourceFailure]
+    let blocks: Blocks
+    let integrityFailures: Int
+    let integrityDomains: [HostCount]
+    let storagePrompts: Int
+    let storageQuirks: Int
+    let storageQuirkDomains: [HostCount]
+    let renderHealth: BreakageSignalsTabExtension.RenderHealth
+    let renderFinished: Bool
+    let renderMilestones: UInt
+
+    /// True if this visit observed anything worth surfacing (drives the dashboard's "issue" highlight).
+    var hasIssues: Bool {
+        !resourceFailures.isEmpty || blocks.total > 0 || integrityFailures > 0 || storageQuirks > 0 || renderHealth.anomaly
+    }
+}
+
+private extension Dictionary where Key == String, Value == Int {
+    /// Sorted host→count pairs for display, highest first.
+    func hostCounts() -> [VisitSnapshot.HostCount] {
+        map { VisitSnapshot.HostCount(host: $0.key, count: $0.value) }.sorted { $0.count > $1.count }
+    }
 }
 
 extension BreakageSignalsTabExtension: TabExtension, BreakageSignalsTabExtensionProtocol {
