@@ -30,6 +30,7 @@ import SwiftUI
 protocol AutofillLoginDetailsViewModelDelegate: AnyObject {
     func autofillLoginDetailsViewModelDidSave()
     func autofillLoginDetailsViewModelDidAttemptToSaveDuplicateLogin()
+    func autofillLoginDetailsViewModelDidAttemptToSaveNoteWithoutDomain()
     func autofillLoginDetailsViewModelDelete(account: SecureVaultModels.WebsiteAccount, title: String)
     func autofillLoginDetailsViewModelDismiss()
 }
@@ -295,12 +296,20 @@ final class AutofillLoginDetailsViewModel: ObservableObject {
                 return
             }
 
+            // When username and website are both blank the user is treating the login form as a
+            // secure note. Show a targeted message so they understand what field needs filling in.
+            let editedAddress = autofillDomainNameUrlMatcher.normalizeUrlForWeb(address)
+            if username.isEmpty, editedAddress?.trimmingCharacters(in: .whitespaces).isEmpty ?? true {
+                delegate?.autofillLoginDetailsViewModelDidAttemptToSaveNoteWithoutDomain()
+                return
+            }
+
             do {
                 if let accountIdInt = Int64(accountID),
                    var credential = try vault.websiteCredentialsFor(accountId: accountIdInt) {
                     credential.account.username = username
                     credential.account.title = title
-                    credential.account.domain = autofillDomainNameUrlMatcher.normalizeUrlForWeb(address)
+                    credential.account.domain = editedAddress
                     credential.account.notes = notes
                     credential.password = passwordData
 
@@ -324,6 +333,13 @@ final class AutofillLoginDetailsViewModel: ObservableObject {
             let cleanAddress = autofillDomainNameUrlMatcher.normalizeUrlForWeb(address)
             let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: cleanAddress, notes: notes)
             let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+
+            // When username and website are both blank the user is treating the login form as a
+            // secure note. Show a targeted message so they understand what field needs filling in.
+            if username.isEmpty, cleanAddress?.trimmingCharacters(in: .whitespaces).isEmpty ?? true {
+                delegate?.autofillLoginDetailsViewModelDidAttemptToSaveNoteWithoutDomain()
+                return
+            }
 
             do {
                 guard try !vault.hasAccountFor(username: account.username, domain: account.domain) else {

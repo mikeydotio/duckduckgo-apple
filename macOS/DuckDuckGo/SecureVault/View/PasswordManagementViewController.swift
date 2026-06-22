@@ -728,6 +728,16 @@ final class PasswordManagementViewController: NSViewController {
             }
         }
 
+        // When username and website are both blank the user is treating the login form as a
+        // secure note. Show a targeted message so they understand what field needs filling in.
+        if credentials.account.username?.isEmpty ?? true,
+           credentials.account.domain?.trimmingCharacters(in: .whitespaces).isEmpty ?? true {
+            if let window = view.window {
+                NSAlert.passwordManagerNoteRequiresDomain().beginSheetModal(for: window)
+            }
+            return
+        }
+
         do {
             if try secureVault?.hasAccountFor(username: credentials.account.username, domain: credentials.account.domain) == true && isNew {
                 showDuplicateAlert()
