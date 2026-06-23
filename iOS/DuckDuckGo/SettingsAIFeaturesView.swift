@@ -244,11 +244,18 @@ private extension AIFeaturesSettingsRowProviding {
     @ViewBuilder
     var duckAISearchInputRows: some View {
         if viewModel.experimentalAIChatManager.isExperimentalAIChatFeatureFlagEnabled {
-            HStack {
+            let pickerRow = HStack {
                 SettingsAIExperimentalPickerView(isDuckAISelected: viewModel.aiChatSearchInputEnabledBinding)
                     .padding(.vertical, 8)
             }
             .frame(maxWidth: .infinity, alignment: .center)
+
+            // Custom row: keep its separator full-width like the standard cells above/below (iOS 16+).
+            if #available(iOS 16.0, *) {
+                pickerRow.alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+            } else {
+                pickerRow
+            }
 
             if viewModel.aiChatSearchInputEnabledBinding.wrappedValue,
                viewModel.isDefaultOmnibarModeEnabled {
