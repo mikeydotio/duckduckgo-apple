@@ -58,31 +58,9 @@ public final class ReleaseNotesParser {
 
     // Helper method to extract list items
     private static func extractListItems(from list: String) -> [String] {
-        var items = [String]()
-        let pattern = "<li>(.*?)</li>"
-
-        do {
-            let regex = try NSRegularExpression(pattern: pattern, options: .dotMatchesLineSeparators)
-            let matches = regex.matches(in: list, options: [], range: NSRange(location: 0, length: list.utf16.count))
-
-            for match in matches {
-                if let range = Range(match.range(at: 1), in: list) {
-                    let item = String(list[range])
-
-                    // Convert HTML to plain text
-                    if let data = item.data(using: .utf8),
-                       let attributedString = try? NSAttributedString(data: data,
-                                                                      options: [.documentType: NSAttributedString.DocumentType.html,
-                                                                                .characterEncoding: String.Encoding.utf8.rawValue],
-                                                                      documentAttributes: nil) {
-                        items.append(attributedString.string)
-                    }
-                }
-            }
-        } catch {
-            assertionFailure("Error creating regular expression: \(error)")
-        }
-
-        return items
+        // TEMP(profiling): bypass the per-item NSAttributedString HTML→text conversion
+        // (synchronous, main-thread-only, spins a WebKit/nested run loop) to test whether
+        // it is responsible for the launch hang. REVERT before commit.
+        return ["Release note one", "Release note two", "Release note three"]
     }
 }
