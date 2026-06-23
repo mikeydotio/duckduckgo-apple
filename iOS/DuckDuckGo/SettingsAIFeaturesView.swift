@@ -139,7 +139,7 @@ private struct SettingsAINativeFeaturesView: AIFeaturesSettingsRowProviding {
             } label: {
                 Text(UserText.settingsAiFeaturesDisableAIFeatures)
                     .daxBodyRegular()
-                    .foregroundColor(Color(designSystemColor: .accentTextPrimary))
+                    .foregroundColor(Color(designSystemColor: .accentPrimary))
                     .opacity(viewModel.isAllAIDisabled ? 0.4 : 1)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
