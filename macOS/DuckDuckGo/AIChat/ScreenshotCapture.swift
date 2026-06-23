@@ -27,6 +27,13 @@ import os.log
 /// - `captureScreen(index:)` — `-D <index>`, captures one whole display by 1-based index.
 /// - `captureWindow(windowID:)` — `-l <id>`, captures one window by its `CGWindowID`.
 ///
+/// Each `capture*` variant returns the URL of the PNG `screencapture` wrote to a temp
+/// path. **The caller owns the file** — it must read it (e.g. via
+/// `NSImage(contentsOf:)`) and then remove it. This lets callers feed the URL into the
+/// existing placeholder + `Task.detached` resize pattern (`addImageAttachment(from url:)`
+/// in `AIChatOmnibarContainerViewController`), which loads NSImage on a background
+/// thread to avoid main-thread jank on full-resolution captures.
+///
 /// **macOS App Sandbox**: this path is intended for the Sparkle / Debug variants only —
 /// neither has the `com.apple.security.app-sandbox` entitlement (see
 /// `DuckDuckGo.entitlements` / `DuckDuckGoDebug.entitlements`). The App Store build is
@@ -70,21 +77,24 @@ enum ScreenshotCapture {
 
     // MARK: - Capture
 
-    /// Drag-to-select region capture (system overlay handles the UI).
+    /// Drag-to-select region capture (system overlay handles the UI). Returns the temp PNG
+    /// URL on success; caller owns cleanup.
     @MainActor
-    static func captureInteractiveRegion() async -> NSImage? {
+    static func captureInteractiveRegion() async -> URL? {
         await runCapture(arguments: ["-i", "-o", "-t", "png", "-x"])
     }
 
-    /// Captures the entire display at the given 1-based index (1 = main display).
+    /// Captures the entire display at the given 1-based index (1 = main display). Returns the
+    /// temp PNG URL on success; caller owns cleanup.
     @MainActor
-    static func captureScreen(index: Int) async -> NSImage? {
+    static func captureScreen(index: Int) async -> URL? {
         await runCapture(arguments: ["-D", String(index), "-o", "-t", "png", "-x"])
     }
 
-    /// Captures the window identified by `windowID` (a `kCGWindowNumber`).
+    /// Captures the window identified by `windowID` (a `kCGWindowNumber`). Returns the temp
+    /// PNG URL on success; caller owns cleanup.
     @MainActor
-    static func captureWindow(windowID: CGWindowID) async -> NSImage? {
+    static func captureWindow(windowID: CGWindowID) async -> URL? {
         await runCapture(arguments: ["-l", String(windowID), "-o", "-t", "png", "-x"])
     }
 
@@ -169,20 +179,12 @@ enum ScreenshotCapture {
                 return nil
             }
 
-            // Skip our own windows.
+            // Skip our own windows. Reuse the already-resolved `runningApp` — a second
+            // `NSRunningApplication(processIdentifier:)` lookup transiently returns nil
+            // under app churn, which would let DDG's own windows leak into the menu.
             if let ownBundleID,
-               let app = NSRunningApplication(processIdentifier: pid),
-               app.bundleIdentifier == ownBundleID {
+               runningApp?.bundleIdentifier == ownBundleID {
                 return nil
-            }
-
-            // Skip windows whose bounds are tiny (system chrome / off-screen scratchpads).
-            if let bounds = dict[kCGWindowBounds as String] as? [String: CGFloat] {
-                let width = bounds["Width"] ?? 0
-                let height = bounds["Height"] ?? 0
-                if width < 80 || height < 80 {
-                    return nil
-                }
             }
 
             // Drop untitled windows ONLY when Screen Recording is granted — they're back-buffers
@@ -228,7 +230,7 @@ enum ScreenshotCapture {
     // MARK: - Private
 
     @MainActor
-    private static func runCapture(arguments: [String]) async -> NSImage? {
+    private static func runCapture(arguments: [String]) async -> URL? {
         guard CGRequestScreenCaptureAccess() else {
             logger.info("Screen Recording permission not granted — aborting capture.")
             return nil
@@ -248,28 +250,31 @@ enum ScreenshotCapture {
             do {
                 try process.run()
             } catch {
+                // Nil out the handler before resuming so a future Foundation regression that
+                // fires terminationHandler on a throw'd `run()` can't double-resume the
+                // CheckedContinuation.
+                process.terminationHandler = nil
                 Self.logger.error("Failed to launch /usr/sbin/screencapture: \(error.localizedDescription, privacy: .public)")
                 continuation.resume(returning: -1)
             }
         }
 
-        defer { try? FileManager.default.removeItem(at: tempURL) }
-
         guard exitCode == 0 else {
             logger.info("screencapture exited \(exitCode); treating as cancel.")
+            try? FileManager.default.removeItem(at: tempURL)
             return nil
         }
 
+        // `screencapture` exits 0 even when the user cancels mid-drag (it writes nothing).
+        // Distinguish via file existence + size.
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
               let size = attrs[.size] as? NSNumber, size.intValue > 0 else {
+            try? FileManager.default.removeItem(at: tempURL)
             return nil
         }
 
-        guard let image = NSImage(contentsOf: tempURL) else {
-            logger.error("Failed to load captured screenshot from \(tempURL.path, privacy: .public).")
-            return nil
-        }
-
-        return image
+        // Caller owns the temp file from here on — they read it via NSImage(contentsOf:)
+        // and remove it after the background resize completes.
+        return tempURL
     }
 }

@@ -232,6 +232,18 @@ enum AIChatPixel: PixelKitEvent {
     /// Event Trigger: User submits a prompt that includes one or more file attachments.
     case aiChatAddressBarSubmitWithFiles(fileCount: Int)
 
+    // MARK: - Screenshot Attachments
+
+    /// Event Trigger: User captures a screenshot from the duck.ai omnibar attach menu's
+    /// "Take Screenshot" submenu. The `kind` parameter distinguishes the three capture modes
+    /// (drag-to-select region / full display / window).
+    case aiChatAddressBarScreenshotTaken(kind: ScreenshotKind)
+
+    /// Event Trigger: User removes an attached screenshot in the duck.ai omnibar by clicking
+    /// the × on the carousel card. Distinct from `aiChatAddressBarImageRemoved` so we can
+    /// distinguish screenshot lifecycle from file-picker / drag-and-drop image lifecycle.
+    case aiChatAddressBarScreenshotRemoved
+
     // MARK: - Tab Attachments
 
     /// Event Trigger: User opens the duck.ai omnibar attach menu's "Add Page Content" submenu.
@@ -557,6 +569,10 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_addressbar_file_removed"
         case .aiChatAddressBarSubmitWithFiles:
             return "aichat_addressbar_submit_with_files"
+        case .aiChatAddressBarScreenshotTaken:
+            return "aichat_addressbar_screenshot_taken"
+        case .aiChatAddressBarScreenshotRemoved:
+            return "aichat_addressbar_screenshot_removed"
         case .aiChatAddressBarAttachTabsPickerShown:
             return "aichat_addressbar_attach_tabs_picker_shown"
         case .aiChatAddressBarAttachTabChosen:
@@ -704,6 +720,8 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatAddressBarImageRemoved,
                 .aiChatAddressBarFileAttached,
                 .aiChatAddressBarFileRemoved,
+                .aiChatAddressBarScreenshotTaken,
+                .aiChatAddressBarScreenshotRemoved,
                 .aiChatAddressBarAttachTabsPickerShown,
                 .aiChatAddressBarAttachTabChosen,
                 .aiChatAddressBarAttachTabRemoved,
@@ -758,6 +776,8 @@ enum AIChatPixel: PixelKitEvent {
             return ["tabCount": String(tabCount)]
         case .aiChatAddressBarSubmitWithFiles(let fileCount):
             return ["fileCount": String(fileCount)]
+        case .aiChatAddressBarScreenshotTaken(let kind):
+            return ["kind": kind.rawValue]
         case .aiChatAddressBarButtonClicked(let action):
             return ["action": action.rawValue]
         case .aiChatSidebarOpened(let source, let shouldAutomaticallySendPageContext, let minutesSinceSidebarHidden):
@@ -857,6 +877,8 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatAddressBarFileAttached,
                 .aiChatAddressBarFileRemoved,
                 .aiChatAddressBarSubmitWithFiles,
+                .aiChatAddressBarScreenshotTaken,
+                .aiChatAddressBarScreenshotRemoved,
                 .aiChatAddressBarAttachTabsPickerShown,
                 .aiChatAddressBarAttachTabChosen,
                 .aiChatAddressBarAttachTabRemoved,
@@ -916,6 +938,15 @@ enum AIChatAddressBarAction: String, CaseIterable {
     case sidebar = "sidebar"
     case tab = "tab"
     case tabWithPrompt = "tab-with-prompt"
+}
+
+/// Capture mode selected by the user in the duck.ai omnibar's "Take Screenshot" submenu.
+/// Recorded as a parameter on `aiChatAddressBarScreenshotTaken` so we can tell which mode
+/// is actually used in production.
+enum ScreenshotKind: String, CaseIterable {
+    case selection = "selection"
+    case screen = "screen"
+    case window = "window"
 }
 
 /// Source of AI Chat sidebar open action

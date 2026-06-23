@@ -2505,26 +2505,26 @@
         }
       }
     },
-    "aichat.attach-menu.screenshot.screens-header" : {
-      "comment" : "Section header inside the 'Take Screenshot' submenu listing each connected display the user can capture in one shot.",
+    "aichat.attach-menu.screenshot.select-screen" : {
+      "comment" : "Parent item inside the 'Take Screenshot' submenu. Its sub-submenu lists each connected display the user can capture in one shot.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Screens"
+            "value" : "Select Screen"
           }
         }
       }
     },
-    "aichat.attach-menu.screenshot.windows-header" : {
-      "comment" : "Section header inside the 'Take Screenshot' submenu listing each currently-open application window the user can capture in one shot.",
+    "aichat.attach-menu.screenshot.select-window" : {
+      "comment" : "Parent item inside the 'Take Screenshot' submenu. Its sub-submenu lists each open application window the user can capture in one shot, grouped by app when an app has multiple windows.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Windows"
+            "value" : "Select Window"
           }
         }
       }

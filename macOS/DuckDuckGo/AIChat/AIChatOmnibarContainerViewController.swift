@@ -745,7 +745,13 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         // of truth for the order; the carousel itself never mutates its own state.
         attachmentsCarouselView.onImageAttachmentRemoveRequested = { [weak self] id in
             guard let self else { return }
-            PixelKit.fire(AIChatPixel.aiChatAddressBarImageRemoved, frequency: .dailyAndCount, includeAppVersionParameter: true)
+            // Distinguish screenshot-sourced attachments from regular image attachments so
+            // the take/remove lifecycle of each source can be measured independently.
+            // `Set.remove` returns the removed element when present, so it both updates the
+            // tracking set and answers "was this a screenshot?" in one call.
+            let wasScreenshot = self.screenshotAttachmentIDs.remove(id) != nil
+            let pixel: AIChatPixel = wasScreenshot ? .aiChatAddressBarScreenshotRemoved : .aiChatAddressBarImageRemoved
+            PixelKit.fire(pixel, frequency: .dailyAndCount, includeAppVersionParameter: true)
             self.resizeTasks[id]?.cancel()
             self.resizeTasks.removeValue(forKey: id)
             self.omnibarController.removeImageAttachmentFromActiveTab(id: id)
@@ -1239,7 +1245,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 action: nil,
                 keyEquivalent: ""
             )
-            screenshotItem.image = DesignSystemImages.Glyphs.Size16.folder
+            screenshotItem.image = DesignSystemImages.Glyphs.Size16.deviceDesktop
             screenshotItem.submenu = buildScreenshotSubmenu()
             menu.addItem(screenshotItem)
             addedAttachmentItem = true
@@ -1331,12 +1337,13 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         presentImageFilePicker()
     }
 
-    /// Builds the "Take Screenshot ▸" submenu: Drag to Select (region) first, then a "Screens"
-    /// section with each connected display, then a "Windows" section with each on-screen window
-    /// across every Space. Section headers are disabled items (the modern
-    /// `NSMenuItem.sectionHeader(title:)` API is macOS 14+; we still deploy to 11.4 / 12.3).
-    /// Each screen / window item carries its id in `representedObject` and shares a single
-    /// click handler per kind.
+    /// Builds the "Take Screenshot ▸" submenu — three top-level items only:
+    /// - "Drag to Select" — direct action; opens the system region overlay.
+    /// - "Select Screen ▸" — nested submenu listing each connected display.
+    /// - "Select Window ▸" — nested submenu listing each open window, grouped by app.
+    ///   Apps with a single window appear inline; apps with multiple windows collapse into
+    ///   their own chevron sub-submenu (one per-window row each) so the top-level Windows
+    ///   list stays manageable even when the user has dozens of windows open.
     private func buildScreenshotSubmenu() -> NSMenu {
         let submenu = NSMenu()
         submenu.autoenablesItems = false
@@ -1352,41 +1359,110 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
         let screens = ScreenshotCapture.availableScreens()
         if !screens.isEmpty {
-            submenu.addItem(NSMenuItem.separator())
-            let header = NSMenuItem(title: UserText.aiChatAttachMenuScreenshotScreensHeader, action: nil, keyEquivalent: "")
-            header.isEnabled = false
-            submenu.addItem(header)
-            for screen in screens {
-                let item = NSMenuItem(
-                    title: screen.name,
-                    action: #selector(attachMenuScreenshotScreenClicked(_:)),
-                    keyEquivalent: ""
-                )
-                item.target = self
-                item.representedObject = screen.index
-                item.image = Self.menuGlyphResized(DesignSystemImages.Glyphs.Size16.deviceDesktop)
-                submenu.addItem(item)
-            }
+            let screenItem = NSMenuItem(
+                title: UserText.aiChatAttachMenuScreenshotSelectScreen,
+                action: nil,
+                keyEquivalent: ""
+            )
+            screenItem.image = Self.menuGlyphResized(DesignSystemImages.Glyphs.Size16.deviceDesktop)
+            screenItem.submenu = buildScreenshotScreensSubmenu(screens: screens)
+            submenu.addItem(screenItem)
         }
 
         let windows = ScreenshotCapture.availableWindows()
         if !windows.isEmpty {
-            submenu.addItem(NSMenuItem.separator())
-            let header = NSMenuItem(title: UserText.aiChatAttachMenuScreenshotWindowsHeader, action: nil, keyEquivalent: "")
-            header.isEnabled = false
-            submenu.addItem(header)
-            for window in windows {
+            let windowItem = NSMenuItem(
+                title: UserText.aiChatAttachMenuScreenshotSelectWindow,
+                action: nil,
+                keyEquivalent: ""
+            )
+            windowItem.image = Self.menuGlyphResized(DesignSystemImages.Glyphs.Size16.windowsAndTabs)
+            windowItem.submenu = buildScreenshotWindowsSubmenu(windows: windows)
+            submenu.addItem(windowItem)
+        }
+
+        return submenu
+    }
+
+    /// Nested submenu under "Select Screen ▸" — one row per connected display, monitor glyph.
+    private func buildScreenshotScreensSubmenu(screens: [ScreenshotCapture.ScreenInfo]) -> NSMenu {
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        for screen in screens {
+            let item = NSMenuItem(
+                title: screen.name,
+                action: #selector(attachMenuScreenshotScreenClicked(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = screen.index
+            item.image = Self.menuGlyphResized(DesignSystemImages.Glyphs.Size16.deviceDesktop)
+            submenu.addItem(item)
+        }
+        return submenu
+    }
+
+    /// Nested submenu under "Select Window ▸". Single-window apps appear as a single row at
+    /// this level. Multi-window apps collapse into a chevron sub-submenu titled with the app
+    /// name; the inner rows then show just per-window titles (the app name is already on the
+    /// parent row, so repeating it would be noise). Each row carries the `CGWindowID` in
+    /// `representedObject` and shares the same click handler.
+    private func buildScreenshotWindowsSubmenu(windows: [ScreenshotCapture.WindowInfo]) -> NSMenu {
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+
+        // `availableWindows()` returns windows pre-sorted by appName then title, so we can
+        // accumulate consecutive same-app runs without a second sort pass.
+        var groups: [(appName: String, windows: [ScreenshotCapture.WindowInfo])] = []
+        for window in windows {
+            if let lastIndex = groups.indices.last, groups[lastIndex].appName == window.appName {
+                groups[lastIndex].windows.append(window)
+            } else {
+                groups.append((window.appName, [window]))
+            }
+        }
+
+        for group in groups {
+            if group.windows.count == 1, let only = group.windows.first {
                 let item = NSMenuItem(
-                    title: window.menuTitle,
+                    title: only.menuTitle,
                     action: #selector(attachMenuScreenshotWindowClicked(_:)),
                     keyEquivalent: ""
                 )
                 item.target = self
-                item.representedObject = window.windowID
-                if let icon = window.icon {
+                item.representedObject = only.windowID
+                if let icon = only.icon {
                     item.image = Self.menuGlyphResized(icon)
                 }
                 submenu.addItem(item)
+            } else {
+                let groupItem = NSMenuItem(title: group.appName, action: nil, keyEquivalent: "")
+                if let icon = group.windows.first?.icon {
+                    groupItem.image = Self.menuGlyphResized(icon)
+                }
+                let groupSubmenu = NSMenu()
+                groupSubmenu.autoenablesItems = false
+                for window in group.windows {
+                    // Inside the per-app submenu, the app name is already on the parent row,
+                    // so show just the window's own title. Fall back to the app name if the
+                    // title is empty (pre-permission state — though in that case dedup
+                    // collapses the group to a single window upstream and this branch
+                    // wouldn't be hit).
+                    let title = window.windowTitle.isEmpty ? window.appName : window.windowTitle
+                    let item = NSMenuItem(
+                        title: title,
+                        action: #selector(attachMenuScreenshotWindowClicked(_:)),
+                        keyEquivalent: ""
+                    )
+                    item.target = self
+                    item.representedObject = window.windowID
+                    if let icon = window.icon {
+                        item.image = Self.menuGlyphResized(icon)
+                    }
+                    groupSubmenu.addItem(item)
+                }
+                groupItem.submenu = groupSubmenu
+                submenu.addItem(groupItem)
             }
         }
 
@@ -1394,55 +1470,133 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     @objc private func attachMenuScreenshotSelectionClicked() {
-        captureAndAttachScreenshot { await ScreenshotCapture.captureInteractiveRegion() }
+        captureAndAttachScreenshot(kind: .selection) { await ScreenshotCapture.captureInteractiveRegion() }
     }
 
     @objc private func attachMenuScreenshotScreenClicked(_ sender: NSMenuItem) {
         guard let index = sender.representedObject as? Int else { return }
-        captureAndAttachScreenshot { await ScreenshotCapture.captureScreen(index: index) }
+        captureAndAttachScreenshot(kind: .screen) { await ScreenshotCapture.captureScreen(index: index) }
     }
 
     @objc private func attachMenuScreenshotWindowClicked(_ sender: NSMenuItem) {
         guard let windowID = sender.representedObject as? CGWindowID else { return }
-        captureAndAttachScreenshot { await ScreenshotCapture.captureWindow(windowID: windowID) }
+        captureAndAttachScreenshot(kind: .window) { await ScreenshotCapture.captureWindow(windowID: windowID) }
     }
 
-    /// UserDefaults key tracking whether we've ever invoked screen capture. Drives the
-    /// "skip our explainer on the very first attempt" logic in `captureAndAttachScreenshot`.
-    /// Stored as a plain key (no typed registry entry) because the flag is feature-local.
+    /// UserDefaults key tracking whether we've ever attempted screen capture and hit a denied
+    /// state. Drives the "skip our explainer on the very first denial" logic so we don't pile
+    /// on top of macOS's own first-time system prompt.
     private static let didAttemptScreenCaptureKey = "duck-ai.omnibar.screenshot.didAttempt"
 
-    /// Runs the supplied capture closure (region / screen / window), wraps the resulting image
-    /// into an `AIChatImageAttachment`, and pushes it into the existing image-attachment
-    /// pipeline via `addImageAttachmentToActiveTab` — the same entry point the drag-and-drop
-    /// and file-picker paths use.
+    /// IDs of attachments that originated from the screenshot path. Carousel × clicks fan
+    /// through `onImageAttachmentRemoveRequested`; we look up the id here to decide whether
+    /// to fire `aiChatAddressBarScreenshotRemoved` (this set) or `aiChatAddressBarImageRemoved`
+    /// (everything else). Insertion happens at attach-time; removal happens inside the X
+    /// handler so the set stays in sync with the carousel.
+    private var screenshotAttachmentIDs: Set<UUID> = []
+
+    /// Runs the supplied capture closure (region / screen / window) and feeds the resulting
+    /// PNG through the existing placeholder + background-resize pipeline used by
+    /// `addImageAttachment(from:)` — `Task.detached` does the CGContext.draw downscale off
+    /// the main thread, which matters because a captured 5K/6K full-screen PNG would
+    /// otherwise block the main thread on `@MainActor`.
     ///
-    /// When the capture returns `nil`, gate the in-app permission explainer on whether this
-    /// was the very first screen-capture attempt for this user. On the FIRST attempt macOS
-    /// itself surfaces its standard "DuckDuckGo would like to record this computer's screen"
-    /// dialog — if the user denies, piling our own dialog on top would be confusing. From the
-    /// second attempt onwards macOS never re-prompts, so OUR explainer becomes the only
-    /// signal that something's blocked.
-    private func captureAndAttachScreenshot(_ capture: @escaping @MainActor () async -> NSImage?) {
+    /// On a `nil` capture, gate the in-app explainer on whether this user has previously hit
+    /// the denied-permission state for screen capture. The first denial is the responsibility
+    /// of macOS's own system prompt — piling our explainer on top would be redundant. Every
+    /// subsequent attempt sees our popover instead, because macOS won't re-prompt the same
+    /// bundle. The persisted flag flips only when we actually observe a denied capture, so a
+    /// user-cancelled drag-select (which returns nil with permission granted) doesn't burn
+    /// the first-attempt slot.
+    private func captureAndAttachScreenshot(kind: ScreenshotKind,
+                                            _ capture: @escaping @MainActor () async -> URL?) {
+        // Pre-check the cap so we don't even prompt for the system overlay if the user is
+        // already at capacity. (Re-checked again post-await in case attachments arrive via
+        // drag-drop / paste during the multi-second capture.)
         guard omnibarController.activeImageAttachments.count < Constants.imageAttachmentsDisplayCap else { return }
-        let defaults = UserDefaults.standard
-        let wasFirstAttempt = !defaults.bool(forKey: Self.didAttemptScreenCaptureKey)
-        defaults.set(true, forKey: Self.didAttemptScreenCaptureKey)
 
         Task { @MainActor [weak self] in
             guard let self else { return }
-            guard let image = await capture() else {
-                if !wasFirstAttempt, !CGPreflightScreenCaptureAccess() {
-                    self.presentScreenRecordingPermissionPrompt()
+            guard let tempURL = await capture() else {
+                // Capture failed. If permission is missing, it's either the first-ever denial
+                // (the system prompt just appeared and the user denied — let macOS own the
+                // explainer) or a subsequent attempt (macOS won't re-prompt — show ours).
+                let defaults = UserDefaults.standard
+                if !CGPreflightScreenCaptureAccess() {
+                    if defaults.bool(forKey: Self.didAttemptScreenCaptureKey) {
+                        self.presentScreenRecordingPermissionPrompt()
+                    }
+                    defaults.set(true, forKey: Self.didAttemptScreenCaptureKey)
                 }
                 return
             }
-            let attachment = AIChatImageAttachment(
-                image: image,
-                fileName: Self.screenshotFileName()
+
+            // Re-check the cap now that we're past the await — between the pre-check and
+            // here, drag-drop / paste could have added attachments. If the cap was reached
+            // we drop the screenshot and clean up the temp file silently rather than push
+            // past the limit.
+            guard self.omnibarController.activeImageAttachments.count < Constants.imageAttachmentsDisplayCap else {
+                try? FileManager.default.removeItem(at: tempURL)
+                return
+            }
+
+            // Load the captured PNG into an NSImage for the placeholder card. The resize to
+            // <=512 px happens off-main in `makeScreenshotResizeTask` below; here we keep the
+            // original resolution behind `skipResize: true` so the placeholder appears
+            // instantly without blocking @MainActor on a CGContext.draw of a full-screen
+            // capture.
+            guard let originalImage = NSImage(contentsOf: tempURL) else {
+                try? FileManager.default.removeItem(at: tempURL)
+                return
+            }
+            let placeholderId = UUID()
+            let fileName = Self.screenshotFileName()
+            let placeholder = AIChatImageAttachment(
+                id: placeholderId,
+                image: originalImage,
+                fileName: fileName,
+                fileURL: tempURL,
+                skipResize: true
             )
-            self.omnibarController.addImageAttachmentToActiveTab(attachment)
-            PixelKit.fire(AIChatPixel.aiChatAddressBarImageAttached, frequency: .dailyAndCount, includeAppVersionParameter: true)
+            self.omnibarController.addImageAttachmentToActiveTab(placeholder)
+            self.screenshotAttachmentIDs.insert(placeholderId)
+            PixelKit.fire(
+                AIChatPixel.aiChatAddressBarScreenshotTaken(kind: kind),
+                frequency: .dailyAndCount,
+                includeAppVersionParameter: true
+            )
+
+            self.resizeTasks[placeholderId] = self.makeScreenshotResizeTask(
+                for: tempURL,
+                fileName: fileName,
+                placeholderId: placeholderId
+            )
+        }
+    }
+
+    /// Background-thread NSImage load + resize for a captured screenshot. Mirrors
+    /// `makeResizeTask(for:placeholderId:)` for file-picker images but additionally takes a
+    /// `fileName` (the user-facing name set on the placeholder; we want the resized
+    /// replacement to keep the same one) and cleans up the temp PNG on completion.
+    private func makeScreenshotResizeTask(for tempURL: URL,
+                                          fileName: String,
+                                          placeholderId: UUID) -> Task<Void, Never> {
+        Task.detached(priority: .userInitiated) { [weak self] in
+            guard !Task.isCancelled else { return }
+            guard let backgroundImage = NSImage(contentsOf: tempURL) else { return }
+            let resized = AIChatImageAttachment(
+                id: placeholderId,
+                image: backgroundImage,
+                fileName: fileName,
+                fileURL: tempURL,
+                skipResize: false
+            )
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                self?.omnibarController.replaceImageAttachmentInActiveTab(id: placeholderId, with: resized)
+                try? FileManager.default.removeItem(at: tempURL)
+                self?.resizeTasks.removeValue(forKey: placeholderId)
+            }
         }
     }
 
