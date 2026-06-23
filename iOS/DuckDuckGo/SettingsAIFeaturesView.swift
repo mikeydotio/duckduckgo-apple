@@ -42,6 +42,12 @@ struct SettingsAIFeaturesView: View {
                 SettingsAILegacyFeaturesView()
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if viewModel.isAIFeaturesNativeControlsEnabled,
+               UIDevice.current.userInterfaceIdiom == .pad {
+                Color.clear.frame(height: 8)
+            }
+        }
         .applySettingsListModifiers(title: UserText.settingsAiFeatures,
                                     displayMode: .inline,
                                     viewModel: viewModel)
