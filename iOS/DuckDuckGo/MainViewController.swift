@@ -1228,12 +1228,12 @@ class MainViewController: UIViewController {
                                                name: DuckPlayerNativeUIPresenter.Notifications.duckPlayerPillUpdated,
                                                object: nil)
         NotificationCenter.default.addObserver(self,
-                                               selector: #selector(onKeepAddressBarVisibleOnIPadChanged),
-                                               name: AppUserDefaults.Notifications.keepAddressBarVisibleOnIPadChanged,
+                                               selector: #selector(onHideTabBarWhileScrollingChanged),
+                                               name: AppUserDefaults.Notifications.hideTabBarWhileScrollingChanged,
                                                object: nil)
     }
 
-    @objc private func onKeepAddressBarVisibleOnIPadChanged() {
+    @objc private func onHideTabBarWhileScrollingChanged() {
         revealChromeIfPinned()
     }
 
@@ -3741,11 +3741,13 @@ extension MainViewController: BrowserChromeDelegate {
     }
 
     /// When `true`, the omni bar and toolbar are pinned (never hidden on scroll).
-    /// iPad-only, and only in regular width so narrow Split View / Slide Over keeps phone-like behavior.
+    /// Driven solely by the horizontal size class: pinned only in regular width when the user
+    /// has not opted to hide the tab bar while scrolling. Compact width (e.g. narrow Split View /
+    /// Slide Over, or a phone in portrait) always falls back to hide-on-scroll. No device-model
+    /// check is involved.
     private var shouldPinChrome: Bool {
-        isPad
-            && traitCollection.horizontalSizeClass == .regular
-            && appSettings.keepAddressBarVisibleOnIPad
+        traitCollection.horizontalSizeClass == .regular
+            && !appSettings.hideTabBarWhileScrolling
     }
 
     /// Reveals the chrome immediately if it should now be pinned but is currently hidden.
@@ -6420,8 +6422,9 @@ extension MainViewController {
         }
         updateFindInPage()
 
-        // Size class may have flipped (e.g. iPad Split View -> full screen) making the chrome pinnable.
-        // Reveal immediately so the bars don't stay stuck hidden until the next upward scroll.
+        // The horizontal size class may have flipped (e.g. compact -> regular when leaving a narrow
+        // Split View) making the chrome pinnable. Reveal immediately so the bars don't stay stuck
+        // hidden until the next upward scroll.
         revealChromeIfPinned()
     }
 

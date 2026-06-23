@@ -90,7 +90,7 @@ struct SettingsAppearanceView: View {
             Section {
                 addressBarPositionSetting()
 
-                keepAddressBarVisibleSetting()
+                hideTabBarWhileScrollingSetting()
 
                 showFullSiteAddressSetting()
 
@@ -216,11 +216,12 @@ struct SettingsAppearanceView: View {
     }
 
     @ViewBuilder
-    func keepAddressBarVisibleSetting() -> some View {
-        // iPad-only: prevents the address bar and toolbar from hiding when scrolling.
+    func hideTabBarWhileScrollingSetting() -> some View {
+        // Shown on iPad only, where a regular-width window is the norm. The show/hide behavior
+        // itself is driven by the horizontal size class, not by this device check.
         if UIDevice.current.userInterfaceIdiom == .pad {
-            SettingsCellView(label: UserText.settingsKeepAddressBarVisible,
-                             accessory: .toggle(isOn: viewModel.keepAddressBarVisibleOnIPadBinding))
+            SettingsCellView(label: UserText.settingsHideTabBarWhileScrolling,
+                             accessory: .toggle(isOn: viewModel.hideTabBarWhileScrollingBinding))
         }
     }
 

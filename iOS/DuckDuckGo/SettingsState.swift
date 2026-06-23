@@ -30,7 +30,7 @@ struct SettingsState {
     struct AddressBar {
         var enabled: Bool
         var position: AddressBarPosition
-        var keepVisibleOnIPad: Bool
+        var hideTabBarWhileScrolling: Bool
     }
     
     struct TextZoom {
@@ -135,7 +135,7 @@ struct SettingsState {
             appThemeStyle: .systemDefault,
             appIcon: AppIconManager.shared.appIcon,
             textZoom: TextZoom(level: .percent100),
-            addressBar: AddressBar(enabled: false, position: .top, keepVisibleOnIPad: true),
+            addressBar: AddressBar(enabled: false, position: .top, hideTabBarWhileScrolling: false),
             showsFullURL: false,
             showTrackersBlockedAnimation: true,
             isExperimentalAIChatEnabled: false,

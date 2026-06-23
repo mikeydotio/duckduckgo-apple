@@ -34,7 +34,7 @@ class AppSettingsMock: AppSettings {
 
     var currentAddressBarPosition: DuckDuckGo.AddressBarPosition = .top
 
-    var keepAddressBarVisibleOnIPad: Bool = true
+    var hideTabBarWhileScrolling: Bool = false
 
     var currentRefreshButtonPosition: DuckDuckGo.RefreshButtonPosition = .addressBar
 

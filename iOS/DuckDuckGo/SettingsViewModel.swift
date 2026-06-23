@@ -331,14 +331,14 @@ final class SettingsViewModel: ObservableObject {
         )
     }
 
-    var keepAddressBarVisibleOnIPadBinding: Binding<Bool> {
+    var hideTabBarWhileScrollingBinding: Binding<Bool> {
         Binding<Bool>(
             get: {
-                self.state.addressBar.keepVisibleOnIPad
+                self.state.addressBar.hideTabBarWhileScrolling
             },
             set: {
-                self.appSettings.keepAddressBarVisibleOnIPad = $0
-                self.state.addressBar.keepVisibleOnIPad = $0
+                self.appSettings.hideTabBarWhileScrolling = $0
+                self.state.addressBar.hideTabBarWhileScrolling = $0
             }
         )
     }
@@ -1090,7 +1090,7 @@ extension SettingsViewModel {
             textZoom: SettingsState.TextZoom(level: appSettings.defaultTextZoomLevel),
             addressBar: SettingsState.AddressBar(enabled: !isPad,
                                                  position: appSettings.currentAddressBarPosition,
-                                                 keepVisibleOnIPad: appSettings.keepAddressBarVisibleOnIPad),
+                                                 hideTabBarWhileScrolling: appSettings.hideTabBarWhileScrolling),
             showsFullURL: appSettings.showFullSiteAddress,
             showTrackersBlockedAnimation: appSettings.showTrackersBlockedAnimation,
             isExperimentalAIChatEnabled: experimentalAIChatManager.isExperimentalAIChatSettingsEnabled,

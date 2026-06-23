@@ -37,7 +37,7 @@ public class AppUserDefaults: AppSettings {
         public static let didVerifyInternalUser = Notification.Name("com.duckduckgo.app.DidVerifyInternalUser")
         public static let inspectableWebViewsToggled = Notification.Name("com.duckduckgo.app.DidToggleInspectableWebViews")
         public static let addressBarPositionChanged = Notification.Name("com.duckduckgo.app.AddressBarPositionChanged")
-        public static let keepAddressBarVisibleOnIPadChanged = Notification.Name("com.duckduckgo.app.KeepAddressBarVisibleOnIPadChanged")
+        public static let hideTabBarWhileScrollingChanged = Notification.Name("com.duckduckgo.app.HideTabBarWhileScrollingChanged")
         public static let refreshButtonSettingsChanged = Notification.Name("com.duckduckgo.refreshButton.settings.changed")
         public static let customizationSettingsChanged = Notification.Name("com.duckduckgo.customization.settings.changed")
         public static let showsFullURLAddressSettingChanged = Notification.Name("com.duckduckgo.app.ShowsFullURLAddressSettingChanged")
@@ -260,17 +260,17 @@ public class AppUserDefaults: AppSettings {
         }
     }
 
-    @UserDefaultsWrapper(key: .keepAddressBarVisibleOnIPad, defaultValue: true)
-    private var keepAddressBarVisibleOnIPadStorage: Bool
+    @UserDefaultsWrapper(key: .hideTabBarWhileScrolling, defaultValue: false)
+    private var hideTabBarWhileScrollingStorage: Bool
 
-    var keepAddressBarVisibleOnIPad: Bool {
+    var hideTabBarWhileScrolling: Bool {
         get {
-            keepAddressBarVisibleOnIPadStorage
+            hideTabBarWhileScrollingStorage
         }
 
         set {
-            keepAddressBarVisibleOnIPadStorage = newValue
-            NotificationCenter.default.post(name: Notifications.keepAddressBarVisibleOnIPadChanged, object: newValue)
+            hideTabBarWhileScrollingStorage = newValue
+            NotificationCenter.default.post(name: Notifications.hideTabBarWhileScrollingChanged, object: newValue)
         }
     }
     
