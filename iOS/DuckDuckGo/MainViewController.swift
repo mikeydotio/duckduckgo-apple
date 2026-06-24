@@ -2577,7 +2577,17 @@ class MainViewController: UIViewController {
         // tabs-bar threshold during a live width drag does not necessarily fire `traitCollectionDidChange`,
         // so refresh the status background here too — otherwise it can stay the grey tabs-bar color while
         // the tabs bar is hidden (or vice versa) until the next trait change.
-        updateStatusBarBackgroundColor()
+        //
+        // Subtlety (iPad compact -> regular): `applyLargeWidth()` flips `tabBarContainer.isHidden`
+        // to false synchronously, but the geometry that grows `statusBackground` over the new
+        // 40pt tabs-strip region and lays the opaque strip in only runs via the async `showBars()`
+        // below. Recoloring `statusBackground` to the grey tabs-bar color *now* would paint grey
+        // into a band that the tabs strip doesn't yet cover, producing a brief grey flash at the
+        // top. So suppress the grey on this pass (the omni-bar-colored sliver is invisible — the
+        // omni bar sits there and is about to slide down) and re-apply the real color in the same
+        // async step that reveals the strip. The tabs-disappearing direction is unaffected: it
+        // still recolors to the omni-bar color immediately here.
+        updateStatusBarBackgroundColor(suppressTabsBarColorUntilStripVisible: true)
 
         DispatchQueue.main.async {
             // Do this async otherwise the toolbar buttons skew to the right
@@ -2586,6 +2596,11 @@ class MainViewController: UIViewController {
                !self.isCurrentTabUsingUnifiedInputAIChrome {
                 self.showBars()
             }
+            // Now that the tabs-strip layout/reveal has been committed alongside `showBars()`,
+            // apply the final status-background color (grey when the strip is in place). Paired with
+            // the suppression above, this keeps `statusBackground` from ever being grey before the
+            // strip covers it. No-op for the tabs-disappearing / non-iPad paths.
+            self.updateStatusBarBackgroundColor()
             // If tabs have been udpated, do this async to make sure size calcs are current
             self.tabsBarController?.refresh(tabsModel: self.tabManager.currentTabsModel)
             // Keep the current tab in view after a resize/rotation reflows the strip.
@@ -6480,7 +6495,13 @@ extension MainViewController {
         }
     }
 
-    private func updateStatusBarBackgroundColor() {
+    /// - Parameter suppressTabsBarColorUntilStripVisible: When `true`, the grey tabs-bar color is
+    ///   NOT applied even if the tabs bar is (logically) visible; the omni-bar color is used
+    ///   instead. Used during the compact -> regular width transition, where `tabBarContainer` is
+    ///   un-hidden synchronously but the strip is only laid in over the status-background region on
+    ///   the following async pass — painting grey early would flash a grey band above the omni bar.
+    ///   The caller re-invokes this without suppression once the strip layout is committed.
+    private func updateStatusBarBackgroundColor(suppressTabsBarColorUntilStripVisible: Bool = false) {
         let theme = ThemeManager.shared.currentTheme
         let color: UIColor
 
@@ -6492,7 +6513,7 @@ extension MainViewController {
             // tabs bar's real visibility (not `horizontalSizeClass == .regular`) avoids a grey bar at
             // widths where the size class has flipped to `.regular` but the tabs bar is still hidden
             // (the tabs bar toggles on `AppWidthObserver.isLargeWidth`, which crosses a higher threshold).
-            if !viewCoordinator.tabBarContainer.isHidden {
+            if !viewCoordinator.tabBarContainer.isHidden && !suppressTabsBarColorUntilStripVisible {
                 color = theme.tabsBarBackgroundColor
             } else {
                 color = theme.omniBarBackgroundColor
