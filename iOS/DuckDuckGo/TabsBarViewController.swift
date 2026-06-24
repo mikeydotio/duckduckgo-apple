@@ -110,8 +110,13 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
 
     private let longPressTabGesture = UILongPressGestureRecognizer()
     private var cancellables = Set<AnyCancellable>()
-    
+
     private weak var pressedCell: TabsBarCell?
+
+    /// Leading constraint of the tab strip (collection view) relative to the root view.
+    /// Base constant is `Constants.leadingInset`; on iPadOS 26 with inline window controls we add
+    /// the controls' width on top of it (see `updateWindowControlsInsetIfNeeded()`).
+    private var collectionViewLeadingConstraint: NSLayoutConstraint?
 
     var tabsCount: Int {
         return tabsModel?.count ?? 0
@@ -152,7 +157,9 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
         // (a gap). Prefetching gains are marginal here and on top of that we're not handling it properly (no willDisplay).
         collectionView.isPrefetchingEnabled = false
 
-        collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: Constants.leadingInset).isActive = true
+        let leadingConstraint = collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: Constants.leadingInset)
+        leadingConstraint.isActive = true
+        collectionViewLeadingConstraint = leadingConstraint
 
         addTabButton.setImage(DesignSystemImages.Glyphs.Size24.add, for: .normal)
         fireButton.setImage(DesignSystemImages.Glyphs.Size24.fireSolid, for: .normal)
@@ -562,7 +569,36 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        updateWindowControlsInsetIfNeeded()
         NotificationCenter.default.post(name: TabsBarViewController.viewDidLayoutNotification, object: self)
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        // Window controls can appear/disappear or change width when entering/leaving windowed mode
+        // or on a size-class change; recompute the leading inset.
+        updateWindowControlsInsetIfNeeded()
+    }
+
+    /// iPadOS 26 inline window controls: push the tab strip's leading edge past the system
+    /// traffic-light controls so tabs don't slide underneath them.
+    ///
+    /// The controls' width is read live from the `.margins(cornerAdaptation: .vertical)` layout
+    /// guide (mirroring `MainView`/`TabSwitcherViewController`), never hardcoded. It collapses to 0
+    /// — restoring the plain `Constants.leadingInset` — in full screen or whenever the scene has no
+    /// controls (the guide reports a 0 leading inset). No-op before iOS 26, off iPad, or when the
+    /// scene uses the legacy `.minimal` style (guide leading stays 0 there too).
+    private func updateWindowControlsInsetIfNeeded() {
+        guard let collectionViewLeadingConstraint else { return }
+
+        var leadingInset = Constants.leadingInset
+        if #available(iOS 26, *), UIDevice.current.userInterfaceIdiom == .pad {
+            let margins = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .horizontal))
+            leadingInset += max(0, margins.leading)
+        }
+
+        guard collectionViewLeadingConstraint.constant != leadingInset else { return }
+        collectionViewLeadingConstraint.constant = leadingInset
     }
 }
 

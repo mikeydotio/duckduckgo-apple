@@ -374,8 +374,18 @@ extension MainViewFactory {
         let navigationBarCollectionView = coordinator.navigationBarCollectionView!
 
         if #available(iOS 26, *), isPad {
-            let guide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
-            coordinator.constraints.navigationBarContainerTop = container.topAnchor.constraint(equalTo: guide.topAnchor)
+            if WindowControls.usesUnifiedStyle {
+                // Inline window controls (`.unified`): the system controls no longer reserve a
+                // title-bar band, so the safe-area top sits at the window top. Anchor the chrome
+                // there so it rises inline with the traffic lights (the leading clearance is added
+                // separately in `TabsBarViewController`). Mirrors the pre-26 branch below.
+                coordinator.constraints.navigationBarContainerTop = container.constrainView(superview.safeAreaLayoutGuide, by: .top)
+            } else {
+                // `.minimal`: a title-bar band is reserved above the chrome; anchor to the margins
+                // guide's top (with corner adaptation) as before. Revert path — keep unchanged.
+                let guide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
+                coordinator.constraints.navigationBarContainerTop = container.topAnchor.constraint(equalTo: guide.topAnchor)
+            }
         } else {
             coordinator.constraints.navigationBarContainerTop = container.constrainView(superview.safeAreaLayoutGuide, by: .top)
         }
@@ -402,8 +412,18 @@ extension MainViewFactory {
         let tabBarContainer = coordinator.tabBarContainer!
 
         if #available(iOS 26, *), isPad {
-            let guide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
-            coordinator.constraints.tabBarContainerTop = tabBarContainer.topAnchor.constraint(equalTo: guide.topAnchor)
+            if WindowControls.usesUnifiedStyle {
+                // Inline window controls (`.unified`): the system controls no longer reserve a
+                // title-bar band, so the safe-area top sits at the window top. Anchor the tabs bar
+                // there so it rises inline with the traffic lights (the leading clearance is added
+                // separately in `TabsBarViewController`). Mirrors the pre-26 branch below.
+                coordinator.constraints.tabBarContainerTop = tabBarContainer.constrainView(superview.safeAreaLayoutGuide, by: .top)
+            } else {
+                // `.minimal`: a title-bar band is reserved above the chrome; anchor to the margins
+                // guide's top (with corner adaptation) as before. Revert path — keep unchanged.
+                let guide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
+                coordinator.constraints.tabBarContainerTop = tabBarContainer.topAnchor.constraint(equalTo: guide.topAnchor)
+            }
         } else {
             coordinator.constraints.tabBarContainerTop = tabBarContainer.constrainView(superview.safeAreaLayoutGuide, by: .top)
         }

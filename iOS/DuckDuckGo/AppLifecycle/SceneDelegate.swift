@@ -19,6 +19,30 @@
 
 import UIKit
 
+/// Single source of truth for the iPadOS 26 inline window controls (Safari-style) behaviour.
+///
+/// Read by both `SceneDelegate` (to pick the scene's `UIWindowScene.WindowingControlStyle`) and
+/// the browsing-chrome layout code in `MainView` (to pick the top-chrome anchor). Keeping it in one
+/// place ensures the opt-in and the layout it requires can never drift apart.
+enum WindowControls {
+
+    /// iPadOS 26 inline window controls (Safari-style).
+    ///
+    /// When `true`, we opt the window scene into `.unified` so the system traffic-light
+    /// controls sit INLINE on the leading edge of our top chrome instead of reserving a
+    /// title-bar safe-area band above it (the legacy `.minimal` behaviour). With `.unified`
+    /// our custom chrome must self-inset past the controls (see
+    /// `TabsBarViewController.updateWindowControlsInsetIfNeeded()`) and anchor its top to the
+    /// safe-area top, which is no longer pushed down by a reserved title-bar band (see
+    /// `MainViewFactory.constrainTabBarContainer()` / `constrainNavigationBarContainer()`).
+    ///
+    /// Flip to `false` to revert to the system default (`.minimal`) without removing the code,
+    /// e.g. if QA finds a regression. Only has any effect on iPadOS 26+; older OSes never call
+    /// `preferredWindowingControlStyle(for:)` and the layout code keeps its pre-26 behaviour.
+    static let usesUnifiedStyle = true
+
+}
+
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
@@ -100,6 +124,18 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func windowScene(_ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem) async -> Bool {
         appStateMachine.handle(.handleShortcutItem(shortcutItem))
         return true
+    }
+
+    /// iPadOS 26+: choose `.unified` so the system window controls (traffic lights) sit inline
+    /// on the leading edge of the top bar (Safari-style) instead of reserving an empty title-bar
+    /// band above our tabs bar. Returning `.unified` removes the reserved safe area for the WHOLE
+    /// scene, so every top-leading surface must self-accommodate; our custom browsing chrome does
+    /// this via the `.margins(cornerAdaptation: .vertical)` layout guide (see `MainView` and
+    /// `TabsBarViewController`). Standard `UINavigationController` / SwiftUI `.toolbar` screens
+    /// self-accommodate automatically.
+    @available(iOS 26, *)
+    func preferredWindowingControlStyle(for windowScene: UIWindowScene) -> UIWindowScene.WindowingControlStyle {
+        WindowControls.usesUnifiedStyle ? .unified : .minimal
     }
 
 }
