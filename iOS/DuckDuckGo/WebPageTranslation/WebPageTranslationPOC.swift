@@ -28,6 +28,7 @@ import WebKit
 import SwiftUI
 import Translation
 import FoundationModels
+import NaturalLanguage
 import ObjectiveC
 import os.log
 
@@ -230,6 +231,17 @@ extension TabViewController {
         return (viewportTexts + restTexts, textToIDs, viewportTexts.count)
     }
 
+    /// Detects the page's dominant language from a sample of the extracted text using the on-device
+    /// NaturalLanguage recognizer (no model download). Returns nil when inconclusive, so the caller
+    /// can fall back to the Translation framework's own per-batch auto-detect.
+    @available(iOS 16.0, *)
+    private func detectSourceLanguage(from texts: [String]) -> Locale.Language? {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(texts.prefix(50).joined(separator: "\n"))
+        guard let language = recognizer.dominantLanguage, language != .undetermined else { return nil }
+        return Locale.Language(identifier: language.rawValue)
+    }
+
     /// Wraps the (unambiguous) completion-handler `evaluateJavaScript` as async.
     @MainActor
     private func evaluatePOCJavaScript(_ javaScript: String) async throws -> Any? {
@@ -294,6 +306,15 @@ extension TabViewController {
                                      textToIDs: [String: [Int]],
                                      viewportCount: Int,
                                      start: Date) async throws -> (translated: Int, viewportSeconds: Double) {
+        let targetCode = TranslationLanguageStore().targetLanguageCode
+        let target = Locale.Language(identifier: targetCode)
+        let source = detectSourceLanguage(from: uniqueTexts)
+
+        // Page already in the target language → nothing to translate (avoids Apple's same-pair error).
+        if let source, source.languageCode?.identifier == target.languageCode?.identifier {
+            throw POCError(message: "This page already appears to be in \(translationLanguageDisplayName(forCode: targetCode)).")
+        }
+
         // Build the work: the viewport as a single batch, then the rest in small batches.
         var indexBatches: [[Int]] = []
         if viewportCount > 0 { indexBatches.append(Array(0..<viewportCount)) }
@@ -329,10 +350,9 @@ extension TabViewController {
         var viewportSeconds = Date().timeIntervalSince(start)
         var isFirstBatch = true
 
-        let targetCode = TranslationLanguageStore().targetLanguageCode
         let stream = translator.run(batches: requestBatches,
-                                    source: nil,
-                                    target: Locale.Language(identifier: targetCode))
+                                    source: source,
+                                    target: target)
         for try await responses in stream {
             if Task.isCancelled { break }   // Show Original tapped: stop applying; revert handles the rest.
 
@@ -437,6 +457,7 @@ private final class POCTranslator: ObservableObject {
         guard let continuation = streamContinuation else { return }
         let batches = pendingBatches
         do {
+            try await session.prepareTranslation()   // download model + show UI, awaited before translating
             for batch in batches where !batch.isEmpty {
                 let responses = try await session.translations(from: batch)
                 continuation.yield(responses)
