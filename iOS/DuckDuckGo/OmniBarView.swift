@@ -131,18 +131,20 @@ protocol OmniBarView: UIView, OmniBarStatusUpdateable {
     /// Restores bar pill background, shadow, and text field. Idempotent.
     func restoreBarChrome()
 
-    /// Adds an extra leading inset to the bar's content, on top of the standard horizontal padding.
+    /// Reports the leading extent of the inline window controls so the bar can lay out beside them.
     ///
-    /// Used on iPadOS 26 with inline window controls (`.unified`): when the tabs bar is hidden the
-    /// omni bar becomes the topmost row beside the system traffic-light controls, so its content must
-    /// clear them (mirroring `TabsBarViewController`'s leading inset). `0` restores the standard
-    /// padding. Driven by `MainViewController` — see `updateOmniBarWindowControlsInsetIfNeeded()`.
-    func setAdditionalLeadingInset(_ inset: CGFloat)
+    /// Used on iPadOS 26 with inline window controls (`.unified`): when the tabs bar is hidden the omni
+    /// bar becomes the topmost row beside the system traffic-light controls. The inset is the controls'
+    /// trailing edge measured from the window leading edge. While non-zero the bar replaces its base
+    /// leading padding with `inset + small gap`, fills the available width, and centers its field
+    /// vertically against the controls. `0` restores the standard layout. Driven by `MainViewController`
+    /// — see `updateOmniBarWindowControlsInsetIfNeeded()`.
+    func setWindowControlsLeadingInset(_ inset: CGFloat)
 }
 
 extension OmniBarView {
-    /// Default no-op: only `DefaultOmniBarView` insets its content for inline window controls.
-    func setAdditionalLeadingInset(_ inset: CGFloat) {}
+    /// Default no-op: only `DefaultOmniBarView` lays out beside the inline window controls.
+    func setWindowControlsLeadingInset(_ inset: CGFloat) {}
 }
 
 /// iPad-specific extension for the duck.ai mode toggle and expandable search area.

@@ -72,11 +72,23 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
     private var stackViewLeadingConstraint: NSLayoutConstraint?
     private var stackViewTrailingConstraint: NSLayoutConstraint?
 
-    /// Extra leading inset added on top of the layout mode's base leading padding. Non-zero only on
-    /// iPadOS 26 with inline window controls when the omni bar is the topmost row (tabs bar hidden,
-    /// address bar at top) and must clear the system traffic-light controls. See
-    /// `setAdditionalLeadingInset(_:)` and `MainViewController.updateOmniBarWindowControlsInsetIfNeeded()`.
-    private var additionalLeadingInset: CGFloat = 0
+    /// Centers the field pill horizontally in the bar. Deactivated only in "beside window controls"
+    /// layout so the pill can pin leading/trailing and fill the available width (Safari-style).
+    private var searchAreaContainerCenterXConstraint: NSLayoutConstraint?
+
+    /// Leading extent of the system traffic-light controls (their trailing edge measured from the
+    /// window leading edge). Non-zero only on iPadOS 26 with inline window controls when the omni bar
+    /// is the topmost row (tabs bar hidden, address bar at top) and must clear the controls.
+    ///
+    /// When non-zero the omni bar enters "beside window controls" layout: the content leading becomes
+    /// `controlsLeadingInset + Metrics.windowControlsContentGap` (REPLACING the mode's base padding so
+    /// the gap to the controls is small, ~`windowControlsContentGap`), the field pill stops centering
+    /// and fills the available width, and the content is vertically centered against the controls. See
+    /// `setWindowControlsLeadingInset(_:)` and `MainViewController.updateOmniBarWindowControlsInsetIfNeeded()`.
+    private var controlsLeadingInset: CGFloat = 0
+
+    /// True while `controlsLeadingInset > 0`, i.e. the omni bar sits beside the inline window controls.
+    private var isBesideWindowControls: Bool { controlsLeadingInset > 0 }
 
     let fieldContainerLayoutGuide = UILayoutGuide()
 
@@ -263,20 +275,45 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
         leadingButtonsContainer.spacing = isExpandedPhone ? Metrics.expandedPhoneSizeButtonSpacing : Metrics.iPadButtonSpacing
         trailingButtonsContainer.spacing = isExpandedPhone ? Metrics.expandedPhoneSizeButtonSpacing : Metrics.iPadButtonSpacing
         stackView.spacing = isExpandedPhone ? Metrics.expandedPhoneSizeSpacing : Metrics.expandedPadSizeSpacing
-        stackViewLeadingConstraint?.constant = baseLeadingPadding(for: newMode) + additionalLeadingInset
+        stackViewLeadingConstraint?.constant = leadingPadding(for: newMode)
         stackViewTrailingConstraint?.constant = isExpandedPhone ? -Metrics.expandedPhoneSizeMargins.trailing : -Metrics.textAreaHorizontalPadding
+        updateWindowControlsLayout()
     }
 
-    /// Base leading padding for a layout mode, before any `additionalLeadingInset` is added.
+    /// Effective leading padding for a layout mode. When beside the inline window controls the controls'
+    /// extent plus a small gap REPLACES the mode's base padding, so the visible gap to the controls is
+    /// `Metrics.windowControlsContentGap` rather than `base + controlsLeadingInset`.
+    private func leadingPadding(for mode: OmniBarLayoutMode) -> CGFloat {
+        if isBesideWindowControls {
+            return controlsLeadingInset + Metrics.windowControlsContentGap
+        }
+        return baseLeadingPadding(for: mode)
+    }
+
+    /// Base leading padding for a layout mode, ignoring any window-controls inset.
     private func baseLeadingPadding(for mode: OmniBarLayoutMode) -> CGFloat {
         mode == .expandedPhone ? Metrics.expandedPhoneSizeMargins.leading : Metrics.textAreaHorizontalPadding
     }
 
-    func setAdditionalLeadingInset(_ inset: CGFloat) {
-        guard additionalLeadingInset != inset else { return }
-        additionalLeadingInset = inset
+    /// Sets the leading extent of the inline window controls (0 = not beside the controls). Recomputes
+    /// the content leading, pill centering, and vertical spacing for the current layout mode.
+    func setWindowControlsLeadingInset(_ inset: CGFloat) {
+        let inset = max(0, inset)
+        guard controlsLeadingInset != inset else { return }
+        controlsLeadingInset = inset
         // Reapply against the current mode's base so we never stack insets or fight `applyLayoutMode`.
-        stackViewLeadingConstraint?.constant = baseLeadingPadding(for: layoutMode) + inset
+        stackViewLeadingConstraint?.constant = leadingPadding(for: layoutMode)
+        updateWindowControlsLayout()
+        updateVerticalSpacing()
+    }
+
+    /// Applies the parts of the beside-window-controls layout that don't depend on the layout mode's
+    /// leading constant: the field pill fills the available width (centering off) instead of staying
+    /// centered. Called from `applyLayoutMode` and `setWindowControlsLeadingInset`.
+    private func updateWindowControlsLayout() {
+        // Beside the controls we pin leading/trailing and let the pill fill the width (Safari-style),
+        // so the centering constraint must yield. Everywhere else the pill stays centered as before.
+        searchAreaContainerCenterXConstraint?.isActive = !isBesideWindowControls
     }
 
     var isUsingSmallTopSpacing: Bool = false {
@@ -533,6 +570,9 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
         stackViewLeadingConstraint = leadingConstraint
         stackViewTrailingConstraint = trailingConstraint
 
+        let searchAreaContainerCenterX = searchAreaContainerView.centerXAnchor.constraint(equalTo: centerXAnchor)
+        searchAreaContainerCenterXConstraint = searchAreaContainerCenterX
+
         NSLayoutConstraint.activate([
             leadingConstraint,
             trailingConstraint,
@@ -544,7 +584,7 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
             searchAreaView.leadingAnchor.constraint(equalTo: searchAreaContainerView.leadingAnchor),
             searchAreaView.trailingAnchor.constraint(equalTo: searchAreaContainerView.trailingAnchor),
 
-            searchAreaContainerView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            searchAreaContainerCenterX,
 
             activeOutlineView.leadingAnchor.constraint(equalTo: searchAreaContainerView.leadingAnchor, constant: -Metrics.activeBorderWidth),
             activeOutlineView.trailingAnchor.constraint(equalTo: searchAreaContainerView.trailingAnchor, constant: Metrics.activeBorderWidth),
@@ -841,6 +881,15 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
     }
 
     private func updateVerticalSpacing() {
+        // Beside the inline window controls the field must rise to center on the (higher) traffic-light
+        // controls, so a reduced top / larger bottom padding takes precedence. This only applies on
+        // iPadOS 26 + `.unified` + tabs-hidden + address-bar-at-top (where `controlsLeadingInset > 0`),
+        // so all other layouts keep their existing position-driven spacing.
+        if isBesideWindowControls {
+            textAreaTopPaddingConstraint?.constant = Metrics.windowControlsContentTopPadding
+            textAreaBottomPaddingConstraint?.constant = -Metrics.windowControlsContentBottomPadding
+            return
+        }
         textAreaTopPaddingConstraint?.constant = isUsingSmallTopSpacing ? Metrics.textAreaTopPaddingAdjustedSpacing : Metrics.textAreaVerticalPaddingRegularSpacing
         textAreaBottomPaddingConstraint?.constant = -(isUsingSmallTopSpacing ? Metrics.textAreaBottomPaddingAdjustedSpacing : Metrics.textAreaVerticalPaddingRegularSpacing)
     }
@@ -1019,7 +1068,26 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
         static let activeBorderWidth: CGFloat = 2
 
         static let textAreaHorizontalPadding: CGFloat = 16
-        
+
+        /// iPadOS 26 inline window controls: target visible gap between the controls' trailing edge and
+        /// the omni-bar field's leading edge when the omni bar sits beside the controls (tabs bar
+        /// hidden, address bar at top). Tunable. Matches Safari's small inset rather than the full 16pt
+        /// content padding. See `DefaultOmniBarView.isBesideWindowControls`.
+        static let windowControlsContentGap: CGFloat = 8
+
+        /// iPadOS 26 inline window controls: top padding for the omni-bar content while beside the
+        /// controls. The traffic-light controls sit higher than the 60pt bar's vertical center and the
+        /// window-controls layout guide only exposes a horizontal extent (no API for the controls'
+        /// centerline), so this is a visual value rather than a derived one: kept minimal so the field
+        /// rises to sit vertically centered against the controls. Tunable knob — fine-tune on-device;
+        /// paired with `windowControlsContentBottomPadding` (their sum preserves the field height).
+        static let windowControlsContentTopPadding: CGFloat = 0
+
+        /// Bottom padding partner for `windowControlsContentTopPadding`. Absorbs what was taken off the
+        /// top so the field keeps the same overall height (Safari-matching) while shifting upward to
+        /// center on the controls.
+        static let windowControlsContentBottomPadding: CGFloat = 16
+
         static let buttonToSearchContainerSpace: CGFloat = 4
 
         // Used when OmniBar is positioned on the bottom of the screen

@@ -2573,6 +2573,12 @@ class MainViewController: UIViewController {
         updateOmniBarWindowControlsInsetIfNeeded()
         updateNewTabPageLayoutForCurrentChromeMode()
 
+        // The branches above just toggled `tabBarContainer.isHidden` for the new width. Crossing the
+        // tabs-bar threshold during a live width drag does not necessarily fire `traitCollectionDidChange`,
+        // so refresh the status background here too — otherwise it can stay the grey tabs-bar color while
+        // the tabs bar is hidden (or vice versa) until the next trait change.
+        updateStatusBarBackgroundColor()
+
         DispatchQueue.main.async {
             // Do this async otherwise the toolbar buttons skew to the right
             if self.viewCoordinator.constraints.navigationBarContainerTop.constant >= 0,
@@ -2585,7 +2591,7 @@ class MainViewController: UIViewController {
             // Keep the current tab in view after a resize/rotation reflows the strip.
             self.tabsBarController?.scrollCurrentTabIntoView()
             self.swipeTabsCoordinator?.refresh(tabsModel: self.tabManager.currentTabsModel)
-            
+
             // Do this on the next UI thread pass so we definitely have the right width
             self.applyWidthToTrayController()
         }
@@ -2675,14 +2681,18 @@ class MainViewController: UIViewController {
     }
 
     /// iPadOS 26 inline window controls: when the tabs bar is hidden the omni bar becomes the topmost
-    /// row beside the system traffic-light controls, so its content must clear them — mirroring the
+    /// row beside the system traffic-light controls, so it must lay out beside them — mirroring the
     /// tabs bar's own leading inset (`TabsBarViewController.updateWindowControlsInsetIfNeeded()`).
     ///
-    /// The extra inset is the controls' width, read live from the `.margins(cornerAdaptation:
-    /// .horizontal)` layout guide (never hardcoded). It collapses to 0 — restoring the omni bar's
-    /// standard 16pt padding — in every other case: tabs bar shown (the tabs bar handles clearance),
-    /// full screen or the legacy `.minimal` style (the guide reports a 0 leading inset), the address
-    /// bar pinned to the bottom (the controls aren't beside it), or pre-iOS-26 / non-iPad.
+    /// The inset is the controls' extent (their trailing edge from the window leading edge), read live
+    /// from the `.margins(cornerAdaptation: .horizontal)` layout guide (never hardcoded). While
+    /// non-zero the omni bar lays out beside the controls: its field starts a small gap past the
+    /// controls (`Metrics.windowControlsContentGap`, not `16 + inset`), fills the available width, and
+    /// centers vertically against the controls (see `DefaultOmniBarView.setWindowControlsLeadingInset`).
+    /// The inset collapses to 0 — restoring the omni bar's standard layout — in every other case: tabs
+    /// bar shown (the tabs bar handles clearance), full screen or the legacy `.minimal` style (the guide
+    /// reports a 0 leading inset), the address bar pinned to the bottom (the controls aren't beside it),
+    /// or pre-iOS-26 / non-iPad.
     private func updateOmniBarWindowControlsInsetIfNeeded() {
         var inset: CGFloat = 0
 
@@ -2695,7 +2705,7 @@ class MainViewController: UIViewController {
             inset = max(0, margins.leading)
         }
 
-        viewCoordinator.omniBar.barView.setAdditionalLeadingInset(inset)
+        viewCoordinator.omniBar.barView.setWindowControlsLeadingInset(inset)
     }
 
     @discardableResult
@@ -6477,7 +6487,12 @@ extension MainViewController {
         if appSettings.currentAddressBarPosition == .bottom {
             color = theme.backgroundColor
         } else {
-            if AppWidthObserver.shared.isPad && traitCollection.horizontalSizeClass == .regular {
+            // Match the status background to whatever sits directly beneath it: the grey tabs-bar color
+            // only while the tabs bar is actually on-screen, otherwise the omni-bar color. Keying off the
+            // tabs bar's real visibility (not `horizontalSizeClass == .regular`) avoids a grey bar at
+            // widths where the size class has flipped to `.regular` but the tabs bar is still hidden
+            // (the tabs bar toggles on `AppWidthObserver.isLargeWidth`, which crosses a higher threshold).
+            if !viewCoordinator.tabBarContainer.isHidden {
                 color = theme.tabsBarBackgroundColor
             } else {
                 color = theme.omniBarBackgroundColor
