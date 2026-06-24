@@ -986,18 +986,6 @@ final class UnifiedToggleInputCoordinatorTests: XCTestCase {
         XCTAssertFalse(sut.viewController.handler.isFireTab)
     }
 
-    func test_updateIsFireTab_noChangeDoesNotRebuildDaxLogoManager() {
-        let initialManager = sut.contentViewController.daxLogoManager
-        sut.updateIsFireTab(false)
-        XCTAssertTrue(sut.contentViewController.daxLogoManager === initialManager)
-    }
-
-    func test_updateIsFireTab_trueRebuildsDaxLogoManager() {
-        let initialManager = sut.contentViewController.daxLogoManager
-        sut.updateIsFireTab(true)
-        XCTAssertFalse(sut.contentViewController.daxLogoManager === initialManager)
-    }
-
     // MARK: - Submit From Omnibar Editing
 
     func test_submitSearch_fromOmnibarEditing_deactivates() {
@@ -3637,6 +3625,7 @@ final class MockSwitchBarSubmissionMetrics: SwitchBarSubmissionMetricsProviding 
 private final class MockDuckAIWideEventInstrumentation: DuckAIWideEventInstrumentation {
     private(set) var submissionStartedScopes: [DuckAIWideEventFlowScope] = []
     private(set) var tabSwitchedAwayCalls: [TabUID] = []
+    private(set) var promptInterpretedAsURLScopes: [DuckAIWideEventFlowScope] = []
 
     func submissionStarted(scope: DuckAIWideEventFlowScope,
                            modelId: String?,
@@ -3661,4 +3650,5 @@ private final class MockDuckAIWideEventInstrumentation: DuckAIWideEventInstrumen
     func fireButtonClearedTabDuringGeneration(tabID: TabUID) {}
     func sheetDismissedDuringGeneration(scope: DuckAIWideEventFlowScope) {}
     func pageLoadFailed(scope: DuckAIWideEventFlowScope, error: Error) {}
+    func promptInterpretedAsURL(scope: DuckAIWideEventFlowScope) { promptInterpretedAsURLScopes.append(scope) }
 }

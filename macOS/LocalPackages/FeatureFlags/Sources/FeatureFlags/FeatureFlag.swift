@@ -47,6 +47,13 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866473771128
     case networkProtectionAppStoreSysexMessage
 
+    /// Gates the "Strict routing" VPN toggle.
+    case vpnStrictRoutingToggle
+
+    /// Gates the "Exclude Carrier-Grade NAT" VPN toggle.
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1214946884020610?focus=true
+    case vpnExcludeCGNATToggle
+
     /// Kill switch: enable remotely to disable orphaned-proxy detection (tunnel heartbeat + proxy detection loop + pixel).
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215509351454304
     case vpnOrphanProxyDetectionKillSwitch
@@ -54,6 +61,10 @@ public enum FeatureFlag: String, CaseIterable {
     /// Kill switch: enable remotely to disable the orphaned-proxy full-bypass behavior.
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215509351454309
     case vpnOrphanProxyBypassKillSwitch
+
+    /// Toggle for the Copy VPN Diagnostics button in VPN settings.
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215794369750045
+    case vpnShowCopyDiagnosticsButton
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866615719736
     case autoUpdateInDEBUG
@@ -119,6 +130,9 @@ public enum FeatureFlag: String, CaseIterable {
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866615582950
     case aiChatPageContext
+
+    /// Enables the "Attach to Duck.ai" context-menu item that attaches selected text as the sidebar's page context
+    case aiChatSelectionContext
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866617328244
     case aiChatKeepSession
@@ -265,10 +279,6 @@ public enum FeatureFlag: String, CaseIterable {
     /// Autoconsent heuristic action
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1214554020534812?focus=true
     case heuristicAction
-
-    /// Enables Next Steps List widget with a single card displayed at a time on New Tab page
-    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1212634388261605?focus=true
-    case nextStepsListWidget
 
     /// Enables advanced card ordering for the Next Steps List widget
     /// This flag is disabled by default to allow testing the new widget design with current ordering logic
@@ -476,10 +486,16 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .remoteReleasable(NetworkProtectionSubfeature.appStoreSystemExtension), category: .vpn)
         case .networkProtectionAppStoreSysexMessage:
             Config(source: .remoteReleasable(NetworkProtectionSubfeature.appStoreSystemExtensionMessage), category: .vpn)
+        case .vpnStrictRoutingToggle:
+            Config(defaultValue: .internalOnly, source: .remoteReleasable(NetworkProtectionSubfeature.strictRoutingToggle), category: .vpn)
+        case .vpnExcludeCGNATToggle:
+            Config(defaultValue: .internalOnly, source: .remoteReleasable(NetworkProtectionSubfeature.excludeCGNAT), category: .vpn)
         case .vpnOrphanProxyDetectionKillSwitch:
             Config(source: .remoteReleasable(NetworkProtectionSubfeature.orphanProxyDetectionKillSwitch), category: .vpn)
         case .vpnOrphanProxyBypassKillSwitch:
             Config(source: .remoteReleasable(NetworkProtectionSubfeature.orphanProxyBypassKillSwitch), category: .vpn)
+        case .vpnShowCopyDiagnosticsButton:
+            Config(defaultValue: .internalOnly, source: .remoteReleasable(NetworkProtectionSubfeature.showCopyDiagnosticsButton), category: .vpn)
         case .autoUpdateInDEBUG:
             Config(source: .disabled, category: .updates)
         case .autoUpdateInREVIEW:
@@ -522,6 +538,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .remoteReleasable(PrivacyProSubfeature.paidAIChat), category: .subscription)
         case .aiChatPageContext:
             Config(source: .remoteReleasable(AIChatSubfeature.pageContext), category: .duckAI)
+        case .aiChatSelectionContext:
+            Config(defaultValue: .enabled, source: .remoteReleasable(AIChatSubfeature.selectionContext), category: .duckAI)
         case .aiChatKeepSession:
             Config(source: .remoteReleasable(AIChatSubfeature.keepSession), category: .duckAI)
         case .aiChatOmnibarToggle:
@@ -608,8 +626,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .remoteReleasable(SyncSubfeature.aiChatSync))
         case .heuristicAction:
             Config(source: .remoteReleasable(AutoconsentSubfeature.heuristicAction), cohortType: HeuristicActionCohort.self)
-        case .nextStepsListWidget:
-            Config(defaultValue: .enabled, source: .remoteReleasable(HtmlNewTabPageSubfeature.nextStepsListWidget))
         case .nextStepsListAdvancedCardOrdering:
             Config(source: .disabled)
         case .crashCollectionLimitCallStackTreeDepth:

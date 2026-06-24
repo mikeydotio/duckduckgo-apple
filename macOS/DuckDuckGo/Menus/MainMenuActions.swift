@@ -46,8 +46,8 @@ extension AppDelegate {
 
     @MainActor
     @objc func checkForUpdates(_ sender: Any?) {
+        PixelKit.fire(UpdateFlowPixels.checkForUpdatesFromMainMenu, frequency: .dailyAndCount)
         if StandardApplicationBuildType().isAppStoreBuild {
-            PixelKit.fire(UpdateFlowPixels.checkForUpdate(source: .mainMenu))
             NSWorkspace.shared.open(.appStore)
         } else if StandardApplicationBuildType().isSparkleBuild {
             if SupportedOSChecker().showsSupportWarning {
@@ -800,11 +800,6 @@ extension AppDelegate {
     @objc func resetDuckPlayerOverlayInteractions(_ sender: Any?) {
         duckPlayer.preferences.youtubeOverlayAnyButtonPressed = false
         duckPlayer.preferences.youtubeOverlayInteracted = false
-    }
-
-    @objc func resetMakeDuckDuckGoYoursUserSettings(_ sender: Any?) {
-        UserDefaults.standard.set(true, forKey: UserDefaultsWrapper<Bool>.Key.homePageShowAllFeatures.rawValue)
-        homePageSetUpDependencies.clearAll()
     }
 
     @objc func resetOnboarding(_ sender: Any?) {

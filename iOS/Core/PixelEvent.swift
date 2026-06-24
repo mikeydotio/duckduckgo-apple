@@ -269,12 +269,12 @@ extension Pixel {
         case onboardingIntroChooseSearchExperienceImpressionUnique
         case onboardingIntroAIChatSelected
         case onboardingIntroSearchOnlySelected
-        case onboardingIntroDuckAIExperimentToggleImpressionUnique
-        case onboardingIntroDuckAIExperimentToggleContinuePressedSearch
-        case onboardingIntroDuckAIExperimentToggleContinuePressedAI
-        case onboardingDuckAIExperimentFireDialogShownUnique
-        case onboardingDuckAIExperimentFireButtonCTAPressed
-        case onboardingDuckAIExperimentFinalDialogShownUnique
+        case onboardingIntroDuckAIToggleImpressionUnique
+        case onboardingIntroDuckAIToggleContinuePressedSearch
+        case onboardingIntroDuckAIToggleContinuePressedAI
+        case onboardingDuckAIFireDialogShownUnique
+        case onboardingDuckAIFireButtonCTAPressed
+        case onboardingDuckAIFinalDialogShownUnique
         case onboardingChatPathTryVisitSiteUnique
         case onboardingChatPathTrackersBlockedUnique
         case onboardingSyncAutoRestoreUserFromDuckAiFlow
@@ -399,6 +399,13 @@ extension Pixel {
         case icsCalendarFallbackParseFailure
         case icsCalendarRoutedByExtension
         case icsCalendarUnsupportedRRule
+
+        case vcardContactEditorPresented
+        case vcardContactEditorSaved
+        case vcardContactEditorCancelled
+        case vcardContactMultipleContactsTruncated
+        case vcardContactFallbackParseFailure
+        case vcardContactRoutedByExtension
 
         case walletPassPreviewRequested
         case walletPassPreviewFailed
@@ -892,6 +899,7 @@ extension Pixel {
         case webKitDidTerminate
         case webKitTerminationDidReloadCurrentTab
         case webKitDidTerminateDuringWarmup
+        case webContentProcessTerminated(reason: String)
 
         case webKitWarmupUnexpectedDidFinish
         case webKitWarmupUnexpectedDidTerminate
@@ -971,6 +979,9 @@ extension Pixel {
 
         case debugInteractionRepeatedFailedScroll
         case debugInteractionWedgedRecognizer
+
+        case debugInteractionRecoveryAttempted
+        case debugInteractionRecoveryOutcome
 
         case debugPromptCoordinationFailedToSaveLastPresentationDate
         case debugPromptCoordinationFailedToRetrieveLastPresentationDate
@@ -1576,6 +1587,7 @@ extension Pixel {
         // MARK: External Scheme Navigation
         case webViewExternalSchemeNavigationSafariRedirectLoadURLRequested
         case webViewExternalSchemeNavigationSafariRedirectLoopErrorPageShown
+        case webViewExternalSchemeNavigationSafariRedirectLoopErrorPageReportSiteBreakage
 
         // MARK: Browsing
         case stopPageLoad
@@ -1679,6 +1691,8 @@ extension Pixel {
         case aiChatTabSwitcherOpened
         case aiChatFireButtonTapped
         case aiChatTabDidTerminate
+        case aiChatTabDidReloadAfterTermination
+        case aiChatWebContentProcessTerminated(reason: String)
 
         case aiChatReportMetricDecodeError
         case aiChatResponseStateDecodeError
@@ -2271,12 +2285,12 @@ extension Pixel.Event {
         case .onboardingIntroChooseSearchExperienceImpressionUnique: return "m_preonboarding_choose_search_experience_impressions_unique"
         case .onboardingIntroAIChatSelected: return "m_preonboarding_aichat_selected"
         case .onboardingIntroSearchOnlySelected: return "m_preonboarding_search_only_selected"
-        case .onboardingIntroDuckAIExperimentToggleImpressionUnique: return "m_preonboarding_duckai_toggle-screen-impression_unique"
-        case .onboardingIntroDuckAIExperimentToggleContinuePressedSearch: return "m_preonboarding_duckai_toggle-continue-pressed_search"
-        case .onboardingIntroDuckAIExperimentToggleContinuePressedAI: return "m_preonboarding_duckai_toggle-continue-pressed_ai"
-        case .onboardingDuckAIExperimentFireDialogShownUnique: return "m_preonboarding_duckai_fire-dialog-impression_unique"
-        case .onboardingDuckAIExperimentFireButtonCTAPressed: return "m_preonboarding_duckai_fire-button-pressed"
-        case .onboardingDuckAIExperimentFinalDialogShownUnique: return "m_preonboarding_duckai_final-dialog-impression_unique"
+        case .onboardingIntroDuckAIToggleImpressionUnique: return "m_preonboarding_duckai_toggle-screen-impression_unique"
+        case .onboardingIntroDuckAIToggleContinuePressedSearch: return "m_preonboarding_duckai_toggle-continue-pressed_search"
+        case .onboardingIntroDuckAIToggleContinuePressedAI: return "m_preonboarding_duckai_toggle-continue-pressed_ai"
+        case .onboardingDuckAIFireDialogShownUnique: return "m_preonboarding_duckai_fire-dialog-impression_unique"
+        case .onboardingDuckAIFireButtonCTAPressed: return "m_preonboarding_duckai_fire-button-pressed"
+        case .onboardingDuckAIFinalDialogShownUnique: return "m_preonboarding_duckai_final-dialog-impression_unique"
         case .onboardingChatPathTryVisitSiteUnique: return "m_onboarding_chat-path_try-visit-site_unique"
         case .onboardingChatPathTrackersBlockedUnique: return "m_onboarding_chat-path_trackers-blocked_unique"
         case .onboardingSyncAutoRestoreUserFromDuckAiFlow: return "m_onboarding_duck-ai_sync-auto-restore-user"
@@ -2361,6 +2375,13 @@ extension Pixel.Event {
         case .icsCalendarFallbackParseFailure: return "m_ics_calendar_fallback_parse_failure"
         case .icsCalendarRoutedByExtension: return "m_ics_calendar_routed_by_extension"
         case .icsCalendarUnsupportedRRule: return "m_ics_calendar_unsupported_rrule"
+
+        case .vcardContactEditorPresented: return "m_vcard_contact_editor_presented"
+        case .vcardContactEditorSaved: return "m_vcard_contact_editor_saved"
+        case .vcardContactEditorCancelled: return "m_vcard_contact_editor_cancelled"
+        case .vcardContactMultipleContactsTruncated: return "m_vcard_contact_multiple_contacts_truncated"
+        case .vcardContactFallbackParseFailure: return "m_vcard_contact_fallback_parse_failure"
+        case .vcardContactRoutedByExtension: return "m_vcard_contact_routed_by_extension"
 
         case .walletPassPreviewRequested: return "wallet_pass_preview_requested"
         case .walletPassPreviewFailed: return "wallet_pass_preview_failed"
@@ -2843,6 +2864,7 @@ extension Pixel.Event {
         case .webKitDidTerminate: return "m_d_wkt"
         case .webKitDidTerminateDuringWarmup: return "m_d_webkit-terminated-during-warmup"
         case .webKitTerminationDidReloadCurrentTab: return "m_d_wktct"
+        case .webContentProcessTerminated(let reason): return "m_tab_terminated_\(reason)"
 
         case .webKitWarmupUnexpectedDidFinish: return "m_d_webkit-warmup-unexpected-did-finish"
         case .webKitWarmupUnexpectedDidTerminate: return "m_d_webkit-warmup-unexpected-did-terminate"
@@ -2956,6 +2978,8 @@ extension Pixel.Event {
 
         case .debugInteractionRepeatedFailedScroll: return "m_debug_interaction_repeated_failed_scroll"
         case .debugInteractionWedgedRecognizer: return "m_debug_interaction_wedged_recognizer"
+        case .debugInteractionRecoveryAttempted: return "m_debug_interaction_recovery_attempted"
+        case .debugInteractionRecoveryOutcome: return "m_debug_interaction_recovery_outcome"
 
             // MARK: - Debug Prompt Coordination
 
@@ -3457,6 +3481,7 @@ extension Pixel.Event {
         // MARK: - External Scheme Navigation
         case .webViewExternalSchemeNavigationSafariRedirectLoadURLRequested: return "m_webview_external-scheme-navigation_safari-redirect_load-url-requested"
         case .webViewExternalSchemeNavigationSafariRedirectLoopErrorPageShown: return "m_webview_external-scheme-navigation_safari-redirect-loop_error-page-shown"
+        case .webViewExternalSchemeNavigationSafariRedirectLoopErrorPageReportSiteBreakage: return "m_webview_external-scheme-navigation_safari-redirect-loop_error-page_report-broken-site"
 
         // MARK: - DuckPlayer FE Application Telemetry
         case .duckPlayerLandscapeLayoutImpressions: return "duckplayer_landscape_layout_impressions"
@@ -3563,6 +3588,8 @@ extension Pixel.Event {
         case .aiChatTabSwitcherOpened: return "m_aichat_tab_switcher_opened"
         case .aiChatFireButtonTapped: return "m_aichat_fire_button_tapped"
         case .aiChatTabDidTerminate: return "m_aichat_tab_did_terminate"
+        case .aiChatTabDidReloadAfterTermination: return "m_aichat_tab_did_reload_after_terminate"
+        case .aiChatWebContentProcessTerminated(let reason): return "m_aichat_tab_terminated_\(reason)"
 
         case .aiChatReportMetricDecodeError: return "m_aichat_report_metric_decode_error"
         case .aiChatResponseStateDecodeError: return "m_aichat_response_state_decode_error"

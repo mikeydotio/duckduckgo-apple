@@ -3131,7 +3131,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantieni aperto “Sync & Backup” su entrambi i dispositivi"
+            "value" : "Mantieni aperto \"Sync & Backup\" su entrambi i dispositivi"
           }
         },
         "nl" : {
@@ -3149,7 +3149,7 @@
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantém “Sync & Backup” aberto em ambos os dispositivos"
+            "value" : "Mantém \"Sync & Backup\" aberto em ambos os dispositivos"
           }
         },
         "ru" : {
