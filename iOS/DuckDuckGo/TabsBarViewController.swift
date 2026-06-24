@@ -583,8 +583,8 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
     /// iPadOS 26 inline window controls: push the tab strip's leading edge past the system
     /// traffic-light controls so tabs don't slide underneath them.
     ///
-    /// The controls' width is read live from the `.margins(cornerAdaptation: .vertical)` layout
-    /// guide (mirroring `MainView`/`TabSwitcherViewController`), never hardcoded. It collapses to 0
+    /// The controls' width is read live from the `.margins(cornerAdaptation: .horizontal)` layout
+    /// guide (the horizontal axis is the one that clears the leading-edge controls), never hardcoded. It collapses to 0
     /// — restoring the plain `Constants.leadingInset` — in full screen or whenever the scene has no
     /// controls (the guide reports a 0 leading inset). No-op before iOS 26, off iPad, or when the
     /// scene uses the legacy `.minimal` style (guide leading stays 0 there too).

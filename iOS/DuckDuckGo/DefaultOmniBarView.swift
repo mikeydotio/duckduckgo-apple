@@ -72,6 +72,12 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
     private var stackViewLeadingConstraint: NSLayoutConstraint?
     private var stackViewTrailingConstraint: NSLayoutConstraint?
 
+    /// Extra leading inset added on top of the layout mode's base leading padding. Non-zero only on
+    /// iPadOS 26 with inline window controls when the omni bar is the topmost row (tabs bar hidden,
+    /// address bar at top) and must clear the system traffic-light controls. See
+    /// `setAdditionalLeadingInset(_:)` and `MainViewController.updateOmniBarWindowControlsInsetIfNeeded()`.
+    private var additionalLeadingInset: CGFloat = 0
+
     let fieldContainerLayoutGuide = UILayoutGuide()
 
     // iPad elements
@@ -257,8 +263,20 @@ final class DefaultOmniBarView: UIView, OmniBarView, ExpandableOmniBarView {
         leadingButtonsContainer.spacing = isExpandedPhone ? Metrics.expandedPhoneSizeButtonSpacing : Metrics.iPadButtonSpacing
         trailingButtonsContainer.spacing = isExpandedPhone ? Metrics.expandedPhoneSizeButtonSpacing : Metrics.iPadButtonSpacing
         stackView.spacing = isExpandedPhone ? Metrics.expandedPhoneSizeSpacing : Metrics.expandedPadSizeSpacing
-        stackViewLeadingConstraint?.constant = isExpandedPhone ? Metrics.expandedPhoneSizeMargins.leading : Metrics.textAreaHorizontalPadding
+        stackViewLeadingConstraint?.constant = baseLeadingPadding(for: newMode) + additionalLeadingInset
         stackViewTrailingConstraint?.constant = isExpandedPhone ? -Metrics.expandedPhoneSizeMargins.trailing : -Metrics.textAreaHorizontalPadding
+    }
+
+    /// Base leading padding for a layout mode, before any `additionalLeadingInset` is added.
+    private func baseLeadingPadding(for mode: OmniBarLayoutMode) -> CGFloat {
+        mode == .expandedPhone ? Metrics.expandedPhoneSizeMargins.leading : Metrics.textAreaHorizontalPadding
+    }
+
+    func setAdditionalLeadingInset(_ inset: CGFloat) {
+        guard additionalLeadingInset != inset else { return }
+        additionalLeadingInset = inset
+        // Reapply against the current mode's base so we never stack insets or fight `applyLayoutMode`.
+        stackViewLeadingConstraint?.constant = baseLeadingPadding(for: layoutMode) + inset
     }
 
     var isUsingSmallTopSpacing: Bool = false {

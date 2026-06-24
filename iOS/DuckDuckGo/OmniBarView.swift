@@ -130,6 +130,19 @@ protocol OmniBarView: UIView, OmniBarStatusUpdateable {
 
     /// Restores bar pill background, shadow, and text field. Idempotent.
     func restoreBarChrome()
+
+    /// Adds an extra leading inset to the bar's content, on top of the standard horizontal padding.
+    ///
+    /// Used on iPadOS 26 with inline window controls (`.unified`): when the tabs bar is hidden the
+    /// omni bar becomes the topmost row beside the system traffic-light controls, so its content must
+    /// clear them (mirroring `TabsBarViewController`'s leading inset). `0` restores the standard
+    /// padding. Driven by `MainViewController` — see `updateOmniBarWindowControlsInsetIfNeeded()`.
+    func setAdditionalLeadingInset(_ inset: CGFloat)
+}
+
+extension OmniBarView {
+    /// Default no-op: only `DefaultOmniBarView` insets its content for inline window controls.
+    func setAdditionalLeadingInset(_ inset: CGFloat) {}
 }
 
 /// iPad-specific extension for the duck.ai mode toggle and expandable search area.

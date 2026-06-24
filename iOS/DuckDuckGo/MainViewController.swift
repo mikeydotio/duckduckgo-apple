@@ -1275,6 +1275,9 @@ class MainViewController: UIViewController {
         if isInMinimalChromeLayout {
             applyMinimalChromeWidth()
         }
+        // Flipping the address bar between top/bottom changes whether the omni bar sits beside the
+        // inline window controls; refresh its leading inset (no-op off the iPadOS-26 unified path).
+        updateOmniBarWindowControlsInsetIfNeeded()
         updateStatusBarBackgroundColor()
         themeColorManager.updateThemeColor()
     }
@@ -2567,6 +2570,7 @@ class MainViewController: UIViewController {
             applySmallWidth()
         }
 
+        updateOmniBarWindowControlsInsetIfNeeded()
         updateNewTabPageLayoutForCurrentChromeMode()
 
         DispatchQueue.main.async {
@@ -2668,6 +2672,30 @@ class MainViewController: UIViewController {
         currentTab?.borderView.isBottomVisible = appSettings.currentAddressBarPosition.isBottom
 
         swipeTabsCoordinator?.isEnabled = true
+    }
+
+    /// iPadOS 26 inline window controls: when the tabs bar is hidden the omni bar becomes the topmost
+    /// row beside the system traffic-light controls, so its content must clear them — mirroring the
+    /// tabs bar's own leading inset (`TabsBarViewController.updateWindowControlsInsetIfNeeded()`).
+    ///
+    /// The extra inset is the controls' width, read live from the `.margins(cornerAdaptation:
+    /// .horizontal)` layout guide (never hardcoded). It collapses to 0 — restoring the omni bar's
+    /// standard 16pt padding — in every other case: tabs bar shown (the tabs bar handles clearance),
+    /// full screen or the legacy `.minimal` style (the guide reports a 0 leading inset), the address
+    /// bar pinned to the bottom (the controls aren't beside it), or pre-iOS-26 / non-iPad.
+    private func updateOmniBarWindowControlsInsetIfNeeded() {
+        var inset: CGFloat = 0
+
+        if #available(iOS 26, *),
+           UIDevice.current.userInterfaceIdiom == .pad,
+           WindowControls.usesUnifiedStyle,
+           viewCoordinator.tabBarContainer.isHidden,
+           !viewCoordinator.addressBarPosition.isBottom {
+            let margins = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .horizontal))
+            inset = max(0, margins.leading)
+        }
+
+        viewCoordinator.omniBar.barView.setAdditionalLeadingInset(inset)
     }
 
     @discardableResult
@@ -2786,6 +2814,10 @@ class MainViewController: UIViewController {
         ViewHighlighter.updatePositions()
         omniBar.refreshCustomizableButton()
         reanchorAITabCollapsedFooterIfNeeded()
+        // The window-controls layout guide width is only reliable post-layout (and can change when
+        // entering/leaving windowed mode); keep the omni-bar leading inset in sync. No-op when
+        // already correct (the setter early-returns on an unchanged value).
+        updateOmniBarWindowControlsInsetIfNeeded()
     }
 
     /// The AI-tab collapsed footer is a bottom chat input that must sit above the keyboard/home
@@ -6426,6 +6458,10 @@ extension MainViewController {
         // Split View) making the chrome pinnable. Reveal immediately so the bars don't stay stuck
         // hidden until the next upward scroll.
         revealChromeIfPinned()
+
+        // Window controls can appear/disappear or change width on a size-class / windowed-mode
+        // change; refresh the omni-bar leading inset alongside the tabs bar's own inset.
+        updateOmniBarWindowControlsInsetIfNeeded()
     }
 
     func refreshStatusBarBackgroundAfterAIChrome() {
