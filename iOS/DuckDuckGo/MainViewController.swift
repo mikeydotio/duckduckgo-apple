@@ -3697,6 +3697,15 @@ extension MainViewController: BrowserChromeDelegate {
         /// value can never leave most of the top chrome on screen. iPadOS 26 window controls sit in a
         /// band well under this, so it only ever acts as a safety rail.
         static let maxHiddenChromeFloorHeight: CGFloat = 64
+
+        /// Minimum *extra* leading clearance (beyond the view's base directional layout margin) that the
+        /// `.margins(cornerAdaptation: .horizontal)` guide must report before we treat the inline window
+        /// controls as present (windowed). The corner-adapted leading always includes the small base
+        /// layout margin, which is non-zero even in full screen — so a bare `leading > 0` test misfires
+        /// there. The traffic-light controls add several tens of points on top of the base margin when
+        /// windowed, so this threshold cleanly separates "windowed (controls present)" from "full screen
+        /// (base margin only)". See `hiddenChromeFloorHeight`.
+        static let windowControlsLeadingClearanceThreshold: CGFloat = 12
     }
 
     var tabBarContainer: UIView {
@@ -3923,14 +3932,28 @@ extension MainViewController: BrowserChromeDelegate {
     /// (the only configuration whose top chrome is governed by `updateNavBarConstant`'s top constants),
     /// and only while *windowed*.
     ///
-    /// Windowed vs. full-screen is detected via the horizontal margins guide's leading inset, the same
-    /// signal `updateOmniBarWindowControlsInsetIfNeeded()` uses for the omni-bar leading inset: the
-    /// inline window controls occupy leading space only while windowed, so the guide reports a non-zero
-    /// leading inset when windowed and exactly 0 in full screen. In full screen there are no controls to
-    /// keep a band for, so the floor must be 0 (the original pre-project hide-fully behaviour); the
-    /// `.vertical).top` guide is non-zero there (status bar / safe-area top), so we can't rely on it to
-    /// self-disable. Clamped to a sane maximum so a pathological guide value can never leave most of the
-    /// chrome on screen.
+    /// Windowed vs. full-screen is detected from the horizontal margins guide's leading inset, but —
+    /// unlike `updateOmniBarWindowControlsInsetIfNeeded()`, which can tolerate a small residual because
+    /// it only *adds* to a leading inset — here a non-zero residual in full screen would leave a visible
+    /// band, so we must distinguish the two states precisely. The corner-adapted
+    /// `.margins(cornerAdaptation: .horizontal)` leading always includes the view's small base
+    /// directional layout margin, which is present even in full screen; the inline traffic-light
+    /// controls add several tens of points of *extra* leading clearance on top of that base only while
+    /// windowed. So we treat the controls as present (⇒ keep the band) only when the corner-adapted
+    /// leading exceeds the base `directionalLayoutMargins.leading` by more than
+    /// `windowControlsLeadingClearanceThreshold`. In full screen the surplus is ~0 ⇒ floor 0 ⇒ the
+    /// chrome hides fully off-screen (the original pre-project behaviour).
+    ///
+    /// Why this over the alternatives: iOS 26 exposes no public windowed/full-screen boolean to UIKit
+    /// (`UIWindowScene.isFullScreen` / `UIWindowSceneGeometry.systemFrame` are macCatalyst-only), and a
+    /// window-frame-vs-screen-bounds comparison would misclassify a *maximized* windowed window (it
+    /// fills the screen yet still shows controls) as full screen and wrongly drop the band. The leading
+    /// surplus tracks the controls themselves, so a maximized window still reports the surplus and keeps
+    /// its band.
+    ///
+    /// When the band is kept, its height comes from the `.margins(cornerAdaptation: .vertical)` guide's
+    /// top inset (the controls' vertical extent), clamped to a sane maximum so a pathological guide
+    /// value can never leave most of the chrome on screen.
     private var hiddenChromeFloorHeight: CGFloat {
         guard #available(iOS 26, *),
               UIDevice.current.userInterfaceIdiom == .pad,
@@ -3938,14 +3961,38 @@ extension MainViewController: BrowserChromeDelegate {
               !viewCoordinator.addressBarPosition.isBottom else {
             return 0
         }
-        // No window controls in full screen (leading inset collapses to 0) ⇒ no band to keep ⇒ hide fully.
-        let windowControlsLeadingInset = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .horizontal)).leading
-        guard windowControlsLeadingInset > 0 else {
+        // The corner-adapted leading = base layout margin (+ controls clearance when windowed). Isolate
+        // the controls' contribution by subtracting the base margin; only a meaningful surplus means the
+        // inline window controls are actually present. No surplus ⇒ full screen ⇒ no band ⇒ hide fully.
+        let cornerAdaptedLeading = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .horizontal)).leading
+        let baseLeadingMargin = view.directionalLayoutMargins.leading
+        let controlsLeadingClearance = cornerAdaptedLeading - baseLeadingMargin
+        let controlsHeight = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .vertical)).top
+        let controlsPresent = controlsLeadingClearance > ChromeHideConstants.windowControlsLeadingClearanceThreshold
+
+        // TEMP DIAGNOSTIC — remove after full-screen hide is confirmed.
+        // This bug can't be verified headlessly. Log the raw signals once per change (not per scroll
+        // frame) for BOTH states, so the owner can paste back the real full-screen vs windowed values if
+        // the threshold needs tuning either way.
+        let windowFrame = view.window?.frame ?? .null
+        let screenBounds = view.window?.windowScene?.screen.bounds ?? .null
+        let snapshot = "\(controlsPresent)|\(cornerAdaptedLeading)|\(baseLeadingMargin)|\(controlsHeight)|\(windowFrame)|\(screenBounds)"
+        if snapshot != MainViewController.lastHiddenChromeFloorDiagnostic {
+            MainViewController.lastHiddenChromeFloorDiagnostic = snapshot
+            let msg = "[hiddenChromeFloor] controlsPresent=\(controlsPresent) cornerAdaptedLeading=\(cornerAdaptedLeading) baseLeadingMargin=\(baseLeadingMargin) controlsLeadingClearance=\(controlsLeadingClearance) verticalTop=\(controlsHeight) windowFrame=\(windowFrame) screenBounds=\(screenBounds)"
+            Logger.general.debug("\(msg, privacy: .public)")
+        }
+
+        guard controlsPresent else {
             return 0
         }
-        let controlsHeight = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .vertical)).top
         return max(0, min(controlsHeight, ChromeHideConstants.maxHiddenChromeFloorHeight))
     }
+
+    /// TEMP DIAGNOSTIC — remove after full-screen hide is confirmed. Last signal snapshot logged by
+    /// `hiddenChromeFloorHeight`, so we log only on change (not every scroll frame). Static because an
+    /// extension can't hold a stored instance property (and there's effectively one MainViewController).
+    private static var lastHiddenChromeFloorDiagnostic: String?
 
     func handleFavoriteSelected(_ favorite: BookmarkEntity) {
         guard let url = favorite.urlObject else { return }
