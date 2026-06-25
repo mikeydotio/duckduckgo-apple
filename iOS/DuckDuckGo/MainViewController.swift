@@ -3806,13 +3806,25 @@ extension MainViewController: BrowserChromeDelegate {
     }
 
     /// When `true`, the omni bar and toolbar are pinned (never hidden on scroll).
-    /// Driven solely by the horizontal size class: pinned only in regular width when the user
-    /// has not opted to hide the tab bar while scrolling. Compact width (e.g. narrow Split View /
-    /// Slide Over, or a phone in portrait) always falls back to hide-on-scroll. No device-model
-    /// check is involved.
+    ///
+    /// The "Hide Tab Bar While Scrolling" setting (iPad-only, default OFF) is the deciding factor.
+    /// ON ⇒ never pin (auto-hide on scroll), regardless of device or width.
+    ///
+    /// With the setting OFF the chrome stays pinned, but how that's scoped differs by device:
+    /// - iPad: honored at ANY window width (regular *or* compact, e.g. narrow Split View / Slide
+    ///   Over) — hence the deliberate `userInterfaceIdiom == .pad` check.
+    /// - iPhone: behaviour is unchanged from before this setting existed — pin only at regular
+    ///   width (e.g. large landscape); portrait / compact phones keep hiding the omni bar on scroll.
     private var shouldPinChrome: Bool {
-        traitCollection.horizontalSizeClass == .regular
-            && !appSettings.hideTabBarWhileScrolling
+        // The "Hide Tab Bar While Scrolling" setting (iPad-only, default OFF) is the deciding factor:
+        // ON ⇒ never pin (auto-hide on scroll).
+        guard !appSettings.hideTabBarWhileScrolling else { return false }
+        // OFF ⇒ keep chrome pinned. On iPad, honor it at ANY window width (regular or compact). On
+        // iPhone, behaviour is unchanged: pin only at regular width (e.g. large landscape), so portrait /
+        // compact phones keep auto-hiding as before. (The omni bar hide-on-scroll on iPhone predates this
+        // setting and must not change.)
+        return UIDevice.current.userInterfaceIdiom == .pad
+            || traitCollection.horizontalSizeClass == .regular
     }
 
     /// Reveals the chrome immediately if it should now be pinned but is currently hidden.
