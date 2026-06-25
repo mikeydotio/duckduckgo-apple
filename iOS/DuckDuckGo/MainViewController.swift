@@ -3691,6 +3691,14 @@ extension MainViewController: BrowserChromeDelegate {
         static let duration = 0.1
     }
 
+    private enum ChromeHideConstants {
+        /// Upper bound for the hidden-chrome floor (see `hiddenChromeFloorHeight`). The floor is read
+        /// live from the window-controls vertical extent; this caps it so an unexpectedly large guide
+        /// value can never leave most of the top chrome on screen. iPadOS 26 window controls sit in a
+        /// band well under this, so it only ever acts as a safety rail.
+        static let maxHiddenChromeFloorHeight: CGFloat = 64
+    }
+
     var tabBarContainer: UIView {
         viewCoordinator.tabBarContainer
     }
@@ -3871,11 +3879,46 @@ extension MainViewController: BrowserChromeDelegate {
     private func updateNavBarConstant(_ ratio: CGFloat) {
         let browserTabsOffset = (viewCoordinator.tabBarContainer.isHidden ? 0 : viewCoordinator.tabBarContainer.frame.size.height)
         let navBarTopOffset = viewCoordinator.navigationBarContainer.frame.size.height + browserTabsOffset
+
+        // iPadOS 26 inline window controls: the top chrome anchors to the safe-area top (the window
+        // top), so hiding it by its full height would slide it completely off-screen and leave the
+        // system traffic-light controls floating over the web content. Keep a thin chrome band — about
+        // the window-controls height — so the controls always sit on a chrome background with a tap
+        // area. We do this by shortening each container's upward travel by `floor`. No-op (floor == 0)
+        // everywhere else, so iPhone / pre-26 / `.minimal` hide behaviour is unchanged.
+        let floor = hiddenChromeFloorHeight
+
         if !viewCoordinator.tabBarContainer.isHidden {
             let topBarsConstant = -browserTabsOffset * (1.0 - ratio)
-            viewCoordinator.constraints.tabBarContainerTop.constant = topBarsConstant
+            // Stop the tabs bar `floor` short of fully hidden (clamp toward 0); never push it down.
+            viewCoordinator.constraints.tabBarContainerTop.constant = max(topBarsConstant, min(0, -(browserTabsOffset - floor)))
         }
-        viewCoordinator.constraints.navigationBarContainerTop.constant = browserTabsOffset + -navBarTopOffset * (1.0 - ratio)
+        let navBarConstant = browserTabsOffset + -navBarTopOffset * (1.0 - ratio)
+        // Shorten the nav bar's upward travel by the same `floor` so it stays glued beneath the tabs
+        // bar and its bottom (which the status background tracks) comes to rest `floor` below the top.
+        viewCoordinator.constraints.navigationBarContainerTop.constant = max(navBarConstant, browserTabsOffset - max(0, navBarTopOffset - floor))
+    }
+
+    /// Minimum visible height to keep when the top chrome is hidden on scroll, so the iPadOS 26 inline
+    /// window controls keep a chrome background and tap target behind them instead of floating over the
+    /// web content. Sourced live from the window-controls vertical extent (the
+    /// `.margins(cornerAdaptation: .vertical)` layout guide's top inset — the same family of guides the
+    /// leading inset is read from), never hardcoded.
+    ///
+    /// Returns 0 — disabling the clamp entirely — unless we're on the layout that re-anchored the
+    /// chrome top to the window top: iPad + iOS 26 + the `.unified` windowing control style, with the
+    /// address bar at the top (the only configuration whose top chrome is governed by
+    /// `updateNavBarConstant`'s top constants). Clamped to a sane maximum so a pathological guide value
+    /// can never leave most of the chrome on screen.
+    private var hiddenChromeFloorHeight: CGFloat {
+        guard #available(iOS 26, *),
+              UIDevice.current.userInterfaceIdiom == .pad,
+              WindowControls.usesUnifiedStyle,
+              !viewCoordinator.addressBarPosition.isBottom else {
+            return 0
+        }
+        let controlsHeight = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .vertical)).top
+        return max(0, min(controlsHeight, ChromeHideConstants.maxHiddenChromeFloorHeight))
     }
 
     func handleFavoriteSelected(_ favorite: BookmarkEntity) {
