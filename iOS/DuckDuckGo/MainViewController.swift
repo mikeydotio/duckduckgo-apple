@@ -3905,16 +3905,30 @@ extension MainViewController: BrowserChromeDelegate {
     /// `.margins(cornerAdaptation: .vertical)` layout guide's top inset — the same family of guides the
     /// leading inset is read from), never hardcoded.
     ///
-    /// Returns 0 — disabling the clamp entirely — unless we're on the layout that re-anchored the
-    /// chrome top to the window top: iPad + iOS 26 + the `.unified` windowing control style, with the
-    /// address bar at the top (the only configuration whose top chrome is governed by
-    /// `updateNavBarConstant`'s top constants). Clamped to a sane maximum so a pathological guide value
-    /// can never leave most of the chrome on screen.
+    /// Returns 0 — disabling the clamp entirely, so the chrome hides fully off-screen — unless we're on
+    /// the layout that re-anchored the chrome top to the window top AND the window controls are actually
+    /// present: iPad + iOS 26 + the `.unified` windowing control style, with the address bar at the top
+    /// (the only configuration whose top chrome is governed by `updateNavBarConstant`'s top constants),
+    /// and only while *windowed*.
+    ///
+    /// Windowed vs. full-screen is detected via the horizontal margins guide's leading inset, the same
+    /// signal `updateOmniBarWindowControlsInsetIfNeeded()` uses for the omni-bar leading inset: the
+    /// inline window controls occupy leading space only while windowed, so the guide reports a non-zero
+    /// leading inset when windowed and exactly 0 in full screen. In full screen there are no controls to
+    /// keep a band for, so the floor must be 0 (the original pre-project hide-fully behaviour); the
+    /// `.vertical).top` guide is non-zero there (status bar / safe-area top), so we can't rely on it to
+    /// self-disable. Clamped to a sane maximum so a pathological guide value can never leave most of the
+    /// chrome on screen.
     private var hiddenChromeFloorHeight: CGFloat {
         guard #available(iOS 26, *),
               UIDevice.current.userInterfaceIdiom == .pad,
               WindowControls.usesUnifiedStyle,
               !viewCoordinator.addressBarPosition.isBottom else {
+            return 0
+        }
+        // No window controls in full screen (leading inset collapses to 0) ⇒ no band to keep ⇒ hide fully.
+        let windowControlsLeadingInset = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .horizontal)).leading
+        guard windowControlsLeadingInset > 0 else {
             return 0
         }
         let controlsHeight = view.directionalEdgeInsets(for: .margins(cornerAdaptation: .vertical)).top
