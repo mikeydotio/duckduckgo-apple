@@ -39,10 +39,16 @@ class TabsBarCell: UICollectionViewCell {
         /// bar pill's leading curve, so we keep 12pt for visual continuity. (~24 @2x)
         static let topCornerRadius: CGFloat = 12
 
-        /// Radius of the OUTWARD-flaring concave BOTTOM corners. Derived from the mock's "24" @2x
-        /// horizontal bracket between the window controls and the tab's leading flare → 12pt. This is
-        /// both the concave arc radius and how far each flare extends horizontally past the tab body.
-        static let bottomFlareRadius: CGFloat = 12
+        /// Radius of the OUTWARD-flaring concave BOTTOM corners — a simple "inverted" (concave)
+        /// quarter-circle arc that flares the base outward. This is both the concave arc radius and
+        /// how far each flare extends horizontally past the tab body on each side.
+        ///
+        /// IMPORTANT: this value is the contract with the layout. `TabsBarViewController` sets
+        /// `sectionInset.left = bottomFlareRadius` (so the first tab's left flare lands inside the
+        /// collection view's non-clipped region) and pulls the leading constraint back by the same
+        /// amount (so the tab body doesn't shift). With a quarter-circle the horizontal reach equals
+        /// the radius, so the flare's HORIZONTAL extent is exactly `bottomFlareRadius`.
+        static let bottomFlareRadius: CGFloat = 20
 
         /// How far the shape's very bottom edge drops below the cell's bottom, so the flare overlaps
         /// the omni bar's top edge and the two surfaces merge with no seam. From the mock's lower
@@ -290,7 +296,8 @@ extension TabsBarCell: UIPointerInteractionDelegate {
 /// - top edge spans `[topCornerRadius, width - topCornerRadius]` then curves to the sides;
 /// - the very bottom edge sits `bottomOverlap` below the content bounds and is widened by
 ///   `bottomFlareRadius` on each side, so it spans `[-bottomFlareRadius, width + bottomFlareRadius]`;
-/// - each bottom corner is a concave quarter-arc connecting the vertical side to the widened bottom.
+/// - each bottom corner is a simple concave quarter-circle arc of radius `bottomFlareRadius`
+///   connecting the vertical side to the widened bottom (an "inverted" corner radius).
 enum SelectedTabShape {
 
     static func path(forContentBounds bounds: CGRect,
@@ -319,9 +326,9 @@ enum SelectedTabShape {
                     clockwise: true)
         // Right side straight down to where the concave flare begins.
         path.addLine(to: CGPoint(x: width, y: bottomY - flareR))
-        // Concave bottom-right flare: curves down and OUTWARD to (width + flareR, bottomY).
-        // Center is outside the shape (lower-right); sweeping 180°→90° counterclockwise (y-down)
-        // produces the concave fillet that flares the base outward.
+        // Concave bottom-right flare: a quarter-circle that curves down and OUTWARD to
+        // (width + flareR, bottomY). Center is outside the shape (lower-right); sweeping 180°→90°
+        // counterclockwise (y-down) produces the concave fillet that flares the base outward.
         path.addArc(withCenter: CGPoint(x: width + flareR, y: bottomY - flareR),
                     radius: flareR,
                     startAngle: .pi,
@@ -329,7 +336,7 @@ enum SelectedTabShape {
                     clockwise: false)
         // Widened bottom edge.
         path.addLine(to: CGPoint(x: -flareR, y: bottomY))
-        // Concave bottom-left flare: mirror of the right one, curving up and inward to the left side.
+        // Concave bottom-left flare: mirror quarter-circle, curving up and inward to the left side.
         path.addArc(withCenter: CGPoint(x: -flareR, y: bottomY - flareR),
                     radius: flareR,
                     startAngle: .pi / 2,
