@@ -1,6 +1,15 @@
 # Hide Tab Bar While Scrolling — Feature Spec
 
 > Status: Draft for hand-off. Implementation-agnostic (describes the feature and the setting, not how to build it in any specific codebase).
+>
+> **Revision (2026-06-25): the compact-width rule was reversed.** This spec originally said a
+> compact-width window *always* auto-hides regardless of the setting (claimed as Safari parity).
+> Per the owner, the **setting is now the deciding factor at any width** — with the toggle **Off**
+> the bar stays visible in compact windows too. In the implementation this is **scoped to iPad**
+> (the toggle and tab bar are iPad-only); iPhone keeps the original size-class behavior, so it is
+> **no longer purely size-class-driven / device-agnostic**. The behavioral rules, acceptance
+> criteria, and QA below are updated to match; the Safari-parity framing in Motivation /
+> Window-size may still need an owner pass.
 
 ## Summary
 
@@ -46,7 +55,7 @@ This is the core of the feature and the part to get right. The behavior is **dev
 - **Regular-width window** (an iPad app at a normal/large window size — full screen or a wide split-view pane): the setting is honored.
   - Setting **Off** → tab bar stays fixed and visible.
   - Setting **On** → tab bar auto-hides on scroll.
-- **Compact-width window** (the user has narrowed the window enough — e.g. a narrow split view or Slide Over): **always fall back to the default auto-hide behavior, regardless of the setting.** There isn't room to keep the bar pinned. This is exactly what Safari does.
+- **Compact-width window** (the user has narrowed the window enough — e.g. a narrow split view or Slide Over): **the setting still applies** _(revised — see the top note; originally this said compact always auto-hides regardless of the setting)_. Setting **Off** → the bar stays visible; Setting **On** → it auto-hides. In the implementation this at-any-width behavior is **scoped to iPad**; an iPhone at compact width keeps the default auto-hide.
 - **Live size-class changes:** entering/leaving split view, resizing, or rotating can flip the size class at runtime. React immediately and without a relaunch — when a window becomes regular width with the setting Off, restore the bar right away; when it becomes compact, resume auto-hide.
 
 > ⚠️ **Do not** gate this on a fixed window-width threshold/breakpoint, and **do not** target specific device models or screen sizes. Use the horizontal size class. Because size class already distinguishes wide vs. narrow windows on every device, no per-device logic is needed — e.g. a phone in portrait is compact and therefore simply keeps today's auto-hide behavior, with no special-casing.
@@ -56,7 +65,7 @@ This is the core of the feature and the part to get right. The behavior is **dev
 - A toggle labeled **"Hide Tab Bar While Scrolling"** appears in the browser's appearance settings, defaulting to **Off**.
 - In a **regular-width** window with the toggle **Off**, scrolling a long page never hides the tab bar.
 - In a **regular-width** window with the toggle **On**, scrolling down hides the tab bar and scrolling up restores it.
-- In a **compact-width** window, the tab bar auto-hides on scroll **regardless** of the toggle.
+- In a **compact-width** window (iPad), the toggle is honored exactly as in regular width: **Off** keeps the bar visible, **On** auto-hides _(revised — was "auto-hides regardless of the toggle")_. An iPhone at compact width keeps the default auto-hide.
 - Toggling the setting updates the live page immediately, including revealing a currently-hidden bar when switched **Off** in a regular-width window.
 - Resizing/rotating between regular and compact width updates the behavior live (bar restored when it becomes regular + Off; auto-hide resumes when it becomes compact).
 - The chosen value persists across app launches.
@@ -84,7 +93,7 @@ Explicitly **not** part of this feature (previously explored, now dropped):
 - [ ] Toggle appears with the correct label in settings, default **Off**.
 - [ ] **Regular width + Off:** long-page scroll keeps the bar fixed — verified with the address bar at both top and bottom.
 - [ ] **Regular width + On:** long-page scroll hides and reveals the bar conventionally.
-- [ ] **Compact width:** bar auto-hides on scroll for both toggle states.
+- [ ] **Compact width (iPad):** toggle honored — **Off** keeps the bar visible on scroll, **On** auto-hides. (iPhone at compact width: still auto-hides for both states.)
 - [ ] Switching **Off** while the bar is hidden (regular width) reveals it immediately.
 - [ ] Dragging into/out of split view and rotating flips behavior live at the regular↔compact boundary.
 - [ ] Setting persists across relaunch.
