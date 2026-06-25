@@ -41,8 +41,21 @@ public protocol WebExtensionEventsListening {
 @available(macOS 15.4, iOS 18.4, *)
 public final class WebExtensionEventsListener: WebExtensionEventsListening {
 
-    public weak var controller: WKWebExtensionController?
+    public weak var controller: WKWebExtensionController? {
+        didSet {
+            flushPendingCallbacks()
+        }
+    }
     public private(set) var droppedCallbacksCount = 0
+    private(set) var pendingCallbacksCount = 0
+
+    private struct PendingCallback {
+        let caller: String
+        let callback: (WKWebExtensionController) -> Void
+    }
+
+    private let maximumPendingCallbacksCount = 100
+    private var pendingCallbacks: [PendingCallback] = []
 
     public init() {}
 
@@ -90,13 +103,39 @@ public final class WebExtensionEventsListener: WebExtensionEventsListening {
         notifyController { $0.didChangeTabProperties(properties, for: tab) }
     }
 
-    private func notifyController(_ callback: (WKWebExtensionController) -> Void, caller: String = #function) {
+    private func notifyController(_ callback: @escaping (WKWebExtensionController) -> Void, caller: String = #function) {
         guard let controller else {
-            droppedCallbacksCount += 1
-            Logger.webExtensions.warning("⚠️ Dropped web extension callback '\(caller, privacy: .public)' — controller is nil (total dropped: \(self.droppedCallbacksCount, privacy: .public))")
+            queuePendingCallback(callback, caller: caller)
             return
         }
 
         callback(controller)
+    }
+
+    private func queuePendingCallback(_ callback: @escaping (WKWebExtensionController) -> Void, caller: String) {
+        guard pendingCallbacks.count < maximumPendingCallbacksCount else {
+            droppedCallbacksCount += 1
+            Logger.webExtensions.warning(
+                "Dropped web extension callback '\(caller, privacy: .public)' because the pending callback queue is full (total dropped: \(self.droppedCallbacksCount, privacy: .public))"
+            )
+            return
+        }
+
+        pendingCallbacks.append(PendingCallback(caller: caller, callback: callback))
+        pendingCallbacksCount = pendingCallbacks.count
+        Logger.webExtensions.debug(
+            "Queued web extension callback '\(caller, privacy: .public)' until controller is available (pending: \(self.pendingCallbacksCount, privacy: .public))"
+        )
+    }
+
+    private func flushPendingCallbacks() {
+        guard let controller, !pendingCallbacks.isEmpty else { return }
+
+        let callbacks = pendingCallbacks
+        pendingCallbacks.removeAll()
+        pendingCallbacksCount = 0
+
+        Logger.webExtensions.debug("Replaying \(callbacks.count, privacy: .public) queued web extension callback(s)")
+        callbacks.forEach { $0.callback(controller) }
     }
 }

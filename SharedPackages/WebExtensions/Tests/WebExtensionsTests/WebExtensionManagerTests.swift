@@ -118,6 +118,15 @@ final class WebExtensionManagerTests: XCTestCase {
         return dir
     }
 
+    // MARK: - Events Listener Tests
+
+    @MainActor
+    func testWhenManagerIsCreated_ThenEventsListenerControllerIsNotSetBeforeLoad() {
+        _ = makeManager()
+
+        XCTAssertNil(eventsListenerMock.controller)
+    }
+
     // MARK: - Install Extension Tests
 
     @MainActor
