@@ -33,6 +33,7 @@ final class AIChatMenuTests: XCTestCase {
     private var openNewImageChatCalled = false
     private var openedChat: AIChatSuggestion?
     private var deleteAllChatsCalled = false
+    private var openSettingsCalled = false
 
     override func setUp() {
         super.setUp()
@@ -42,7 +43,8 @@ final class AIChatMenuTests: XCTestCase {
             openNewVoiceChat: { [weak self] in self?.openNewVoiceChatCalled = true },
             openNewImageChat: { [weak self] in self?.openNewImageChatCalled = true },
             openChat: { [weak self] suggestion in self?.openedChat = suggestion },
-            deleteAllChats: { [weak self] in self?.deleteAllChatsCalled = true }
+            deleteAllChats: { [weak self] in self?.deleteAllChatsCalled = true },
+            openSettings: { [weak self] in self?.openSettingsCalled = true }
         )
     }
 
@@ -68,6 +70,7 @@ final class AIChatMenuTests: XCTestCase {
         XCTAssertTrue(titles.contains(UserText.aiChatMenuNewImageChat))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuRecentChats))
         XCTAssertTrue(titles.contains(UserText.aiChatMenuDeleteAllChats))
+        XCTAssertTrue(titles.contains(UserText.aiChatMenuSettings))
     }
 
     func testOpenDuckAIItemHasOptionCommandNShortcut() {
@@ -81,6 +84,15 @@ final class AIChatMenuTests: XCTestCase {
         let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions, origin: .moreOptionsMenu)
         let item = menu.items.first { $0.title == UserText.aiChatMenuOpenDuckAI }
         XCTAssertEqual(item?.keyEquivalent, "")
+    }
+
+    func testSettingsItem_appearsLastAfterDeleteAll() {
+        let menu = AIChatMenu(suggestionsReader: suggestionsReader, actions: actions)
+        let deleteAllIndex = menu.items.firstIndex { $0.title == UserText.aiChatMenuDeleteAllChats }!
+        let settingsIndex = menu.items.firstIndex { $0.title == UserText.aiChatMenuSettings }!
+        XCTAssertLessThan(deleteAllIndex, settingsIndex)
+        XCTAssertTrue(menu.items[deleteAllIndex + 1].isSeparatorItem)
+        XCTAssertEqual(menu.items[settingsIndex].title, UserText.aiChatMenuSettings)
     }
 
     // MARK: - Dynamic chat items

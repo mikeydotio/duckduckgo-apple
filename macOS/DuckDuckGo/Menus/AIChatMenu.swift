@@ -41,6 +41,7 @@ final class AIChatMenu: NSMenu {
         var openNewImageChat: @MainActor () -> Void
         var openChat: @MainActor (AIChatSuggestion) -> Void
         var deleteAllChats: () async -> Void
+        var openSettings: @MainActor () -> Void
     }
 
     // MARK: - Static items
@@ -98,6 +99,15 @@ final class AIChatMenu: NSMenu {
         return item
     }()
 
+    private lazy var settingsItem: NSMenuItem = {
+        let item = NSMenuItem(title: UserText.aiChatMenuSettings, action: #selector(settingsTapped), keyEquivalent: "")
+        item.target = self
+        item.image = origin == .moreOptionsMenu
+            ? DesignSystemImages.Glyphs.Size16.settings
+            : DesignSystemImages.Glyphs.Size12.settings
+        return item
+    }()
+
     // MARK: - Dynamic chat items
 
     private var chatItems: [NSMenuItem] = []
@@ -142,6 +152,8 @@ final class AIChatMenu: NSMenu {
         // Dynamic chat items are inserted after recentChatsLabel by insertChatItems(_:)
         addItem(.separator())
         addItem(deleteAllChatsItem)
+        addItem(.separator())
+        addItem(settingsItem)
     }
 
     // MARK: - NSMenu update
@@ -250,6 +262,12 @@ final class AIChatMenu: NSMenu {
         }
         dialog.show()
     }
+
+    @objc private func settingsTapped() {
+        actions.openSettings()
+        let pixel: AIChatPixel = origin == .moreOptionsMenu ? .aiChatOpenSettingsMoreOptionsMenu : .aiChatOpenSettingsMainMenu
+        PixelKit.fire(pixel, frequency: .dailyAndStandard)
+    }
 }
 
 // MARK: - Default actions factory
@@ -291,6 +309,9 @@ extension AIChatMenu.Actions {
                         tab.reload()
                     }
                 }
+            },
+            openSettings: {
+                Application.appDelegate.windowControllersManager.showPreferencesTab(withSelectedPane: .aiChat)
             }
         )
     }

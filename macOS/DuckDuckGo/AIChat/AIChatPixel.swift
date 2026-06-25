@@ -404,6 +404,12 @@ enum AIChatPixel: PixelKitEvent {
     /// Event Trigger: User taps "View All Chats..." from the more options menu
     case aiChatViewAllChatsMoreOptionsMenu
 
+    /// Event Trigger: User opens AI Settings from the main menu
+    case aiChatOpenSettingsMainMenu
+
+    /// Event Trigger: User opens AI Settings from the more options menu
+    case aiChatOpenSettingsMoreOptionsMenu
+
     /// Event Trigger: Duck.ai tab WebKit process terminates
     case aiChatTabDidTerminate(error: Error)
 
@@ -656,6 +662,10 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_view_all_chats_main_menu"
         case .aiChatViewAllChatsMoreOptionsMenu:
             return "aichat_view_all_chats_more_options_menu"
+        case .aiChatOpenSettingsMainMenu:
+            return "aichat_open_settings_main_menu"
+        case .aiChatOpenSettingsMoreOptionsMenu:
+            return "aichat_open_settings_more_options_menu"
         case .aiChatTabDidTerminate:
             return "aichat_tab_did_terminate"
         case .aiChatTabTerminationLoop:
@@ -765,6 +775,8 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatDeleteAllChatsMoreOptionsMenu,
                 .aiChatViewAllChatsMainMenu,
                 .aiChatViewAllChatsMoreOptionsMenu,
+                .aiChatOpenSettingsMainMenu,
+                .aiChatOpenSettingsMoreOptionsMenu,
                 .aiChatTabDidTerminate,
                 .aiChatTabTerminationLoop:
             return nil
@@ -919,6 +931,8 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatDeleteAllChatsMoreOptionsMenu,
                 .aiChatViewAllChatsMainMenu,
                 .aiChatViewAllChatsMoreOptionsMenu,
+                .aiChatOpenSettingsMainMenu,
+                .aiChatOpenSettingsMoreOptionsMenu,
                 .aiChatAddressBarImageGenerationActivated,
                 .aiChatAddressBarImageGenerationDeactivated,
                 .aiChatAddressBarImageGenerationSubmitted,
