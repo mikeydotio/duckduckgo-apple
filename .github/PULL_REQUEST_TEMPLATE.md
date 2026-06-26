@@ -37,6 +37,9 @@ Low: Minor visual changes, small bug fixes, improvement to existing features
 None: Internal tooling, documentation
 -->
 
+#### What could go wrong?
+<!-- Before submitting: identify realistic failure scenarios and check a mitigation exists in this diff (test, flag, guard). Only keep this section if the risk is non-obvious to a reviewer. Otherwise delete it. One line per scenario: "X could happen → mitigated by Y." -->
+
 ### Quality Considerations
 <!-- Edge cases, performance, privacy/security impact — omit if not applicable -->
 
