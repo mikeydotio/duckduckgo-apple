@@ -120,6 +120,7 @@ final class SubscriptionDebugViewController: UITableViewController {
 
     enum ExpirationReminderRows: Int, CaseIterable {
         case currentStatus
+        case requestPermission
         case triggerMockNotification
     }
 
@@ -263,6 +264,8 @@ final class SubscriptionDebugViewController: UITableViewController {
                 )
                 cell.textLabel?.numberOfLines = 0
                 cell.selectionStyle = .none
+            case .requestPermission:
+                cell.textLabel?.text = "Request Notification Permission…"
             case .triggerMockNotification:
                 cell.textLabel?.text = "Trigger Mock Notification…"
             case .none:
@@ -371,6 +374,7 @@ final class SubscriptionDebugViewController: UITableViewController {
             break
         case .expirationReminder:
             switch ExpirationReminderRows(rawValue: indexPath.row) {
+            case .requestPermission: requestNotificationPermission()
             case .triggerMockNotification: triggerMockExpirationReminder()
             default: break
             }
@@ -660,6 +664,26 @@ final class SubscriptionDebugViewController: UITableViewController {
 
     /// Prompts for a delay relative to now, then runs the production scheduler with a `timeBeforeCancel`
     /// derived from the current subscription's expiry so the notification fires N seconds from now.
+    private func requestNotificationPermission() {
+        Task { @MainActor in
+            let center = UNUserNotificationCenter.current()
+            switch await center.authorizationStatus() {
+            case .authorized, .ephemeral:
+                self.showAlert(title: "Already authorized", message: "Notifications are already enabled.")
+            case .denied, .provisional:
+                self.showAlert(title: "Cannot prompt",
+                               message: "Notifications are disabled or provisional. Enable them in iOS Settings → DuckDuckGo → Notifications.")
+            case .notDetermined:
+                let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+                self.showAlert(title: granted ? "Permission granted" : "Permission denied",
+                               message: granted ? "You can now trigger the reminder." : "Enable notifications in iOS Settings → DuckDuckGo → Notifications.")
+            @unknown default:
+                break
+            }
+            self.loadExpirationReminderStatus()
+        }
+    }
+
     private func triggerMockExpirationReminder() {
         let alert = UIAlertController(title: "Trigger Expiration Reminder",
                                       message: "Fire how many seconds from now?",
