@@ -17,31 +17,72 @@
 //
 
 import Foundation
-import SwiftSoup
 
 public final class ReleaseNotesParser {
 
     public static func parseReleaseNotes(from description: String?) -> ([String], [String]) {
         guard let description else { return ([], []) }
 
+        var standardReleaseNotes = [String]()
+        var subscriptionReleaseNotes = [String]()
+
+        // Patterns for the two sections with more flexible spacing
+        let standardPattern = "<h3[^>]*>What's new</h3>\\s*<ul>(.*?)</ul>"
+        let subscriptionPattern = "<h3[^>]*>For DuckDuckGo subscribers</h3>\\s*<ul>(.*?)</ul>"
+
         do {
-            let document = try SwiftSoup.parse(description)
-            let standardReleaseNotes = try releaseNotes(in: document, forSectionTitled: "What's new")
-            let subscriptionReleaseNotes = try releaseNotes(in: document, forSectionTitled: "For DuckDuckGo subscribers")
-            return (standardReleaseNotes, subscriptionReleaseNotes)
+            let standardRegex = try NSRegularExpression(pattern: standardPattern, options: .dotMatchesLineSeparators)
+            let subscriptionRegex = try NSRegularExpression(pattern: subscriptionPattern, options: .dotMatchesLineSeparators)
+
+            // Extract the standard release notes section
+            if let standardMatch = standardRegex.firstMatch(in: description, options: [], range: NSRange(location: 0, length: description.utf16.count)) {
+                if let range = Range(standardMatch.range(at: 1), in: description) {
+                    let standardList = String(description[range])
+                    standardReleaseNotes = extractListItems(from: standardList)
+                }
+            }
+
+            // Extract the Subscription release notes section
+            if let subscriptionMatch = subscriptionRegex.firstMatch(in: description, options: [], range: NSRange(location: 0, length: description.utf16.count)) {
+                if let range = Range(subscriptionMatch.range(at: 1), in: description) {
+                    let subscriptionList = String(description[range])
+                    subscriptionReleaseNotes = extractListItems(from: subscriptionList)
+                }
+            }
         } catch {
-            assertionFailure("Error parsing release notes HTML: \(error)")
-            return ([], [])
+            assertionFailure("Error creating regular expression: \(error)")
         }
+
+        return (standardReleaseNotes, subscriptionReleaseNotes)
     }
 
-    /// Returns the plain-text list items from the `<ul>` immediately following the `<h3>` with the given title.
-    private static func releaseNotes(in document: Document, forSectionTitled title: String) throws -> [String] {
-        guard let header = try document.select("h3").first(where: { try $0.text() == title }),
-              let list = try header.nextElementSibling(), list.tagName() == "ul" else {
-            return []
+    // Helper method to extract list items
+    private static func extractListItems(from list: String) -> [String] {
+        var items = [String]()
+        let pattern = "<li>(.*?)</li>"
+
+        do {
+            let regex = try NSRegularExpression(pattern: pattern, options: .dotMatchesLineSeparators)
+            let matches = regex.matches(in: list, options: [], range: NSRange(location: 0, length: list.utf16.count))
+
+            for match in matches {
+                if let range = Range(match.range(at: 1), in: list) {
+                    let item = String(list[range])
+
+                    // Convert HTML to plain text
+                    if let data = item.data(using: .utf8),
+                       let attributedString = try? NSAttributedString(data: data,
+                                                                      options: [.documentType: NSAttributedString.DocumentType.html,
+                                                                                .characterEncoding: String.Encoding.utf8.rawValue],
+                                                                      documentAttributes: nil) {
+                        items.append(attributedString.string)
+                    }
+                }
+            }
+        } catch {
+            assertionFailure("Error creating regular expression: \(error)")
         }
 
-        return try list.select("li").map { try $0.text() }
+        return items
     }
 }
