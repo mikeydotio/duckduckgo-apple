@@ -52,8 +52,7 @@ final class UnifiedSuggestionsHost {
         return cachedFavoritesController
     }
 
-    /// The favorites NTP is built once and cached, so it can't re-derive the after-idle signal when it
-    /// changes — push it through here to keep the after-idle message in sync.
+    /// The favorites NTP is built once and cached, so push the after-idle signal in on change.
     func updateOpenedAfterIdle(_ openedAfterIdle: Bool) {
         cachedFavoritesController?.setOpenedAfterIdle(openedAfterIdle)
     }

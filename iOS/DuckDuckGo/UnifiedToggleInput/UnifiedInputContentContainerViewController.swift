@@ -285,10 +285,8 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         refreshVisibleContent(animateContentUpdates: false)
     }
 
-    /// Whether the current NTP session was opened after idle — the source of truth for the after-idle
-    /// message, read fresh from the current tab. Decoupled from the escape hatch so the message renders
-    /// even when this surface suppresses its own hatch, and so a non-after-idle hatch (e.g. post-burn
-    /// tab switcher) doesn't trigger it.
+    /// Whether the current session was opened after idle — read from the tab, not the hatch, so the
+    /// message shows even when this surface suppresses its own hatch.
     private var sessionOpenedAfterIdle: Bool {
         suggestionTrayDependencies?.tabsModelProvider().currentTab?.openedAfterIdle ?? false
     }
@@ -296,8 +294,6 @@ final class UnifiedInputContentContainerViewController: UIViewController {
     func setEscapeHatch(_ model: EscapeHatchModel?) {
         let hatchPresenceChanged = (escapeHatchModel != nil) != (model != nil)
         escapeHatchModel = model
-        // The favorites NTP is memoized, so it can't re-read this at build time on later changes —
-        // push it in.
         unifiedSuggestionsHost?.updateOpenedAfterIdle(sessionOpenedAfterIdle)
         // The chrome (hatch + sync-promo) is pinned to the bar (see below), not rendered in the host.
         updatePinnedChrome()
@@ -736,8 +732,7 @@ final class UnifiedInputContentContainerViewController: UIViewController {
         // The escape hatch and the empty-state logo are UTI chrome (bar-pinned hatch + the host's
         // `FocusedDaxLogoView`), not the NTP's — suppress the NTP's own so we never get two.
         controller.setEscapeHatch(nil)
-        // ...but keep the after-idle signal so the embedded NTP still shows the after-idle message
-        // (the visible hatch is the bar-pinned one).
+        // ...but keep the after-idle signal so its message still renders.
         controller.setOpenedAfterIdle(sessionOpenedAfterIdle)
         controller.setLogoHidden(true)
         return controller
