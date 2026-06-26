@@ -4044,7 +4044,6 @@ extension TabViewController: SecureVaultManagerDelegate {
             
             let saveLoginController = SaveLoginViewController(credentialManager: manager,
                                                               appSettings: self.appSettings,
-                                                              featureFlagger: self.featureFlagger,
                                                               domainLastShownOn: self.domainSaveLoginPromptLastShownOn,
                                                               backfilled: backfilled)
             self.domainSaveLoginPromptLastShownOn = self.url?.host
@@ -4583,7 +4582,6 @@ extension TabViewController: SaveLoginViewControllerDelegate {
             syncService.scheduler.notifyDataChanged()
 
             NotificationCenter.default.post(name: .autofillSaveEvent, object: nil)
-            AutofillOnboardingExperimentPixelReporter().firePasswordsSaved()
         } catch {
             Logger.general.error("failed to store credentials: \(error.localizedDescription, privacy: .public)")
         }

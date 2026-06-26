@@ -362,7 +362,6 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case canPromoteAutofillExtensionInPasswordManagement
     case migrateKeychainAccessibility
     case autofillPasswordSearchPrioritizeDomain
-    case onboardingDismissExperiment
     case autofillPasswordsStatusBar
 }
 
