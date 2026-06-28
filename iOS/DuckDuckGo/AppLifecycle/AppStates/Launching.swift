@@ -206,6 +206,12 @@ struct Launching: LaunchingHandling {
             dataProvider: RemoteMessagingImageLoader.defaultDataProvider,
             cache: RemoteMessagingImageLoader.defaultCache
         )
+        let idleReturnEligibilityManager = IdleReturnEligibilityManager(
+            featureFlagger: featureFlagger,
+            keyValueStore: appKeyValueFileStoreService.keyValueFilesStore,
+            privacyConfigurationManager: contentBlockingService.common.privacyConfigurationManager,
+            isStillOnboarding: { daxDialogs.isStillOnboarding() }
+        )
         let remoteMessagingService = RemoteMessagingService(bookmarksDatabase: configuration.persistentStoresConfiguration.bookmarksDatabase,
                                                             database: configuration.persistentStoresConfiguration.database,
                                                             appSettings: appSettings,
@@ -219,11 +225,12 @@ struct Launching: LaunchingHandling {
                                                             freemiumDBPUserStateManager: dbpService.freemiumDBPUserStateManager,
                                                             subscriptionDataReporter: reportingService.subscriptionDataReporter,
                                                             remoteMessagingImageLoader: remoteMessagingImageLoader,
+                                                            idleReturnEligibilityManager: idleReturnEligibilityManager,
                                                             dbpRunPrerequisitesDelegate: dbpService.dbpIOSPublicInterface)
         let subscriptionService = SubscriptionService(privacyConfigurationManager: contentBlockingService.common.privacyConfigurationManager, featureFlagger: featureFlagger)
         let maliciousSiteProtectionService = MaliciousSiteProtectionService(featureFlagger: featureFlagger,
                                                                             privacyConfigurationManager: contentBlockingService.common.privacyConfigurationManager)
-        let systemSettingsPiPTutorialService = SystemSettingsPiPTutorialService()
+        let systemSettingsPiPTutorialService = SystemSettingsPiPTutorialService(featureFlagger: featureFlagger)
         let wideEventService = WideEventService(
             wideEvent: AppDependencyProvider.shared.wideEvent,
             subscriptionManager: AppDependencyProvider.shared.subscriptionManager
@@ -414,7 +421,8 @@ struct Launching: LaunchingHandling {
                     migrationKey: "com.duckduckgo.duckai.nativeStorage.defaultMigratedFromAppGroup",
                     label: .default,
                     keyValueStore: keyValueStore,
-                    pixelFiring: DuckAiNativeStorageContainerMigrationPixelAdapter()
+                    pixelFiring: DuckAiNativeStorageContainerMigrationPixelAdapter(),
+                    lockedLaunchFixEnabled: featureFlagger.isFeatureOn(.duckAINativeStorageMigrationLockedLaunchFix)
                 ).run()
                 if outcome == .skip {
                     return nil
