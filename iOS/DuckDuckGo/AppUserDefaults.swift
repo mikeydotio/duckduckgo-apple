@@ -35,6 +35,17 @@ private struct CookiePopupProtectionKeys: StoringKeys {
     let didMigrateCookiePopupPreference = StorageKey<Bool>(CookiePopupProtectionStorageKeys.didMigrateCookiePopupPreference)
 }
 
+private enum AddressBarStorageKeys: String, StorageKeyDescribing {
+    case keepAddressBarVisibleOnIPad = "com_duckduckgo_ios_keepAddressBarVisibleOnIPad"
+}
+
+private struct AddressBarKeys: StoringKeys {
+    let keepAddressBarVisibleOnIPad = StorageKey<Bool>(
+        AddressBarStorageKeys.keepAddressBarVisibleOnIPad,
+        migrateLegacyKey: "com.duckduckgo.ios.keepaddressbarvisibleonipad"
+    )
+}
+
 public class AppUserDefaults: AppSettings {
     
     public struct Notifications {
@@ -272,16 +283,17 @@ public class AppUserDefaults: AppSettings {
         }
     }
 
-    @UserDefaultsWrapper(key: .keepAddressBarVisibleOnIPad, defaultValue: false)
-    private var keepAddressBarVisibleOnIPadStorage: Bool
+    private var addressBarStorage: any KeyedStoring<AddressBarKeys> {
+        UserDefaults.app.keyedStoring()
+    }
 
     var keepAddressBarVisibleOnIPad: Bool {
         get {
-            keepAddressBarVisibleOnIPadStorage
+            addressBarStorage.keepAddressBarVisibleOnIPad ?? false
         }
 
         set {
-            keepAddressBarVisibleOnIPadStorage = newValue
+            addressBarStorage.keepAddressBarVisibleOnIPad = newValue
             NotificationCenter.default.post(name: Notifications.keepAddressBarVisibleOnIPadChanged, object: newValue)
         }
     }
