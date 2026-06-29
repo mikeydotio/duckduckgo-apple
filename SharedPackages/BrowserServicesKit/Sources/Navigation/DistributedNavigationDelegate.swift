@@ -673,7 +673,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
               !(url.hasFragment && redirectedNavigation.url.equals(url, by: .sameDocument))
         else { return }
 
-        Logger.navigation.log("willPerformClientRedirect to: \(url.absoluteString), current: \(redirectedNavigation.debugDescription)")
+        Logger.navigation.log("willPerformClientRedirect to: \(url.shortDescription), current: \(redirectedNavigation.debugDescription)")
 
         // keep the original Navigation non-finished until the redirect NavigationAction is received
         let originalResponders = redirectedNavigation.navigationResponders
