@@ -452,7 +452,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         Logger.navigation.log("willStart \(navigation.debugDescription)")
 
         var isSameDocumentNavigation: Bool {
-            guard startedNavigation !== navigation && startedNavigation?.url.isSameDocument(navigation.url) == true else { return false }
+            guard startedNavigation !== navigation && startedNavigation?.url.equals(navigation.url, by: .sameDocument) == true else { return false }
 #if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
             return navigation.navigationAction.navigationType == .sameDocumentNavigation(.anchorNavigation)
 #else
@@ -670,7 +670,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         guard let redirectedNavigation = startedNavigation,
               redirectedNavigation.state.isResponseReceived,
               // don‘t handle same-document navigations
-              !(url.absoluteString.hashedSuffix != nil && redirectedNavigation.url.absoluteString.droppingHashedSuffix() == url.absoluteString.droppingHashedSuffix())
+              !(url.hasFragment && redirectedNavigation.url.equals(url, by: .sameDocument))
         else { return }
 
         Logger.navigation.log("willPerformClientRedirect to: \(url.absoluteString), current: \(redirectedNavigation.debugDescription)")

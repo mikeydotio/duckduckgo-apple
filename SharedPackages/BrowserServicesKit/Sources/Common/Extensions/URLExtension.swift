@@ -29,13 +29,6 @@ extension URL {
         absoluteString.isEmpty
     }
 
-    public func matches(_ other: URL) -> Bool {
-        let string1 = self.absoluteString
-        let string2 = other.absoluteString
-        return string1.droppingHashedSuffix().dropping(suffix: "/").appending(string1.hashedSuffix ?? "")
-            == string2.droppingHashedSuffix().dropping(suffix: "/").appending(string2.hashedSuffix ?? "")
-    }
-
     /// URL without the scheme and the '/' suffix of the path.
     /// Useful for finding duplicate URLs
     public var naked: URL? {
@@ -382,9 +375,128 @@ extension URL {
         }
     }
 
-    /// returns true if URLs are equal except the #fragment part
-    public func isSameDocument(_ other: URL) -> Bool {
-        self.absoluteString.droppingHashedSuffix() == other.absoluteString.droppingHashedSuffix()
+    // MARK: - Component-based URL equality
+
+    /// Returns `true` if the URL has a fragment, including percent-encoded `%23` in opaque URLs.
+    public var hasFragment: Bool {
+        isOpaque ? opaqueFragment != nil : fragment != nil
+    }
+
+    /// `true` when the URL is opaque (scheme without authority), e.g. `about:`, `data:`, `javascript:`.
+    public var isOpaque: Bool {
+        guard let scheme else { return false }
+        return !absoluteString.dropFirst(scheme.count + 1).hasPrefix("//")
+    }
+
+    /// Composable component mask for `equals(_:by:)`.
+    ///
+    /// Use the named presets for common cases:
+    /// - `.sameDocument`  — ignores fragment (scheme+host+port+path+query)
+    /// - `.fuzzyIdentity` — includes fragment, normalizes trailing '/' in path
+    ///
+    /// Or build a custom mask: `[.scheme, .host, .query]`
+    public struct EqualityComponents: OptionSet {
+        public init(rawValue: UInt8) { self.rawValue = rawValue }
+        public let rawValue: UInt8
+        public static let scheme   = Self(rawValue: 1 << 0)
+        public static let host     = Self(rawValue: 1 << 1)
+        public static let port     = Self(rawValue: 1 << 2)
+        public static let path     = Self(rawValue: 1 << 3)
+        public static let query    = Self(rawValue: 1 << 4)
+        public static let fragment = Self(rawValue: 1 << 5)
+
+        /// Ignores fragment: scheme + host + port + path + query
+        public static let sameDocument: Self = [.scheme, .host, .port, .path, .query]
+        /// Includes fragment, normalizes trailing '/' in path
+        public static let fuzzyIdentity: Self = [.scheme, .host, .port, .path, .query, .fragment]
+
+        static let allComponents: [Self] = [.scheme, .host, .port, .path, .query, .fragment]
+    }
+
+    /// Returns true when `self` and `other` are equal for every component in `components`.
+    ///
+    /// For hierarchical URLs (`http://`, `https://`, `file://`, …) components are extracted
+    /// via `URLComponents` which gives correct percent-decoding for all fields.
+    ///
+    /// For opaque URLs (`about:`, `data:`, `javascript:`, …) `URLComponents` does not surface
+    /// fragments, so the fragment is found by scanning `absoluteString` for `#` or `%23`.
+    /// Path comparison always strips a trailing '/' (except for bare root '/').
+    public func equals(_ other: URL, by components: EqualityComponents) -> Bool {
+        guard let selfParsed  = ResolvedComponents(self),
+              let otherParsed = ResolvedComponents(other) else { return false }
+
+        return EqualityComponents.allComponents.filter(components.contains).allSatisfy { component in
+            switch component {
+            case .scheme:   return scheme == other.scheme
+            case .host:     return selfParsed.host == otherParsed.host
+            case .port:     return selfParsed.port == otherParsed.port
+            case .path:     return selfParsed.path == otherParsed.path
+            case .query:    return selfParsed.query == otherParsed.query
+            case .fragment: return selfParsed.fragment == otherParsed.fragment
+            default:
+                assertionFailure("Unknown component: \(component)")
+                return true
+            }
+        }
+    }
+
+    // MARK: - Helpers for equals(_:by:)
+
+    /// Parsed URL components used internally by `equals(_:by:)`.
+    ///
+    /// For hierarchical URLs `URLComponents` is used directly. For opaque URLs
+    /// (e.g. `about:blank%23foo`) the fragment is recovered by scanning `absoluteString`
+    /// for a `#` or `%23` delimiter; path and query are then trimmed accordingly.
+    private struct ResolvedComponents {
+        let host: String?
+        let port: Int?
+        let path: Substring?
+        let query: Substring?
+        let fragment: Substring?
+
+        init?(_ url: URL) {
+            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+            host     = components.host
+            port     = components.port
+            let isOpaque = url.isOpaque
+            // For opaque URLs (about:, data:, …) URLComponents doesn't surface the fragment;
+            // scan absoluteString directly. For hierarchical URLs, URLComponents is reliable.
+            fragment = isOpaque ? url.opaqueFragment : components.fragment.map { $0[...] }
+            // Only strip when Foundation missed the fragment (the %23 case).
+            // When Foundation found a literal '#', URLComponents already stripped it from path/query.
+            let foundationMissedFragment = isOpaque && components.fragment == nil
+            query = components.query.map { [fragment] query in
+                if foundationMissedFragment, let fragment, !fragment.isEmpty,
+                   query.count > fragment.count + 1 {
+                    return query.dropLast(fragment.count + 1) // drop "#<fragment>" folded into query
+                }
+                return query[...]
+            }
+            let rawPath = components.path
+            if foundationMissedFragment, query == nil,
+               let fragment, !fragment.isEmpty,
+               rawPath.count > fragment.count + 1 {
+                path = rawPath.dropLast(fragment.count + 1) // drop "#<fragment>" folded into path
+            } else {
+                path = rawPath.dropping(suffix: "/")[...]
+            }
+        }
+    }
+
+    // Fragment substring for opaque URLs, recovered by scanning absoluteString.
+    // Returns nil when no fragment delimiter is found after the scheme.
+    private var opaqueFragment: Substring? {
+        // Foundation recognises a literal '#' as a fragment delimiter even for opaque about: URLs.
+        if let fragment { return fragment[...] }
+        // URL(trimmedAddressBarString:) can produce about:blank%23anchor where %23 is
+        // a percent-encoded '#' that Foundation's opaque URL parser doesn't treat as a delimiter.
+        let raw = absoluteString
+        guard let schemeEnd = raw.range(of: ":") else { return nil }
+        let rest = raw[schemeEnd.upperBound...]
+        if let encodedRange = rest.range(of: "%23") {
+            return rest[encodedRange.upperBound...]
+        }
+        return nil
     }
 
     /// Drops text fragment from a URL.
@@ -408,19 +520,10 @@ extension URL {
 
     // MARK: - HTTP/HTTPS
 
-    public enum URLProtocol: String {
-        case http
-        case https
-
-        public var scheme: String {
-            return "\(rawValue)://"
-        }
-    }
-
     public func toHttps() -> URL? {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
-        guard components.scheme == URLProtocol.http.rawValue else { return self }
-        components.scheme = URLProtocol.https.rawValue
+        guard navigationalScheme == .http,
+              var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        components.scheme = NavigationalScheme.https.rawValue
         return components.url
     }
 
