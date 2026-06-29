@@ -289,6 +289,10 @@ public enum FeatureFlag: String, CaseIterable {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213037858764817
     case crashCollectionLimitCallStackTreeDepth
 
+    /// Remote kill switch for the CFURLCreateAbsoluteURLWithBytes interpose.
+    /// https://app.asana.com/1/137249556945/project/1202406491309510/task/1215403820548743
+    case opaqueURLFragmentFix
+
     /// Failsafe flag for whether the free trial conversion wide event is enabled
     case freeTrialConversionWideEvent
 
@@ -631,6 +635,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .disabled)
         case .crashCollectionLimitCallStackTreeDepth:
             Config(defaultValue: .enabled, source: .remoteReleasable(MacOSBrowserConfigSubfeature.crashCollectionLimitCallStackTreeDepth), supportsLocalOverriding: false)
+        case .opaqueURLFragmentFix:
+            Config(defaultValue: .enabled, source: .remoteReleasable(MacOSBrowserConfigSubfeature.opaqueURLFragmentFix))
         case .freeTrialConversionWideEvent:
             Config(defaultValue: .enabled, source: .remoteReleasable(PrivacyProSubfeature.freeTrialConversionWideEvent))
         case .supportsSyncChatsDeletion:

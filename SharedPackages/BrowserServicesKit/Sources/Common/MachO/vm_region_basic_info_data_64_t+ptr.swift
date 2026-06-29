@@ -31,7 +31,7 @@ extension vm_region_basic_info_data_64_t {
 
     /// Initializes `vm_region_basic_info_data_64_t` from a pointer, retrieving memory region information.
     /// - Throws: `KernError` if the operation fails.
-    init(_ ptr: UnsafeRawPointer) throws {
+    public init(_ ptr: UnsafeRawPointer) throws {
         var size: vm_size_t = 0
         var address = vm_address_t(bitPattern: ptr)
         var port: mach_port_t = 0

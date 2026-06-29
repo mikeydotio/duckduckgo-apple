@@ -299,6 +299,7 @@ let package = Package(
         .target(
             name: "Common",
             dependencies: [
+                "MachORebindingSupport",
                 .product(name: "Punycode", package: "PunycodeSwift"),
                 .product(name: "URLPredictor", package: "URLPredictor"),
                 .product(name: "FoundationExtensions", package: "SystemFrameworksExtensions"),
@@ -665,6 +666,17 @@ let package = Package(
                 "SharedObjCTestsUtils",
                 "Suggestions",
             ]
+        ),
+        .testTarget(
+            name: "MachORebindingTests",
+            dependencies: [
+                "Common",
+            ]
+        ),
+        .target(
+            name: "MachORebindingSupport",
+            dependencies: [],
+            publicHeadersPath: "include"
         ),
         .testTarget(
             name: "BookmarksTests",

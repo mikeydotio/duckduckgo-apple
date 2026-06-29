@@ -192,6 +192,12 @@ public enum MacOSBrowserConfigSubfeature: String, PrivacySubfeature {
     /// Enables lazy reload for the more options menu
     case lazyMenuRebuild
 
+    /// Remote kill switch for the CFURLCreateAbsoluteURLWithBytes interpose that
+    /// records '#' fragment byte positions on opaque NSURL objects at construction time.
+    /// Enabled by default; set to `disabled` in privacy config to turn off the fix.
+    /// https://app.asana.com/1/137249556945/project/1202406491309510/task/1215403820548743
+    case opaqueURLFragmentFix
+
     case screenTimeCleaning
 
     /// Enables the custom NSPanel-based bookmarks bar menu (replacing NSPopover) with NSGlassEffectView on macOS 26

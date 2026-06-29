@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import CoreFoundation
 import Foundation
 import Testing
 
@@ -23,6 +24,53 @@ import Testing
 
 // swiftlint:disable comma
 final class URLExtensionTests {
+
+    // MARK: - isOpaque
+
+    @available(iOS 16, macOS 13, *)
+    @Test("isOpaque — opaque URLs", .timeLimit(.minutes(1)),
+          arguments: [
+              "about:blank",
+              "about:newtab",
+              "data:text/html,<h1>Hi</h1>",
+              "data:text/html;base64,SGVsbG8=",
+              "javascript:void(0)",
+              "javascript:window.location.href",
+              "blob:https://example.com/550e8400-e29b-41d4-a716-446655440000",
+          ])
+    func isOpaque_trueForOpaqueURLs(rawURL: String) throws {
+        let url = try #require(URL(string: rawURL))
+        #expect(url.isOpaque == true, "expected isOpaque=true for \(rawURL)")
+    }
+
+    @available(iOS 16, macOS 13, *)
+    @Test("isOpaque — NSURL-bridged opaque URLs", .timeLimit(.minutes(1)),
+          arguments: [
+              "about:blank",
+              "data:text/html,hello",
+              "javascript:void(0)",
+          ])
+    func isOpaque_trueForNSURLBridgedOpaqueURLs(rawURL: String) throws {
+        let nsurl = try #require(NSURL(string: rawURL))
+        let url = nsurl as URL
+        #expect(url.isOpaque == true, "expected isOpaque=true for NSURL-bridged \(rawURL)")
+    }
+
+    @available(iOS 16, macOS 13, *)
+    @Test("isOpaque — hierarchical URLs", .timeLimit(.minutes(1)),
+          arguments: [
+              "https://example.com",
+              "https://example.com/path?q=1#frag",
+              "http://example.com",
+              "file:///Users/user/file.txt",
+              "ftp://ftp.example.com/pub",
+          ])
+    func isOpaque_falseForHierarchicalURLs(rawURL: String) throws {
+        let url = try #require(URL(string: rawURL))
+        #expect(url.isOpaque == false, "expected isOpaque=false for \(rawURL)")
+    }
+
+    // MARK: - External URLs
 
     @available(iOS 16, macOS 13, *)
     @Test("External URLs are valid", .timeLimit(.minutes(1)))
@@ -778,10 +826,17 @@ final class URLEqualityComponentsTests {
         // about:blank — same document regardless of fragment
         ("about:blank",                  "about:blank",                   true,  #line),
         ("about:blank#section",          "about:blank",                   true,  #line),
+        ("about:blank#section",          "about:blank#other",             true,  #line),
         // about:blank with percent-encoded fragment (%23): Foundation treats it as part
         // of the path, so effectivePath strips it — both sides are "blank" → same document.
         ("about:blank",                  "about:blank%23section",         true,  #line),
         ("about:blank%23foo",            "about:blank%23bar",             true,  #line),
+        // about: with query — query is part of the document identity
+        ("about:blank?lang=en",          "about:blank?lang=en",           true,  #line),
+        ("about:blank?lang=en",          "about:blank?lang=fr",           false, #line),
+        // about: with both query and fragment — fragment ignored, query compared
+        ("about:blank?lang=en#sec",      "about:blank?lang=en",           true,  #line),
+        ("about:blank?lang=en#sec",      "about:blank?lang=fr#sec",       false, #line),
         // file:// URLs
         ("file:///path/to/file.html",    "file:///path/to/file.html",     true,  #line),
         ("file:///path/to/file.html#a",  "file:///path/to/file.html",     true,  #line),
@@ -789,8 +844,15 @@ final class URLEqualityComponentsTests {
         ("file:///path/to/file.html?q#a","file:///path/to/file.html",     false, #line),
         ("file:///path/to/other.html",   "file:///path/to/file.html",     false, #line),
         ("file:///path/sub/file.html",   "file:///path/to/file.html",     false, #line),
-        // data: URLs with different opaque paths → not same document
+        // data: URLs — identical path → same document; different path → not same document
+        ("data:text/plain,hello",        "data:text/plain,hello",         true,  #line),
         ("data:text/plain,hello",        "data:text/plain,world",         false, #line),
+        // data: with fragment — fragment ignored for sameDocument
+        ("data:text/plain,hello#anchor", "data:text/plain,hello",         true,  #line),
+        ("data:text/plain,hello#anchor", "data:text/plain,hello#other",   true,  #line),
+        // data: with query — query is part of document identity
+        ("data:text/plain,hello?x=1",    "data:text/plain,hello?x=1",     true,  #line),
+        ("data:text/plain,hello?x=1",    "data:text/plain,hello?x=2",     false, #line),
     ]
 
     @available(iOS 16, macOS 13, *)
@@ -819,6 +881,16 @@ final class URLEqualityComponentsTests {
         ("youtube.com",                  "https://youtube.com",          false, #line),
         // Different paths
         ("http://example.com/a",         "http://example.com/b",         false, #line),
+        // Opaque URLs — fragment-sensitive (fuzzyIdentity includes fragment)
+        ("about:blank#section",          "about:blank#section",          true,  #line),
+        ("about:blank#section",          "about:blank#other",            false, #line),
+        ("about:blank#section",          "about:blank",                  false, #line),
+        // Opaque URLs with query — query is compared
+        ("about:blank?lang=en",          "about:blank?lang=en",          true,  #line),
+        ("about:blank?lang=en",          "about:blank?lang=fr",          false, #line),
+        // data: with fragment
+        ("data:text/plain,hello#sec",    "data:text/plain,hello#sec",    true,  #line),
+        ("data:text/plain,hello#sec",    "data:text/plain,hello#other",  false, #line),
     ]
 
     @available(iOS 16, macOS 13, *)
@@ -882,113 +954,103 @@ final class URLEqualityComponentsTests {
         #expect(blank.equals(encoded, by: .sameDocument))
     }
 
-    // MARK: Foundation contract — opaque URL fragment behaviour
-
-    // ResolvedComponents relies on two Foundation invariants for opaque URLs:
-    //   1. URL.fragment is nil  (Foundation does not treat '%23' as a fragment delimiter)
-    //   2. URLComponents.fragment is nil  (same reason; '%23' is left in the path/query string)
+    // MARK: NSURL vs URL path consistency (WebKit uses NSURL internally)
     //
-    // The tests below assert those invariants so a future Foundation change that starts
-    // recognising '%23' in opaque URLs would surface here before silently breaking the
-    // double-stripping guard in ResolvedComponents.init.
+    // Foundation's URL.path returns inconsistent values for opaque about: URLs depending on
+    // whether the URL was created via Swift URL(string:) or ObjC NSURL(string:):
+    //   URL(string:  "about:blank")!.path  → "blank"
+    //   NSURL(string:"about:blank")!.path  → ""  ← WebKit's representation
+    //
+    // This is the raw Foundation bug that the effectivePath fix targets.
+    // data: URLs do NOT share this inconsistency — NSURL and URL agree on their path.
 
+    /// Confirm the raw Foundation inconsistency exists.
+    /// This test always passes; it documents the underlying behaviour our fix depends on.
     @available(iOS 16, macOS 13, *)
-    @Test("Foundation contract — opaque URL with %23: URL.fragment is nil", .timeLimit(.minutes(1)))
-    func foundationOpaqueURLPercentEncodedFragmentIsNilOnURLFragment() {
-        let urls: [(String, String)] = [
-            ("about:blank%23section",           "about:blank"),
-            ("about:blank%23",                  "about:blank with bare %23"),
-            ("about:srcdoc?html=x%23sec",       "about:srcdoc with %23 in query"),
-            ("data:text/html,hello%23world",    "data: with %23 in payload"),
+    @Test("Foundation: NSURL.path returns \"\" for opaque URLs; URL(string:).path returns content",
+          .timeLimit(.minutes(1)))
+    func foundationNSURLPathInconsistencyForOpaqueURLs() {
+        // about:blank
+        let swiftAbout = URL(string: "about:blank")!
+        let objcAbout  = NSURL(string: "about:blank")! as URL
+        #expect(swiftAbout.path == "blank", "URL(string:) should return \"blank\" for about:blank path")
+        #expect(objcAbout.path  == "",      "NSURL(string:) should return \"\" for about:blank path")
+        #expect(swiftAbout.absoluteString == objcAbout.absoluteString)
+
+        // data: — same inconsistency
+        let swiftData = URL(string: "data:text/plain,hello")!
+        let objcData  = NSURL(string: "data:text/plain,hello")! as URL
+        #expect(swiftData.path == "text/plain,hello", "URL(string:) returns the data payload as path")
+        #expect(objcData.path  == "",                 "NSURL(string:) returns \"\" for data: URL path too")
+        #expect(swiftData.absoluteString == objcData.absoluteString)
+    }
+
+    /// Documents how NSURL handles opaque URLs with fragment/query.
+    @available(iOS 16, macOS 13, *)
+    @Test("Foundation: NSURL opaque URL fragment/query/absoluteString diagnostics", .timeLimit(.minutes(1)))
+    func foundationNSURLOpaqueComponentsDiagnostics() {
+        let cases = [
+            "about:blank#section",
+            "about:blank?lang=en",
+            "about:blank?lang=en#sec",
+            "data:text/plain,hello#anchor",
+            "data:text/plain,hello?x=1",
         ]
-        for (raw, label) in urls {
-            guard let url = URL(string: raw) else {
-                Issue.record("Could not construct URL for \(label)")
+        for str in cases {
+            guard let nsurl = NSURL(string: str) else {
+                Issue.record("NSURL(string: \(str)) returned nil — unexpected")
                 continue
             }
-            #expect(url.fragment == nil,
-                    "URL.fragment should be nil for opaque URL with %%23 (\(label))")
+            print("\(nsurl.absoluteString! as NSString) address: \(Unmanaged.passUnretained(nsurl.absoluteString! as NSString).toOpaque())")
+            print("\(nsurl.absoluteString! as NSString) address: \(Unmanaged.passUnretained(nsurl.absoluteString! as NSString).toOpaque())")
+
+            let url = nsurl as URL
+            let uc = NSURLComponents(url: nsurl as URL, resolvingAgainstBaseURL: false)
+            print("""
+                [diagnostic] \(str):
+                  absoluteString=\(url.absoluteString)
+                  path=\(url.path.debugDescription)  fragment=\(url.fragment.debugDescription)  query=\(url.query.debugDescription)
+                  URLComponents(string:)=\(uc == nil ? "nil" : "ok")
+                    .path=\(uc?.percentEncodedPath.debugDescription ?? "n/a")
+                    .query=\(uc?.percentEncodedQuery.debugDescription ?? "n/a")
+                    .fragment=\(uc?.percentEncodedFragment.debugDescription ?? "n/a")
+                """)
+            continue
         }
     }
 
-    @available(iOS 16, macOS 13, *)
-    @Test("Foundation contract — opaque URL with %23: URLComponents.fragment is nil", .timeLimit(.minutes(1)))
-    func foundationOpaqueURLPercentEncodedFragmentIsNilOnURLComponents() {
-        let urls: [(String, String)] = [
-            ("about:blank%23section",           "about:blank"),
-            ("about:blank%23",                  "about:blank with bare %23"),
-            ("about:srcdoc?html=x%23sec",       "about:srcdoc with %23 in query"),
-            ("data:text/html,hello%23world",    "data: with %23 in payload"),
-        ]
-        for (raw, label) in urls {
-            guard let url = URL(string: raw),
-                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-                Issue.record("Could not construct URL/components for \(label)")
-                continue
-            }
-            #expect(components.fragment == nil,
-                    "URLComponents.fragment should be nil for opaque URL with %%23 (\(label))")
-        }
-    }
-
-    // MARK: ResolvedComponents — path/query stripping code paths
+    // Reuse sameDocument_args and fuzzyIdentity_args with lhs constructed via NSURL(string:).
+    // Entries where NSURL returns nil (e.g. scheme-less strings) are skipped.
 
     @available(iOS 16, macOS 13, *)
-    @Test("ResolvedComponents — opaque + no query + %23 fragment: strips from path", .timeLimit(.minutes(1)))
-    func resolvedComponentsOpaquePercentEncodedFragmentStrippedFromPath() {
-        // about:blank%23foo: Foundation misses %23 as delimiter; URLComponents folds it into path.
-        // ResolvedComponents must strip it so path equals "blank" not "blank#foo".
-        let blank   = URL(string: "about:blank")!
-        let hashed  = URL(string: "about:blank%23foo")!
-        #expect(blank.equals(hashed, by: .sameDocument),  "path should match after stripping %23 fragment")
-        #expect(!blank.equals(hashed, by: .fuzzyIdentity), "fragments differ: nil vs 'foo'")
+    @Test("URL.equals(by:.sameDocument) — NSURL-created lhs gives same result as URL(string:)",
+          .timeLimit(.minutes(1)), arguments: sameDocument_args)
+    func equalsSameDocumentNSURLvsURL(url1: String, url2: String, expected: Bool, line: UInt) {
+        guard let lhsURL = NSURL(string: url1) as URL?, let rhsURL = URL(string: url2) else { return }
+        let loc = Testing.SourceLocation(fileID: #fileID, filePath: #filePath, line: Int(line), column: 1)
+        let actual = lhsURL.equals(rhsURL, by: .sameDocument)
+        #expect(actual == expected,
+                "NSURL(\(url1)).equals(\(url2), by:.sameDocument) → \(actual), expected \(expected)",
+                sourceLocation: loc)
     }
 
     @available(iOS 16, macOS 13, *)
-    @Test("ResolvedComponents — opaque + no query + literal # fragment: path not double-stripped", .timeLimit(.minutes(1)))
-    func resolvedComponentsOpaqueRealHashFragmentNotDoubleStripped() {
-        // about:blank#foo: Foundation recognises '#'; URLComponents already strips the fragment
-        // from the path. foundationMissedFragment=false so we must not strip again.
-        let blank  = URL(string: "about:blank")!
-        let hashed = URL(string: "about:blank#foo")!
-        #expect(blank.equals(hashed, by: .sameDocument),  "path should be 'blank' either way")
-        #expect(!blank.equals(hashed, by: .fuzzyIdentity), "fragments differ: nil vs 'foo'")
-    }
-
-    @available(iOS 16, macOS 13, *)
-    @Test("ResolvedComponents — opaque + no query + no fragment: path unchanged", .timeLimit(.minutes(1)))
-    func resolvedComponentsOpaqueNoFragmentPathUnchanged() {
-        let a = URL(string: "about:blank")!
-        let b = URL(string: "about:blank")!
-        #expect(a.equals(b, by: .fuzzyIdentity))
-        #expect(!a.hasFragment)
-    }
-
-    @available(iOS 16, macOS 13, *)
-    @Test("ResolvedComponents — opaque + with query + %23 fragment: strips from query", .timeLimit(.minutes(1)))
-    func resolvedComponentsOpaquePercentEncodedFragmentStrippedFromQuery() {
-        // about:srcdoc?html=x%23sec: Foundation misses %23; URLComponents folds fragment into query.
-        // After stripping, query should be "html=x" and path should be "srcdoc".
-        let withFrag    = URL(string: "about:srcdoc?html=x%23sec")!
-        let withoutFrag = URL(string: "about:srcdoc?html=x")!
-        #expect(withFrag.equals(withoutFrag, by: .sameDocument),  "queries should match after stripping %23 fragment")
-        #expect(!withFrag.equals(withoutFrag, by: .fuzzyIdentity), "fragments differ: 'sec' vs nil")
-    }
-
-    @available(iOS 16, macOS 13, *)
-    @Test("ResolvedComponents — hierarchical URL: trailing slash stripped from path", .timeLimit(.minutes(1)))
-    func resolvedComponentsHierarchicalTrailingSlashStripped() {
-        let withSlash    = URL(string: "https://example.com/page/")!
-        let withoutSlash = URL(string: "https://example.com/page")!
-        #expect(withSlash.equals(withoutSlash, by: .sameDocument))
-        #expect(withSlash.equals(withoutSlash, by: .fuzzyIdentity))
+    @Test("URL.equals(by:.fuzzyIdentity) — NSURL-created lhs gives same result as URL(string:)",
+          .timeLimit(.minutes(1)), arguments: fuzzyIdentity_args)
+    func equalsFuzzyIdentityNSURLvsURL(url1: String, url2: String, expected: Bool, line: UInt) {
+        guard let lhsURL = NSURL(string: url1) as URL?, let rhsURL = URL(string: url2) else { return }
+        let loc = Testing.SourceLocation(fileID: #fileID, filePath: #filePath, line: Int(line), column: 1)
+        let actual = lhsURL.equals(rhsURL, by: .fuzzyIdentity)
+        #expect(actual == expected,
+                "NSURL(\(url1)).equals(\(url2), by:.fuzzyIdentity) → \(actual), expected \(expected)",
+                sourceLocation: loc)
     }
 
     // MARK: data: URL performance — equals must not O(n)-scan a 20 MB payload
 
     @available(iOS 16, macOS 13, *)
-    @Test("URL.equals(by:.sameDocument) completes in reasonable time for a 20 MB data: URI", .timeLimit(.minutes(1)))
-    func equalsSameDocumentCompletesForLargeDataURL() {
+    @Test("URL.equals(by:.sameDocument) is near-instant on a 20 MB data: URI (URL)", .timeLimit(.minutes(1)))
+    func equalsSameDocumentIsFastForLargeDataURL() {
         let payload = String(repeating: "A", count: 20 * 1024 * 1024)
         guard let url1 = URL(string: "data:text/html," + payload),
               let url2 = URL(string: "data:text/html," + payload + "#anchor") else {
@@ -999,12 +1061,216 @@ final class URLEqualityComponentsTests {
         let result = url1.equals(url2, by: .sameDocument)
         let elapsed = Date().timeIntervalSince(start)
 
-        // Comparing two 20 MB data: URLs is O(n) in the payload length regardless of implementation
-        // (the full path must be compared). The threshold guards against catastrophically slow
-        // regressions (e.g. O(n²) scanning) while accepting the unavoidable O(n) memory work.
         _ = result
-        #expect(elapsed < 5.0,
-                "equals(by:.sameDocument) took \(elapsed)s on a 20 MB data: URI — should not be O(n²)")
+        #expect(elapsed < 0.1,
+                "equals(by:.sameDocument) took \(elapsed)s on a 20 MB data: URI — component access must be O(1)")
+    }
+
+    @available(iOS 16, macOS 13, *)
+    @Test("URL.equals(by:.sameDocument) is near-instant on a 20 MB data: URI (NSURL-bridged)", .timeLimit(.minutes(1)))
+    func equalsSameDocumentIsFastForLargeDataURLFromNSURL() {
+        let payload = String(repeating: "A", count: 20 * 1024 * 1024)
+        // NSURL returns "" for path and nil for fragment/query of opaque URLs.
+        guard let nsurl1 = NSURL(string: "data:text/html," + payload),
+              let nsurl2 = NSURL(string: "data:text/html," + payload + "#anchor") else {
+            Issue.record("Failed to construct 20 MB NSURL data: URLs")
+            return
+        }
+        let url1 = nsurl1 as URL
+        let url2 = nsurl2 as URL
+        let start = Date()
+        let result = url1.equals(url2, by: .sameDocument)
+        let elapsed = Date().timeIntervalSince(start)
+
+        _ = result
+        print("equals(by:.sameDocument) 20 MB NSURL data: comparison took \(String(format: "%.3f", elapsed))s")
+        #expect(elapsed < 0.1,
+                "equals(by:.sameDocument) took \(elapsed)s on a 20 MB NSURL data: URI — path body must not be scanned")
+    }
+
+    @available(iOS 16, macOS 13, *)
+    @Test("TEMP: opaque 20 MB NSURL component access timings", .timeLimit(.minutes(2)))
+    func tempOpaqueNSURLComponentTimings() {
+        var sink: Any?
+        func printDescription(_ value: Any) {
+            if let fullString = String(describing: value) as String? {
+                let prefixLimit = 200
+                let suffixLimit = 40
+                if fullString.count > prefixLimit + suffixLimit {
+                    let prefix = fullString.prefix(prefixLimit)
+                    let suffix = fullString.suffix(suffixLimit)
+                    let s = "\(prefix)…\(suffix)"
+                    print(s)
+                } else {
+                    print(fullString)
+                }
+            } else {
+                print(String(describing: sink))
+            }
+        }
+        func measure<T>(_ label: String, _ block: () -> T) -> T {
+            let t = Date()
+            sink = nil
+            let result = block()
+            let elapsed = Date().timeIntervalSince(t)
+            print(String(format: "%-55@ %.4fs", label as NSString, elapsed))
+            if let sink, !(sink is URL || sink is NSURL) {
+                printDescription(sink)
+            }
+            return result
+        }
+
+        let raw = measure("build 20 MB random-ASCII payload") {
+            let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            let count = 20 * 1024 * 1024
+            var payload = ""
+            payload.reserveCapacity(count)
+            for _ in 0..<count {
+                payload.append(chars.randomElement()!)
+            }
+            return "data:text/html," + payload + /*"?key=value" + */"#anchor"
+        }
+
+        let nsurl = measure("NSURL(string: raw)") { NSURL(string: raw)! }
+        let url = measure("NSURL to URL") { nsurl as URL }
+        var data = nsurl.absoluteString!.data(using: .utf8)!
+        typealias CFURLCreateAbsoluteURLWithBytesFn = @convention(c) (CFAllocator?,
+                                                                       UnsafeRawPointer?,
+                                                                       CFIndex,
+                                                                       CFStringEncoding,
+                                                                       CFURL?,
+                                                                       Bool) -> CFURL?
+        let cfURLCreateAbsoluteURLWithBytes = unsafeBitCast(dlsym(UnsafeMutableRawPointer(bitPattern: -2),
+                                                                  "CFURLCreateAbsoluteURLWithBytes"),
+                                                            to: CFURLCreateAbsoluteURLWithBytesFn.self)
+        let cfurl = data.withUnsafeBytes { bytes in
+            cfURLCreateAbsoluteURLWithBytes(nil,
+                                            bytes.baseAddress,
+                                            data.count,
+                                            CFStringBuiltInEncodings.UTF8.rawValue,
+                                            nil, true)
+        }
+
+        var fragmentRange = CFRangeMake(0, nsurl.absoluteString!.utf16.count)
+        CFURLGetByteRangeForComponent(cfurl, .fragment, &fragmentRange)
+        print(fragmentRange)
+
+        let result = data.withUnsafeMutableBytes { bytes in
+            CFURLGetBytes(cfurl, bytes.baseAddress, bytes.count)
+        }
+        let str = String(data: data, encoding: .utf8)
+        print(result)
+        printDescription(str)
+
+        measure("NSURL.absoluteString") {
+            sink = nsurl.absoluteString
+        }
+        measure("URL.absoluteString") {
+            sink = url.absoluteString
+        }
+        measure("NSURL.path") {
+            sink = nsurl.path ?? "<nil>"
+        }
+        measure("NSURL.query") {
+            sink = nsurl.query ?? "<nil>"
+        }
+        measure("NSURL.fragment") {
+            sink = nsurl.fragment ?? "<nil>"
+        }
+        measure("URL.path") {
+            sink = "\"" + url.path + "\""
+        }
+        measure("URL.query") {
+            sink = url.query ?? "<nil>"
+        }
+        measure("URL.fragment") {
+            sink = url.fragment ?? "<nil>"
+        }
+        measure("URLComponents(string: absoluteString)") {
+            sink = URLComponents(string: nsurl.absoluteString ?? "")
+        }
+        measure("URLComponents(string:).path") {
+            sink = URLComponents(string: nsurl.absoluteString ?? "")?.path
+        }
+        measure("URLComponents(string:).query") {
+            sink = URLComponents(string: nsurl.absoluteString ?? "")?.query
+        }
+        measure("URLComponents(string:).fragment") {
+            sink = URLComponents(string: nsurl.absoluteString ?? "")?.fragment
+        }
+        measure("URLComponents(url: url, resolvingAgainstBaseURL: false)") {
+            sink = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        }
+        measure("URLComponents(url:).path") {
+            sink = URLComponents(url: url, resolvingAgainstBaseURL: false)?.path
+        }
+        measure("URLComponents(url:).query") {
+            sink = URLComponents(url: url, resolvingAgainstBaseURL: false)?.query
+        }
+        measure("URLComponents(url:).fragment") {
+            sink = URLComponents(url: url, resolvingAgainstBaseURL: false)?.fragment
+        }
+        measure("NSURLComponents(url: nsurl, resolvingAgainstBaseURL: false)") {
+            sink = NSURLComponents(url: nsurl as URL, resolvingAgainstBaseURL: false)
+        }
+        measure("NSURLComponents(url:).path") {
+            sink = NSURLComponents(url: nsurl as URL, resolvingAgainstBaseURL: false)?.path
+        }
+        measure("NSURLComponents(url:).query") {
+            sink = NSURLComponents(url: nsurl as URL, resolvingAgainstBaseURL: false)?.query
+        }
+        measure("NSURLComponents(url:).fragment") {
+            sink = NSURLComponents(url: nsurl as URL, resolvingAgainstBaseURL: false)?.fragment
+        }
+        measure("NSURLComponents(string: absoluteString)") {
+            sink = NSURLComponents(string: nsurl.absoluteString ?? "")
+        }
+        measure("NSURLComponents(string:).path") {
+            sink = NSURLComponents(string: nsurl.absoluteString ?? "")?.path
+        }
+        measure("NSURLComponents(string:).query") {
+            sink = NSURLComponents(string: nsurl.absoluteString ?? "")?.query
+        }
+        measure("NSURLComponents(string:).fragment") {
+            sink = NSURLComponents(string: nsurl.absoluteString ?? "")?.fragment
+        }
+        measure("NSString.range(of: \"#\")") {
+            let ns = url.absoluteString as NSString
+            sink = ns.range(of: "#")
+        }
+        measure("String.firstIndex(of: \"#\")") {
+            sink = url.absoluteString.firstIndex(of: "#")
+        }
+        _ = sink
     }
 }
+    // MARK: - shortDescription
+
+    @Test("shortDescription — short URL returned as-is")
+    func testShortDescriptionReturnedAsIsForShortURL() {
+        let url = URL(string: "https://example.com/path?q=1#frag")!
+        #expect(url.shortDescription == url.absoluteString)
+    }
+
+    @Test("shortDescription — long URL is truncated to 1024 characters")
+    func testShortDescriptionTruncatesLongURL() {
+        let longPath = String(repeating: "a", count: 2000)
+        let url = URL(string: "https://example.com/" + longPath)!
+        #expect(url.shortDescription.count == 1024)
+    }
+
+    @Test("shortDescription — truncated URL contains ellipsis")
+    func testShortDescriptionContainsEllipsisWhenTruncated() {
+        let longPath = String(repeating: "a", count: 2000)
+        let url = URL(string: "https://example.com/" + longPath)!
+        #expect(url.shortDescription.contains("…"))
+    }
+
+    @Test("shortDescription — truncated URL preserves scheme prefix")
+    func testShortDescriptionPreservesSchemePrefix() {
+        let longPath = String(repeating: "a", count: 2000)
+        let url = URL(string: "https://example.com/" + longPath)!
+        #expect(url.shortDescription.hasPrefix("https://"))
+    }
+
 // swiftlint:enable comma

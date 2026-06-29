@@ -21,6 +21,12 @@ import FoundationExtensions
 import Network
 import URLPredictor
 
+/// Associated-object key pointer registered by `installCFURLSwapper()` (macOS app target).
+/// `URLExtension.swift` reads fragment byte offsets via this key without a compile-time
+/// dependency on the macOS-only swapper file.  Nil on all other platforms and when the
+/// swapper has never been installed.
+public nonisolated(unsafe) var cfURLFragmentByteRangeAssociationKey: UnsafeRawPointer? = nil
+
 extension URL {
 
     public static let empty = (NSURL(string: "") ?? NSURL()) as URL
@@ -377,12 +383,19 @@ extension URL {
 
     // MARK: - Component-based URL equality
 
-    /// Returns `true` if the URL has a fragment, including percent-encoded `%23` in opaque URLs.
-    public var hasFragment: Bool {
-        isOpaque ? opaqueFragment != nil : fragment != nil
-    }
+    /// Returns `true` if the URL has a fragment, including percent-encoded `%23` in opaque `about:blank` URLs.
+    public var hasFragment: Bool { effectiveFragment != nil }
 
-    /// `true` when the URL is opaque (scheme without authority), e.g. `about:`, `data:`, `javascript:`.
+
+    /// Returns `true` for non-hierarchical (opaque-path) URLs such as `data:`, `about:`, and `javascript:`.
+    ///
+    /// A URL has an opaque path when its scheme-specific part does not begin with `//`
+    /// (i.e. it has no authority component).  This matches the WHATWG URL Standard
+    /// definition of "has an opaque path" and mirrors `WTF::URL::hasOpaquePath()` in
+    /// WebKit's URL parser.
+    ///
+    /// Examples that return `true`:  `data:text/html,…`, `about:blank`, `javascript:void(0)`, `blob:https://…`
+    /// Examples that return `false`: `https://example.com`, `http://…`, `file:///path`
     public var isOpaque: Bool {
         guard let scheme else { return false }
         return !absoluteString.dropFirst(scheme.count + 1).hasPrefix("//")
@@ -415,12 +428,18 @@ extension URL {
 
     /// Returns true when `self` and `other` are equal for every component in `components`.
     ///
-    /// For hierarchical URLs (`http://`, `https://`, `file://`, …) components are extracted
-    /// via `URLComponents` which gives correct percent-decoding for all fields.
+    /// Path comparison always strips a trailing '/' (except for a bare root '/'), so
+    /// `http://foo.com/page/` and `http://foo.com/page` are equal when `.path` is included.
     ///
-    /// For opaque URLs (`about:`, `data:`, `javascript:`, …) `URLComponents` does not surface
-    /// fragments, so the fragment is found by scanning `absoluteString` for `#` or `%23`.
-    /// Path comparison always strips a trailing '/' (except for bare root '/').
+    /// For hierarchical URLs (`http://`, `https://`, `file://`, …) the components are
+    /// extracted via `URLComponents` which gives correct percent-decoding for all fields.
+    ///
+    /// For opaque URLs (`about:`, `data:`, `javascript:`, …) `URLComponents` is unreliable
+    /// (e.g. commas in `data:` payloads confuse its parser) so the components are derived by
+    /// scanning `absoluteString` directly.  When the `opaqueURLFragmentFix` feature is on,
+    /// the `CFURLCreateAbsoluteURLWithBytes` swapper has already stored the exact byte
+    /// offset of any '#' delimiter on the NSURL associated object, which is used in preference
+    /// to a string search for maximum accuracy.
     public func equals(_ other: URL, by components: EqualityComponents) -> Bool {
         guard let selfParsed  = ResolvedComponents(self),
               let otherParsed = ResolvedComponents(other) else { return false }
@@ -442,11 +461,15 @@ extension URL {
 
     // MARK: - Helpers for equals(_:by:)
 
-    /// Parsed URL components used internally by `equals(_:by:)`.
+    /// Parsed components for a single URL, produced once and reused across all component
+    /// comparisons in `equals(_:by:)`.
     ///
-    /// For hierarchical URLs `URLComponents` is used directly. For opaque URLs
-    /// (e.g. `about:blank%23foo`) the fragment is recovered by scanning `absoluteString`
-    /// for a `#` or `%23` delimiter; path and query are then trimmed accordingly.
+    /// `URLComponents` is used for all structural fields.  For opaque URLs (`about:`,
+    /// `data:`, `javascript:`, …) it correctly sets `host`/`port` to `nil` and puts
+    /// everything after the scheme colon into `path`.  The only exception is `fragment`:
+    /// Foundation percent-encodes `#` as `%23` in `absoluteString` for some opaque URLs
+    /// (e.g. `about:blank%23anchor`), so `URLComponents.fragment` comes back `nil`.
+    /// `opaqueFragment` supplies the correct value from the swapper's stored byte offset.
     private struct ResolvedComponents {
         let host: String?
         let port: Int?
@@ -461,7 +484,7 @@ extension URL {
             let isOpaque = url.isOpaque
             // For opaque URLs (about:, data:, …) URLComponents doesn't surface the fragment;
             // scan absoluteString directly. For hierarchical URLs, URLComponents is reliable.
-            fragment = isOpaque ? url.opaqueFragment : components.fragment.map { $0[...] }
+            fragment = url.effectiveFragment
             // Only strip when Foundation missed the fragment (the %23 case).
             // When Foundation found a literal '#', URLComponents already stripped it from path/query.
             let foundationMissedFragment = isOpaque && components.fragment == nil
@@ -476,9 +499,7 @@ extension URL {
             if foundationMissedFragment, query == nil,
                let fragment, !fragment.isEmpty,
                rawPath.count > fragment.count + 1 {
-                // drop "#<fragment>" folded into path
-                // if opaque URL path ends with "/" – it’s kept
-                path = rawPath.dropLast(fragment.count + 1)
+                path = rawPath.dropLast(fragment.count + 1) // drop "#<fragment>" folded into path
             } else if !isOpaque && rawPath.hasSuffix("/") {
                 path = rawPath.dropLast()
             } else {
@@ -487,20 +508,58 @@ extension URL {
         }
     }
 
-    // Fragment substring for opaque URLs, recovered by scanning absoluteString.
-    // Returns nil when no fragment delimiter is found after the scheme.
-    private var opaqueFragment: Substring? {
-        // Foundation recognises a literal '#' as a fragment delimiter even for opaque about: URLs.
-        if let fragment { return fragment[...] }
-        // URL(trimmedAddressBarString:) can produce about:blank%23anchor where %23 is
-        // a percent-encoded '#' that Foundation's opaque URL parser doesn't treat as a delimiter.
-        let raw = absoluteString
-        guard let schemeEnd = raw.range(of: ":") else { return nil }
-        let rest = raw[schemeEnd.upperBound...]
-        if let encodedRange = rest.range(of: "%23") {
-            return rest[encodedRange.upperBound...]
+    /// Byte range of the `#` fragment delimiter recorded by the
+    /// `CFURLCreateAbsoluteURLWithBytes` swapper, shared by the hook (writing)
+    /// and `opaqueFragment` / `ResolvedComponents` (reading).
+    ///
+    /// - **get** — returns the stored `NSRange` when a fragment was found;
+    ///   `nil` for both "not yet scanned" and "scanned, no `#`" (NSNull sentinel).
+    /// - **set** — writes `NSValue(range:)` when a range is supplied, or
+    ///   `NSNull()` as a "scanned, no fragment" sentinel when `nil` is written.
+    ///   No-ops when the swapper key has not been registered.
+    public var opaqueFragmentAnnotation: NSRange? {
+        get {
+            guard let key = cfURLFragmentByteRangeAssociationKey,
+                  let value = objc_getAssociatedObject(self as AnyObject, key) as? NSValue
+            else { return nil }
+            let r = value.rangeValue
+            return r.location != NSNotFound ? r : nil
         }
-        return nil
+        nonmutating set {
+            guard let key = cfURLFragmentByteRangeAssociationKey else { return }
+            objc_setAssociatedObject(self as AnyObject,
+                                     key,
+                                     newValue.map(NSValue.init(range:)) ?? NSNull(),
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    /// `true` when the swapper has already scanned this URL, regardless of whether
+    /// a fragment was found.  Used by the hook to skip re-scanning.
+    public var isOpaqueFragmentScanned: Bool {
+        guard let key = cfURLFragmentByteRangeAssociationKey else { return false }
+        return objc_getAssociatedObject(self as AnyObject, key) != nil
+    }
+
+    // Fragment substring for opaque URLs, read from the swapper's stored byte range.
+    // The original '#' may appear as '#' (delim length 1) or '%23' (length 3) in absoluteString.
+    // Returns nil when the swapper is not installed or recorded no fragment.
+    private var opaqueFragment: Substring? {
+        guard let range = opaqueFragmentAnnotation else { return nil }
+        let raw    = absoluteString
+        let ns     = raw as NSString
+        let rawLen = ns.length
+        let hashOff = range.location
+        guard hashOff < rawLen else { return nil }
+        let delimLen = ns.character(at: hashOff) == UInt16(UInt8(ascii: "#")) ? 1 : 3
+        let fragStart = hashOff + delimLen
+        guard fragStart <= rawLen else { return nil }
+        return raw[raw.utf16.index(raw.utf16.startIndex, offsetBy: fragStart)...]
+    }
+
+    // Fragment presence for opaque URLs, used by hasFragment.
+    private var effectiveFragment: Substring? {
+        isOpaque ? opaqueFragment : fragment.map { $0[...] }
     }
 
     /// Drops text fragment from a URL.

@@ -104,6 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let applicationUpdateDetector: ApplicationUpdateDetector
     private(set) var uncleanExitRestartSourceResolver: UncleanExitRestartSourceResolver!
     private var grammarFeaturesManager = GrammarFeaturesManager()
+    private var opaqueURLFragmentFixManager: OpaqueURLFragmentFixManager?
     let internalUserDecider: InternalUserDecider
     private var isInternalUserSharingCancellable: AnyCancellable?
     let featureFlagger: FeatureFlagger
@@ -640,6 +641,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             featureFlagOverrides.applyUITestsFeatureFlagsIfNeeded()
         }
         self.featureFlagger = featureFlagger
+        opaqueURLFragmentFixManager = OpaqueURLFragmentFixManager(featureFlagger: featureFlagger)
 
         displaysTabsAnimations = AnimationsAvailabilityDecider(featureFlagger: featureFlagger).displaysTabsAnimations
 

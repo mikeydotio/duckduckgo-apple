@@ -22,7 +22,7 @@ import MachO
 extension section_64 {
 
     var type: Int32 {
-        Int32(self.flags) & SECTION_TYPE
+        Int32(bitPattern: self.flags) & SECTION_TYPE
     }
 
     var count: Int {
@@ -36,7 +36,7 @@ extension section_64 {
     }
 
     func indirectSymbolBindings(slide: Int) -> UnsafeBufferPointer<UnsafeRawPointer>? {
-        guard let ptr = UnsafeRawPointer(bitPattern: UInt(self.addr) + UInt(slide)) else { return nil }
+        guard let ptr = UnsafeRawPointer(bitPattern: UInt(self.addr) &+ UInt(bitPattern: slide)) else { return nil }
         return UnsafeRawBufferPointer(start: ptr, count: Int(self.size)).assumingMemoryBound(to: UnsafeRawPointer.self)
     }
 

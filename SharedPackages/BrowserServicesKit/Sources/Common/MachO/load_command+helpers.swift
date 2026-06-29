@@ -38,4 +38,9 @@ extension UnsafePointer where Pointee == load_command {
         return UnsafeRawPointer(self).assumingMemoryBound(to: dysymtab_command.self)
     }
 
+    func `as`(_: linkedit_data_command.Type) -> UnsafePointer<linkedit_data_command>? {
+        guard self.pointee.cmd == LC_DYLD_CHAINED_FIXUPS else { return nil }
+        return UnsafeRawPointer(self).assumingMemoryBound(to: linkedit_data_command.self)
+    }
+
 }
