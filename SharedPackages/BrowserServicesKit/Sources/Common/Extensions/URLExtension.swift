@@ -476,9 +476,13 @@ extension URL {
             if foundationMissedFragment, query == nil,
                let fragment, !fragment.isEmpty,
                rawPath.count > fragment.count + 1 {
-                path = rawPath.dropLast(fragment.count + 1) // drop "#<fragment>" folded into path
+                // drop "#<fragment>" folded into path
+                // if opaque URL path ends with "/" – it’s kept
+                path = rawPath.dropLast(fragment.count + 1)
+            } else if !isOpaque && rawPath.hasSuffix("/") {
+                path = rawPath.dropLast()
             } else {
-                path = rawPath.dropping(suffix: "/")[...]
+                path = rawPath[...]
             }
         }
     }
