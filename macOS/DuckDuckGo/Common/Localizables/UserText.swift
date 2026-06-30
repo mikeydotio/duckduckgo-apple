@@ -1818,6 +1818,21 @@ struct UserText {
     static let autoconsentFromSetUpModalConfirmButton = NSLocalizedString("autoconsent.from.setup.modal.cta.confirm", value: "Handle Pop-Ups For Me", comment: "Confirm button for modal asking the user to auto manage cookies")
     static let autoconsentModalDenyButton = NSLocalizedString("autoconsent.modal.cta.deny", value: "No Thanks", comment: "Deny button for modal asking the user to auto manage cookies")
 
+    // MARK: - Cookie Pop-up Protection Opt-In Dialog
+    static let cookiePopupProtectionOptInBadge = NSLocalizedString("cookie-popup-protection.opt-in.badge", value: "New", comment: "Small 'NEW' badge shown above the Cookie Pop-up Protection opt-in dialog header")
+    static let cookiePopupProtectionOptInHeader = NSLocalizedString("cookie-popup-protection.opt-in.header", value: "Cookie Pop-up Protection", comment: "Header of the Cookie Pop-up Protection opt-in dialog")
+    static let cookiePopupProtectionOptInConfirm = NSLocalizedString("cookie-popup-protection.opt-in.confirm", value: "Confirm", comment: "Confirm button in the Cookie Pop-up Protection opt-in dialog")
+    static let cookiePopupProtectionOptInFooter = NSLocalizedString("cookie-popup-protection.opt-in.footer", value: "You can always adjust later in **Settings > Cookie Pop-up Protection**.", comment: "Footer text in the Cookie Pop-up Protection opt-in dialog. The text between ** ** is rendered bold.")
+    static let cookiePopupProtectionOptInPreferenceCaption = NSLocalizedString("cookie-popup-protection.opt-in.preference-caption", value: "Set your preference:", comment: "Caption above the option list in the Cookie Pop-up Protection opt-in dialog")
+    static let cookiePopupProtectionOptInEnabledTitle = NSLocalizedString("cookie-popup-protection.opt-in.enabled.title", value: "Want us to handle more cookie pop-ups for you?", comment: "Title of the opt-in dialog when cookie pop-up protection is already enabled")
+    static let cookiePopupProtectionOptInEnabledBody = NSLocalizedString("cookie-popup-protection.opt-in.enabled.body", value: "We can save you a click by accepting cookie pop-ups that don't offer an opt-out.", comment: "Body of the opt-in dialog when cookie pop-up protection is already enabled")
+    static let cookiePopupProtectionOptInEnabledPrimaryOption = NSLocalizedString("cookie-popup-protection.opt-in.enabled.primary-option", value: "Accept those on my behalf", comment: "Primary option when cookie pop-up protection is already enabled")
+    static let cookiePopupProtectionOptInEnabledSecondaryOption = NSLocalizedString("cookie-popup-protection.opt-in.enabled.secondary-option", value: "I'll close them myself", comment: "Secondary option when cookie pop-up protection is already enabled")
+    static let cookiePopupProtectionOptInDisabledTitle = NSLocalizedString("cookie-popup-protection.opt-in.disabled.title", value: "Want us to handle & hide cookie pop-ups for you?", comment: "Title of the opt-in dialog when cookie pop-up protection is off")
+    static let cookiePopupProtectionOptInDisabledBody = NSLocalizedString("cookie-popup-protection.opt-in.disabled.body", value: "We'll aim to select the most-private options available for you and close them. If they don't have opt-outs, we accept on your behalf and close them.", comment: "Body of the opt-in dialog when cookie pop-up protection is off")
+    static let cookiePopupProtectionOptInDisabledPrimaryOption = NSLocalizedString("cookie-popup-protection.opt-in.disabled.primary-option", value: "Handle cookie pop-ups for me", comment: "Primary option when cookie pop-up protection is off")
+    static let cookiePopupProtectionOptInDisabledSecondaryOption = NSLocalizedString("cookie-popup-protection.opt-in.disabled.secondary-option", value: "I'll handle them myself", comment: "Secondary option when cookie pop-up protection is off")
+
     static func autoconsentStatsPopoverTitle(count: Int) -> String {
         let localized = NSLocalizedString("autoconsent.stats.popover.title",
                                          value: "%d cookie pop-ups blocked",
