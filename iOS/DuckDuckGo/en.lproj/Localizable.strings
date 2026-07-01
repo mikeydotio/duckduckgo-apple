@@ -1373,28 +1373,28 @@
 "cookie-popup-protection.opt-in.confirm" = "Confirm";
 
 /* Body of the opt-in dialog when cookie pop-up protection is off */
-"cookie-popup-protection.opt-in.disabled.body" = "We'll aim to select the most-private options available for you and close them. If they don't have opt-outs, we accept on your behalf and close them.";
+"cookie-popup-protection.opt-in.disabled.body" = "We'll aim to only select the most-private cookie options available and close these for you. If they don't have opt-outs, we'll save you a click and accept these cookies for you.";
 
 /* Primary (recommended) option when cookie pop-up protection is off */
-"cookie-popup-protection.opt-in.disabled.primary-option" = "Handle cookie pop-ups for me";
+"cookie-popup-protection.opt-in.disabled.primary-option" = "Manage or accept cookies for me";
 
 /* Secondary option when cookie pop-up protection is off */
-"cookie-popup-protection.opt-in.disabled.secondary-option" = "I'll handle them myself";
+"cookie-popup-protection.opt-in.disabled.secondary-option" = "I'll keep handling them myself";
 
 /* Title of the opt-in dialog when cookie pop-up protection is off */
-"cookie-popup-protection.opt-in.disabled.title" = "Want us to handle & hide cookie pop-ups for you?";
+"cookie-popup-protection.opt-in.disabled.title" = "Tired of cookie pop-ups that won't leave you alone?";
 
 /* Body of the opt-in dialog when cookie pop-up protection is already enabled */
-"cookie-popup-protection.opt-in.enabled.body" = "We can save you a click by accepting cookie pop-ups that don't offer an opt-out.";
+"cookie-popup-protection.opt-in.enabled.body" = "We can save you a click and accept these cookies for you.";
 
 /* Primary (recommended) option when cookie pop-up protection is already enabled */
-"cookie-popup-protection.opt-in.enabled.primary-option" = "Accept those on my behalf";
+"cookie-popup-protection.opt-in.enabled.primary-option" = "Accept no-opt-out cookies for me";
 
 /* Secondary option when cookie pop-up protection is already enabled */
-"cookie-popup-protection.opt-in.enabled.secondary-option" = "I'll close them myself";
+"cookie-popup-protection.opt-in.enabled.secondary-option" = "I'll keep handling them myself";
 
 /* Title of the opt-in dialog when cookie pop-up protection is already enabled */
-"cookie-popup-protection.opt-in.enabled.title" = "Want us to handle more cookie pop-ups for you?";
+"cookie-popup-protection.opt-in.enabled.title" = "Tired of cookie pop-ups that don't let you opt out?";
 
 /* Footer text in the Cookie Pop-up Protection opt-in dialog. The text between ** ** is rendered bold. */
 "cookie-popup-protection.opt-in.footer" = "You can always adjust later in **Settings > Cookie Pop-up Protection**.";
