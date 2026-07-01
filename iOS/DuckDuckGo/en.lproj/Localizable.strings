@@ -218,7 +218,7 @@
 "addWidget.title" = "One tap to your favorite sites.";
 
 /* Settings screen title for AI features */
-"ai-features.settings.title" = "AI Features";
+"ai-features.settings.title" = "Duck.ai";
 
 /* List row label in the app menu on a Duck.ai tab — opens the recent Duck.ai chats sidebar */
 "aichat.appMenu.chats" = "Chats";
