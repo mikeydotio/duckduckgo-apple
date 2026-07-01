@@ -39,6 +39,8 @@ enum CookiePopupProtectionOptInPixel: PixelKitEvent {
         }
     }
 
+    var standardParameters: [PixelKitStandardParameter]? { nil }
+
     var parameters: [String: String]? {
         switch self {
         case .shownFirst(let autoconsentEnabled), .shownRepeat(let autoconsentEnabled):
