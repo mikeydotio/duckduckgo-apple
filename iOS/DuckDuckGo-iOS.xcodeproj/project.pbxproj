@@ -1051,7 +1051,7 @@
 		983C52E72C2C0ACB007B5747 /* BookmarkStateRepairTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 983C52E52C2C0ABA007B5747 /* BookmarkStateRepairTests.swift */; };
 		983D71B12A286E810072E26D /* SyncDebugViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 983D71B02A286E810072E26D /* SyncDebugViewController.swift */; };
 		984147AE24F0261A00362052 /* Feedback.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 984147B024F0261A00362052 /* Feedback.storyboard */; };
-		984147B424F0264B00362052 /* Authentication.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 984147B624F0264B00362052 /* Authentication.storyboard */; };
+		984147B424F0264B00362052 /* Authentication.strings in Resources */ = {isa = PBXBuildFile; fileRef = 984147B624F0264B00362052 /* Authentication.strings */; };
 		984147C324F026C800362052 /* HomeRow.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 984147C524F026C800362052 /* HomeRow.storyboard */; };
 		98424A962CED4F430071C7DB /* OHHTTPStubs in Frameworks */ = {isa = PBXBuildFile; productRef = 984249C02CED4F430071C7DB /* OHHTTPStubs */; };
 		98424A972CED4F430071C7DB /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 984249C22CED4F430071C7DB /* OHHTTPStubsSwift */; };
@@ -3754,7 +3754,6 @@
 		983E134E251EABF200149BD9 /* fi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fi; path = fi.lproj/Localizable.strings; sourceTree = "<group>"; };
 		983E134F251EABF200149BD9 /* fi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fi; path = fi.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		984147AF24F0261A00362052 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Feedback.storyboard; sourceTree = "<group>"; };
-		984147B524F0264B00362052 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Authentication.storyboard; sourceTree = "<group>"; };
 		984147C424F026C800362052 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/HomeRow.storyboard; sourceTree = "<group>"; };
 		98424AA92CED4F430071C7DB /* WebViewUnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WebViewUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9847BFFD27A2DDB400DB07AA /* ContentBlocking.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentBlocking.swift; sourceTree = "<group>"; };
@@ -11301,7 +11300,7 @@
 		F1AE54DB1F0425BB00D9A700 /* Privacy */ = {
 			isa = PBXGroup;
 			children = (
-				984147B624F0264B00362052 /* Authentication.storyboard */,
+				984147B624F0264B00362052 /* Authentication.strings */,
 				F1AE54E71F0425FC00D9A700 /* AuthenticationViewController.swift */,
 				981FED6C22025151008488D7 /* BlankSnapshotViewController.swift */,
 				F1CA3C3A1F045B65005FADB3 /* Authenticator.swift */,
@@ -12329,7 +12328,7 @@
 				F4F7F10C25813FE200045D62 /* 03_Airstream_divided_by_four.json in Resources */,
 				6F33F3962E7969B1002E95B1 /* duckduckgo-ai-transition-dark.json in Resources */,
 				C15516062D47D2EF001B94E9 /* burst-blob-passwords.json in Resources */,
-				984147B424F0264B00362052 /* Authentication.storyboard in Resources */,
+				984147B424F0264B00362052 /* Authentication.strings in Resources */,
 				D664C7B72B289AA200CBFA76 /* Subscription.storekit in Resources */,
 				85AE668E2097206E0014CF04 /* NotificationView.xib in Resources */,
 				EDF3B0ED2FE17E7900434E91 /* vpn-dark-mode-legacy.json in Resources */,
@@ -15252,10 +15251,9 @@
 			name = Feedback.storyboard;
 			sourceTree = "<group>";
 		};
-		984147B624F0264B00362052 /* Authentication.storyboard */ = {
+		984147B624F0264B00362052 /* Authentication.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
-				984147B524F0264B00362052 /* Base */,
 				9866DB91251CA8F400612E3A /* bg */,
 				9866DBA8251CA91800612E3A /* hr */,
 				9866DBBF251CA92B00612E3A /* cs */,
@@ -15282,7 +15280,7 @@
 				981685492521EEF100FA91A1 /* nb */,
 				D6D718702F17A3D800616AD1 /* ja */,
 			);
-			name = Authentication.storyboard;
+			name = Authentication.strings;
 			sourceTree = "<group>";
 		};
 		984147C524F026C800362052 /* HomeRow.storyboard */ = {
