@@ -529,9 +529,6 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
     /// Enables improved contextual sheet UX (welcome message, ask about page, etc.)
     case contextualSheetImprovements
 
-    /// Enables removing individual AI chat suggestions
-    case removeSuggestion
-
     /// Enables the fire button in the contextual AI chat sheet
     case contextualFireButton
 
