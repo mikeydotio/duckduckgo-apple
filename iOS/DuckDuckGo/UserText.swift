@@ -29,8 +29,7 @@ public struct UserText {
     public static let addressBarPositionBottom = NSLocalizedString("address.bar.bottom", value: "Bottom", comment: "Settings label for bottom position for the address bar")
 
     public static let appUnlock = NSLocalizedString("app.authentication.unlock", value: "Unlock DuckDuckGo.", comment: "Shown on authentication screen")
-    public static let appUnlockInstructions = NSLocalizedString("Vur-vA-mVI.text",
-                                                                tableName: "Authentication",
+    public static let appUnlockInstructions = NSLocalizedString("app.authentication.unlock.instructions",
                                                                 value: "Tap anywhere to unlock",
                                                                 comment: "Instruction shown on authentication screen after authentication fails")
     public static let searchDuckDuckGo = NSLocalizedString("search.hint.duckduckgo", value: "Search or enter address", comment: "")
