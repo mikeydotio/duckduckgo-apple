@@ -22743,7 +22743,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "We'll aim to select the most-private options available for you and close them. If they don't have opt-outs, we accept on your behalf and close them."
+            "value" : "We'll aim to only select the most-private cookie options available and close these for you. If they don't have opt-outs, we'll save you a click and accept these cookies for you."
           }
         }
       }
@@ -22755,7 +22755,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Handle cookie pop-ups for me"
+            "value" : "Manage or accept cookies for me"
           }
         }
       }
@@ -22767,7 +22767,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "I'll handle them myself"
+            "value" : "I'll keep handling them myself"
           }
         }
       }
@@ -22779,7 +22779,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Want us to handle & hide cookie pop-ups for you?"
+            "value" : "Tired of cookie pop-ups that won't leave you alone?"
           }
         }
       }
@@ -22791,7 +22791,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "We can save you a click by accepting cookie pop-ups that don't offer an opt-out."
+            "value" : "We can save you a click and accept these cookies for you."
           }
         }
       }
@@ -22803,7 +22803,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Accept those on my behalf"
+            "value" : "Accept no-opt-out cookies for me"
           }
         }
       }
@@ -22815,7 +22815,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "I'll close them myself"
+            "value" : "I'll keep handling them myself"
           }
         }
       }
@@ -22827,7 +22827,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Want us to handle more cookie pop-ups for you?"
+            "value" : "Tired of cookie pop-ups that don't let you opt out?"
           }
         }
       }

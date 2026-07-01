@@ -124,7 +124,7 @@ struct CookiePopupProtectionOptInView: View {
                     Image(rebrandable: "Logo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 32, height: 32)
                         .padding(.top, 24)
                         .padding(.bottom, 12)
 
@@ -157,14 +157,14 @@ struct CookiePopupProtectionOptInView: View {
                 .padding(.bottom, 20)
 
             Text(variant.title)
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(Color(designSystemColor: .textPrimary))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 16)
 
             Text(variant.message)
-                .font(.system(size: 16))
+                .font(.system(size: 18))
                 .foregroundColor(Color(designSystemColor: .textPrimary))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -181,7 +181,7 @@ struct CookiePopupProtectionOptInView: View {
                 .padding(.top, 24)
 
             Text(footerText)
-                .font(.system(size: 13))
+                .font(.system(size: 14))
                 .foregroundColor(Color(designSystemColor: .textSecondary))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
