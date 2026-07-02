@@ -28,6 +28,18 @@ protocol AuthenticationViewControllerDelegate: AnyObject {
 
 class AuthenticationViewController: UIViewController {
 
+    private enum Constants {
+        static let unlockInstructionsNumberOfLines = 0
+        static let unlockInstructionsFontSize: CGFloat = 18
+        static let logoTopPadding: CGFloat = 48
+        static let unlockInstructionsHeight: CGFloat = 135
+        static let unlockInstructionsBottomOffset: CGFloat = -59
+        static let unlockImageSize: CGFloat = 56
+        static let unlockInstructionsLabelWidthOffset: CGFloat = -40
+        static let unlockInstructionsLabelTopPadding: CGFloat = 21
+        static let unlockInstructionsLabelBottomOffset: CGFloat = -20
+    }
+
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return ThemeManager.shared.currentTheme.statusBarStyle
     }
@@ -61,7 +73,7 @@ class AuthenticationViewController: UIViewController {
     @objc func onTap(_ sender: Any) {
         delegate?.authenticationViewController(authenticationViewController: self, didTapWithSender: sender)
     }
-
+    
     func hideUnlockInstructions() {
         unlockInstructions.isHidden = true
     }
@@ -90,28 +102,29 @@ extension AuthenticationViewController {
         unlockInstructionsLabel.translatesAutoresizingMaskIntoConstraints = false
         unlockInstructionsLabel.text = UserText.appUnlockInstructions
         unlockInstructionsLabel.textAlignment = .center
-        unlockInstructionsLabel.numberOfLines = 0
-        unlockInstructionsLabel.font = .systemFont(ofSize: 18)
+        unlockInstructionsLabel.numberOfLines = Constants.unlockInstructionsNumberOfLines
+        unlockInstructionsLabel.font = .systemFont(ofSize: Constants.unlockInstructionsFontSize)
         unlockInstructionsLabel.textColor = UIColor(designSystemColor: .accentPrimary)
         unlockInstructions.addSubview(unlockInstructionsLabel)
 
         NSLayoutConstraint.activate([
             logo.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            logo.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 48),
+            logo.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.logoTopPadding),
 
             unlockInstructions.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             unlockInstructions.widthAnchor.constraint(equalTo: view.widthAnchor),
-            unlockInstructions.heightAnchor.constraint(equalToConstant: 135),
-            unlockInstructions.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -59),
+            unlockInstructions.heightAnchor.constraint(equalToConstant: Constants.unlockInstructionsHeight),
+            unlockInstructions.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: Constants.unlockInstructionsBottomOffset),
 
             unlockImageView.centerXAnchor.constraint(equalTo: unlockInstructions.centerXAnchor),
-            unlockImageView.widthAnchor.constraint(equalToConstant: 56),
-            unlockImageView.heightAnchor.constraint(equalToConstant: 56),
+            unlockImageView.widthAnchor.constraint(equalToConstant: Constants.unlockImageSize),
+            unlockImageView.heightAnchor.constraint(equalToConstant: Constants.unlockImageSize),
 
             unlockInstructionsLabel.centerXAnchor.constraint(equalTo: unlockInstructions.centerXAnchor),
-            unlockInstructionsLabel.widthAnchor.constraint(equalTo: unlockInstructions.widthAnchor, constant: -40),
-            unlockInstructionsLabel.topAnchor.constraint(equalTo: unlockImageView.bottomAnchor, constant: 21),
-            unlockInstructionsLabel.bottomAnchor.constraint(equalTo: unlockInstructions.bottomAnchor, constant: -20)
+            unlockInstructionsLabel.widthAnchor.constraint(equalTo: unlockInstructions.widthAnchor, constant: Constants.unlockInstructionsLabelWidthOffset),
+            unlockInstructionsLabel.topAnchor.constraint(equalTo: unlockImageView.bottomAnchor, constant: Constants.unlockInstructionsLabelTopPadding),
+            unlockInstructionsLabel.bottomAnchor.constraint(equalTo: unlockInstructions.bottomAnchor,
+                                                           constant: Constants.unlockInstructionsLabelBottomOffset)
         ])
     }
 
