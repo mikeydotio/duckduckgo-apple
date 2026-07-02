@@ -197,9 +197,9 @@ final class SubscriptionExpirationReminderSchedulerTests: XCTestCase {
 
     func test_notificationTitle_pluralisesByDayCount() {
         XCTAssertEqual(UserText.subscriptionExpirationReminderNotificationTitle(daysUntilTrialEnds: 1),
-                       "Your free trial ends in 1 day")
+                       "Your trial ends in 1 day")
         XCTAssertEqual(UserText.subscriptionExpirationReminderNotificationTitle(daysUntilTrialEnds: 7),
-                       "Your free trial ends in 7 days")
+                       "Your trial ends in 7 days")
     }
 
     func test_scheduleReminder_removesPreviouslyScheduledReminderBeforeAdding() async {
