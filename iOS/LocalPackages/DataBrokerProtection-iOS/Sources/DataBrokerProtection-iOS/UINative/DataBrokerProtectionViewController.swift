@@ -46,6 +46,9 @@ final public class DataBrokerProtectionViewController: UIViewController {
     private var reloadObserver: NSObjectProtocol?
     private var cancellables = Set<AnyCancellable>()
     private let isWebViewInspectable: Bool
+    private var loadDashboardTask: Task<Void, Never>?
+    private var isViewVisible = false
+    private var hasLoadedDashboard = false
 
     private lazy var sharedPixelsHandler: DataBrokerProtectionSharedPixelsHandler = {
         guard let pixelKit = PixelKit.shared else {
@@ -113,19 +116,18 @@ final public class DataBrokerProtectionViewController: UIViewController {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    deinit {
+        if !hasLoadedDashboard {
+            cancelDashboardLoad()
+        }
+    }
     
     public override func viewDidLoad() {
         super.viewDidLoad()
 
-        setupWebView()
         setupLoadingView()
-
-        if let url = URL(string: webUISettings.selectedURL) {
-            webView.load(url)
-        } else {
-            loadingView.stopAnimating()
-            assertionFailure("Selected URL is not valid \(webUISettings.selectedURL)")
-        }
+        loadDashboardWhenDatabaseIsReady()
     }
 
     private func setupWebView() {
@@ -140,6 +142,8 @@ final public class DataBrokerProtectionViewController: UIViewController {
         if #available(iOS 16.4, *) {
             webView.isInspectable = isWebViewInspectable
         }
+
+        view.bringSubviewToFront(loadingView)
     }
 
     private func setupLoadingView() {
@@ -155,6 +159,69 @@ final public class DataBrokerProtectionViewController: UIViewController {
 
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        isViewVisible = true
+
+        guard hasLoadedDashboard else { return }
+        dashboardDidBecomeVisible()
+    }
+
+    override public func viewDidDisappear(_ animated: Bool) {
+        isViewVisible = false
+        cancellables.removeAll()
+        if hasLoadedDashboard {
+            webUIViewModel.viewDidDisappear()
+        } else {
+            cancelDashboardLoad()
+        }
+        super.viewDidDisappear(animated)
+    }
+
+    private func loadDashboardWhenDatabaseIsReady() {
+        cancelDashboardLoad()
+        loadDashboardTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                loadDashboardTask = nil
+            }
+
+            do {
+                try await databaseDelegate.waitForDashboardDatabaseAccess()
+                try Task.checkCancellation()
+                loadDashboard()
+            } catch is CancellationError {
+                return
+            } catch {
+                Logger.dataBrokerProtection.error("Failed to wait for dashboard database access: \(error.localizedDescription, privacy: .public)")
+                loadingView.stopAnimating()
+            }
+        }
+    }
+
+    private func cancelDashboardLoad() {
+        guard let loadDashboardTask else { return }
+
+        loadDashboardTask.cancel()
+        self.loadDashboardTask = nil
+        databaseDelegate.cancelDashboardDatabaseAccessWait()
+    }
+
+    private func loadDashboard() {
+        setupWebView()
+        hasLoadedDashboard = true
+
+        if let url = URL(string: webUISettings.selectedURL) {
+            webView.load(url)
+        } else {
+            loadingView.stopAnimating()
+            assertionFailure("Selected URL is not valid \(webUISettings.selectedURL)")
+        }
+
+        if isViewVisible {
+            dashboardDidBecomeVisible()
+        }
+    }
+
+    private func dashboardDidBecomeVisible() {
         webUIViewModel.viewDidAppear()
         subscribeToBackgroundRefreshNotifications()
         Task { [weak self] in
@@ -163,12 +230,6 @@ final public class DataBrokerProtectionViewController: UIViewController {
             self.interactionPixels.fireInteractionPixel(isAuthenticated: isAuthenticated)
             self.sharedPixelsHandler.fire(.dashboardOpen(isAuthenticated: isAuthenticated, isFreeScan: !isAuthenticated))
         }
-    }
-
-    override public func viewDidDisappear(_ animated: Bool) {
-        cancellables.removeAll()
-        webUIViewModel.viewDidDisappear()
-        super.viewDidDisappear(animated)
     }
 
     private func subscribeToBackgroundRefreshNotifications() {

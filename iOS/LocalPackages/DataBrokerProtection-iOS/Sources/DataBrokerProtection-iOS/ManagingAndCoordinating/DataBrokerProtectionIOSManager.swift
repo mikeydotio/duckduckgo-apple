@@ -94,6 +94,8 @@ public class DBPIOSInterface {
 
     public protocol DatabaseDelegate: AnyObject {
         func prepareDatabaseAccess() async throws
+        func waitForDashboardDatabaseAccess() async throws
+        func cancelDashboardDatabaseAccessWait()
         func getUserProfile() throws -> DataBrokerProtectionCore.DataBrokerProtectionProfile?
         func getAllDataBrokers() throws -> [DataBrokerProtectionCore.DataBroker]
         func getAllBrokerProfileQueryData() throws -> [DataBrokerProtectionCore.BrokerProfileQueryData]
@@ -204,6 +206,7 @@ public final class DataBrokerProtectionIOSManager {
     private let vaultResourcesLock = NSLock()
     private var cachedVaultResources: DataBrokerProtectionIOSManagerVaultResources?
     private var isVaultResourcesInitializationInProgress = false
+    private var dashboardDatabaseAccessContinuation: CheckedContinuation<Void, Error>?
     private let makeVaultResources: () throws -> DataBrokerProtectionIOSManagerVaultResources
     private let authenticationManager: DataBrokerProtectionAuthenticationManaging
     private let userNotificationService: DataBrokerProtectionUserNotificationService
@@ -404,7 +407,7 @@ public final class DataBrokerProtectionIOSManager {
             let resources = try await makeVaultResourcesOnQueue()
             completeVaultResourcesInitialization(with: resources)
         } catch {
-            completeVaultResourcesInitializationAfterFailure()
+            completeVaultResourcesInitializationAfterFailure(error)
             throw error
         }
     }
@@ -422,6 +425,43 @@ public final class DataBrokerProtectionIOSManager {
 
     private func vaultResources() async throws -> DataBrokerProtectionIOSManagerVaultResources {
         try vaultResourcesIfReady()
+    }
+
+    private func waitForVaultResourcesInitializationForDashboard() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            waitForVaultResourcesInitializationForDashboard(continuation)
+        }
+    }
+
+    private func waitForVaultResourcesInitializationForDashboard(_ continuation: CheckedContinuation<Void, Error>) {
+        let result: Result<Void, Error>?
+
+        vaultResourcesLock.lock()
+        if cachedVaultResources != nil {
+            result = .success(())
+        } else if isVaultResourcesInitializationInProgress {
+            dashboardDatabaseAccessContinuation?.resume(throwing: CancellationError())
+            dashboardDatabaseAccessContinuation = continuation
+            result = nil
+        } else {
+            result = .failure(DataBrokerProtectionError.secureVaultNotInitialized)
+        }
+        vaultResourcesLock.unlock()
+
+        if let result {
+            continuation.resume(with: result)
+        }
+    }
+
+    private func cancelVaultResourcesInitializationWaitForDashboard() {
+        let continuation: CheckedContinuation<Void, Error>?
+
+        vaultResourcesLock.lock()
+        continuation = dashboardDatabaseAccessContinuation
+        dashboardDatabaseAccessContinuation = nil
+        vaultResourcesLock.unlock()
+
+        continuation?.resume(throwing: CancellationError())
     }
 
     private func beginVaultResourcesInitializationIfNeeded() -> Bool {
@@ -456,18 +496,30 @@ public final class DataBrokerProtectionIOSManager {
     }
 
     private func completeVaultResourcesInitialization(with resources: DataBrokerProtectionIOSManagerVaultResources) {
+        let continuation: CheckedContinuation<Void, Error>?
+
         resources.queueManager.delegate = self
 
         vaultResourcesLock.lock()
         cachedVaultResources = resources
         isVaultResourcesInitializationInProgress = false
+        continuation = dashboardDatabaseAccessContinuation
+        dashboardDatabaseAccessContinuation = nil
         vaultResourcesLock.unlock()
+
+        continuation?.resume()
     }
 
-    private func completeVaultResourcesInitializationAfterFailure() {
+    private func completeVaultResourcesInitializationAfterFailure(_ error: any Error) {
+        let continuation: CheckedContinuation<Void, Error>?
+
         vaultResourcesLock.lock()
         isVaultResourcesInitializationInProgress = false
+        continuation = dashboardDatabaseAccessContinuation
+        dashboardDatabaseAccessContinuation = nil
         vaultResourcesLock.unlock()
+
+        continuation?.resume(throwing: error)
     }
 }
 
@@ -586,6 +638,14 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AuthenticationDelegate
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.DatabaseDelegate {
     public func prepareDatabaseAccess() async throws {
         _ = try await vaultResources()
+    }
+
+    public func waitForDashboardDatabaseAccess() async throws {
+        try await waitForVaultResourcesInitializationForDashboard()
+    }
+
+    public func cancelDashboardDatabaseAccessWait() {
+        cancelVaultResourcesInitializationWaitForDashboard()
     }
 
     public func getUserProfile() throws -> DataBrokerProtectionCore.DataBrokerProtectionProfile? {
