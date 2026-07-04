@@ -128,7 +128,7 @@ public class DataBrokerProtectionIOSManagerProvider {
             )
         }
 
-        let vaultResources: DataBrokerProtectionIOSManagerVaultResources
+        let vaultResources: DBPVaultResources
         do {
             vaultResources = try vaultResourcesBuilder()
         } catch {
@@ -169,7 +169,7 @@ public class DataBrokerProtectionIOSManagerProvider {
                                            applicationNameForUserAgentProvider: @escaping () -> String?,
                                            contentBlocking: DBPWebViewContentBlocking,
                                            dbpSettings: DataBrokerProtectionSettings,
-                                           contentScopeProperties: ContentScopeProperties) throws -> DataBrokerProtectionIOSManagerVaultResources {
+                                           contentScopeProperties: ContentScopeProperties) throws -> DBPVaultResources {
         let fakeBroker = DataBrokerDebugFlagFakeBroker()
         let databaseURL = DefaultDataBrokerProtectionDatabaseProvider.databaseFilePath(directoryName: DatabaseConstants.directoryName, fileName: DatabaseConstants.fileName)
         let vaultFactory = createDataBrokerProtectionSecureVaultFactory(appGroupName: nil, databaseFileURL: databaseURL)
@@ -239,7 +239,7 @@ public class DataBrokerProtectionIOSManagerProvider {
             isAuthenticatedUserProvider: { await authenticationManager.isUserAuthenticated }
         )
 
-        return DataBrokerProtectionIOSManagerVaultResources(
+        return DBPVaultResources(
             database: database,
             queueManager: queueManager,
             jobDependencies: jobDependencies,

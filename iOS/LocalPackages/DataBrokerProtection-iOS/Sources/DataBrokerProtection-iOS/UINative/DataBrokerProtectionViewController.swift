@@ -202,7 +202,6 @@ final public class DataBrokerProtectionViewController: UIViewController {
 
         loadDashboardTask.cancel()
         self.loadDashboardTask = nil
-        databaseDelegate.cancelDashboardDatabaseAccessWait()
     }
 
     private func loadDashboard() {

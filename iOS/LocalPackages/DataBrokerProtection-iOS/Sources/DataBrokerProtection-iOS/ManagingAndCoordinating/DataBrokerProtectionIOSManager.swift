@@ -96,7 +96,6 @@ public class DBPIOSInterface {
     public protocol DatabaseDelegate: AnyObject {
         func prepareDatabaseAccess() async throws
         func waitForDashboardDatabaseAccess() async throws
-        func cancelDashboardDatabaseAccessWait()
         func getUserProfile() throws -> DataBrokerProtectionCore.DataBrokerProtectionProfile?
         func getAllDataBrokers() throws -> [DataBrokerProtectionCore.DataBroker]
         func getAllBrokerProfileQueryData() throws -> [DataBrokerProtectionCore.BrokerProfileQueryData]
@@ -128,9 +127,9 @@ public class DBPIOSInterface {
     }
 
     protocol PixelsDelegate: AnyObject {
-        func tryToFireEngagementPixels(isAuthenticated: Bool, resources: DataBrokerProtectionIOSManagerVaultResources)
-        func tryToFireWeeklyPixels(isAuthenticated: Bool, resources: DataBrokerProtectionIOSManagerVaultResources)
-        func tryToFireStatsPixels(resources: DataBrokerProtectionIOSManagerVaultResources)
+        func tryToFireEngagementPixels(isAuthenticated: Bool, resources: DBPVaultResources)
+        func tryToFireWeeklyPixels(isAuthenticated: Bool, resources: DBPVaultResources)
+        func tryToFireStatsPixels(resources: DBPVaultResources)
     }
 
     protocol DBPWideEventsDelegate: AnyObject {
@@ -149,7 +148,7 @@ public class DBPIOSInterface {
 
 extension BGTask: DBPIOSInterface.BGTaskHandling {}
 
-final class DataBrokerProtectionIOSManagerVaultResources {
+final class DBPVaultResources {
     let database: DataBrokerProtectionRepository
     var queueManager: JobQueueManaging
     let jobDependencies: BrokerProfileJobDependencyProviding
@@ -190,6 +189,27 @@ final class DataBrokerProtectionIOSManagerVaultResources {
 
 public final class DataBrokerProtectionIOSManager {
 
+    /// Stored while Secure Vault-backed resources are being initialized so callers can
+    /// resume when initialization completes or fail together if initialization fails.
+    private struct VaultResourcesWaiter {
+        let id: UUID
+        let resume: (Result<DBPVaultResources, Error>) -> Void
+    }
+
+    /// Controls whether a caller is allowed to initialize Secure Vault-backed resources.
+    /// Foreground lifecycle work should only wait for initialization already started by an
+    /// explicit entry point; it should not create the vault on its own.
+    private enum InitPolicy {
+        case waitForIt
+        case initIfNeeded(InitEntryPoint)
+    }
+
+    /// The only paths that may start Secure Vault-backed resource initialization.
+    private enum InitEntryPoint {
+        case atLaunch
+        case bgTaskHandling
+    }
+
     private struct Constants {
         /// Maximum delay before the next background task must run
         static let defaultMaxBackgroundTaskWaitTime: TimeInterval = .hours(48)
@@ -211,10 +231,13 @@ public final class DataBrokerProtectionIOSManager {
 
     private let vaultResourcesQueue = DispatchQueue(label: "com.duckduckgo.dbp.secureVaultResources", qos: .utility)
     private let vaultResourcesLock = NSLock()
-    private var cachedVaultResources: DataBrokerProtectionIOSManagerVaultResources?
+    private var cachedVaultResources: DBPVaultResources?
     private var isVaultResourcesInitializationInProgress = false
-    private var dashboardDatabaseAccessContinuation: CheckedContinuation<Void, Error>?
-    private let makeVaultResources: () throws -> DataBrokerProtectionIOSManagerVaultResources
+    private var vaultResourcesWaiters: [VaultResourcesWaiter] = []
+    /// Dashboard loading owns a single visible wait. Replacing it cancels the previous
+    /// continuation so a stale web view load cannot hang behind a newer one.
+    private var dashboardDatabaseAccessWaiterID: UUID?
+    private let makeVaultResources: () throws -> DBPVaultResources
     private let authenticationManager: DataBrokerProtectionAuthenticationManaging
     private let userNotificationService: DataBrokerProtectionUserNotificationService
     private let sharedPixelsHandler: EventMapping<DataBrokerProtectionSharedPixels>
@@ -310,7 +333,7 @@ public final class DataBrokerProtectionIOSManager {
          continuedProcessingCoordinator: (any DBPContinuedProcessingCoordinating)? = nil,
          shouldRegisterBackgroundTaskHandler: Bool = true
     ) {
-        let vaultResources = DataBrokerProtectionIOSManagerVaultResources(
+        let vaultResources = DBPVaultResources(
             database: database,
             queueManager: queueManager,
             jobDependencies: jobDependencies,
@@ -352,7 +375,7 @@ public final class DataBrokerProtectionIOSManager {
         sweepWideEvents()
     }
 
-    init(vaultResourcesBuilder: @escaping () throws -> DataBrokerProtectionIOSManagerVaultResources,
+    init(vaultResourcesBuilder: @escaping () throws -> DBPVaultResources,
          authenticationManager: DataBrokerProtectionAuthenticationManaging,
          userNotificationService: DataBrokerProtectionUserNotificationService,
          sharedPixelsHandler: EventMapping<DataBrokerProtectionSharedPixels>,
@@ -406,8 +429,53 @@ public final class DataBrokerProtectionIOSManager {
     }
 
     public func initializeSecureVaultResources() async throws {
-        guard beginVaultResourcesInitializationIfNeeded() else {
-            return
+        _ = try await vaultResources(initPolicy: .initIfNeeded(.atLaunch))
+    }
+
+    /// Synchronous callers use this when they require resources to already exist.
+    /// It deliberately does not wait or initialize so those paths fail fast.
+    private func vaultResourcesIfReady() throws -> DBPVaultResources {
+        try vaultResourcesLock.withLock {
+            guard let cachedVaultResources else {
+                throw DataBrokerProtectionError.secureVaultNotInitialized
+            }
+
+            return cachedVaultResources
+        }
+    }
+
+    /// Central gate for Secure Vault-backed resources. This keeps the initialization policy
+    /// visible at each call site: launch and BG task handling may initialize, while app-active
+    /// and scheduling work only wait if one of those entry points already started initialization.
+    private func vaultResources(initPolicy: InitPolicy) async throws -> DBPVaultResources {
+        let initializationState: (cachedResources: DBPVaultResources?, shouldInitialize: Bool, shouldWait: Bool) = vaultResourcesLock.withLock {
+            if let cachedVaultResources {
+                return (cachedResources: cachedVaultResources, shouldInitialize: false, shouldWait: false)
+            }
+
+            switch initPolicy {
+            case .waitForIt:
+                return (cachedResources: nil, shouldInitialize: false, shouldWait: isVaultResourcesInitializationInProgress)
+            case .initIfNeeded:
+                if isVaultResourcesInitializationInProgress {
+                    return (cachedResources: nil, shouldInitialize: false, shouldWait: true)
+                }
+
+                isVaultResourcesInitializationInProgress = true
+                return (cachedResources: nil, shouldInitialize: true, shouldWait: false)
+            }
+        }
+
+        if let cachedResources = initializationState.cachedResources {
+            return cachedResources
+        }
+
+        if !initializationState.shouldInitialize {
+            guard initializationState.shouldWait else {
+                throw DataBrokerProtectionError.secureVaultNotInitialized
+            }
+
+            return try await waitForVaultResources()
         }
 
         do {
@@ -417,81 +485,106 @@ public final class DataBrokerProtectionIOSManager {
 
             let resources = try await makeVaultResourcesOnQueue()
             completeVaultResourcesInitialization(with: resources)
+            return resources
         } catch {
             completeVaultResourcesInitializationAfterFailure(error)
             throw error
         }
     }
 
-    private func vaultResourcesIfReady() throws -> DataBrokerProtectionIOSManagerVaultResources {
-        vaultResourcesLock.lock()
-        defer { vaultResourcesLock.unlock() }
-
-        guard let cachedVaultResources else {
-            throw DataBrokerProtectionError.secureVaultNotInitialized
-        }
-
-        return cachedVaultResources
-    }
-
-    private func vaultResources() async throws -> DataBrokerProtectionIOSManagerVaultResources {
-        try vaultResourcesIfReady()
-    }
-
-    private func waitForVaultResourcesInitializationForDashboard() async throws {
+    private func waitForVaultResources() async throws -> DBPVaultResources {
         try await withCheckedThrowingContinuation { continuation in
-            waitForVaultResourcesInitializationForDashboard(continuation)
+            enqueueVaultResourcesWaiter { result in
+                continuation.resume(with: result)
+            }
         }
     }
 
-    private func waitForVaultResourcesInitializationForDashboard(_ continuation: CheckedContinuation<Void, Error>) {
-        let result: Result<Void, Error>?
-
-        vaultResourcesLock.lock()
-        if cachedVaultResources != nil {
-            result = .success(())
-        } else if isVaultResourcesInitializationInProgress {
-            dashboardDatabaseAccessContinuation?.resume(throwing: CancellationError())
-            dashboardDatabaseAccessContinuation = continuation
-            result = nil
-        } else {
-            result = .failure(DataBrokerProtectionError.secureVaultNotInitialized)
+    private func waitForDashboardVaultResources() async throws {
+        let waiterID = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                enqueueVaultResourcesWaiter(id: waiterID, isDashboardWait: true) { result in
+                    switch result {
+                    case .success:
+                        continuation.resume()
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        } onCancel: {
+            // Dashboard loading is task-scoped. When the view task is cancelled, remove its
+            // waiter and resume the continuation so cancellation does not leave a pending wait.
+            Task { [weak self] in
+                self?.cancelVaultResourcesWaiter(id: waiterID)
+            }
         }
-        vaultResourcesLock.unlock()
+    }
 
+    private func enqueueVaultResourcesWaiter(
+        id: UUID = UUID(),
+        isDashboardWait: Bool = false,
+        resume: @escaping (Result<DBPVaultResources, Error>) -> Void
+    ) {
+        let (result, cancelledDashboardWaiter) = vaultResourcesLock.withLock {
+            let result: Result<DBPVaultResources, Error>?
+            let cancelledDashboardWaiter: VaultResourcesWaiter?
+
+            if let cachedVaultResources {
+                result = .success(cachedVaultResources)
+                cancelledDashboardWaiter = nil
+            } else if isVaultResourcesInitializationInProgress {
+                // Coalesce dashboard waits to the latest visible load, but keep non-dashboard
+                // callers queued so all deferred lifecycle work resumes after initialization.
+                if isDashboardWait,
+                   let dashboardDatabaseAccessWaiterID,
+                   let index = vaultResourcesWaiters.firstIndex(where: { $0.id == dashboardDatabaseAccessWaiterID }) {
+                    cancelledDashboardWaiter = vaultResourcesWaiters.remove(at: index)
+                } else {
+                    cancelledDashboardWaiter = nil
+                }
+
+                vaultResourcesWaiters.append(VaultResourcesWaiter(id: id, resume: resume))
+                if isDashboardWait {
+                    dashboardDatabaseAccessWaiterID = id
+                }
+                result = nil
+            } else {
+                result = .failure(DataBrokerProtectionError.secureVaultNotInitialized)
+                cancelledDashboardWaiter = nil
+            }
+
+            return (result, cancelledDashboardWaiter)
+        }
+
+        cancelledDashboardWaiter?.resume(.failure(CancellationError()))
         if let result {
-            continuation.resume(with: result)
+            resume(result)
         }
     }
 
-    private func cancelVaultResourcesInitializationWaitForDashboard() {
-        let continuation: CheckedContinuation<Void, Error>?
+    private func cancelVaultResourcesWaiter(id: UUID) {
+        let cancelledWaiter = vaultResourcesLock.withLock {
+            let cancelledWaiter: VaultResourcesWaiter?
 
-        vaultResourcesLock.lock()
-        continuation = dashboardDatabaseAccessContinuation
-        dashboardDatabaseAccessContinuation = nil
-        vaultResourcesLock.unlock()
+            if let index = vaultResourcesWaiters.firstIndex(where: { $0.id == id }) {
+                cancelledWaiter = vaultResourcesWaiters.remove(at: index)
+            } else {
+                cancelledWaiter = nil
+            }
 
-        continuation?.resume(throwing: CancellationError())
-    }
+            if dashboardDatabaseAccessWaiterID == id {
+                dashboardDatabaseAccessWaiterID = nil
+            }
 
-    private func beginVaultResourcesInitializationIfNeeded() -> Bool {
-        vaultResourcesLock.lock()
-        defer { vaultResourcesLock.unlock() }
-
-        if cachedVaultResources != nil {
-            return false
+            return cancelledWaiter
         }
 
-        if isVaultResourcesInitializationInProgress {
-            return false
-        }
-
-        isVaultResourcesInitializationInProgress = true
-        return true
+        cancelledWaiter?.resume(.failure(CancellationError()))
     }
 
-    private func makeVaultResourcesOnQueue() async throws -> DataBrokerProtectionIOSManagerVaultResources {
+    private func makeVaultResourcesOnQueue() async throws -> DBPVaultResources {
         let makeVaultResources = makeVaultResources
         let vaultResourcesQueue = vaultResourcesQueue
 
@@ -518,31 +611,35 @@ public final class DataBrokerProtectionIOSManager {
     }
     #endif
 
-    private func completeVaultResourcesInitialization(with resources: DataBrokerProtectionIOSManagerVaultResources) {
-        let continuation: CheckedContinuation<Void, Error>?
-
+    private func completeVaultResourcesInitialization(with resources: DBPVaultResources) {
         resources.queueManager.delegate = self
 
-        vaultResourcesLock.lock()
-        cachedVaultResources = resources
-        isVaultResourcesInitializationInProgress = false
-        continuation = dashboardDatabaseAccessContinuation
-        dashboardDatabaseAccessContinuation = nil
-        vaultResourcesLock.unlock()
+        let waiters = vaultResourcesLock.withLock {
+            let waiters = vaultResourcesWaiters
 
-        continuation?.resume()
+            cachedVaultResources = resources
+            isVaultResourcesInitializationInProgress = false
+            vaultResourcesWaiters.removeAll()
+            dashboardDatabaseAccessWaiterID = nil
+
+            return waiters
+        }
+
+        waiters.forEach { $0.resume(.success(resources)) }
     }
 
     private func completeVaultResourcesInitializationAfterFailure(_ error: any Error) {
-        let continuation: CheckedContinuation<Void, Error>?
+        let waiters = vaultResourcesLock.withLock {
+            let waiters = vaultResourcesWaiters
 
-        vaultResourcesLock.lock()
-        isVaultResourcesInitializationInProgress = false
-        continuation = dashboardDatabaseAccessContinuation
-        dashboardDatabaseAccessContinuation = nil
-        vaultResourcesLock.unlock()
+            isVaultResourcesInitializationInProgress = false
+            vaultResourcesWaiters.removeAll()
+            dashboardDatabaseAccessWaiterID = nil
 
-        continuation?.resume(throwing: error)
+            return waiters
+        }
+
+        waiters.forEach { $0.resume(.failure(error)) }
     }
 }
 
@@ -555,9 +652,11 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
     }
 
     public func appDidBecomeActive() async {
-        let resources: DataBrokerProtectionIOSManagerVaultResources
+        let resources: DBPVaultResources
         do {
-            resources = try await vaultResources()
+            // App-active work may depend on vault resources, but should not be the path that
+            // creates them. It only joins initialization that launch or BG handling started.
+            resources = try await vaultResources(initPolicy: .waitForIt)
         } catch {
             Logger.dataBrokerProtection.error("Secure Vault resources unavailable during app active: \(error.localizedDescription, privacy: .public)")
             return
@@ -588,7 +687,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
         }
     }
 
-    func fireMonitoringPixels(resources: DataBrokerProtectionIOSManagerVaultResources) async {
+    func fireMonitoringPixels(resources: DBPVaultResources) async {
         let isAuthenticated = await authenticationManager.isUserAuthenticated
 
         tryToFireEngagementPixels(isAuthenticated: isAuthenticated, resources: resources)
@@ -606,7 +705,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
 
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.UserEventsDelegate {
     public func dashboardDidOpen() {
-        let resources: DataBrokerProtectionIOSManagerVaultResources
+        let resources: DBPVaultResources
         do {
             resources = try vaultResourcesIfReady()
         } catch {
@@ -660,15 +759,11 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AuthenticationDelegate
 
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.DatabaseDelegate {
     public func prepareDatabaseAccess() async throws {
-        _ = try await vaultResources()
+        _ = try vaultResourcesIfReady()
     }
 
     public func waitForDashboardDatabaseAccess() async throws {
-        try await waitForVaultResourcesInitializationForDashboard()
-    }
-
-    public func cancelDashboardDatabaseAccessWait() {
-        cancelVaultResourcesInitializationWaitForDashboard()
+        try await waitForDashboardVaultResources()
     }
 
     public func getUserProfile() throws -> DataBrokerProtectionCore.DataBrokerProtectionProfile? {
@@ -717,7 +812,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DatabaseDelegate {
     }
 
     func saveProfileAndPrepareForInitialScans(_ profile: DataBrokerProtectionCore.DataBrokerProtectionProfile) async throws {
-        let resources = try await vaultResources()
+        let resources = try vaultResourcesIfReady()
         do {
             try await resources.database.save(profile)
         } catch {
@@ -746,7 +841,7 @@ extension DataBrokerProtectionIOSManager: JobQueueManagerDelegate {
     public func queueManagerWillEnqueueOperations(_ queueManager: JobQueueManaging) {
         Task {
             do {
-                try await vaultResources().brokerUpdater?.checkForUpdates()
+                try await vaultResourcesIfReady().brokerUpdater?.checkForUpdates()
             } catch DataBrokerProtectionError.secureVaultNotInitialized {
                 Logger.dataBrokerProtection.error("Secure Vault resources unavailable while enqueueing operations")
             } catch {
@@ -825,14 +920,14 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.JobQueueInformationDel
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.DebugCommandsDelegate {
 
     public func refreshRemoteBrokerJSON() async throws {
-        try await vaultResources().brokerUpdater?.checkForUpdates(skipsLimiter: true)
+        try await vaultResourcesIfReady().brokerUpdater?.checkForUpdates(skipsLimiter: true)
     }
 
     /// Used by the iOS PIR debug menu to trigger scheduled jobs.
     public func runScheduledJobs(type: JobType,
                                  errorHandler: ((DataBrokerProtectionJobsErrorCollection?) -> Void)?,
                                  completionHandler: (() -> Void)?) {
-        let resources: DataBrokerProtectionIOSManagerVaultResources
+        let resources: DBPVaultResources
         do {
             resources = try vaultResourcesIfReady()
         } catch {
@@ -872,14 +967,14 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DebugCommandsDelegate 
     }
 
     public func runEmailConfirmationJobs() async throws {
-        let resources = try await vaultResources()
+        let resources = try vaultResourcesIfReady()
         try await resources.emailConfirmationDataService.checkForEmailConfirmationData()
         resources.queueManager.addEmailConfirmationJobs(showWebView: true, jobDependencies: resources.jobDependencies)
     }
 
     public func fireWeeklyPixels() async {
         let isAuthenticated = await authenticationManager.isUserAuthenticated
-        guard let resources = try? await vaultResources() else {
+        guard let resources = try? vaultResourcesIfReady() else {
             Logger.dataBrokerProtection.error("Secure Vault resources unavailable while firing weekly pixels")
             return
         }
@@ -924,7 +1019,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.RunPrerequisitesDelega
 
     public func validateRunPrerequisites() async -> Bool {
         do {
-            guard try await vaultResources().database.fetchProfile() != nil else {
+            guard try vaultResourcesIfReady().database.fetchProfile() != nil else {
                 Logger.dataBrokerProtection.log("Profile run prerequisites are invalid")
                 return false
             }
@@ -964,7 +1059,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DataBrokerProtectionVi
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.OptOutEmailConfirmationHandlingDelegate {
     func checkForEmailConfirmationData() async {
         do {
-            try await vaultResources().emailConfirmationDataService.checkForEmailConfirmationData()
+            try await vaultResourcesIfReady().emailConfirmationDataService.checkForEmailConfirmationData()
         } catch {
             Logger.dataBrokerProtection.error("Email confirmation data check failed: \(error, privacy: .public)")
         }
@@ -974,18 +1069,18 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.OptOutEmailConfirmatio
 // MARK: - Private protocol implementations
 
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.PixelsDelegate {
-    func tryToFireEngagementPixels(isAuthenticated: Bool, resources: DataBrokerProtectionIOSManagerVaultResources) {
+    func tryToFireEngagementPixels(isAuthenticated: Bool, resources: DBPVaultResources) {
         Task {
             let needBackgroundAppRefresh = await needBackgroundAppRefreshForEngagementPixel()
             resources.engagementPixels.fireEngagementPixel(isAuthenticated: isAuthenticated, needBackgroundAppRefresh: needBackgroundAppRefresh)
         }
     }
 
-    func tryToFireWeeklyPixels(isAuthenticated: Bool, resources: DataBrokerProtectionIOSManagerVaultResources) {
+    func tryToFireWeeklyPixels(isAuthenticated: Bool, resources: DBPVaultResources) {
         resources.eventPixels.tryToFireWeeklyPixels(isAuthenticated: isAuthenticated)
     }
 
-    func tryToFireStatsPixels(resources: DataBrokerProtectionIOSManagerVaultResources) {
+    func tryToFireStatsPixels(resources: DBPVaultResources) {
         resources.statsPixels.tryToFireStatsPixels()
         resources.statsPixels.fireCustomStatsPixelsIfNeeded()
     }
@@ -1027,6 +1122,16 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
 
     func scheduleBGProcessingTask() {
         Task {
+            let resources: DBPVaultResources
+            do {
+                // Scheduling needs database state to choose the next eligible run, but it should
+                // not create Secure Vault resources outside the explicit init entry points.
+                resources = try await vaultResources(initPolicy: .waitForIt)
+            } catch {
+                Logger.dataBrokerProtection.error("Secure Vault resources unavailable while scheduling background task: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+
             guard await validateRunPrerequisites() else {
                 Logger.dataBrokerProtection.log("Prerequisites are invalid during scheduling of background task")
                 return
@@ -1045,13 +1150,6 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
 
 #if !targetEnvironment(simulator)
             let isAuthenticatedUser = await refreshFreeScanState()
-            let resources: DataBrokerProtectionIOSManagerVaultResources
-            do {
-                resources = try await vaultResources()
-            } catch {
-                Logger.dataBrokerProtection.error("Secure Vault resources unavailable while scheduling background task: \(error.localizedDescription, privacy: .public)")
-                return
-            }
 
             do {
                 let request = BGProcessingTaskRequest(identifier: Self.backgroundTaskIdentifier)
@@ -1080,7 +1178,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
         }
     }
 
-    private func startBackgroundTaskOperations(resources: DataBrokerProtectionIOSManagerVaultResources, isAuthenticated: Bool, completion: @escaping () -> Void) {
+    private func startBackgroundTaskOperations(resources: DBPVaultResources, isAuthenticated: Bool, completion: @escaping () -> Void) {
         if isAuthenticated {
             Logger.dataBrokerProtection.log("Starting all operations in background task")
             resources.queueManager.startScheduledAllOperationsIfPermitted(showWebView: false,
@@ -1101,7 +1199,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
         }
     }
 
-    private func recordBackgroundTaskCompletedEvent(resources: DataBrokerProtectionIOSManagerVaultResources, sessionId: String, startDate: Date) {
+    private func recordBackgroundTaskCompletedEvent(resources: DBPVaultResources, sessionId: String, startDate: Date) {
         let completedAt = Date.now
         let duration = completedAt.timeIntervalSince(startDate) * 1000.0
         do {
@@ -1150,9 +1248,11 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
         }
 
         Task {
-            let resources: DataBrokerProtectionIOSManagerVaultResources
+            let resources: DBPVaultResources
             do {
-                resources = try await vaultResources()
+                // iOS may launch the app directly for this task, so BG handling is allowed to
+                // initialize the vault resources if the normal launch path has not completed.
+                resources = try await vaultResources(initPolicy: .initIfNeeded(.bgTaskHandling))
             } catch {
                 Logger.dataBrokerProtection.error("Secure Vault resources unavailable during background task: \(error.localizedDescription, privacy: .public)")
                 task.setTaskCompleted(success: false)
@@ -1245,7 +1345,7 @@ private extension DataBrokerProtectionIOSManager {
 
     func hasNotRunPIRScan() async -> Bool {
         do {
-            let resources = try await vaultResources()
+            let resources = try vaultResourcesIfReady()
             let hasProfile = try resources.database.fetchProfile() != nil
             let brokerProfileQueryData = try resources.database.fetchAllBrokerProfileQueryData(reason: .profileHistoryReporting)
             let hasScansWithLastRunDate = brokerProfileQueryData.contains { $0.scanJobData.lastRunDate != nil }
@@ -1264,7 +1364,7 @@ private extension DataBrokerProtectionIOSManager {
     /// Handles common completion work for immediate scan operations.
     /// The queue also runs completion for interrupted scans; only normal completions may persist first-write-wins freemium state.
     func handleScanOperationsCompletion(scanCompletedNormally: Bool) async {
-        guard let resources = try? await vaultResources(),
+        guard let resources = try? vaultResourcesIfReady(),
               let hasMatches = try? resources.database.hasMatches() else { return }
         if hasMatches {
             eventsHandler.fire(.firstScanCompletedAndMatchesFound)
@@ -1279,9 +1379,9 @@ extension DataBrokerProtectionIOSManager {
 
     @MainActor
     func startImmediateScanOperations() async {
-        let resources: DataBrokerProtectionIOSManagerVaultResources
+        let resources: DBPVaultResources
         do {
-            resources = try await vaultResources()
+            resources = try vaultResourcesIfReady()
         } catch {
             Logger.dataBrokerProtection.error("Secure Vault resources unavailable while starting immediate scans: \(error.localizedDescription, privacy: .public)")
             return
@@ -1389,9 +1489,9 @@ extension DataBrokerProtectionIOSManager: DBPContinuedProcessingDelegate {
 
     @MainActor
     func coordinatorIsReadyForScanOperations() async {
-        let resources: DataBrokerProtectionIOSManagerVaultResources
+        let resources: DBPVaultResources
         do {
-            resources = try await vaultResources()
+            resources = try vaultResourcesIfReady()
         } catch {
             Logger.dataBrokerProtection.error("Secure Vault resources unavailable during continued-processing scans: \(error.localizedDescription, privacy: .public)")
             return
