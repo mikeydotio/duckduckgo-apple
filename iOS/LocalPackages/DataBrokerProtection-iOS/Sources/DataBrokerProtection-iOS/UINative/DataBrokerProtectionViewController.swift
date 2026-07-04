@@ -161,7 +161,12 @@ final public class DataBrokerProtectionViewController: UIViewController {
         super.viewDidAppear(animated)
         isViewVisible = true
 
-        guard hasLoadedDashboard else { return }
+        guard hasLoadedDashboard else {
+            if loadDashboardTask == nil {
+                loadDashboardWhenDatabaseIsReady()
+            }
+            return
+        }
         dashboardDidBecomeVisible()
     }
 
@@ -187,6 +192,7 @@ final public class DataBrokerProtectionViewController: UIViewController {
             do {
                 try await databaseDelegate.prepareDatabaseAccess()
                 try Task.checkCancellation()
+                webUIViewModel.updatePartialProfile()
                 loadDashboard()
             } catch is CancellationError {
                 return

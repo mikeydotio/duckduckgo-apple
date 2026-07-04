@@ -123,14 +123,16 @@ extension DBPUIViewModel: DBPUICommunicationDelegate {
     
     public func getUserProfile() async -> DBPUIUserProfile? {
         do {
-            let profile = try databaseDelegate?.getUserProfile()
-
-            guard let profile else { return nil }
-            editablePartialProfile = .init(from: profile)
+            guard let profile = try databaseDelegate?.getUserProfile() else { return nil }
             return DBPUIUserProfile(from: profile)
         } catch {
             return nil
         }
+    }
+
+    func updatePartialProfile() {
+        guard let profile = try? databaseDelegate?.getUserProfile() else { return }
+        editablePartialProfile = .init(from: profile)
     }
     
     public func deleteProfileData() throws {
