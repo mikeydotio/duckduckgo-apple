@@ -192,25 +192,22 @@ public final class DataBrokerProtectionIOSManager {
     /// resume when initialization completes or fail together if initialization fails.
     private typealias VaultResourcesWaiter = (Result<DBPVaultResources, Error>) -> Void
 
-    /// Controls whether a caller is allowed to initialize Secure Vault-backed resources.
-    /// Foreground lifecycle work should only wait for initialization already started by an
-    /// explicit entry point; it should not create the vault on its own.
-    private enum InitPolicy {
-        case wait
-        case initIfNeeded(Reason)
-
-        /// The only paths that may start Secure Vault-backed resource initialization.
-        enum Reason {
-            case launch
-            case backgroundTask
-        }
+    /// The entry point requesting Secure Vault-backed resources. Every caller either starts
+    /// initialization or joins one already in progress; the gate dedups concurrent initializers,
+    /// so multiple entry points still result in a single initialization. The reason is for
+    /// call-site readability only.
+    private enum VaultInitReason {
+        case launch
+        case appActive
+        case dashboard
+        case scheduling
+        case backgroundTask
     }
 
     private enum VaultResourcesResolution {
         case ready(DBPVaultResources)
         case initialize
         case wait
-        case unavailable
     }
 
     private struct Constants {
@@ -225,7 +222,7 @@ public final class DataBrokerProtectionIOSManager {
 
         #if DEBUG
         /// Temporary delay for testing deferred PIR Secure Vault initialization behavior on device.
-        static let secureVaultInitializationTestingDelayNanoseconds: UInt64 = 20_000_000_000
+        static let secureVaultInitializationTestingDelayNanoseconds: UInt64 = 15_000_000_000
         #endif
     }
 
@@ -457,7 +454,7 @@ public final class DataBrokerProtectionIOSManager {
     }
 
     public func prepareSecureVaultResourcesAtLaunch() async throws {
-        _ = try await vaultResources(initPolicy: .initIfNeeded(.launch))
+        _ = try await vaultResources(reason: .launch)
     }
 
     /// Synchronous callers use this when they require resources to already exist.
@@ -472,26 +469,21 @@ public final class DataBrokerProtectionIOSManager {
         }
     }
 
-    /// Central gate for Secure Vault-backed resources. This keeps the initialization policy
-    /// visible at each call site: launch and BG task handling may initialize, while app-active
-    /// and scheduling work only wait if one of those entry points already started initialization.
-    private func vaultResources(initPolicy: InitPolicy) async throws -> DBPVaultResources {
+    /// Central gate for Secure Vault-backed resources. Every caller either starts initialization
+    /// or joins one already in progress; the gate ensures a single initialization even when
+    /// multiple entry points (launch, app-active, background task) arrive concurrently.
+    private func vaultResources(reason: VaultInitReason) async throws -> DBPVaultResources {
         let resolution: VaultResourcesResolution = vaultResourcesLock.withLock {
             if let cachedVaultResources {
                 return .ready(cachedVaultResources)
             }
 
-            switch initPolicy {
-            case .wait:
-                return isInitializingVaultResources ? .wait : .unavailable
-            case .initIfNeeded:
-                if isInitializingVaultResources {
-                    return .wait
-                }
-
-                isInitializingVaultResources = true
-                return .initialize
+            if isInitializingVaultResources {
+                return .wait
             }
+
+            isInitializingVaultResources = true
+            return .initialize
         }
 
         switch resolution {
@@ -503,8 +495,6 @@ public final class DataBrokerProtectionIOSManager {
                     continuation.resume(with: result)
                 }
             }
-        case .unavailable:
-            throw DataBrokerProtectionError.secureVaultNotInitialized
         case .initialize:
             do {
                 #if DEBUG
@@ -606,9 +596,10 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
     public func appDidBecomeActive() async {
         let resources: DBPVaultResources
         do {
-            // App-active work may depend on vault resources, but should not be the path that
-            // creates them. It only joins initialization that launch or BG handling started.
-            resources = try await vaultResources(initPolicy: .wait)
+            // App-active work depends on vault resources. The launch task's init runs on a
+            // low-priority background queue and can lose the race to the foreground transition,
+            // so app-active must be able to start (or join) initialization rather than only wait.
+            resources = try await vaultResources(reason: .appActive)
         } catch {
             Logger.dataBrokerProtection.error("Secure Vault resources unavailable during app active: \(error.localizedDescription, privacy: .public)")
             return
@@ -711,7 +702,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AuthenticationDelegate
 
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.DatabaseDelegate {
     public func prepareDatabaseAccess() async throws {
-        _ = try await vaultResources(initPolicy: .wait)
+        _ = try await vaultResources(reason: .dashboard)
     }
 
     public func getUserProfile() throws -> DataBrokerProtectionCore.DataBrokerProtectionProfile? {
@@ -1072,9 +1063,8 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
         Task {
             let resources: DBPVaultResources
             do {
-                // Scheduling needs database state to choose the next eligible run, but it should
-                // not create Secure Vault resources outside the explicit init entry points.
-                resources = try await vaultResources(initPolicy: .wait)
+                // Scheduling needs database state to choose the next eligible run.
+                resources = try await vaultResources(reason: .scheduling)
             } catch {
                 Logger.dataBrokerProtection.error("Secure Vault resources unavailable while scheduling background task: \(error.localizedDescription, privacy: .public)")
                 return
@@ -1198,9 +1188,9 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
         Task {
             let resources: DBPVaultResources
             do {
-                // iOS may launch the app directly for this task, so BG handling is allowed to
-                // initialize the vault resources if the normal launch path has not completed.
-                resources = try await vaultResources(initPolicy: .initIfNeeded(.backgroundTask))
+                // iOS may launch the app directly for this task, so BG handling initializes the
+                // vault resources if the normal launch path has not completed.
+                resources = try await vaultResources(reason: .backgroundTask)
             } catch {
                 Logger.dataBrokerProtection.error("Secure Vault resources unavailable during background task: \(error.localizedDescription, privacy: .public)")
                 task.setTaskCompleted(success: false)

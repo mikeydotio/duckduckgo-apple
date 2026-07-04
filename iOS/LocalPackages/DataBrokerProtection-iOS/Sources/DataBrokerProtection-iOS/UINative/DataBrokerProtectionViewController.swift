@@ -46,7 +46,6 @@ final public class DataBrokerProtectionViewController: UIViewController {
     private var reloadObserver: NSObjectProtocol?
     private var cancellables = Set<AnyCancellable>()
     private let isWebViewInspectable: Bool
-    private var loadDashboardTask: Task<Void, Never>?
     private var isViewVisible = false
     private var hasLoadedDashboard = false
 
@@ -117,17 +116,21 @@ final public class DataBrokerProtectionViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    deinit {
-        if !hasLoadedDashboard {
-            cancelDashboardLoad()
-        }
-    }
-    
     public override func viewDidLoad() {
         super.viewDidLoad()
 
         setupLoadingView()
-        loadDashboardWhenDatabaseIsReady()
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await databaseDelegate.prepareDatabaseAccess()
+                webUIViewModel.updatePartialProfile()
+                loadDashboard()
+            } catch {
+                Logger.dataBrokerProtection.error("Failed to wait for dashboard database access: \(error.localizedDescription, privacy: .public)")
+                loadingView.stopAnimating()
+            }
+        }
     }
 
     private func setupWebView() {
@@ -161,12 +164,7 @@ final public class DataBrokerProtectionViewController: UIViewController {
         super.viewDidAppear(animated)
         isViewVisible = true
 
-        guard hasLoadedDashboard else {
-            if loadDashboardTask == nil {
-                loadDashboardWhenDatabaseIsReady()
-            }
-            return
-        }
+        guard hasLoadedDashboard else { return }
         dashboardDidBecomeVisible()
     }
 
@@ -175,39 +173,8 @@ final public class DataBrokerProtectionViewController: UIViewController {
         cancellables.removeAll()
         if hasLoadedDashboard {
             webUIViewModel.viewDidDisappear()
-        } else {
-            cancelDashboardLoad()
         }
         super.viewDidDisappear(animated)
-    }
-
-    private func loadDashboardWhenDatabaseIsReady() {
-        cancelDashboardLoad()
-        loadDashboardTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            defer {
-                loadDashboardTask = nil
-            }
-
-            do {
-                try await databaseDelegate.prepareDatabaseAccess()
-                try Task.checkCancellation()
-                webUIViewModel.updatePartialProfile()
-                loadDashboard()
-            } catch is CancellationError {
-                return
-            } catch {
-                Logger.dataBrokerProtection.error("Failed to wait for dashboard database access: \(error.localizedDescription, privacy: .public)")
-                loadingView.stopAnimating()
-            }
-        }
-    }
-
-    private func cancelDashboardLoad() {
-        guard let loadDashboardTask else { return }
-
-        loadDashboardTask.cancel()
-        self.loadDashboardTask = nil
     }
 
     private func loadDashboard() {
