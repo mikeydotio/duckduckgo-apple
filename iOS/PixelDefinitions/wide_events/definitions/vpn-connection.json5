@@ -1,0 +1,97 @@
+{
+    "ios-vpn-connection": {
+        "description": "Sent at the end of a VPN setup or connection flow, capturing the startup path, account state, per-step timings, and per-step errors.",
+        "owners": ["hanyutang-sandra"],
+        "meta": {
+            "type": "ios-vpn-connection",
+            "version": "3.0"
+        },
+        "feature": {
+            "name": "vpn-connection",
+            "status": ["SUCCESS", "FAILURE", "UNKNOWN"],
+            "data": {
+                "ext": {
+                    "status_reason": {
+                        "type": "string",
+                        "description": "Reason string for the current status.",
+                        "enum": ["partial_data", "timeout", "retried"]
+                    },
+                    "extension_type": {
+                        "type": "string",
+                        "description": "VPN extension type used.",
+                        "enum": ["app", "system", "unknown"]
+                    },
+                    "startup_method": {
+                        "type": "string",
+                        "description": "How the VPN setup or connection was initiated.",
+                        "enum": ["automatic_on_demand", "manual_by_main_app", "manual_by_the_system"]
+                    },
+                    "is_setup": {
+                        "type": "string",
+                        "description": "Whether the current flow is setup or reconnection.",
+                        "enum": ["yes", "no", "unknown", "true", "false"]
+                    },
+                    "onboarding_status": {
+                        "type": "string",
+                        "description": "VPN onboarding status at the time of the connection flow.",
+                        "enum": ["needs_to_allow_extension", "needs_to_allow_vpn_configuration", "completed", "unknown"]
+                    },
+                    "account_is_signed_in": {
+                        "type": "string",
+                        "description": "Whether the user is signed into a Privacy Pro account when the VPN connection flow starts.",
+                        "enum": ["yes", "no", "unknown"]
+                    },
+                    "account_has_vpn_entitlement": {
+                        "type": "string",
+                        "description": "Whether the account has the VPN entitlement when the VPN connection flow starts.",
+                        "enum": ["yes", "no", "unknown"]
+                    },
+                    "vpn_screen_source": {
+                        "type": "string",
+                        "description": "The app surface that opened the VPN screen before the connection flow.",
+                        "enum": [
+                            "app_settings",
+                            "subscription_settings",
+                            "subscription_email",
+                            "subscription_flow",
+                            "browser_menu",
+                            "toolbar",
+                            "address_bar",
+                            "widget",
+                            "shortcut",
+                            "notification",
+                            "vpn_access_revoked_alert",
+                            "unknown"
+                        ]
+                    },
+                    "latency_ms": {
+                        "type": "integer",
+                        "description": "Overall VPN connection latency, in milliseconds."
+                    },
+                    "browser_start_latency_ms": {
+                        "type": "integer",
+                        "description": "Duration of the browser start step, in milliseconds."
+                    },
+                    "controller_start_latency_ms": {
+                        "type": "integer",
+                        "description": "Duration of the controller start step, in milliseconds."
+                    },
+                    "oauth_latency_ms": {
+                        "type": "integer",
+                        "description": "Duration of the OAuth step, in milliseconds."
+                    },
+                    "tunnel_start_latency_ms": {
+                        "type": "integer",
+                        "description": "Duration of the tunnel start step, in milliseconds."
+                    },
+                    "browser_start_error": "vpnConnectionStepError",
+                    "controller_start_error": "vpnConnectionStepError",
+                    "oauth_error": "vpnConnectionStepError",
+                    "tunnel_start_error": "vpnConnectionStepError",
+                    "error": "errorParameters"
+                }
+            }
+        },
+        "context": ["funnel_appsettings_ios", "funnel_systemsettings_multiple", "funnel_others_multiple"]
+    }
+}

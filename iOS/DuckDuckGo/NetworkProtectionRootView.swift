@@ -27,8 +27,10 @@ struct NetworkProtectionRootView: View {
 
     @StateObject var statusViewModel: NetworkProtectionStatusViewModel
     @StateObject var feedbackFormModel: UnifiedFeedbackFormViewModel
+    private let source: VPNConnectionWideEventData.ScreenSource
 
-    init() {
+    init(source: VPNConnectionWideEventData.ScreenSource = .unknown) {
+        self.source = source
         let subscriptionManager = AppDependencyProvider.shared.subscriptionManager
         let locationListRepository = NetworkProtectionLocationListCompositeRepository()
         _statusViewModel = StateObject(wrappedValue: NetworkProtectionStatusViewModel(
@@ -52,6 +54,7 @@ struct NetworkProtectionRootView: View {
         NetworkProtectionStatusView(statusModel: statusViewModel, feedbackFormModel: feedbackFormModel)
             .navigationTitle(UserText.netPNavTitle)
             .onFirstAppear {
+                AppDependencyProvider.shared.networkProtectionTunnelController.setScreenSource(source)
                 Pixel.fire(pixel: .subscriptionVPNSettings, withAdditionalParameters: self.statusViewModel.featureDiscovery.addToParams([:], forFeature: .vpn))
             }
     }

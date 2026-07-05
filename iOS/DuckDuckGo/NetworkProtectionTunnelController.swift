@@ -54,6 +54,8 @@ final class NetworkProtectionTunnelController: TunnelController, TunnelSessionPr
     // Wide Event
     private let wideEvent: WideEventManaging
     private var connectionWideEventData: VPNConnectionWideEventData?
+    private var screenSource: VPNConnectionWideEventData.ScreenSource = .unknown
+    private let accountStatusProvider: () async -> VPNConnectionWideEventData.AccountStatus
     private let freeTrialConversionService: FreeTrialConversionInstrumentationService
 
     // MARK: - Manager, Session, & Connection
@@ -159,6 +161,9 @@ final class NetworkProtectionTunnelController: TunnelController, TunnelSessionPr
          persistentPixel: PersistentPixelFiring,
          settings: VPNSettings,
          wideEvent: WideEventManaging,
+         accountStatusProvider: @escaping () async -> VPNConnectionWideEventData.AccountStatus = {
+             .init(isSignedIn: .unknown, hasVPNEntitlement: .unknown)
+         },
          freeTrialConversionService: FreeTrialConversionInstrumentationService
     ) {
 
@@ -167,6 +172,7 @@ final class NetworkProtectionTunnelController: TunnelController, TunnelSessionPr
         self.settings = settings
         self.tokenHandler = tokenHandler
         self.wideEvent = wideEvent
+        self.accountStatusProvider = accountStatusProvider
         self.freeTrialConversionService = freeTrialConversionService
 
         subscribeToSnoozeTimingChanges()
@@ -178,7 +184,8 @@ final class NetworkProtectionTunnelController: TunnelController, TunnelSessionPr
     /// Starts the VPN connection used for Network Protection
     ///
     func start() async {
-        setupAndStartConnectionWideEvent()
+        let accountStatus = await accountStatusProvider()
+        setupAndStartConnectionWideEvent(accountStatus: accountStatus)
         persistentPixel.fire(
             pixel: .networkProtectionControllerStartAttempt,
             error: nil,
@@ -267,6 +274,10 @@ final class NetworkProtectionTunnelController: TunnelController, TunnelSessionPr
                                          error: error,
                                          withAdditionalParameters: [PixelParameters.reason: reason.rawValue])
         }
+    }
+
+    func setScreenSource(_ source: VPNConnectionWideEventData.ScreenSource) {
+        screenSource = source
     }
 
     // MARK: - Connection Status Querying
@@ -590,10 +601,12 @@ final class NetworkProtectionTunnelController: TunnelController, TunnelSessionPr
 
 private extension NetworkProtectionTunnelController {
     
-    func setupAndStartConnectionWideEvent() {
+    func setupAndStartConnectionWideEvent(accountStatus: VPNConnectionWideEventData.AccountStatus) {
         let data = VPNConnectionWideEventData(
             extensionType: .app,
             startupMethod: .manualByMainApp,
+            accountStatus: accountStatus,
+            screenSource: screenSource,
             contextData: WideEventContextData(name: NetworkProtectionFunnelOrigin.appSettings.rawValue)
         )
         self.connectionWideEventData = data
@@ -633,5 +646,27 @@ private extension NetworkProtectionTunnelController {
 private extension Error {
     func contextualizedDescription() -> String? {
         return (self as? NetworkProtectionTunnelController.StartError)?.caseDescription
+    }
+}
+
+extension VPNConnectionWideEventData.ScreenSource {
+
+    init(subscriptionFunnelOrigin origin: SubscriptionFunnelOrigin) {
+        switch origin {
+        case .toolbarVPN:
+            self = .toolbar
+        case .addressBarVPN:
+            self = .addressBar
+        case .widgetVPN:
+            self = .widget
+        case .shortcutVPN:
+            self = .shortcut
+        case .notificationVPN:
+            self = .notification
+        case .vpnAccessRevokedAlert:
+            self = .vpnAccessRevokedAlert
+        default:
+            self = .appSettings
+        }
     }
 }
