@@ -111,6 +111,7 @@ final class StatisticsLoader {
             self.refreshSearchRetentionAtb {
                 group.leave()
             }
+            self.fireSearchExperimentPixels()
 
             self.refreshDuckAIRetentionAtb {
                 group.leave()
