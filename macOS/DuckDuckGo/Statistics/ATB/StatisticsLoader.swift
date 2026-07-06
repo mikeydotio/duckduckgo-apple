@@ -42,6 +42,7 @@ final class StatisticsLoader {
     var isDuckAIRetentionRequestInProgress = false
     private let fireSearchExperimentPixels: () -> Void
     private let fireAppRetentionExperimentPixels: () -> Void
+    private let fireNewAIPromptExperimentPixels: () -> Void
 
     init(
         statisticsStore: StatisticsStore = LocalStatisticsStore(),
@@ -50,7 +51,8 @@ final class StatisticsLoader {
         usageSegmentation: UsageSegmenting = UsageSegmentation(pixelEvents: UsageSegmentation.pixelEvents),
         dockCustomization: DockCustomization = Application.appDelegate.dockCustomization,
         fireAppRetentionExperimentPixels: @escaping () -> Void = PixelKit.fireAppRetentionExperimentPixels,
-        fireSearchExperimentPixels: @escaping () -> Void = PixelKit.fireSearchExperimentPixels
+        fireSearchExperimentPixels: @escaping () -> Void = PixelKit.fireSearchExperimentPixels,
+        fireNewAIPromptExperimentPixels: @escaping () -> Void = PixelKit.fireNewAIPromptExperimentPixels
     ) {
         self.statisticsStore = statisticsStore
         self.emailManager = emailManager
@@ -59,6 +61,7 @@ final class StatisticsLoader {
         self.dockCustomization = dockCustomization
         self.fireSearchExperimentPixels = fireSearchExperimentPixels
         self.fireAppRetentionExperimentPixels = fireAppRetentionExperimentPixels
+        self.fireNewAIPromptExperimentPixels = fireNewAIPromptExperimentPixels
     }
 
     func refreshRetentionAtbOnNavigation(isSearch: Bool,
@@ -281,6 +284,7 @@ final class StatisticsLoader {
 
     func refreshDuckAIRetentionAtb(completion: @escaping Completion = {}) {
         dispatchPrecondition(condition: .onQueue(.main))
+        fireNewAIPromptExperimentPixels()
 
         guard !isDuckAIRetentionRequestInProgress else {
             completion()
