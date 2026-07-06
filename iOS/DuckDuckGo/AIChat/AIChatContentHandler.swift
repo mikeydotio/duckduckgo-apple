@@ -27,6 +27,8 @@ import PrivacyConfig
 import Foundation
 import Subscription
 import WebKit
+import PixelKit
+import PixelExperimentKit
 
 /// Mockable interface to AIChatUserScript
 protocol AIChatUserScriptProviding: AnyObject {
@@ -145,6 +147,7 @@ final class AIChatContentHandler: AIChatContentHandling {
     private let unifiedToggleInputFeature: UnifiedToggleInputFeatureProviding
     private let debugSettings: AIChatDebugSettingsHandling
     private let iPadDuckAIControlsFeature: IPadDuckAIControlsFeatureProviding
+    private let fireNewAIChatExperimentPixels: () -> Void
 
     private var userScript: AIChatUserScriptProviding?
 
@@ -164,7 +167,10 @@ final class AIChatContentHandler: AIChatContentHandling {
          unifiedToggleInputFeature: UnifiedToggleInputFeatureProviding = UnifiedToggleInputFeature(),
          debugSettings: AIChatDebugSettingsHandling = AIChatDebugSettings(),
          iPadDuckAIControlsFeature: IPadDuckAIControlsFeatureProviding = IPadDuckAIControlsFeature(),
-         getPageContext: ((PageContextRequestReason) -> AIChatPageContextData?)? = nil) {
+         getPageContext: ((PageContextRequestReason) -> AIChatPageContextData?)? = nil,
+         fireNewAIChatExperimentPixels: @escaping () -> Void = PixelKit.fireNewAIChatExperimentPixels,
+
+    ) {
         self.aiChatSettings = aiChatSettings
         self.payloadHandler = payloadHandler
         self.pixelMetricHandler = pixelMetricHandler
@@ -176,6 +182,7 @@ final class AIChatContentHandler: AIChatContentHandling {
         self.debugSettings = debugSettings
         self.iPadDuckAIControlsFeature = iPadDuckAIControlsFeature
         self.getPageContext = getPageContext
+        self.fireNewAIChatExperimentPixels = fireNewAIChatExperimentPixels
     }
 
     func setup(with userScript: AIChatUserScriptProviding, webView: WKWebView, displayMode: AIChatDisplayMode) {
@@ -328,8 +335,8 @@ extension AIChatContentHandler: AIChatUserScriptDelegate {
     }
 
     func aiChatUserScript(_ userScript: AIChatUserScript, didReceiveMetric metric: AIChatMetric) {
-        if metric.metricName == .userDidSubmitPrompt
-            || metric.metricName == .userDidSubmitFirstPrompt {
+
+        func handleUserDidSubmitMetric() {
             NotificationCenter.default.post(name: .aiChatUserDidSubmitPrompt, object: nil)
             delegate?.aiChatContentHandlerDidReceivePromptSubmission(self)
 
@@ -346,6 +353,19 @@ extension AIChatContentHandler: AIChatUserScriptDelegate {
                     }
                 }
             }
+        }
+
+        func handleUserDidCreateNewChat() {
+            fireNewAIChatExperimentPixels()
+        }
+
+        switch metric.metricName {
+        case .userDidSubmitFirstPrompt, .userDidSubmitPrompt:
+            handleUserDidSubmitMetric()
+        case .userDidCreateNewChat:
+            handleUserDidCreateNewChat()
+        default:
+            break
         }
 
         pixelMetricHandler?.firePixelWithMetric(metric)

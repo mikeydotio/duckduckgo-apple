@@ -659,6 +659,56 @@ final class AIChatContentHandlerTests: XCTestCase {
         XCTAssertEqual(mockProductSurfaceTelemetry.duckAIUsedCallCount, 1)
     }
 
+    // MARK: - New AI Chat Experiment Pixels
+
+    func testWhenUserDidCreateNewChat_ThenFireNewAIChatExperimentPixelsCalled() throws {
+        // Given
+        var fireNewAIChatExperimentPixelsCalled = false
+        let handlerWithSpy = AIChatContentHandler(
+            aiChatSettings: mockSettings,
+            payloadHandler: mockPayloadHandler,
+            pixelMetricHandler: mockMetricHandler,
+            featureDiscovery: MockFeatureDiscovery(),
+            productSurfaceTelemetry: mockProductSurfaceTelemetry,
+            freeTrialConversionService: mockFreeTrialConversionService,
+            statisticsLoader: StatisticsLoader(fireSearchExperimentPixels: {}),
+            unifiedToggleInputFeature: mockUnifiedToggleInputFeature,
+            iPadDuckAIControlsFeature: mockIPadDuckAIControlsFeature,
+            fireNewAIChatExperimentPixels: { fireNewAIChatExperimentPixelsCalled = true }
+        )
+
+        // When
+        let metric = AIChatMetric(metricName: .userDidCreateNewChat, modelTier: nil)
+        handlerWithSpy.aiChatUserScript(makeTestUserScript(), didReceiveMetric: metric)
+
+        // Then
+        XCTAssertTrue(fireNewAIChatExperimentPixelsCalled)
+    }
+
+    func testWhenOtherMetricReceived_ThenFireNewAIChatExperimentPixelsNotCalled() throws {
+        // Given
+        var fireNewAIChatExperimentPixelsCalled = false
+        let handlerWithSpy = AIChatContentHandler(
+            aiChatSettings: mockSettings,
+            payloadHandler: mockPayloadHandler,
+            pixelMetricHandler: mockMetricHandler,
+            featureDiscovery: MockFeatureDiscovery(),
+            productSurfaceTelemetry: mockProductSurfaceTelemetry,
+            freeTrialConversionService: mockFreeTrialConversionService,
+            statisticsLoader: StatisticsLoader(fireSearchExperimentPixels: {}),
+            unifiedToggleInputFeature: mockUnifiedToggleInputFeature,
+            iPadDuckAIControlsFeature: mockIPadDuckAIControlsFeature,
+            fireNewAIChatExperimentPixels: { fireNewAIChatExperimentPixelsCalled = true }
+        )
+
+        // When
+        let metric = AIChatMetric(metricName: .userDidSubmitPrompt, modelTier: nil)
+        handlerWithSpy.aiChatUserScript(makeTestUserScript(), didReceiveMetric: metric)
+
+        // Then
+        XCTAssertFalse(fireNewAIChatExperimentPixelsCalled)
+    }
+
     // MARK: - Free Trial Conversion Tracking
 
     func testWhenPlusModelTierPromptSubmitted_ThenMarkDuckAIActivatedIsCalled() throws {

@@ -22,6 +22,7 @@ import Combine
 import Common
 import FoundationExtensions
 import Foundation
+import PixelExperimentKit
 import PixelKit
 import Subscription
 import UserScript
@@ -189,6 +190,7 @@ final class AIChatUserScriptHandler: AIChatUserScriptHandling {
     private let freeTrialConversionService: FreeTrialConversionInstrumentationService
     private let migrationStore = AIChatMigrationStore()
     private let voiceChatFailureHandler: DuckAiVoiceChatFailureHandling
+    private let fireNewAIChatExperimentPixels: () -> Void
 
     var isFireWindowProvider: (() -> Bool)?
 
@@ -204,7 +206,8 @@ final class AIChatUserScriptHandler: AIChatUserScriptHandling {
         aiChatUserScriptErrorEventMapper: EventMapping<AIChatUserScriptErrorEvent>? = nil,
         freeTrialConversionService: FreeTrialConversionInstrumentationService = Application.appDelegate.freeTrialConversionService,
         notificationCenter: NotificationCenter = .default,
-        voiceChatFailureHandler: DuckAiVoiceChatFailureHandling? = nil
+        voiceChatFailureHandler: DuckAiVoiceChatFailureHandling? = nil,
+        fireNewAIChatExperimentPixels: @escaping () -> Void = PixelKit.fireNewAIChatExperimentPixels
     ) {
         self.storage = storage
         self.messageHandling = messageHandling
@@ -217,6 +220,7 @@ final class AIChatUserScriptHandler: AIChatUserScriptHandling {
         self.notificationCenter = notificationCenter
         self.featureFlagger = featureFlagger
         self.freeTrialConversionService = freeTrialConversionService
+        self.fireNewAIChatExperimentPixels = fireNewAIChatExperimentPixels
         self.voiceChatFailureHandler = voiceChatFailureHandler ?? DuckAiVoiceChatFailureHandler(
             permissionCenterPresenter: NotificationCenterPermissionCenterPresenter(
                 notificationCenter: notificationCenter,
@@ -973,6 +977,9 @@ extension AIChatUserScriptHandler: AIChatMetricReportingHandling {
             DispatchQueue.main.async { [self] in
                 refreshAtbs(completion: completion)
             }
+        case .userDidCreateNewChat:
+            fireNewAIChatExperimentPixels()
+            completion?()
         case .userDidAcceptTermsAndConditions:
             handleTermsAccepted()
             completion?()

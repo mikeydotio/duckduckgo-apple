@@ -538,6 +538,70 @@ struct AIChatUserScriptHandlerTests {
         #expect(testPixelFiring.actualFireCalls.isEmpty)
     }
 
+    @available(iOS 16, macOS 13, *)
+    @Test("didReportMetric fires fireNewAIChatExperimentPixels when userDidCreateNewChat", .timeLimit(.minutes(1)))
+    @MainActor
+    func testThatUserDidCreateNewChatFiresNewAIChatExperimentPixels() async throws {
+        // GIVEN
+        var fireNewAIChatExperimentPixelsCalled = false
+        let testHandler = AIChatUserScriptHandler(
+            storage: storage,
+            messageHandling: messageHandler,
+            windowControllersManager: windowControllersManager,
+            pixelFiring: pixelFiring,
+            statisticsLoader: statisticsLoader,
+            syncServiceProvider: { nil },
+            syncErrorHandler: syncErrorHandler,
+            featureFlagger: MockFeatureFlagger(),
+            notificationCenter: notificationCenter,
+            fireNewAIChatExperimentPixels: { fireNewAIChatExperimentPixelsCalled = true }
+        )
+
+        // WHEN
+        await withCheckedContinuation { continuation in
+            testHandler.didReportMetric(.init(metricName: .userDidCreateNewChat)) {
+                continuation.resume()
+            }
+        }
+
+        // THEN
+        #expect(fireNewAIChatExperimentPixelsCalled)
+    }
+
+    @available(iOS 16, macOS 13, *)
+    @Test(
+        "didReportMetric does not fire fireNewAIChatExperimentPixels for other metrics",
+        .timeLimit(.minutes(1)),
+        arguments: [AIChatMetricName.userDidSubmitPrompt, .userDidOpenHistory, .userDidSelectFirstHistoryItem]
+    )
+    @MainActor
+    func testThatOtherMetricsDoNotFireNewAIChatExperimentPixels(_ metric: AIChatMetricName) async throws {
+        // GIVEN
+        var fireNewAIChatExperimentPixelsCalled = false
+        let testHandler = AIChatUserScriptHandler(
+            storage: storage,
+            messageHandling: messageHandler,
+            windowControllersManager: windowControllersManager,
+            pixelFiring: pixelFiring,
+            statisticsLoader: statisticsLoader,
+            syncServiceProvider: { nil },
+            syncErrorHandler: syncErrorHandler,
+            featureFlagger: MockFeatureFlagger(),
+            notificationCenter: notificationCenter,
+            fireNewAIChatExperimentPixels: { fireNewAIChatExperimentPixelsCalled = true }
+        )
+
+        // WHEN
+        await withCheckedContinuation { continuation in
+            testHandler.didReportMetric(.init(metricName: metric)) {
+                continuation.resume()
+            }
+        }
+
+        // THEN
+        #expect(!fireNewAIChatExperimentPixelsCalled)
+    }
+
     // MARK: - Sync tests
 
     @available(iOS 16, macOS 13, *)
