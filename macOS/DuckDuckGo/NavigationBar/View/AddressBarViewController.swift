@@ -112,8 +112,12 @@ final class AddressBarViewController: NSViewController {
     @IBOutlet var switchToTabLabel: NSTextField!
     @IBOutlet var shadowView: ShadowView!
 
+    @IBOutlet var activeBackgroundViewTopConstraint: NSLayoutConstraint!
+    @IBOutlet var activeBackgroundViewBottomConstraint: NSLayoutConstraint!
     @IBOutlet var activeBackgroundViewLeadingConstraint: NSLayoutConstraint!
     @IBOutlet var activeBackgroundViewTrailingConstraint: NSLayoutConstraint!
+    @IBOutlet var inactiveBackgroundViewTopConstraint: NSLayoutConstraint!
+    @IBOutlet var inactiveBackgroundViewBottomConstraint: NSLayoutConstraint!
     @IBOutlet var inactiveBackgroundViewLeadingConstraint: NSLayoutConstraint!
     @IBOutlet var inactiveBackgroundViewTrailingConstraint: NSLayoutConstraint!
     @IBOutlet var buttonsContainerViewLeadingConstraint: NSLayoutConstraint!
@@ -825,6 +829,11 @@ final class AddressBarViewController: NSViewController {
 
     private func refreshConstraints() {
         let styleProvider = theme.addressBarStyleProvider
+
+        activeBackgroundViewTopConstraint.constant = styleProvider.addressBarActiveBackgroundViewVerticalPadding
+        activeBackgroundViewBottomConstraint.constant = styleProvider.addressBarActiveBackgroundViewVerticalPadding
+        inactiveBackgroundViewTopConstraint.constant = styleProvider.addressBarInactiveBackgroundViewVerticalPadding
+        inactiveBackgroundViewBottomConstraint.constant = styleProvider.addressBarInactiveBackgroundViewVerticalPadding
         inactiveBackgroundViewLeadingConstraint.constant = styleProvider.addressBarInactiveBackgroundViewLeadingPadding
         inactiveBackgroundViewTrailingConstraint.constant = styleProvider.addressBarInactiveBackgroundViewTrailingPadding
         buttonsContainerViewLeadingConstraint.constant = styleProvider.addressBarButtonsContainerViewLeadingPadding
@@ -898,10 +907,21 @@ final class AddressBarViewController: NSViewController {
     }
 
     private func refreshAppearance(isSuggestionsWindowVisible: Bool) {
+        let styleProvider = theme.addressBarStyleProvider
+        let colorsProvider = theme.colorsProvider
+
         shadowView.shadowSides = isSuggestionsWindowVisible ? [.left, .top, .right] : []
-        shadowView.shadowColor = isSuggestionsWindowVisible ? .suggestionsShadow : .clear
-        shadowView.shadowRadius = isSuggestionsWindowVisible ? theme.addressBarStyleProvider.suggestionShadowRadius : 0.0
-        shadowView.cornerRadius = theme.addressBarStyleProvider.addressBarActiveBackgroundViewRadiusWithSuggestions
+        shadowView.cornerRadius = styleProvider.addressBarActiveBackgroundViewRadiusWithSuggestions
+
+        NSAppearance.withAppAppearance {
+            if themeManager.isAppRebranded {
+                shadowView.shadowRadius = styleProvider.suggestionShadowRadius
+                shadowView.shadowColor = colorsProvider.addressBarShadowColor
+            } else {
+                shadowView.shadowRadius = isSuggestionsWindowVisible ? theme.addressBarStyleProvider.suggestionShadowRadius : 0.0
+                shadowView.shadowColor = isSuggestionsWindowVisible ? .suggestionsShadow : .clear
+            }
+        }
 
         let isToggleFocused = view.window?.firstResponder === addressBarButtonsViewController?.searchModeToggleControl
         activeOuterBorderView.isHidden = isSuggestionsWindowVisible || view.window?.isKeyWindow != true || isToggleFocused
@@ -923,7 +943,7 @@ final class AddressBarViewController: NSViewController {
         var frame = superview.convert(winFrame, from: nil)
 
         /// Keep the suggestions shadow aligned with the panel by applying the same vertical offset.
-        let offset = AddressBarTextField.SuggestionWindowSizes.verticalOffset(isAppRebranded: themeManager.isAppRebranded)
+        let offset = AddressBarTextField.SuggestionWindowSizes.shadowOffset(isAppRebranded: themeManager.isAppRebranded)
         frame.origin.y += offset
         frame.size.height -= offset
 
