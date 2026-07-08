@@ -130,7 +130,8 @@ final class AIChatContextualSheetViewController: UIViewController {
 
     private lazy var contextualInputViewController = AIChatContextualInputViewController(
         voiceSearchHelper: voiceSearchHelper,
-        showsBasicNativeInput: persistentUTIHost == nil
+        showsBasicNativeInput: persistentUTIHost == nil,
+        showsWelcomeMessage: !featureFlagger.isFeatureOn(.contextualSuggestedPrompts)
     )
     private var cancellables = Set<AnyCancellable>()
     private var contentContainerBottomConstraint: NSLayoutConstraint?
@@ -208,6 +209,13 @@ final class AIChatContextualSheetViewController: UIViewController {
         stack.spacing = Constants.titleSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
+    }()
+
+    private lazy var titleIconView: UIImageView = {
+        let imageView = UIImageView(image: DesignSystemImages.Color.Size24.duckAI)
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
     }()
 
     private lazy var titleLabel: UILabel = {
@@ -1059,6 +1067,13 @@ private extension AIChatContextualSheetViewController {
             ])
         }
         headerView.addSubview(titleContainer)
+        if featureFlagger.isFeatureOn(.contextualSuggestedPrompts) {
+            titleContainer.addArrangedSubview(titleIconView)
+            NSLayoutConstraint.activate([
+                titleIconView.widthAnchor.constraint(equalToConstant: 24),
+                titleIconView.heightAnchor.constraint(equalToConstant: 24),
+            ])
+        }
         titleContainer.addArrangedSubview(titleLabel)
 
         headerView.addSubview(rightButtonContainer)

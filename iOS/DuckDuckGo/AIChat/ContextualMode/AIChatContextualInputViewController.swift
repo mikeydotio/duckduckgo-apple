@@ -80,6 +80,7 @@ final class AIChatContextualInputViewController: UIViewController {
     weak var delegate: AIChatContextualInputViewControllerDelegate?
 
     private let showsBasicNativeInput: Bool
+    private let showsWelcomeMessage: Bool
     private let voiceSearchHelper: VoiceSearchHelperProtocol
     private lazy var basicNativeInputViewController = AIChatBasicNativeInputViewController(voiceSearchHelper: voiceSearchHelper)
     private lazy var inputSurface: AIChatContextualInputSurface = {
@@ -119,8 +120,10 @@ final class AIChatContextualInputViewController: UIViewController {
     // MARK: - Initialization
 
     init(voiceSearchHelper: VoiceSearchHelperProtocol,
-         showsBasicNativeInput: Bool = true) {
+         showsBasicNativeInput: Bool = true,
+         showsWelcomeMessage: Bool = true) {
         self.showsBasicNativeInput = showsBasicNativeInput
+        self.showsWelcomeMessage = showsWelcomeMessage
         self.voiceSearchHelper = voiceSearchHelper
         super.init(nibName: nil, bundle: nil)
     }
@@ -347,6 +350,8 @@ private extension AIChatContextualInputViewController {
     }
 
     func configureWelcomeLabel() {
+        welcomeLabel.isHidden = !showsWelcomeMessage
+
         let font = UIFont(name: "DuckSansDisplay-Medium", size: 25) ?? UIFont.daxTitle2()
 
         let paragraphStyle = NSMutableParagraphStyle()
