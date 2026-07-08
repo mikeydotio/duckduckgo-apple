@@ -1719,11 +1719,14 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
         if !gated.isEmpty {
             menu.addItem(.separator())
-            let linkText = omnibarController.userTier == .free
-                ? UserText.aiChatModelPickerTryForFree
-                : UserText.aiChatModelPickerUpgrade
+            // A free user's gated section mixes Plus and Pro models — "Subscriber exclusive" fits.
+            // A Plus user is already a subscriber, and everything left gated is Pro-only, so call
+            // that out specifically instead of reusing the generic "Subscriber" label.
+            let isFreeUser = omnibarController.userTier == .free
+            let headerTitle = isFreeUser ? UserText.aiChatModelPickerSubscriberExclusive : UserText.aiChatModelPickerProExclusive
+            let linkText = isFreeUser ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade
             let headerItem = NSMenuItem.createSubscriberExclusiveHeader(
-                title: UserText.aiChatModelPickerSubscriberExclusive,
+                title: headerTitle,
                 linkText: linkText,
                 action: #selector(gatedModelSelected(_:)),
                 target: self,

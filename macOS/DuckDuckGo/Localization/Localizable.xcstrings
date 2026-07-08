@@ -4881,6 +4881,66 @@
         }
       }
     },
+    "aichat.model-picker.subscriber-exclusive" : {
+      "comment" : "Label above the gated (subscriber-only) models in the model picker menu",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Subscriber exclusive."
+          }
+        }
+      }
+    },
+    "aichat.model-picker.tier-badge.plus" : {
+      "comment" : "Trailing badge on a model picker row for a model that requires a Plus subscription",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "PLUS"
+          }
+        }
+      }
+    },
+    "aichat.model-picker.tier-badge.pro" : {
+      "comment" : "Trailing badge on a model picker row for a model that requires a Pro subscription",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "PRO"
+          }
+        }
+      }
+    },
+    "aichat.model-picker.try-for-free" : {
+      "comment" : "Link in the model picker menu that opens the subscription purchase flow, shown to free users",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Try for free"
+          }
+        }
+      }
+    },
+    "aichat.model-picker.upgrade" : {
+      "comment" : "Link in the model picker menu that opens the subscription upgrade flow, shown to Plus subscribers",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Upgrade"
+          }
+        }
+      }
+    },
     "aichat.omnibar.image-gen-placeholder" : {
       "comment" : "Placeholder text in AI chat input when image generation mode is active",
       "extractionState" : "extracted_with_value",
@@ -6137,6 +6197,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показать вкладку"
+          }
+        }
+      }
+    },
+    "aichat.subscription-upsell-dialog.have-subscription-button" : {
+      "comment" : "Button in the subscription upsell dialog for a user who already has a subscription and wants to sign in rather than purchase again",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "I Have a Subscription"
+          }
+        }
+      }
+    },
+    "aichat.subscription-upsell-dialog.message" : {
+      "comment" : "Body text of the dialog shown when the user taps a gated reasoning effort",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Get access to advanced AI models in Duck.ai by subscribing to DuckDuckGo, which also includes our VPN and other premium privacy protections."
+          }
+        }
+      }
+    },
+    "aichat.subscription-upsell-dialog.not-now-button" : {
+      "comment" : "Button in the subscription upsell dialog that dismisses it without taking any action",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not now"
+          }
+        }
+      }
+    },
+    "aichat.subscription-upsell-dialog.subscribe-button" : {
+      "comment" : "Primary button in the subscription upsell dialog that opens the purchase/upgrade flow",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Subscribe to DuckDuckGo"
+          }
+        }
+      }
+    },
+    "aichat.subscription-upsell-dialog.title" : {
+      "comment" : "Title of the dialog shown when the user taps a gated reasoning effort",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Upgrade Duck.ai with a DuckDuckGo subscription"
           }
         }
       }
