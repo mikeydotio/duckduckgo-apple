@@ -97,9 +97,6 @@ public class DBPIOSInterface {
         var meetsLocaleRequirement: Bool { get }
 
         func validateRunPrerequisites() async -> Bool
-
-        /// Use this lightweight variant when the caller wants to avoid opening the secure vault and only needs cached profile state.
-        func validateRunPrerequisites(usingCachedProfileState profileState: DBPProfileState) async -> Bool
     }
 
     public protocol DatabaseDelegate: AnyObject {
@@ -1001,14 +998,6 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.RunPrerequisitesDelega
     public func validateRunPrerequisites() async -> Bool {
         await validateRunPrerequisites {
             try meetsProfileRunPrequisite
-        }
-    }
-
-    public func validateRunPrerequisites(usingCachedProfileState profileState: DBPProfileState) async -> Bool {
-        await validateRunPrerequisites {
-            // Existing PIR users may not have cached profile state yet, so only
-            // exclude users we explicitly know have no profile.
-            profileState != .noProfile
         }
     }
 
