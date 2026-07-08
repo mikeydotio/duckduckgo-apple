@@ -27,7 +27,7 @@ If you encountered issues writing tests due to any class in the codebase, please
    - Add a new entry
 -->
 
-### Impact
+### Impact and Risks
 <!-- 
 What's the impact on users if something goes wrong?
 
