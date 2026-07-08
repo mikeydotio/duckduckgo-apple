@@ -948,7 +948,9 @@ extension DataBrokerProtectionIOSManager: DataBrokerProtectionDebugReadProviding
         return "\(version) (build: \(build))"
     }
 
-    public var schedulerStateString: String { queueManager.debugRunningStatusString }
+    public var schedulerStateString: String {
+        (try? vaultResources().queueManager.debugRunningStatusString) ?? "unavailable"
+    }
 
     public var lastSchedulerTrigger: Date? { lastBackgroundTaskTriggerTimestamp }
 
@@ -965,7 +967,7 @@ extension DataBrokerProtectionIOSManager: DataBrokerProtectionDebugReadProviding
     }
 
     public func brokerProfileQueryData() throws -> [BrokerProfileQueryData] {
-        try database.fetchAllBrokerProfileQueryData(reason: .profileHistoryReporting)
+        try vaultResources().database.fetchAllBrokerProfileQueryData(reason: .profileHistoryReporting)
     }
 }
 
