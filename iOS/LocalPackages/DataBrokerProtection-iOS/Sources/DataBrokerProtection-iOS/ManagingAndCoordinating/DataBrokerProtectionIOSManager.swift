@@ -759,9 +759,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.RunPrerequisitesDelega
 
     public func validateRunPrerequisites(usingCachedProfileState profileState: DBPProfileState) async -> Bool {
         await validateRunPrerequisites {
-            // Existing PIR users may not have cached profile state yet, so only
-            // exclude users we explicitly know have no profile.
-            profileState != .noProfile
+            profileState == .hasProfile
         }
     }
 
