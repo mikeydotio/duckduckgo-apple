@@ -202,8 +202,16 @@ public final class DataBrokerProtectionIOSManager {
         case launch
         case appActive
         case dashboard
-        case scheduling
         case backgroundTask
+
+        /// Dashboard is the only entry point that sets up a profile, so it always needs the vault.
+        /// Every other reason serves PIR lifecycle work and can be skipped for users without a profile.
+        var skipsWhenNoProfile: Bool {
+            switch self {
+            case .dashboard: return false
+            case .launch, .appActive, .backgroundTask: return true
+            }
+        }
     }
 
     private struct Constants {
@@ -453,7 +461,11 @@ public final class DataBrokerProtectionIOSManager {
     }
 
     public func prepareSecureVaultResourcesAtLaunch() async throws {
-        _ = try await vaultResources(reason: .launch)
+        do {
+            _ = try await vaultResources(reason: .launch)
+        } catch DataBrokerProtectionError.secureVaultNotNeeded {
+            Logger.dataBrokerProtection.log("Skipping Secure Vault initialization at launch (no profile)")
+        }
     }
 
     /// Synchronous callers use this when they require resources to already exist.
@@ -475,6 +487,7 @@ public final class DataBrokerProtectionIOSManager {
         enum Resolution {
             case ready(DBPVaultResources)
             case initializing(Task<DBPVaultResources, Error>)
+            case skipped
         }
 
         let resolution: Resolution = vaultResourcesLock.withLock {
@@ -484,6 +497,10 @@ public final class DataBrokerProtectionIOSManager {
 
             if let ongoingVaultResourcesInitTask {
                 return .initializing(ongoingVaultResourcesInitTask)
+            }
+
+            if reason.skipsWhenNoProfile, profileStateManager.profileState == .noProfile {
+                return .skipped
             }
 
             let task = Task {
@@ -505,6 +522,8 @@ public final class DataBrokerProtectionIOSManager {
             return cachedResources
         case .initializing(let task):
             return try await task.value
+        case .skipped:
+            throw DataBrokerProtectionError.secureVaultNotNeeded
         }
     }
 
@@ -557,6 +576,9 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
             // low-priority background queue and can lose the race to the foreground transition,
             // so app-active must be able to start (or join) initialization rather than only wait.
             resources = try await vaultResources(reason: .appActive)
+        } catch DataBrokerProtectionError.secureVaultNotNeeded {
+            Logger.dataBrokerProtection.log("Skipping app active operations (no profile)")
+            return
         } catch {
             Logger.dataBrokerProtection.error("Secure Vault resources unavailable during app active: \(error.localizedDescription, privacy: .public)")
             return
@@ -1109,7 +1131,10 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
             let resources: DBPVaultResources
             do {
                 // Scheduling needs database state to choose the next eligible run.
-                resources = try await vaultResources(reason: .scheduling)
+                resources = try await vaultResources(reason: .backgroundTask)
+            } catch DataBrokerProtectionError.secureVaultNotNeeded {
+                Logger.dataBrokerProtection.log("Skipping background task scheduling (no profile)")
+                return
             } catch {
                 Logger.dataBrokerProtection.error("Secure Vault resources unavailable while scheduling background task: \(error.localizedDescription, privacy: .public)")
                 return
@@ -1237,6 +1262,10 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
                 // iOS may launch the app directly for this task, so BG handling initializes the
                 // vault resources if the normal launch path has not completed.
                 resources = try await vaultResources(reason: .backgroundTask)
+            } catch DataBrokerProtectionError.secureVaultNotNeeded {
+                Logger.dataBrokerProtection.log("Skipping background task (no profile)")
+                task.setTaskCompleted(success: true)
+                return
             } catch {
                 Logger.dataBrokerProtection.error("Secure Vault resources unavailable during background task: \(error.localizedDescription, privacy: .public)")
                 task.setTaskCompleted(success: false)
