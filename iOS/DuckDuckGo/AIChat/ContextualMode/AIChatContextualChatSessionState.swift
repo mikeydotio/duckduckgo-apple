@@ -629,10 +629,13 @@ private extension AIChatContextualChatSessionState {
 
         suggestionsTimeoutTask?.cancel()
 
+        // Reserve a slot for the `Ask about page` quick action.
+        let reservedSlots = shouldAutoCollectContext ? 0 : 1
         let input = ResolvePageSuggestionsInput(
             pageTypeSignals: context?.contextData.pageTypeSignals,
             url: context?.contextData.url,
-            uiLocale: Locale.current.identifier
+            uiLocale: Locale.current.identifier,
+            reservedSlots: reservedSlots
         )
 
         suggestionsResolveTask?.cancel()

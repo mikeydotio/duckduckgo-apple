@@ -24,6 +24,15 @@ struct ResolvePageSuggestionsInput {
     let pageTypeSignals: AIChatPageTypeSignals?
     let url: String?
     let uiLocale: String
+    // Slots resolved for predefined quick actions.
+    let reservedSlots: Int
+
+    init(pageTypeSignals: AIChatPageTypeSignals?, url: String?, uiLocale: String, reservedSlots: Int = 0) {
+        self.pageTypeSignals = pageTypeSignals
+        self.url = url
+        self.uiLocale = uiLocale
+        self.reservedSlots = reservedSlots
+    }
 }
 
 protocol ContextualSuggestedPromptsProviding {
