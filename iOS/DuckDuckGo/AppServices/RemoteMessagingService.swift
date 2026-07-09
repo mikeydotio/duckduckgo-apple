@@ -55,7 +55,8 @@ final class RemoteMessagingService: RemoteMessagingDebugHandling {
          profileStateManager: DBPProfileStateManaging,
          subscriptionDataReporter: SubscriptionDataReporting,
          remoteMessagingImageLoader: RemoteMessagingImageLoading,
-         idleReturnEligibilityManager: IdleReturnEligibilityManaging
+         idleReturnEligibilityManager: IdleReturnEligibilityManaging,
+         dbpRunPrerequisitesDelegate: DBPIOSInterface.RunPrerequisitesDelegate?
     ) {
         remoteMessagingActionHandler = RemoteMessagingActionHandler(
             lastSearchStateRefresher: RemoteMessagingSurveyLastSearchStateRefresher()

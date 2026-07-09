@@ -123,10 +123,11 @@ final class RemoteMessagingConfigMatcherProvider: RemoteMessagingConfigMatcherPr
 
         if featureFlagger.isFeatureOn(.personalInformationRemoval) {
             let profileState = profileStateManager.profileState
-            if profileState == .unknown {
-                isCurrentPIRUser = (await dbpRunPrerequisitesDelegate?.validateRunPrerequisites()) ?? false
-            } else {
+            switch profileState {
+            case .hasProfile, .noProfile:
                 isCurrentPIRUser = (await dbpRunPrerequisitesDelegate?.validateRunPrerequisites(usingCachedProfileState: profileState)) ?? false
+            case .unknown:
+                isCurrentPIRUser = nil
             }
         } else {
             isCurrentPIRUser = false
