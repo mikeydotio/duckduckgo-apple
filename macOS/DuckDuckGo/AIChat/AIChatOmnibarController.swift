@@ -145,6 +145,14 @@ final class AIChatOmnibarController {
         featureFlagger.isFeatureOn(.aiChatOmnibarReasoningEffort)
     }
 
+    /// Whether gated rows show the "Try for free"/"Upgrade" tag and route to the confirmation
+    /// dialog. A kill switch independent of the underlying tier gating: disabling it doesn't make
+    /// gated models/efforts selectable again, it just removes the tag and dialog, falling back to
+    /// a plain dimmed, non-interactive row — same as before this feature shipped.
+    var isSubscriptionUpsellEnabled: Bool {
+        featureFlagger.isFeatureOn(.aiChatOmnibarSubscriptionUpsell)
+    }
+
     /// Whether 1-click voice-chat access in the omnibar is available. When disabled, the submit
     /// button keeps its legacy "arrow / disabled when empty" behavior.
     var isVoiceChatAccessEnabled: Bool {
