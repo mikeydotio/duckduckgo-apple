@@ -1514,7 +1514,7 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         XCTAssertEqual(mockSubscriptionUpsellPresenter.lastOrigin, .addressBarReasoningPicker)
     }
 
-    func testWhenRouteGatedModelSelectionForGatedModel_ThenPresenterIsCalledWithModelTierAndModelPickerOrigin() async {
+    func testWhenRequiredTierForGatedModel_ThenReturnsModelsLowestPublicAccessTier() async {
         // Given
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "gated-model", entityHasAccess: false, accessTier: ["pro"])
@@ -1524,15 +1524,15 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         let gatedModel = controller.models.first { $0.id == "gated-model" }!
 
         // When
-        controller.routeGatedModelSelection(gatedModel)
+        let requiredTier = controller.requiredTier(for: gatedModel)
 
-        // Then
-        XCTAssertTrue(mockSubscriptionUpsellPresenter.routeGatedSelectionCalled)
-        XCTAssertEqual(mockSubscriptionUpsellPresenter.lastRequiredTier, .pro)
-        XCTAssertEqual(mockSubscriptionUpsellPresenter.lastOrigin, .addressBarModelPicker)
+        // Then — the controller only reports the gate; the caller (view controller) shows a
+        // confirmation dialog before calling presentSubscriptionUpsell, same as a gated reasoning effort.
+        XCTAssertEqual(requiredTier, .pro)
+        XCTAssertFalse(mockSubscriptionUpsellPresenter.routeGatedSelectionCalled)
     }
 
-    func testWhenRouteGatedModelSelectionForAccessibleModel_ThenPresenterIsNotCalled() async {
+    func testWhenRequiredTierForAccessibleModel_ThenReturnsNil() async {
         // Given
         mockModelsService.modelsToReturn = [
             makeRemoteModel(id: "open-model", entityHasAccess: true)
@@ -1542,11 +1542,10 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         let accessibleModel = controller.models.first { $0.id == "open-model" }!
 
         // When
-        controller.routeGatedModelSelection(accessibleModel)
+        let requiredTier = controller.requiredTier(for: accessibleModel)
 
         // Then
-        XCTAssertFalse(mockSubscriptionUpsellPresenter.routeGatedSelectionCalled,
-                        "An already-accessible model must never route to the subscription flow")
+        XCTAssertNil(requiredTier, "An already-accessible model must never report a required tier")
     }
 
     // MARK: - Helpers

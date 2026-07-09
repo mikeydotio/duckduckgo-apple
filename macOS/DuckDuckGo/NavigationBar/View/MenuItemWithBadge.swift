@@ -327,29 +327,27 @@ extension NSMenuItem {
 // MARK: - Subscriber Exclusive Header
 
 /// A non-selectable menu header row that shows a muted title ("Subscriber exclusive.") followed by a
-/// tappable blue link ("Try for free" / "Upgrade") that launches the subscription flow. Used at the
-/// top of the gated section of the Duck.ai model picker.
+/// tappable yellow "TRY FOR FREE" / "UPGRADE" badge that launches the subscription flow — the same
+/// `BadgeView` used for the PLUS/PRO/BETA tags, standardized across the model picker and the
+/// reasoning-effort picker's gated row per design review. Used at the top of the gated section of
+/// the Duck.ai model picker.
 struct SubscriberExclusiveHeaderView: View {
     /// Muted leading label.
     let title: String
 
-    /// Tappable trailing link text.
-    let linkText: String
+    /// Tappable trailing badge text.
+    let badgeText: String
 
-    /// Callback executed when the link is tapped.
-    var onTapLink: () -> Void
-
-    @State private var isLinkHovered = false
+    /// Callback executed when the badge is tapped.
+    var onTapBadge: () -> Void
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 8) {
             Text(title)
                 .foregroundColor(.secondary)
-            Text(linkText)
-                .foregroundColor(Color(baseColor: .blue50))
-                .underline(isLinkHovered)
-                .onHover { isLinkHovered = $0 }
-                .onTapGesture { onTapLink() }
+            BadgeView(text: badgeText)
+                .fixedSize()
+                .onTapGesture { onTapBadge() }
             Spacer(minLength: 0)
         }
         .font(.system(size: 13))
@@ -362,16 +360,16 @@ struct SubscriberExclusiveHeaderView: View {
 
 extension NSMenuItem {
 
-    /// Creates a header row with a muted title and a trailing tappable link. Only the link is
+    /// Creates a header row with a muted title and a trailing tappable badge. Only the badge is
     /// interactive: tapping it dismisses the menu and performs `action` on `target`.
-    static func createSubscriberExclusiveHeader(title: String, linkText: String, action: Selector, target: AnyObject, menu: NSMenu) -> NSMenuItem {
+    static func createSubscriberExclusiveHeader(title: String, badgeText: String, action: Selector, target: AnyObject, menu: NSMenu) -> NSMenuItem {
         let menuItem = NSMenuItem(action: action)
         menuItem.target = target
 
         weak let weakTarget = target
         let menuAction = action
 
-        let headerView = SubscriberExclusiveHeaderView(title: title, linkText: linkText) {
+        let headerView = SubscriberExclusiveHeaderView(title: title, badgeText: badgeText) {
             menu.cancelTracking()
             if let target = weakTarget {
                 DispatchQueue.main.async {
@@ -405,6 +403,10 @@ struct ModelMenuRowView: View {
     let regularTitle: String
     let subtitle: String?
     let trailingText: String?
+    /// A yellow "TRY FOR FREE" / "UPGRADE" pill, shown instead of `trailingText` when non-nil —
+    /// used for the reasoning picker's gated row (the model picker's own gated rows keep the plain
+    /// PLUS/PRO `trailingText`; only their section header shows this badge).
+    let trailingBadgeText: String?
     let isSelected: Bool
     /// Gated (subscriber-only) models render dimmed.
     let isDimmed: Bool
@@ -507,7 +509,11 @@ struct ModelMenuRowView: View {
 
                 Spacer(minLength: MenuItemWithBadgeConstants.titleBadgeSpacing)
 
-                if let trailingText {
+                if let trailingBadgeText {
+                    BadgeView(text: trailingBadgeText)
+                        .fixedSize()
+                        .padding(.trailing, MenuItemWithBadgeConstants.badgeRightPadding)
+                } else if let trailingText {
                     Text(trailingText)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(trailingColor)
@@ -535,6 +541,7 @@ extension NSMenuItem {
                                regularTitle: String,
                                subtitle: String?,
                                trailingText: String?,
+                               trailingBadgeText: String? = nil,
                                isSelected: Bool,
                                isDimmed: Bool,
                                isInteractive: Bool,
@@ -554,6 +561,7 @@ extension NSMenuItem {
                                     regularTitle: regularTitle,
                                     subtitle: subtitle,
                                     trailingText: trailingText,
+                                    trailingBadgeText: trailingBadgeText,
                                     isSelected: isSelected,
                                     isDimmed: isDimmed,
                                     isInteractive: isInteractive) {

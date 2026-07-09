@@ -4930,25 +4930,25 @@
       }
     },
     "aichat.model-picker.try-for-free" : {
-      "comment" : "Link in the model picker menu that opens the subscription purchase flow, shown to free users",
+      "comment" : "Text of the yellow badge in the model picker and reasoning-effort picker that opens the subscription purchase flow, shown to free users",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Try for free"
+            "value" : "TRY FOR FREE"
           }
         }
       }
     },
     "aichat.model-picker.upgrade" : {
-      "comment" : "Link in the model picker menu that opens the subscription upgrade flow, shown to Plus subscribers",
+      "comment" : "Text of the yellow badge in the model picker and reasoning-effort picker that opens the subscription upgrade flow, shown to Plus subscribers",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Upgrade"
+            "value" : "UPGRADE"
           }
         }
       }
@@ -5206,7 +5206,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Answers right away"
+            "value" : "Answers quickly"
           }
         },
         "es" : {
@@ -5326,7 +5326,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Takes a moment to respond"
+            "value" : "For complex tasks"
           }
         },
         "es" : {
@@ -5446,7 +5446,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Researches before responding"
+            "value" : "For analytical tasks"
           }
         },
         "es" : {
@@ -6244,7 +6244,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Not now"
+            "value" : "Not Now"
           }
         }
       }

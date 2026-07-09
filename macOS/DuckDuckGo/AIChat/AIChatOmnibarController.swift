@@ -605,18 +605,17 @@ final class AIChatOmnibarController {
         return .gated(requiredTier: requiredTier)
     }
 
-    /// Routes a gated selection to the subscription flow. Called directly for a gated model tap
-    /// (no intermediate confirmation), or from the reasoning-effort upsell dialog's "Subscribe" action.
+    /// Routes a gated selection to the subscription flow. Called from the confirmation dialog's
+    /// "Subscribe" action — both the model picker and the reasoning-effort picker show that dialog
+    /// before navigating (per design review, neither surface navigates directly on a gated tap).
     func presentSubscriptionUpsell(requiredTier: AIChatModelPublicAccessTier, origin: SubscriptionFunnelOrigin) {
         subscriptionUpsellPresenter.routeGatedSelection(requiredTier: requiredTier, userTier: userTier, origin: origin)
     }
 
-    /// Routes a tap on a gated (subscriber-only) model straight to the subscription flow — no
-    /// intermediate confirmation dialog (unlike the reasoning-effort picker). No-op if the model is
-    /// already accessible or carries no public access tier.
-    func routeGatedModelSelection(_ model: AIChatModel) {
-        guard !model.entityHasAccess, let requiredTier = model.lowestPublicAccessTier else { return }
-        presentSubscriptionUpsell(requiredTier: requiredTier, origin: .addressBarModelPicker)
+    /// The public tier required to unlock `model`, or `nil` when it's already accessible.
+    func requiredTier(for model: AIChatModel) -> AIChatModelPublicAccessTier? {
+        guard !model.entityHasAccess else { return nil }
+        return model.lowestPublicAccessTier
     }
 
     /// Opens the subscription activation flow, for a user who already has a subscription (e.g.
