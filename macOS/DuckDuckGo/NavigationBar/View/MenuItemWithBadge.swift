@@ -345,10 +345,10 @@ struct SubscriberExclusiveHeaderView: View {
         HStack(spacing: 8) {
             Text(title)
                 .foregroundColor(.secondary)
+            Spacer(minLength: 8)
             BadgeView(text: badgeText)
                 .fixedSize()
                 .onTapGesture { onTapBadge() }
-            Spacer(minLength: 0)
         }
         .font(.system(size: 13))
         .padding(.leading, MenuItemWithBadgeConstants.iconLeftPadding)
@@ -402,11 +402,20 @@ struct ModelMenuRowView: View {
     let boldTitle: String
     let regularTitle: String
     let subtitle: String?
+    /// The reasoning picker's native sibling rows set their subtitle at 11pt; the model picker's
+    /// own rows have always used 12pt. Defaulted so only the reasoning-picker call site needs to
+    /// override it.
+    let subtitleFontSize: CGFloat
     let trailingText: String?
     /// A yellow "TRY FOR FREE" / "UPGRADE" pill, shown instead of `trailingText` when non-nil —
     /// used for the reasoning picker's gated row (the model picker's own gated rows keep the plain
     /// PLUS/PRO `trailingText`; only their section header shows this badge).
     let trailingBadgeText: String?
+    /// `true` renders `boldTitle` semibold with `regularTitle` appended in regular weight (the
+    /// model picker's "family + variant" look, e.g. "GPT-5.4" + "mini"). `false` renders the whole
+    /// `boldTitle` string in regular weight — used for the reasoning picker's gated row, which has
+    /// no family/variant split and must match its native siblings' regular-weight title.
+    let emphasizesTitle: Bool
     let isSelected: Bool
     /// Gated (subscriber-only) models render dimmed.
     let isDimmed: Bool
@@ -494,14 +503,20 @@ struct ModelMenuRowView: View {
                 .padding(.trailing, MenuItemWithBadgeConstants.iconTitleSpacing)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    (Text(boldTitle).fontWeight(.semibold)
-                        + Text(regularTitle.isEmpty ? "" : " \(regularTitle)").fontWeight(.regular))
-                        .font(.system(size: 13))
-                        .foregroundColor(titleColor)
-                        .lineLimit(1)
+                    Group {
+                        if emphasizesTitle {
+                            Text(boldTitle).fontWeight(.semibold)
+                                + Text(regularTitle.isEmpty ? "" : " \(regularTitle)").fontWeight(.regular)
+                        } else {
+                            Text(boldTitle).fontWeight(.regular)
+                        }
+                    }
+                    .font(.system(size: 13))
+                    .foregroundColor(titleColor)
+                    .lineLimit(1)
                     if let subtitle {
                         Text(subtitle)
-                            .font(.system(size: 12))
+                            .font(.system(size: subtitleFontSize))
                             .foregroundColor(subtitleColor)
                             .lineLimit(1)
                     }
@@ -540,8 +555,10 @@ extension NSMenuItem {
                                boldTitle: String,
                                regularTitle: String,
                                subtitle: String?,
+                               subtitleFontSize: CGFloat = 12,
                                trailingText: String?,
                                trailingBadgeText: String? = nil,
+                               emphasizesTitle: Bool = true,
                                isSelected: Bool,
                                isDimmed: Bool,
                                isInteractive: Bool,
@@ -560,8 +577,10 @@ extension NSMenuItem {
                                     boldTitle: boldTitle,
                                     regularTitle: regularTitle,
                                     subtitle: subtitle,
+                                    subtitleFontSize: subtitleFontSize,
                                     trailingText: trailingText,
                                     trailingBadgeText: trailingBadgeText,
+                                    emphasizesTitle: emphasizesTitle,
                                     isSelected: isSelected,
                                     isDimmed: isDimmed,
                                     isInteractive: isInteractive) {

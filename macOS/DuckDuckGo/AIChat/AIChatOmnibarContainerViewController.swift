@@ -1847,9 +1847,16 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     // MARK: - Reasoning Picker
 
+    /// A floor for the reasoning-effort menu's width, set explicitly because the menu mixes plain
+    /// `NSMenuItem`s (sized by AppKit from their attributed title) with the gated row's custom view
+    /// (sized from its own `fittingSize`) — relying on whichever happens to come out wider left the
+    /// custom row's badge short of the menu's actual rendered width, with a gap after it.
+    private static let reasoningPickerMinimumWidth: CGFloat = 300
+
     @objc private func reasoningPickerButtonClicked() {
         let menu = NSMenu()
         menu.autoenablesItems = false
+        menu.minimumWidth = Self.reasoningPickerMinimumWidth
 
         let currentEffort = omnibarController.displayedReasoningEffort
         for effort in omnibarController.pickerReasoningEfforts {
@@ -1888,8 +1895,10 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             boldTitle: effort.title,
             regularTitle: "",
             subtitle: effort.subtitle,
+            subtitleFontSize: 11,
             trailingText: nil,
             trailingBadgeText: badgeText,
+            emphasizesTitle: false,
             isSelected: false,
             isDimmed: false,
             isInteractive: true,
