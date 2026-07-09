@@ -1299,6 +1299,75 @@ final class AIChatContextualChatSessionStateTests: XCTestCase {
         XCTAssertNil(mockProvider.lastInput?.url)
     }
 
+    // MARK: - Suggestion Tap Attach Tests
+
+    func testAttachContextFromSuggestionTapAttachesChip() {
+        // When
+        sessionState.attachContextFromSuggestionTap(makeTestContext(title: "Recipe", url: "https://example.com/recipe"))
+
+        // Then
+        guard case .attached(let attached) = sessionState.chipState else {
+            return XCTFail("Expected chip to be attached")
+        }
+        XCTAssertEqual(attached.contextData.url, "https://example.com/recipe")
+    }
+
+    func testAttachContextFromSuggestionTapClearsUserDowngrade() {
+        // Given - the user previously removed the chip (X-tap → placeholder + opted out)
+        mockSettings.isAutomaticContextAttachmentEnabled = true
+        sessionState.updateContext(makeTestContext())
+        _ = sessionState.handleChipRemoval()
+        XCTAssertTrue(sessionState.userDowngradedToPlaceholder)
+
+        // When - tapping a suggestion force-attaches regardless of the prior downgrade
+        sessionState.attachContextFromSuggestionTap(makeTestContext())
+
+        // Then
+        XCTAssertFalse(sessionState.userDowngradedToPlaceholder)
+        XCTAssertEqual(sessionState.chipState.description, "attached")
+    }
+
+    func testAttachContextFromSuggestionTapDeliversToUTIChipWhenUTIActive() {
+        // Given
+        sessionState.updateUnifiedToggleInputActive(true)
+        var receivedEffect: SheetEffect?
+        sessionState.effects
+            .sink { if case .deliverPageContext = $0 { receivedEffect = $0 } }
+            .store(in: &cancellables)
+
+        // When
+        sessionState.attachContextFromSuggestionTap(makeTestContext(title: "Recipe"))
+
+        // Then - full context delivered to the UTI chip only (never the FE bridge with UTI active)
+        guard case .deliverPageContext(let contextData, let targets) = receivedEffect else {
+            return XCTFail("Expected deliverPageContext effect")
+        }
+        XCTAssertEqual(contextData?.title, "Recipe")
+        XCTAssertEqual(targets, .utiChip)
+    }
+
+    func testAttachContextFromSuggestionTapDoesNotDeliverWhenNotUTIAndNoChat() {
+        // Given - UTI inactive (default) and no active chat: context is held natively only
+        var receivedDeliver: SheetEffect?
+        sessionState.effects
+            .sink { if case .deliverPageContext = $0 { receivedDeliver = $0 } }
+            .store(in: &cancellables)
+
+        // When
+        sessionState.attachContextFromSuggestionTap(makeTestContext())
+
+        // Then - nothing pushed to the UTI chip or FE bridge
+        XCTAssertNil(receivedDeliver)
+    }
+
+    func testAttachContextFromSuggestionTapUpdatesViewStateChip() {
+        // When
+        sessionState.attachContextFromSuggestionTap(makeTestContext())
+
+        // Then
+        XCTAssertEqual(sessionState.viewState.chipState.description, "attached")
+    }
+
     // MARK: - Helpers
 
     private func makeTestContext(title: String = "Test Page",
