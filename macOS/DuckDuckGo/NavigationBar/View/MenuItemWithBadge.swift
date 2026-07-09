@@ -349,6 +349,9 @@ struct SubscriberExclusiveHeaderView: View {
             BadgeView(text: badgeText)
                 .fixedSize()
                 .onTapGesture { onTapBadge() }
+                .onHover { hovering in
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
         }
         .font(.system(size: 13))
         .padding(.leading, MenuItemWithBadgeConstants.iconLeftPadding)
@@ -528,6 +531,9 @@ struct ModelMenuRowView: View {
                     BadgeView(text: trailingBadgeText)
                         .fixedSize()
                         .padding(.trailing, MenuItemWithBadgeConstants.badgeRightPadding)
+                        .onHover { hovering in
+                            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                        }
                 } else if let trailingText {
                     Text(trailingText)
                         .font(.system(size: 11, weight: .semibold))
