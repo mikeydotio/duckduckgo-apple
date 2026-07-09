@@ -73,6 +73,7 @@ final class AIChatContextualInputViewController: UIViewController {
         static let quickActionsBottomSpacing: CGFloat = 12
         static let keyboardSpacing: CGFloat = 20
         static let iPadBottomPadding: CGFloat = 16
+        static let dimmedStartActionsAlpha: CGFloat = 0.4
     }
 
     // MARK: - Properties
@@ -213,6 +214,11 @@ final class AIChatContextualInputViewController: UIViewController {
 
     func updateSuggestionsLoading(_ isLoading: Bool) {
         quickActionsView.setLoading(isLoading)
+    }
+
+    func setStartActionsDimmed(_ dimmed: Bool) {
+        quickActionsView.alpha = dimmed ? Constants.dimmedStartActionsAlpha : 1
+        quickActionsView.isUserInteractionEnabled = !dimmed
     }
 
 }

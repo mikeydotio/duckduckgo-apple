@@ -678,6 +678,13 @@ extension AIChatContextualSheetCoordinator: AIChatContextualSheetViewControllerD
         sessionState.handlePromptSubmission(prompt)
     }
 
+    func aiChatContextualSheetViewControllerAttachContextForSuggestion(_ viewController: AIChatContextualSheetViewController) async {
+        guard featureFlagger.isFeatureOn(.contextualSuggestedPrompts) else { return }
+        if case .attached = sessionState.chipState { return }
+        guard let context = await collectFreshContextAndWait(timeout: Self.contextualContextCollectionTimeout) else { return }
+        sessionState.attachContextFromSuggestionTap(AIChatPageContext(contextData: context, favicon: nil))
+    }
+
     func aiChatContextualSheetViewControllerDidConfirmDeleteChat(_ viewController: AIChatContextualSheetViewController) {
         let chatURL = sessionState.contextualChatURL
         clearActiveChat()

@@ -268,6 +268,13 @@ final class AIChatContextualChatSessionState {
         rebuildViewState()
     }
 
+    func attachContextFromSuggestionTap(_ context: AIChatPageContext) {
+        chipState = .attached(context)
+        userDowngradedToPlaceholder = false
+        emitDeliveryIfNeeded(context.contextData)
+        rebuildViewState()
+    }
+
     /// Call when starting a new chat (resetting frontend)
     func resetToNoChat() {
         frontendState = .noChat

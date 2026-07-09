@@ -74,6 +74,9 @@ protocol AIChatContextualSheetViewControllerDelegate: AnyObject {
     /// Called when the user submits a prompt from native input
     func aiChatContextualSheetViewController(_ viewController: AIChatContextualSheetViewController, didSubmitPrompt prompt: String)
 
+    /// Called when the user taps a suggested prompt.
+    func aiChatContextualSheetViewControllerAttachContextForSuggestion(_ viewController: AIChatContextualSheetViewController) async
+
     /// Called when the user confirms chat deletion from the fire button confirmation
     func aiChatContextualSheetViewControllerDidConfirmDeleteChat(_ viewController: AIChatContextualSheetViewController)
 }
@@ -791,9 +794,12 @@ extension AIChatContextualSheetViewController: AIChatContextualInputViewControll
     }
 
     func contextualInputViewController(_ viewController: AIChatContextualInputViewController, didSelectSuggestion suggestion: ContextualSuggestedPrompt) {
-        // Interim behaviour: The full tap → chat-start-with-context flow is a separate task.
-        // https://app.asana.com/1/137249556945/project/1210947754188321/task/1216246134909203?focus=true
-        contextualInputViewController.appendText(suggestion.prompt)
+        contextualInputViewController.setStartActionsDimmed(true)
+        Task { [weak self] in
+            guard let self else { return }
+            await self.delegate?.aiChatContextualSheetViewControllerAttachContextForSuggestion(self)
+            self.submitSuggestionPrompt(suggestion.prompt)
+        }
     }
 
     func contextualInputViewControllerDidTapVoice(_ viewController: AIChatContextualInputViewController) {
@@ -981,6 +987,14 @@ private extension AIChatContextualSheetViewController {
     func submitPromptFromNativeInput(_ prompt: String) {
         beginWaitingForInitialPromptResponseStateIfNeeded()
         delegate?.aiChatContextualSheetViewController(self, didSubmitPrompt: prompt)
+    }
+
+    func submitSuggestionPrompt(_ prompt: String) {
+        if let persistentUTIHost {
+            persistentUTIHost.submitQuickActionPrompt(prompt)
+        } else {
+            submitPromptFromNativeInput(prompt)
+        }
     }
 
     func transitionToWebViewAfterInitialPromptStatusIfNeeded(_ status: AIChatStatusValue) {
