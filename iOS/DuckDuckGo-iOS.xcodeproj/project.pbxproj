@@ -261,6 +261,7 @@
 		362AB8382F69A33700E3F222 /* ActionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 362AB8372F69A33700E3F222 /* ActionResult.swift */; };
 		365E900B2E566C2300BDB0E8 /* AIChatIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365E900A2E566C2300BDB0E8 /* AIChatIntent.swift */; };
 		365E90132E5673DF00BDB0E8 /* SearchInAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365E90122E5673DF00BDB0E8 /* SearchInAppIntent.swift */; };
+		3666D84B30004E3E00B63F99 /* SubscriptionOnboardingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D84830004E3E00B63F99 /* SubscriptionOnboardingCard.swift */; };
 		366A93042FCE0E0B00211BA8 /* SubscriptionExpirationReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 366A93032FCE0E0B00211BA8 /* SubscriptionExpirationReminderScheduler.swift */; };
 		366A93062FCE0E3700211BA8 /* SubscriptionExpirationReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 366A93052FCE0E3700211BA8 /* SubscriptionExpirationReminderSchedulerTests.swift */; };
 		369809BF2E5635E7007FE895 /* AppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369809BE2E5635E1007FE895 /* AppShortcuts.swift */; };
@@ -3016,6 +3017,7 @@
 		3652B1D4CCA25401F948AB69 /* TabViewControllerSiteLoadingPixelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TabViewControllerSiteLoadingPixelTests.swift; sourceTree = "<group>"; };
 		365E900A2E566C2300BDB0E8 /* AIChatIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatIntent.swift; sourceTree = "<group>"; };
 		365E90122E5673DF00BDB0E8 /* SearchInAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchInAppIntent.swift; sourceTree = "<group>"; };
+		3666D84830004E3E00B63F99 /* SubscriptionOnboardingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingCard.swift; sourceTree = "<group>"; };
 		366A93032FCE0E0B00211BA8 /* SubscriptionExpirationReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionExpirationReminderScheduler.swift; sourceTree = "<group>"; };
 		366A93052FCE0E3700211BA8 /* SubscriptionExpirationReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionExpirationReminderSchedulerTests.swift; sourceTree = "<group>"; };
 		369809BE2E5635E1007FE895 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
@@ -6642,6 +6644,22 @@
 				97D99E612F741FE900EE34E7 /* AIVoiceChatIntent.swift */,
 			);
 			path = AppIntents;
+			sourceTree = "<group>";
+		};
+		3666D84930004E3E00B63F99 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				3666D84830004E3E00B63F99 /* SubscriptionOnboardingCard.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		3666D84A30004E3E00B63F99 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				3666D84930004E3E00B63F99 /* Components */,
+			);
+			path = Onboarding;
 			sourceTree = "<group>";
 		};
 		369E692B2E5F6E9F00F98A8F /* AppServices */ = {
@@ -10415,6 +10433,7 @@
 		D664C7922B289AA000CBFA76 /* Subscription */ = {
 			isa = PBXGroup;
 			children = (
+				3666D84A30004E3E00B63F99 /* Onboarding */,
 				BB3F734C2F321F4000461429 /* FreeTrialPixelHandler.swift */,
 				56D60AA42EE33EA600652ABB /* SubscriptionUserScriptFeatureFlagAdapter.swift */,
 				D6D95CE42B6DA3F200960317 /* AsyncHeadlessWebview */,
@@ -13740,6 +13759,7 @@
 				C18390BD2F4F6F57001939B9 /* UnifiedToggleInputDelegate.swift in Sources */,
 				C18390B72F4F6F16001939B9 /* UnifiedToggleInputView.swift in Sources */,
 				C1E9B8F02F0E85C700E845AA /* TabViewControllerContextualAIChatExtension.swift in Sources */,
+				3666D84B30004E3E00B63F99 /* SubscriptionOnboardingCard.swift in Sources */,
 				CBF259BD2D4E56E900AC63E4 /* ReportingService.swift in Sources */,
 				C13830FE2DCD3FFC00A29B3C /* CreditCardInputAccessoryView.swift in Sources */,
 				365E90132E5673DF00BDB0E8 /* SearchInAppIntent.swift in Sources */,
