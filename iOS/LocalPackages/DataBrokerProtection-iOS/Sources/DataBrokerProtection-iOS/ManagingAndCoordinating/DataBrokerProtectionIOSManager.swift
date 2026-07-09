@@ -201,7 +201,7 @@ public final class DataBrokerProtectionIOSManager {
     /// initialization or joins one already in progress.
     /// The reason is for
     /// call-site readability only.
-    private enum VaultInitReason {
+    private enum VaultInitReason: String {
         case launch
         case appActive
         case dashboard
@@ -215,6 +215,11 @@ public final class DataBrokerProtectionIOSManager {
             case .launch, .appActive, .backgroundTask: return true
             }
         }
+    }
+
+    private struct VaultInitDebugState {
+        var error: String?
+        var reason: String?
     }
 
     private struct Constants {
@@ -234,6 +239,7 @@ public final class DataBrokerProtectionIOSManager {
     private let vaultResourcesLock = NSLock()
     private var cachedVaultResources: DBPVaultResources?
     private var ongoingVaultResourcesInitTask: Task<DBPVaultResources, Error>?
+    private var vaultInitDebugState = VaultInitDebugState()
     private let vaultResourcesProvider: (() throws -> DBPVaultResources)?
     private let authenticationManager: DataBrokerProtectionAuthenticationManaging
     private let userNotificationService: DataBrokerProtectionUserNotificationService
@@ -504,16 +510,20 @@ public final class DataBrokerProtectionIOSManager {
             }
 
             if reason.skipsWhenNoProfile, profileStateManager.profileState == .noProfile {
+                vaultInitDebugState.error = nil
+                vaultInitDebugState.reason = reason.rawValue
                 return .skipped
             }
 
+            vaultInitDebugState.error = nil
+            vaultInitDebugState.reason = reason.rawValue
             let task = Task {
                 do {
                     let resources = try await loadVaultResources()
                     publishVaultResources(resources)
                     return resources
                 } catch {
-                    clearVaultResourcesInitAttempt()
+                    clearVaultResourcesInitAttempt(error: error)
                     throw error
                 }
             }
@@ -552,12 +562,14 @@ public final class DataBrokerProtectionIOSManager {
             resources.queueManager.delegate = self
             cachedVaultResources = resources
             ongoingVaultResourcesInitTask = nil
+            vaultInitDebugState.error = nil
         }
     }
 
-    private func clearVaultResourcesInitAttempt() {
+    private func clearVaultResourcesInitAttempt(error: Error? = nil) {
         vaultResourcesLock.withLock {
             ongoingVaultResourcesInitTask = nil
+            vaultInitDebugState.error = error.map { String(describing: $0) }
         }
     }
 }
@@ -959,6 +971,16 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.DebugCommandsDelegate 
 // MARK: - Debug HTTP server read access
 
 extension DataBrokerProtectionIOSManager: DataBrokerProtectionDebugReadProviding {
+
+    public var iOSRuntimeStatus: DBPDebugIOSRuntimeStatus? {
+        vaultResourcesLock.withLock {
+            DBPDebugIOSRuntimeStatus(profileState: profileStateManager.profileState.rawValue,
+                                     vault: DBPDebugIOSRuntimeStatus.VaultStatus(initialized: cachedVaultResources != nil,
+                                                                                 initInFlight: ongoingVaultResourcesInitTask != nil,
+                                                                                 lastError: vaultInitDebugState.error,
+                                                                                 lastInitReason: vaultInitDebugState.reason))
+        }
+    }
 
     public var agentVersion: String {
         let version = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "unknown"
