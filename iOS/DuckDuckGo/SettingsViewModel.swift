@@ -205,12 +205,9 @@ final class SettingsViewModel: ObservableObject {
 
     var dbpProfileStatusIndicator: StatusIndicator? {
         switch profileStateManager.profileState {
-        case .hasProfile:
-            return .on
-        case .noProfile:
-            return .off
-        case .unknown:
-            return nil
+        case .hasProfile: return .on
+        case .noProfile: return .off
+        case .unknown: return nil
         }
     }
 

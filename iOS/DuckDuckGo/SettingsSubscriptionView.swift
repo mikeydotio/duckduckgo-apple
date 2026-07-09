@@ -342,7 +342,7 @@ struct SettingsSubscriptionView: View {
         if subscriptionFeatures.contains(.dataBrokerProtection) {
             let hasDBPEntitlement = userEntitlements.contains(.dataBrokerProtection)
             let shouldShowPIRNewBadge = settingsViewModel.shouldShowNewBadge(for: .personalInformationRemoval)
-            var statusIndicator = settingsViewModel.dbpProfileStatusIndicator
+            var statusIndicator: StatusIndicator? = hasDBPEntitlement ? settingsViewModel.dbpProfileStatusIndicator : .off
 
             let destination: LazyView<AnyView> = {
                 if settingsViewModel.isPIREnabled, let vcProvider = settingsViewModel.dataBrokerProtectionViewControllerProvider {

@@ -85,7 +85,8 @@ final class RemoteMessagingService: RemoteMessagingDebugHandling {
             freemiumPIREligibilityChecker: freemiumPIREligibilityChecker,
             freemiumDBPUserStateManager: freemiumDBPUserStateManager,
             profileStateManager: profileStateManager,
-            idleReturnEligibilityManager: idleReturnEligibilityManager
+            idleReturnEligibilityManager: idleReturnEligibilityManager,
+            dbpRunPrerequisitesDelegate: dbpRunPrerequisitesDelegate
         )
         remoteMessagingClient.registerBackgroundRefreshTaskHandler()
 
