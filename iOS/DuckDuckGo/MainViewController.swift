@@ -1296,6 +1296,7 @@ class MainViewController: UIViewController {
         }
 
         viewCoordinator.updateToolbarLayoutForAddressBarPosition(position)
+        reconcileAIChromeForCurrentTab()
         swipeTabsCoordinator?.refresh(tabsModel: tabManager.currentTabsModel, scrollToSelected: true)
 
         omniBar.adjust(for: position)
@@ -6540,9 +6541,11 @@ extension MainViewController {
     }
 
     private func applyFloatingUIIfNeeded() {
+        guard floatingUIManager.isFloatingUIEnabled else { return }
         viewCoordinator.setFloatingUIEnabled(floatingUIManager.isFloatingUIEnabled)
         FloatingUIChromeStyler().decorateMainViewIfNeeded(manager: floatingUIManager, coordinator: viewCoordinator)
         viewCoordinator.updateToolbarLayoutForAddressBarPosition(appSettings.currentAddressBarPosition)
+        reconcileAIChromeForCurrentTab()
     }
 
 }
