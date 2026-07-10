@@ -162,6 +162,18 @@ final class DefaultOmniBarViewController: OmniBarViewController {
         updateShadowAppearanceByApplyingLayerMask()
     }
 
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+
+        /// Keep the inline duck.ai field first responder across the rotation
+        guard omniBarView.aiChatTextView.isFirstResponder else { return }
+
+        omniBarView.aiChatTextView.suppressResignFirstResponder = true
+        coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+            self?.omniBarView.aiChatTextView.suppressResignFirstResponder = false
+        }
+    }
+
     // MARK: - Text Field Delegate Overrides
 
     override func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
@@ -343,11 +355,22 @@ final class DefaultOmniBarViewController: OmniBarViewController {
 
         omniBarView.setLayoutMode(newMode, animated: isExpandedPhone)
 
+        let clearButtonHidden = shouldHideClearButton(for: state)
+        omniBarView.isClearButtonHidden = clearButtonHidden
+
         let hasTrailingAccessory = state.showAIChatButton || state.showAIChatModeToggle
-        let hasAdjacentButton = state.showClear || state.showVoiceSearch || state.showRefresh || state.showAbort || state.showCustomizableButton
+        let hasAdjacentButton = !clearButtonHidden || state.showVoiceSearch || state.showRefresh || state.showAbort || state.showCustomizableButton
         omniBarView.isShowingSeparator = hasTrailingAccessory && hasAdjacentButton
 
         updateShadowAppearanceByApplyingLayerMask()
+    }
+
+    /// Whether the clear button should be hidden for `state`.
+    func shouldHideClearButton(for state: any OmniBarState) -> Bool {
+        if omniBarView.isSearchAreaExpanded {
+            return (omniBarView.aiChatTextView.text ?? "").isEmpty
+        }
+        return !state.showClear
     }
 
     override func useSmallTopSpacing() {
@@ -614,6 +637,9 @@ extension DefaultOmniBarViewController {
             self?.refreshToolPicker()
             self?.refreshReasoningPicker()
         }
+        omniBarView.onSelectedToolClearTapped = { [weak self] in
+            self?.toolPickerController?.resetSelection()
+        }
 
         // The attach button shares the same store so its limits and accepted types track the selected
         // model. The strip view owns the pending attachments; the controller reads and mutates it.
@@ -700,10 +726,10 @@ extension DefaultOmniBarViewController {
 
         if controller.isToolPickerAvailable {
             omniBarView.aiChatToolPickerMenu = controller.makeMenu()
-            omniBarView.isToolSelected = controller.isToolSelected
+            omniBarView.selectedTool = controller.selectedTool
         } else {
             omniBarView.aiChatToolPickerMenu = nil
-            omniBarView.isToolSelected = false
+            omniBarView.selectedTool = nil
         }
     }
 
