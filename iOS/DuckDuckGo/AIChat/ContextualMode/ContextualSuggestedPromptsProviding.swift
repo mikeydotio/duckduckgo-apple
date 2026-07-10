@@ -38,15 +38,3 @@ struct ResolvePageSuggestionsInput {
 protocol ContextualSuggestedPromptsProviding {
     func resolveSuggestions(_ input: ResolvePageSuggestionsInput) async -> [ContextualSuggestedPrompt]
 }
-
-struct StubContextualSuggestedPromptsProvider: ContextualSuggestedPromptsProviding {
-    func resolveSuggestions(_ input: ResolvePageSuggestionsInput) async -> [ContextualSuggestedPrompt] {
-        Self.cannedSuggestions
-    }
-
-    private static let cannedSuggestions: [ContextualSuggestedPrompt] = [
-        ContextualSuggestedPrompt(id: "summarize-page", label: "Summarize this page", prompt: "Summarize this page.", icon: "summary"),
-        ContextualSuggestedPrompt(id: "translate-page", label: "Translate this page", prompt: "Translate this page.", icon: "translate"),
-        ContextualSuggestedPrompt(id: "key-takeaways", label: "Key takeaways", prompt: "What are the key takeaways from this page?", icon: "note"),
-    ]
-}
