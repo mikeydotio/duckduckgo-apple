@@ -1,0 +1,210 @@
+//
+//  SubscriptionOnboardingProgressView.swift
+//  DuckDuckGo
+//
+//  Copyright © 2026 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import SwiftUI
+import DesignResourcesKit
+import DesignResourcesKitIcons
+import UIComponents
+
+/// The completion progress card: a percentage read-out with a green progress bar in the header (with the
+/// card's automatic divider below it), then the activation checklist — a filled check for completed
+/// items, an outlined circle with a chevron affordance for the ones still to do. The percentage and items
+/// are supplied by the caller, so the same card renders the intermediate and complete states. Tapping an
+/// incomplete row (e.g. Personal Information Removal) is handled by the caller.
+struct SubscriptionOnboardingProgressView: View {
+    private let percentage: Int
+    private let items: [SubscriptionOnboardingChecklistItem]
+    private let completedItems: Set<SubscriptionOnboardingChecklistItem>
+    private let onSelect: ((SubscriptionOnboardingChecklistItem) -> Void)?
+
+    init(percentage: Int,
+         items: [SubscriptionOnboardingChecklistItem],
+         completedItems: Set<SubscriptionOnboardingChecklistItem>,
+         onSelect: ((SubscriptionOnboardingChecklistItem) -> Void)? = nil) {
+        self.percentage = percentage
+        self.items = items
+        self.completedItems = completedItems
+        self.onSelect = onSelect
+    }
+
+    var body: some View {
+        SubscriptionOnboardingCard(
+            style: .borderless,
+            padding: 24,
+            header: { progressHeader },
+            items: { checklist },
+            footer: { EmptyView() })
+    }
+
+    private var progressHeader: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: "\(clampedPercentage)%")
+                .font(.system(size: 34, weight: .bold))
+                .foregroundColor(Color(designSystemColor: .textPrimary))
+
+            Text(verbatim: UserText.subscriptionOnboardingProgressCompletedLabel)
+                .daxHeadline()
+                .foregroundColor(Color(designSystemColor: .textSecondary))
+
+            SubscriptionOnboardingProgressBar(percentage: clampedPercentage)
+                .padding(.top, 8)
+        }
+    }
+
+    private var clampedPercentage: Int {
+        min(max(percentage, 0), 100)
+    }
+
+    private var checklist: some View {
+        CardItemList(checklistItems,
+                     isRowSelectable: { isSelectable(items[$0]) },
+                     onSelect: rowSelectionHandler)
+            .foregroundColor(Color(designSystemColor: .textPrimary))
+    }
+
+    /// Translates a tapped row index into its checklist item for the caller; `nil` keeps the rows non-interactive.
+    private var rowSelectionHandler: ((Int) -> Void)? {
+        guard let onSelect else { return nil }
+        return { index in onSelect(items[index]) }
+    }
+
+    private var checklistItems: [CardItem] {
+        items.map { item in
+            CardItem(
+                icon: CardItemIcon(position: .leadingColumn, visual: visual(for: item), size: .size24),
+                title: item.title,
+                titleFont: .bodyRegular,
+                trailing: isSelectable(item) ? .chevron(Color(designSystemColor: .iconsTertiary)) : nil,
+                accessibilityValue: completedItems.contains(item)
+                    ? UserText.subscriptionOnboardingProgressRowCompletedValue
+                    : UserText.subscriptionOnboardingProgressRowNotCompletedValue)
+        }
+    }
+
+    /// Completed rows show the animated check; an incomplete PIR row shows the blocked-profile icon; any
+    /// other incomplete row (VPN, IDTR, Duck.ai) shows the check-circle outline.
+    private func visual(for item: SubscriptionOnboardingChecklistItem) -> CardVisual {
+        if completedItems.contains(item) {
+            return .lottie(name: "check-color")
+        }
+        if item == .pir {
+            return .image(Image(uiImage: DesignSystemImages.Glyphs.Size24.profileBlocked))
+        }
+        return .image(Image(uiImage: DesignSystemImages.Glyphs.Size24.checkCircle))
+    }
+
+    /// Only an incomplete PIR row is interactive — so only it is tappable and shows a chevron.
+    private func isSelectable(_ item: SubscriptionOnboardingChecklistItem) -> Bool {
+        item == .pir && !completedItems.contains(item)
+    }
+}
+
+/// The completion screen's progress bar: a solid green fill on a light-grey track. Kept separate from the
+/// shared gradient `ProgressBarView`, whose blue→purple→red gradient and border are hardcoded and not
+/// parameterizable.
+private struct SubscriptionOnboardingProgressBar: View {
+    /// The completion percentage, expected in `0...100` (the caller clamps it).
+    let percentage: Int
+
+    private var fraction: Double {
+        Double(percentage) / 100
+    }
+
+    var body: some View {
+        Capsule()
+            .fill(Color(designSystemColor: .controlsFillPrimary))
+            .frame(height: 12)
+            .overlay(alignment: .leading) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(Color(designSystemColor: .alertGreen))
+                        .frame(width: fraction * proxy.size.width)
+                }
+            }
+            .accessibilityElement()
+            .accessibilityLabel(UserText.subscriptionOnboardingProgressAccessibilityLabel)
+            .accessibilityValue(String(format: UserText.subscriptionOnboardingProgressAccessibilityValue, percentage))
+    }
+}
+
+#if DEBUG
+
+import Lottie
+
+private struct SubscriptionOnboardingProgressViewPreview: View {
+    let pirComplete: Bool
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                SubscriptionOnboardingProgressView(
+                    percentage: 75,
+                    items: Self.items,
+                    completedItems: pirComplete ? Set(Self.items) : Self.completedExceptPIR,
+                    onSelect: { _ in })
+                SubscriptionOnboardingProgressView(
+                    percentage: 100,
+                    items: Self.items,
+                    completedItems: Set(Self.items))
+                SubscriptionOnboardingProgressView(
+                    percentage: 75,
+                    items: Self.items,
+                    completedItems: Self.completedExceptVPN)
+            }
+            .padding()
+        }
+        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .cardVisualLottieRenderer(Self.previewLottieRenderer)
+    }
+
+    private static let items: [SubscriptionOnboardingChecklistItem] = [.vpn, .idtr, .duckAI, .pir]
+    private static let completedExceptPIR: Set<SubscriptionOnboardingChecklistItem> = [.vpn, .idtr, .duckAI]
+    private static let completedExceptVPN: Set<SubscriptionOnboardingChecklistItem> = [.idtr, .duckAI, .pir]
+
+    /// Renders the completed-check Lottie (`check-color`) in previews; at runtime the app injects its
+    /// own renderer.
+    private static let previewLottieRenderer = CardVisualLottieRenderer { name, _ in
+        AnyView(
+            Lottie.LottieView(animation: .named(name))
+                .playbackMode(.playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce)))
+        )
+    }
+}
+
+#Preview("Light") {
+    RebrandedPreview {
+        SubscriptionOnboardingProgressViewPreview(pirComplete: false)
+    }
+}
+
+#Preview("Dark") {
+    RebrandedPreview {
+        SubscriptionOnboardingProgressViewPreview(pirComplete: false)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Large Text") {
+    RebrandedPreview {
+        SubscriptionOnboardingProgressViewPreview(pirComplete: false)
+    }
+    .dynamicTypeSize(.accessibility5)
+}
+
+#endif

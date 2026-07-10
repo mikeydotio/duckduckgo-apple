@@ -53,11 +53,14 @@ public struct CardItemIcon {
     public let position: Position
     public let visual: CardVisual
     public let size: CardItemIconSize
+    /// The gap between a leading icon and the text block. Ignored for `.topLeading`.
+    public let spacing: CGFloat
 
-    public init(position: Position, visual: CardVisual, size: CardItemIconSize = .size24) {
+    public init(position: Position, visual: CardVisual, size: CardItemIconSize = .size24, spacing: CGFloat = 8) {
         self.position = position
         self.visual = visual
         self.size = size
+        self.spacing = spacing
     }
 }
 
@@ -100,6 +103,8 @@ public struct CardItemTitleDetail {
 
 /// A single card content row: an optional icon, an optional overline, a title with optional inline
 /// details (e.g. a variant name or tier marker), optional body text, and an optional trailing accessory.
+/// An optional `accessibilityValue` merges the row into a single VoiceOver element carrying that value
+/// (e.g. a "Selected" or "Completed" state).
 ///
 /// `CardItem` lays out content only; the surrounding surface is supplied by the card shell that holds it
 public struct CardItem: View {
@@ -110,7 +115,11 @@ public struct CardItem: View {
     private let titleDetails: [CardItemTitleDetail]
     private let text: String?
     private let textFont: CardItemFont
+    /// The vertical gap between the title and the body text.
+    private let titleTextSpacing: CGFloat
     private let trailing: CardItemAccessory?
+    private let accessibilityValue: String?
+    private let minHeight: CGFloat?
 
     public init(icon: CardItemIcon? = nil,
                 overline: String? = nil,
@@ -119,7 +128,10 @@ public struct CardItem: View {
                 titleDetails: [CardItemTitleDetail] = [],
                 text: String? = nil,
                 textFont: CardItemFont = .footnoteRegular,
-                trailing: CardItemAccessory? = nil) {
+                titleTextSpacing: CGFloat = 4,
+                trailing: CardItemAccessory? = nil,
+                accessibilityValue: String? = nil,
+                minHeight: CGFloat? = nil) {
         self.icon = icon
         self.overline = overline
         self.title = title
@@ -127,15 +139,27 @@ public struct CardItem: View {
         self.titleDetails = titleDetails
         self.text = text
         self.textFont = textFont
+        self.titleTextSpacing = titleTextSpacing
         self.trailing = trailing
+        self.accessibilityValue = accessibilityValue
+        self.minHeight = minHeight
     }
 
+    @ViewBuilder
     public var body: some View {
+        if let minHeight {
+            rowContent.frame(minHeight: minHeight, alignment: .topLeading)
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
         HStack(alignment: .center, spacing: 0) {
             HStack(alignment: rowAlignment, spacing: 0) {
                 if let icon, icon.position == .leading || icon.position == .leadingColumn {
                     iconVisual(icon)
-                        .padding(.trailing, 12)
+                        .padding(.trailing, icon.spacing)
                 }
 
                 textBlock
@@ -144,10 +168,12 @@ public struct CardItem: View {
 
             if let trailing {
                 trailingIcon(for: trailing)
-                    .padding(.leading, 12)
+                    .padding(.leading, 8)
+                    .accessibilityHidden(true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .combinedAccessibilityValue(accessibilityValue)
     }
 
     private var rowAlignment: VerticalAlignment {
@@ -165,12 +191,14 @@ public struct CardItem: View {
                     .daxFootnoteRegular()
                     .foregroundColor(Color(designSystemColor: .textSecondary))
             }
-            titleLine
-            if let text {
-                Text(verbatim: text)
-                    .font(textFont.font)
-                    .foregroundColor(Color(designSystemColor: .textSecondary))
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: titleTextSpacing) {
+                titleLine
+                if let text {
+                    Text(verbatim: text)
+                        .font(textFont.font)
+                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
@@ -178,7 +206,7 @@ public struct CardItem: View {
     @ViewBuilder
     private var titleLine: some View {
         if title != nil || !titleDetails.isEmpty {
-            HStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 if let title {
                     Text(verbatim: title)
                         .font(titleFont.font)
@@ -206,6 +234,20 @@ public struct CardItem: View {
         case .checkmark(let color):
             Image(systemName: "checkmark")
                 .foregroundColor(color)
+        }
+    }
+}
+
+private extension View {
+    /// Merges the row into one accessibility element carrying `value` (e.g. "Selected", "Completed"),
+    /// or leaves the view unchanged when `value` is `nil`.
+    @ViewBuilder
+    func combinedAccessibilityValue(_ value: String?) -> some View {
+        if let value {
+            accessibilityElement(children: .combine)
+                .accessibilityValue(value)
+        } else {
+            self
         }
     }
 }

@@ -261,7 +261,18 @@
 		362AB8382F69A33700E3F222 /* ActionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 362AB8372F69A33700E3F222 /* ActionResult.swift */; };
 		365E900B2E566C2300BDB0E8 /* AIChatIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365E900A2E566C2300BDB0E8 /* AIChatIntent.swift */; };
 		365E90132E5673DF00BDB0E8 /* SearchInAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365E90122E5673DF00BDB0E8 /* SearchInAppIntent.swift */; };
-		3666D84B30004E3E00B63F99 /* SubscriptionOnboardingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D84830004E3E00B63F99 /* SubscriptionOnboardingCard.swift */; };
+		3666D86130016E4D00B63F99 /* VPNTipsCarouselView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85E30016E4D00B63F99 /* VPNTipsCarouselView.swift */; };
+		3666D86230016E4D00B63F99 /* FloatingHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85A30016E4D00B63F99 /* FloatingHint.swift */; };
+		3666D86330016E4D00B63F99 /* FreeTrialCalendarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85B30016E4D00B63F99 /* FreeTrialCalendarCard.swift */; };
+		3666D86430016E4D00B63F99 /* DuckAIModelPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85930016E4D00B63F99 /* DuckAIModelPickerView.swift */; };
+		3666D86530016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85C30016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift */; };
+		3666D86730017A6800B63F99 /* SubscriptionOnboardingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D86630017A6800B63F99 /* SubscriptionOnboardingCard.swift */; };
+		3666D86D30017B1400B63F99 /* RebrandedPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D86B30017B1400B63F99 /* RebrandedPreview.swift */; };
+		3666D86F3001910D00B63F99 /* SubscriptionOnboardingWelcomeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D86E3001910D00B63F99 /* SubscriptionOnboardingWelcomeListView.swift */; };
+		3666D8753001917B00B63F99 /* SubscriptionOnboardingChecklistItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D8733001917B00B63F99 /* SubscriptionOnboardingChecklistItem.swift */; };
+		3666D877300193CC00B63F99 /* SubscriptionOnboardingUserText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D876300193CC00B63F99 /* SubscriptionOnboardingUserText.swift */; };
+		3666D87A300193EA00B63F99 /* check-color.json in Resources */ = {isa = PBXBuildFile; fileRef = 3666D879300193EA00B63F99 /* check-color.json */; };
+		3666D87D3001AA9600B63F99 /* FreeTrialCalendarCardModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D87B3001AA9600B63F99 /* FreeTrialCalendarCardModelTests.swift */; };
 		366A93042FCE0E0B00211BA8 /* SubscriptionExpirationReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 366A93032FCE0E0B00211BA8 /* SubscriptionExpirationReminderScheduler.swift */; };
 		366A93062FCE0E3700211BA8 /* SubscriptionExpirationReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 366A93052FCE0E3700211BA8 /* SubscriptionExpirationReminderSchedulerTests.swift */; };
 		369809BF2E5635E7007FE895 /* AppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369809BE2E5635E1007FE895 /* AppShortcuts.swift */; };
@@ -3017,7 +3028,18 @@
 		3652B1D4CCA25401F948AB69 /* TabViewControllerSiteLoadingPixelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TabViewControllerSiteLoadingPixelTests.swift; sourceTree = "<group>"; };
 		365E900A2E566C2300BDB0E8 /* AIChatIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatIntent.swift; sourceTree = "<group>"; };
 		365E90122E5673DF00BDB0E8 /* SearchInAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchInAppIntent.swift; sourceTree = "<group>"; };
-		3666D84830004E3E00B63F99 /* SubscriptionOnboardingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingCard.swift; sourceTree = "<group>"; };
+		3666D85930016E4D00B63F99 /* DuckAIModelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckAIModelPickerView.swift; sourceTree = "<group>"; };
+		3666D85A30016E4D00B63F99 /* FloatingHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingHint.swift; sourceTree = "<group>"; };
+		3666D85B30016E4D00B63F99 /* FreeTrialCalendarCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeTrialCalendarCard.swift; sourceTree = "<group>"; };
+		3666D85C30016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingProgressView.swift; sourceTree = "<group>"; };
+		3666D85E30016E4D00B63F99 /* VPNTipsCarouselView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNTipsCarouselView.swift; sourceTree = "<group>"; };
+		3666D86630017A6800B63F99 /* SubscriptionOnboardingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingCard.swift; sourceTree = "<group>"; };
+		3666D86B30017B1400B63F99 /* RebrandedPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RebrandedPreview.swift; sourceTree = "<group>"; };
+		3666D86E3001910D00B63F99 /* SubscriptionOnboardingWelcomeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingWelcomeListView.swift; sourceTree = "<group>"; };
+		3666D8733001917B00B63F99 /* SubscriptionOnboardingChecklistItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingChecklistItem.swift; sourceTree = "<group>"; };
+		3666D876300193CC00B63F99 /* SubscriptionOnboardingUserText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingUserText.swift; sourceTree = "<group>"; };
+		3666D879300193EA00B63F99 /* check-color.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "check-color.json"; sourceTree = "<group>"; };
+		3666D87B3001AA9600B63F99 /* FreeTrialCalendarCardModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeTrialCalendarCardModelTests.swift; sourceTree = "<group>"; };
 		366A93032FCE0E0B00211BA8 /* SubscriptionExpirationReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionExpirationReminderScheduler.swift; sourceTree = "<group>"; };
 		366A93052FCE0E3700211BA8 /* SubscriptionExpirationReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionExpirationReminderSchedulerTests.swift; sourceTree = "<group>"; };
 		369809BE2E5635E1007FE895 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
@@ -6646,18 +6668,60 @@
 			path = AppIntents;
 			sourceTree = "<group>";
 		};
-		3666D84930004E3E00B63F99 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				3666D84830004E3E00B63F99 /* SubscriptionOnboardingCard.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
 		3666D84A30004E3E00B63F99 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
-				3666D84930004E3E00B63F99 /* Components */,
+				3666D878300193DB00B63F99 /* Resources */,
+				3666D876300193CC00B63F99 /* SubscriptionOnboardingUserText.swift */,
+				3666D8743001917B00B63F99 /* Models */,
+				3666D86C30017B1400B63F99 /* Helpers */,
+				3666D85F30016E4D00B63F99 /* Views */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		3666D85F30016E4D00B63F99 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				3666D86630017A6800B63F99 /* SubscriptionOnboardingCard.swift */,
+				3666D85930016E4D00B63F99 /* DuckAIModelPickerView.swift */,
+				3666D85C30016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift */,
+				3666D86E3001910D00B63F99 /* SubscriptionOnboardingWelcomeListView.swift */,
+				3666D85E30016E4D00B63F99 /* VPNTipsCarouselView.swift */,
+				3666D85B30016E4D00B63F99 /* FreeTrialCalendarCard.swift */,
+				3666D85A30016E4D00B63F99 /* FloatingHint.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		3666D86C30017B1400B63F99 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				3666D86B30017B1400B63F99 /* RebrandedPreview.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		3666D8743001917B00B63F99 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				3666D8733001917B00B63F99 /* SubscriptionOnboardingChecklistItem.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		3666D878300193DB00B63F99 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3666D879300193EA00B63F99 /* check-color.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		3666D87C3001AA9600B63F99 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				3666D87B3001AA9600B63F99 /* FreeTrialCalendarCardModelTests.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -11365,6 +11429,7 @@
 		F1BDDBFC2C340D9C00459306 /* Subscription */ = {
 			isa = PBXGroup;
 			children = (
+				3666D87C3001AA9600B63F99 /* Onboarding */,
 				366A93052FCE0E3700211BA8 /* SubscriptionExpirationReminderSchedulerTests.swift */,
 				F14B81412F32615B00C39E26 /* SubscriptionPixelHandlerTests.swift */,
 				BBFA343E2F19286D0003CB58 /* SubscriptionPagesUseSubscriptionFeatureTests.swift */,
@@ -12423,6 +12488,7 @@
 				310C24E02E6B6AC500D5A372 /* toggle-ios-dark.json in Resources */,
 				0A6CC0EF23904D5400E4F627 /* Settings.bundle in Resources */,
 				85A9C37920E0E00C00073340 /* HomeRow.xcassets in Resources */,
+				3666D87A300193EA00B63F99 /* check-color.json in Resources */,
 				1E908BF229827C480008C8F3 /* autoconsent-bundle.js in Resources */,
 				ED39ED412FE607620011B7C3 /* confirmation-prompt-128.json in Resources */,
 				F143C2B21E49D78C00CFDE3A /* Assets.xcassets in Resources */,
@@ -13005,6 +13071,11 @@
 				9FF362DA2F3DC6A200824B30 /* RebrandedContextualOnboardingDialogs+SubscriptionPromo.swift in Sources */,
 				8569E1702D52C9A4004A3CB7 /* TabSwitcherBarsStateHandler.swift in Sources */,
 				9FE08BDC2C2A88FA001D5EBC /* OnboardingIntroViewController.swift in Sources */,
+				3666D86130016E4D00B63F99 /* VPNTipsCarouselView.swift in Sources */,
+				3666D86230016E4D00B63F99 /* FloatingHint.swift in Sources */,
+				3666D86330016E4D00B63F99 /* FreeTrialCalendarCard.swift in Sources */,
+				3666D86430016E4D00B63F99 /* DuckAIModelPickerView.swift in Sources */,
+				3666D86530016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift in Sources */,
 				CB6D179F2FA38FAD00ECD5AE /* UnifiedToggleInputHost.swift in Sources */,
 				C13C36702F4B5B3A008E7D08 /* SyncAutoRestoreHandler.swift in Sources */,
 				3157B43527F497F50042D3D7 /* SaveLoginViewController.swift in Sources */,
@@ -13018,6 +13089,7 @@
 				EE9D68D82AE15AD600B55EF4 /* UIApplicationExtension.swift in Sources */,
 				5687F64B2F31FEFD00A5C9B3 /* DefaultSubscriptionFlowsExecuter.swift in Sources */,
 				5687F64E2F31FEFD00A5C9B4 /* SubscriptionTransactionErrorAlert.swift in Sources */,
+				3666D86730017A6800B63F99 /* SubscriptionOnboardingCard.swift in Sources */,
 				566B73702BECD46800FF1959 /* MainViewController+SyncAlerts.swift in Sources */,
 				31B5E8C52E1E64D400EECC1E /* DaxLogoManager.swift in Sources */,
 				859DB8182CE6263C001F7210 /* TextZoomCoordinator.swift in Sources */,
@@ -13106,6 +13178,7 @@
 				F1849C6E2D6E3C98000589A4 /* DebugScreensViewModel+Screens.swift in Sources */,
 				98C785E92E687D490077819E /* InternalUserCommands.swift in Sources */,
 				C14135B52EC4BE880006F8C1 /* TabViewControllerAIChatExtension.swift in Sources */,
+				3666D86D30017B1400B63F99 /* RebrandedPreview.swift in Sources */,
 				65BD16392D8DA439000795DE /* DuckPlayerDebugSettingsView.swift in Sources */,
 				CBAD0F1D2D02EE43006267B8 /* IdleReturnNTPDebugView.swift in Sources */,
 				F4D9C4FA25117A0F00814B71 /* HomeMessageStorage.swift in Sources */,
@@ -13152,6 +13225,7 @@
 				B56523332FCF40B900B71522 /* HistoryCleaner+Helpers.swift in Sources */,
 				C153BE2F2EC4E0A9001B9757 /* AutofillExtensionPromotionHeaderView.swift in Sources */,
 				CBB4A85D2FD318BE00A65956 /* SearchSuggestionsSource.swift in Sources */,
+				3666D8753001917B00B63F99 /* SubscriptionOnboardingChecklistItem.swift in Sources */,
 				C153BE302EC4E0A9001B9757 /* AutofillExtensionPromotionManager.swift in Sources */,
 				310D09212799FD1A00DC0060 /* MIMEType.swift in Sources */,
 				CB6D179D2FA38CAF00ECD5AE /* Logger+ContextualUTI.swift in Sources */,
@@ -13759,7 +13833,6 @@
 				C18390BD2F4F6F57001939B9 /* UnifiedToggleInputDelegate.swift in Sources */,
 				C18390B72F4F6F16001939B9 /* UnifiedToggleInputView.swift in Sources */,
 				C1E9B8F02F0E85C700E845AA /* TabViewControllerContextualAIChatExtension.swift in Sources */,
-				3666D84B30004E3E00B63F99 /* SubscriptionOnboardingCard.swift in Sources */,
 				CBF259BD2D4E56E900AC63E4 /* ReportingService.swift in Sources */,
 				C13830FE2DCD3FFC00A29B3C /* CreditCardInputAccessoryView.swift in Sources */,
 				365E90132E5673DF00BDB0E8 /* SearchInAppIntent.swift in Sources */,
@@ -13836,6 +13909,7 @@
 				C13F3F6C2B7F88470083BE40 /* AuthConfirmationPromptViewModel.swift in Sources */,
 				1EEF124E2850EADE003DDE57 /* PrivacyIconView.swift in Sources */,
 				CB3B4D442D5F757A006DAD63 /* StatisticsService.swift in Sources */,
+				3666D877300193CC00B63F99 /* SubscriptionOnboardingUserText.swift in Sources */,
 				9FB027122C2526DD009EA190 /* OnboardingView+IntroDialogContent.swift in Sources */,
 				CBB4A8532FD302B700A65956 /* DuckAISuggestionsSelection.swift in Sources */,
 				C1DA98EB2E7C653F00F8BED9 /* SyncRecoveryAlternativeView.swift in Sources */,
@@ -13849,6 +13923,7 @@
 				F1FDC9302BF4E0B3006B1435 /* SubscriptionEnvironment+Default.swift in Sources */,
 				7BBE25A32D71EE72003131FA /* MainViewController+Automation.swift in Sources */,
 				CBD4F13E279EBFAB00B20FD7 /* HomeMessageView.swift in Sources */,
+				3666D86F3001910D00B63F99 /* SubscriptionOnboardingWelcomeListView.swift in Sources */,
 				9FD3DB3D2FB6EA5200A7C56E /* OnboardingIntroContext.swift in Sources */,
 				C1F112B32DC487DE0090F0DE /* OnboardingSubscriptionPromotionHelper.swift in Sources */,
 				8505836A219F424500ED4EDB /* UIAlertControllerExtension.swift in Sources */,
@@ -14086,6 +14161,7 @@
 				C1D3C56D2E895B820086A2BD /* SyncCreditCardsAdapterTests.swift in Sources */,
 				EAB19EDA268963510015D3EA /* DomainMatchingTests.swift in Sources */,
 				98DA35C4268CC81E00159906 /* DomainMatchingReportTests.swift in Sources */,
+				3666D87D3001AA9600B63F99 /* FreeTrialCalendarCardModelTests.swift in Sources */,
 				CB3B4D4E2D63910B006DAD63 /* LaunchActionHandlerTests.swift in Sources */,
 				CBAD0F1F2D02EE45006267B8 /* IdleReturnEvaluatorTests.swift in Sources */,
 				97D99E642F7420A900EE34E7 /* AIVoiceChatIntentTests.swift in Sources */,

@@ -72,7 +72,7 @@ struct SubscriptionOnboardingCard<Header: View, Items: View, Footer: View>: View
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(designSystemColor: .surfaceSecondary))
+        .background(Color(designSystemColor: .surfaceCanvas))
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay {
             if style == .bordered {
@@ -155,6 +155,7 @@ extension SubscriptionOnboardingCard where Items == CardItemList, Footer == Empt
 struct CardItemList: View {
     private let items: [CardItem]
     private let dividerLeadingInset: CGFloat
+    private let isRowSelectable: (Int) -> Bool
     private let onSelect: ((Int) -> Void)?
 
     /// - Parameters:
@@ -162,10 +163,16 @@ struct CardItemList: View {
     ///   - dividerLeadingInset: How far each divider is inset from the leading edge so it clears the
     ///     icon column and starts under the text. Defaults to `36` (a 24pt icon plus its 12pt gutter);
     ///     pass a larger value for larger icons, or `0` for a full-width divider.
+    ///   - isRowSelectable: Whether the row at a given index is tappable. Defaults to every row; combine
+    ///     with `onSelect` to make only some rows interactive.
     ///   - onSelect: Called with the tapped row's index; when `nil` the rows are not interactive.
-    init(_ items: [CardItem], dividerLeadingInset: CGFloat = 36, onSelect: ((Int) -> Void)? = nil) {
+    init(_ items: [CardItem],
+         dividerLeadingInset: CGFloat = 36,
+         isRowSelectable: @escaping (Int) -> Bool = { _ in true },
+         onSelect: ((Int) -> Void)? = nil) {
         self.items = items
         self.dividerLeadingInset = dividerLeadingInset
+        self.isRowSelectable = isRowSelectable
         self.onSelect = onSelect
     }
 
@@ -184,7 +191,7 @@ struct CardItemList: View {
 
     @ViewBuilder
     private func row(_ item: CardItem, at index: Int) -> some View {
-        if let onSelect {
+        if let onSelect, isRowSelectable(index) {
             Button {
                 onSelect(index)
             } label: {
@@ -282,20 +289,6 @@ private struct SubscriptionOnboardingCardPreviewSamples: View {
             .padding()
         }
         .background(Color(designSystemColor: .background).ignoresSafeArea())
-    }
-}
-
-private struct RebrandedPreview<Content: View>: View {
-    @StateObject private var rebrandOverride = RebrandPreviewOverride(isRebranded: true)
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .onAppear { rebrandOverride.apply() }
     }
 }
 
