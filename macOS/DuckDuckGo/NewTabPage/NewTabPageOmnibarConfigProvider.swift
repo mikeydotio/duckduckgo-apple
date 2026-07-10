@@ -279,6 +279,36 @@ final class NewTabPageOmnibarConfigProvider: NewTabPageOmnibarConfigProviding {
             .eraseToAnyPublisher()
     }
 
+    var isAIChatDeletionEnabled: Bool {
+        featureFlagger.isFeatureOn(.aiChatNtpSuggestionsDeletion)
+    }
+
+    /// Re-emits the current `isAIChatDeletionEnabled` value whenever the feature-flagger reports
+    /// any change. The client uses this to push `omnibar_onConfigUpdate` so an open NTP shows or
+    /// hides the recent-chat delete button without a reload when the flag flips.
+    var isAIChatDeletionEnabledPublisher: AnyPublisher<Bool, Never> {
+        featureFlagger.updatesPublisher
+            .compactMap { [weak self] in self?.isAIChatDeletionEnabled }
+            .prepend(isAIChatDeletionEnabled)
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+    }
+
+    var isSearchSuggestionDeletionEnabled: Bool {
+        featureFlagger.isFeatureOn(.ntpSearchSuggestionsDeletion)
+    }
+
+    /// Re-emits the current `isSearchSuggestionDeletionEnabled` value whenever the feature-flagger
+    /// reports any change. The client uses this to push `omnibar_onConfigUpdate` so an open NTP
+    /// shows or hides the history-suggestion delete button without a reload when the flag flips.
+    var isSearchSuggestionDeletionEnabledPublisher: AnyPublisher<Bool, Never> {
+        featureFlagger.updatesPublisher
+            .compactMap { [weak self] in self?.isSearchSuggestionDeletionEnabled }
+            .prepend(isSearchSuggestionDeletionEnabled)
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+    }
+
     var showCustomizePopover: Bool {
         get {
             // We no longer present the tooltip

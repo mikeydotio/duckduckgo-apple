@@ -78,4 +78,16 @@ public protocol NewTabPageOmnibarConfigProviding: AnyObject {
     /// nothing is selected or when `isReasoningEffortEnabled` is false.
     var selectedReasoningEffort: String? { get set }
     var selectedReasoningEffortPublisher: AnyPublisher<String?, Never> { get }
+
+    /// Whether recent-chat suggestions in the omnibar can be deleted. Driven by the
+    /// `aiChatNtpSuggestionsDeletion` feature flag. Published so the client can push an
+    /// `omnibar_onConfigUpdate` when the flag flips at runtime, keeping an open NTP in sync.
+    var isAIChatDeletionEnabled: Bool { get }
+    var isAIChatDeletionEnabledPublisher: AnyPublisher<Bool, Never> { get }
+
+    /// Whether history-entry suggestions in the omnibar can be deleted. Driven by the
+    /// `ntpSearchSuggestionsDeletion` feature flag. Published so the client can push an
+    /// `omnibar_onConfigUpdate` when the flag flips at runtime, keeping an open NTP in sync.
+    var isSearchSuggestionDeletionEnabled: Bool { get }
+    var isSearchSuggestionDeletionEnabledPublisher: AnyPublisher<Bool, Never> { get }
 }

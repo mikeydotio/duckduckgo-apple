@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+import AppKit
+
 public protocol NewTabPageOmnibarActionsHandling: AnyObject {
 
     @MainActor
@@ -40,5 +42,15 @@ public protocol NewTabPageOmnibarActionsHandling: AnyObject {
 
     @MainActor
     func viewAllAiChats(target: NewTabPageDataModel.OpenTarget)
+
+    /// Shows the native delete-confirmation dialog for a recent AI chat and, on confirm, starts
+    /// deleting it. Returns once the user has made a choice; the deletion itself may still be
+    /// completing in the background when this returns `true`.
+    @MainActor
+    func confirmDeleteAiChat(chatId: String, title: String, sourceWindow: NSWindow?) async -> Bool
+
+    /// Removes a history-based suggestion identified by its exact URL. Fire-and-forget.
+    @MainActor
+    func removeSuggestion(_ url: String)
 
 }

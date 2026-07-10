@@ -138,6 +138,14 @@ public extension NewTabPageDataModel {
         /// Backend-provided attachment limits, already tier-resolved. `nil` on older native builds
         /// or when the backend omits them, in which case the web falls back to its built-in defaults.
         let attachmentLimits: AttachmentLimits?
+        /// When true, the omnibar shows a delete button on recent-chat suggestions and sends
+        /// `omnibar_confirmDeleteAiChat` when it's clicked. Driven by the `aiChatNtpSuggestionsDeletion`
+        /// feature flag and reactive over `omnibar_onConfigUpdate`.
+        let enableAiChatDeletion: Bool?
+        /// When true, the omnibar shows a delete button on history-entry suggestions and sends
+        /// `omnibar_removeSuggestion` when it's clicked. Driven by the `ntpSearchSuggestionsDeletion`
+        /// feature flag and reactive over `omnibar_onConfigUpdate`.
+        let enableSearchSuggestionDeletion: Bool?
     }
 
     // MARK: - omnibar_getSuggestions
@@ -452,6 +460,27 @@ public extension NewTabPageDataModel {
         }
 
         public static let empty = Self(chats: [])
+    }
+
+    // MARK: - omnibar_confirmDeleteAiChat
+
+    struct ConfirmDeleteAiChatAction: Codable, Equatable {
+        let chatId: String
+        let title: String
+    }
+
+    struct ConfirmDeleteAiChatResponse: Codable, Equatable {
+        enum Action: String, Codable {
+            case delete
+            case none
+        }
+        let action: Action
+    }
+
+    // MARK: - omnibar_removeSuggestion
+
+    struct RemoveSuggestionAction: Codable, Equatable {
+        let url: String
     }
 
 }
