@@ -361,20 +361,24 @@ struct SubscriberExclusiveHeaderView: View {
     var onTapBadge: () -> Void
 
     var body: some View {
+        // Padding lives on the leading/trailing leaves themselves (title, badge), not wrapped
+        // around the whole HStack — matching ModelMenuRowView's structure exactly, rather than
+        // trusting that two differently-shaped layouts happen to resolve to the same pixel
+        // position once both get stretched to the menu's final width. They didn't.
         HStack(spacing: 8) {
             Text(title)
                 .foregroundColor(Color(designSystemColor: .textPrimary))
+                .padding(.leading, MenuItemWithBadgeConstants.iconLeftPadding)
             Spacer(minLength: 8)
             BadgeView(text: badgeText, hasUniformCorners: true)
                 .fixedSize()
+                .padding(.trailing, MenuItemWithBadgeConstants.badgeRightPadding)
                 .onTapGesture { onTapBadge() }
                 .onHover { hovering in
                     if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                 }
         }
         .font(.system(size: 13))
-        .padding(.leading, MenuItemWithBadgeConstants.iconLeftPadding)
-        .padding(.trailing, MenuItemWithBadgeConstants.badgeRightPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: MenuItemWithBadgeConstants.hostingViewHeight)
     }
