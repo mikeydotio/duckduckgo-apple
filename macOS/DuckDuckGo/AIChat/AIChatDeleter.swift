@@ -38,23 +38,23 @@ final class AIChatDeleter: AIChatDeleting {
     private let historyCleaner: PhasedAIChatHistoryCleaning
     private let syncCleaner: () -> AIChatSyncCleaning?
     private let recordsSyncDeletion: Bool
-    private let pixelKit: PixelKit?
+    private let firePixel: (PixelKitEvent) -> Void
 
     init(historyCleaner: PhasedAIChatHistoryCleaning,
          syncCleaner: @escaping () -> AIChatSyncCleaning? = { Application.appDelegate.aiChatSyncCleaner },
          recordsSyncDeletion: Bool = true,
-         pixelKit: PixelKit? = PixelKit.shared) {
+         firePixel: @escaping (PixelKitEvent) -> Void = { PixelKit.fire($0, frequency: .dailyAndCount) }) {
         self.historyCleaner = historyCleaner
         self.syncCleaner = syncCleaner
         self.recordsSyncDeletion = recordsSyncDeletion
-        self.pixelKit = pixelKit
+        self.firePixel = firePixel
     }
 
     @MainActor
     func deleteChat(chatID: String) {
         let nativeResult = historyCleaner.deleteAIChatFromNativeStorage(chatID: chatID)
 
-        Task { @MainActor [historyCleaner, syncCleaner, recordsSyncDeletion, pixelKit] in
+        Task { @MainActor [historyCleaner, syncCleaner, recordsSyncDeletion, firePixel] in
             let jsResult = await historyCleaner.clearJSData(chatID: chatID)
 
             // Same failure precedence as HistoryCleaner.performClear: a native-storage failure wins,
@@ -68,13 +68,13 @@ final class AIChatDeleter: AIChatDeleting {
 
             switch overallResult {
             case .success:
-                pixelKit?.fire(AIChatPixel.aiChatSingleDeleteSuccessful, frequency: .dailyAndCount)
+                firePixel(AIChatPixel.aiChatSingleDeleteSuccessful)
                 guard recordsSyncDeletion, let syncCleaner = syncCleaner() else { return }
                 await syncCleaner.recordChatDeletion(chatID: chatID)
                 syncCleaner.scheduleSync()
             case .failure(let error):
                 Logger.aiChat.debug("AIChatDeleter: failed to delete chat \(chatID): \(error.localizedDescription)")
-                pixelKit?.fire(AIChatPixel.aiChatSingleDeleteFailed, frequency: .dailyAndCount)
+                firePixel(AIChatPixel.aiChatSingleDeleteFailed)
             }
         }
     }
