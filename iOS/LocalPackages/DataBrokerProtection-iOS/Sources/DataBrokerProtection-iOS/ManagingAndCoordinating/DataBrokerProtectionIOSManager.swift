@@ -198,8 +198,8 @@ final class DBPVaultResources {
 public final class DataBrokerProtectionIOSManager {
 
     /// The entry point requesting Secure Vault-backed resources. Every caller either starts
-    /// initialization or joins one already in progress; the gate dedups concurrent initializers,
-    /// so multiple entry points still result in a single initialization. The reason is for
+    /// initialization or joins one already in progress.
+    /// The reason is for
     /// call-site readability only.
     private enum VaultInitReason {
         case launch
@@ -465,7 +465,7 @@ public final class DataBrokerProtectionIOSManager {
 
     public func prepareSecureVaultResourcesAtLaunch() async throws {
         do {
-            _ = try await vaultResources(reason: .launch)
+            try await vaultResources(reason: .launch)
         } catch DataBrokerProtectionError.secureVaultNotNeeded {
             Logger.dataBrokerProtection.log("Skipping Secure Vault initialization at launch (no profile)")
         }
@@ -486,6 +486,7 @@ public final class DataBrokerProtectionIOSManager {
     /// Central gate for Secure Vault-backed resources. Every caller either starts initialization
     /// or joins one already in progress; the gate ensures a single initialization even when
     /// multiple entry points (launch, app-active, background task) arrive concurrently.
+    @discardableResult
     private func vaultResources(reason: VaultInitReason) async throws -> DBPVaultResources {
         enum Resolution {
             case ready(DBPVaultResources)
@@ -546,9 +547,6 @@ public final class DataBrokerProtectionIOSManager {
         }
     }
 
-    /// Must be called only from the init task's own completion (single writer). Awaiters never call
-    /// these, which is what lets them stay guard-free: nothing can create a successor task until
-    /// this task nils `ongoingVaultResourcesInitTask`.
     private func publishVaultResources(_ resources: DBPVaultResources) {
         vaultResourcesLock.withLock {
             resources.queueManager.delegate = self
@@ -575,9 +573,6 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AppLifecycleEventsDele
     public func appDidBecomeActive() async {
         let resources: DBPVaultResources
         do {
-            // App-active work depends on vault resources. The launch task's init runs on a
-            // low-priority background queue and can lose the race to the foreground transition,
-            // so app-active must be able to start (or join) initialization rather than only wait.
             resources = try await vaultResources(reason: .appActive)
         } catch DataBrokerProtectionError.secureVaultNotNeeded {
             Logger.dataBrokerProtection.log("Skipping app active operations (no profile)")
@@ -685,7 +680,7 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.AuthenticationDelegate
 
 extension DataBrokerProtectionIOSManager: DBPIOSInterface.DatabaseDelegate {
     public func prepareDatabaseAccess() async throws {
-        _ = try await vaultResources(reason: .dashboard)
+        try await vaultResources(reason: .dashboard)
     }
 
     public func getUserProfile() throws -> DataBrokerProtectionCore.DataBrokerProtectionProfile? {
@@ -1140,7 +1135,6 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
         Task {
             let resources: DBPVaultResources?
             do {
-                // Scheduling needs database state to choose the next eligible run.
                 resources = try await vaultResources(reason: .backgroundTask)
             } catch DataBrokerProtectionError.secureVaultNotNeeded {
                 Logger.dataBrokerProtection.log("Skipping background task scheduling (no profile)")
@@ -1278,8 +1272,6 @@ extension DataBrokerProtectionIOSManager: DBPIOSInterface.BackgroundTaskHandling
         Task {
             let resources: DBPVaultResources
             do {
-                // iOS may launch the app directly for this task, so BG handling initializes the
-                // vault resources if the normal launch path has not completed.
                 resources = try await vaultResources(reason: .backgroundTask)
             } catch DataBrokerProtectionError.secureVaultNotNeeded {
                 Logger.dataBrokerProtection.log("Skipping background task (no profile)")
