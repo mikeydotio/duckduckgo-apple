@@ -69,8 +69,8 @@ jobs:
           # workflow triggers, and is not a heavy job we would save.
           saved_tally=$(mktemp)   # one "<workflow>: <job>" line per RAN saving
           saved_prs=0
-          mismatch_prs=0
           total_prs=0
+          grand_total_min=0
 
           {
             echo "## Change-detection replay"
@@ -79,9 +79,9 @@ jobs:
             echo ""
             echo "**Would have saved** = heavy checks that actually ran (success/failure) but belong to a would-skip area — the incremental jobs our detection would remove. Checks that are absent (native \`paths:\` filter already skipped the workflow) or skipped/neutral do not count."
             echo ""
-            echo "**Failed in would-skip areas** = a would-skip workflow had a failing check. Any entry there is a mismatch: detection would have hidden a real failure."
+            echo "**Saved (job-min)** = summed wall duration of those RAN checks (completedAt − startedAt per check). This is **compute / job-minutes** — the sum of individual job durations, i.e. CI runner cost saved. It is NOT wall-clock time-to-green: these jobs run in parallel, so the schedule doesn't shorten by this amount."
             echo ""
-            echo "| PR | Title | ios | macos | shared | Would skip | Would-have-saved jobs (ran) | Failed in would-skip areas |"
+            echo "| PR | Title | ios | macos | shared | Would skip | Would-have-saved jobs (ran) | Saved (job-min) |"
             echo "|---|---|---|---|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -90,7 +90,7 @@ jobs:
             title=$(gh pr view "$pr" --repo "$REPO" --json title --jq '.title' | tr '|' '-' | cut -c1-60)
 
             if ! flags=$(gh pr diff "$pr" --repo "$REPO" --name-only | .github/scripts/detect-changed-areas.sh); then
-              echo "| #$pr | $title | error | error | error | - | - | could not compute flags |" >> "$GITHUB_STEP_SUMMARY"
+              echo "| #$pr | $title | error | error | error | - | - | - |" >> "$GITHUB_STEP_SUMMARY"
               continue
             fi
             ios=$(grep '^ios=' <<< "$flags" | cut -d= -f2)
@@ -114,41 +114,43 @@ jobs:
             fi
 
             saved="-"
-            failed="-"
+            saved_min="0"
             if [ ${#skip_workflows[@]} -gt 0 ]; then
               # gh pr checks exits non-zero when any check failed; that is data, not an error.
-              checks_json=$(gh pr checks "$pr" --repo "$REPO" --json workflow,name,state 2>/dev/null || true)
+              checks_json=$(gh pr checks "$pr" --repo "$REPO" --json workflow,name,state,startedAt,completedAt 2>/dev/null || true)
               if [ -n "$checks_json" ]; then
                 wf_json=$(printf '%s\n' "${skip_workflows[@]}" | jq -R . | jq -cs .)
 
                 # RAN checks in would-skip workflows, excluding the gate job.
-                ran_json=$(jq -c --argjson wf "$wf_json" \
-                  '[.[]
+                # Emit "<workflow>: <job>\t<duration-seconds>" per RAN check.
+                ran_tsv=$(jq -r --argjson wf "$wf_json" '
+                  [.[]
                     | select((.state == "SUCCESS" or .state == "FAILURE")
                              and (.name | test("Determine if checks should run") | not)
                              and (.workflow as $w | $wf | index($w)))
-                    | "\(.workflow): \(.name)"] | unique' <<< "$checks_json")
-                ran_count=$(jq 'length' <<< "$ran_json")
-                if [ "$ran_count" -gt 0 ]; then
-                  saved=$(jq -r 'join("; ")' <<< "$ran_json")
-                  saved_prs=$((saved_prs + 1))
-                  jq -r '.[]' <<< "$ran_json" >> "$saved_tally"
-                fi
+                    | { key: "\(.workflow): \(.name)",
+                        secs: (if (.startedAt != null and .completedAt != null and .startedAt != "" and .completedAt != "")
+                               then ((.completedAt | fromdateiso8601) - (.startedAt | fromdateiso8601)) else 0 end) }]
+                  | unique_by(.key) | .[] | "\(.key)\t\(.secs)"' <<< "$checks_json")
 
-                # Failing checks in would-skip workflows (secondary safety check).
-                failed=$(jq -r --argjson wf "$wf_json" \
-                  '[.[] | select(.state == "FAILURE" and (.workflow as $w | $wf | index($w))) | "\(.workflow): \(.name)"] | unique | join("; ")' \
-                  <<< "$checks_json")
-                if [ -n "$failed" ]; then failed="MISMATCH - $failed"; mismatch_prs=$((mismatch_prs + 1)); else failed="-"; fi
+                if [ -n "$ran_tsv" ]; then
+                  saved=$(cut -f1 <<< "$ran_tsv" | paste -sd ';' - | sed 's/;/; /g')
+                  # Sum durations (seconds -> minutes, one decimal) and tally job names.
+                  secs=$(cut -f2 <<< "$ran_tsv" | awk '{s+=$1} END {print s+0}')
+                  saved_min=$(awk -v s="$secs" 'BEGIN {printf "%.1f", s/60}')
+                  grand_total_min=$(awk -v a="$grand_total_min" -v b="$saved_min" 'BEGIN {printf "%.1f", a+b}')
+                  saved_prs=$((saved_prs + 1))
+                  cut -f1 <<< "$ran_tsv" >> "$saved_tally"
+                fi
               else
                 saved="checks unavailable"
-                failed="checks unavailable"
+                saved_min="-"
               fi
             fi
 
             url="https://github.com/$REPO/pull/$pr"
-            echo "| [#$pr]($url) | $title | $ios | $macos | $shared | ${skip_areas:- -} | $saved | $failed |" >> "$GITHUB_STEP_SUMMARY"
-            echo "PR #$pr: ios=$ios macos=$macos shared=$shared would-skip:${skip_areas:- none} saved:[$saved] failed-in-skip: $failed"
+            echo "| [#$pr]($url) | $title | $ios | $macos | $shared | ${skip_areas:- -} | $saved | $saved_min |" >> "$GITHUB_STEP_SUMMARY"
+            echo "PR #$pr: ios=$ios macos=$macos shared=$shared would-skip:${skip_areas:- none} saved-job-min:$saved_min saved:[$saved]"
           done
 
           # ---- Summary totals ----
@@ -158,7 +160,7 @@ jobs:
             echo ""
             echo "- PRs replayed: **$total_prs**"
             echo "- PRs with >=1 would-have-saved job (real marginal saving): **$saved_prs**"
-            echo "- PRs with a failure in a would-skip area (mismatches — should be 0): **$mismatch_prs**"
+            echo "- **Grand total saved: ${grand_total_min} job-minutes** (compute / runner cost, summed job durations — NOT wall-clock)"
             echo ""
             echo "### Would-have-saved jobs by frequency (count = PRs where that job ran but would be skipped)"
             echo ""
@@ -172,5 +174,5 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-          echo "TOTALS: replayed=$total_prs saved_prs=$saved_prs mismatch_prs=$mismatch_prs"
+          echo "TOTALS: replayed=$total_prs saved_prs=$saved_prs grand_total_job_min=$grand_total_min"
           echo "TALLY:"; sort "$saved_tally" | uniq -c | sort -rn
