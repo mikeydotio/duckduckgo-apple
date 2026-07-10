@@ -34,8 +34,9 @@ final class AIChatDebugMenu: NSMenu {
         target: self
     )
 
-    /// PoC: lets a presenter simulate a Duck.ai subscription tier so the gated model / reasoning-effort
-    /// flows can be demoed on a single build without a real subscription.
+    /// Lets a presenter simulate a subscription tier (and, for the free tier, StoreKit free-trial
+    /// eligibility) so the gated model / reasoning-effort / upsell-copy flows can be demoed on a
+    /// single build without a real subscription.
     private lazy var simulatedTierMenuItem: NSMenuItem = makeSimulatedTierMenuItem()
 
     init(debugStorage: (any KeyedStoring<AIChatDebugURLSettings>)? = nil) {
@@ -77,16 +78,17 @@ final class AIChatDebugMenu: NSMenu {
         updateSimulatedTierState()
     }
 
-    // MARK: - Simulated Subscription Tier (PoC)
+    // MARK: - Simulated Subscription Tier
 
     private func makeSimulatedTierMenuItem() -> NSMenuItem {
-        let parent = NSMenuItem(title: "Simulate Duck.ai Subscription Tier (PoC)", action: nil, keyEquivalent: "")
+        let parent = NSMenuItem(title: "Simulate Subscription Tier", action: nil, keyEquivalent: "")
         let submenu = NSMenu()
         let options: [(title: String, raw: String?)] = [
-            ("Off (use real subscription)", nil),
-            ("Free", AIChatUserTier.free.rawValue),
-            ("Plus", AIChatUserTier.plus.rawValue),
-            ("Pro", AIChatUserTier.pro.rawValue)
+            ("Off (Use real subscription)", nil),
+            ("Free (Trial Eligible)", AIChatDebugSimulatedTier.freeTrialEligible.rawValue),
+            ("Free (Trial Ineligible)", AIChatDebugSimulatedTier.freeTrialIneligible.rawValue),
+            ("Plus", AIChatDebugSimulatedTier.plus.rawValue),
+            ("Pro", AIChatDebugSimulatedTier.pro.rawValue)
         ]
         for option in options {
             let item = NSMenuItem(title: option.title, action: #selector(setSimulatedTier(_:)), keyEquivalent: "")
@@ -99,12 +101,13 @@ final class AIChatDebugMenu: NSMenu {
     }
 
     @objc private func setSimulatedTier(_ sender: NSMenuItem) {
-        UserDefaults.standard.duckAISimulatedTier = sender.representedObject as? String
+        let raw = sender.representedObject as? String
+        UserDefaults.standard.duckAISimulatedTier = raw.flatMap(AIChatDebugSimulatedTier.init(rawValue:))
         updateSimulatedTierState()
     }
 
     private func updateSimulatedTierState() {
-        let current = UserDefaults.standard.duckAISimulatedTier
+        let current = UserDefaults.standard.duckAISimulatedTier?.rawValue
         for item in simulatedTierMenuItem.submenu?.items ?? [] {
             item.state = (item.representedObject as? String) == current ? .on : .off
         }
@@ -213,16 +216,46 @@ final class AIChatDebugMenu: NSMenu {
     }
 }
 
-// MARK: - Simulated Subscription Tier storage (PoC)
+// MARK: - Simulated Subscription Tier storage
+
+/// A debug-menu override of the resolved subscription tier and, for the free tier, StoreKit
+/// free-trial eligibility — the two vary independently in production (a free user may or may not
+/// still be eligible for an introductory trial), so simulating just a tier isn't enough to demo
+/// the "Try for free" vs "Upgrade" copy split.
+enum AIChatDebugSimulatedTier: String {
+    case freeTrialEligible
+    case freeTrialIneligible
+    case plus
+    case pro
+
+    var userTier: AIChatUserTier {
+        switch self {
+        case .freeTrialEligible, .freeTrialIneligible: return .free
+        case .plus: return .plus
+        case .pro: return .pro
+        }
+    }
+
+    /// `nil` for Plus/Pro: trial eligibility only bears on the free tier, so the real
+    /// subscription/StoreKit-backed check applies there instead (moot in practice, since
+    /// `userTier` alone already routes those cases away from the eligibility question).
+    var isEligibleForFreeTrial: Bool? {
+        switch self {
+        case .freeTrialEligible: return true
+        case .freeTrialIneligible: return false
+        case .plus, .pro: return nil
+        }
+    }
+}
 
 extension UserDefaults {
     private static let duckAISimulatedTierKey = "aichat.debug.simulatedSubscriptionTier"
 
-    /// PoC-only override for the resolved Duck.ai subscription tier, used to demo gated model /
-    /// reasoning-effort flows without a real subscription. `nil` means "use the real subscription".
-    /// Stores an `AIChatUserTier` raw value (free / plus / pro).
-    var duckAISimulatedTier: String? {
-        get { string(forKey: Self.duckAISimulatedTierKey) }
-        set { set(newValue, forKey: Self.duckAISimulatedTierKey) }
+    /// Debug-only override of the resolved subscription tier (and free-trial eligibility), used to
+    /// demo gated model / reasoning-effort / upsell-copy flows without a real subscription. `nil`
+    /// means "use the real subscription".
+    var duckAISimulatedTier: AIChatDebugSimulatedTier? {
+        get { string(forKey: Self.duckAISimulatedTierKey).flatMap(AIChatDebugSimulatedTier.init(rawValue:)) }
+        set { set(newValue?.rawValue, forKey: Self.duckAISimulatedTierKey) }
     }
 }
