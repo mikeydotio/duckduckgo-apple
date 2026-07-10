@@ -27,6 +27,9 @@ import DesignResourcesKitIcons
 struct AIChatSubscriptionUpsellDialog: ModalView {
     @Environment(\.dismiss) private var dismiss
 
+    /// "Try for Free" or "Upgrade" — the caller decides based on the user's tier and StoreKit
+    /// free-trial eligibility, since the dialog itself has no access to that state.
+    var primaryButtonText: String = UserText.aiChatSubscriptionUpsellDialogUpgradeButton
     var onSubscribe: (() -> Void)?
     var onHaveSubscription: (() -> Void)?
 
@@ -54,7 +57,7 @@ struct AIChatSubscriptionUpsellDialog: ModalView {
                     onSubscribe?()
                     dismiss()
                 } label: {
-                    Text(UserText.aiChatSubscriptionUpsellDialogSubscribeButton)
+                    Text(primaryButtonText)
                         .frame(maxWidth: .infinity)
                         .frame(height: 28)
                 }

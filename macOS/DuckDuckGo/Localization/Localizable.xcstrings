@@ -6249,14 +6249,26 @@
         }
       }
     },
-    "aichat.subscription-upsell-dialog.subscribe-button" : {
-      "comment" : "Primary button in the subscription upsell dialog that opens the purchase/upgrade flow",
+    "aichat.subscription-upsell-dialog.try-for-free-button" : {
+      "comment" : "Primary button in the subscription upsell dialog, shown when the user is still eligible for an introductory free trial",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Subscribe to DuckDuckGo"
+            "value" : "Try for Free"
+          }
+        }
+      }
+    },
+    "aichat.subscription-upsell-dialog.upgrade-button" : {
+      "comment" : "Primary button in the subscription upsell dialog, shown when the user already has a subscription or has already used their free trial",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Upgrade"
           }
         }
       }

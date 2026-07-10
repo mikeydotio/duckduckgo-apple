@@ -153,6 +153,15 @@ final class AIChatOmnibarController {
         featureFlagger.isFeatureOn(.aiChatOmnibarSubscriptionUpsell)
     }
 
+    /// Whether the subscription-upsell CTA (tag + dialog primary button) should read "Try for
+    /// free" rather than "Upgrade". `SubscriptionManager.isUserEligibleForFreeTrial()` reflects
+    /// StoreKit's on-device introductory-offer eligibility (has this Apple ID/device already used
+    /// a free trial?), not the user's tier — so this only ever applies to a free user; an existing
+    /// Plus subscriber upgrading to Pro always sees "Upgrade", trial eligibility notwithstanding.
+    var shouldOfferFreeTrial: Bool {
+        userTier == .free && subscriptionManager.isUserEligibleForFreeTrial()
+    }
+
     /// Whether 1-click voice-chat access in the omnibar is available. When disabled, the submit
     /// button keeps its legacy "arrow / disabled when empty" behavior.
     var isVoiceChatAccessEnabled: Bool {

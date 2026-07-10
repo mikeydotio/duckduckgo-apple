@@ -1713,7 +1713,10 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 // that out specifically instead of reusing the generic "Subscriber" label.
                 let isFreeUser = omnibarController.userTier == .free
                 let headerTitle = isFreeUser ? UserText.aiChatModelPickerSubscriberExclusive : UserText.aiChatModelPickerProExclusive
-                let badgeText = isFreeUser ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade
+                // Unlike the header title (which only cares whether the user is a subscriber at
+                // all), the badge also depends on StoreKit free-trial eligibility — a free user who
+                // already used their trial sees "Upgrade" here too, same as a Plus subscriber.
+                let badgeText = omnibarController.shouldOfferFreeTrial ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade
                 let headerItem = NSMenuItem.createSubscriberExclusiveHeader(
                     title: headerTitle,
                     badgeText: badgeText,
@@ -1890,8 +1893,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// flag can't reintroduce the original "submit with a gated effort" bug.
     private func gatedReasoningEffortRow(for effort: AIChatReasoningEffort, requiredTier: AIChatModelPublicAccessTier, in menu: NSMenu) -> NSMenuItem {
         let isUpsellEnabled = omnibarController.isSubscriptionUpsellEnabled
-        let isFreeUser = omnibarController.userTier == .free
-        let badgeText = isFreeUser ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade
+        let badgeText = omnibarController.shouldOfferFreeTrial ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade
         let item = NSMenuItem.createModelRow(
             icon: effort.icon,
             boldTitle: effort.title,
@@ -1933,6 +1935,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// a gated tap here rather than navigating directly (per design review).
     private func presentSubscriptionUpsellDialog(requiredTier: AIChatModelPublicAccessTier, origin: SubscriptionFunnelOrigin) {
         var dialog = AIChatSubscriptionUpsellDialog()
+        dialog.primaryButtonText = omnibarController.shouldOfferFreeTrial
+            ? UserText.aiChatSubscriptionUpsellDialogTryForFreeButton
+            : UserText.aiChatSubscriptionUpsellDialogUpgradeButton
         dialog.onSubscribe = { [weak self] in
             self?.omnibarController.presentSubscriptionUpsell(requiredTier: requiredTier, origin: origin)
         }
