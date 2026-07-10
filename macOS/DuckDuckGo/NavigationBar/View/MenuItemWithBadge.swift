@@ -179,11 +179,17 @@ struct BadgeView: View {
     private var badgeBackground: some View {
         if hasUniformCorners {
             RoundedRectangle(cornerRadius: MenuItemWithBadgeConstants.cornerRadius)
-                .fill(Color(baseColor: .yellow60))
+                .fill(Self.tryForFreeBadgeColor)
         } else {
             Self.badgeShape.fill(Color(baseColor: .yellow60))
         }
     }
+
+    /// Figma's "Pollen 300" (#FFD885) — the design system's own `RebrandingColor.Pollen` palette
+    /// carries this exact value (as `pollen30`, on its 0-100 rather than Figma's 50-900 step
+    /// convention) but is `internal` to DesignResourcesKit, scoped there until it's promoted for
+    /// app-wide use. Hardcoded here rather than widening that access ourselves.
+    private static let tryForFreeBadgeColor = Color(0xFFD885)
 }
 
 // MARK: - Menu Item with Badge
@@ -550,9 +556,13 @@ struct ModelMenuRowView: View {
                             if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                         }
                 } else if let trailingText {
+                    // Same font weight and left inset as BadgeView's text, so the PLUS/PRO/BETA
+                    // tags line up with the "Try for free"/"Upgrade" badge next to them — they
+                    // just skip its background fill.
                     Text(trailingText)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(trailingColor)
+                        .padding(.leading, MenuItemWithBadgeConstants.paddingLeft)
                         .padding(.trailing, MenuItemWithBadgeConstants.badgeRightPadding)
                 }
             }
