@@ -1876,38 +1876,41 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// and didn't hold up: the two rendering paths don't agree closely enough on left margins or
     /// hover-highlight color to sit believably in the same menu (a gated row rendered visibly
     /// shifted right and off-color next to its native siblings).
+    ///
+    /// Gated efforts render exactly like a gated model row — dimmed, non-interactive, a plain
+    /// PLUS/PRO trailing label — rather than a tappable "Try for free"/"Upgrade" badge. The
+    /// reasoning picker no longer has its own upsell entry point; the model picker's header is the
+    /// one place that routes to the subscription flow.
     private func reasoningEffortRow(for effort: AIChatReasoningEffort, isSelected: Bool, in menu: NSMenu) -> NSMenuItem {
         let requiredTier = omnibarController.requiredTier(for: effort)
         let isGated = requiredTier != nil
-        let isUpsellEnabled = omnibarController.isSubscriptionUpsellEnabled
-        // Gated efforts stay visible + clickable when the upsell flag is on (they route to the
-        // subscription flow via a confirmation dialog, matching the model picker), with a trailing
-        // "Try for free" / "Upgrade" badge as the CTA — normal icon/title/subtitle colors, never
-        // shown as the current selection. With the flag off, they fall back to a plain dimmed,
-        // non-interactive row (no badge, no tap-to-open-dialog) — same as before the upsell UI
-        // shipped, so the flag can't reintroduce the original "submit with a gated effort" bug.
-        let showsUpsell = isGated && isUpsellEnabled
-        let badgeText = showsUpsell
-            ? (omnibarController.shouldOfferFreeTrial ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade)
-            : nil
         let item = NSMenuItem.createModelRow(
             icon: effort.icon,
             boldTitle: effort.title,
             regularTitle: "",
             subtitle: effort.subtitle,
             subtitleFontSize: 11,
-            trailingText: nil,
-            trailingBadgeText: badgeText,
+            trailingText: Self.tierBadgeText(for: requiredTier),
             emphasizesTitle: false,
             isSelected: isSelected && !isGated,
-            isDimmed: isGated && !isUpsellEnabled,
-            isInteractive: !isGated || isUpsellEnabled,
+            isDimmed: isGated,
+            isInteractive: !isGated,
             action: #selector(reasoningEffortSelected(_:)),
             target: self,
             menu: menu
         )
         item.representedObject = effort
         return item
+    }
+
+    /// Plain PLUS/PRO trailing label for a gated reasoning effort, matching the model picker's own
+    /// gated rows. `nil` when the effort isn't gated at all.
+    private static func tierBadgeText(for requiredTier: AIChatModelPublicAccessTier?) -> String? {
+        switch requiredTier {
+        case .plus: return UserText.aiChatModelPickerTierBadgePlus
+        case .pro: return UserText.aiChatModelPickerTierBadgePro
+        case .free, .none: return nil
+        }
     }
 
     @objc private func reasoningEffortSelected(_ sender: NSMenuItem) {
@@ -1931,11 +1934,12 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// a gated tap here rather than navigating directly (per design review).
     private func presentSubscriptionUpsellDialog(requiredTier: AIChatModelPublicAccessTier, origin: SubscriptionFunnelOrigin) {
         var dialog = AIChatSubscriptionUpsellDialog()
-        // Unlike the badge/tag, the modal's primary button always reads "Subscribe to DuckDuckGo"
-        // for a trial-eligible free user — the native purchase flow presents the trial terms
-        // itself, so the button doesn't need to promise it too. "Upgrade" still distinguishes an
-        // existing Plus subscriber or a free user who already used their trial.
-        dialog.primaryButtonText = omnibarController.shouldOfferFreeTrial
+        // Unlike the badge/tag, the modal's primary button is tier-based, not eligibility-based —
+        // a free user always reads "Subscribe to DuckDuckGo" regardless of trial eligibility (the
+        // native purchase flow presents the trial terms itself, so the button doesn't need to
+        // promise it too), while "Upgrade" is reserved for an existing Plus subscriber, who has
+        // something to upgrade *from*. Same tier check the header title already uses.
+        dialog.primaryButtonText = omnibarController.userTier == .free
             ? UserText.aiChatSubscriptionUpsellDialogSubscribeButton
             : UserText.aiChatSubscriptionUpsellDialogUpgradeButton
         dialog.onSubscribe = { [weak self] in
