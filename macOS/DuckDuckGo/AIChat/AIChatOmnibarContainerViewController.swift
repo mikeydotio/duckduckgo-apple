@@ -1935,8 +1935,12 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// a gated tap here rather than navigating directly (per design review).
     private func presentSubscriptionUpsellDialog(requiredTier: AIChatModelPublicAccessTier, origin: SubscriptionFunnelOrigin) {
         var dialog = AIChatSubscriptionUpsellDialog()
+        // Unlike the badge/tag, the modal's primary button always reads "Subscribe to DuckDuckGo"
+        // for a trial-eligible free user — the native purchase flow presents the trial terms
+        // itself, so the button doesn't need to promise it too. "Upgrade" still distinguishes an
+        // existing Plus subscriber or a free user who already used their trial.
         dialog.primaryButtonText = omnibarController.shouldOfferFreeTrial
-            ? UserText.aiChatSubscriptionUpsellDialogTryForFreeButton
+            ? UserText.aiChatSubscriptionUpsellDialogSubscribeButton
             : UserText.aiChatSubscriptionUpsellDialogUpgradeButton
         dialog.onSubscribe = { [weak self] in
             self?.omnibarController.presentSubscriptionUpsell(requiredTier: requiredTier, origin: origin)

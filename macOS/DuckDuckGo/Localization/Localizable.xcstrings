@@ -6249,14 +6249,14 @@
         }
       }
     },
-    "aichat.subscription-upsell-dialog.try-for-free-button" : {
-      "comment" : "Primary button in the subscription upsell dialog, shown when the user is still eligible for an introductory free trial",
+    "aichat.subscription-upsell-dialog.subscribe-button" : {
+      "comment" : "Primary button in the subscription upsell dialog, shown when the user is still eligible for an introductory free trial (the trial is offered in the native purchase flow itself, not promised by this button's label)",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Try for Free"
+            "value" : "Subscribe to DuckDuckGo"
           }
         }
       }
