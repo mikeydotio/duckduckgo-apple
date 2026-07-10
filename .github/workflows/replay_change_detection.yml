@@ -1,0 +1,116 @@
+name: Replay Change Detection
+
+# Validation tooling for the shadow change-detection gate. Replays the shared
+# matcher (.github/scripts/detect-changed-areas.sh — the exact script the gate
+# in should_run_pr_checks.yml runs) against real PRs and writes a report to
+# the run summary, cross-checking each "would-skip" area against the PR's
+# actual check results. Purely informational: gates nothing, has no outputs.
+#
+# The pull_request trigger only fires when the replay tooling itself changes;
+# use workflow_dispatch to replay arbitrary PRs on demand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_numbers:
+        description: 'Space-separated PR numbers to replay (empty = recent merged PRs)'
+        required: false
+        type: string
+      count:
+        description: 'How many recent merged PRs to replay when pr_numbers is empty'
+        required: false
+        type: string
+        default: '15'
+  pull_request:
+    paths:
+      - '.github/scripts/detect-changed-areas.sh'
+      - '.github/workflows/replay_change_detection.yml'
+
+jobs:
+  replay:
+    name: Replay change detection on real PRs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+    steps:
+      - name: Check out the change-detection script
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/scripts/detect-changed-areas.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Replay and cross-check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBERS: ${{ inputs.pr_numbers }}
+          COUNT: ${{ inputs.count }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$PR_NUMBERS" ]; then
+            prs="$PR_NUMBERS"
+          else
+            prs=$(gh pr list --repo "$REPO" --state merged --limit "${COUNT:-15}" \
+              --json number --jq '.[].number' | tr '\n' ' ')
+          fi
+
+          {
+            echo "## Change-detection replay"
+            echo ""
+            echo "Flags computed by \`.github/scripts/detect-changed-areas.sh\` — the same script the shadow gate runs."
+            echo "\"Failed checks in would-skip areas\" lists failing check runs that belong to a workflow the flags"
+            echo "would have skipped; any entry there means the detection would have hidden a real failure."
+            echo ""
+            echo "| PR | Title | ios | macos | shared | Would skip | Failed checks in would-skip areas |"
+            echo "|---|---|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for pr in $prs; do
+            title=$(gh pr view "$pr" --repo "$REPO" --json title --jq '.title' | tr '|' '-' | cut -c1-60)
+
+            if ! flags=$(gh pr diff "$pr" --repo "$REPO" --name-only | .github/scripts/detect-changed-areas.sh); then
+              echo "| #$pr | $title | error | error | error | - | could not compute flags |" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            ios=$(grep '^ios=' <<< "$flags" | cut -d= -f2)
+            macos=$(grep '^macos=' <<< "$flags" | cut -d= -f2)
+            shared=$(grep '^shared=' <<< "$flags" | cut -d= -f2)
+
+            # Map each would-skip area to the workflows it would gate.
+            skip_areas=""
+            skip_workflows=()
+            if [ "$ios" = "false" ]; then
+              skip_areas="$skip_areas ios"
+              skip_workflows+=("iOS - PR Checks")
+            fi
+            if [ "$macos" = "false" ]; then
+              skip_areas="$skip_areas macos"
+              skip_workflows+=("macOS - PR Checks" "macOS - Private API Usage Report")
+            fi
+            if [ "$shared" = "false" ]; then
+              skip_areas="$skip_areas shared"
+              skip_workflows+=("BSK - PR Checks" "DBP - PR Checks")
+            fi
+
+            failed="-"
+            if [ ${#skip_workflows[@]} -gt 0 ]; then
+              # gh pr checks exits non-zero when any check failed; that is data, not an error.
+              checks_json=$(gh pr checks "$pr" --repo "$REPO" --json workflow,name,state 2>/dev/null || true)
+              if [ -n "$checks_json" ]; then
+                wf_json=$(printf '%s\n' "${skip_workflows[@]}" | jq -R . | jq -cs .)
+                failed=$(jq -r --argjson wf "$wf_json" \
+                  '[.[] | select(.state == "FAILURE" and (.workflow as $w | $wf | index($w))) | "\(.workflow): \(.name)"] | join("; ")' \
+                  <<< "$checks_json")
+                if [ -n "$failed" ]; then failed="MISMATCH - $failed"; else failed="-"; fi
+              else
+                failed="checks unavailable"
+              fi
+            fi
+
+            url="https://github.com/$REPO/pull/$pr"
+            echo "| [#$pr]($url) | $title | $ios | $macos | $shared | ${skip_areas:- -} | $failed |" >> "$GITHUB_STEP_SUMMARY"
+            echo "PR #$pr: ios=$ios macos=$macos shared=$shared would-skip:${skip_areas:- none} failed-in-skip: $failed"
+          done

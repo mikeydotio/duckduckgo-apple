@@ -89,10 +89,22 @@ jobs:
           fi
 
       # PHASE 1 (shadow): compute per-area change flags for logging only.
-      # Nothing gates on them — they are not exposed as outputs. The step is
+      # Nothing gates on them — they are not exposed as outputs. The steps are
       # deliberately fail-open: any error (or a non-PR event) yields all-true,
-      # i.e. exactly today's "run everything" behaviour, so it can never make
+      # i.e. exactly today's "run everything" behaviour, so they can never make
       # the check job fail and skip downstream checks.
+      #
+      # The group definitions and matcher live in a shared script so that the
+      # replay/validation workflow (replay_change_detection.yml) can never
+      # drift from what this gate computes.
+      - name: Check out the change-detection script
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/scripts/detect-changed-areas.sh
+          sparse-checkout-cone-mode: false
+
       - name: Detect changed paths (shadow)
         id: paths
         continue-on-error: true
@@ -113,38 +125,11 @@ jobs:
             --repo "${{ github.repository }}" --name-only) \
             || fail_open "Could not read changed files: failing open to all areas = true"
 
-          # A group entry ending in "/" matches everything under that directory;
-          # any other entry is matched as an exact file path.
-          changed() {
-            local f p
-            while IFS= read -r f; do
-              [ -z "$f" ] && continue
-              for p in $1; do
-                case "$p" in
-                  */) case "$f" in "$p"*) return 0 ;; esac ;;
-                  *)  [ "$f" = "$p" ] && return 0 ;;
-                esac
-              done
-            done <<< "$files"
-            return 1
-          }
+          flags=$(echo "$files" | .github/scripts/detect-changed-areas.sh) \
+            || fail_open "detect-changed-areas.sh failed: failing open to all areas = true"
 
-          # Dependency closures. ci_infra = composite actions + this gate
-          # workflow + the Xcode version; a change to any of them forces every
-          # area to run. shared adds the SharedPackages closure, which covers
-          # every in-repo package (including BrowserServicesKit and
-          # DataBrokerProtectionCore). Standalone automation workflows (e.g.
-          # macos_check_sparkle_update.yml) are intentionally absent, so editing
-          # them matches no area.
-          ci_infra=".github/actions/ .github/workflows/should_run_pr_checks.yml .xcode-version"
-          shared="$ci_infra SharedPackages/"
-
-          ios="$shared scripts/translation-pr-checks/ iOS/ .github/workflows/ios_pr_checks.yml"
-          macos="$shared scripts/translation-pr-checks/ macOS/ .github/workflows/macos_pr_checks.yml .github/workflows/macos_private_api_report.yml"
-
-          for area in ios macos shared; do
-            if changed "${!area}"; then echo "${area}=true" >> "$GITHUB_OUTPUT"; else echo "${area}=false" >> "$GITHUB_OUTPUT"; fi
-          done
+          echo "$flags" >> "$GITHUB_OUTPUT"
+          echo "$flags"
 
       # PHASE 1 (shadow): log what a future gating phase WOULD skip. Purely
       # informational — lets us eyeball the flags against real PRs before any
