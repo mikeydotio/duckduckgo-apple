@@ -1857,43 +1857,39 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         menu.autoenablesItems = false
         menu.minimumWidth = Self.reasoningPickerMinimumWidth
 
-        let currentEffort = omnibarController.displayedReasoningEffort
+        // Falls back to the first (always-accessible) effort when nothing is resolved yet — e.g.
+        // the very first time the picker is opened, before fetchModels() has returned and
+        // displayedReasoningEffort is still nil. Without this, no row shows a checkmark even
+        // though the chip itself already displays the same fallback (updateReasoningPickerVisibility
+        // applies it too) — the menu and the chip must agree on what's "current".
+        let currentEffort = omnibarController.displayedReasoningEffort ?? omnibarController.pickerReasoningEfforts.first
         for effort in omnibarController.pickerReasoningEfforts {
-            if let requiredTier = omnibarController.requiredTier(for: effort) {
-                // Gated efforts stay visible + clickable (they route to the subscription flow via
-                // a confirmation dialog, matching the model picker), rendered with a trailing
-                // "Try for free" / "Upgrade" badge instead of the web's dimmed lock icon — the
-                // badge is now the CTA, so the row keeps its normal icon/title/subtitle colors and
-                // never shows as the current selection.
-                menu.addItem(gatedReasoningEffortRow(for: effort, requiredTier: requiredTier, in: menu))
-                continue
-            }
-            let item = NSMenuItem(title: "", action: #selector(reasoningEffortSelected(_:)), keyEquivalent: "")
-            item.attributedTitle = toolsMenuItemAttributedTitle(title: effort.title, subtitle: effort.subtitle)
-            item.target = self
-            item.representedObject = effort
-            item.image = effort.icon
-            if effort == currentEffort {
-                item.state = .on
-            }
-            menu.addItem(item)
+            menu.addItem(reasoningEffortRow(for: effort, isSelected: effort == currentEffort, in: menu))
         }
 
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: -5), in: reasoningPickerButton)
     }
 
-    /// A gated reasoning-effort row, built as a custom view (like the model picker's rows) so it can
-    /// show a trailing "Try for free" / "Upgrade" badge — `NSMenuItem.attributedTitle` has no slot
-    /// for a second trailing element. `controlAccentColor` keeps its hover highlight matching the
-    /// native rows around it (see `ModelMenuRowView`'s doc comment for why that specific color).
-    ///
-    /// When the subscription-upsell feature flag is off, the row falls back to a plain dimmed,
-    /// non-interactive treatment (no badge, no tap-to-open-dialog) — same as a gated model row, and
-    /// same as this effort was before the upsell UI shipped. It's still not *selectable*, so the
-    /// flag can't reintroduce the original "submit with a gated effort" bug.
-    private func gatedReasoningEffortRow(for effort: AIChatReasoningEffort, requiredTier: AIChatModelPublicAccessTier, in menu: NSMenu) -> NSMenuItem {
+    /// Every reasoning-effort row — accessible or gated — goes through this one custom view (the
+    /// same `ModelMenuRowView` the model picker uses), rather than mixing native `NSMenuItem`s for
+    /// accessible efforts with a custom view only for the gated one. That split briefly existed
+    /// and didn't hold up: the two rendering paths don't agree closely enough on left margins or
+    /// hover-highlight color to sit believably in the same menu (a gated row rendered visibly
+    /// shifted right and off-color next to its native siblings).
+    private func reasoningEffortRow(for effort: AIChatReasoningEffort, isSelected: Bool, in menu: NSMenu) -> NSMenuItem {
+        let requiredTier = omnibarController.requiredTier(for: effort)
+        let isGated = requiredTier != nil
         let isUpsellEnabled = omnibarController.isSubscriptionUpsellEnabled
-        let badgeText = omnibarController.shouldOfferFreeTrial ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade
+        // Gated efforts stay visible + clickable when the upsell flag is on (they route to the
+        // subscription flow via a confirmation dialog, matching the model picker), with a trailing
+        // "Try for free" / "Upgrade" badge as the CTA — normal icon/title/subtitle colors, never
+        // shown as the current selection. With the flag off, they fall back to a plain dimmed,
+        // non-interactive row (no badge, no tap-to-open-dialog) — same as before the upsell UI
+        // shipped, so the flag can't reintroduce the original "submit with a gated effort" bug.
+        let showsUpsell = isGated && isUpsellEnabled
+        let badgeText = showsUpsell
+            ? (omnibarController.shouldOfferFreeTrial ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade)
+            : nil
         let item = NSMenuItem.createModelRow(
             icon: effort.icon,
             boldTitle: effort.title,
@@ -1901,11 +1897,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
             subtitle: effort.subtitle,
             subtitleFontSize: 11,
             trailingText: nil,
-            trailingBadgeText: isUpsellEnabled ? badgeText : nil,
+            trailingBadgeText: badgeText,
             emphasizesTitle: false,
-            isSelected: false,
-            isDimmed: !isUpsellEnabled,
-            isInteractive: isUpsellEnabled,
+            isSelected: isSelected && !isGated,
+            isDimmed: isGated && !isUpsellEnabled,
+            isInteractive: !isGated || isUpsellEnabled,
             action: #selector(reasoningEffortSelected(_:)),
             target: self,
             menu: menu
