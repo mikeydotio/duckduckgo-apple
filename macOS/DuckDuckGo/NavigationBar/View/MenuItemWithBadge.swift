@@ -456,8 +456,11 @@ struct ModelMenuRowView: View {
 
     @State private var isHovered = false
 
-    // Kept close together so the row height doesn't jump noticeably when a model has no subtitle.
-    private static let singleLineHeight: CGFloat = 38
+    // singleLineHeight is only ever hit by model rows now (they dropped subtitles entirely; the
+    // reasoning picker's rows always have one, via effort.subtitle, so they always take
+    // twoLineHeight). It used to be 38 to avoid a visible jump against 46 when a model *did* have
+    // a subtitle — with that case gone, it can be its own, shorter, single-line height.
+    private static let singleLineHeight: CGFloat = 32
     private static let twoLineHeight: CGFloat = 46
 
     /// Vertical inset of the highlight/selection background, which also creates the visible gap
