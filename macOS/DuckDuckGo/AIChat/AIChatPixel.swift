@@ -201,6 +201,14 @@ enum AIChatPixel: PixelKitEvent {
     /// Event Trigger: User cancels deletion of a recent chat suggestion in the address bar
     case aiChatRecentChatDeleteCancelled
 
+    /// Event Trigger: A single chat deletion (address bar or NTP) completes successfully, i.e. the
+    /// native-storage delete and JS-layer clear both succeeded.
+    case aiChatSingleDeleteSuccessful
+
+    /// Event Trigger: A single chat deletion (address bar or NTP) fails — the native-storage delete
+    /// or the JS-layer clear reported an error.
+    case aiChatSingleDeleteFailed
+
     case aiChatSyncScopedSyncTokenError(reason: String)
     case aiChatSyncEncryptionError(reason: String)
     case aiChatSyncDecryptionError(reason: String)
@@ -555,6 +563,10 @@ enum AIChatPixel: PixelKitEvent {
             return "aichat_recent_chat_delete_confirmed"
         case .aiChatRecentChatDeleteCancelled:
             return "aichat_recent_chat_delete_cancelled"
+        case .aiChatSingleDeleteSuccessful:
+            return "aichat_single_delete_successful"
+        case .aiChatSingleDeleteFailed:
+            return "aichat_single_delete_failed"
 
         case .aiChatSyncScopedSyncTokenError:
             return "aichat_sync_internal_scoped-sync-token-error"
@@ -758,6 +770,8 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatRecentChatDeleteButtonClicked,
                 .aiChatRecentChatDeleteConfirmed,
                 .aiChatRecentChatDeleteCancelled,
+                .aiChatSingleDeleteSuccessful,
+                .aiChatSingleDeleteFailed,
                 .aiChatOnboardingTogglePreferenceOn,
                 .aiChatOnboardingTogglePreferenceOff,
                 .aiChatOnboardingFinishedToggleOn,
@@ -927,6 +941,8 @@ enum AIChatPixel: PixelKitEvent {
                 .aiChatRecentChatDeleteButtonClicked,
                 .aiChatRecentChatDeleteConfirmed,
                 .aiChatRecentChatDeleteCancelled,
+                .aiChatSingleDeleteSuccessful,
+                .aiChatSingleDeleteFailed,
                 .aiChatSyncScopedSyncTokenError,
                 .aiChatSyncEncryptionError,
                 .aiChatSyncDecryptionError,
