@@ -27,7 +27,21 @@ public protocol HistoryCleaning {
     @MainActor func deleteAIChat(chatID: String) async -> Result<Void, Error>
 }
 
-public final class HistoryCleaner: HistoryCleaning {
+/// Exposes the two phases of `deleteAIChat` separately, for callers that need the chat gone from
+/// native storage (fast, synchronous) before the slower JS-layer clearing completes — e.g. so a
+/// suggestions re-fetch issued right after deletion cannot return the deleted chat.
+public protocol PhasedAIChatHistoryCleaning: HistoryCleaning {
+    /// Phase 1: deletes the chat and its files from native storage and writes the
+    /// `locallyDeletedChatIds` tombstone. Returns nil when native storage is unavailable
+    /// (feature flag off or migration not done).
+    @MainActor func deleteAIChatFromNativeStorage(chatID: String) -> Result<Void, Error>?
+
+    /// Phase 2: clears the JS layer (localStorage and IndexedDB) via a headless WebView.
+    /// Passing nil clears all chats.
+    @MainActor func clearJSData(chatID: String?) async -> Result<Void, Error>
+}
+
+public final class HistoryCleaner: PhasedAIChatHistoryCleaning {
     private let nativeStorageHandler: DuckAiNativeStorageHandling?
     private let featureFlagProvider: AIChatFeatureFlagProviding?
     private let jsDataCleaner: AIChatJSDataCleaning
@@ -68,12 +82,22 @@ public final class HistoryCleaner: HistoryCleaning {
     @MainActor
     private func performClear(chatID: String?) async -> Result<Void, Error> {
         let nativeResult = clearLocalStorageIfAvailable(chatID: chatID)
-        let jsResult = await jsDataCleaner.clearJSData(chatID: chatID)
+        let jsResult = await clearJSData(chatID: chatID)
 
         if case .failure = nativeResult {
             return nativeResult ?? jsResult
         }
         return jsResult
+    }
+
+    @MainActor
+    public func deleteAIChatFromNativeStorage(chatID: String) -> Result<Void, Error>? {
+        clearLocalStorageIfAvailable(chatID: chatID)
+    }
+
+    @MainActor
+    public func clearJSData(chatID: String?) async -> Result<Void, Error> {
+        await jsDataCleaner.clearJSData(chatID: chatID)
     }
 
     private func clearLocalStorageIfAvailable(chatID: String?) -> Result<Void, Error>? {
