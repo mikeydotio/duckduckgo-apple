@@ -35,12 +35,26 @@ final class AIChatDeleterTests: XCTestCase {
         firedPixels = []
     }
 
-    private func makeSUT(recordsSyncDeletion: Bool = true) -> AIChatDeleter {
+    override func tearDown() {
+        historyCleaner = nil
+        syncCleaner = nil
+        firedPixels = nil
+        super.tearDown()
+    }
+
+    /// `deleteChat` does its work in a background Task, so tests can't just await the call —
+    /// they need to wait for the actual terminal event of the code path under test (the last
+    /// mock call `AIChatDeleter` makes on that path), not merely for `clearJSData` to have been
+    /// *invoked* (which races with the rest of the Task and was the source of a CI flake here).
+    private func makeSUT(recordsSyncDeletion: Bool = true, onFirePixel: ((String) -> Void)? = nil) -> AIChatDeleter {
         AIChatDeleter(
             historyCleaner: historyCleaner,
             syncCleaner: { [weak self] in self?.syncCleaner },
             recordsSyncDeletion: recordsSyncDeletion,
-            firePixel: { [weak self] event in self?.firedPixels.append(event.name) }
+            firePixel: { [weak self] event in
+                self?.firedPixels.append(event.name)
+                onFirePixel?(event.name)
+            }
         )
     }
 
@@ -48,9 +62,11 @@ final class AIChatDeleterTests: XCTestCase {
         historyCleaner.nativeStorageResult = .success(())
         historyCleaner.jsDataResult = .success(())
         let sut = makeSUT()
+        let scheduleSyncExpectation = expectation(description: "scheduleSync called")
+        syncCleaner.onScheduleSync = { scheduleSyncExpectation.fulfill() }
 
         sut.deleteChat(chatID: "chat-1")
-        await historyCleaner.waitForClearJSData()
+        await fulfillment(of: [scheduleSyncExpectation], timeout: 1)
 
         XCTAssertEqual(syncCleaner.recordChatDeletionCalls, ["chat-1"])
         XCTAssertEqual(syncCleaner.scheduleSyncCallCount, 1)
@@ -60,10 +76,13 @@ final class AIChatDeleterTests: XCTestCase {
     func testWhenJSClearFailsThenSyncDeletionIsNotRecorded() async {
         historyCleaner.nativeStorageResult = .success(())
         historyCleaner.jsDataResult = .failure(TestError())
-        let sut = makeSUT()
+        let failurePixelExpectation = expectation(description: "failure pixel fired")
+        let sut = makeSUT(onFirePixel: { name in
+            if name == AIChatPixel.aiChatSingleDeleteFailed.name { failurePixelExpectation.fulfill() }
+        })
 
         sut.deleteChat(chatID: "chat-1")
-        await historyCleaner.waitForClearJSData()
+        await fulfillment(of: [failurePixelExpectation], timeout: 1)
 
         XCTAssertTrue(syncCleaner.recordChatDeletionCalls.isEmpty)
         XCTAssertEqual(syncCleaner.scheduleSyncCallCount, 0)
@@ -75,9 +94,11 @@ final class AIChatDeleterTests: XCTestCase {
         historyCleaner.nativeStorageResult = nil
         historyCleaner.jsDataResult = .success(())
         let sut = makeSUT()
+        let scheduleSyncExpectation = expectation(description: "scheduleSync called")
+        syncCleaner.onScheduleSync = { scheduleSyncExpectation.fulfill() }
 
         sut.deleteChat(chatID: "chat-1")
-        await historyCleaner.waitForClearJSData()
+        await fulfillment(of: [scheduleSyncExpectation], timeout: 1)
 
         XCTAssertEqual(syncCleaner.recordChatDeletionCalls, ["chat-1"])
         XCTAssertEqual(firedPixels, [AIChatPixel.aiChatSingleDeleteSuccessful.name])
@@ -86,10 +107,13 @@ final class AIChatDeleterTests: XCTestCase {
     func testWhenNativeStorageFailsThenOverallResultIsFailureRegardlessOfJSClear() async {
         historyCleaner.nativeStorageResult = .failure(TestError())
         historyCleaner.jsDataResult = .success(())
-        let sut = makeSUT()
+        let failurePixelExpectation = expectation(description: "failure pixel fired")
+        let sut = makeSUT(onFirePixel: { name in
+            if name == AIChatPixel.aiChatSingleDeleteFailed.name { failurePixelExpectation.fulfill() }
+        })
 
         sut.deleteChat(chatID: "chat-1")
-        await historyCleaner.waitForClearJSData()
+        await fulfillment(of: [failurePixelExpectation], timeout: 1)
 
         XCTAssertTrue(syncCleaner.recordChatDeletionCalls.isEmpty)
         XCTAssertEqual(firedPixels, [AIChatPixel.aiChatSingleDeleteFailed.name])
@@ -98,10 +122,15 @@ final class AIChatDeleterTests: XCTestCase {
     func testWhenRecordsSyncDeletionIsFalseThenSyncIsNeverRecordedEvenOnSuccess() async {
         historyCleaner.nativeStorageResult = .success(())
         historyCleaner.jsDataResult = .success(())
-        let sut = makeSUT(recordsSyncDeletion: false)
+        // With recordsSyncDeletion false, deleteChat returns right after firing the success
+        // pixel (the sync-recording guard exits early), so that pixel is the path's last event.
+        let successPixelExpectation = expectation(description: "success pixel fired")
+        let sut = makeSUT(recordsSyncDeletion: false, onFirePixel: { name in
+            if name == AIChatPixel.aiChatSingleDeleteSuccessful.name { successPixelExpectation.fulfill() }
+        })
 
         sut.deleteChat(chatID: "chat-1")
-        await historyCleaner.waitForClearJSData()
+        await fulfillment(of: [successPixelExpectation], timeout: 1)
 
         XCTAssertTrue(syncCleaner.recordChatDeletionCalls.isEmpty)
         XCTAssertEqual(syncCleaner.scheduleSyncCallCount, 0)
@@ -136,7 +165,6 @@ private final class MockPhasedHistoryCleaner: PhasedAIChatHistoryCleaning {
     private(set) var clearJSDataCalls: [String?] = []
 
     private var releaseContinuation: CheckedContinuation<Void, Never>?
-    private var clearJSDataCalledContinuation: CheckedContinuation<Void, Never>?
 
     @MainActor
     func deleteAIChatFromNativeStorage(chatID: String) -> Result<Void, Error>? {
@@ -147,24 +175,10 @@ private final class MockPhasedHistoryCleaner: PhasedAIChatHistoryCleaning {
     @MainActor
     func clearJSData(chatID: String?) async -> Result<Void, Error> {
         clearJSDataCalls.append(chatID)
-        clearJSDataCalledContinuation?.resume()
-        clearJSDataCalledContinuation = nil
         if holdClearJSData {
             await withCheckedContinuation { self.releaseContinuation = $0 }
         }
         return jsDataResult
-    }
-
-    /// Waits until `clearJSData` has been invoked and returned, so tests can assert on
-    /// post-Task-completion state without an arbitrary sleep.
-    func waitForClearJSData() async {
-        await withCheckedContinuation { continuation in
-            if !clearJSDataCalls.isEmpty {
-                continuation.resume()
-            } else {
-                clearJSDataCalledContinuation = continuation
-            }
-        }
     }
 
     func releaseClearJSData() {
@@ -182,6 +196,7 @@ private final class MockPhasedHistoryCleaner: PhasedAIChatHistoryCleaning {
 private final class MockAIChatDeleterSyncCleaner: AIChatSyncCleaning {
     private(set) var recordChatDeletionCalls: [String] = []
     private(set) var scheduleSyncCallCount = 0
+    var onScheduleSync: (() -> Void)?
 
     func recordAutoClearBackgroundTimestamp(date: Date?) async {}
     func recordLocalClear(date: Date?) async {}
@@ -197,5 +212,6 @@ private final class MockAIChatDeleterSyncCleaner: AIChatSyncCleaning {
 
     func scheduleSync() {
         scheduleSyncCallCount += 1
+        onScheduleSync?()
     }
 }

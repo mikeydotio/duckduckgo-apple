@@ -36,6 +36,13 @@ final class NewTabPageOmnibarActionsHandlerTests: XCTestCase {
         firedPixels = []
     }
 
+    override func tearDown() {
+        historyCoordinator = nil
+        aiChatDeleter = nil
+        firedPixels = nil
+        super.tearDown()
+    }
+
     private func makeSUT(confirmResult: Bool = true) -> NewTabPageOmnibarActionsHandler {
         NewTabPageOmnibarActionsHandler(
             windowControllersManager: WindowControllersManagerMock(),
