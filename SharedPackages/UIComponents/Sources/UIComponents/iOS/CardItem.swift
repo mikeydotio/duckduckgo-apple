@@ -101,8 +101,7 @@ public struct CardItemTitleDetail {
 /// A single card content row: an optional icon, an optional overline, a title with optional inline
 /// details (e.g. a variant name or tier marker), optional body text, and an optional trailing accessory.
 ///
-/// `CardItem` lays out content only; the surrounding surface is supplied by the card shell that
-/// holds it (in the flow, `SubscriptionOnboardingCard`).
+/// `CardItem` lays out content only; the surrounding surface is supplied by the card shell that holds it
 public struct CardItem: View {
     private let icon: CardItemIcon?
     private let overline: String?
