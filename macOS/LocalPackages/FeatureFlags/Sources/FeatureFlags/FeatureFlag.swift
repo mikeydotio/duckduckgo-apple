@@ -184,7 +184,7 @@ public enum FeatureFlag: String, CaseIterable {
     case newTabPageTabIDs
 
     /// Enables deleting history-based search suggestions from the New Tab Page omnibar
-    /// https://app.asana.com/1/137249556945/project/1148564399326804/task/1213796978373946?focus=true
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216469223737804
     case ntpSearchSuggestionsDeletion
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1211866618846917
@@ -365,7 +365,7 @@ public enum FeatureFlag: String, CaseIterable {
     case aiChatNtpAttachMoreTabs
 
     /// Enables deleting recent AI chats from the New Tab Page omnibar
-    /// https://app.asana.com/1/137249556945/project/1148564399326804/task/1213796978373946?focus=true
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216469223760067
     case aiChatNtpSuggestionsDeletion
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1213279513677422

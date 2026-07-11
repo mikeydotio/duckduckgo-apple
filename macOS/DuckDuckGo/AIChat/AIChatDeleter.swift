@@ -26,7 +26,18 @@ protocol AIChatDeleting: AnyObject {
     /// continues clearing JS-layer storage and propagating the deletion to sync in the background.
     /// Callers that need the chat gone before re-querying (e.g. a suggestions re-fetch) only need
     /// to wait for this call to return, not for the deletion to fully complete.
-    @MainActor func deleteChat(chatID: String)
+    ///
+    /// `onComplete`, if provided, runs once the JS-layer clear has finished — i.e. once the chat is
+    /// guaranteed gone everywhere the app might read chat data from, not just native storage. Use it
+    /// before refreshing any UI that reads from a source the native-storage phase alone might not
+    /// have updated (e.g. when native storage isn't available and only the JS clear removes the chat).
+    @MainActor func deleteChat(chatID: String, onComplete: (() -> Void)?)
+}
+
+extension AIChatDeleting {
+    @MainActor func deleteChat(chatID: String) {
+        deleteChat(chatID: chatID, onComplete: nil)
+    }
 }
 
 /// Mirrors iOS's `AIChatDeleter`: deletes a single Duck.ai chat via the shared `HistoryCleaner` and,
@@ -51,7 +62,7 @@ final class AIChatDeleter: AIChatDeleting {
     }
 
     @MainActor
-    func deleteChat(chatID: String) {
+    func deleteChat(chatID: String, onComplete: (() -> Void)?) {
         let nativeResult = historyCleaner.deleteAIChatFromNativeStorage(chatID: chatID)
 
         Task { @MainActor [historyCleaner, syncCleaner, recordsSyncDeletion, firePixel] in
@@ -69,13 +80,15 @@ final class AIChatDeleter: AIChatDeleting {
             switch overallResult {
             case .success:
                 firePixel(AIChatPixel.aiChatSingleDeleteSuccessful)
-                guard recordsSyncDeletion, let syncCleaner = syncCleaner() else { return }
-                await syncCleaner.recordChatDeletion(chatID: chatID)
-                syncCleaner.scheduleSync()
+                if recordsSyncDeletion, let syncCleaner = syncCleaner() {
+                    await syncCleaner.recordChatDeletion(chatID: chatID)
+                    syncCleaner.scheduleSync()
+                }
             case .failure(let error):
                 Logger.aiChat.debug("AIChatDeleter: failed to delete chat \(chatID): \(error.localizedDescription)")
                 firePixel(AIChatPixel.aiChatSingleDeleteFailed)
             }
+            onComplete?()
         }
     }
 }

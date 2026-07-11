@@ -107,7 +107,8 @@ final class NewTabPageOmnibarActionsHandlerTests: XCTestCase {
 private final class MockAIChatDeleterForHandler: AIChatDeleting {
     private(set) var deleteChatCalls: [String] = []
 
-    func deleteChat(chatID: String) {
+    func deleteChat(chatID: String, onComplete: (() -> Void)?) {
         deleteChatCalls.append(chatID)
+        onComplete?()
     }
 }
