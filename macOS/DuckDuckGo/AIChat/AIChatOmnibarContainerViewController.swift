@@ -2015,14 +2015,23 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// a gated tap here rather than navigating directly (per design review).
     private func presentSubscriptionUpsellDialog(requiredTier: AIChatModelPublicAccessTier, origin: SubscriptionFunnelOrigin) {
         var dialog = AIChatSubscriptionUpsellDialog()
-        // Unlike the badge/tag, the modal's primary button is tier-based, not eligibility-based —
-        // a free user always reads "Subscribe to DuckDuckGo" regardless of trial eligibility (the
-        // native purchase flow presents the trial terms itself, so the button doesn't need to
-        // promise it too), while "Upgrade" is reserved for an existing Plus subscriber, who has
-        // something to upgrade *from*. Same tier check the header title already uses.
-        dialog.primaryButtonText = omnibarController.userTier == .free
-            ? UserText.aiChatSubscriptionUpsellDialogSubscribeButton
-            : UserText.aiChatSubscriptionUpsellDialogUpgradeButton
+        switch omnibarController.userTier {
+        case .free:
+            // Title/message stay generic. Only the primary button follows eligibility, matching
+            // the badge/tag text ("Try for Free" vs "Upgrade") — the native purchase flow presents
+            // the trial terms itself, so an ineligible user shouldn't be told "Subscribe" only to
+            // find no trial offered.
+            dialog.primaryButtonText = omnibarController.shouldOfferFreeTrial
+                ? UserText.aiChatSubscriptionUpsellDialogTryForFreeButton
+                : UserText.aiChatSubscriptionUpsellDialogUpgradeButton
+        case .plus, .pro, .internal:
+            // An existing Plus subscriber is upgrading an active subscription, not discovering
+            // one — different copy, and no "I Have a Subscription" button since that doesn't apply.
+            dialog.title = UserText.aiChatSubscriptionUpsellDialogProTitle
+            dialog.message = UserText.aiChatSubscriptionUpsellDialogProMessage
+            dialog.primaryButtonText = UserText.aiChatSubscriptionUpsellDialogUpgradeButton
+            dialog.showsHaveSubscriptionButton = false
+        }
         dialog.onSubscribe = { [weak self] in
             self?.omnibarController.presentSubscriptionUpsell(requiredTier: requiredTier, origin: origin)
         }
