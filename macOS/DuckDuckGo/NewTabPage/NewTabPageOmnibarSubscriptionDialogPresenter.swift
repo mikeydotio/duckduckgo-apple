@@ -18,6 +18,7 @@
 
 import NewTabPage
 import PixelKit
+import Subscription
 
 /// Presents the shared `AIChatSubscriptionUpsellDialog` for `omnibar_showSubscriptionUpsell`/
 /// `omnibar_showSubscriptionUpgrade`. Unlike the address-bar's `AIChatOmnibarSubscriptionUpsellPresenter`,
@@ -31,9 +32,11 @@ final class NewTabPageOmnibarSubscriptionDialogPresenter: NewTabPageOmnibarSubsc
     private static let featurePage = "duckai"
 
     private let coordinator: SubscriptionNavigationCoordinator
+    private let subscriptionManager: any SubscriptionManager
 
-    init(coordinator: SubscriptionNavigationCoordinator) {
+    init(coordinator: SubscriptionNavigationCoordinator, subscriptionManager: any SubscriptionManager) {
         self.coordinator = coordinator
+        self.subscriptionManager = subscriptionManager
     }
 
     func showSubscriptionUpsellDialog() {
@@ -46,10 +49,16 @@ final class NewTabPageOmnibarSubscriptionDialogPresenter: NewTabPageOmnibarSubsc
 
     /// Split out from `showSubscriptionUpsellDialog()` so tests can exercise the routing
     /// (`onSubscribe`/`onHaveSubscription`) without going through `ModalView.show()`, which needs
-    /// a real key window.
+    /// a real key window. `omnibar_showSubscriptionUpsell` only fires for a free user (the web
+    /// picks this message over the upgrade one based on tier), so title/message stay generic —
+    /// matching the address bar's own free-tier dialog, only the primary button follows free-trial
+    /// eligibility ("Try for Free" vs "Upgrade"), since the native purchase flow presents the trial
+    /// terms itself.
     func makeUpsellDialog() -> AIChatSubscriptionUpsellDialog {
         var dialog = AIChatSubscriptionUpsellDialog()
-        dialog.primaryButtonText = UserText.aiChatSubscriptionUpsellDialogSubscribeButton
+        dialog.primaryButtonText = subscriptionManager.isUserEligibleForFreeTrial()
+            ? UserText.aiChatSubscriptionUpsellDialogTryForFreeButton
+            : UserText.aiChatSubscriptionUpsellDialogUpgradeButton
         dialog.onSubscribe = { [coordinator] in
             coordinator.navigateToSubscriptionPurchase(origin: SubscriptionFunnelOrigin.newTabPageOmnibar.rawValue, featurePage: Self.featurePage)
             Self.firePixel(flowType: "purchase")
@@ -60,13 +69,21 @@ final class NewTabPageOmnibarSubscriptionDialogPresenter: NewTabPageOmnibarSubsc
         return dialog
     }
 
+    /// `omnibar_showSubscriptionUpgrade` only fires for an existing Plus subscriber gated to Pro —
+    /// matches the address bar's Plus/Pro/internal dialog: distinct title/message, and no "I Have
+    /// a Subscription" button since that doesn't apply to someone upgrading an active subscription.
     func makeUpgradeDialog() -> AIChatSubscriptionUpsellDialog {
         var dialog = AIChatSubscriptionUpsellDialog()
+        dialog.title = UserText.aiChatSubscriptionUpsellDialogProTitle
+        dialog.message = UserText.aiChatSubscriptionUpsellDialogProMessage
         dialog.primaryButtonText = UserText.aiChatSubscriptionUpsellDialogUpgradeButton
+        dialog.showsHaveSubscriptionButton = false
         dialog.onSubscribe = { [coordinator] in
             coordinator.navigateToSubscriptionPlans(origin: SubscriptionFunnelOrigin.newTabPageOmnibar.rawValue, featurePage: Self.featurePage)
             Self.firePixel(flowType: "upgrade")
         }
+        // Dead in practice since showsHaveSubscriptionButton hides the button, but wired anyway to
+        // match the address bar's own dialog builder, which sets it unconditionally.
         dialog.onHaveSubscription = { [coordinator] in
             coordinator.navigateToSubscriptionActivation()
         }

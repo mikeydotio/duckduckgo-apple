@@ -231,7 +231,10 @@ extension NewTabPageActionsManager {
                                     modelsProvider: NewTabPageOmnibarModelsProvider(),
                                     actionHandler: omnibarActionHandler,
                                     tabsProvider: NewTabPageOmnibarTabsProvider(windowControllersManager: windowControllersManager),
-                                    subscriptionDialogPresenter: NewTabPageOmnibarSubscriptionDialogPresenter(coordinator: Application.appDelegate.subscriptionNavigationCoordinator)),
+                                    subscriptionDialogPresenter: NewTabPageOmnibarSubscriptionDialogPresenter(
+                                        coordinator: Application.appDelegate.subscriptionNavigationCoordinator,
+                                        subscriptionManager: Application.appDelegate.subscriptionManager
+                                    )),
             NewTabPageWinBackOfferClient(provider: winBackOfferBannerProvider)
         ])
     }
