@@ -1,5 +1,5 @@
 {
-  "originHash" : "8e95463b1743b61b9696512cf002a29cc4979e7d17079884d0e515362fab23e9",
+  "originHash" : "b77b6aaa80a2fe19e6a1007c284f8b8d2a1cab9b84d99f2057dd3f317ace7d97",
   "pins" : [
     {
       "identity" : "apple-toolbox",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts.git",
       "state" : {
-        "revision" : "6cec6781b44c538161a906bed097b264682c92cd",
-        "version" : "15.9.0"
+        "branch" : "pr-releases/moon0326/o-j/ui-update-for-model-and-reasoning-selector",
+        "revision" : "5a9e20d2d864ffc86a8afccea34bcb5052bf4e87"
       }
     },
     {
