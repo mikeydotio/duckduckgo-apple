@@ -30,6 +30,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
     private var modelsProvider: StubNewTabPageOmnibarModelsProvider!
     private var actionHandler: NewTabPageOmnibarActionsHandling!
     private var tabsProvider: StubNewTabPageOmnibarTabsProvider!
+    private var subscriptionDialogPresenter: MockNewTabPageOmnibarSubscriptionDialogPresenter!
     private var client: NewTabPageOmnibarClient!
     private var userScript: NewTabPageUserScript!
     private var messageHelper: MessageHelper<NewTabPageOmnibarClient.MessageName>!
@@ -43,12 +44,14 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
         modelsProvider = StubNewTabPageOmnibarModelsProvider()
         actionHandler = MockNewTabPageOmnibarActionsHandler()
         tabsProvider = StubNewTabPageOmnibarTabsProvider()
+        subscriptionDialogPresenter = MockNewTabPageOmnibarSubscriptionDialogPresenter()
         client = NewTabPageOmnibarClient(configProvider: configProvider,
                                          suggestionsProvider: suggestionsProvider,
                                          aiChatsProvider: aiChatsProvider,
                                          modelsProvider: modelsProvider,
                                          actionHandler: actionHandler,
-                                         tabsProvider: tabsProvider)
+                                         tabsProvider: tabsProvider,
+                                         subscriptionDialogPresenter: subscriptionDialogPresenter)
 
         userScript = NewTabPageUserScript()
         messageHelper = .init(userScript: userScript)
@@ -141,19 +144,19 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
     // MARK: - reasoning effort (getConfig / notifyConfigUpdated)
 
     @MainActor
-    func testWhenReasoningEffortDisabledThenSupportedReasoningEffortStrippedInGetConfig() async throws {
+    func testWhenReasoningEffortDisabledThenReasoningEffortsStrippedInGetConfig() async throws {
         configProvider.isReasoningEffortEnabled = false
         modelsProvider.lastFetchedSections = [
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["none", "low", "medium"])
+                                                 reasoningEfforts: availableEfforts(["none", "low", "medium"]))
             ])
         ]
 
         let config: NewTabPageDataModel.OmnibarConfig = try await messageHelper.handleMessage(named: .getConfig)
 
-        XCTAssertEqual(config.aiModelSections?.flatMap(\.items).first?.supportedReasoningEffort, [])
+        XCTAssertEqual(config.aiModelSections?.flatMap(\.items).first?.reasoningEfforts, [])
     }
 
     @MainActor
@@ -164,7 +167,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
                 NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
                                                  isEnabled: true, supportsImageUpload: false,
                                                  supportedTools: ["WebSearch"],
-                                                 supportedReasoningEffort: ["none", "low", "medium"])
+                                                 reasoningEfforts: availableEfforts(["none", "low", "medium"]))
             ])
         ]
 
@@ -182,7 +185,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "model", name: "Model", shortName: "M",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["none", "low"],
+                                                 reasoningEfforts: availableEfforts(["none", "low"]),
                                                  supportedFileTypes: ["application/pdf"])
             ])
         ]
@@ -190,23 +193,23 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
         let config: NewTabPageDataModel.OmnibarConfig = try await messageHelper.handleMessage(named: .getConfig)
 
         XCTAssertEqual(config.aiModelSections?.flatMap(\.items).first?.supportedFileTypes, ["application/pdf"])
-        XCTAssertEqual(config.aiModelSections?.flatMap(\.items).first?.supportedReasoningEffort, [])
+        XCTAssertEqual(config.aiModelSections?.flatMap(\.items).first?.reasoningEfforts, [])
     }
 
     @MainActor
-    func testWhenReasoningEffortEnabledThenSupportedReasoningEffortPreservedInGetConfig() async throws {
+    func testWhenReasoningEffortEnabledThenReasoningEffortsPreservedInGetConfig() async throws {
         configProvider.isReasoningEffortEnabled = true
         modelsProvider.lastFetchedSections = [
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["none", "low", "medium"])
+                                                 reasoningEfforts: availableEfforts(["none", "low", "medium"]))
             ])
         ]
 
         let config: NewTabPageDataModel.OmnibarConfig = try await messageHelper.handleMessage(named: .getConfig)
 
-        XCTAssertEqual(config.aiModelSections?.flatMap(\.items).first?.supportedReasoningEffort, ["none", "low", "medium"])
+        XCTAssertEqual(config.aiModelSections?.flatMap(\.items).first?.reasoningEfforts.map(\.id), ["none", "low", "medium"])
     }
 
     @MainActor
@@ -229,7 +232,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["none", "low", "medium"])
+                                                 reasoningEfforts: availableEfforts(["none", "low", "medium"]))
             ])
         ]
         let newConfig = NewTabPageDataModel.OmnibarConfig(mode: .ai, enableAi: true, showAiSetting: nil, showCustomizePopover: nil, enableRecentAiChats: nil, showViewAllAiChats: nil, enableAiChatTools: nil, enableImageGeneration: nil, enableWebSearch: nil, enableVoiceChatAccess: nil, enableAskAiSuggestion: nil, selectedModelId: "reasoning-model", aiModelSections: nil, selectedReasoningEffort: "low", enableAttachTabs: nil, attachmentLimits: nil)
@@ -248,7 +251,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "limited-model", name: "Limited", shortName: "L",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["low"])
+                                                 reasoningEfforts: availableEfforts(["low"]))
             ])
         ]
         let newConfig = NewTabPageDataModel.OmnibarConfig(mode: .ai, enableAi: true, showAiSetting: nil, showCustomizePopover: nil, enableRecentAiChats: nil, showViewAllAiChats: nil, enableAiChatTools: nil, enableImageGeneration: nil, enableWebSearch: nil, enableVoiceChatAccess: nil, enableAskAiSuggestion: nil, selectedModelId: "limited-model", aiModelSections: nil, selectedReasoningEffort: "medium", enableAttachTabs: nil, attachmentLimits: nil)
@@ -256,6 +259,31 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
         try await messageHelper.handleMessageExpectingNilResponse(named: .setConfig, parameters: newConfig)
 
         XCTAssertEqual(configProvider.selectedReasoningEffort, "low")
+    }
+
+    /// A reasoning effort that's present but gated (`status == "unavailable"`) must be rejected
+    /// just like one that's entirely unsupported — otherwise a stale web selection made before a
+    /// tier change could still get persisted and reach the backend on submit.
+    @MainActor
+    func testWhenSetConfigWithGatedReasoningEffortThenItIsIgnored() async throws {
+        configProvider.isReasoningEffortEnabled = true
+        configProvider.selectedReasoningEffort = "none"
+        configProvider.selectedModelId = "reasoning-model"
+        modelsProvider.lastFetchedSections = [
+            NewTabPageDataModel.AIModelSection(header: nil, items: [
+                NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
+                                                 isEnabled: true, supportsImageUpload: false,
+                                                 reasoningEfforts: [
+                                                    NewTabPageDataModel.AIModelReasoningEffort(id: "none", name: "Fast", status: "available"),
+                                                    NewTabPageDataModel.AIModelReasoningEffort(id: "medium", name: "Extended Reasoning", status: "unavailable", upsell: "upgrade")
+                                                 ])
+            ])
+        ]
+        let newConfig = NewTabPageDataModel.OmnibarConfig(mode: .ai, enableAi: true, showAiSetting: nil, showCustomizePopover: nil, enableRecentAiChats: nil, showViewAllAiChats: nil, enableAiChatTools: nil, enableImageGeneration: nil, enableWebSearch: nil, enableVoiceChatAccess: nil, enableAskAiSuggestion: nil, selectedModelId: "reasoning-model", aiModelSections: nil, selectedReasoningEffort: "medium", enableAttachTabs: nil, attachmentLimits: nil)
+
+        try await messageHelper.handleMessageExpectingNilResponse(named: .setConfig, parameters: newConfig)
+
+        XCTAssertEqual(configProvider.selectedReasoningEffort, "none")
     }
 
     @MainActor
@@ -266,7 +294,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["low"])
+                                                 reasoningEfforts: availableEfforts(["low"]))
             ])
         ]
         let newConfig = NewTabPageDataModel.OmnibarConfig(mode: .ai, enableAi: true, showAiSetting: nil, showCustomizePopover: nil, enableRecentAiChats: nil, showViewAllAiChats: nil, enableAiChatTools: nil, enableImageGeneration: nil, enableWebSearch: nil, enableVoiceChatAccess: nil, enableAskAiSuggestion: nil, selectedModelId: "reasoning-model", aiModelSections: nil, selectedReasoningEffort: "low", enableAttachTabs: nil, attachmentLimits: nil)
@@ -285,7 +313,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["low", "medium"])
+                                                 reasoningEfforts: availableEfforts(["low", "medium"]))
             ])
         ]
         let expectation = expectation(description: "submitChatCalled")
@@ -309,7 +337,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "limited-model", name: "Limited", shortName: "L",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["low"])
+                                                 reasoningEfforts: availableEfforts(["low"]))
             ])
         ]
         let expectation = expectation(description: "submitChatCalled")
@@ -326,6 +354,36 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
         XCTAssertNil(forwardedEffort)
     }
 
+    /// A gated reasoning effort (`status == "unavailable"`) must be dropped at submit time even if
+    /// it's still listed among the model's `reasoningEfforts` — this is the exact bug class the
+    /// address-bar work fixed (a gated selection silently reaching the backend and erroring).
+    @MainActor
+    func testWhenSubmitChatWithGatedReasoningEffortThenItIsDropped() async throws {
+        configProvider.isReasoningEffortEnabled = true
+        modelsProvider.lastFetchedSections = [
+            NewTabPageDataModel.AIModelSection(header: nil, items: [
+                NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
+                                                 isEnabled: true, supportsImageUpload: false,
+                                                 reasoningEfforts: [
+                                                    NewTabPageDataModel.AIModelReasoningEffort(id: "low", name: "Reasoning", status: "available"),
+                                                    NewTabPageDataModel.AIModelReasoningEffort(id: "medium", name: "Extended Reasoning", status: "unavailable", upsell: "upgrade")
+                                                 ])
+            ])
+        ]
+        let expectation = expectation(description: "submitChatCalled")
+        var forwardedEffort: String?
+        (actionHandler as? MockNewTabPageOmnibarActionsHandler)?.submitChatHandler = { _, _, _, _, _, _, reasoningEffort, _, _ in
+            forwardedEffort = reasoningEffort
+            expectation.fulfill()
+        }
+
+        let action = NewTabPageDataModel.SubmitChatAction(chat: "Hi", target: .sameTab, modelId: "reasoning-model", images: nil, mode: nil, toolChoice: nil, reasoningEffort: "medium", pageContext: nil, files: nil)
+        try await messageHelper.handleMessageExpectingNilResponse(named: .submitChat, parameters: action)
+        await fulfillment(of: [expectation], timeout: 1)
+
+        XCTAssertNil(forwardedEffort)
+    }
+
     @MainActor
     func testWhenSubmitChatAndReasoningEffortDisabledThenItIsDropped() async throws {
         configProvider.isReasoningEffortEnabled = false
@@ -333,7 +391,7 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
             NewTabPageDataModel.AIModelSection(header: nil, items: [
                 NewTabPageDataModel.AIModelItem(id: "reasoning-model", name: "Reasoning", shortName: "R",
                                                  isEnabled: true, supportsImageUpload: false,
-                                                 supportedReasoningEffort: ["low"])
+                                                 reasoningEfforts: availableEfforts(["low"]))
             ])
         ]
         let expectation = expectation(description: "submitChatCalled")
@@ -635,6 +693,30 @@ final class NewTabPageOmnibarClientTests: XCTestCase {
         XCTAssertEqual(config.enableVoiceChatAccess, false)
     }
 
+    // MARK: - subscription dialogs
+
+    @MainActor
+    func testShowSubscriptionUpsellPresentsUpsellDialog() async throws {
+        try await messageHelper.handleMessageExpectingNilResponse(named: .showSubscriptionUpsell)
+
+        XCTAssertEqual(subscriptionDialogPresenter.upsellDialogShownCount, 1)
+        XCTAssertEqual(subscriptionDialogPresenter.upgradeDialogShownCount, 0)
+    }
+
+    @MainActor
+    func testShowSubscriptionUpgradePresentsUpgradeDialog() async throws {
+        try await messageHelper.handleMessageExpectingNilResponse(named: .showSubscriptionUpgrade)
+
+        XCTAssertEqual(subscriptionDialogPresenter.upgradeDialogShownCount, 1)
+        XCTAssertEqual(subscriptionDialogPresenter.upsellDialogShownCount, 0)
+    }
+
+    // MARK: - Helpers
+
+    private func availableEfforts(_ ids: [String]) -> [NewTabPageDataModel.AIModelReasoningEffort] {
+        ids.map { NewTabPageDataModel.AIModelReasoningEffort(id: $0, name: $0, status: "available") }
+    }
+
 }
 
 @MainActor
@@ -643,6 +725,20 @@ private final class StubNewTabPageOmnibarModelsProvider: NewTabPageOmnibarModels
 
     func fetchAIModelSections() async -> [NewTabPageDataModel.AIModelSection] {
         lastFetchedSections ?? []
+    }
+}
+
+@MainActor
+private final class MockNewTabPageOmnibarSubscriptionDialogPresenter: NewTabPageOmnibarSubscriptionDialogPresenting {
+    var upsellDialogShownCount = 0
+    var upgradeDialogShownCount = 0
+
+    func showSubscriptionUpsellDialog() {
+        upsellDialogShownCount += 1
+    }
+
+    func showSubscriptionUpgradeDialog() {
+        upgradeDialogShownCount += 1
     }
 }
 

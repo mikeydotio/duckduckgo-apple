@@ -47,35 +47,75 @@ final class NewTabPageOmnibarModelsProvider: NewTabPageOmnibarModelsProviding {
             let models = response.models.map { AIChatModel(remoteModel: $0, userTier: userTier) }
             let hasActiveSubscription = userTier != .free
 
-            let sections = AIChatModelSectionBuilder.buildSections(
-                models: models,
+            // Split off models the user's tier can't reach so they can still be shown, disabled,
+            // with an upsell affordance — `buildSections` below would otherwise drop them entirely
+            // for subscribed users (e.g. a Pro-only model for a Plus subscriber).
+            let (accessible, gated) = AIChatModelSectionBuilder.buildGatedSections(models: models)
+
+            var result = AIChatModelSectionBuilder.buildSections(
+                models: accessible,
                 hasActiveSubscription: hasActiveSubscription,
                 advancedSectionHeader: UserText.aiChatModelPickerAdvancedSectionHeader,
                 basicSectionHeader: UserText.aiChatModelPickerBasicModelsSectionHeader
-            )
-
-            let result = sections.map { section in
+            ).map { section in
                 NewTabPageDataModel.AIModelSection(
                     header: section.header,
-                    items: section.items.map { model in
-                        NewTabPageDataModel.AIModelItem(
-                            id: model.id,
-                            name: model.name,
-                            shortName: model.shortName,
-                            isEnabled: model.entityHasAccess,
-                            supportsImageUpload: model.supportsImageUpload,
-                            supportedTools: model.supportedTools.map(\.rawValue),
-                            supportedReasoningEffort: model.supportedReasoningEffort.map(\.rawValue),
-                            supportedFileTypes: model.supportedFileTypes
-                        )
-                    }
+                    items: section.items.map { mapToItem($0, requiredTier: nil, userTier: userTier) }
                 )
             }
+
+            if !gated.isEmpty {
+                result.append(
+                    NewTabPageDataModel.AIModelSection(
+                        header: UserText.aiChatModelPickerAdvancedSectionHeader,
+                        items: gated.map { mapToItem($0.model, requiredTier: $0.requiredTier, userTier: userTier) }
+                    )
+                )
+            }
+
             lastFetchedSections = result
             return result
         } catch {
             Logger.aiChat.error("Failed to fetch models for NTP: \(error.localizedDescription)")
             return []
+        }
+    }
+
+    private func mapToItem(_ model: AIChatModel, requiredTier: AIChatModelPublicAccessTier?, userTier: AIChatUserTier) -> NewTabPageDataModel.AIModelItem {
+        NewTabPageDataModel.AIModelItem(
+            id: model.id,
+            name: model.name,
+            shortName: model.shortName,
+            isEnabled: model.entityHasAccess,
+            supportsImageUpload: model.supportsImageUpload,
+            supportedTools: model.supportedTools.map(\.rawValue),
+            accessTier: model.accessTier,
+            reasoningEfforts: reasoningEfforts(for: model, userTier: userTier),
+            supportedFileTypes: model.supportedFileTypes,
+            upsell: requiredTier.flatMap { upsellString(for: userTier.upgradeFlow(for: $0)) }
+        )
+    }
+
+    private func reasoningEfforts(for model: AIChatModel, userTier: AIChatUserTier) -> [NewTabPageDataModel.AIModelReasoningEffort] {
+        model.availableReasoningModes.compactMap { mode in
+            guard let effort = model.reasoningEffort(for: mode) else { return nil }
+            let isAvailable = model.accessibleReasoningModes.contains(mode)
+            let upsell = isAvailable ? nil : model.lowestPublicAccessTier(for: effort).flatMap { upsellString(for: userTier.upgradeFlow(for: $0)) }
+            return NewTabPageDataModel.AIModelReasoningEffort(
+                id: effort.rawValue,
+                name: effort.title,
+                description: effort.subtitle,
+                status: isAvailable ? "available" : "unavailable",
+                upsell: upsell
+            )
+        }
+    }
+
+    private func upsellString(for flow: DuckAISubscriptionUpsellingFlow) -> String? {
+        switch flow {
+        case .purchase: return "subscribe"
+        case .upgrade: return "upgrade"
+        case .none: return nil
         }
     }
 

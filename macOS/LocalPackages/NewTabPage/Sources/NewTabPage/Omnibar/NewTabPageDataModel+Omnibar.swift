@@ -26,6 +26,28 @@ public extension NewTabPageDataModel {
         case search, ai
     }
 
+    /// A reasoning-effort option for a reasoning-capable model, with localized display copy and
+    /// per-effort availability. Replaces the old flat `supportedReasoningEffort: [String]` list.
+    struct AIModelReasoningEffort: Codable, Equatable {
+        /// Stable server key for this option (e.g. `"none"`, `"low"`, `"medium"`); round-tripped
+        /// on `omnibar_submitChat`'s `reasoningEffort` param.
+        public let id: String
+        public let name: String
+        public let description: String?
+        /// `"available"` or `"unavailable"`.
+        public let status: String
+        /// `"subscribe"` or `"upgrade"`. Present only when `status == "unavailable"`.
+        public let upsell: String?
+
+        public init(id: String, name: String, description: String? = nil, status: String, upsell: String? = nil) {
+            self.id = id
+            self.name = name
+            self.description = description
+            self.status = status
+            self.upsell = upsell
+        }
+    }
+
     struct AIModelItem: Codable, Equatable {
         public let id: String
         public let name: String
@@ -33,24 +55,32 @@ public extension NewTabPageDataModel {
         public let isEnabled: Bool
         public let supportsImageUpload: Bool
         public let supportedTools: [String]
-        /// Reasoning effort levels the model supports (e.g. `["none", "low", "medium", "high"]`).
-        /// Empty when the model does not support reasoning, or when the reasoning-effort
-        /// feature is disabled natively — in which case the picker is hidden web-side.
-        public let supportedReasoningEffort: [String]
+        /// Access tiers that grant this model (e.g. `["plus"]`, `["pro"]`, `["internal"]`). Set on
+        /// every item, not just gated ones — the web derives its own tier badge from this.
+        public let accessTier: [String]
+        /// Reasoning-effort options this model supports, each with localized copy and availability.
+        /// Empty when the model does not support reasoning, or when the reasoning-effort feature is
+        /// disabled natively — in which case the picker is hidden web-side.
+        public let reasoningEfforts: [AIModelReasoningEffort]
         /// MIME types the model accepts as file attachments (e.g. `["application/pdf"]`). Empty
         /// when the model accepts no files; the web uses this to drive the file picker's `accept`
         /// and to clear attached files whose MIME isn't supported when the user switches models.
         public let supportedFileTypes: [String]
+        /// For a gated (`isEnabled == false`) model, which upsell flow it leads to: `"subscribe"` or
+        /// `"upgrade"`. `nil` for enabled models.
+        public let upsell: String?
 
-        public init(id: String, name: String, shortName: String, isEnabled: Bool, supportsImageUpload: Bool, supportedTools: [String] = [], supportedReasoningEffort: [String] = [], supportedFileTypes: [String] = []) {
+        public init(id: String, name: String, shortName: String, isEnabled: Bool, supportsImageUpload: Bool, supportedTools: [String] = [], accessTier: [String] = [], reasoningEfforts: [AIModelReasoningEffort] = [], supportedFileTypes: [String] = [], upsell: String? = nil) {
             self.id = id
             self.name = name
             self.shortName = shortName
             self.isEnabled = isEnabled
             self.supportsImageUpload = supportsImageUpload
             self.supportedTools = supportedTools
-            self.supportedReasoningEffort = supportedReasoningEffort
+            self.accessTier = accessTier
+            self.reasoningEfforts = reasoningEfforts
             self.supportedFileTypes = supportedFileTypes
+            self.upsell = upsell
         }
     }
 

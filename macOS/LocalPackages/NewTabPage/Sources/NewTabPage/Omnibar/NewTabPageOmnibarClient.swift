@@ -36,6 +36,8 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
         case viewAllAIChats = "omnibar_viewAllAIChats"
         case getOpenTabs = "omnibar_getOpenTabs"
         case getTabContent = "omnibar_getTabContent"
+        case showSubscriptionUpsell = "omnibar_showSubscriptionUpsell"
+        case showSubscriptionUpgrade = "omnibar_showSubscriptionUpgrade"
     }
 
     private let configProvider: NewTabPageOmnibarConfigProviding
@@ -44,6 +46,7 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
     private let modelsProvider: NewTabPageOmnibarModelsProviding?
     private let actionHandler: NewTabPageOmnibarActionsHandling
     private let tabsProvider: NewTabPageOmnibarTabsProviding
+    private let subscriptionDialogPresenter: NewTabPageOmnibarSubscriptionDialogPresenting?
     private var cancellables = Set<AnyCancellable>()
 
     public init(configProvider: NewTabPageOmnibarConfigProviding,
@@ -51,13 +54,15 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
                 aiChatsProvider: NewTabPageOmnibarAiChatsProviding,
                 modelsProvider: NewTabPageOmnibarModelsProviding? = nil,
                 actionHandler: NewTabPageOmnibarActionsHandling,
-                tabsProvider: NewTabPageOmnibarTabsProviding) {
+                tabsProvider: NewTabPageOmnibarTabsProviding,
+                subscriptionDialogPresenter: NewTabPageOmnibarSubscriptionDialogPresenting? = nil) {
         self.configProvider = configProvider
         self.suggestionsProvider = suggestionsProvider
         self.aiChatsProvider = aiChatsProvider
         self.modelsProvider = modelsProvider
         self.actionHandler = actionHandler
         self.tabsProvider = tabsProvider
+        self.subscriptionDialogPresenter = subscriptionDialogPresenter
         super.init()
 
         Publishers.MergeMany(
@@ -100,7 +105,9 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
             MessageName.openAiChat.rawValue: { [weak self] in try await self?.openAiChat(params: $0, original: $1) },
             MessageName.viewAllAIChats.rawValue: { [weak self] in try await self?.viewAllAIChats(params: $0, original: $1) },
             MessageName.getOpenTabs.rawValue: { [weak self] in try await self?.getOpenTabs(params: $0, original: $1) },
-            MessageName.getTabContent.rawValue: { [weak self] in try await self?.getTabContent(params: $0, original: $1) }
+            MessageName.getTabContent.rawValue: { [weak self] in try await self?.getTabContent(params: $0, original: $1) },
+            MessageName.showSubscriptionUpsell.rawValue: { [weak self] in try await self?.showSubscriptionUpsell(params: $0, original: $1) },
+            MessageName.showSubscriptionUpgrade.rawValue: { [weak self] in try await self?.showSubscriptionUpgrade(params: $0, original: $1) }
         ])
     }
 
@@ -166,11 +173,13 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
             return
         }
         let selectedModelId = configProvider.selectedModelId
-        let supportedForCurrentModel = modelsProvider?.lastFetchedSections?
+        let availableForCurrentModel = modelsProvider?.lastFetchedSections?
             .flatMap(\.items)
             .first(where: { $0.id == selectedModelId })?
-            .supportedReasoningEffort ?? []
-        guard supportedForCurrentModel.contains(incoming) else { return }
+            .reasoningEfforts
+            .filter { $0.status == "available" }
+            .map(\.id) ?? []
+        guard availableForCurrentModel.contains(incoming) else { return }
         configProvider.selectedReasoningEffort = incoming
     }
 
@@ -203,9 +212,9 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
         pushMessage(named: MessageName.onConfigUpdate.rawValue, params: config)
     }
 
-    /// Native is the single point of control for rollout: strip `supportedReasoningEffort` from
-    /// every item when the feature is disabled, so the web app never sees a non-empty list and
-    /// the picker stays hidden without any flag check on the web side.
+    /// Native is the single point of control for rollout: strip `reasoningEfforts` from every item
+    /// when the feature is disabled, so the web app never sees a non-empty list and the picker
+    /// stays hidden without any flag check on the web side.
     @MainActor
     private func sectionsForWeb(_ sections: [NewTabPageDataModel.AIModelSection]?) -> [NewTabPageDataModel.AIModelSection]? {
         guard let sections else { return nil }
@@ -221,8 +230,10 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
                         isEnabled: item.isEnabled,
                         supportsImageUpload: item.supportsImageUpload,
                         supportedTools: item.supportedTools,
-                        supportedReasoningEffort: [],
-                        supportedFileTypes: item.supportedFileTypes
+                        accessTier: item.accessTier,
+                        reasoningEfforts: [],
+                        supportedFileTypes: item.supportedFileTypes,
+                        upsell: item.upsell
                     )
                 }
             )
@@ -292,11 +303,13 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
         guard configProvider.isReasoningEffortEnabled else { return nil }
         guard let incoming = action.reasoningEffort else { return nil }
         let modelId = action.modelId ?? configProvider.selectedModelId
-        let supported = modelsProvider?.lastFetchedSections?
+        let available = modelsProvider?.lastFetchedSections?
             .flatMap(\.items)
             .first(where: { $0.id == modelId })?
-            .supportedReasoningEffort ?? []
-        return supported.contains(incoming) ? incoming : nil
+            .reasoningEfforts
+            .filter { $0.status == "available" }
+            .map(\.id) ?? []
+        return available.contains(incoming) ? incoming : nil
     }
 
     private func getAiChats(params: Any, original: WKScriptMessage) async throws -> Encodable? {
@@ -319,6 +332,18 @@ public final class NewTabPageOmnibarClient: NewTabPageUserScriptClient {
             return nil
         }
         await actionHandler.viewAllAiChats(target: action.target)
+        return nil
+    }
+
+    @MainActor
+    private func showSubscriptionUpsell(params: Any, original: WKScriptMessage) async throws -> Encodable? {
+        subscriptionDialogPresenter?.showSubscriptionUpsellDialog()
+        return nil
+    }
+
+    @MainActor
+    private func showSubscriptionUpgrade(params: Any, original: WKScriptMessage) async throws -> Encodable? {
+        subscriptionDialogPresenter?.showSubscriptionUpgradeDialog()
         return nil
     }
 
