@@ -230,7 +230,8 @@ extension NewTabPageActionsManager {
                                     aiChatsProvider: aiChatsProvider,
                                     modelsProvider: NewTabPageOmnibarModelsProvider(),
                                     actionHandler: omnibarActionHandler,
-                                    tabsProvider: NewTabPageOmnibarTabsProvider(windowControllersManager: windowControllersManager)),
+                                    tabsProvider: NewTabPageOmnibarTabsProvider(windowControllersManager: windowControllersManager),
+                                    subscriptionDialogPresenter: NewTabPageOmnibarSubscriptionDialogPresenter(coordinator: Application.appDelegate.subscriptionNavigationCoordinator)),
             NewTabPageWinBackOfferClient(provider: winBackOfferBannerProvider)
         ])
     }
