@@ -97,4 +97,3 @@ extension UnifiedToggleInputModelMenu.Item {
         self.accessTier = accessTier
     }
 }
-
