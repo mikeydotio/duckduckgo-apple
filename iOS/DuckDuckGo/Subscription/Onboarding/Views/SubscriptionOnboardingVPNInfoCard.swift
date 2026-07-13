@@ -52,7 +52,7 @@ struct SubscriptionOnboardingVPNInfoCard: View {
                 icon: CardItemIcon(position: .leading, visual: .image(state.icon), size: .size24, spacing: 8),
                 overline: CardItemText(state.overline, font: .footnoteRegular),
                 title: CardItemText(ipAddress, font: .bodyRegular),
-                text: CardItemText(location, font: .footnoteRegular)),
+                text: CardItemText(location, font: .footnoteRegular, color: Color(designSystemColor: .textPrimary))),
             style: .borderless,
             contentInset: CardItemList.ContentInset(horizontal: 16, vertical: 14))
         .accessibilityElement(children: .combine)

@@ -1,5 +1,5 @@
 //
-//  FreeTrialCalendarCard.swift
+//  SubscriptionOnboardingFreeTrialCalendarCard.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -21,12 +21,12 @@ import SwiftUI
 import DesignResourcesKit
 import UIComponents
 
-/// Derives everything `FreeTrialCalendarCard` renders from the trial dates: the current trial day, the
+/// Derives everything `SubscriptionOnboardingFreeTrialCalendarCard` renders from the trial dates: the current trial day, the
 /// day-of-month labels for the calendar strip, the marker position, and the billing line. The strip is
 /// anchored at `freeTrialStartDate` and spans `trialLength` days, so the marker moves to "today" (day X) as
 /// the trial progresses rather than the strip rolling forward. `now` and `calendar` are injectable so the
 /// day math is deterministic in tests and previews.
-struct FreeTrialCalendarCardModel {
+struct SubscriptionOnboardingFreeTrialCalendarCardModel {
     let freeTrialStartDate: Date
     let billingStartDate: Date
     let trialLength: Int
@@ -87,11 +87,11 @@ struct FreeTrialCalendarCardModel {
 
 /// The "Day N of your free trial" card: a translucent light-blue box whose contents are centered — a heading
 /// that emphasises the current trial day, a billing line, and a calendar strip (a row of day-of-month labels
-/// over a capsule bar filled up to a marker on today). All values come from `FreeTrialCalendarCardModel`,
+/// over a capsule bar filled up to a marker on today). All values come from `SubscriptionOnboardingFreeTrialCalendarCardModel`,
 /// which derives them from the trial dates. Built on `UIComponents.BubbleView` so the translucent fill can
 /// override the standard card surface.
-struct FreeTrialCalendarCard: View {
-    private let model: FreeTrialCalendarCardModel
+struct SubscriptionOnboardingFreeTrialCalendarCard: View {
+    private let model: SubscriptionOnboardingFreeTrialCalendarCardModel
 
     private enum Metrics {
         static let cornerRadius: CGFloat = 26
@@ -106,7 +106,7 @@ struct FreeTrialCalendarCard: View {
         static let markerSize: CGFloat = 32
     }
 
-    init(model: FreeTrialCalendarCardModel) {
+    init(model: SubscriptionOnboardingFreeTrialCalendarCardModel) {
         self.model = model
     }
 
@@ -218,17 +218,17 @@ private extension Color {
 
 #if DEBUG
 
-private extension FreeTrialCalendarCardModel {
+private extension SubscriptionOnboardingFreeTrialCalendarCardModel {
     /// Builds a deterministic preview model `dayOffset` days into a `length`-day trial that starts on the
     /// given day of May 2026, so previews render a stable "Day N" regardless of the current date.
-    static func preview(startMonth: Int = 5, startDay: Int, dayOffset: Int, length: Int = 7) -> FreeTrialCalendarCardModel {
+    static func preview(startMonth: Int = 5, startDay: Int, dayOffset: Int, length: Int = 7) -> SubscriptionOnboardingFreeTrialCalendarCardModel {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
         calendar.locale = Locale(identifier: "en_US")
         let start = calendar.date(from: DateComponents(year: 2026, month: startMonth, day: startDay)) ?? Date()
         let now = calendar.date(byAdding: .day, value: dayOffset, to: start) ?? start
         let billing = calendar.date(byAdding: .day, value: length, to: start) ?? start
-        return FreeTrialCalendarCardModel(freeTrialStartDate: start,
+        return SubscriptionOnboardingFreeTrialCalendarCardModel(freeTrialStartDate: start,
                                           billingStartDate: billing,
                                           trialLength: length,
                                           now: now,
@@ -236,18 +236,18 @@ private extension FreeTrialCalendarCardModel {
     }
 }
 
-private struct FreeTrialCalendarCardPreview: View {
+private struct SubscriptionOnboardingFreeTrialCalendarCardPreview: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Purchase date May 7 — first day.
-                FreeTrialCalendarCard(model: .preview(startDay: 7, dayOffset: 0))
+                SubscriptionOnboardingFreeTrialCalendarCard(model: .preview(startDay: 7, dayOffset: 0))
                 // Purchase date May 7 — midway through the trial.
-                FreeTrialCalendarCard(model: .preview(startDay: 7, dayOffset: 3))
+                SubscriptionOnboardingFreeTrialCalendarCard(model: .preview(startDay: 7, dayOffset: 3))
                 // Purchase date May 31 — the strip crosses the month boundary into June.
-                FreeTrialCalendarCard(model: .preview(startDay: 31, dayOffset: 2))
+                SubscriptionOnboardingFreeTrialCalendarCard(model: .preview(startDay: 31, dayOffset: 2))
                 // Purchase date May 7 — last day.
-                FreeTrialCalendarCard(model: .preview(startDay: 7, dayOffset: 6))
+                SubscriptionOnboardingFreeTrialCalendarCard(model: .preview(startDay: 7, dayOffset: 6))
             }
             .padding()
         }
@@ -257,20 +257,20 @@ private struct FreeTrialCalendarCardPreview: View {
 
 #Preview("Light") {
     RebrandedPreview {
-        FreeTrialCalendarCardPreview()
+        SubscriptionOnboardingFreeTrialCalendarCardPreview()
     }
 }
 
 #Preview("Dark") {
     RebrandedPreview {
-        FreeTrialCalendarCardPreview()
+        SubscriptionOnboardingFreeTrialCalendarCardPreview()
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Large Text") {
     RebrandedPreview {
-        FreeTrialCalendarCardPreview()
+        SubscriptionOnboardingFreeTrialCalendarCardPreview()
     }
     .dynamicTypeSize(.accessibility5)
 }

@@ -1,5 +1,5 @@
 //
-//  FreeTrialCalendarCardModelTests.swift
+//  SubscriptionOnboardingFreeTrialCalendarCardModelTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -20,7 +20,7 @@
 import XCTest
 @testable import DuckDuckGo
 
-final class FreeTrialCalendarCardModelTests: XCTestCase {
+final class SubscriptionOnboardingFreeTrialCalendarCardModelTests: XCTestCase {
 
     private var calendar: Calendar!
 
@@ -40,8 +40,8 @@ final class FreeTrialCalendarCardModelTests: XCTestCase {
         calendar.date(from: DateComponents(year: year, month: month, day: day))!
     }
 
-    private func makeModel(start: Date, now: Date, billing: Date? = nil, length: Int = 7) -> FreeTrialCalendarCardModel {
-        FreeTrialCalendarCardModel(freeTrialStartDate: start,
+    private func makeModel(start: Date, now: Date, billing: Date? = nil, length: Int = 7) -> SubscriptionOnboardingFreeTrialCalendarCardModel {
+        SubscriptionOnboardingFreeTrialCalendarCardModel(freeTrialStartDate: start,
                                    billingStartDate: billing ?? start,
                                    trialLength: length,
                                    now: now,

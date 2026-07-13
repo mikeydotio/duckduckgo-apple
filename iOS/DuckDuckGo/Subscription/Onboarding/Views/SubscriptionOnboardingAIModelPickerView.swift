@@ -1,5 +1,5 @@
 //
-//  DuckAIModelPickerView.swift
+//  SubscriptionOnboardingAIModelPickerView.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -27,7 +27,7 @@ import AIChat
 /// a backend call (`AIChatModelsService`) performed at the screen layer, so this view takes the resolved
 /// `AIChatModel`s, the selected id, and a selection callback — it holds no state and makes no network
 /// calls itself.
-struct DuckAIModelPickerView: View {
+struct SubscriptionOnboardingAIModelPickerView: View {
     private enum Metrics {
         static let iconTextSpacing: CGFloat = 16
         static let contentInsetHorizontal: CGFloat = 16
@@ -53,7 +53,7 @@ struct DuckAIModelPickerView: View {
     }
 }
 
-private extension DuckAIModelPickerView {
+private extension SubscriptionOnboardingAIModelPickerView {
     var cardItems: [CardItem] {
         models.map { model in
             let nameParts = model.name.split(separator: " ", maxSplits: 1)
@@ -91,12 +91,12 @@ private extension DuckAIModelPickerView {
 
 #if DEBUG
 
-private struct DuckAIModelPickerPreviewHost: View {
+private struct SubscriptionOnboardingAIModelPickerPreviewHost: View {
     @State private var selection: String? = "claude-sonnet"
 
     var body: some View {
         ScrollView {
-            DuckAIModelPickerView(models: previewModels, selectedModelID: selection) { selection = $0 }
+            SubscriptionOnboardingAIModelPickerView(models: previewModels, selectedModelID: selection) { selection = $0 }
                 .padding()
         }
         .background(Color(designSystemColor: .background).ignoresSafeArea())
@@ -112,20 +112,20 @@ private let previewModels: [AIChatModel] = [
 
 #Preview("Light") {
     RebrandedPreview {
-        DuckAIModelPickerPreviewHost()
+        SubscriptionOnboardingAIModelPickerPreviewHost()
     }
 }
 
 #Preview("Dark") {
     RebrandedPreview {
-        DuckAIModelPickerPreviewHost()
+        SubscriptionOnboardingAIModelPickerPreviewHost()
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Large Text") {
     RebrandedPreview {
-        DuckAIModelPickerPreviewHost()
+        SubscriptionOnboardingAIModelPickerPreviewHost()
     }
     .dynamicTypeSize(.accessibility5)
 }

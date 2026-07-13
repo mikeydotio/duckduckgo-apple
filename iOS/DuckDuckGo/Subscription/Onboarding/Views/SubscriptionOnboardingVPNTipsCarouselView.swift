@@ -1,5 +1,5 @@
 //
-//  VPNTipsCarouselView.swift
+//  SubscriptionOnboardingVPNTipsCarouselView.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -25,7 +25,7 @@ import UIComponents
 /// headline + body. Cards are a fixed width with the neighbours peeking at the edges; the row scrolls
 /// freely (no paging/snapping — iOS 17's snap APIs are unavailable at the 15.0 floor). Each card reuses
 /// `SubscriptionOnboardingCard` + `CardItem` for its surface and content.
-struct VPNTipsCarouselView: View {
+struct SubscriptionOnboardingVPNTipsCarouselView: View {
     private enum Metrics {
         static let cardWidth: CGFloat = 217
         static let horizontalPadding: CGFloat = 28
@@ -77,7 +77,7 @@ struct VPNTipsCarouselView: View {
     }
 }
 
-private extension VPNTipsCarouselView {
+private extension SubscriptionOnboardingVPNTipsCarouselView {
     func card(for tip: Tip) -> some View {
         SubscriptionOnboardingCard(
             CardItem(
@@ -93,11 +93,11 @@ private extension VPNTipsCarouselView {
 
 #if DEBUG
 
-private struct VPNTipsCarouselViewPreview: View {
+private struct SubscriptionOnboardingVPNTipsCarouselViewPreview: View {
     var body: some View {
         VStack {
             Spacer()
-            VPNTipsCarouselView()
+            SubscriptionOnboardingVPNTipsCarouselView()
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -107,20 +107,20 @@ private struct VPNTipsCarouselViewPreview: View {
 
 #Preview("Light") {
     RebrandedPreview {
-        VPNTipsCarouselViewPreview()
+        SubscriptionOnboardingVPNTipsCarouselViewPreview()
     }
 }
 
 #Preview("Dark") {
     RebrandedPreview {
-        VPNTipsCarouselViewPreview()
+        SubscriptionOnboardingVPNTipsCarouselViewPreview()
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Large Text") {
     RebrandedPreview {
-        VPNTipsCarouselViewPreview()
+        SubscriptionOnboardingVPNTipsCarouselViewPreview()
     }
     .dynamicTypeSize(.accessibility5)
 }

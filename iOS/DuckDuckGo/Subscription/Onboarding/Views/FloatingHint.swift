@@ -24,6 +24,7 @@ struct FloatingHint: View {
 
     let text: String
     @State private var isBouncing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(text: String) {
         self.text = text
@@ -44,10 +45,11 @@ struct FloatingHint: View {
             .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
             .offset(y: isBouncing ? -8 : 0)
             .animation(
-                .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
+                reduceMotion ? nil : .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
                 value: isBouncing
             )
             .onAppear {
+                guard !reduceMotion else { return }
                 isBouncing = true
             }
     }
