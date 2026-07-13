@@ -25,6 +25,15 @@ import PrivacyConfigTestsUtils
 
 final class AppURLsTests: XCTestCase {
 
+    func testSearchTokenURLRespectsDebugOverride() {
+        URL.searchTokenURLOverride = nil
+        let base = URL.searchToken.absoluteString // env/default, whatever it currently is
+        URL.searchTokenURLOverride = "https://example.test/tok"
+        XCTAssertEqual(URL.searchToken.absoluteString, "https://example.test/tok")
+        URL.searchTokenURLOverride = nil
+        XCTAssertEqual(URL.searchToken.absoluteString, base)
+    }
+
     var mockStatisticsStore: MockStatisticsStore!
     var appConfig: PrivacyConfiguration!
 
