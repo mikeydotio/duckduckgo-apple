@@ -146,13 +146,18 @@ struct VPNUpsellPopoverView: View {
 
     private var actionButtons: some View {
         HStack(spacing: Constants.actionButtonHorizontalSpacing) {
-            Button {
+            let dismissButton = Button {
                 viewModel.dismiss()
             } label: {
                 Text(UserText.vpnUpsellPopoverNoThanksButton)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .buttonStyle(StandardButtonStyle(pillShape: true))
+
+            if viewModel.isAppRebranded {
+                dismissButton.buttonStyle(DismissActionButtonStyle(pillShape: true, showsBorder: false, stateColors: .themedDismissButton))
+            } else {
+                dismissButton.buttonStyle(StandardButtonStyle(pillShape: true))
+            }
 
             Button {
                 viewModel.showSubscriptionLandingPage()
@@ -160,7 +165,10 @@ struct VPNUpsellPopoverView: View {
                 Text(viewModel.featureSet.mainCTATitle.capitalized)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .buttonStyle(DefaultActionButtonStyle(enabled: true, shouldBeFixedVertical: false, pillShape: true))
+            .buttonStyle(DefaultActionButtonStyle(enabled: true,
+                                                  shouldBeFixedVertical: false,
+                                                  stateColors: viewModel.isAppRebranded ? .themedActionButton : .legacyActionButton,
+                                                  pillShape: true))
         }
         .frame(height: Constants.actionButtonHeight)
     }
