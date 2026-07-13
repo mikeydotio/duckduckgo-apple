@@ -62,4 +62,12 @@ extension UserText {
     public static let subscriptionOnboardingFreeTrialTitlePrefix = NotLocalizedString("subscription.onboarding.free-trial.title.prefix", value: "Day ", comment: "Free-trial calendar card title text before the current trial-day number, e.g. the 'Day ' in 'Day 3 of your free trial'")
     public static let subscriptionOnboardingFreeTrialTitleSuffix = NotLocalizedString("subscription.onboarding.free-trial.title.suffix", value: " of your free trial", comment: "Free-trial calendar card title text after the current trial-day number, e.g. the ' of your free trial' in 'Day 3 of your free trial'")
     public static let subscriptionOnboardingFreeTrialBillingFormat = NotLocalizedString("subscription.onboarding.free-trial.billing", value: "Billing starts on %@", comment: "Free-trial calendar card billing line. %@ is the formatted billing start date, e.g. 'May 7, 2026'")
+
+    public static let subscriptionOnboardingSetupCardTitleFormat = NotLocalizedString("subscription.onboarding.setup-card.title", value: "Setup %ld%% complete", comment: "Subscription Settings re-entry card title. %ld is the completion percentage; %% renders a literal percent sign")
+    public static let subscriptionOnboardingSetupCardBody = NotLocalizedString("subscription.onboarding.setup-card.body", value: "Some premium protections aren't active yet", comment: "Subscription Settings re-entry card body line prompting the customer to finish setup")
+    public static let subscriptionOnboardingSetupCardButton = NotLocalizedString("subscription.onboarding.setup-card.button", value: "Continue Setup", comment: "Subscription Settings re-entry card primary CTA that resumes the onboarding flow")
+
+    public static let subscriptionOnboardingVPNInfoVisibleIP = NotLocalizedString("subscription.onboarding.vpn-info.visible-ip", value: "Your IP Address is Visible", comment: "VPN info card overline shown while the VPN is off and the customer's real IP address is visible")
+    public static let subscriptionOnboardingVPNInfoHiddenIP = NotLocalizedString("subscription.onboarding.vpn-info.hidden-ip", value: "Your IP Address is Hidden", comment: "VPN info card overline shown once the VPN is on and the customer's real IP address is hidden")
+    public static let subscriptionOnboardingVPNInfoNewIP = NotLocalizedString("subscription.onboarding.vpn-info.new-ip", value: "Your New IP Address", comment: "VPN info card overline for the new (VPN egress) IP address shown once the VPN is on")
 }

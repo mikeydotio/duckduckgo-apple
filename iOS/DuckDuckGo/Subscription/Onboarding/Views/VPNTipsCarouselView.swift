@@ -28,10 +28,11 @@ import UIComponents
 struct VPNTipsCarouselView: View {
     private enum Metrics {
         static let cardWidth: CGFloat = 217
-        static let cardHeight: CGFloat = 346
-        static let cardPadding: CGFloat = 24
+        static let horizontalPadding: CGFloat = 28
+        static let verticalPadding: CGFloat = 32
         static let cardSpacing: CGFloat = 16
         static let horizontalInset: CGFloat = 24
+        static let iconSpacing: CGFloat = 4
     }
 
     var body: some View {
@@ -45,30 +46,15 @@ struct VPNTipsCarouselView: View {
         }
     }
 
-    private func card(for tip: Tip) -> some View {
-        SubscriptionOnboardingCard(
-            CardItem(
-                icon: CardItemIcon(position: .topLeading, visual: .image(tip.icon), size: .size56),
-                title: tip.title,
-                titleFont: .headline,
-                text: tip.bodyText,
-                textFont: .subheadRegular,
-                minHeight: Metrics.cardHeight - Metrics.cardPadding * 2),
-            style: .borderless,
-            padding: Metrics.cardPadding)
-        .frame(width: Metrics.cardWidth)
-        .accessibilityElement(children: .combine)
-    }
-
-    private enum Tip: CaseIterable {
+    fileprivate enum Tip: CaseIterable {
         case noCaps
         case speed
         case blocked
 
         var icon: Image {
             switch self {
-            case .noCaps: Image("Keyhole-56")
-            case .speed: Image("Response-Good-56")
+            case .noCaps: Image(.keyhole56)
+            case .speed: Image(.responseGood56)
             case .blocked: Image("VPN-56")
             }
         }
@@ -88,6 +74,20 @@ struct VPNTipsCarouselView: View {
             case .blocked: UserText.subscriptionOnboardingVPNTipBlockedBody
             }
         }
+    }
+}
+
+private extension VPNTipsCarouselView {
+    func card(for tip: Tip) -> some View {
+        SubscriptionOnboardingCard(
+            CardItem(
+                icon: CardItemIcon(position: .topLeading, visual: .image(tip.icon), size: .size56, spacing: Metrics.iconSpacing),
+                title: CardItemText(tip.title, font: .headline),
+                text: CardItemText(tip.bodyText, font: .subheadRegular)),
+            style: .borderless,
+            contentInset: .init(horizontal: Metrics.horizontalPadding, vertical: Metrics.verticalPadding))
+        .frame(width: Metrics.cardWidth)
+        .accessibilityElement(children: .combine)
     }
 }
 

@@ -25,9 +25,6 @@ struct FloatingHint: View {
     let text: String
     @State private var isBouncing = false
 
-    // Arrowhead V occupies the top 14pt; remaining 31pt is the visible shaft below it.
-    private let arrowHeight: CGFloat = 45
-
     init(text: String) {
         self.text = text
     }
@@ -38,9 +35,9 @@ struct FloatingHint: View {
             .foregroundColor(.white)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .padding(.top, arrowHeight)
+            .padding(.top, FloatingHintShape.arrowHeight)
             .background(
-                FloatingHintShape(arrowHeight: arrowHeight)
+                FloatingHintShape()
                     .fill(accentColor)
             )
             .shadow(color: Color.black.opacity(0.04), radius: 20, x: 0, y: 4)
@@ -60,78 +57,72 @@ struct FloatingHint: View {
     }
 }
 
-/// Single continuous outline that combines an up-arrow at top with a pill at bottom — the
-/// silhouette matches Figma's `Union` SVG export. Rendering as one shape (vs. composing
-/// separate views) ensures the arrow tail visually merges into the pill body without seams.
+/// Single continuous outline combining an up-arrow at top with a pill at bottom. The arrow is
+/// transcribed verbatim from Figma's `Union` SVG export so its silhouette matches the design
+/// exactly; the pill is drawn procedurally so it grows with the label. Both are added to one
+/// `Path` and filled together, so the shaft merges into the pill body without a seam.
 private struct FloatingHintShape: Shape {
 
-    /// Vertical space reserved for the arrow above the pill (in rect coordinates).
-    let arrowHeight: CGFloat
-
-    /// Thickness of the vertical arrow shaft.
-    var shaftThickness: CGFloat = 6
+    /// Vertical space the arrow occupies above the pill (apex to shaft base), in rect coordinates.
+    /// Transcribed from Figma's `Union` export.
+    static let arrowHeight: CGFloat = 33
 
     /// Corner radius of the pill body. Auto-clamped so it never exceeds half the pill height.
     var pillCornerRadius: CGFloat = 16
 
     func path(in rect: CGRect) -> Path {
         Path { path in
-            let midX = rect.midX
-            let halfShaft = shaftThickness / 2
-
-            let apexY = rect.minY
-            let pillTopY = rect.minY + arrowHeight
-            let pillBottomY = rect.maxY
-
-            let pillLeft = rect.minX
-            let pillRight = rect.maxX
-
-            let pillHeight = pillBottomY - pillTopY
+            let pillTopY = rect.minY + Self.arrowHeight
+            let pillHeight = rect.maxY - pillTopY
             let radius = min(pillCornerRadius, pillHeight / 2)
 
-            // ----- Pill -----
+            // ----- Pill (resizable: tracks the label's width and height) -----
             path.addRoundedRect(
-                in: CGRect(x: pillLeft,
-                           y: pillTopY,
-                           width: pillRight - pillLeft,
-                           height: pillHeight),
+                in: CGRect(x: rect.minX, y: pillTopY, width: rect.width, height: pillHeight),
                 cornerSize: CGSize(width: radius, height: radius)
             )
 
-            // ----- Shaft (vertical rectangle from apex down to pill top) -----
-            path.addRoundedRect(
-                in: CGRect(x: midX - halfShaft,
-                           y: apexY,
-                           width: shaftThickness,
-                           height: pillTopY - apexY),
-                cornerSize: CGSize(width: 2, height: 2)
+            // ----- Arrow (fixed size, centered on top; verbatim from Union.svg) -----
+            path.addPath(
+                Self.arrowPath,
+                transform: CGAffineTransform(translationX: rect.midX - Self.arrowCenterX, y: rect.minY)
             )
-
-            // ----- Arrowhead arms (two chunky diagonal rectangles forming a V) -----
-            // Each arm is a vertical rectangle that we rotate ±45° around the apex.
-            // Arm length here is the centerline length along its long axis.
-            let armLength: CGFloat = 26
-            let armRect = CGRect(
-                x: -shaftThickness / 2,
-                y: 0,
-                width: shaftThickness,
-                height: armLength
-            )
-            let armCorner = CGSize(width: 2, height: 2)
-
-            // LEFT arm: pivot at apex (nudged slightly right to tighten the V tip),
-            // rotate so the arm extends down-and-to-the-left.
-            let leftTransform = CGAffineTransform(translationX: midX + 1.5, y: apexY)
-                .rotated(by: .pi / 4)
-            path.addPath(Path(roundedRect: armRect, cornerSize: armCorner), transform: leftTransform)
-
-            // RIGHT arm: pivot at apex (nudged slightly left to tighten the V tip),
-            // rotate so the arm extends down-and-to-the-right.
-            let rightTransform = CGAffineTransform(translationX: midX - 1.5, y: apexY)
-                .rotated(by: -.pi / 4)
-            path.addPath(Path(roundedRect: armRect, cornerSize: armCorner), transform: rightTransform)
         }
     }
+
+    /// Horizontal center of the arrow in the source SVG's coordinate space (viewBox width 126).
+    private static let arrowCenterX: CGFloat = 63
+
+    /// Arrow subpath from `Union.svg` (viewBox 126x84), transcribed command-for-command. Its apex
+    /// sits at y~0 and its shaft base at y~33, so it slots directly above the pill top.
+    private static let arrowPath: Path = {
+        var path = Path()
+        path.move(to: CGPoint(x: 61.5859, y: 0.585786))
+        path.addCurve(to: CGPoint(x: 64.4141, y: 0.585786),
+                      control1: CGPoint(x: 62.367, y: -0.195262),
+                      control2: CGPoint(x: 63.633, y: -0.195262))
+        path.addLine(to: CGPoint(x: 77.1426, y: 13.3133))
+        path.addCurve(to: CGPoint(x: 77.1426, y: 16.1424),
+                      control1: CGPoint(x: 77.9235, y: 14.0944),
+                      control2: CGPoint(x: 77.9236, y: 15.3614))
+        path.addCurve(to: CGPoint(x: 74.3135, y: 16.1424),
+                      control1: CGPoint(x: 76.3616, y: 16.9234),
+                      control2: CGPoint(x: 75.0945, y: 16.9234))
+        path.addLine(to: CGPoint(x: 65, y: 6.82797))
+        path.addLine(to: CGPoint(x: 65, y: 32.9998))
+        path.addLine(to: CGPoint(x: 61, y: 32.9998))
+        path.addLine(to: CGPoint(x: 61, y: 6.82797))
+        path.addLine(to: CGPoint(x: 51.6865, y: 16.1424))
+        path.addCurve(to: CGPoint(x: 48.8574, y: 16.1424),
+                      control1: CGPoint(x: 50.9055, y: 16.9234),
+                      control2: CGPoint(x: 49.6384, y: 16.9234))
+        path.addCurve(to: CGPoint(x: 48.8574, y: 13.3133),
+                      control1: CGPoint(x: 48.0764, y: 15.3614),
+                      control2: CGPoint(x: 48.0765, y: 14.0944))
+        path.addLine(to: CGPoint(x: 61.5859, y: 0.585786))
+        path.closeSubpath()
+        return path
+    }()
 }
 
 #Preview("Tap allow") {

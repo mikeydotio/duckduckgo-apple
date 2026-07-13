@@ -21,6 +21,8 @@
 import SwiftUI
 import DesignResourcesKit
 
+// MARK: - Configuration
+
 /// The design-system size for a ``CardItem``'s icon.
 public enum CardItemIconSize {
     case size24
@@ -53,7 +55,7 @@ public struct CardItemIcon {
     public let position: Position
     public let visual: CardVisual
     public let size: CardItemIconSize
-    /// The gap between a leading icon and the text block. Ignored for `.topLeading`.
+    /// The gap between the icon and the text block — horizontal for a leading icon, vertical for `.topLeading`.
     public let spacing: CGFloat
 
     public init(position: Position, visual: CardVisual, size: CardItemIconSize = .size24, spacing: CGFloat = 8) {
@@ -89,72 +91,91 @@ public extension CardItemFont {
     static let footnoteSemibold = CardItemFont(Font(UIFont.daxFootnoteSemibold()))
 }
 
-/// An inline detail shown after the title — for example a variant name or a tier marker. Each
-/// carries its own ``CardItemFont`` and renders in the secondary text colour.
-public struct CardItemTitleDetail {
+/// A run of text paired with its design-system font — used for a card item's overline, its title, its
+/// inline title details (e.g. a variant name or tier marker), and its body text. The card decides each
+/// slot's colour unless `color` is set, which overrides it.
+public struct CardItemText {
     public let text: String
     public let font: CardItemFont
+    public let color: Color?
 
-    public init(text: String, font: CardItemFont) {
+    public init(_ text: String, font: CardItemFont, color: Color? = nil) {
         self.text = text
         self.font = font
+        self.color = color
     }
 }
 
+// MARK: - Main View
+
 /// A single card content row: an optional icon, an optional overline, a title with optional inline
-/// details (e.g. a variant name or tier marker), optional body text, and an optional trailing accessory.
+/// details (e.g. a variant name or a tier marker), optional body text, and an optional trailing accessory.
 /// An optional `accessibilityValue` merges the row into a single VoiceOver element carrying that value
 /// (e.g. a "Selected" or "Completed" state).
 ///
 /// `CardItem` lays out content only; the surrounding surface is supplied by the card shell that holds it
 public struct CardItem: View {
+    private enum Metrics {
+        static let overlineTitleSpacing: CGFloat = 0
+        static let titleDetailSpacing: CGFloat = 6
+        static let trailingAccessorySpacing: CGFloat = 8
+    }
+
     private let icon: CardItemIcon?
-    private let overline: String?
-    private let title: String?
-    private let titleFont: CardItemFont
-    private let titleDetails: [CardItemTitleDetail]
-    private let text: String?
-    private let textFont: CardItemFont
+    private let overline: CardItemText?
+    private let title: CardItemText?
+    private let titleDetails: [CardItemText]
+    private let text: CardItemText?
     /// The vertical gap between the title and the body text.
     private let titleTextSpacing: CGFloat
+    /// The leading inset applied to the whole text block (overline, title and body) — e.g. to nudge the
+    /// text in from a top-leading icon's edge.
+    private let textBlockLeadingInset: CGFloat
     private let trailing: CardItemAccessory?
     private let accessibilityValue: String?
-    private let minHeight: CGFloat?
 
     public init(icon: CardItemIcon? = nil,
-                overline: String? = nil,
-                title: String? = nil,
-                titleFont: CardItemFont = .headline,
-                titleDetails: [CardItemTitleDetail] = [],
-                text: String? = nil,
-                textFont: CardItemFont = .footnoteRegular,
-                titleTextSpacing: CGFloat = 4,
+                overline: CardItemText? = nil,
+                title: CardItemText? = nil,
+                titleDetails: [CardItemText] = [],
+                text: CardItemText? = nil,
+                titleTextSpacing: CGFloat = 0,
+                textBlockLeadingInset: CGFloat = 0,
                 trailing: CardItemAccessory? = nil,
-                accessibilityValue: String? = nil,
-                minHeight: CGFloat? = nil) {
+                accessibilityValue: String? = nil) {
         self.icon = icon
         self.overline = overline
         self.title = title
-        self.titleFont = titleFont
         self.titleDetails = titleDetails
         self.text = text
-        self.textFont = textFont
         self.titleTextSpacing = titleTextSpacing
+        self.textBlockLeadingInset = textBlockLeadingInset
         self.trailing = trailing
         self.accessibilityValue = accessibilityValue
-        self.minHeight = minHeight
     }
 
-    @ViewBuilder
     public var body: some View {
-        if let minHeight {
-            rowContent.frame(minHeight: minHeight, alignment: .topLeading)
-        } else {
-            rowContent
-        }
+        rowContent
     }
+}
 
-    private var rowContent: some View {
+// MARK: - Geometry
+
+public extension CardItem {
+    /// The width of the leading icon column — the icon's size plus its trailing gap — for a `.leading` or
+    /// `.leadingColumn` icon, i.e. the horizontal offset at which the text block begins. `0` when the text
+    /// starts at the leading edge: no icon, or a `.topLeading` icon that sits above the text. A row list can
+    /// use this to start a divider under the text without the caller hand-transcribing the sum.
+    var leadingIconColumnWidth: CGFloat {
+        guard let icon, icon.position == .leading || icon.position == .leadingColumn else { return 0 }
+        return icon.size.points + icon.spacing
+    }
+}
+
+// MARK: - Layout
+
+private extension CardItem {
+    var rowContent: some View {
         HStack(alignment: .center, spacing: 0) {
             HStack(alignment: rowAlignment, spacing: 0) {
                 if let icon, icon.position == .leading || icon.position == .leadingColumn {
@@ -162,71 +183,72 @@ public struct CardItem: View {
                         .padding(.trailing, icon.spacing)
                 }
 
-                textBlock
+                VStack(alignment: .leading, spacing: icon?.spacing ?? 0) {
+                    if let icon, icon.position == .topLeading {
+                        iconVisual(icon)
+                    }
+                    textBlock
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if let trailing {
                 trailingIcon(for: trailing)
-                    .padding(.leading, 8)
+                    .padding(.leading, Metrics.trailingAccessorySpacing)
                     .accessibilityHidden(true)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .combinedAccessibilityValue(accessibilityValue)
     }
 
-    private var rowAlignment: VerticalAlignment {
+    var rowAlignment: VerticalAlignment {
         icon?.position == .leading ? .top : .center
     }
 
-    @ViewBuilder
-    private var textBlock: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let icon, icon.position == .topLeading {
-                iconVisual(icon)
-            }
+    var textBlock: some View {
+        VStack(alignment: .leading, spacing: Metrics.overlineTitleSpacing) {
             if let overline {
-                Text(verbatim: overline)
-                    .daxFootnoteRegular()
-                    .foregroundColor(Color(designSystemColor: .textSecondary))
+                Text(verbatim: overline.text)
+                    .font(overline.font.font)
+                    .foregroundColor(overline.color ?? Color(designSystemColor: .textPrimary))
             }
             VStack(alignment: .leading, spacing: titleTextSpacing) {
                 titleLine
                 if let text {
-                    Text(verbatim: text)
-                        .font(textFont.font)
-                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                    Text(verbatim: text.text)
+                        .font(text.font.font)
+                        .foregroundColor(text.color ?? Color(designSystemColor: .textSecondary))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
+        .padding(.leading, textBlockLeadingInset)
     }
 
     @ViewBuilder
-    private var titleLine: some View {
+    var titleLine: some View {
         if title != nil || !titleDetails.isEmpty {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: Metrics.titleDetailSpacing) {
                 if let title {
-                    Text(verbatim: title)
-                        .font(titleFont.font)
-                        .foregroundColor(Color(designSystemColor: .textPrimary))
+                    Text(verbatim: title.text)
+                        .font(title.font.font)
+                        .foregroundColor(title.color ?? Color(designSystemColor: .textPrimary))
                 }
                 ForEach(Array(titleDetails.enumerated()), id: \.offset) { _, detail in
                     Text(verbatim: detail.text)
                         .font(detail.font.font)
-                        .foregroundColor(Color(designSystemColor: .textSecondary))
+                        .foregroundColor(detail.color ?? Color(designSystemColor: .textSecondary))
                 }
             }
         }
     }
 
-    private func iconVisual(_ icon: CardItemIcon) -> some View {
+    func iconVisual(_ icon: CardItemIcon) -> some View {
         CardVisualView(visual: icon.visual, size: icon.size.points)
     }
 
     @ViewBuilder
-    private func trailingIcon(for accessory: CardItemAccessory) -> some View {
+    func trailingIcon(for accessory: CardItemAccessory) -> some View {
         switch accessory {
         case .chevron(let color):
             Image(systemName: "chevron.forward")
@@ -237,6 +259,8 @@ public struct CardItem: View {
         }
     }
 }
+
+// MARK: - Helpers
 
 private extension View {
     /// Merges the row into one accessibility element carrying `value` (e.g. "Selected", "Completed"),
@@ -252,6 +276,8 @@ private extension View {
     }
 }
 
+// MARK: - Previews
+
 #if DEBUG
 
 private struct CardItemPreviewSamples: View {
@@ -259,28 +285,24 @@ private struct CardItemPreviewSamples: View {
         VStack(spacing: 16) {
             CardItem(
                 icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "sparkles")), size: .size24),
-                title: "Claude",
-                titleFont: .bodyRegular,
-                titleDetails: [.init(text: "Sonnet 4.6", font: .bodyRegular), .init(text: "· PLUS", font: .footnoteRegular)],
-                text: "Uses limits faster",
+                title: CardItemText("Claude", font: .bodyRegular),
+                titleDetails: [CardItemText("Sonnet 4.6", font: .bodyRegular), CardItemText("· PLUS", font: .footnoteRegular)],
+                text: CardItemText("Uses limits faster", font: .footnoteRegular),
                 trailing: .checkmark(Color(designSystemColor: .accentPrimary)))
 
             CardItem(
-                icon: CardItemIcon(position: .topLeading, visual: .image(Image(systemName: "dollarsign.circle.fill")), size: .size56),
-                title: "Recover financial losses",
-                titleFont: .headline,
-                text: """
+                icon: CardItemIcon(position: .topLeading, visual: .image(Image(systemName: "dollarsign.circle.fill")), size: .size56, spacing: 4),
+                title: CardItemText("Recover financial losses", font: .headline),
+                text: CardItemText("""
                     We'll work with financial institutions to help reverse any fraudulent \
                     transactions, and we'll reimburse certain out-of-pocket expenses*** in the \
                     event that you become a victim of identity theft or fraud.
-                    """,
-                textFont: .subheadRegular)
+                    """, font: .subheadRegular))
 
             CardItem(
                 icon: CardItemIcon(position: .leading, visual: .image(Image(systemName: "lock.shield.fill")), size: .size24),
-                title: "VPN",
-                titleFont: .bodyRegular,
-                text: "Get an extra layer of online protection with the VPN built for speed and simplicity.",
+                title: CardItemText("VPN", font: .bodyRegular),
+                text: CardItemText("Get an extra layer of online protection with the VPN built for speed and simplicity.", font: .footnoteRegular),
                 trailing: .chevron(Color(designSystemColor: .iconsTertiary)))
         }
         .padding()
@@ -293,33 +315,32 @@ private struct CardItemSparseSamples: View {
             Group {
                 CardItem(
                     icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "lock.shield.fill"))),
-                    title: "DuckDuckGo VPN",
-                    titleFont: .bodyRegular)
+                    title: CardItemText("DuckDuckGo VPN", font: .bodyRegular))
 
-                CardItem(title: "Open settings", trailing: .chevron(Color(designSystemColor: .iconsTertiary)))
+                CardItem(title: CardItemText("Open settings", font: .headline), trailing: .chevron(Color(designSystemColor: .iconsTertiary)))
 
                 CardItem(
                     icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "person.fill"))),
-                    title: "Account",
-                    text: "Manage your account",
+                    title: CardItemText("Account", font: .headline),
+                    text: CardItemText("Manage your account", font: .footnoteRegular),
                     trailing: .chevron(Color(designSystemColor: .iconsTertiary)))
 
-                CardItem(title: "Advanced Models", titleDetails: [.init(text: "· PLUS", font: .footnoteRegular)])
+                CardItem(title: CardItemText("Advanced Models", font: .headline), titleDetails: [CardItemText("· PLUS", font: .footnoteRegular)])
 
-                CardItem(title: "Title only")
+                CardItem(title: CardItemText("Title only", font: .headline))
             }
             .background(Color(designSystemColor: .surface))
 
             Group {
-                CardItem(text: "Body text only — no icon, no title.")
+                CardItem(text: CardItemText("Body text only — no icon, no title.", font: .footnoteRegular))
 
                 CardItem(icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "star.fill"))))
 
                 CardItem(
-                    icon: CardItemIcon(position: .topLeading, visual: .image(Image(systemName: "star.fill"))),
-                    title: "Top-leading icon, no body")
+                    icon: CardItemIcon(position: .topLeading, visual: .image(Image(systemName: "star.fill")), spacing: 4),
+                    title: CardItemText("Top-leading icon, no body", font: .headline))
 
-                CardItem(overline: "OVERLINE", title: "Overline + title")
+                CardItem(overline: CardItemText("OVERLINE", font: .footnoteRegular), title: CardItemText("Overline + title", font: .headline))
 
                 CardItem()
             }

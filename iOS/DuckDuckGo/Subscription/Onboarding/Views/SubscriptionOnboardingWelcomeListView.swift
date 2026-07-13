@@ -36,6 +36,12 @@ enum SubscriptionOnboardingWelcomeFeature: CaseIterable {
 /// Removal — one selectable row each, with a trailing chevron affordance. `onSelect` receives the tapped
 /// feature; the caller maps it to the matching "Learn More" info sheet.
 struct SubscriptionOnboardingWelcomeListView: View {
+    private enum Metrics {
+        static let iconTextSpacing: CGFloat = 8
+        static let contentInsetHorizontal: CGFloat = 16
+        static let contentInsetVertical: CGFloat = 14
+    }
+
     private let features = SubscriptionOnboardingWelcomeFeature.allCases
     private let onSelect: (SubscriptionOnboardingWelcomeFeature) -> Void
 
@@ -47,27 +53,29 @@ struct SubscriptionOnboardingWelcomeListView: View {
         SubscriptionOnboardingCard(
             features.map { Self.row(for: $0) },
             style: .borderless,
+            padding: 0,
+            contentInset: .init(horizontal: Metrics.contentInsetHorizontal, vertical: Metrics.contentInsetVertical),
             onSelect: { onSelect(features[$0]) })
     }
+}
 
-    private static func row(for feature: SubscriptionOnboardingWelcomeFeature) -> CardItem {
+private extension SubscriptionOnboardingWelcomeListView {
+    static func row(for feature: SubscriptionOnboardingWelcomeFeature) -> CardItem {
         CardItem(
-            icon: CardItemIcon(position: .leading, visual: .image(Image(uiImage: feature.icon))),
-            title: feature.title,
-            titleFont: .bodyRegular,
-            text: feature.bodyText,
-            textFont: .footnoteRegular,
+            icon: CardItemIcon(position: .leading, visual: feature.visual, spacing: Metrics.iconTextSpacing),
+            title: CardItemText(feature.title, font: .bodyRegular),
+            text: CardItemText(feature.bodyText, font: .footnoteRegular),
             trailing: .chevron(Color(designSystemColor: .iconsTertiary)))
     }
 }
 
 private extension SubscriptionOnboardingWelcomeFeature {
-    var icon: DesignSystemImage {
+    var visual: CardVisual {
         switch self {
-        case .vpn: DesignSystemImages.Color.Size24.vpn
-        case .idtr: DesignSystemImages.Color.Size24.identityTheftRestoration
-        case .duckAI: DesignSystemImages.Color.Size24.aiGeneral
-        case .pir: DesignSystemImages.Color.Size24.identityBlockedPIR
+        case .vpn: .image(Image(uiImage: DesignSystemImages.Color.Size24.vpn))
+        case .idtr: .image(Image(uiImage: DesignSystemImages.Color.Size24.identityTheftRestoration))
+        case .duckAI: .image(Image(uiImage: DesignSystemImages.Color.Size24.aiGeneral))
+        case .pir: .image(Image(.identityBlockedPIRColor24))
         }
     }
 

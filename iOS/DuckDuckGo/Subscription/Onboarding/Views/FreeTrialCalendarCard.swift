@@ -19,7 +19,6 @@
 
 import SwiftUI
 import DesignResourcesKit
-import DesignResourcesKitIcons
 import UIComponents
 
 /// Derives everything `FreeTrialCalendarCard` renders from the trial dates: the current trial day, the
@@ -32,63 +31,57 @@ struct FreeTrialCalendarCardModel {
     let billingStartDate: Date
     let trialLength: Int
 
-    private let now: Date
-    private let calendar: Calendar
+    /// The 1-based day of the trial that today falls on, clamped to `1...trialLength`.
+    let currentTrialDay: Int
+
+    /// `currentTrialDay` rendered in the calendar's locale, so its numerals match the localized billing date.
+    let currentTrialDayText: String
+
+    /// Zero-based index of the marker within the strip.
+    let markerIndex: Int
+
+    /// Day-of-month numbers for each day of the trial window, anchored at the start date.
+    let dayLabels: [String]
+
+    /// The billing line, e.g. "Billing starts on May 7, 2026", formatted from `billingStartDate` using the
+    /// injected calendar's time zone and locale.
+    let billingText: String
 
     init(freeTrialStartDate: Date,
          billingStartDate: Date,
          trialLength: Int = 7,
          now: Date = Date(),
          calendar: Calendar = .current) {
+        let trialLength = max(1, trialLength)
         self.freeTrialStartDate = freeTrialStartDate
         self.billingStartDate = billingStartDate
-        self.trialLength = max(1, trialLength)
-        self.now = now
-        self.calendar = calendar
-    }
+        self.trialLength = trialLength
 
-    /// The 1-based day of the trial that today falls on, clamped to `1...trialLength`.
-    var currentTrialDay: Int {
         let start = calendar.startOfDay(for: freeTrialStartDate)
         let today = calendar.startOfDay(for: now)
         let elapsedDays = calendar.dateComponents([.day], from: start, to: today).day ?? 0
-        return min(max(elapsedDays + 1, 1), trialLength)
-    }
+        let currentTrialDay = min(max(elapsedDays + 1, 1), trialLength)
+        self.currentTrialDay = currentTrialDay
+        self.markerIndex = currentTrialDay - 1
 
-    /// `currentTrialDay` rendered in the calendar's locale, so its numerals match the localized billing date.
-    var currentTrialDayText: String {
-        localizedNumeral(currentTrialDay)
-    }
-
-    /// Zero-based index of the marker within the strip.
-    var markerIndex: Int {
-        currentTrialDay - 1
-    }
-
-    /// Day-of-month numbers for each day of the trial window, anchored at the start date.
-    var dayLabels: [String] {
-        let start = calendar.startOfDay(for: freeTrialStartDate)
-        return (0..<trialLength).map { dayOffset in
+        let locale = calendar.locale ?? .current
+        func localizedNumeral(_ value: Int) -> String {
+            value.formatted(.number.grouping(.never).locale(locale))
+        }
+        self.currentTrialDayText = localizedNumeral(currentTrialDay)
+        self.dayLabels = (0..<trialLength).map { dayOffset in
             let date = calendar.date(byAdding: .day, value: dayOffset, to: start) ?? start
             return localizedNumeral(calendar.component(.day, from: date))
         }
-    }
 
-    /// The billing line, e.g. "Billing starts on May 7, 2026", formatted from `billingStartDate` using the
-    /// injected calendar's time zone and locale.
-    var billingText: String {
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.timeZone = calendar.timeZone
-        formatter.locale = calendar.locale ?? .current
+        formatter.locale = locale
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        return String(format: UserText.subscriptionOnboardingFreeTrialBillingFormat,
-                      formatter.string(from: billingStartDate))
-    }
-
-    private func localizedNumeral(_ value: Int) -> String {
-        value.formatted(.number.grouping(.never).locale(calendar.locale ?? .current))
+        self.billingText = String(format: UserText.subscriptionOnboardingFreeTrialBillingFormat,
+                                  formatter.string(from: billingStartDate))
     }
 }
 
@@ -204,7 +197,7 @@ struct FreeTrialCalendarCard: View {
     }
 
     private var marker: some View {
-        Image(uiImage: DesignSystemImages.Color.Size24.subscription)
+        Image(.subscription56)
             .resizable()
             .frame(width: Metrics.markerSize, height: Metrics.markerSize)
     }

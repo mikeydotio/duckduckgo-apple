@@ -21,6 +21,8 @@ import SwiftUI
 import DesignResourcesKit
 import UIComponents
 
+// MARK: - Card Shell
+
 /// The rounded card shell for the post-subscription onboarding flow: a design-system surface with an
 /// optional `header`, its main `items` content, and an optional `footer`, stacked vertically. When a
 /// header is present a full-width divider separates it from the content below. `bordered` adds a
@@ -36,20 +38,18 @@ struct SubscriptionOnboardingCard<Header: View, Items: View, Footer: View>: View
         case borderless
     }
 
-    private let cornerRadius: CGFloat
+    private let cornerRadius: CGFloat = 26
     private let style: Style
     private let padding: CGFloat
     private let header: () -> Header
     private let items: () -> Items
     private let footer: () -> Footer
 
-    init(cornerRadius: CGFloat = 26,
-         style: Style = .bordered,
+    init(style: Style = .bordered,
          padding: CGFloat = 16,
          @ViewBuilder header: @escaping () -> Header,
          @ViewBuilder items: @escaping () -> Items,
          @ViewBuilder footer: @escaping () -> Footer) {
-        self.cornerRadius = cornerRadius
         self.style = style
         self.padding = padding
         self.header = header
@@ -57,12 +57,8 @@ struct SubscriptionOnboardingCard<Header: View, Items: View, Footer: View>: View
         self.footer = footer
     }
 
-    private var showsHeaderDivider: Bool {
-        Header.self != EmptyView.self
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
             header()
             if showsHeaderDivider {
                 fullWidthDivider
@@ -72,33 +68,36 @@ struct SubscriptionOnboardingCard<Header: View, Items: View, Footer: View>: View
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(designSystemColor: .surfaceCanvas))
+        .background(Color(designSystemColor: .surfaceSecondary))
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay {
             if style == .bordered {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color(designSystemColor: .lines), lineWidth: 1)
+                    .strokeBorder(Color(designSystemColor: .decorationTertiary), lineWidth: 1)
             }
         }
+    }
+}
+
+// MARK: - Card Shell Layout
+
+private extension SubscriptionOnboardingCard {
+    var showsHeaderDivider: Bool {
+        Header.self != EmptyView.self
     }
 
     /// A hairline that bleeds to the card's edges — the negative horizontal padding cancels the content
     /// padding, so it spans the full card width without widening the card.
-    private var fullWidthDivider: some View {
+    var fullWidthDivider: some View {
         Color(designSystemColor: .lines)
             .frame(height: 1)
             .padding(.horizontal, -padding)
     }
 }
 
-extension SubscriptionOnboardingCard where Header == EmptyView, Items == CardItem {
-    /// Creates a card holding a single `CardItem`, with no header or footer.
-    init(_ item: CardItem,
-         style: Style = .bordered,
-         padding: CGFloat = 16) where Footer == EmptyView {
-        self.init(style: style, padding: padding, header: { EmptyView() }, items: { item }, footer: { EmptyView() })
-    }
+// MARK: - Convenience Initializers
 
+extension SubscriptionOnboardingCard where Header == EmptyView, Items == CardItem {
     /// Creates a card holding a single `CardItem` with a footer below it.
     init(_ item: CardItem,
          style: Style = .bordered,
@@ -109,23 +108,38 @@ extension SubscriptionOnboardingCard where Header == EmptyView, Items == CardIte
 }
 
 extension SubscriptionOnboardingCard where Items == CardItemList, Footer == EmptyView {
+    /// Creates a card holding a single `CardItem`, with no header or footer. `contentInset` insets the
+    /// item's content — the padding becomes part of the card. Defaults to `16` on all sides.
+    init(_ item: CardItem,
+         style: Style = .bordered,
+         contentInset: CardItemList.ContentInset = CardItemList.ContentInset(horizontal: 16, vertical: 16)) where Header == EmptyView {
+        self.init([item], style: style, padding: 0, contentInset: contentInset)
+    }
+
     /// Creates a card from an array of `CardItem`s (laid out as rows with a hairline divider between
     /// adjacent rows) with a `header` above them, separated by a full-width divider.
     ///
     /// - Parameters:
     ///   - items: The rows, top to bottom.
-    ///   - dividerLeadingInset: How far each inter-row divider is inset from the leading edge so it
-    ///     clears the icon column and starts under the text. Defaults to `36` (a 24pt icon plus its
-    ///     12pt gutter); pass a larger value for larger icons, or `0` for a full-width divider.
+    ///   - dividerLeadingInset: How far each divider clears the icon column so it starts under the text.
+    ///     `contentInset.horizontal` is added automatically and mirrored on the trailing edge. Defaults to
+    ///     `nil`, deriving the inset from each row's leading icon column; pass an explicit value (`0` for a
+    ///     full-width divider) to override.
+    ///   - contentInset: Per-row padding that becomes part of each row's tap target (and sets the gap
+    ///     between rows via its vertical inset). Defaults to `.zero`.
+    ///   - isRowSelectable: Whether the row at a given index is tappable. Defaults to every row; combine
+    ///     with `onSelect` to make only some rows interactive.
     ///   - onSelect: Called with the tapped row's index; when `nil` the rows are not interactive.
     init(_ items: [CardItem],
          style: Style = .bordered,
          padding: CGFloat = 16,
-         dividerLeadingInset: CGFloat = 36,
+         dividerLeadingInset: CGFloat? = nil,
+         contentInset: CardItemList.ContentInset = .zero,
+         isRowSelectable: @escaping (Int) -> Bool = { _ in true },
          onSelect: ((Int) -> Void)? = nil,
          @ViewBuilder header: @escaping () -> Header) {
         self.init(style: style, padding: padding, header: header, items: {
-            CardItemList(items, dividerLeadingInset: dividerLeadingInset, onSelect: onSelect)
+            CardItemList(items, dividerLeadingInset: dividerLeadingInset, contentInset: contentInset, isRowSelectable: isRowSelectable, onSelect: onSelect)
         }, footer: { EmptyView() })
     }
 
@@ -134,75 +148,110 @@ extension SubscriptionOnboardingCard where Items == CardItemList, Footer == Empt
     ///
     /// - Parameters:
     ///   - items: The rows, top to bottom.
-    ///   - dividerLeadingInset: How far each divider is inset from the leading edge so it clears the
-    ///     icon column and starts under the text. Defaults to `36` (a 24pt icon plus its 12pt gutter);
-    ///     pass a larger value for larger icons, or `0` for a full-width divider.
+    ///   - dividerLeadingInset: How far each divider clears the icon column so it starts under the text.
+    ///     `contentInset.horizontal` is added automatically and mirrored on the trailing edge. Defaults to
+    ///     `nil`, deriving the inset from each row's leading icon column; pass an explicit value (`0` for a
+    ///     full-width divider) to override.
+    ///   - contentInset: Per-row padding that becomes part of each row's tap target (and sets the gap
+    ///     between rows via its vertical inset). Defaults to `.zero`.
+    ///   - isRowSelectable: Whether the row at a given index is tappable. Defaults to every row; combine
+    ///     with `onSelect` to make only some rows interactive.
     ///   - onSelect: Called with the tapped row's index; when `nil` the rows are not interactive.
     init(_ items: [CardItem],
          style: Style = .bordered,
          padding: CGFloat = 16,
-         dividerLeadingInset: CGFloat = 36,
+         dividerLeadingInset: CGFloat? = nil,
+         contentInset: CardItemList.ContentInset = .zero,
+         isRowSelectable: @escaping (Int) -> Bool = { _ in true },
          onSelect: ((Int) -> Void)? = nil) where Header == EmptyView {
         self.init(style: style, padding: padding, header: { EmptyView() }, items: {
-            CardItemList(items, dividerLeadingInset: dividerLeadingInset, onSelect: onSelect)
+            CardItemList(items, dividerLeadingInset: dividerLeadingInset, contentInset: contentInset, isRowSelectable: isRowSelectable, onSelect: onSelect)
         }, footer: { EmptyView() })
     }
 }
+
+// MARK: - Card Item List
 
 /// Lays out a `[CardItem]` as a vertical list with a hairline divider between adjacent rows (a single
 /// item, or none, draws no divider). Drop it into a `SubscriptionOnboardingCard`'s `items` slot — the
 /// list convenience initializers do this for you; use it directly for other layouts.
 struct CardItemList: View {
+    /// Per-row content padding — insets each row's content horizontally and vertically so the padding
+    /// becomes part of the row's tap target (and the vertical inset sets the gap between adjacent rows).
+    /// `.zero` (the default) leaves rows unpadded and flush.
+    struct ContentInset {
+        let horizontal: CGFloat
+        let vertical: CGFloat
+
+        static let zero = ContentInset(horizontal: 0, vertical: 0)
+    }
+
     private let items: [CardItem]
-    private let dividerLeadingInset: CGFloat
+    private let dividerLeadingInset: CGFloat?
+    private let contentInset: ContentInset
     private let isRowSelectable: (Int) -> Bool
     private let onSelect: ((Int) -> Void)?
 
     /// - Parameters:
     ///   - items: The rows, top to bottom.
-    ///   - dividerLeadingInset: How far each divider is inset from the leading edge so it clears the
-    ///     icon column and starts under the text. Defaults to `36` (a 24pt icon plus its 12pt gutter);
-    ///     pass a larger value for larger icons, or `0` for a full-width divider.
+    ///   - dividerLeadingInset: How far each divider clears the icon column so it starts under the text.
+    ///     `contentInset.horizontal` is added automatically and mirrored on the trailing edge. Defaults to
+    ///     `nil`, deriving the inset from each row's leading icon column; pass an explicit value (`0` for a
+    ///     full-width divider) to override.
+    ///   - contentInset: Per-row padding that becomes part of each row's tap target (and sets the gap
+    ///     between rows via its vertical inset). Defaults to `.zero`.
     ///   - isRowSelectable: Whether the row at a given index is tappable. Defaults to every row; combine
     ///     with `onSelect` to make only some rows interactive.
     ///   - onSelect: Called with the tapped row's index; when `nil` the rows are not interactive.
     init(_ items: [CardItem],
-         dividerLeadingInset: CGFloat = 36,
+         dividerLeadingInset: CGFloat? = nil,
+         contentInset: ContentInset = .zero,
          isRowSelectable: @escaping (Int) -> Bool = { _ in true },
          onSelect: ((Int) -> Void)? = nil) {
         self.items = items
         self.dividerLeadingInset = dividerLeadingInset
+        self.contentInset = contentInset
         self.isRowSelectable = isRowSelectable
         self.onSelect = onSelect
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(items.enumerated()), id: \.offset) { entry in
                 if entry.offset > 0 {
                     Color(designSystemColor: .lines)
                         .frame(height: 1)
-                        .padding(.leading, dividerLeadingInset)
+                        .padding(.leading, contentInset.horizontal + (dividerLeadingInset ?? entry.element.leadingIconColumnWidth))
+                        .padding(.trailing, contentInset.horizontal)
                 }
                 row(entry.element, at: entry.offset)
             }
         }
     }
+}
 
+// MARK: - Card Item List Layout
+
+private extension CardItemList {
     @ViewBuilder
-    private func row(_ item: CardItem, at index: Int) -> some View {
+    func row(_ item: CardItem, at index: Int) -> some View {
+        let padded = item
+            .padding(.horizontal, contentInset.horizontal)
+            .padding(.vertical, contentInset.vertical)
         if let onSelect, isRowSelectable(index) {
             Button {
                 onSelect(index)
             } label: {
-                item.contentShape(Rectangle())
+                padded.contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         } else {
-            item
+            padded
         }
     }
 }
+
+// MARK: - Previews
 
 #if DEBUG
 
@@ -216,34 +265,30 @@ private struct SubscriptionOnboardingCardPreviewSamples: View {
             VStack(spacing: 24) {
                 SubscriptionOnboardingCard(
                     CardItem(
-                        icon: CardItemIcon(position: .topLeading, visual: .image(Image(systemName: "creditcard.fill")), size: .size32),
-                        title: "Recover financial losses",
-                        titleFont: .footnoteSemibold,
-                        text: "We'll work with financial institutions to help reverse fraudulent transactions."),
+                        icon: CardItemIcon(position: .topLeading, visual: .image(Image(systemName: "creditcard.fill")), size: .size32, spacing: 4),
+                        title: CardItemText("Recover financial losses", font: .footnoteSemibold),
+                        text: CardItemText("We'll work with financial institutions to help reverse fraudulent transactions.", font: .footnoteRegular)),
                     style: .bordered)
 
                 SubscriptionOnboardingCard(
                     CardItem(
                         icon: CardItemIcon(position: .leading, visual: .image(Image(systemName: "checkmark.seal.fill")), size: .size40),
-                        title: "Setup 75% complete",
-                        titleFont: .headline,
-                        text: "Some premium protections aren't active yet",
-                        textFont: .bodyRegular),
+                        title: CardItemText("Setup 75% complete", font: .headline),
+                        text: CardItemText("Some premium protections aren't active yet", font: .bodyRegular)),
                     style: .borderless) {
                         Button("Continue Setup") {}
                             .buttonStyle(PrimaryButtonStyle())
+                            .padding(.top, 16)
                     }
 
                 SubscriptionOnboardingCard([
                     CardItem(
                         icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "checkmark.circle.fill")), size: .size24),
-                        title: "DuckDuckGo VPN",
-                        titleFont: .subheadRegular),
+                        title: CardItemText("DuckDuckGo VPN", font: .subheadRegular)),
                     CardItem(
                         icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "circle")), size: .size24),
-                        title: "Personal Information Removal",
-                        titleFont: .subheadRegular),
-                ], style: .borderless) {
+                        title: CardItemText("Personal Information Removal", font: .subheadRegular)),
+                ], style: .borderless, padding: 0, contentInset: .init(horizontal: 16, vertical: 12)) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(verbatim: "75%")
                             .font(.title.bold())
@@ -252,39 +297,38 @@ private struct SubscriptionOnboardingCardPreviewSamples: View {
                             .fill(Color(designSystemColor: .accentPrimary))
                             .frame(height: 8)
                     }
+                    .padding(16)
                 }
 
                 SubscriptionOnboardingCard([
                     CardItem(
                         icon: CardItemIcon(position: .leading, visual: .image(Image(systemName: "lock.shield.fill"))),
-                        title: "VPN",
-                        text: "An extra layer of online protection.",
+                        title: CardItemText("VPN", font: .headline),
+                        text: CardItemText("An extra layer of online protection.", font: .footnoteRegular),
                         trailing: .chevron(Color(designSystemColor: .iconsTertiary))),
                     CardItem(
                         icon: CardItemIcon(position: .leading, visual: .image(Image(systemName: "person.text.rectangle.fill"))),
-                        title: "Identity Theft Restoration",
-                        text: "If your identity is stolen, we'll help restore it.",
+                        title: CardItemText("Identity Theft Restoration", font: .headline),
+                        text: CardItemText("If your identity is stolen, we'll help restore it.", font: .footnoteRegular),
                         trailing: .chevron(Color(designSystemColor: .iconsTertiary))),
                     CardItem(
                         icon: CardItemIcon(position: .leading, visual: .image(Image(systemName: "sparkles"))),
-                        title: "Advanced AI Models",
-                        text: "Private conversations with 3rd-party AI chat models.",
+                        title: CardItemText("Advanced AI Models", font: .headline),
+                        text: CardItemText("Private conversations with 3rd-party AI chat models.", font: .footnoteRegular),
                         trailing: .chevron(Color(designSystemColor: .iconsTertiary))),
-                ], style: .borderless)
+                ], style: .borderless, padding: 0, contentInset: .init(horizontal: 16, vertical: 12))
 
                 SubscriptionOnboardingCard([
                     CardItem(
                         icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "brain")), size: .size24),
-                        title: "GPT-4o mini",
-                        titleFont: .bodyRegular,
+                        title: CardItemText("GPT-4o mini", font: .bodyRegular),
                         trailing: selection == 0 ? .checkmark(Color(designSystemColor: .accentPrimary)) : nil),
                     CardItem(
                         icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "cpu")), size: .size24),
-                        title: "Claude",
-                        titleFont: .bodyRegular,
-                        titleDetails: [.init(text: "· PLUS", font: .footnoteRegular)],
+                        title: CardItemText("Claude", font: .bodyRegular),
+                        titleDetails: [CardItemText("· PLUS", font: .footnoteRegular)],
                         trailing: selection == 1 ? .checkmark(Color(designSystemColor: .accentPrimary)) : nil),
-                ], style: .borderless, onSelect: { selection = $0 })
+                ], style: .borderless, padding: 0, contentInset: .init(horizontal: 16, vertical: 12), onSelect: { selection = $0 })
             }
             .padding()
         }

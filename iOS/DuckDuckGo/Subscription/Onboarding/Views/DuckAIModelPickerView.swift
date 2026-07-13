@@ -28,6 +28,12 @@ import AIChat
 /// `AIChatModel`s, the selected id, and a selection callback — it holds no state and makes no network
 /// calls itself.
 struct DuckAIModelPickerView: View {
+    private enum Metrics {
+        static let iconTextSpacing: CGFloat = 16
+        static let contentInsetHorizontal: CGFloat = 16
+        static let contentInsetVertical: CGFloat = 16
+    }
+
     private let models: [AIChatModel]
     private let selectedModelID: String?
     private let onSelect: (String) -> Void
@@ -39,38 +45,43 @@ struct DuckAIModelPickerView: View {
     }
 
     var body: some View {
-        SubscriptionOnboardingCard(cardItems, style: .borderless, padding: 14, onSelect: handleSelection)
+        SubscriptionOnboardingCard(cardItems,
+                                   style: .borderless,
+                                   padding: 0,
+                                   contentInset: .init(horizontal: Metrics.contentInsetHorizontal, vertical: Metrics.contentInsetVertical),
+                                   onSelect: handleSelection)
     }
+}
 
-    private var cardItems: [CardItem] {
+private extension DuckAIModelPickerView {
+    var cardItems: [CardItem] {
         models.map { model in
             let nameParts = model.name.split(separator: " ", maxSplits: 1)
             let title = nameParts.first.map(String.init) ?? model.name
 
-            var details: [CardItemTitleDetail] = []
+            var details: [CardItemText] = []
             if nameParts.count > 1 {
-                details.append(CardItemTitleDetail(text: String(nameParts[1]), font: .bodyRegular))
+                details.append(CardItemText(String(nameParts[1]), font: .bodyRegular))
             }
             if model.isAdvanced {
-                details.append(CardItemTitleDetail(text: UserText.subscriptionOnboardingDuckAIPlusMarker, font: .footnoteRegular))
+                details.append(CardItemText(UserText.subscriptionOnboardingDuckAIPlusMarker, font: .footnoteRegular))
             }
 
             return CardItem(
-                icon: CardItemIcon(position: .leadingColumn, visual: icon(for: model), size: .size24),
-                title: title,
-                titleFont: .bodyRegular,
+                icon: CardItemIcon(position: .leadingColumn, visual: icon(for: model), size: .size24, spacing: Metrics.iconTextSpacing),
+                title: CardItemText(title, font: .bodyRegular),
                 titleDetails: details,
                 trailing: model.id == selectedModelID ? .checkmark(Color(designSystemColor: .accentPrimary)) : nil,
                 accessibilityValue: model.id == selectedModelID ? UserText.subscriptionOnboardingDuckAIModelSelectedValue : nil)
         }
     }
 
-    private func handleSelection(_ index: Int) {
+    func handleSelection(_ index: Int) {
         guard models.indices.contains(index) else { return }
         onSelect(models[index].id)
     }
 
-    private func icon(for model: AIChatModel) -> CardVisual {
+    func icon(for model: AIChatModel) -> CardVisual {
         if let menuIcon = model.menuIcon {
             return .image(Image(uiImage: menuIcon))
         }

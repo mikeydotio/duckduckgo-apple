@@ -28,6 +28,15 @@ import UIComponents
 /// are supplied by the caller, so the same card renders the intermediate and complete states. Tapping an
 /// incomplete row (e.g. Personal Information Removal) is handled by the caller.
 struct SubscriptionOnboardingProgressView: View {
+    private enum Metrics {
+        static let headerPadding: CGFloat = 24
+        static let percentageFontSize: CGFloat = 34
+        static let progressBarTopSpacing: CGFloat = 8
+        static let contentInsetHorizontal: CGFloat = 24
+        static let contentInsetVertical: CGFloat = 16
+        static let iconTextSpacing: CGFloat = 14
+    }
+
     private let percentage: Int
     private let items: [SubscriptionOnboardingChecklistItem]
     private let completedItems: Set<SubscriptionOnboardingChecklistItem>
@@ -45,17 +54,27 @@ struct SubscriptionOnboardingProgressView: View {
 
     var body: some View {
         SubscriptionOnboardingCard(
+            checklistItems,
             style: .borderless,
-            padding: 24,
-            header: { progressHeader },
-            items: { checklist },
-            footer: { EmptyView() })
+            padding: 0,
+            contentInset: .init(horizontal: Metrics.contentInsetHorizontal, vertical: Metrics.contentInsetVertical),
+            isRowSelectable: { index in
+                guard items.indices.contains(index) else { return false }
+                return isSelectable(items[index])
+            },
+            onSelect: rowSelectionHandler,
+            header: { progressHeader })
+        .foregroundColor(Color(designSystemColor: .textPrimary))
     }
+}
 
-    private var progressHeader: some View {
+// MARK: - Layout
+
+private extension SubscriptionOnboardingProgressView {
+    var progressHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(verbatim: "\(clampedPercentage)%")
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: Metrics.percentageFontSize, weight: .bold))
                 .foregroundColor(Color(designSystemColor: .textPrimary))
 
             Text(verbatim: UserText.subscriptionOnboardingProgressCompletedLabel)
@@ -63,33 +82,29 @@ struct SubscriptionOnboardingProgressView: View {
                 .foregroundColor(Color(designSystemColor: .textSecondary))
 
             SubscriptionOnboardingProgressBar(percentage: clampedPercentage)
-                .padding(.top, 8)
+                .padding(.top, Metrics.progressBarTopSpacing)
         }
+        .padding(Metrics.headerPadding)
     }
 
-    private var clampedPercentage: Int {
+    var clampedPercentage: Int {
         min(max(percentage, 0), 100)
     }
 
-    private var checklist: some View {
-        CardItemList(checklistItems,
-                     isRowSelectable: { isSelectable(items[$0]) },
-                     onSelect: rowSelectionHandler)
-            .foregroundColor(Color(designSystemColor: .textPrimary))
-    }
-
     /// Translates a tapped row index into its checklist item for the caller; `nil` keeps the rows non-interactive.
-    private var rowSelectionHandler: ((Int) -> Void)? {
+    var rowSelectionHandler: ((Int) -> Void)? {
         guard let onSelect else { return nil }
-        return { index in onSelect(items[index]) }
+        return { index in
+            guard items.indices.contains(index) else { return }
+            onSelect(items[index])
+        }
     }
 
-    private var checklistItems: [CardItem] {
+    var checklistItems: [CardItem] {
         items.map { item in
             CardItem(
-                icon: CardItemIcon(position: .leadingColumn, visual: visual(for: item), size: .size24),
-                title: item.title,
-                titleFont: .bodyRegular,
+                icon: CardItemIcon(position: .leadingColumn, visual: visual(for: item), size: .size24, spacing: Metrics.iconTextSpacing),
+                title: CardItemText(item.title, font: .bodyRegular),
                 trailing: isSelectable(item) ? .chevron(Color(designSystemColor: .iconsTertiary)) : nil,
                 accessibilityValue: completedItems.contains(item)
                     ? UserText.subscriptionOnboardingProgressRowCompletedValue
@@ -99,7 +114,7 @@ struct SubscriptionOnboardingProgressView: View {
 
     /// Completed rows show the animated check; an incomplete PIR row shows the blocked-profile icon; any
     /// other incomplete row (VPN, IDTR, Duck.ai) shows the check-circle outline.
-    private func visual(for item: SubscriptionOnboardingChecklistItem) -> CardVisual {
+    func visual(for item: SubscriptionOnboardingChecklistItem) -> CardVisual {
         if completedItems.contains(item) {
             return .lottie(name: "check-color")
         }
@@ -110,26 +125,28 @@ struct SubscriptionOnboardingProgressView: View {
     }
 
     /// Only an incomplete PIR row is interactive — so only it is tappable and shows a chevron.
-    private func isSelectable(_ item: SubscriptionOnboardingChecklistItem) -> Bool {
+    func isSelectable(_ item: SubscriptionOnboardingChecklistItem) -> Bool {
         item == .pir && !completedItems.contains(item)
     }
 }
+
+// MARK: - Progress Bar
 
 /// The completion screen's progress bar: a solid green fill on a light-grey track. Kept separate from the
 /// shared gradient `ProgressBarView`, whose blue→purple→red gradient and border are hardcoded and not
 /// parameterizable.
 private struct SubscriptionOnboardingProgressBar: View {
+    private enum Metrics {
+        static let trackHeight: CGFloat = 12
+    }
+
     /// The completion percentage, expected in `0...100` (the caller clamps it).
     let percentage: Int
-
-    private var fraction: Double {
-        Double(percentage) / 100
-    }
 
     var body: some View {
         Capsule()
             .fill(Color(designSystemColor: .controlsFillPrimary))
-            .frame(height: 12)
+            .frame(height: Metrics.trackHeight)
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
                     Capsule()
@@ -140,6 +157,12 @@ private struct SubscriptionOnboardingProgressBar: View {
             .accessibilityElement()
             .accessibilityLabel(UserText.subscriptionOnboardingProgressAccessibilityLabel)
             .accessibilityValue(String(format: UserText.subscriptionOnboardingProgressAccessibilityValue, percentage))
+    }
+}
+
+private extension SubscriptionOnboardingProgressBar {
+    var fraction: Double {
+        Double(percentage) / 100
     }
 }
 
