@@ -156,6 +156,9 @@ final class AIChatHistoryViewController: UIViewController {
         guard tableView.tableHeaderView == nil else { return }
         let headerHeight = searchBar.intrinsicContentSize.height
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight))
+        // Clip so the fixed-height bar can be revealed by animating the header's height (see
+        // `presentSearch`); pinning the bar to the bottom makes it slide in rather than stretch.
+        headerView.clipsToBounds = true
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(searchBar)
         // The table imposes a transient width==0 on the header before it gets its real
@@ -165,8 +168,8 @@ final class AIChatHistoryViewController: UIViewController {
         NSLayoutConstraint.activate([
             searchBar.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 12),
             searchBarTrailing,
-            searchBar.topAnchor.constraint(equalTo: headerView.topAnchor),
-            searchBar.bottomAnchor.constraint(equalTo: headerView.bottomAnchor)
+            searchBar.bottomAnchor.constraint(equalTo: headerView.bottomAnchor),
+            searchBar.heightAnchor.constraint(equalToConstant: headerHeight)
         ])
         tableView.tableHeaderView = headerView
     }
@@ -209,7 +212,15 @@ final class AIChatHistoryViewController: UIViewController {
         }
         if isEditingChats {
             navigationItem.leftBarButtonItem = nil
-            navigationItem.rightBarButtonItems = [makeSelectionDoneItem()]
+            // A `.done`-style bar item renders as the prominent (accent) confirm button on iOS 26.
+            let done = UIBarButtonItem(
+                image: DesignSystemImages.Glyphs.Size24.check,
+                style: .done,
+                target: self,
+                action: #selector(selectionDoneTapped)
+            )
+            done.accessibilityLabel = UserText.navigationTitleDone
+            navigationItem.rightBarButtonItems = [done]
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
             // Rightmost item comes first: overflow menu, then search to its left.
@@ -284,9 +295,9 @@ final class AIChatHistoryViewController: UIViewController {
         }
         let spacer = UIBarButtonItem(systemItem: .flexibleSpace)
         if isEditingChats {
-            let delete = makeTitledToolbarItem(
-                image: DesignSystemImages.Glyphs.Size24.fireSolid,
+            let delete = makeToolbarItem(
                 title: UserText.actionDelete,
+                image: DesignSystemImages.Glyphs.Size24.fireSolid,
                 action: #selector(deleteSelectedTapped)
             )
             let download = UIBarButtonItem(
@@ -308,51 +319,30 @@ final class AIChatHistoryViewController: UIViewController {
                 action: #selector(fireButtonTapped)
             )
             fire.isEnabled = isFireAllEnabled
-            let newChat = makeTitledToolbarItem(
-                image: DesignSystemImages.Glyphs.Size24.compose,
+            let newChat = makeToolbarItem(
                 title: UserText.actionNewAIChat,
+                image: DesignSystemImages.Glyphs.Size24.compose,
                 action: #selector(composeButtonTapped)
             )
             toolbarItems = [fire, spacer, newChat]
         }
     }
 
-    /// A capsule toolbar button showing both an icon and a title (system bar items show only one).
-    /// Uses liquid glass on iOS 26 to match the surrounding toolbar; a gray capsule before that.
-    private func makeTitledToolbarItem(image: UIImage, title: String, action: Selector) -> UIBarButtonItem {
-        var config: UIButton.Configuration
-        if #available(iOS 26, *) {
-            config = traitCollection.userInterfaceStyle == .dark ? .clearGlass() : .glass()
-        } else {
-            config = .gray()
+    /// A toolbar button showing an icon and a title. On iOS 16+ it's a standard bar item, so the
+    /// system styles it natively (including iOS 26 liquid glass); a custom view would instead get
+    /// double-wrapped in glass. iOS 15 falls back to icon only.
+    private func makeToolbarItem(title: String, image: UIImage, action: Selector) -> UIBarButtonItem {
+        if #available(iOS 16.0, *) {
+            return UIBarButtonItem(title: title, image: image, target: self, action: action)
         }
-        config.image = image
-        config.title = title
-        config.imagePadding = 6
-        config.cornerStyle = .capsule
-        let button = UIButton(configuration: config)
-        button.tintColor = UIColor(designSystemColor: .icons)
-        button.addTarget(self, action: action, for: .touchUpInside)
-        return UIBarButtonItem(customView: button)
-    }
-
-    /// The design's Done control is a filled accent circle with a white check (a prominent action),
-    /// not the tinted glyph a plain `.done` bar item renders.
-    private func makeSelectionDoneItem() -> UIBarButtonItem {
-        var config = UIButton.Configuration.borderedProminent()
-        config.image = DesignSystemImages.Glyphs.Size24.check
-        config.cornerStyle = .capsule
-        config.baseBackgroundColor = UIColor(designSystemColor: .accentPrimary)
-        config.baseForegroundColor = .white
-        let button = UIButton(configuration: config)
-        button.addTarget(self, action: #selector(selectionDoneTapped), for: .touchUpInside)
-        button.accessibilityLabel = UserText.navigationTitleDone
-        return UIBarButtonItem(customView: button)
+        let item = UIBarButtonItem(image: image, style: .plain, target: self, action: action)
+        item.accessibilityLabel = title
+        return item
     }
 
     private func updateSelectionActionButtons() {
         let hasSelection = !(tableView.indexPathsForSelectedRows ?? []).isEmpty
-        (deleteSelectionItem?.customView as? UIButton)?.isEnabled = hasSelection
+        deleteSelectionItem?.isEnabled = hasSelection
         downloadSelectionItem?.isEnabled = hasSelection
     }
 
@@ -538,15 +528,36 @@ final class AIChatHistoryViewController: UIViewController {
         searchBar.setShowsCancelButton(true, animated: false)
         isSearchVisible = true
         searchBar.becomeFirstResponder()
+        animateSearchHeader(toVisible: true)
     }
 
     private func dismissSearch() {
         searchBar.text = nil
-        searchBar.setShowsCancelButton(false, animated: true)
+        searchBar.setShowsCancelButton(false, animated: false)
         searchBar.resignFirstResponder()
         viewModel.updateQuery("")
-        removeSearchHeader()
         isSearchVisible = false
+        animateSearchHeader(toVisible: false) { [weak self] in
+            self?.removeSearchHeader()
+        }
+    }
+
+    /// Animates the table header's height so the list slides down/up as search appears/disappears,
+    /// rather than jumping when the header is inserted or removed. Reassigning `tableHeaderView`
+    /// inside the animation block is what drives the table's content offset to follow.
+    private func animateSearchHeader(toVisible visible: Bool, completion: (() -> Void)? = nil) {
+        guard let header = tableView.tableHeaderView else { completion?(); return }
+        let fullHeight = searchBar.intrinsicContentSize.height
+        header.frame.size.height = visible ? 0 : fullHeight
+        tableView.tableHeaderView = header
+        tableView.layoutIfNeeded()
+        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+            header.frame.size.height = visible ? fullHeight : 0
+            self.tableView.tableHeaderView = header
+            self.tableView.layoutIfNeeded()
+        } completion: { _ in
+            completion?()
+        }
     }
 
 }
