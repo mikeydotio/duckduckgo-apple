@@ -156,9 +156,6 @@ final class AIChatHistoryViewController: UIViewController {
         guard tableView.tableHeaderView == nil else { return }
         let headerHeight = searchBar.intrinsicContentSize.height
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight))
-        // Clip so the fixed-height bar can be revealed by animating the header's height (see
-        // `presentSearch`); pinning the bar to the bottom makes it slide in rather than stretch.
-        headerView.clipsToBounds = true
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(searchBar)
         // The table imposes a transient width==0 on the header before it gets its real
@@ -168,8 +165,8 @@ final class AIChatHistoryViewController: UIViewController {
         NSLayoutConstraint.activate([
             searchBar.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 12),
             searchBarTrailing,
-            searchBar.bottomAnchor.constraint(equalTo: headerView.bottomAnchor),
-            searchBar.heightAnchor.constraint(equalToConstant: headerHeight)
+            searchBar.topAnchor.constraint(equalTo: headerView.topAnchor),
+            searchBar.bottomAnchor.constraint(equalTo: headerView.bottomAnchor)
         ])
         tableView.tableHeaderView = headerView
     }
@@ -535,8 +532,6 @@ final class AIChatHistoryViewController: UIViewController {
 
     private func presentSearch() {
         installSearchHeader()
-        // Show the cancel control up front so the field doesn't animate its width shrinking on first focus.
-        searchBar.setShowsCancelButton(true, animated: false)
         isSearchVisible = true
         searchBar.becomeFirstResponder()
         animateSearchHeader(toVisible: true)
@@ -544,7 +539,6 @@ final class AIChatHistoryViewController: UIViewController {
 
     private func dismissSearch() {
         searchBar.text = nil
-        searchBar.setShowsCancelButton(false, animated: false)
         searchBar.resignFirstResponder()
         viewModel.updateQuery("")
         isSearchVisible = false
