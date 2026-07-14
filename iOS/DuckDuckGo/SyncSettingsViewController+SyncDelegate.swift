@@ -613,6 +613,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
             qrCodeString: stringForQRCode,
             source: CodeCollectionSource(syncSetupSource: source))
         model.delegate = self
+        scanCodeViewModel = model
 
         let rootView = useSimplifiedLayoutV2
             ? AnyView(ScanQRCodeViewV2(model: model))
@@ -689,7 +690,11 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
         let isConfirmed = await presentPairingV2ConfirmationAlert(message: message)
         if !isConfirmed {
             sendSyncConfirmationDeniedSetupEndedAbandonedPixel(setupRole: setupRole)
-            dismissPairingV2UIAfterDeniedConfirmation()
+            if useSimplifiedLayoutV2, case .receiver(.exchange, _) = setupRole {
+                viewModel.connectingSheetPhase = nil
+            } else {
+                dismissPairingV2UIAfterDeniedConfirmation()
+            }
         } else {
             pairingV2PeerKind = peerKind
         }
@@ -697,7 +702,9 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
     }
 
     private func presentPairingV2ConfirmationAlert(message: String) async -> Bool {
-        await withCheckedContinuation { continuation in
+        await dismissSyncCodeSheetIfPresented()
+
+        return await withCheckedContinuation { continuation in
             let alert = UIAlertController(title: UserText.syncPairingV2ConfirmationTitle, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: UserText.actionCancel, style: .cancel) { _ in
                 continuation.resume(returning: false)
@@ -708,8 +715,25 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
             alert.addAction(confirmAction)
             alert.preferredAction = confirmAction
 
-            let viewControllerToPresentFrom = navigationController?.presentedViewController ?? presentedViewController ?? self
-            viewControllerToPresentFrom.present(alert, animated: true)
+            topmostPresentedViewController().present(alert, animated: true)
+        }
+    }
+
+    private func topmostPresentedViewController() -> UIViewController {
+        var topController: UIViewController = view.window?.rootViewController ?? navigationController ?? self
+        while let presented = topController.presentedViewController, !presented.isBeingDismissed {
+            topController = presented
+        }
+        return topController
+    }
+
+    private func dismissSyncCodeSheetIfPresented() async {
+        guard let scanCodeViewModel, scanCodeViewModel.isShowingSyncCodeSheet else { return }
+        await withCheckedContinuation { continuation in
+            scanCodeViewModel.onSyncCodeSheetDismissed = {
+                continuation.resume()
+            }
+            scanCodeViewModel.isShowingSyncCodeSheet = false
         }
     }
 
