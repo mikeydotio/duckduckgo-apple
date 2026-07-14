@@ -77,10 +77,6 @@ final class AIChatHistoryViewController: UIViewController {
         let bar = UISearchBar()
         bar.searchBarStyle = .minimal
         bar.placeholder = UserText.aiChatHistorySearchBarPlaceholder
-        // Drop the default search-bar backing so it sits directly on the screen background
-        // instead of appearing encased in a slightly darker gray bar.
-        bar.backgroundImage = UIImage()
-        bar.backgroundColor = .clear
         bar.sizeToFit()
         return bar
     }()
@@ -160,9 +156,6 @@ final class AIChatHistoryViewController: UIViewController {
         guard tableView.tableHeaderView == nil else { return }
         let headerHeight = searchBar.intrinsicContentSize.height
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight))
-        // Opaque screen background so the strip around the search field matches the list below,
-        // rather than picking up the translucent nav bar's darker tint through a clear header.
-        headerView.backgroundColor = UIColor(designSystemColor: .background)
         // Clip so the fixed-height bar can be revealed by animating the header's height (see
         // `presentSearch`); pinning the bar to the bottom makes it slide in rather than stretch.
         headerView.clipsToBounds = true
