@@ -533,7 +533,7 @@ extension SyncSettingsViewController: ScanOrPasteCodeViewModelDelegate {
     func presentDeviceAddedSuccessScreen() {
         enableAutoRestoreByDefaultIfNeeded()
         refreshAutoRestoreDecisionState()
-        viewModel.showDeviceConnectedInConnectingSheet()
+        viewModel.showDeviceConnectedInConnectingSheet(recoveryCode: recoveryCode)
     }
 
     func startPolling() {

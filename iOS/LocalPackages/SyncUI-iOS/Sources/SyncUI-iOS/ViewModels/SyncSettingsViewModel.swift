@@ -438,7 +438,8 @@ public class SyncSettingsViewModel: ObservableObject {
         connectingSheetPhase = nil
     }
 
-    public func showDeviceConnectedInConnectingSheet() {
+    public func showDeviceConnectedInConnectingSheet(recoveryCode: String) {
+        self.recoveryCode = recoveryCode
         connectingSheetPhase = .deviceConnected
     }
 
