@@ -160,6 +160,9 @@ final class AIChatHistoryViewController: UIViewController {
         guard tableView.tableHeaderView == nil else { return }
         let headerHeight = searchBar.intrinsicContentSize.height
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight))
+        // Opaque screen background so the strip around the search field matches the list below,
+        // rather than picking up the translucent nav bar's darker tint through a clear header.
+        headerView.backgroundColor = UIColor(designSystemColor: .background)
         // Clip so the fixed-height bar can be revealed by animating the header's height (see
         // `presentSearch`); pinning the bar to the bottom makes it slide in rather than stretch.
         headerView.clipsToBounds = true
@@ -223,6 +226,9 @@ final class AIChatHistoryViewController: UIViewController {
                 target: self,
                 action: #selector(selectionDoneTapped)
             )
+            // Set the accent tint on the item up front so the prominent fill is blue immediately
+            // instead of inheriting the bar tint a frame later.
+            done.tintColor = UIColor(designSystemColor: .accentPrimary)
             done.accessibilityLabel = UserText.navigationTitleDone
             navigationItem.rightBarButtonItems = [done]
         } else {
@@ -348,7 +354,11 @@ final class AIChatHistoryViewController: UIViewController {
 
     private func updateSelectionActionButtons() {
         let hasSelection = !(tableView.indexPathsForSelectedRows ?? []).isEmpty
-        deleteSelectionItem?.isEnabled = hasSelection
+        // Delete stays tappable: "Delete All" with no selection, "Delete" once chats are picked.
+        if let deleteButton = deleteSelectionItem?.customView as? UIButton {
+            deleteButton.isEnabled = true
+            deleteButton.configuration?.title = hasSelection ? UserText.actionDelete : UserText.aiChatHistoryDeleteAll
+        }
         downloadSelectionItem?.isEnabled = hasSelection
     }
 
