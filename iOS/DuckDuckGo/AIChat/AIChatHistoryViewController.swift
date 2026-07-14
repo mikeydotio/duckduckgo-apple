@@ -77,6 +77,10 @@ final class AIChatHistoryViewController: UIViewController {
         let bar = UISearchBar()
         bar.searchBarStyle = .minimal
         bar.placeholder = UserText.aiChatHistorySearchBarPlaceholder
+        // Drop the default search-bar backing so it sits directly on the screen background
+        // instead of appearing encased in a slightly darker gray bar.
+        bar.backgroundImage = UIImage()
+        bar.backgroundColor = .clear
         bar.sizeToFit()
         return bar
     }()
