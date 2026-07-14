@@ -42,6 +42,8 @@ protocol UnifiedToggleInputViewControllerDelegate: AnyObject {
     func unifiedToggleInputVCDidTapFire(_ vc: UnifiedToggleInputViewController)
     func unifiedToggleInputVCDidTapAppMenu(_ vc: UnifiedToggleInputViewController)
     func unifiedToggleInputVCDidTapReturnKey(_ vc: UnifiedToggleInputViewController)
+    func unifiedToggleInputVCDidShowModelPicker(_ vc: UnifiedToggleInputViewController)
+    func unifiedToggleInputVCDidShowReasoningPicker(_ vc: UnifiedToggleInputViewController)
 }
 
 // MARK: - View Controller
@@ -72,6 +74,10 @@ final class UnifiedToggleInputViewController: UIViewController {
     /// Dims the input bar for the fire-education onboarding step without affecting the fire button.
     func setOnboardingDimmed(_ dimmed: Bool) {
         inputBarView.setOnboardingDimmed(dimmed)
+    }
+
+    func setMenuAlertVisible(_ isVisible: Bool, animated: Bool) {
+        inputBarView.setMenuAlertVisible(isVisible, animated: animated)
     }
 
     init(isToggleEnabled: Bool, isFireTab: Bool = false) {
@@ -470,6 +476,14 @@ extension UnifiedToggleInputViewController: UnifiedToggleInputViewDelegate {
 
     func unifiedToggleInputViewDidTapReturnKey(_ view: UnifiedToggleInputView) {
         delegate?.unifiedToggleInputVCDidTapReturnKey(self)
+    }
+
+    func unifiedToggleInputViewDidShowModelPicker(_ view: UnifiedToggleInputView) {
+        delegate?.unifiedToggleInputVCDidShowModelPicker(self)
+    }
+
+    func unifiedToggleInputViewDidShowReasoningPicker(_ view: UnifiedToggleInputView) {
+        delegate?.unifiedToggleInputVCDidShowReasoningPicker(self)
     }
 }
 

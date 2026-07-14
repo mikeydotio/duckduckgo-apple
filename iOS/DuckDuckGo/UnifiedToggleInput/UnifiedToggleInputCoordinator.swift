@@ -1443,7 +1443,9 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             UnifiedToggleInputCoordinatorPixelHelper.fireShowModelPickerPixel()
-            self.viewController.presentModelPickerMenu()
+            if self.viewController.presentModelPickerMenu() {
+                self.fireModelPickerShown()
+            }
         }
     }
 
@@ -1460,7 +1462,7 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
             isSubmitBlockedByRecoveryCard = false
             updateSelectedModel(modelId)
             if isNewSelection {
-                Pixel.fire(pixel: .unifiedToggleInputModelSelected, withAdditionalParameters: ["model_id": modelId])
+                fireModelSelectedPixel(modelId: modelId)
             }
             notifyFrontendOfActiveChatModelChange(modelId)
         } else {
@@ -1512,7 +1514,7 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
         isSubmitBlockedByRecoveryCard = false
         updateSelectedModel(modelId)
         if isNewSelection {
-            Pixel.fire(pixel: .unifiedToggleInputModelSelected, withAdditionalParameters: ["model_id": modelId])
+            fireModelSelectedPixel(modelId: modelId)
         }
         notifyFrontendOfActiveChatModelChange(modelId)
         return true
@@ -1562,8 +1564,20 @@ final class UnifiedToggleInputCoordinator: NSObject, AIChatInputBoxHandling {
         }
     }
 
+    private func fireModelSelectedPixel(modelId: String) {
+        UnifiedToggleInputCoordinatorPixelHelper.fireModelSelectedPixel(modelId: modelId)
+    }
+
     private func fireReasoningEffortSelectedPixel(mode: AIChatReasoningMode) {
         Pixel.fire(pixel: .unifiedToggleInputReasoningEffortSelected, withAdditionalParameters: ["effort_level": mode.rawValue])
+    }
+
+    private func fireModelPickerShown() {
+        UnifiedToggleInputCoordinatorPixelHelper.fireModelPickerShownPixel(isAITabState: isAITabState)
+    }
+
+    private func fireReasoningPickerShown() {
+        UnifiedToggleInputCoordinatorPixelHelper.fireReasoningPickerShownPixel(isAITabState: isAITabState)
     }
     
     private func requiredPublicTier(for mode: AIChatReasoningMode, model: AIChatModel) -> AIChatModelPublicAccessTier? {
@@ -1824,7 +1838,7 @@ extension UnifiedToggleInputCoordinator: UnifiedToggleInputViewControllerDelegat
             switchBarSubmissionMetrics.process(text, for: .aiChat)
             processSessionActivity(mode: .aiChat)
             UnifiedToggleInputCoordinatorPixelHelper.fireUnifiedPromptSubmittedPixel(
-                text: text,
+                hasText: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 selectedTool: toolsController.selectedTool,
                 attachments: viewController.currentAttachments,
                 reasoningMode: reasoningModeForSubmitPixel,
@@ -1896,6 +1910,14 @@ extension UnifiedToggleInputCoordinator: UnifiedToggleInputViewControllerDelegat
         // two animations can't run concurrently and glitch each other. On release, restore swipe to
         // whatever toggle visibility dictates (the single source of truth for the gesture).
         contentViewController.isSwipeEnabled = isDragging ? false : isToggleVisible
+    }
+
+    func unifiedToggleInputVCDidShowModelPicker(_ vc: UnifiedToggleInputViewController) {
+        fireModelPickerShown()
+    }
+
+    func unifiedToggleInputVCDidShowReasoningPicker(_ vc: UnifiedToggleInputViewController) {
+        fireReasoningPickerShown()
     }
 
     func unifiedToggleInputVCDidClearSelectedTool(_ vc: UnifiedToggleInputViewController) {

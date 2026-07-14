@@ -101,10 +101,22 @@ extension TabViewController {
         rootView.addSubview(containerStackView)
 
         let safeArea = rootView.safeAreaLayoutGuide
+        let isFloatingUIEnabled = FloatingUIManager(featureFlagger: featureFlagger).isFloatingUIEnabled
+        // Floating UI: top/bottom pin to the screen edges so content underflows the glass chrome (via
+        // WebKit obscured insets); leading/trailing pin to the safe area so landscape respects the notch.
+        let containerStackViewTop = isFloatingUIEnabled
+            ? containerStackView.topAnchor.constraint(equalTo: rootView.topAnchor)
+            : containerStackView.topAnchor.constraint(equalTo: safeArea.topAnchor)
+        let containerStackViewLeading = isFloatingUIEnabled
+            ? containerStackView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor)
+            : containerStackView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor)
+        let containerStackViewTrailing = isFloatingUIEnabled
+            ? containerStackView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor)
+            : containerStackView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor)
         NSLayoutConstraint.activate([
-            containerStackView.topAnchor.constraint(equalTo: safeArea.topAnchor),
-            containerStackView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
-            containerStackView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            containerStackViewTop,
+            containerStackViewLeading,
+            containerStackViewTrailing,
             containerStackView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor)
         ])
 
@@ -158,10 +170,15 @@ extension TabViewController {
         errorInfoImage = UIImageView(image: UIImage(rebrandable: "Dax-Accident"))
         errorInfoImage.contentMode = .scaleAspectFit
         errorInfoImage.translatesAutoresizingMaskIntoConstraints = false
+        errorInfoImage.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            errorInfoImage.widthAnchor.constraint(equalToConstant: 296),
+            errorInfoImage.heightAnchor.constraint(equalToConstant: 188)
+        ])
 
         let labelsStack = UIStackView()
         labelsStack.axis = .vertical
-        labelsStack.alignment = .fill
+        labelsStack.alignment = .center
         labelsStack.spacing = 11
         labelsStack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -207,6 +224,7 @@ extension TabViewController {
             errorContentStack.bottomAnchor.constraint(lessThanOrEqualTo: error.bottomAnchor),
 
             labelsStack.widthAnchor.constraint(lessThanOrEqualToConstant: 400),
+            errorMessage.widthAnchor.constraint(lessThanOrEqualTo: errorHeader.widthAnchor),
             errorActionButtonFillWidthConstraint,
             errorActionButton.widthAnchor.constraint(lessThanOrEqualToConstant: 360),
             errorActionButton.heightAnchor.constraint(equalToConstant: 50),
