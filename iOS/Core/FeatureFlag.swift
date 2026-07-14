@@ -315,6 +315,12 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1204186595873227/task/1213651297612976?focus=true
     case aiChatNativeChatHistory
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216562593480288
+    case aiChatHistoryMultiselect
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216562593153043
+    case aiChatNativeSidebar
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216111312217462?focus=true
     case contextualSuggestedPrompts
 
@@ -738,6 +744,10 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(DuckAiChatHistorySubfeature.featureEnabled))
         case .aiChatNativeChatHistory:
             Config(defaultValue: .enabled, source: .remoteReleasable(DuckAiChatHistorySubfeature.nativeChatHistory))
+        case .aiChatHistoryMultiselect:
+            Config(source: .remoteReleasable(AIChatSubfeature.historyMultiselect))
+        case .aiChatNativeSidebar:
+            Config(source: .remoteReleasable(AIChatSubfeature.nativeSidebar))
         case .contextualSuggestedPrompts:
             Config(source: .remoteReleasable(AIChatSubfeature.contextualSuggestedPrompts))
         case .showWhatsNewPromptOnDemand:

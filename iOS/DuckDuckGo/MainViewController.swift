@@ -5880,7 +5880,7 @@ extension MainViewController: TabDelegate {
             source: source
         )
         viewModel.delegate = self
-        let content = AIChatHistoryViewController(viewModel: viewModel, fireButtonAnimator: fireButtonAnimator)
+        let content = AIChatHistoryViewController(viewModel: viewModel, fireButtonAnimator: fireButtonAnimator, featureFlagger: featureFlagger)
         let navigationController = UINavigationController(rootViewController: content)
         navigationController.modalPresentationStyle = .automatic
         present(navigationController, animated: true)
