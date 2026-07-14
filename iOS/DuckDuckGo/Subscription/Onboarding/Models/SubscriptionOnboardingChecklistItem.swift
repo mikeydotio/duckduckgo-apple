@@ -17,9 +17,8 @@
 //  limitations under the License.
 //
 
-/// The fixed set of protections tracked on the completion checklist. Each case owns its display title;
-/// `.pir` (Personal Information Removal) is the one that can remain incomplete in the flow, so the
-/// progress view treats it specially (blocked-profile icon, chevron, tappable).
+/// The fixed set of subscription protections (VPN, IDTR, Duck.ai, PIR), shared by the onboarding welcome
+/// list and the completion checklist. `title` is the checklist row copy; the welcome list supplies its own.
 enum SubscriptionOnboardingChecklistItem: CaseIterable {
     case vpn
     case idtr

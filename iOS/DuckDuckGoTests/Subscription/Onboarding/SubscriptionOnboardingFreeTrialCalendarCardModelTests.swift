@@ -140,4 +140,40 @@ final class SubscriptionOnboardingFreeTrialCalendarCardModelTests: XCTestCase {
 
         XCTAssertTrue(sut.billingText.contains("May 14, 2026"), "Unexpected billing text: \(sut.billingText)")
     }
+
+    // MARK: - Localization
+
+    func testDayNumeralsRenderInTheCalendarsNumberingSystem() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        calendar.locale = Locale(identifier: "ar_EG@numbers=arab")
+        let start = calendar.date(from: DateComponents(year: 2026, month: 5, day: 7))!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 5, day: 10))!
+        let sut = SubscriptionOnboardingFreeTrialCalendarCardModel(freeTrialStartDate: start,
+                                                                   billingStartDate: start,
+                                                                   trialLength: 7,
+                                                                   now: now,
+                                                                   calendar: calendar)
+
+        // Day 4 of 7, and the day-of-month strip, rendered in Arabic-Indic numerals.
+        XCTAssertEqual(sut.currentTrialDayText, "٤", "Unexpected trial-day text: \(sut.currentTrialDayText)")
+        XCTAssertEqual(sut.dayLabels, ["٧", "٨", "٩", "١٠", "١١", "١٢", "١٣"], "Unexpected day labels: \(sut.dayLabels)")
+    }
+
+    func testBillingTextFormatsInTheInjectedCalendarsTimeZone() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        calendar.locale = Locale(identifier: "en_US")
+        let start = calendar.date(from: DateComponents(year: 2026, month: 5, day: 7))!
+        // 01:00 on May 14 in Tokyo (UTC+9) is still May 13 in UTC; the billing line must use the
+        // calendar's own time zone and render May 14, not the UTC-shifted May 13.
+        let billing = calendar.date(from: DateComponents(year: 2026, month: 5, day: 14, hour: 1))!
+        let sut = SubscriptionOnboardingFreeTrialCalendarCardModel(freeTrialStartDate: start,
+                                                                   billingStartDate: billing,
+                                                                   trialLength: 7,
+                                                                   now: start,
+                                                                   calendar: calendar)
+
+        XCTAssertTrue(sut.billingText.contains("May 14, 2026"), "Unexpected billing text: \(sut.billingText)")
+    }
 }

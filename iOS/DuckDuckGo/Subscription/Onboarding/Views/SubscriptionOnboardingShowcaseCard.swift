@@ -1,5 +1,5 @@
 //
-//  SubscriptionOnboardingShowcaseCardView.swift
+//  SubscriptionOnboardingShowcaseCard.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -23,9 +23,8 @@ import UIComponents
 
 /// A showcase card for the post-subscription onboarding flow: a bordered card presenting a single feature
 /// or benefit as a top-leading icon above a title and a paragraph of body text (e.g. an Identity Theft
-/// Restoration benefit). Built from `SubscriptionOnboardingCard` + `CardItem`; the `visual` may be a static
-/// image or a Lottie animation.
-struct SubscriptionOnboardingShowcaseCardView: View {
+/// Restoration benefit). Built from `SubscriptionOnboardingCard` + `CardItem`.
+struct SubscriptionOnboardingShowcaseCard: View {
     private enum Metrics {
         static let iconSpacing: CGFloat = 8
         static let titleTextSpacing: CGFloat = 4
@@ -57,11 +56,11 @@ struct SubscriptionOnboardingShowcaseCardView: View {
 
 #if DEBUG
 
-private struct SubscriptionOnboardingShowcaseCardViewPreview: View {
+private struct SubscriptionOnboardingShowcaseCardPreview: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SubscriptionOnboardingShowcaseCardView(
+                SubscriptionOnboardingShowcaseCard(
                     visual: .image(Image(systemName: "creditcard.fill")),
                     title: "Recover financial losses",
                     text: """
@@ -70,7 +69,7 @@ private struct SubscriptionOnboardingShowcaseCardViewPreview: View {
                         event that you become a victim of identity theft or fraud.
                         """)
 
-                SubscriptionOnboardingShowcaseCardView(
+                SubscriptionOnboardingShowcaseCard(
                     visual: .image(Image(systemName: "doc.text.magnifyingglass")),
                     title: "Fix your credit report",
                     text: "We'll help fix errors in your credit report that result from fraudulent activity.")
@@ -83,20 +82,20 @@ private struct SubscriptionOnboardingShowcaseCardViewPreview: View {
 
 #Preview("Light") {
     RebrandedPreview {
-        SubscriptionOnboardingShowcaseCardViewPreview()
+        SubscriptionOnboardingShowcaseCardPreview()
     }
 }
 
 #Preview("Dark") {
     RebrandedPreview {
-        SubscriptionOnboardingShowcaseCardViewPreview()
+        SubscriptionOnboardingShowcaseCardPreview()
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Large Text") {
     RebrandedPreview {
-        SubscriptionOnboardingShowcaseCardViewPreview()
+        SubscriptionOnboardingShowcaseCardPreview()
     }
     .dynamicTypeSize(.accessibility5)
 }

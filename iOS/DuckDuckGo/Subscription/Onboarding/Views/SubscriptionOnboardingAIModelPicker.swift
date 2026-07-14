@@ -1,5 +1,5 @@
 //
-//  SubscriptionOnboardingAIModelPickerView.swift
+//  SubscriptionOnboardingAIModelPicker.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -27,7 +27,7 @@ import AIChat
 /// a backend call (`AIChatModelsService`) performed at the screen layer, so this view takes the resolved
 /// `AIChatModel`s, the selected id, and a selection callback — it holds no state and makes no network
 /// calls itself.
-struct SubscriptionOnboardingAIModelPickerView: View {
+struct SubscriptionOnboardingAIModelPicker: View {
     private enum Metrics {
         static let iconTextSpacing: CGFloat = 16
         static let contentInsetHorizontal: CGFloat = 16
@@ -53,7 +53,7 @@ struct SubscriptionOnboardingAIModelPickerView: View {
     }
 }
 
-private extension SubscriptionOnboardingAIModelPickerView {
+private extension SubscriptionOnboardingAIModelPicker {
     var cardItems: [CardItem] {
         models.map { model in
             let nameParts = model.name.split(separator: " ", maxSplits: 1)
@@ -96,7 +96,7 @@ private struct SubscriptionOnboardingAIModelPickerPreviewHost: View {
 
     var body: some View {
         ScrollView {
-            SubscriptionOnboardingAIModelPickerView(models: previewModels, selectedModelID: selection) { selection = $0 }
+            SubscriptionOnboardingAIModelPicker(models: previewModels, selectedModelID: selection) { selection = $0 }
                 .padding()
         }
         .background(Color(designSystemColor: .background).ignoresSafeArea())

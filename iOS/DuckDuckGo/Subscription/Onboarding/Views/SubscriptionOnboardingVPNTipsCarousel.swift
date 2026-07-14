@@ -1,5 +1,5 @@
 //
-//  SubscriptionOnboardingVPNTipsCarouselView.swift
+//  SubscriptionOnboardingVPNTipsCarousel.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -23,9 +23,9 @@ import UIComponents
 
 /// The "What to know about using your VPN" carousel: three horizontally-scrolling cards, each an icon +
 /// headline + body. Cards are a fixed width with the neighbours peeking at the edges; the row scrolls
-/// freely (no paging/snapping — iOS 17's snap APIs are unavailable at the 15.0 floor). Each card reuses
+/// freely. Each card reuses
 /// `SubscriptionOnboardingCard` + `CardItem` for its surface and content.
-struct SubscriptionOnboardingVPNTipsCarouselView: View {
+struct SubscriptionOnboardingVPNTipsCarousel: View {
     private enum Metrics {
         static let cardWidth: CGFloat = 217
         static let horizontalPadding: CGFloat = 28
@@ -55,7 +55,7 @@ struct SubscriptionOnboardingVPNTipsCarouselView: View {
             switch self {
             case .noCaps: Image(.keyhole56)
             case .speed: Image(.responseGood56)
-            case .blocked: Image("VPN-56")
+            case .blocked: Image(.onboardingVPN56)
             }
         }
 
@@ -77,7 +77,7 @@ struct SubscriptionOnboardingVPNTipsCarouselView: View {
     }
 }
 
-private extension SubscriptionOnboardingVPNTipsCarouselView {
+private extension SubscriptionOnboardingVPNTipsCarousel {
     func card(for tip: Tip) -> some View {
         SubscriptionOnboardingCard(
             CardItem(
@@ -93,11 +93,11 @@ private extension SubscriptionOnboardingVPNTipsCarouselView {
 
 #if DEBUG
 
-private struct SubscriptionOnboardingVPNTipsCarouselViewPreview: View {
+private struct SubscriptionOnboardingVPNTipsCarouselPreview: View {
     var body: some View {
         VStack {
             Spacer()
-            SubscriptionOnboardingVPNTipsCarouselView()
+            SubscriptionOnboardingVPNTipsCarousel()
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -107,20 +107,20 @@ private struct SubscriptionOnboardingVPNTipsCarouselViewPreview: View {
 
 #Preview("Light") {
     RebrandedPreview {
-        SubscriptionOnboardingVPNTipsCarouselViewPreview()
+        SubscriptionOnboardingVPNTipsCarouselPreview()
     }
 }
 
 #Preview("Dark") {
     RebrandedPreview {
-        SubscriptionOnboardingVPNTipsCarouselViewPreview()
+        SubscriptionOnboardingVPNTipsCarouselPreview()
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Large Text") {
     RebrandedPreview {
-        SubscriptionOnboardingVPNTipsCarouselViewPreview()
+        SubscriptionOnboardingVPNTipsCarouselPreview()
     }
     .dynamicTypeSize(.accessibility5)
 }

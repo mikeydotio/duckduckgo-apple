@@ -74,6 +74,7 @@ private extension SubscriptionOnboardingProgressView {
     var progressHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(verbatim: "\(clampedPercentage)%")
+                // No dax token at this display size
                 .font(.system(size: Metrics.percentageFontSize, weight: .bold))
                 .foregroundColor(Color(designSystemColor: .textPrimary))
 
@@ -112,16 +113,16 @@ private extension SubscriptionOnboardingProgressView {
         }
     }
 
-    /// Completed rows show the animated check; an incomplete PIR row shows the blocked-profile icon; any
-    /// other incomplete row (VPN, IDTR, Duck.ai) shows the check-circle outline.
+    /// Completed rows show the animated check
     func visual(for item: SubscriptionOnboardingChecklistItem) -> CardVisual {
         if completedItems.contains(item) {
+            // TODO|htang: production host must inject a cardVisualLottieRenderer that honors .frozenAtEnd (Reduce Motion); only a preview renderer exists so far.
             return .lottie(name: "check-color")
         }
-        if item == .pir {
-            return .image(Image(uiImage: DesignSystemImages.Glyphs.Size24.profileBlocked))
-        }
-        return .image(Image(uiImage: DesignSystemImages.Glyphs.Size24.checkCircle))
+        let glyph = item == .pir
+            ? DesignSystemImages.Glyphs.Size24.profileBlocked
+            : DesignSystemImages.Glyphs.Size24.checkCircle
+        return .image(Image(uiImage: glyph))
     }
 
     /// Only an incomplete PIR row is interactive — so only it is tappable and shows a chevron.
@@ -132,9 +133,7 @@ private extension SubscriptionOnboardingProgressView {
 
 // MARK: - Progress Bar
 
-/// The completion screen's progress bar: a solid green fill on a light-grey track. Kept separate from the
-/// shared gradient `ProgressBarView`, whose blue→purple→red gradient and border are hardcoded and not
-/// parameterizable.
+/// The completion screen's progress bar: a solid green fill on a light-grey track. 
 private struct SubscriptionOnboardingProgressBar: View {
     private enum Metrics {
         static let trackHeight: CGFloat = 12

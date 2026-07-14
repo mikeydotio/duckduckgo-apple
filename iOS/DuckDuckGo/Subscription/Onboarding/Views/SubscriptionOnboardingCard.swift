@@ -116,20 +116,8 @@ extension SubscriptionOnboardingCard where Items == CardItemList, Footer == Empt
         self.init([item], style: style, padding: 0, contentInset: contentInset)
     }
 
-    /// Creates a card from an array of `CardItem`s (laid out as rows with a hairline divider between
-    /// adjacent rows) with a `header` above them, separated by a full-width divider.
-    ///
-    /// - Parameters:
-    ///   - items: The rows, top to bottom.
-    ///   - dividerLeadingInset: How far each divider clears the icon column so it starts under the text.
-    ///     `contentInset.horizontal` is added automatically and mirrored on the trailing edge. Defaults to
-    ///     `nil`, deriving the inset from each row's leading icon column; pass an explicit value (`0` for a
-    ///     full-width divider) to override.
-    ///   - contentInset: Per-row padding that becomes part of each row's tap target (and sets the gap
-    ///     between rows via its vertical inset). Defaults to `.zero`.
-    ///   - isRowSelectable: Whether the row at a given index is tappable. Defaults to every row; combine
-    ///     with `onSelect` to make only some rows interactive.
-    ///   - onSelect: Called with the tapped row's index; when `nil` the rows are not interactive.
+    /// Creates a card from an array of `CardItem`s (laid out as divider-separated rows) with a `header`
+    /// above them, separated by a full-width divider. See `CardItemList` for the row parameters.
     init(_ items: [CardItem],
          style: Style = .bordered,
          padding: CGFloat = 16,
@@ -143,20 +131,8 @@ extension SubscriptionOnboardingCard where Items == CardItemList, Footer == Empt
         }, footer: { EmptyView() })
     }
 
-    /// Creates a card from an array of `CardItem`s (laid out as rows with a hairline divider between
-    /// adjacent rows), with no header or footer. A single item (or none) draws no divider.
-    ///
-    /// - Parameters:
-    ///   - items: The rows, top to bottom.
-    ///   - dividerLeadingInset: How far each divider clears the icon column so it starts under the text.
-    ///     `contentInset.horizontal` is added automatically and mirrored on the trailing edge. Defaults to
-    ///     `nil`, deriving the inset from each row's leading icon column; pass an explicit value (`0` for a
-    ///     full-width divider) to override.
-    ///   - contentInset: Per-row padding that becomes part of each row's tap target (and sets the gap
-    ///     between rows via its vertical inset). Defaults to `.zero`.
-    ///   - isRowSelectable: Whether the row at a given index is tappable. Defaults to every row; combine
-    ///     with `onSelect` to make only some rows interactive.
-    ///   - onSelect: Called with the tapped row's index; when `nil` the rows are not interactive.
+    /// Creates a card from an array of `CardItem`s (laid out as divider-separated rows), with no header or
+    /// footer (a single item, or none, draws no divider). See `CardItemList` for the row parameters.
     init(_ items: [CardItem],
          style: Style = .bordered,
          padding: CGFloat = 16,

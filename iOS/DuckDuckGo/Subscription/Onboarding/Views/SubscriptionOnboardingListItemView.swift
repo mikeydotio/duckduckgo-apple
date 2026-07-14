@@ -58,7 +58,7 @@ struct SubscriptionOnboardingListItemView: View {
 private extension SubscriptionOnboardingListItemView.Status {
     var icon: Image {
         switch self {
-        case .inactive: Image(.alertRecolorable24)
+        case .inactive: Image(.onboardingAlertInactive24)
         case .active: Image(uiImage: DesignSystemImages.Color.Size24.check)
         }
     }

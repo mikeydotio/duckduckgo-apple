@@ -259,16 +259,16 @@
 		31FD991B2DCE6AAB00AAC9C7 /* ExperimentalAIChatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31FD991A2DCE6AAB00AAC9C7 /* ExperimentalAIChatManager.swift */; };
 		35281034C485F1E15258BFD5 /* RebrandedOnboardingView+IntroDialogContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9785D25DF2EA27126C8A33B8 /* RebrandedOnboardingView+IntroDialogContent.swift */; };
 		36208F733005706900EB6335 /* SubscriptionOnboardingListItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36208F723005706900EB6335 /* SubscriptionOnboardingListItemView.swift */; };
-		36208F753005707600EB6335 /* SubscriptionOnboardingShowcaseCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36208F743005707600EB6335 /* SubscriptionOnboardingShowcaseCardView.swift */; };
-		36208F773005742400EB6335 /* SubscriptionOnboardingSetupCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36208F763005742400EB6335 /* SubscriptionOnboardingSetupCardView.swift */; };
+		36208F753005707600EB6335 /* SubscriptionOnboardingShowcaseCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36208F743005707600EB6335 /* SubscriptionOnboardingShowcaseCard.swift */; };
+		36208F773005742400EB6335 /* SubscriptionOnboardingSetupCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36208F763005742400EB6335 /* SubscriptionOnboardingSetupCard.swift */; };
 		36208F793005916700EB6335 /* SubscriptionOnboardingVPNInfoCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36208F783005916700EB6335 /* SubscriptionOnboardingVPNInfoCard.swift */; };
 		362AB8382F69A33700E3F222 /* ActionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 362AB8372F69A33700E3F222 /* ActionResult.swift */; };
 		365E900B2E566C2300BDB0E8 /* AIChatIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365E900A2E566C2300BDB0E8 /* AIChatIntent.swift */; };
 		365E90132E5673DF00BDB0E8 /* SearchInAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365E90122E5673DF00BDB0E8 /* SearchInAppIntent.swift */; };
-		3666D86130016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarouselView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85E30016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarouselView.swift */; };
-		3666D86230016E4D00B63F99 /* FloatingHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85A30016E4D00B63F99 /* FloatingHint.swift */; };
+		3666D86130016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85E30016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarousel.swift */; };
+		3666D86230016E4D00B63F99 /* FloatingPointerBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85A30016E4D00B63F99 /* FloatingPointerBubble.swift */; };
 		3666D86330016E4D00B63F99 /* SubscriptionOnboardingFreeTrialCalendarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85B30016E4D00B63F99 /* SubscriptionOnboardingFreeTrialCalendarCard.swift */; };
-		3666D86430016E4D00B63F99 /* SubscriptionOnboardingAIModelPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85930016E4D00B63F99 /* SubscriptionOnboardingAIModelPickerView.swift */; };
+		3666D86430016E4D00B63F99 /* SubscriptionOnboardingAIModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85930016E4D00B63F99 /* SubscriptionOnboardingAIModelPicker.swift */; };
 		3666D86530016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D85C30016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift */; };
 		3666D86730017A6800B63F99 /* SubscriptionOnboardingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D86630017A6800B63F99 /* SubscriptionOnboardingCard.swift */; };
 		3666D86D30017B1400B63F99 /* RebrandedPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3666D86B30017B1400B63F99 /* RebrandedPreview.swift */; };
@@ -3029,18 +3029,18 @@
 		31FD991A2DCE6AAB00AAC9C7 /* ExperimentalAIChatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalAIChatManager.swift; sourceTree = "<group>"; };
 		33CC9145E578E99B3052757F /* UnifiedToggleInputModelMenuTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedToggleInputModelMenuTests.swift; sourceTree = "<group>"; };
 		36208F723005706900EB6335 /* SubscriptionOnboardingListItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingListItemView.swift; sourceTree = "<group>"; };
-		36208F743005707600EB6335 /* SubscriptionOnboardingShowcaseCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingShowcaseCardView.swift; sourceTree = "<group>"; };
-		36208F763005742400EB6335 /* SubscriptionOnboardingSetupCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingSetupCardView.swift; sourceTree = "<group>"; };
+		36208F743005707600EB6335 /* SubscriptionOnboardingShowcaseCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingShowcaseCard.swift; sourceTree = "<group>"; };
+		36208F763005742400EB6335 /* SubscriptionOnboardingSetupCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingSetupCard.swift; sourceTree = "<group>"; };
 		36208F783005916700EB6335 /* SubscriptionOnboardingVPNInfoCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingVPNInfoCard.swift; sourceTree = "<group>"; };
 		362AB8372F69A33700E3F222 /* ActionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionResult.swift; sourceTree = "<group>"; };
 		3652B1D4CCA25401F948AB69 /* TabViewControllerSiteLoadingPixelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TabViewControllerSiteLoadingPixelTests.swift; sourceTree = "<group>"; };
 		365E900A2E566C2300BDB0E8 /* AIChatIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatIntent.swift; sourceTree = "<group>"; };
 		365E90122E5673DF00BDB0E8 /* SearchInAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchInAppIntent.swift; sourceTree = "<group>"; };
-		3666D85930016E4D00B63F99 /* SubscriptionOnboardingAIModelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingAIModelPickerView.swift; sourceTree = "<group>"; };
-		3666D85A30016E4D00B63F99 /* FloatingHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingHint.swift; sourceTree = "<group>"; };
+		3666D85930016E4D00B63F99 /* SubscriptionOnboardingAIModelPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingAIModelPicker.swift; sourceTree = "<group>"; };
+		3666D85A30016E4D00B63F99 /* FloatingPointerBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPointerBubble.swift; sourceTree = "<group>"; };
 		3666D85B30016E4D00B63F99 /* SubscriptionOnboardingFreeTrialCalendarCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingFreeTrialCalendarCard.swift; sourceTree = "<group>"; };
 		3666D85C30016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingProgressView.swift; sourceTree = "<group>"; };
-		3666D85E30016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarouselView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingVPNTipsCarouselView.swift; sourceTree = "<group>"; };
+		3666D85E30016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingVPNTipsCarousel.swift; sourceTree = "<group>"; };
 		3666D86630017A6800B63F99 /* SubscriptionOnboardingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingCard.swift; sourceTree = "<group>"; };
 		3666D86B30017B1400B63F99 /* RebrandedPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RebrandedPreview.swift; sourceTree = "<group>"; };
 		3666D86E3001910D00B63F99 /* SubscriptionOnboardingWelcomeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOnboardingWelcomeListView.swift; sourceTree = "<group>"; };
@@ -6692,16 +6692,16 @@
 			isa = PBXGroup;
 			children = (
 				3666D86630017A6800B63F99 /* SubscriptionOnboardingCard.swift */,
-				3666D85930016E4D00B63F99 /* SubscriptionOnboardingAIModelPickerView.swift */,
+				3666D85930016E4D00B63F99 /* SubscriptionOnboardingAIModelPicker.swift */,
 				3666D85C30016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift */,
 				3666D86E3001910D00B63F99 /* SubscriptionOnboardingWelcomeListView.swift */,
-				3666D85E30016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarouselView.swift */,
-				36208F763005742400EB6335 /* SubscriptionOnboardingSetupCardView.swift */,
-				36208F743005707600EB6335 /* SubscriptionOnboardingShowcaseCardView.swift */,
+				3666D85E30016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarousel.swift */,
+				36208F763005742400EB6335 /* SubscriptionOnboardingSetupCard.swift */,
+				36208F743005707600EB6335 /* SubscriptionOnboardingShowcaseCard.swift */,
 				36208F723005706900EB6335 /* SubscriptionOnboardingListItemView.swift */,
 				36208F783005916700EB6335 /* SubscriptionOnboardingVPNInfoCard.swift */,
 				3666D85B30016E4D00B63F99 /* SubscriptionOnboardingFreeTrialCalendarCard.swift */,
-				3666D85A30016E4D00B63F99 /* FloatingHint.swift */,
+				3666D85A30016E4D00B63F99 /* FloatingPointerBubble.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -13083,10 +13083,10 @@
 				9FF362DA2F3DC6A200824B30 /* RebrandedContextualOnboardingDialogs+SubscriptionPromo.swift in Sources */,
 				8569E1702D52C9A4004A3CB7 /* TabSwitcherBarsStateHandler.swift in Sources */,
 				9FE08BDC2C2A88FA001D5EBC /* OnboardingIntroViewController.swift in Sources */,
-				3666D86130016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarouselView.swift in Sources */,
-				3666D86230016E4D00B63F99 /* FloatingHint.swift in Sources */,
+				3666D86130016E4D00B63F99 /* SubscriptionOnboardingVPNTipsCarousel.swift in Sources */,
+				3666D86230016E4D00B63F99 /* FloatingPointerBubble.swift in Sources */,
 				3666D86330016E4D00B63F99 /* SubscriptionOnboardingFreeTrialCalendarCard.swift in Sources */,
-				3666D86430016E4D00B63F99 /* SubscriptionOnboardingAIModelPickerView.swift in Sources */,
+				3666D86430016E4D00B63F99 /* SubscriptionOnboardingAIModelPicker.swift in Sources */,
 				3666D86530016E4D00B63F99 /* SubscriptionOnboardingProgressView.swift in Sources */,
 				CB6D179F2FA38FAD00ECD5AE /* UnifiedToggleInputHost.swift in Sources */,
 				C13C36702F4B5B3A008E7D08 /* SyncAutoRestoreHandler.swift in Sources */,
@@ -13672,7 +13672,7 @@
 				4B82E4772E64E4CF00DE9F0C /* WideEventLaunchCleanupTask.swift in Sources */,
 				8505836D219F424500ED4EDB /* Point.swift in Sources */,
 				3158461A281B08F5004ADB8B /* AutofillLoginListViewModel.swift in Sources */,
-				36208F773005742400EB6335 /* SubscriptionOnboardingSetupCardView.swift in Sources */,
+				36208F773005742400EB6335 /* SubscriptionOnboardingSetupCard.swift in Sources */,
 				31C138A827A3E9C900FFD4B2 /* URLDownloadSession.swift in Sources */,
 				981FED76220464EF008488D7 /* AutoClearSettingsModel.swift in Sources */,
 				83004E882193E8C700DA013C /* TabViewControllerLongPressMenuExtension.swift in Sources */,
@@ -14111,7 +14111,7 @@
 				6F03CAFC2C32C6F6004179A8 /* NewTabPageMessagesModel.swift in Sources */,
 				9FD8A2F22F99B98D005772BC /* CustomProductPage+Onboarding.swift in Sources */,
 				31E2655F2D66392E002B5624 /* VoiceSearchFeedbackView.swift in Sources */,
-				36208F753005707600EB6335 /* SubscriptionOnboardingShowcaseCardView.swift in Sources */,
+				36208F753005707600EB6335 /* SubscriptionOnboardingShowcaseCard.swift in Sources */,
 				9FE7E7A42EAAF7DA00AEAD83 /* WhatsNewViewController.swift in Sources */,
 				82A9FCEDA73E46633F3E6852 /* OnboardingRebranding.swift in Sources */,
 				D4F72864A16A77A0907EBA57 /* RebrandedOnboardingView+Landing.swift in Sources */,

@@ -1,5 +1,5 @@
 //
-//  SubscriptionOnboardingSetupCardView.swift
+//  SubscriptionOnboardingSetupCard.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -24,10 +24,9 @@ import UIComponents
 
 /// The Subscription Settings re-entry card for the post-subscription onboarding flow: a borderless card
 /// with a leading icon, a title carrying the current setup `percentage`, a short body line, and a
-/// bottom-pinned primary CTA to resume the flow (e.g. "Setup 75% complete" / "Some premium protections
-/// aren't active yet" / "Continue Setup"). Copy comes from `UserText`. Built from
-/// `SubscriptionOnboardingCard` + `CardItem`; the `visual` may be a static image or a Lottie animation.
-struct SubscriptionOnboardingSetupCardView: View {
+/// bottom-pinned primary CTA to resume the flow. Copy comes from `UserText`. Built from
+/// `SubscriptionOnboardingCard` + `CardItem`
+struct SubscriptionOnboardingSetupCard: View {
     private enum Metrics {
         static let iconSpacing: CGFloat = 12
         static let titleTextSpacing: CGFloat = 4
@@ -67,16 +66,16 @@ struct SubscriptionOnboardingSetupCardView: View {
 
 #if DEBUG
 
-private struct SubscriptionOnboardingSetupCardViewPreview: View {
+private struct SubscriptionOnboardingSetupCardPreview: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                SubscriptionOnboardingSetupCardView(
+                SubscriptionOnboardingSetupCard(
                     visual: .image(Image(.subscription56)),
                     percentage: 75,
                     onContinue: {})
 
-                SubscriptionOnboardingSetupCardView(
+                SubscriptionOnboardingSetupCard(
                     visual: .image(Image(.subscription56)),
                     percentage: 25,
                     onContinue: {})
@@ -89,20 +88,20 @@ private struct SubscriptionOnboardingSetupCardViewPreview: View {
 
 #Preview("Light") {
     RebrandedPreview {
-        SubscriptionOnboardingSetupCardViewPreview()
+        SubscriptionOnboardingSetupCardPreview()
     }
 }
 
 #Preview("Dark") {
     RebrandedPreview {
-        SubscriptionOnboardingSetupCardViewPreview()
+        SubscriptionOnboardingSetupCardPreview()
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Large Text") {
     RebrandedPreview {
-        SubscriptionOnboardingSetupCardViewPreview()
+        SubscriptionOnboardingSetupCardPreview()
     }
     .dynamicTypeSize(.accessibility5)
 }

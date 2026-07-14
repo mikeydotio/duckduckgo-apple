@@ -115,12 +115,6 @@ public struct CardItemText {
 ///
 /// `CardItem` lays out content only; the surrounding surface is supplied by the card shell that holds it
 public struct CardItem: View {
-    private enum Metrics {
-        static let overlineTitleSpacing: CGFloat = 0
-        static let titleDetailSpacing: CGFloat = 6
-        static let trailingAccessorySpacing: CGFloat = 8
-    }
-
     private let icon: CardItemIcon?
     private let overline: CardItemText?
     private let title: CardItemText?
@@ -162,10 +156,9 @@ public struct CardItem: View {
 // MARK: - Geometry
 
 public extension CardItem {
-    /// The width of the leading icon column — the icon's size plus its trailing gap — for a `.leading` or
-    /// `.leadingColumn` icon, i.e. the horizontal offset at which the text block begins. `0` when the text
-    /// starts at the leading edge: no icon, or a `.topLeading` icon that sits above the text. A row list can
-    /// use this to start a divider under the text without the caller hand-transcribing the sum.
+    /// The leading icon column's width — the icon's size plus its trailing gap — for a `.leading` or
+    /// `.leadingColumn` icon; `0` otherwise (no icon, or a `.topLeading` icon above the text). A row list
+    /// uses this to inset a divider so it starts under the text.
     var leadingIconColumnWidth: CGFloat {
         guard let icon, icon.position == .leading || icon.position == .leadingColumn else { return 0 }
         return icon.size.points + icon.spacing
@@ -194,7 +187,7 @@ private extension CardItem {
 
             if let trailing {
                 trailingIcon(for: trailing)
-                    .padding(.leading, Metrics.trailingAccessorySpacing)
+                    .padding(.leading, 8)
                     .accessibilityHidden(true)
             }
         }
@@ -206,7 +199,7 @@ private extension CardItem {
     }
 
     var textBlock: some View {
-        VStack(alignment: .leading, spacing: Metrics.overlineTitleSpacing) {
+        VStack(alignment: .leading, spacing: 0) {
             if let overline {
                 Text(verbatim: overline.text)
                     .font(overline.font.font)
@@ -228,7 +221,7 @@ private extension CardItem {
     @ViewBuilder
     var titleLine: some View {
         if title != nil || !titleDetails.isEmpty {
-            HStack(alignment: .firstTextBaseline, spacing: Metrics.titleDetailSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 if let title {
                     Text(verbatim: title.text)
                         .font(title.font.font)

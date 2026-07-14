@@ -70,7 +70,7 @@ private extension SubscriptionOnboardingVPNInfoCard.State {
 
     var icon: Image {
         switch self {
-        case .visibleIP, .hiddenIP: Image("VPN-Grayscale-Color-24")
+        case .visibleIP, .hiddenIP: Image(.onboardingVPNLocation24)
         case .newIP: Image(uiImage: DesignSystemImages.Color.Size24.vpn)
         }
     }

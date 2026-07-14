@@ -22,15 +22,6 @@ import DesignResourcesKit
 import DesignResourcesKitIcons
 import UIComponents
 
-/// A premium protection listed on the post-subscription onboarding welcome screen. The list renders in
-/// case order; each case owns its icon and copy.
-enum SubscriptionOnboardingWelcomeFeature: CaseIterable {
-    case vpn
-    case idtr
-    case duckAI
-    case pir
-}
-
 /// The feature list on the post-subscription onboarding welcome screen: a single card listing the
 /// premium protections — VPN, Identity Theft Restoration, Advanced AI Models and Personal Information
 /// Removal — one selectable row each, with a trailing chevron affordance. `onSelect` receives the tapped
@@ -42,10 +33,10 @@ struct SubscriptionOnboardingWelcomeListView: View {
         static let contentInsetVertical: CGFloat = 14
     }
 
-    private let features = SubscriptionOnboardingWelcomeFeature.allCases
-    private let onSelect: (SubscriptionOnboardingWelcomeFeature) -> Void
+    private let features = SubscriptionOnboardingChecklistItem.allCases
+    private let onSelect: (SubscriptionOnboardingChecklistItem) -> Void
 
-    init(onSelect: @escaping (SubscriptionOnboardingWelcomeFeature) -> Void) {
+    init(onSelect: @escaping (SubscriptionOnboardingChecklistItem) -> Void) {
         self.onSelect = onSelect
     }
 
@@ -60,27 +51,29 @@ struct SubscriptionOnboardingWelcomeListView: View {
 }
 
 private extension SubscriptionOnboardingWelcomeListView {
-    static func row(for feature: SubscriptionOnboardingWelcomeFeature) -> CardItem {
+    static func row(for feature: SubscriptionOnboardingChecklistItem) -> CardItem {
         CardItem(
-            icon: CardItemIcon(position: .leading, visual: feature.visual, spacing: Metrics.iconTextSpacing),
-            title: CardItemText(feature.title, font: .bodyRegular),
-            text: CardItemText(feature.bodyText, font: .footnoteRegular),
+            icon: CardItemIcon(position: .leading, visual: visual(for: feature), spacing: Metrics.iconTextSpacing),
+            title: CardItemText(title(for: feature), font: .bodyRegular),
+            text: CardItemText(bodyText(for: feature), font: .footnoteRegular),
             trailing: .chevron(Color(designSystemColor: .iconsTertiary)))
     }
-}
 
-private extension SubscriptionOnboardingWelcomeFeature {
-    var visual: CardVisual {
-        switch self {
-        case .vpn: .image(Image(uiImage: DesignSystemImages.Color.Size24.vpn))
-        case .idtr: .image(Image(uiImage: DesignSystemImages.Color.Size24.identityTheftRestoration))
-        case .duckAI: .image(Image(uiImage: DesignSystemImages.Color.Size24.aiGeneral))
-        case .pir: .image(Image(.identityBlockedPIRColor24))
+    static func visual(for feature: SubscriptionOnboardingChecklistItem) -> CardVisual {
+        switch feature {
+        case .vpn: colorIcon(DesignSystemImages.Color.Size24.vpn)
+        case .idtr: colorIcon(DesignSystemImages.Color.Size24.identityTheftRestoration)
+        case .duckAI: colorIcon(DesignSystemImages.Color.Size24.aiGeneral)
+        case .pir: .image(Image(.onboardingPIRBlocked24))
         }
     }
 
-    var title: String {
-        switch self {
+    static func colorIcon(_ uiImage: UIImage) -> CardVisual {
+        .image(Image(uiImage: uiImage))
+    }
+
+    static func title(for feature: SubscriptionOnboardingChecklistItem) -> String {
+        switch feature {
         case .vpn: UserText.subscriptionOnboardingWelcomeVPNTitle
         case .idtr: UserText.subscriptionOnboardingWelcomeIDTRTitle
         case .duckAI: UserText.subscriptionOnboardingWelcomeDuckAITitle
@@ -88,8 +81,8 @@ private extension SubscriptionOnboardingWelcomeFeature {
         }
     }
 
-    var bodyText: String {
-        switch self {
+    static func bodyText(for feature: SubscriptionOnboardingChecklistItem) -> String {
+        switch feature {
         case .vpn: UserText.subscriptionOnboardingWelcomeVPNBody
         case .idtr: UserText.subscriptionOnboardingWelcomeIDTRBody
         case .duckAI: UserText.subscriptionOnboardingWelcomeDuckAIBody

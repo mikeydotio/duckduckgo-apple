@@ -21,11 +21,10 @@ import SwiftUI
 import DesignResourcesKit
 import UIComponents
 
-/// Derives everything `SubscriptionOnboardingFreeTrialCalendarCard` renders from the trial dates: the current trial day, the
-/// day-of-month labels for the calendar strip, the marker position, and the billing line. The strip is
-/// anchored at `freeTrialStartDate` and spans `trialLength` days, so the marker moves to "today" (day X) as
-/// the trial progresses rather than the strip rolling forward. `now` and `calendar` are injectable so the
-/// day math is deterministic in tests and previews.
+/// Derives what `SubscriptionOnboardingFreeTrialCalendarCard` renders from the trial dates: the current
+/// trial day, the calendar strip's day-of-month labels, the marker position, and the billing line. The
+/// strip is anchored at `freeTrialStartDate` and spans `trialLength` days, so the marker advances to
+/// "today" as the trial progresses. `now` and `calendar` are injectable for deterministic tests/previews.
 struct SubscriptionOnboardingFreeTrialCalendarCardModel {
     let freeTrialStartDate: Date
     let billingStartDate: Date
@@ -85,11 +84,10 @@ struct SubscriptionOnboardingFreeTrialCalendarCardModel {
     }
 }
 
-/// The "Day N of your free trial" card: a translucent light-blue box whose contents are centered — a heading
-/// that emphasises the current trial day, a billing line, and a calendar strip (a row of day-of-month labels
-/// over a capsule bar filled up to a marker on today). All values come from `SubscriptionOnboardingFreeTrialCalendarCardModel`,
-/// which derives them from the trial dates. Built on `UIComponents.BubbleView` so the translucent fill can
-/// override the standard card surface.
+/// The "Day N of your free trial" card: a centered heading emphasising the current trial day, a billing
+/// line, and a calendar strip (day-of-month labels over a capsule bar filled up to today's marker). Values
+/// come from `SubscriptionOnboardingFreeTrialCalendarCardModel`. Built on `UIComponents.BubbleView` for its
+/// translucent fill.
 struct SubscriptionOnboardingFreeTrialCalendarCard: View {
     private let model: SubscriptionOnboardingFreeTrialCalendarCardModel
 
@@ -98,7 +96,6 @@ struct SubscriptionOnboardingFreeTrialCalendarCard: View {
         static let contentPadding: CGFloat = 24
         static let contentSpacing: CGFloat = 16
         static let titleSubtitleSpacing: CGFloat = 2
-        static let numberFontSize: CGFloat = 32
         static let stripWidth: CGFloat = 306
         static let stripHeight: CGFloat = 20
         static let stripBorderWidth: CGFloat = 1
@@ -153,7 +150,7 @@ struct SubscriptionOnboardingFreeTrialCalendarCard: View {
             Text(verbatim: UserText.subscriptionOnboardingFreeTrialTitlePrefix)
                 .font(Font(UIFont.daxHeadline()))
             Text(verbatim: model.currentTrialDayText)
-                .font(Font(UIFont.daxHeadline().withSize(Metrics.numberFontSize)).monospacedDigit())
+                .font(Font(UIFont.daxTitle1()).monospacedDigit())
             Text(verbatim: UserText.subscriptionOnboardingFreeTrialTitleSuffix)
                 .font(Font(UIFont.daxHeadline()))
         }
@@ -208,9 +205,7 @@ struct SubscriptionOnboardingFreeTrialCalendarCard: View {
 }
 
 private extension Color {
-    /// `#FFEAB8` — the design system's `pollen20` (the unfilled/remaining portion of the calendar strip).
-    /// `pollen20` is not exposed as a public `DesignSystemColor` token (only `pollen50` is, via
-    /// `.alertYellow`), so it is specified by value here.
+    /// `#FFEAB8` (`pollen20`) — not exposed as a public `DesignSystemColor` token, so set by value.
     static let freeTrialCalendarUnfilled = Color(red: Double(0xFF) / 255,
                                                  green: Double(0xEA) / 255,
                                                  blue: Double(0xB8) / 255)

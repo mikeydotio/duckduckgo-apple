@@ -1,5 +1,5 @@
 //
-//  FloatingHint.swift
+//  FloatingPointerBubble.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -20,7 +20,7 @@
 import SwiftUI
 import DesignResourcesKit
 
-struct FloatingHint: View {
+struct FloatingPointerBubble: View {
 
     let text: String
     @State private var isBouncing = false
@@ -32,17 +32,18 @@ struct FloatingHint: View {
 
     var body: some View {
         Text(text)
+            // No dax token at 17pt medium
             .font(.system(size: 17, weight: .medium))
-            .foregroundColor(.white)
+            .foregroundColor(Color(designSystemColor: .buttonsWhite))
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .padding(.top, FloatingHintShape.arrowHeight)
+            .padding(.top, FloatingPointerBubbleShape.arrowHeight)
             .background(
-                FloatingHintShape()
+                FloatingPointerBubbleShape()
                     .fill(accentColor)
             )
-            .shadow(color: Color.black.opacity(0.04), radius: 20, x: 0, y: 4)
-            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+            // Flatten text + bubble into one layer so the bounce animates them together (prevents drift).
+            .compositingGroup()
             .offset(y: isBouncing ? -8 : 0)
             .animation(
                 reduceMotion ? nil : .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
@@ -59,17 +60,12 @@ struct FloatingHint: View {
     }
 }
 
-/// Single continuous outline combining an up-arrow at top with a pill at bottom. The arrow is
-/// transcribed verbatim from Figma's `Union` SVG export so its silhouette matches the design
-/// exactly; the pill is drawn procedurally so it grows with the label. Both are added to one
-/// `Path` and filled together, so the shaft merges into the pill body without a seam.
-private struct FloatingHintShape: Shape {
+/// Single continuous outline combining an up-arrow at top with a pill at bottom.
+private struct FloatingPointerBubbleShape: Shape {
 
     /// Vertical space the arrow occupies above the pill (apex to shaft base), in rect coordinates.
-    /// Transcribed from Figma's `Union` export.
     static let arrowHeight: CGFloat = 33
 
-    /// Corner radius of the pill body. Auto-clamped so it never exceeds half the pill height.
     var pillCornerRadius: CGFloat = 16
 
     func path(in rect: CGRect) -> Path {
@@ -84,7 +80,7 @@ private struct FloatingHintShape: Shape {
                 cornerSize: CGSize(width: radius, height: radius)
             )
 
-            // ----- Arrow (fixed size, centered on top; verbatim from Union.svg) -----
+            // ----- Arrow (fixed size, centered on top) -----
             path.addPath(
                 Self.arrowPath,
                 transform: CGAffineTransform(translationX: rect.midX - Self.arrowCenterX, y: rect.minY)
@@ -92,11 +88,10 @@ private struct FloatingHintShape: Shape {
         }
     }
 
-    /// Horizontal center of the arrow in the source SVG's coordinate space (viewBox width 126).
+    /// Horizontal center of the arrow (viewBox width 126).
     private static let arrowCenterX: CGFloat = 63
 
-    /// Arrow subpath from `Union.svg` (viewBox 126x84), transcribed command-for-command. Its apex
-    /// sits at y~0 and its shaft base at y~33, so it slots directly above the pill top.
+    /// Arrow subpath: apex at y~0, shaft base at y~33, so it slots directly above the pill top.
     private static let arrowPath: Path = {
         var path = Path()
         path.move(to: CGPoint(x: 61.5859, y: 0.585786))
@@ -128,21 +123,14 @@ private struct FloatingHintShape: Shape {
 }
 
 #Preview("Tap allow") {
-    FloatingHint(text: "Tap allow")
+    FloatingPointerBubble(text: "Tap allow")
         .padding()
         .background(Color(designSystemColor: .surface))
 }
 
-#Preview("Custom text") {
-    FloatingHint(text: "Tap here to continue")
+#Preview("Dark") {
+    FloatingPointerBubble(text: "Tap allow")
         .padding()
         .background(Color(designSystemColor: .surface))
-}
-
-#Preview("On dimmed background") {
-    ZStack {
-        Color.black.opacity(0.4)
-            .ignoresSafeArea()
-        FloatingHint(text: "Tap allow")
-    }
+        .preferredColorScheme(.dark)
 }
