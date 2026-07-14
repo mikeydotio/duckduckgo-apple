@@ -328,16 +328,18 @@ final class AIChatHistoryViewController: UIViewController {
         }
     }
 
-    /// A toolbar button showing an icon and a title. On iOS 16+ it's a standard bar item, so the
-    /// system styles it natively (including iOS 26 liquid glass); a custom view would instead get
-    /// double-wrapped in glass. iOS 15 falls back to icon only.
+    /// A toolbar button showing an icon and a title. A standard bar item drops the title in a
+    /// toolbar on iOS 26, so this uses a custom view — but with a `.plain` (transparent) config so
+    /// the system's own glass wrapper is the only background, rather than nesting a second material.
     private func makeToolbarItem(title: String, image: UIImage, action: Selector) -> UIBarButtonItem {
-        if #available(iOS 16.0, *) {
-            return UIBarButtonItem(title: title, image: image, target: self, action: action)
-        }
-        let item = UIBarButtonItem(image: image, style: .plain, target: self, action: action)
-        item.accessibilityLabel = title
-        return item
+        var config = UIButton.Configuration.plain()
+        config.image = image
+        config.title = title
+        config.imagePadding = 6
+        let button = UIButton(configuration: config)
+        button.tintColor = UIColor(designSystemColor: .icons)
+        button.addTarget(self, action: action, for: .touchUpInside)
+        return UIBarButtonItem(customView: button)
     }
 
     private func updateSelectionActionButtons() {
@@ -490,10 +492,12 @@ final class AIChatHistoryViewController: UIViewController {
         // Search and selection are mutually exclusive; leave search first.
         if isSearchVisible { dismissSearch() }
         isEditingChats = true
-        tableView.setEditing(true, animated: true)
         viewModel.editModeEntered()
+        // Place the prominent Done button before starting the edit animation so its accent tint is
+        // rendered up front rather than fading in after the transition settles.
         configureNavigationButtons()
         configureToolbar()
+        tableView.setEditing(true, animated: true)
     }
 
     private func exitSelectionMode() {
