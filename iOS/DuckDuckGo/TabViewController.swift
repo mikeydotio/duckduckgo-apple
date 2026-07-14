@@ -2762,6 +2762,25 @@ extension TabViewController: WKNavigationDelegate {
             return
         }
 
+        // Search Token experiment (subtask 2) — TEMP diagnostic: confirm SERP main-frame
+        // navigations reach this choke point, and observe which arrive as .backForward
+        // (those later phases cannot cancel+reload). Falls through — no mutation. Remove before merge.
+        if navigationAction.isTargetingMainFrame(),
+           let url = navigationAction.request.url,
+           SerpSearchTokenInterceptor.isSerpURL(url) {
+            let typeLabel: String
+            switch navigationAction.navigationType {
+            case .linkActivated: typeLabel = "linkActivated"
+            case .formSubmitted: typeLabel = "formSubmitted"
+            case .backForward: typeLabel = "backForward"
+            case .reload: typeLabel = "reload"
+            case .formResubmitted: typeLabel = "formResubmitted"
+            case .other: typeLabel = "other"
+            @unknown default: typeLabel = "unknown"
+            }
+            Logger.general.debug("SearchToken: SERP nav type=\(typeLabel, privacy: .public) url=\(url.absoluteString, privacy: .public)")
+        }
+
         if navigationAction.navigationType == .linkActivated,
            let url = navigationAction.request.url,
            let modifierFlags = delegate?.tabWillRequestNewTab(self) {
