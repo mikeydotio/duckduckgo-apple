@@ -209,14 +209,7 @@ final class AIChatHistoryViewController: UIViewController {
         }
         if isEditingChats {
             navigationItem.leftBarButtonItem = nil
-            let done = UIBarButtonItem(
-                image: DesignSystemImages.Glyphs.Size24.checkCircle,
-                style: .done,
-                target: self,
-                action: #selector(selectionDoneTapped)
-            )
-            done.accessibilityLabel = UserText.navigationTitleDone
-            navigationItem.rightBarButtonItems = [done]
+            navigationItem.rightBarButtonItems = [makeSelectionDoneItem()]
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
             // Rightmost item comes first: overflow menu, then search to its left.
@@ -325,14 +318,35 @@ final class AIChatHistoryViewController: UIViewController {
     }
 
     /// A capsule toolbar button showing both an icon and a title (system bar items show only one).
+    /// Uses liquid glass on iOS 26 to match the surrounding toolbar; a gray capsule before that.
     private func makeTitledToolbarItem(image: UIImage, title: String, action: Selector) -> UIBarButtonItem {
-        var config = UIButton.Configuration.gray()
+        var config: UIButton.Configuration
+        if #available(iOS 26, *) {
+            config = traitCollection.userInterfaceStyle == .dark ? .clearGlass() : .glass()
+        } else {
+            config = .gray()
+        }
         config.image = image
         config.title = title
         config.imagePadding = 6
         config.cornerStyle = .capsule
         let button = UIButton(configuration: config)
+        button.tintColor = UIColor(designSystemColor: .icons)
         button.addTarget(self, action: action, for: .touchUpInside)
+        return UIBarButtonItem(customView: button)
+    }
+
+    /// The design's Done control is a filled accent circle with a white check (a prominent action),
+    /// not the tinted glyph a plain `.done` bar item renders.
+    private func makeSelectionDoneItem() -> UIBarButtonItem {
+        var config = UIButton.Configuration.borderedProminent()
+        config.image = DesignSystemImages.Glyphs.Size24.check
+        config.cornerStyle = .capsule
+        config.baseBackgroundColor = UIColor(designSystemColor: .accentPrimary)
+        config.baseForegroundColor = .white
+        let button = UIButton(configuration: config)
+        button.addTarget(self, action: #selector(selectionDoneTapped), for: .touchUpInside)
+        button.accessibilityLabel = UserText.navigationTitleDone
         return UIBarButtonItem(customView: button)
     }
 
@@ -520,6 +534,8 @@ final class AIChatHistoryViewController: UIViewController {
 
     private func presentSearch() {
         installSearchHeader()
+        // Show the cancel control up front so the field doesn't animate its width shrinking on first focus.
+        searchBar.setShowsCancelButton(true, animated: false)
         isSearchVisible = true
         searchBar.becomeFirstResponder()
     }
