@@ -13775,7 +13775,6 @@
 				1EEF124E2850EADE003DDE57 /* PrivacyIconView.swift in Sources */,
 				CB3B4D442D5F757A006DAD63 /* StatisticsService.swift in Sources */,
 				3666D877300193CC00B63F99 /* SubscriptionOnboardingUserText.swift in Sources */,
-				9FB027122C2526DD009EA190 /* OnboardingView+IntroDialogContent.swift in Sources */,
 				CBB4A8532FD302B700A65956 /* DuckAISuggestionsSelection.swift in Sources */,
 				C1DA98EB2E7C653F00F8BED9 /* SyncRecoveryAlternativeView.swift in Sources */,
 				EE4BE0092A740BED00CD6AA8 /* ClearTextField.swift in Sources */,
