@@ -206,19 +206,20 @@ final class AIChatHistoryViewController: UIViewController {
         var config = UIButton.Configuration.filled()
         config.image = DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate)
         config.baseBackgroundColor = UIColor(designSystemColor: .accentPrimary)
-        config.baseForegroundColor = .white
+        // Matched content-on-accent token so the check has correct contrast in light and dark.
+        config.baseForegroundColor = UIColor(designSystemColor: .accentContentPrimary)
         config.cornerStyle = .capsule
         config.contentInsets = .zero
         let button = UIButton(configuration: config)
-        button.tintColor = .white
+        button.tintColor = UIColor(designSystemColor: .accentContentPrimary)
         // Required so the fixed size below is honored (a square → capsule renders as a circle);
         // otherwise the button keeps its wider intrinsic pill size.
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(selectionDoneTapped), for: .touchUpInside)
         button.accessibilityLabel = UserText.navigationTitleDone
         NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 36),
-            button.heightAnchor.constraint(equalToConstant: 36)
+            button.widthAnchor.constraint(equalToConstant: 44),
+            button.heightAnchor.constraint(equalToConstant: 44)
         ])
         return UIBarButtonItem(customView: button)
     }
