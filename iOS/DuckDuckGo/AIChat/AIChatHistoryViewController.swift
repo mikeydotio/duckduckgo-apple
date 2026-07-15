@@ -183,7 +183,7 @@ final class AIChatHistoryViewController: UIViewController {
         navigationItem.rightBarButtonItem = edit
     }
 
-    /// Redesign nav bar: close + overflow menu normally; a Done check while selecting.
+    /// Redesign nav bar: close + search + overflow menu normally; a Done check while selecting.
     private func configureNavigationButtons() {
         guard isRedesignEnabled else {
             configureLegacyNavigationButtons()
@@ -194,8 +194,20 @@ final class AIChatHistoryViewController: UIViewController {
             navigationItem.rightBarButtonItem = makeSelectionDoneItem()
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
-            navigationItem.rightBarButtonItem = makeOverflowMenuItem()
+            // Rightmost item first: overflow menu, then search to its left (matches the design).
+            navigationItem.rightBarButtonItems = [makeOverflowMenuItem(), makeSearchBarButtonItem()]
         }
+    }
+
+    private func makeSearchBarButtonItem() -> UIBarButtonItem {
+        let item = UIBarButtonItem(
+            image: DesignSystemImages.Glyphs.Size24.findSearchSmall,
+            style: .plain,
+            target: self,
+            action: #selector(searchButtonTapped)
+        )
+        item.accessibilityLabel = UserText.aiChatHistorySearchAccessibilityLabel
+        return item
     }
 
     private func makeSelectionDoneItem() -> UIBarButtonItem {
@@ -413,6 +425,10 @@ final class AIChatHistoryViewController: UIViewController {
 
     @objc private func composeButtonTapped() {
         viewModel.newChatTapped()
+    }
+
+    @objc private func searchButtonTapped() {
+        searchBar.becomeFirstResponder()
     }
 
     @objc private func fireButtonTapped(_ sender: UIBarButtonItem) {
