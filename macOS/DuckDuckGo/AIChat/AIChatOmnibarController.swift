@@ -668,7 +668,7 @@ final class AIChatOmnibarController {
     /// Opens the subscription activation flow, for a user who already has a subscription (e.g.
     /// purchased on another device) and wants to sign in rather than purchase again.
     func presentSubscriptionActivationFlow() {
-        Application.appDelegate.subscriptionNavigationCoordinator.navigateToSubscriptionActivation()
+        subscriptionUpsellPresenter.presentSubscriptionActivation()
     }
 
     /// The model used for image-generation submissions: the selected model when it supports

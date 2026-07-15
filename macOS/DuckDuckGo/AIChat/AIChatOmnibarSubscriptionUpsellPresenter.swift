@@ -31,6 +31,10 @@ protocol AIChatOmnibarSubscriptionUpselling {
     /// is known to be gated) or no flow applies.
     @discardableResult
     func routeGatedSelection(requiredTier: AIChatModelPublicAccessTier, userTier: AIChatUserTier, origin: SubscriptionFunnelOrigin) -> Bool
+
+    /// Opens the subscription activation flow, for a user who already has a subscription (e.g.
+    /// purchased on another device) and wants to sign in rather than purchase again.
+    func presentSubscriptionActivation()
 }
 
 @MainActor
@@ -59,6 +63,10 @@ struct AIChatOmnibarSubscriptionUpsellPresenter: AIChatOmnibarSubscriptionUpsell
             Logger.aiChat.debug("No subscription flow for gated Duck.ai selection")
             return false
         }
+    }
+
+    func presentSubscriptionActivation() {
+        coordinator.navigateToSubscriptionActivation()
     }
 
     private func firePixel(currentTier: AIChatUserTier, requiredTier: AIChatModelPublicAccessTier, flowType: String) {
