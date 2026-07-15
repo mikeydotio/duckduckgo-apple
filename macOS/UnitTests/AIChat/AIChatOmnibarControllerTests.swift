@@ -1489,6 +1489,35 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         XCTAssertNil(controller.effectiveReasoningEffort)
     }
 
+    func testWhenPersistedEffortIsGatedAboveTier_ThenDisplayedReasoningEffortIsNil() async {
+        // Given — same downgrade scenario: a free user with a persisted `.medium` the model still
+        // supports but the tier can't access. The chip must not present a gated effort as selected;
+        // it falls back to the accessible default (mirrors effectiveReasoningEffort).
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = true
+        setUserTier(nil)
+        mockModelsService.modelsToReturn = [
+            makeRemoteModel(
+                id: "gated-effort-model",
+                entityHasAccess: true,
+                supportedReasoningEffort: [.none, .low, .medium],
+                reasoningEffortAccess: [
+                    AIChatReasoningEffortAccess(effort: .none, accessTier: ["free", "plus", "pro"], entityHasAccess: true),
+                    AIChatReasoningEffortAccess(effort: .low, accessTier: ["free", "plus", "pro"], entityHasAccess: true),
+                    AIChatReasoningEffortAccess(effort: .medium, accessTier: ["plus", "pro"], entityHasAccess: false)
+                ]
+            )
+        ]
+        mockPreferences.selectedModelId = "gated-effort-model"
+        mockPreferences.selectedReasoningEffort = "medium"
+
+        // When
+        controller.onOmnibarActivated()
+        await waitForModels()
+
+        // Then
+        XCTAssertNil(controller.displayedReasoningEffort)
+    }
+
     func testWhenFeatureFlagDisabled_ThenEffectiveReasoningEffortIsNilEvenIfSelected() {
         // Given — user previously selected an effort while flag was on
         featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = false

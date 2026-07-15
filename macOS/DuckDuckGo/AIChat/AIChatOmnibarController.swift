@@ -600,10 +600,12 @@ final class AIChatOmnibarController {
     /// The picker effort that visually represents the persisted selection. Returns the stored
     /// effort directly when it's in the picker list; otherwise maps to its bucket equivalent
     /// (`.medium` → `.high`, `.minimal` → `.none`) so the chip label/icon and the menu checkmark
-    /// stay in sync with what's actually submitted. Submission still sends the persisted value
-    /// unchanged via `effectiveReasoningEffort`.
+    /// stay in sync with what's actually submitted. Returns nil when the stored effort is gated
+    /// above the current tier, so the chip falls back to the accessible default — matching
+    /// `effectiveReasoningEffort`, which also drops a gated stored value rather than submitting it.
     var displayedReasoningEffort: AIChatReasoningEffort? {
-        guard let stored = selectedReasoningEffort else { return nil }
+        guard let stored = selectedReasoningEffort,
+              isReasoningEffortAccessible(stored) else { return nil }
         let efforts = pickerReasoningEfforts
         if efforts.contains(stored) { return stored }
         switch stored {
