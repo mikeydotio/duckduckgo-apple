@@ -444,8 +444,12 @@ final class AIChatHistoryViewController: UIViewController {
     }
 
     @objc private func searchButtonTapped() {
-        installSearchHeader()
-        searchBar.becomeFirstResponder()
+        if tableView.tableHeaderView != nil {
+            hideSearchBarIfNeeded()
+        } else {
+            installSearchHeader()
+            searchBar.becomeFirstResponder()
+        }
     }
 
     @objc private func fireButtonTapped(_ sender: UIBarButtonItem) {
