@@ -1,6 +1,5 @@
 //
 //  FloatingPointerBubble.swift
-//  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -17,32 +16,51 @@
 //  limitations under the License.
 //
 
+#if os(iOS)
+
 import SwiftUI
 import DesignResourcesKit
 
-struct FloatingPointerBubble: View {
+/// A pill with an up-arrow on top that gently bounces to point at the element beneath it.
+/// Styling is caller-configurable; the defaults use design-system colours so it can be dropped
+/// in anywhere without extra setup.
+public struct FloatingPointerBubble: View {
 
-    let text: String
+    private let text: String
+    private let font: Font
+    private let backgroundColor: Color
+    private let foregroundColor: Color
+    private let pillCornerRadius: CGFloat
+
     @State private var isBouncing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(text: String) {
+    public init(
+        text: String,
+        // No dax token at 17pt medium.
+        font: Font = .system(size: 17, weight: .medium),
+        backgroundColor: Color = Color(designSystemColor: .accentPrimary),
+        foregroundColor: Color = Color(designSystemColor: .buttonsWhite),
+        pillCornerRadius: CGFloat = 16
+    ) {
         self.text = text
+        self.font = font
+        self.backgroundColor = backgroundColor
+        self.foregroundColor = foregroundColor
+        self.pillCornerRadius = pillCornerRadius
     }
 
-    var body: some View {
+    public var body: some View {
         Text(text)
-            // No dax token at 17pt medium
-            .font(.system(size: 17, weight: .medium))
-            .foregroundColor(Color(designSystemColor: .buttonsWhite))
+            .font(font)
+            .foregroundColor(foregroundColor)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .padding(.top, FloatingPointerBubbleShape.arrowHeight)
             .background(
-                FloatingPointerBubbleShape()
-                    .fill(accentColor)
+                FloatingPointerBubbleShape(pillCornerRadius: pillCornerRadius)
+                    .fill(backgroundColor)
             )
-            // Flatten text + bubble into one layer so the bounce animates them together (prevents drift).
             .compositingGroup()
             .offset(y: isBouncing ? -8 : 0)
             .animation(
@@ -54,17 +72,13 @@ struct FloatingPointerBubble: View {
                 isBouncing = true
             }
     }
-
-    private var accentColor: Color {
-        Color(singleUseColor: .fireModeAccent)
-    }
 }
 
 /// Single continuous outline combining an up-arrow at top with a pill at bottom.
 private struct FloatingPointerBubbleShape: Shape {
 
     /// Vertical space the arrow occupies above the pill (apex to shaft base), in rect coordinates.
-    static let arrowHeight: CGFloat = 33
+    static let arrowHeight: CGFloat = arrowPath.boundingRect.maxY
 
     var pillCornerRadius: CGFloat = 16
 
@@ -88,8 +102,8 @@ private struct FloatingPointerBubbleShape: Shape {
         }
     }
 
-    /// Horizontal center of the arrow (viewBox width 126).
-    private static let arrowCenterX: CGFloat = 63
+    /// Horizontal center of the arrow.
+    private static let arrowCenterX: CGFloat = arrowPath.boundingRect.midX
 
     /// Arrow subpath: apex at y~0, shaft base at y~33, so it slots directly above the pill top.
     private static let arrowPath: Path = {
@@ -125,12 +139,14 @@ private struct FloatingPointerBubbleShape: Shape {
 #Preview("Tap allow") {
     FloatingPointerBubble(text: "Tap allow")
         .padding()
-        .background(Color(designSystemColor: .surface))
+        .background(Color(designSystemColor: .surfaceTertiary))
 }
 
 #Preview("Dark") {
     FloatingPointerBubble(text: "Tap allow")
         .padding()
-        .background(Color(designSystemColor: .surface))
+        .background(Color(designSystemColor: .surfaceTertiary))
         .preferredColorScheme(.dark)
 }
+
+#endif

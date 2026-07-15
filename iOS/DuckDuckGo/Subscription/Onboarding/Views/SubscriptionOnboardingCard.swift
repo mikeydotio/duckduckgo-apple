@@ -68,7 +68,7 @@ struct SubscriptionOnboardingCard<Header: View, Items: View, Footer: View>: View
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(designSystemColor: .surfaceSecondary))
+        .background(Color(designSystemColor: .decorationQuaternary))
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay {
             if style == .bordered {
@@ -123,11 +123,10 @@ extension SubscriptionOnboardingCard where Items == CardItemList, Footer == Empt
          padding: CGFloat = 16,
          dividerLeadingInset: CGFloat? = nil,
          contentInset: CardItemList.ContentInset = .zero,
-         isRowSelectable: @escaping (Int) -> Bool = { _ in true },
-         onSelect: ((Int) -> Void)? = nil,
+         onSelect: @escaping (Int) -> (() -> Void)? = { _ in nil },
          @ViewBuilder header: @escaping () -> Header) {
         self.init(style: style, padding: padding, header: header, items: {
-            CardItemList(items, dividerLeadingInset: dividerLeadingInset, contentInset: contentInset, isRowSelectable: isRowSelectable, onSelect: onSelect)
+            CardItemList(items, dividerLeadingInset: dividerLeadingInset, contentInset: contentInset, onSelect: onSelect)
         }, footer: { EmptyView() })
     }
 
@@ -138,92 +137,10 @@ extension SubscriptionOnboardingCard where Items == CardItemList, Footer == Empt
          padding: CGFloat = 16,
          dividerLeadingInset: CGFloat? = nil,
          contentInset: CardItemList.ContentInset = .zero,
-         isRowSelectable: @escaping (Int) -> Bool = { _ in true },
-         onSelect: ((Int) -> Void)? = nil) where Header == EmptyView {
+         onSelect: @escaping (Int) -> (() -> Void)? = { _ in nil }) where Header == EmptyView {
         self.init(style: style, padding: padding, header: { EmptyView() }, items: {
-            CardItemList(items, dividerLeadingInset: dividerLeadingInset, contentInset: contentInset, isRowSelectable: isRowSelectable, onSelect: onSelect)
+            CardItemList(items, dividerLeadingInset: dividerLeadingInset, contentInset: contentInset, onSelect: onSelect)
         }, footer: { EmptyView() })
-    }
-}
-
-// MARK: - Card Item List
-
-/// Lays out a `[CardItem]` as a vertical list with a hairline divider between adjacent rows (a single
-/// item, or none, draws no divider). Drop it into a `SubscriptionOnboardingCard`'s `items` slot — the
-/// list convenience initializers do this for you; use it directly for other layouts.
-struct CardItemList: View {
-    /// Per-row content padding — insets each row's content horizontally and vertically so the padding
-    /// becomes part of the row's tap target (and the vertical inset sets the gap between adjacent rows).
-    /// `.zero` (the default) leaves rows unpadded and flush.
-    struct ContentInset {
-        let horizontal: CGFloat
-        let vertical: CGFloat
-
-        static let zero = ContentInset(horizontal: 0, vertical: 0)
-    }
-
-    private let items: [CardItem]
-    private let dividerLeadingInset: CGFloat?
-    private let contentInset: ContentInset
-    private let isRowSelectable: (Int) -> Bool
-    private let onSelect: ((Int) -> Void)?
-
-    /// - Parameters:
-    ///   - items: The rows, top to bottom.
-    ///   - dividerLeadingInset: How far each divider clears the icon column so it starts under the text.
-    ///     `contentInset.horizontal` is added automatically and mirrored on the trailing edge. Defaults to
-    ///     `nil`, deriving the inset from each row's leading icon column; pass an explicit value (`0` for a
-    ///     full-width divider) to override.
-    ///   - contentInset: Per-row padding that becomes part of each row's tap target (and sets the gap
-    ///     between rows via its vertical inset). Defaults to `.zero`.
-    ///   - isRowSelectable: Whether the row at a given index is tappable. Defaults to every row; combine
-    ///     with `onSelect` to make only some rows interactive.
-    ///   - onSelect: Called with the tapped row's index; when `nil` the rows are not interactive.
-    init(_ items: [CardItem],
-         dividerLeadingInset: CGFloat? = nil,
-         contentInset: ContentInset = .zero,
-         isRowSelectable: @escaping (Int) -> Bool = { _ in true },
-         onSelect: ((Int) -> Void)? = nil) {
-        self.items = items
-        self.dividerLeadingInset = dividerLeadingInset
-        self.contentInset = contentInset
-        self.isRowSelectable = isRowSelectable
-        self.onSelect = onSelect
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.offset) { entry in
-                if entry.offset > 0 {
-                    Color(designSystemColor: .lines)
-                        .frame(height: 1)
-                        .padding(.leading, contentInset.horizontal + (dividerLeadingInset ?? entry.element.leadingIconColumnWidth))
-                        .padding(.trailing, contentInset.horizontal)
-                }
-                row(entry.element, at: entry.offset)
-            }
-        }
-    }
-}
-
-// MARK: - Card Item List Layout
-
-private extension CardItemList {
-    @ViewBuilder
-    func row(_ item: CardItem, at index: Int) -> some View {
-        let padded = item
-            .padding(.horizontal, contentInset.horizontal)
-            .padding(.vertical, contentInset.vertical)
-        if let onSelect, isRowSelectable(index) {
-            Button {
-                onSelect(index)
-            } label: {
-                padded.contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        } else {
-            padded
-        }
     }
 }
 
@@ -304,11 +221,11 @@ private struct SubscriptionOnboardingCardPreviewSamples: View {
                         title: CardItemText("Claude", font: .bodyRegular),
                         titleDetails: [CardItemText("· PLUS", font: .footnoteRegular)],
                         trailing: selection == 1 ? .checkmark(Color(designSystemColor: .accentPrimary)) : nil),
-                ], style: .borderless, padding: 0, contentInset: .init(horizontal: 16, vertical: 12), onSelect: { selection = $0 })
+                ], style: .borderless, padding: 0, contentInset: .init(horizontal: 16, vertical: 12), onSelect: { index in { selection = index } })
             }
             .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

@@ -46,7 +46,7 @@ struct SubscriptionOnboardingWelcomeListView: View {
             style: .borderless,
             padding: 0,
             contentInset: .init(horizontal: Metrics.contentInsetHorizontal, vertical: Metrics.contentInsetVertical),
-            onSelect: { onSelect(features[$0]) })
+            onSelect: CardItemList.selectAction(over: features) { onSelect($0) })
     }
 }
 
@@ -59,7 +59,7 @@ private extension SubscriptionOnboardingWelcomeListView {
             trailing: .chevron(Color(designSystemColor: .iconsTertiary)))
     }
 
-    static func visual(for feature: SubscriptionOnboardingChecklistItem) -> CardVisual {
+    static func visual(for feature: SubscriptionOnboardingChecklistItem) -> Graphic {
         switch feature {
         case .vpn: colorIcon(DesignSystemImages.Color.Size24.vpn)
         case .idtr: colorIcon(DesignSystemImages.Color.Size24.identityTheftRestoration)
@@ -68,7 +68,7 @@ private extension SubscriptionOnboardingWelcomeListView {
         }
     }
 
-    static func colorIcon(_ uiImage: UIImage) -> CardVisual {
+    static func colorIcon(_ uiImage: UIImage) -> Graphic {
         .image(Image(uiImage: uiImage))
     }
 
@@ -99,7 +99,7 @@ private struct SubscriptionOnboardingWelcomeListViewPreview: View {
             SubscriptionOnboardingWelcomeListView(onSelect: { _ in })
                 .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

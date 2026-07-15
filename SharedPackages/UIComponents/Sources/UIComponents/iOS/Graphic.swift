@@ -1,5 +1,5 @@
 //
-//  CardVisual.swift
+//  Graphic.swift
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
 //
@@ -20,20 +20,20 @@
 
 import SwiftUI
 
-/// A visual displayed by a card component: either a static image or a Lottie animation.
+/// A visual displayed by ``GraphicView``: either a static image or a Lottie animation.
 ///
 /// `.image` renders statically. `.lottie` is drawn by an app-injected renderer (`UIComponents` has
-/// no Lottie dependency); see ``CardVisualLottieRenderer``. Animation is therefore opt-in per use.
-public enum CardVisual {
+/// no Lottie dependency); see ``GraphicLottieRenderer``. Animation is therefore opt-in per use.
+public enum Graphic {
     case image(Image)
     case lottie(name: String)
 }
 
-/// The playback a host should apply to a ``CardVisual/lottie(name:)``.
+/// The playback a host should apply to a ``Graphic/lottie(name:)``.
 ///
-/// The card views derive this value (Lottie-free) from appearance and Reduce Motion, so the
-/// app-supplied ``CardVisualLottieRenderer`` only has to map it onto a Lottie playback mode.
-public enum CardVisualPlayback: Equatable {
+/// ``GraphicView`` derives this value (Lottie-free) from appearance and Reduce Motion, so the
+/// app-supplied ``GraphicLottieRenderer`` only has to map it onto a Lottie playback mode.
+public enum GraphicPlayback: Equatable {
     /// Not yet on screen; the animation should not play.
     case idle
     /// Play once, forward, from start to end.
@@ -43,26 +43,26 @@ public enum CardVisualPlayback: Equatable {
 
     /// Resolves the playback for a `.lottie` visual: play once on appear, or freeze on the final
     /// frame when Reduce Motion is enabled.
-    static func resolve(hasAppeared: Bool, reduceMotion: Bool) -> CardVisualPlayback {
+    static func resolve(hasAppeared: Bool, reduceMotion: Bool) -> GraphicPlayback {
         guard hasAppeared else { return .idle }
         return reduceMotion ? .frozenAtEnd : .playOnce
     }
 }
 
-/// Renders a ``CardVisual`` in a square frame.
+/// Renders a ``Graphic`` in a square frame.
 ///
-/// `.image` renders natively. `.lottie` is drawn by the environment's ``CardVisualLottieRenderer``;
+/// `.image` renders natively. `.lottie` is drawn by the environment's ``GraphicLottieRenderer``;
 /// when none is injected it renders nothing. This view owns appearance and Reduce Motion state and
-/// derives the ``CardVisualPlayback``, keeping that decision Lottie-free and testable.
-public struct CardVisualView: View {
-    private let visual: CardVisual
+/// derives the ``GraphicPlayback``, keeping that decision Lottie-free and testable.
+public struct GraphicView: View {
+    private let visual: Graphic
     private let size: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.cardVisualLottieRenderer) private var lottieRenderer
+    @Environment(\.graphicLottieRenderer) private var lottieRenderer
     @State private var hasAppeared = false
 
-    public init(visual: CardVisual, size: CGFloat) {
+    public init(visual: Graphic, size: CGFloat) {
         self.visual = visual
         self.size = size
     }
@@ -70,7 +70,12 @@ public struct CardVisualView: View {
     public var body: some View {
         content
             .frame(width: size, height: size)
-            .onAppear { hasAppeared = true }
+            .onAppear {
+                hasAppeared = true
+                if case .lottie(let name) = visual, lottieRenderer == nil {
+                    assertionFailure("Graphic.lottie(\"\(name)\") needs a GraphicLottieRenderer — inject one via .graphicLottieRenderer(_:).")
+                }
+            }
     }
 
     @ViewBuilder
@@ -90,19 +95,19 @@ public struct CardVisualView: View {
 
 #if DEBUG
 
-private struct CardVisualPreviewSamples: View {
+private struct GraphicPreviewSamples: View {
     var body: some View {
-        CardVisualView(visual: .image(Image(systemName: "bolt.shield.fill")), size: 88)
+        GraphicView(visual: .image(Image(systemName: "bolt.shield.fill")), size: 88)
             .padding()
     }
 }
 
 #Preview("Light") {
-    CardVisualPreviewSamples()
+    GraphicPreviewSamples()
 }
 
 #Preview("Dark") {
-    CardVisualPreviewSamples()
+    GraphicPreviewSamples()
         .preferredColorScheme(.dark)
 }
 

@@ -46,7 +46,7 @@ struct SubscriptionOnboardingVPNTipsCarousel: View {
         }
     }
 
-    fileprivate enum Tip: CaseIterable {
+    private enum Tip: CaseIterable {
         case noCaps
         case speed
         case blocked
@@ -77,8 +77,8 @@ struct SubscriptionOnboardingVPNTipsCarousel: View {
     }
 }
 
-private extension SubscriptionOnboardingVPNTipsCarousel {
-    func card(for tip: Tip) -> some View {
+extension SubscriptionOnboardingVPNTipsCarousel {
+    private func card(for tip: Tip) -> some View {
         SubscriptionOnboardingCard(
             CardItem(
                 icon: CardItemIcon(position: .topLeading, visual: .image(tip.icon), size: .size56, spacing: Metrics.iconSpacing),
@@ -101,7 +101,7 @@ private struct SubscriptionOnboardingVPNTipsCarouselPreview: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

@@ -33,11 +33,11 @@ struct SubscriptionOnboardingSetupCard: View {
         static let buttonTopSpacing: CGFloat = 16
     }
 
-    private let visual: CardVisual
+    private let visual: Graphic
     private let percentage: Int
     private let onContinue: () -> Void
 
-    init(visual: CardVisual,
+    init(visual: Graphic,
          percentage: Int,
          onContinue: @escaping () -> Void) {
         self.visual = visual
@@ -60,7 +60,12 @@ struct SubscriptionOnboardingSetupCard: View {
     }
 
     private var title: String {
-        String(format: UserText.subscriptionOnboardingSetupCardTitleFormat, percentage)
+        String(format: UserText.subscriptionOnboardingSetupCardTitleFormat, clampedPercentage)
+    }
+
+    // TODO|htang: remove once percentage clamping is centralized in SubscriptionOnboardingFlowViewModel.
+    private var clampedPercentage: Int {
+        min(max(percentage, 0), 100)
     }
 }
 
@@ -82,7 +87,7 @@ private struct SubscriptionOnboardingSetupCardPreview: View {
             }
             .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

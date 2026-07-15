@@ -23,23 +23,6 @@ import DesignResourcesKit
 
 // MARK: - Configuration
 
-/// The design-system size for a ``CardItem``'s icon.
-public enum CardItemIconSize {
-    case size24
-    case size32
-    case size40
-    case size56
-
-    var points: CGFloat {
-        switch self {
-        case .size24: 24
-        case .size32: 32
-        case .size40: 40
-        case .size56: 56
-        }
-    }
-}
-
 /// An icon shown by a ``CardItem``, together with where it sits relative to the text.
 public struct CardItemIcon {
     /// The icon's position relative to the card item's text block.
@@ -52,13 +35,30 @@ public struct CardItemIcon {
         case leadingColumn
     }
 
+    /// The design-system size for a ``CardItem``'s icon.
+    public enum Size {
+        case size24
+        case size32
+        case size40
+        case size56
+
+        var points: CGFloat {
+            switch self {
+            case .size24: 24
+            case .size32: 32
+            case .size40: 40
+            case .size56: 56
+            }
+        }
+    }
+
     public let position: Position
-    public let visual: CardVisual
-    public let size: CardItemIconSize
+    public let visual: Graphic
+    public let size: Size
     /// The gap between the icon and the text block — horizontal for a leading icon, vertical for `.topLeading`.
     public let spacing: CGFloat
 
-    public init(position: Position, visual: CardVisual, size: CardItemIconSize = .size24, spacing: CGFloat = 8) {
+    public init(position: Position, visual: Graphic, size: Size = .size24, spacing: CGFloat = 8) {
         self.position = position
         self.visual = visual
         self.size = size
@@ -98,11 +98,13 @@ public struct CardItemText {
     public let text: String
     public let font: CardItemFont
     public let color: Color?
+    public let modifier: AnyViewModifier?
 
-    public init(_ text: String, font: CardItemFont, color: Color? = nil) {
+    public init(_ text: String, font: CardItemFont, color: Color? = nil, modifier: AnyViewModifier? = nil) {
         self.text = text
         self.font = font
         self.color = color
+        self.modifier = modifier
     }
 }
 
@@ -204,6 +206,7 @@ private extension CardItem {
                 Text(verbatim: overline.text)
                     .font(overline.font.font)
                     .foregroundColor(overline.color ?? Color(designSystemColor: .textPrimary))
+                    .applyingModifier(overline.modifier)
             }
             VStack(alignment: .leading, spacing: titleTextSpacing) {
                 titleLine
@@ -212,6 +215,7 @@ private extension CardItem {
                         .font(text.font.font)
                         .foregroundColor(text.color ?? Color(designSystemColor: .textSecondary))
                         .fixedSize(horizontal: false, vertical: true)
+                        .applyingModifier(text.modifier)
                 }
             }
         }
@@ -226,18 +230,20 @@ private extension CardItem {
                     Text(verbatim: title.text)
                         .font(title.font.font)
                         .foregroundColor(title.color ?? Color(designSystemColor: .textPrimary))
+                        .applyingModifier(title.modifier)
                 }
                 ForEach(Array(titleDetails.enumerated()), id: \.offset) { _, detail in
                     Text(verbatim: detail.text)
                         .font(detail.font.font)
                         .foregroundColor(detail.color ?? Color(designSystemColor: .textSecondary))
+                        .applyingModifier(detail.modifier)
                 }
             }
         }
     }
 
     func iconVisual(_ icon: CardItemIcon) -> some View {
-        CardVisualView(visual: icon.visual, size: icon.size.points)
+        GraphicView(visual: icon.visual, size: icon.size.points)
     }
 
     @ViewBuilder
@@ -263,6 +269,15 @@ private extension View {
         if let value {
             accessibilityElement(children: .combine)
                 .accessibilityValue(value)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func applyingModifier(_ modifier: AnyViewModifier?) -> some View {
+        if let modifier {
+            self.modifier(modifier)
         } else {
             self
         }
@@ -343,6 +358,36 @@ private struct CardItemSparseSamples: View {
     }
 }
 
+private struct PreviewBlur: ViewModifier {
+    func body(content: Content) -> some View {
+        content.blur(radius: 6)
+    }
+}
+
+private struct PreviewDim: ViewModifier {
+    func body(content: Content) -> some View {
+        content.opacity(0.3)
+    }
+}
+
+private struct CardItemModifierSamples: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            CardItem(
+                icon: CardItemIcon(position: .leading, visual: .image(Image(systemName: "eye.slash.fill")), size: .size24),
+                overline: CardItemText("YOUR IP ADDRESS", font: .footnoteRegular),
+                title: CardItemText("31.120.130.50", font: .bodyRegular, modifier: AnyViewModifier(PreviewBlur())),
+                text: CardItemText("Madrid, Spain", font: .footnoteRegular, modifier: AnyViewModifier(PreviewBlur())))
+
+            CardItem(
+                icon: CardItemIcon(position: .leadingColumn, visual: .image(Image(systemName: "moon.fill")), size: .size24),
+                title: CardItemText("Dimmed title", font: .headline, modifier: AnyViewModifier(PreviewDim())),
+                text: CardItemText("Body stays untouched", font: .footnoteRegular))
+        }
+        .padding()
+    }
+}
+
 #Preview("Light") {
     CardItemPreviewSamples()
 }
@@ -359,6 +404,10 @@ private struct CardItemSparseSamples: View {
 
 #Preview("Sparse fields") {
     CardItemSparseSamples()
+}
+
+#Preview("Modifiers") {
+    CardItemModifierSamples()
 }
 
 #endif

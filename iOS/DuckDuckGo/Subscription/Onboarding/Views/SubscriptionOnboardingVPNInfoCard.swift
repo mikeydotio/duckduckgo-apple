@@ -30,36 +30,62 @@ import UIComponents
 struct SubscriptionOnboardingVPNInfoCard: View {
 
     /// Which IP the card describes; drives the overline label and the leading icon.
-    enum State {
+    enum IPState {
         case visibleIP
         case hiddenIP
         case newIP
     }
 
-    private let state: State
+    private let state: IPState
     private let ipAddress: String
     private let location: String
 
-    init(state: State, ipAddress: String, location: String) {
+    @State private var blurRadius: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let hiddenBlurRadius: CGFloat = 8
+
+    init(state: IPState, ipAddress: String, location: String) {
         self.state = state
         self.ipAddress = ipAddress
         self.location = location
     }
 
     var body: some View {
+        card
+            .accessibilityElement(children: .combine)
+            .onAppear {
+                guard state.hidesValues, blurRadius == 0 else { return }
+                if reduceMotion {
+                    blurRadius = Self.hiddenBlurRadius
+                } else {
+                    withAnimation(.easeInOut(duration: 0.4)) { blurRadius = Self.hiddenBlurRadius }
+                }
+            }
+    }
+
+    private var card: some View {
         SubscriptionOnboardingCard(
             CardItem(
                 icon: CardItemIcon(position: .leading, visual: .image(state.icon), size: .size24, spacing: 8),
                 overline: CardItemText(state.overline, font: .footnoteRegular),
-                title: CardItemText(ipAddress, font: .bodyRegular),
-                text: CardItemText(location, font: .footnoteRegular, color: Color(designSystemColor: .textPrimary))),
+                title: CardItemText(ipAddress, font: .bodyRegular, modifier: blurModifier),
+                text: CardItemText(location, font: .footnoteRegular, color: Color(designSystemColor: .textPrimary), modifier: blurModifier)),
             style: .borderless,
             contentInset: CardItemList.ContentInset(horizontal: 16, vertical: 14))
-        .accessibilityElement(children: .combine)
+    }
+
+    private var blurModifier: AnyViewModifier? {
+        state.hidesValues ? AnyViewModifier(BlurEffect(radius: blurRadius)) : nil
     }
 }
 
-private extension SubscriptionOnboardingVPNInfoCard.State {
+private extension SubscriptionOnboardingVPNInfoCard.IPState {
+    var hidesValues: Bool {
+        if case .hiddenIP = self { return true }
+        return false
+    }
+
     var overline: String {
         switch self {
         case .visibleIP: UserText.subscriptionOnboardingVPNInfoVisibleIP
@@ -71,8 +97,18 @@ private extension SubscriptionOnboardingVPNInfoCard.State {
     var icon: Image {
         switch self {
         case .visibleIP, .hiddenIP: Image(.onboardingVPNLocation24)
-        case .newIP: Image(uiImage: DesignSystemImages.Color.Size24.vpn)
+        case .newIP: Image(.onboardingVPNLocationColored24)
         }
+    }
+}
+
+private struct BlurEffect: ViewModifier {
+    let radius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: radius)
+            .accessibilityHidden(true)
     }
 }
 
@@ -88,7 +124,7 @@ private struct SubscriptionOnboardingVPNInfoCardPreview: View {
             }
             .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

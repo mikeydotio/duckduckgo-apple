@@ -80,7 +80,7 @@ private struct SubscriptionOnboardingListItemViewPreview: View {
             }
             .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

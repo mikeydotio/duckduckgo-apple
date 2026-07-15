@@ -49,7 +49,7 @@ struct SubscriptionOnboardingAIModelPicker: View {
                                    style: .borderless,
                                    padding: 0,
                                    contentInset: .init(horizontal: Metrics.contentInsetHorizontal, vertical: Metrics.contentInsetVertical),
-                                   onSelect: handleSelection)
+                                   onSelect: CardItemList.selectAction(over: models) { onSelect($0.id) })
     }
 }
 
@@ -76,12 +76,7 @@ private extension SubscriptionOnboardingAIModelPicker {
         }
     }
 
-    func handleSelection(_ index: Int) {
-        guard models.indices.contains(index) else { return }
-        onSelect(models[index].id)
-    }
-
-    func icon(for model: AIChatModel) -> CardVisual {
+    func icon(for model: AIChatModel) -> Graphic {
         if let menuIcon = model.menuIcon {
             return .image(Image(uiImage: menuIcon))
         }
@@ -99,7 +94,7 @@ private struct SubscriptionOnboardingAIModelPickerPreviewHost: View {
             SubscriptionOnboardingAIModelPicker(models: previewModels, selectedModelID: selection) { selection = $0 }
                 .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

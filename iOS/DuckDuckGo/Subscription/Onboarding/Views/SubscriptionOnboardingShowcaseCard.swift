@@ -31,11 +31,11 @@ struct SubscriptionOnboardingShowcaseCard: View {
         static let textBlockLeadingInset: CGFloat = 2
     }
 
-    private let visual: CardVisual
+    private let visual: Graphic
     private let title: String
     private let text: String
 
-    init(visual: CardVisual, title: String, text: String) {
+    init(visual: Graphic, title: String, text: String) {
         self.visual = visual
         self.title = title
         self.text = text
@@ -76,7 +76,7 @@ private struct SubscriptionOnboardingShowcaseCardPreview: View {
             }
             .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

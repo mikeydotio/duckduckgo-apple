@@ -21,13 +21,12 @@ import SwiftUI
 import DesignResourcesKit
 import UIComponents
 
-/// Derives what `SubscriptionOnboardingFreeTrialCalendarCard` renders from the trial dates: the current
-/// trial day, the calendar strip's day-of-month labels, the marker position, and the billing line. The
+/// Precomputes what `SubscriptionOnboardingFreeTrialCalendarCard` renders — the current trial day, the
+/// calendar strip's day-of-month labels, the marker position, and the billing line — deriving them at
+/// `init` from the `freeTrialStartDate` / `billingStartDate` inputs, which aren't themselves stored. The
 /// strip is anchored at `freeTrialStartDate` and spans `trialLength` days, so the marker advances to
 /// "today" as the trial progresses. `now` and `calendar` are injectable for deterministic tests/previews.
 struct SubscriptionOnboardingFreeTrialCalendarCardModel {
-    let freeTrialStartDate: Date
-    let billingStartDate: Date
     let trialLength: Int
 
     /// The 1-based day of the trial that today falls on, clamped to `1...trialLength`.
@@ -52,8 +51,6 @@ struct SubscriptionOnboardingFreeTrialCalendarCardModel {
          now: Date = Date(),
          calendar: Calendar = .current) {
         let trialLength = max(1, trialLength)
-        self.freeTrialStartDate = freeTrialStartDate
-        self.billingStartDate = billingStartDate
         self.trialLength = trialLength
 
         let start = calendar.startOfDay(for: freeTrialStartDate)
@@ -73,14 +70,9 @@ struct SubscriptionOnboardingFreeTrialCalendarCardModel {
             return localizedNumeral(calendar.component(.day, from: date))
         }
 
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.locale = locale
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        let dateStyle = Date.FormatStyle(date: .abbreviated, locale: locale, calendar: calendar, timeZone: calendar.timeZone)
         self.billingText = String(format: UserText.subscriptionOnboardingFreeTrialBillingFormat,
-                                  formatter.string(from: billingStartDate))
+                                  billingStartDate.formatted(dateStyle))
     }
 }
 
@@ -174,7 +166,7 @@ struct SubscriptionOnboardingFreeTrialCalendarCard: View {
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.freeTrialCalendarUnfilled)
+                    .fill(Color(singleUseColor: .rebranding(.calendarStripYellow)))
                     .frame(width: Metrics.stripWidth, height: Metrics.stripHeight)
 
                 Capsule()
@@ -202,13 +194,6 @@ struct SubscriptionOnboardingFreeTrialCalendarCard: View {
     private func clampedMarkerIndex(_ labels: [String]) -> Int {
         min(max(model.markerIndex, 0), max(labels.count - 1, 0))
     }
-}
-
-private extension Color {
-    /// `#FFEAB8` (`pollen20`) — not exposed as a public `DesignSystemColor` token, so set by value.
-    static let freeTrialCalendarUnfilled = Color(red: Double(0xFF) / 255,
-                                                 green: Double(0xEA) / 255,
-                                                 blue: Double(0xB8) / 255)
 }
 
 #if DEBUG
@@ -246,7 +231,7 @@ private struct SubscriptionOnboardingFreeTrialCalendarCardPreview: View {
             }
             .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
     }
 }
 

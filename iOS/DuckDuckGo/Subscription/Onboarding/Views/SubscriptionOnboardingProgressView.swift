@@ -58,11 +58,7 @@ struct SubscriptionOnboardingProgressView: View {
             style: .borderless,
             padding: 0,
             contentInset: .init(horizontal: Metrics.contentInsetHorizontal, vertical: Metrics.contentInsetVertical),
-            isRowSelectable: { index in
-                guard items.indices.contains(index) else { return false }
-                return isSelectable(items[index])
-            },
-            onSelect: rowSelectionHandler,
+            onSelect: rowSelectAction,
             header: { progressHeader })
         .foregroundColor(Color(designSystemColor: .textPrimary))
     }
@@ -88,17 +84,15 @@ private extension SubscriptionOnboardingProgressView {
         .padding(Metrics.headerPadding)
     }
 
+    // TODO|htang: remove once percentage clamping is centralized in SubscriptionOnboardingFlowViewModel.
     var clampedPercentage: Int {
         min(max(percentage, 0), 100)
     }
 
-    /// Translates a tapped row index into its checklist item for the caller; `nil` keeps the rows non-interactive.
-    var rowSelectionHandler: ((Int) -> Void)? {
-        guard let onSelect else { return nil }
-        return { index in
-            guard items.indices.contains(index) else { return }
-            onSelect(items[index])
-        }
+    /// The tap action for the row at `index`, or `nil` when it isn't selectable — only an incomplete PIR row is.
+    var rowSelectAction: (Int) -> (() -> Void)? {
+        guard let onSelect else { return { _ in nil } }
+        return CardItemList.selectAction(over: items, where: isSelectable) { onSelect($0) }
     }
 
     var checklistItems: [CardItem] {
@@ -114,9 +108,9 @@ private extension SubscriptionOnboardingProgressView {
     }
 
     /// Completed rows show the animated check
-    func visual(for item: SubscriptionOnboardingChecklistItem) -> CardVisual {
+    func visual(for item: SubscriptionOnboardingChecklistItem) -> Graphic {
         if completedItems.contains(item) {
-            // TODO|htang: production host must inject a cardVisualLottieRenderer that honors .frozenAtEnd (Reduce Motion); only a preview renderer exists so far.
+            // TODO|htang: production host must inject a graphicLottieRenderer that honors .frozenAtEnd (Reduce Motion); only a preview renderer exists so far.
             return .lottie(name: "check-color")
         }
         let glyph = item == .pir
@@ -191,8 +185,8 @@ private struct SubscriptionOnboardingProgressViewPreview: View {
             }
             .padding()
         }
-        .background(Color(designSystemColor: .background).ignoresSafeArea())
-        .cardVisualLottieRenderer(Self.previewLottieRenderer)
+        .background(Color(designSystemColor: .surfaceTertiary).ignoresSafeArea())
+        .graphicLottieRenderer(Self.previewLottieRenderer)
     }
 
     private static let items: [SubscriptionOnboardingChecklistItem] = [.vpn, .idtr, .duckAI, .pir]
@@ -201,7 +195,7 @@ private struct SubscriptionOnboardingProgressViewPreview: View {
 
     /// Renders the completed-check Lottie (`check-color`) in previews; at runtime the app injects its
     /// own renderer.
-    private static let previewLottieRenderer = CardVisualLottieRenderer { name, _ in
+    private static let previewLottieRenderer = GraphicLottieRenderer { name, _ in
         AnyView(
             Lottie.LottieView(animation: .named(name))
                 .playbackMode(.playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce)))
