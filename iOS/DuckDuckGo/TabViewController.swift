@@ -2767,13 +2767,17 @@ extension TabViewController: WKNavigationDelegate {
         // Enrolled devices only, skipping back/forward so we don't wipe forward history.
         if navigationAction.isTargetingMainFrame(),
            navigationAction.navigationType != .backForward,
-           let cohort = featureFlagger.assignedCohort(for: FeatureFlag.searchTokenExperiment) as? FeatureFlag.SearchTokenExperimentCohort,
-           let signalled = SerpSearchTokenInterceptor.signalledRequest(for: navigationAction.request,
-                                                                       isTreatment: cohort == .treatment,
-                                                                       token: delegate?.searchToken(for: self)) {
-            wrappedHandler(.cancel)
-            load(urlRequest: signalled)
-            return
+           let url = navigationAction.request.url,
+           SerpSearchTokenInterceptor.isSerpURL(url),
+           let cohort = featureFlagger.assignedCohort(for: FeatureFlag.searchTokenExperiment) as? FeatureFlag.SearchTokenExperimentCohort {
+            let token = cohort == .treatment ? delegate?.searchToken(for: self) : nil
+            if let signalled = SerpSearchTokenInterceptor.signalledRequest(for: navigationAction.request,
+                                                                           cohort: cohort,
+                                                                           token: token) {
+                wrappedHandler(.cancel)
+                load(urlRequest: signalled)
+                return
+            }
         }
 
         if navigationAction.navigationType == .linkActivated,

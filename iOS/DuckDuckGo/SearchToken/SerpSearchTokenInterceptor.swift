@@ -22,6 +22,17 @@ import Core
 import Common
 import AIChat
 
+extension FeatureFlag.SearchTokenExperimentCohort {
+    var paramValue: String {
+        switch self {
+        case .control:
+            return "a"
+        case .treatment:
+            return "b"
+        }
+    }
+}
+
 /// Builds the Search Token experiment request mutations for SERP navigations. Pure and
 /// WebKit-free so it is unit-testable; `TabViewController` performs the cancel+reload using
 /// the request this returns.
@@ -43,7 +54,7 @@ enum SerpSearchTokenInterceptor {
     ///   - isTreatment: `true` = treatment arm, `false` = control. Both arms get the param.
     ///   - token: live search token; used only for the treatment header. `nil`/expired → header skipped.
     static func signalledRequest(for request: URLRequest,
-                                 isTreatment: Bool,
+                                 cohort: FeatureFlag.SearchTokenExperimentCohort,
                                  token: String?) -> URLRequest? {
         guard let url = request.url, isSerpURL(url) else { return nil }
 
@@ -51,18 +62,24 @@ enum SerpSearchTokenInterceptor {
         var changed = false
 
         // dindexexp — both arms: control = a, treatment = b.
-        let dindexValue = isTreatment ? "b" : "a"
-        if url.getParameter(named: dindexParam) != dindexValue {
-            mutated.url = url.appendingParameter(name: dindexParam, value: dindexValue)
+        if url.getParameter(named: dindexParam) != cohort.paramValue {
+            mutated.url = url
+                .removingParameters(named: [dindexParam])
+                .appendingParameter(name: dindexParam, value: cohort.paramValue)
             changed = true
         }
 
         // X-DDG-Search-Token — treatment only, requires a live token. (Inert until the token is wired in.)
-        if isTreatment, let token, request.value(forHTTPHeaderField: tokenHeader) == nil {
+        if cohort == .treatment, let token, request.value(forHTTPHeaderField: tokenHeader) == nil {
             mutated.setValue(token, forHTTPHeaderField: tokenHeader)
             changed = true
         }
+        
+        if changed {
+            mutated.attribution = .user
+            return mutated
+        }
 
-        return changed ? mutated : nil
+        return nil
     }
 }
