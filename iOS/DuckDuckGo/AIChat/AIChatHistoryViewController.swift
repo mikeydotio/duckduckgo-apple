@@ -202,7 +202,7 @@ final class AIChatHistoryViewController: UIViewController {
         }
         if isEditingChats {
             navigationItem.leftBarButtonItem = nil
-            navigationItem.rightBarButtonItem = makeSelectionDoneItem()
+            navigationItem.rightBarButtonItems = [makeSelectionDoneItem()]
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
             if #available(iOS 26, *) {

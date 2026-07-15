@@ -63,6 +63,9 @@ final class AIChatHistoryCell: UITableViewCell {
         // attached through swipe gestures (without it the last row's bottom corner
         // flashes square mid-swipe). Bookmarks' cells do the same.
         backgroundColor = UIColor(designSystemColor: .surface)
+        // No grey selection highlight: the multi-select checkmark indicates selection, so the
+        // cell keeps its surface background instead of blending into the list on selection.
+        selectionStyle = .none
 
         contentView.addSubview(iconImageView)
         contentView.addSubview(titleLabel)
