@@ -444,19 +444,23 @@ final class AIChatHistoryViewController: UIViewController {
     }
 
     @objc private func fireButtonTapped(_ sender: UIBarButtonItem) {
-        let count = viewModel.totalChatCount
-        guard count > 0 else { return }
         viewModel.fireAllTapped()
+        presentDeleteChatsConfirmation(count: viewModel.totalChatCount, attachPopoverTo: sender) { [weak self] in
+            self?.burnAllChats()
+        }
+    }
+
+    /// Shared delete-confirmation sheet; runs `onDelete` once it dismisses. No-op when `count` is 0.
+    private func presentDeleteChatsConfirmation(count: Int, attachPopoverTo source: AnyObject, onDelete: @escaping () -> Void) {
+        guard count > 0 else { return }
         let presenter = FireConfirmationPresenter()
         presenter.presentFireConfirmation(
             on: self,
-            attachPopoverTo: sender,
+            attachPopoverTo: source,
             tabViewModel: nil,
             pixelSource: .browsing,
-            fireContext: .deleteAllChats(count: count, onDelete: { [weak self] in
-                self?.dismiss(animated: true) {
-                    self?.burnAllChats()
-                }
+            fireContext: .deleteChats(count: count, onDelete: { [weak self] in
+                self?.dismiss(animated: true) { onDelete() }
             }),
             browsingMode: .normal,
             onConfirm: { _ in },
@@ -470,6 +474,15 @@ final class AIChatHistoryViewController: UIViewController {
         let viewModel = self.viewModel
         fireButtonAnimator.animate {
             await viewModel.burnAllChats()
+        } onTransitionCompleted: {
+        } completion: {
+        }
+    }
+
+    private func burnSelectedChats(chatIds: [String]) {
+        let viewModel = self.viewModel
+        fireButtonAnimator.animate {
+            await viewModel.burnSelectedChats(chatIds: chatIds)
         } onTransitionCompleted: {
         } completion: {
         }
@@ -525,7 +538,21 @@ final class AIChatHistoryViewController: UIViewController {
     }
 
     @objc private func deleteSelectedTapped() {
-        // TODO: multi-delete wiring — https://app.asana.com/1/137249556945/task/1216558977091671
+        let selectedChatIds = (tableView.indexPathsForSelectedRows ?? [])
+            .compactMap { viewModel.chatId(forRowAt: $0) }
+        let source: AnyObject = deleteSelectionItem?.customView ?? view
+        // No individual selection burns everything, matching the toolbar button's "Delete All" title.
+        if selectedChatIds.isEmpty {
+            presentDeleteChatsConfirmation(count: viewModel.totalChatCount, attachPopoverTo: source) { [weak self] in
+                self?.burnAllChats()
+                self?.exitSelectionMode()
+            }
+        } else {
+            presentDeleteChatsConfirmation(count: selectedChatIds.count, attachPopoverTo: source) { [weak self] in
+                self?.burnSelectedChats(chatIds: selectedChatIds)
+                self?.exitSelectionMode()
+            }
+        }
     }
 
     @objc private func downloadSelectedTapped() {

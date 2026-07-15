@@ -203,6 +203,42 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         wait(for: [done], timeout: 1)
     }
 
+    func testBurnSelectedChats_burnsEachChatAndFlushesSyncOnce() {
+        let fireExecutor = MockChatHistoryFireExecutor()
+        let sut = makeSUT(chats: [chat(id: "p1", pinned: true), chat(id: "r1", pinned: false), chat(id: "r2", pinned: false)],
+                          fireExecutor: fireExecutor)
+
+        let done = expectation(description: "burnSelectedChats")
+        Task { await sut.burnSelectedChats(chatIds: ["p1", "r2"]); done.fulfill() }
+        wait(for: [done], timeout: 1)
+
+        XCTAssertEqual(fireExecutor.burnedChatIds, ["p1", "r2"])
+        XCTAssertEqual(fireExecutor.burnedIsFireMode, [false, false],
+                       "chat-history sheet only ever deletes persistent chats; never fire-mode")
+        XCTAssertEqual(fireExecutor.scheduleSyncCallCount, 1,
+                       "sync must be flushed once for the whole batch, not per chat")
+    }
+
+    func testBurnSelectedChats_emptyIds_isNoOp() {
+        let fireExecutor = MockChatHistoryFireExecutor()
+        let sut = makeSUT(chats: [chat(id: "p1", pinned: true)], fireExecutor: fireExecutor)
+
+        let done = expectation(description: "burnSelectedChats")
+        Task { await sut.burnSelectedChats(chatIds: []); done.fulfill() }
+        wait(for: [done], timeout: 1)
+
+        XCTAssertTrue(fireExecutor.burnedChatIds.isEmpty)
+        XCTAssertEqual(fireExecutor.scheduleSyncCallCount, 0)
+    }
+
+    func testBurnSelectedChats_noFireExecutor_isNoOp() {
+        let sut = makeSUT(chats: [chat(id: "p1", pinned: true)], fireExecutor: nil)
+        // No fire executor — must not crash.
+        let done = expectation(description: "burnSelectedChats")
+        Task { await sut.burnSelectedChats(chatIds: ["p1"]); done.fulfill() }
+        wait(for: [done], timeout: 1)
+    }
+
     func testTotalChatCount_reflectsAllChats_notTheSearchFilteredView() {
         let sut = makeSUT(chats: [
             chat(id: "a", title: "alpha", pinned: true),

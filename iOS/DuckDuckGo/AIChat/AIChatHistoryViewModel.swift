@@ -226,6 +226,15 @@ final class AIChatHistoryViewModel: ObservableObject {
         fireExecutor.scheduleSync()
     }
 
+    /// Never fire-mode (sheet only surfaces persistent chats); sync is flushed once for the batch.
+    func burnSelectedChats(chatIds: [String]) async {
+        guard let fireExecutor, !chatIds.isEmpty else { return }
+        for chatId in chatIds {
+            _ = await fireExecutor.burnChat(chatID: chatId, isFireMode: false)
+        }
+        fireExecutor.scheduleSync()
+    }
+
     func downloadChat(chatId: String) {
         // Image-gen exports do enough I/O to freeze the sheet — dispatch off-main.
         guard let downloader else { return }
