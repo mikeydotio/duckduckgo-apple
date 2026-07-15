@@ -51,8 +51,9 @@ enum SerpSearchTokenInterceptor {
         var changed = false
 
         // dindexexp — both arms: control = a, treatment = b.
-        if url.getParameter(named: dindexParam) == nil {
-            mutated.url = url.appendingParameter(name: dindexParam, value: isTreatment ? "b" : "a")
+        let dindexValue = isTreatment ? "b" : "a"
+        if url.getParameter(named: dindexParam) != dindexValue {
+            mutated.url = url.appendingParameter(name: dindexParam, value: dindexValue)
             changed = true
         }
 
