@@ -18,57 +18,51 @@
 
 #if os(iOS)
 
-import Testing
+import XCTest
 @testable import UIComponents
 
-@MainActor
-struct CardItemListSelectActionTests {
+final class CardItemListSelectActionTests: XCTestCase {
 
-    @Test("An out-of-bounds index returns nil")
-    func outOfBoundsIndexReturnsNil() {
+    func testSelectAction_withOutOfBoundsIndex_returnsNil() {
         let handler = CardItemList.selectAction(over: ["a"]) { _ in }
 
-        #expect(handler(5) == nil)
-        #expect(handler(-1) == nil)
+        XCTAssertNil(handler(5))
+        XCTAssertNil(handler(-1))
     }
 
-    @Test("An empty collection returns nil for any index")
-    func emptyCollectionReturnsNil() {
+    func testSelectAction_withEmptyCollection_returnsNilForAnyIndex() {
         let handler = CardItemList.selectAction(over: [String]()) { _ in }
 
-        #expect(handler(0) == nil)
+        XCTAssertNil(handler(0))
     }
 
-    @Test("A valid, selectable row returns an action that fires with that row's element")
-    func validSelectableRowFiresWithElement() {
+    func testSelectAction_withValidSelectableRow_returnsActionThatFiresWithElement() {
         var captured: String?
         let handler = CardItemList.selectAction(over: ["a", "b", "c"]) { captured = $0 }
 
         let action = handler(1)
 
-        #expect(action != nil)
+        XCTAssertNotNil(action)
         action?()
-        #expect(captured == "b")
+        XCTAssertEqual(captured, "b")
     }
 
-    @Test("A non-selectable row returns nil while a selectable one returns an action")
-    func selectabilityPredicateGatesRows() {
+    func testSelectAction_withSelectabilityPredicate_gatesRows() {
         let handler = CardItemList.selectAction(over: [1, 2, 3], where: { $0.isMultiple(of: 2) }) { _ in }
 
-        #expect(handler(0) == nil)   // element 1 — not selectable
-        #expect(handler(1) != nil)   // element 2 — selectable
+        XCTAssertNil(handler(0))    // element 1 — not selectable
+        XCTAssertNotNil(handler(1)) // element 2 — selectable
     }
 
-    @Test("Building the handler does not fire the action until it is invoked")
-    func handlerIsLazy() {
+    func testSelectAction_doesNotFireActionUntilInvoked() {
         var fired = false
         let handler = CardItemList.selectAction(over: ["x"]) { _ in fired = true }
 
         _ = handler(0)
-        #expect(fired == false)
+        XCTAssertFalse(fired)
 
         handler(0)?()
-        #expect(fired == true)
+        XCTAssertTrue(fired)
     }
 }
 
