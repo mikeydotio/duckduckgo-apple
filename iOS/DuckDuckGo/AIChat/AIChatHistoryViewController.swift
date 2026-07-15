@@ -32,8 +32,7 @@ final class AIChatHistoryViewController: UIViewController {
     private let featureFlagger: FeatureFlagger
     private var cancellables: Set<AnyCancellable> = []
 
-    /// Gates the redesigned Chats UI (overflow menu, multi-select). When off the screen keeps its
-    /// original close/Edit layout.
+    /// Gates the redesigned Chats UI (overflow menu + multi-select); off keeps the original layout.
     private var isRedesignEnabled: Bool {
         featureFlagger.isFeatureOn(.aiChatHistoryMultiselect)
     }
@@ -184,7 +183,7 @@ final class AIChatHistoryViewController: UIViewController {
         navigationItem.rightBarButtonItem = edit
     }
 
-    /// Redesign: X + search + overflow menu normally; a single Done check while selecting.
+    /// Redesign nav bar: close + overflow menu normally; a Done check while selecting.
     private func configureNavigationButtons() {
         guard isRedesignEnabled else {
             configureLegacyNavigationButtons()
@@ -199,19 +198,17 @@ final class AIChatHistoryViewController: UIViewController {
         }
     }
 
-    /// Done is the accent-tinted solid-check glyph (a filled disc with a knocked-out check) scaled
-    /// up to fill a custom-view button. Using an image keeps the blue instant (no prominent-style
-    /// tint delay); scaling it large lets the disc fill the button's footprint.
-    /// Done is a simple accent-tinted check glyph as a plain bar item (standard glass treatment).
     private func makeSelectionDoneItem() -> UIBarButtonItem {
         let item = UIBarButtonItem(
             image: DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate),
-            style: .plain,
+            style: .done,
             target: self,
             action: #selector(selectionDoneTapped)
         )
+        if #available(iOS 26, *) {
+            item.style = .prominent
+        }
         item.tintColor = UIColor(designSystemColor: .accentPrimary)
-        item.backgroundImage(for: .normal, barMetrics: .default)
         item.accessibilityLabel = UserText.navigationTitleDone
         return item
     }
@@ -223,7 +220,7 @@ final class AIChatHistoryViewController: UIViewController {
         ) { [weak self] _ in
             self?.enterSelectionMode()
         }
-        // Chat Protection navigation lands in a later subtask; shown but disabled for now.
+        // Chat Protection: later subtask; shown disabled for now.
         let chatProtection = UIAction(
             title: UserText.aiChatHistoryMenuChatProtection,
             image: DesignSystemImages.Glyphs.Size16.shield,
@@ -305,9 +302,7 @@ final class AIChatHistoryViewController: UIViewController {
         }
     }
 
-    /// A toolbar button showing an icon and a title. A standard bar item drops the title in a
-    /// toolbar on iOS 26, so this uses a custom view — but with a `.plain` (transparent) config so
-    /// the system's own glass wrapper is the only background, rather than nesting a second material.
+    /// Icon+title toolbar button via a custom view (a standard bar item drops the title on iOS 26).
     private func makeToolbarItem(title: String, image: UIImage, action: Selector) -> UIBarButtonItem {
         var config = UIButton.Configuration.plain()
         config.image = image
@@ -472,8 +467,7 @@ final class AIChatHistoryViewController: UIViewController {
         guard !isEditingChats else { return }
         isEditingChats = true
         viewModel.editModeEntered()
-        // Place the prominent Done button before starting the edit animation so its accent tint is
-        // rendered up front rather than fading in after the transition settles.
+        // Configure the bars before the edit animation so the Done tint is set up front.
         configureNavigationButtons()
         configureToolbar()
         tableView.setEditing(true, animated: true)
