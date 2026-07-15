@@ -17,6 +17,7 @@
 //
 import NetworkProtectionUI
 import AppKit
+import PrivacyConfig
 
 protocol IconsProviding {
     var addressBarCookiesIconsProvider: AddressBarCookiesIconsProviding { get }
@@ -30,10 +31,21 @@ protocol IconsProviding {
     var addressBarButtonsIconsProvider: AddressBarPermissionButtonsIconsProviding { get }
 }
 
+struct IconsProvidingFactory {
+
+    static func buildColorsProvider(featureFlagger: FeatureFlagger) -> IconsProviding {
+        if featureFlagger.isFeatureOn(.appRebranding) {
+            return CurrentIconsProvider()
+        }
+
+        return LegacyIconsProvider()
+    }
+}
+
 final class LegacyIconsProvider: IconsProviding {
-    var addressBarCookiesIconsProvider: AddressBarCookiesIconsProviding = LegacyAddressBarCookiesIconsProvider()
-    var navigationToolbarIconsProvider: NavigationToolbarIconsProviding = LegacyNavigationToolbarIconsProvider()
-    var moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding = LegacyMoreOptionsMenuIcons()
+    var addressBarCookiesIconsProvider: AddressBarCookiesIconsProviding = CurrentAddressBarCookiesIconsProvider()
+    var navigationToolbarIconsProvider: NavigationToolbarIconsProviding = CurrentNavigationToolbarIconsProvider()
+    var moreOptionsMenuIconsProvider: MoreOptionsMenuIconsProviding = CurrentMoreOptionsMenuIcons()
     var fireButtonStyleProvider: FireButtonIconStyleProviding = LegacyFireButtonIconStyleProvider()
     var settingsIconProvider: SettingsIconsProviding = LegacySettingsIconProvider()
     var bookmarksIconsProvider: BookmarksIconsProviding = LegacyBookmarksIconsProvider()
