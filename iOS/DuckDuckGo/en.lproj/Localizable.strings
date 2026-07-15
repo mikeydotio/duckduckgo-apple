@@ -307,20 +307,8 @@
 /* Title of the alert shown when Duck.ai chat history fails to load. */
 "aiChat.history.loadError.title" = "Couldn't load chats";
 
-/* Accessibility label for the overflow (three dots) menu button in the Duck.ai chat history navigation bar. */
-"aiChat.history.menu.a11y" = "More";
-
-/* Menu item opening Duck.ai Chat Protection settings from the Duck.ai chat history list. */
-"aiChat.history.menu.chatProtection" = "Chat Protection";
-
-/* Menu item that starts multi-selecting chats in the Duck.ai chat history list. */
-"aiChat.history.menu.selectChats" = "Select Chats";
-
 /* Shown inside the Duck.ai chat history list when the user's search query returns no matching chats. */
 "aiChat.history.noSearchResults.title" = "No matches found";
-
-/* Accessibility label for the search button in the Duck.ai chat history navigation bar. */
-"aiChat.history.search.a11y" = "Search";
 
 /* Placeholder for the search bar at the top of the Duck.ai chat history list. */
 "aiChat.history.searchBar.placeholder" = "Search";
@@ -330,9 +318,6 @@
 
 /* Section header above the user's recent (unpinned) chats in the Duck.ai chat history list. */
 "aiChat.history.section.recent" = "Recent";
-
-/* Multi-select toolbar button that deletes all chats when none are individually selected. */
-"aiChat.history.selection.deleteAll" = "Delete All";
 
 /* Accessibility label for the delete action revealed by swiping a Duck.ai chat row. */
 "aiChat.history.swipe.delete.a11y" = "Delete chat";
