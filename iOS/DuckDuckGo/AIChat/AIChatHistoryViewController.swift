@@ -32,8 +32,8 @@ final class AIChatHistoryViewController: UIViewController {
     private let featureFlagger: FeatureFlagger
     private var cancellables: Set<AnyCancellable> = []
 
-    /// Gates the redesigned Chats UI (search toggle, overflow menu, multi-select). When off the
-    /// screen keeps its original close/Edit/search-header layout.
+    /// Gates the redesigned Chats UI (overflow menu, multi-select). When off the screen keeps its
+    /// original close/Edit layout.
     private var isRedesignEnabled: Bool {
         featureFlagger.isFeatureOn(.aiChatHistoryMultiselect)
     }
@@ -44,9 +44,6 @@ final class AIChatHistoryViewController: UIViewController {
 
     private var isEditingChats = false
     private weak var fireBarButtonItem: UIBarButtonItem?
-
-    /// Redesign only: whether the on-demand search header is currently shown.
-    private var isSearchVisible = false
     private weak var deleteSelectionItem: UIBarButtonItem?
     private weak var downloadSelectionItem: UIBarButtonItem?
 
@@ -142,18 +139,8 @@ final class AIChatHistoryViewController: UIViewController {
 
         searchBar.delegate = self
         if isRedesignEnabled {
-            // The redesign reveals search on demand from the toolbar button, and offers
-            // multi-select circles in edit mode. Otherwise the search header is always shown.
             tableView.allowsMultipleSelectionDuringEditing = true
-        } else {
-            installSearchHeader()
         }
-    }
-
-    /// Places the search bar in the table's header. Always visible in the original layout; in the
-    /// redesign it is installed only while search is active (see `searchButtonTapped`).
-    private func installSearchHeader() {
-        guard tableView.tableHeaderView == nil else { return }
         let headerHeight = searchBar.intrinsicContentSize.height
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight))
         searchBar.translatesAutoresizingMaskIntoConstraints = false
@@ -169,10 +156,6 @@ final class AIChatHistoryViewController: UIViewController {
             searchBar.bottomAnchor.constraint(equalTo: headerView.bottomAnchor)
         ])
         tableView.tableHeaderView = headerView
-    }
-
-    private func removeSearchHeader() {
-        tableView.tableHeaderView = nil
     }
 
     private lazy var closeBarButtonItem: UIBarButtonItem = {
@@ -223,20 +206,8 @@ final class AIChatHistoryViewController: UIViewController {
             navigationItem.rightBarButtonItems = [done]
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
-            // Rightmost item comes first: overflow menu, then search to its left.
-            navigationItem.rightBarButtonItems = [makeOverflowMenuItem(), makeSearchBarButtonItem()]
+            navigationItem.rightBarButtonItem = makeOverflowMenuItem()
         }
-    }
-
-    private func makeSearchBarButtonItem() -> UIBarButtonItem {
-        let item = UIBarButtonItem(
-            image: DesignSystemImages.Glyphs.Size24.findSearchSmall,
-            style: .plain,
-            target: self,
-            action: #selector(searchButtonTapped)
-        )
-        item.accessibilityLabel = UserText.aiChatHistorySearchAccessibilityLabel
-        return item
     }
 
     private func makeOverflowMenuItem() -> UIBarButtonItem {
@@ -493,8 +464,6 @@ final class AIChatHistoryViewController: UIViewController {
 
     private func enterSelectionMode() {
         guard !isEditingChats else { return }
-        // Search and selection are mutually exclusive; leave search first.
-        if isSearchVisible { dismissSearch() }
         isEditingChats = true
         viewModel.editModeEntered()
         // Place the prominent Done button before starting the edit animation so its accent tint is
@@ -522,47 +491,6 @@ final class AIChatHistoryViewController: UIViewController {
 
     @objc private func downloadSelectedTapped() {
         // TODO: multi-download wiring — https://app.asana.com/1/137249556945/task/1216558977091672
-    }
-
-    // MARK: - Redesign: search toggle
-
-    @objc private func searchButtonTapped() {
-        isSearchVisible ? dismissSearch() : presentSearch()
-    }
-
-    private func presentSearch() {
-        installSearchHeader()
-        isSearchVisible = true
-        searchBar.becomeFirstResponder()
-        animateSearchHeader(toVisible: true)
-    }
-
-    private func dismissSearch() {
-        searchBar.text = nil
-        searchBar.resignFirstResponder()
-        viewModel.updateQuery("")
-        isSearchVisible = false
-        animateSearchHeader(toVisible: false) { [weak self] in
-            self?.removeSearchHeader()
-        }
-    }
-
-    /// Animates the table header's height so the list slides down/up as search appears/disappears,
-    /// rather than jumping when the header is inserted or removed. Reassigning `tableHeaderView`
-    /// inside the animation block is what drives the table's content offset to follow.
-    private func animateSearchHeader(toVisible visible: Bool, completion: (() -> Void)? = nil) {
-        guard let header = tableView.tableHeaderView else { completion?(); return }
-        let fullHeight = searchBar.intrinsicContentSize.height
-        header.frame.size.height = visible ? 0 : fullHeight
-        tableView.tableHeaderView = header
-        tableView.layoutIfNeeded()
-        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
-            header.frame.size.height = visible ? fullHeight : 0
-            self.tableView.tableHeaderView = header
-            self.tableView.layoutIfNeeded()
-        } completion: { _ in
-            completion?()
-        }
     }
 
 }
@@ -712,11 +640,6 @@ extension AIChatHistoryViewController: UISearchBarDelegate {
     }
 
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        // In the redesign, cancelling also removes the on-demand search header.
-        if isRedesignEnabled {
-            dismissSearch()
-            return
-        }
         searchBar.text = nil
         searchBar.setShowsCancelButton(false, animated: true)
         searchBar.resignFirstResponder()
