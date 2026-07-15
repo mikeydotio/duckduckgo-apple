@@ -199,27 +199,20 @@ final class AIChatHistoryViewController: UIViewController {
         }
     }
 
-    /// The Done control is a filled accent circle with a white check. A custom view with its own
-    /// background paints the blue immediately, avoiding the tint fade-in a system prominent bar
-    /// button shows on iOS 26.
+    /// Done uses the accent-tinted solid check glyph as a plain bar item: it's a filled disc with a
+    /// knocked-out check, so tinting it accent gives a blue disc with a light check showing through,
+    /// matching the design. Plain style applies the blue immediately (no prominent tint fade), and
+    /// it gets the same glass treatment as the X/menu buttons.
     private func makeSelectionDoneItem() -> UIBarButtonItem {
-        let size: CGFloat = 44
-        let button = UIButton(type: .custom)
-        // setImage + tintColor reliably recolors the glyph (UIButton.Configuration does not tint it);
-        // accentContentPrimary is the content-on-accent token, correct in light and dark.
-        button.setImage(DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate), for: .normal)
-        button.tintColor = UIColor(designSystemColor: .accentContentPrimary)
-        button.backgroundColor = UIColor(designSystemColor: .accentPrimary)
-        button.layer.cornerRadius = size / 2
-        button.clipsToBounds = true
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(selectionDoneTapped), for: .touchUpInside)
-        button.accessibilityLabel = UserText.navigationTitleDone
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: size),
-            button.heightAnchor.constraint(equalToConstant: size)
-        ])
-        return UIBarButtonItem(customView: button)
+        let item = UIBarButtonItem(
+            image: DesignSystemImages.Glyphs.Size24.checkSolid.withRenderingMode(.alwaysTemplate),
+            style: .plain,
+            target: self,
+            action: #selector(selectionDoneTapped)
+        )
+        item.tintColor = UIColor(designSystemColor: .accentPrimary)
+        item.accessibilityLabel = UserText.navigationTitleDone
+        return item
     }
 
     private func makeOverflowMenuItem() -> UIBarButtonItem {
