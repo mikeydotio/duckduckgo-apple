@@ -199,22 +199,25 @@ final class AIChatHistoryViewController: UIViewController {
         }
     }
 
-    /// Done uses the prominent bar-button style so the whole glass background is tinted accent —
-    /// the only way to get a fully filled blue circle (a glyph/custom view sits inside the system's
-    /// larger glass platter, leaving a white ring). Trade-off: iOS 26 fades the tint in on appear.
+    /// Done is the accent-tinted solid-check glyph (a filled disc with a knocked-out check) scaled
+    /// up to fill a custom-view button. Using an image keeps the blue instant (no prominent-style
+    /// tint delay); scaling it large lets the disc fill the button's footprint.
     private func makeSelectionDoneItem() -> UIBarButtonItem {
-        let item = UIBarButtonItem(
-            image: DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate),
-            style: .done,
-            target: self,
-            action: #selector(selectionDoneTapped)
-        )
-        if #available(iOS 26, *) {
-            item.style = .prominent
-        }
-        item.tintColor = UIColor(designSystemColor: .accentPrimary)
-        item.accessibilityLabel = UserText.navigationTitleDone
-        return item
+        let size: CGFloat = 40
+        let button = UIButton(type: .custom)
+        button.setImage(DesignSystemImages.Glyphs.Size24.checkSolid.withRenderingMode(.alwaysTemplate), for: .normal)
+        button.tintColor = UIColor(designSystemColor: .accentPrimary)
+        button.imageView?.contentMode = .scaleAspectFit
+        button.contentHorizontalAlignment = .fill
+        button.contentVerticalAlignment = .fill
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(selectionDoneTapped), for: .touchUpInside)
+        button.accessibilityLabel = UserText.navigationTitleDone
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: size),
+            button.heightAnchor.constraint(equalToConstant: size)
+        ])
+        return UIBarButtonItem(customView: button)
     }
 
     private func makeOverflowMenuItem() -> UIBarButtonItem {
