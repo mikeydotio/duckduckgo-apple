@@ -315,7 +315,7 @@ struct FireDialogView: ModalView {
 
     private var headerView: some View {
         VStack(spacing: 6) {
-            FirePictogramAnimation()
+            FirePictogramAnimation(isAppRebranded: themeManager.isAppRebranded)
                 .frame(width: 72, height: 72)
                 .padding(.top, 8)
 
@@ -815,7 +815,11 @@ private struct RowWithPressEffect<Content: View>: View {
 /// Loads the fire pictogram Lottie animation.
 private struct FirePictogramAnimation: NSViewRepresentable {
 
-    private static let assetName = "fire-pictogram"
+    let isAppRebranded: Bool
+
+    private var assetName: String {
+        isAppRebranded ? "fire-pictogram-new" : "fire-pictogram"
+    }
 
     func makeNSView(context: Context) -> NSView {
         let container = NSView()
@@ -828,7 +832,7 @@ private struct FirePictogramAnimation: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {}
 
     private func attachAnimation(to container: NSView) {
-        guard let animation = LottieAnimation.asset(Self.assetName, bundle: .main) else {
+        guard let animation = LottieAnimation.asset(assetName, bundle: .main) else {
             return
         }
         let view = LottieAnimationView(animation: animation)
