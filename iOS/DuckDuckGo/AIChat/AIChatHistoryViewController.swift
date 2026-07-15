@@ -194,8 +194,13 @@ final class AIChatHistoryViewController: UIViewController {
             navigationItem.rightBarButtonItem = makeSelectionDoneItem()
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
-            // Rightmost item first: overflow menu, then search to its left (matches the design).
-            navigationItem.rightBarButtonItems = [makeOverflowMenuItem(), makeSearchBarButtonItem()]
+            // Rightmost item first: overflow menu, then search to its left. A zero-width fixedSpace
+            // breaks iOS 26's shared glass background so each sits in its own circle.
+            if #available(iOS 26, *) {
+                navigationItem.rightBarButtonItems = [makeOverflowMenuItem(), .fixedSpace(), makeSearchBarButtonItem()]
+            } else {
+                navigationItem.rightBarButtonItems = [makeOverflowMenuItem(), makeSearchBarButtonItem()]
+            }
         }
     }
 
