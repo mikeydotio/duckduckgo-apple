@@ -203,23 +203,21 @@ final class AIChatHistoryViewController: UIViewController {
     /// background paints the blue immediately, avoiding the tint fade-in a system prominent bar
     /// button shows on iOS 26.
     private func makeSelectionDoneItem() -> UIBarButtonItem {
-        var config = UIButton.Configuration.filled()
-        config.image = DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate)
-        config.baseBackgroundColor = UIColor(designSystemColor: .accentPrimary)
-        // Matched content-on-accent token so the check has correct contrast in light and dark.
-        config.baseForegroundColor = UIColor(designSystemColor: .accentContentPrimary)
-        config.cornerStyle = .capsule
-        config.contentInsets = .zero
-        let button = UIButton(configuration: config)
+        let size: CGFloat = 44
+        let button = UIButton(type: .custom)
+        // setImage + tintColor reliably recolors the glyph (UIButton.Configuration does not tint it);
+        // accentContentPrimary is the content-on-accent token, correct in light and dark.
+        button.setImage(DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate), for: .normal)
         button.tintColor = UIColor(designSystemColor: .accentContentPrimary)
-        // Required so the fixed size below is honored (a square → capsule renders as a circle);
-        // otherwise the button keeps its wider intrinsic pill size.
+        button.backgroundColor = UIColor(designSystemColor: .accentPrimary)
+        button.layer.cornerRadius = size / 2
+        button.clipsToBounds = true
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(selectionDoneTapped), for: .touchUpInside)
         button.accessibilityLabel = UserText.navigationTitleDone
         NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 44),
-            button.heightAnchor.constraint(equalToConstant: 44)
+            button.widthAnchor.constraint(equalToConstant: size),
+            button.heightAnchor.constraint(equalToConstant: size)
         ])
         return UIBarButtonItem(customView: button)
     }
