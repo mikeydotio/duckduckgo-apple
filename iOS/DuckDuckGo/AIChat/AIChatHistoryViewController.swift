@@ -192,22 +192,31 @@ final class AIChatHistoryViewController: UIViewController {
         }
         if isEditingChats {
             navigationItem.leftBarButtonItem = nil
-            // A `.done`-style bar item renders as the prominent (accent) confirm button on iOS 26.
-            let done = UIBarButtonItem(
-                image: DesignSystemImages.Glyphs.Size24.check,
-                style: .done,
-                target: self,
-                action: #selector(selectionDoneTapped)
-            )
-            // Set the accent tint on the item up front so the prominent fill is blue immediately
-            // instead of inheriting the bar tint a frame later.
-            done.tintColor = UIColor(designSystemColor: .accentPrimary)
-            done.accessibilityLabel = UserText.navigationTitleDone
-            navigationItem.rightBarButtonItems = [done]
+            navigationItem.rightBarButtonItem = makeSelectionDoneItem()
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
             navigationItem.rightBarButtonItem = makeOverflowMenuItem()
         }
+    }
+
+    /// The Done control is a filled accent circle with a white check. A custom view with its own
+    /// background paints the blue immediately, avoiding the tint fade-in a system prominent bar
+    /// button shows on iOS 26.
+    private func makeSelectionDoneItem() -> UIBarButtonItem {
+        var config = UIButton.Configuration.filled()
+        config.image = DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate)
+        config.baseBackgroundColor = UIColor(designSystemColor: .accentPrimary)
+        config.baseForegroundColor = .white
+        config.cornerStyle = .capsule
+        config.contentInsets = .zero
+        let button = UIButton(configuration: config)
+        button.addTarget(self, action: #selector(selectionDoneTapped), for: .touchUpInside)
+        button.accessibilityLabel = UserText.navigationTitleDone
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 32),
+            button.heightAnchor.constraint(equalToConstant: 32)
+        ])
+        return UIBarButtonItem(customView: button)
     }
 
     private func makeOverflowMenuItem() -> UIBarButtonItem {
