@@ -151,8 +151,6 @@ final class AIChatHistoryViewController: UIViewController {
         guard tableView.tableHeaderView == nil else { return }
         let headerHeight = searchBar.intrinsicContentSize.height
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight))
-        // Clip so the bar is revealed cleanly while the header height animates (see showSearch).
-        headerView.clipsToBounds = true
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(searchBar)
         // The table imposes a transient width==0 on the header before it gets its real
@@ -446,32 +444,11 @@ final class AIChatHistoryViewController: UIViewController {
     }
 
     @objc private func searchButtonTapped() {
-        if tableView.tableHeaderView == nil {
-            showSearch()
+        if tableView.tableHeaderView != nil {
+            hideSearchBarIfNeeded()
         } else {
-            hideSearch(animated: true)
-        }
-    }
-
-    private func showSearch() {
-        installSearchHeader()
-        guard let header = tableView.tableHeaderView else { return }
-        header.frame.size.height = 0
-        tableView.tableHeaderView = header
-        tableView.layoutIfNeeded()
-        searchBar.becomeFirstResponder()
-        animateHeaderHeight(header, to: searchBar.intrinsicContentSize.height)
-    }
-
-    /// Animates the table header's height so the list slides as the search bar shows/hides.
-    /// Reassigning `tableHeaderView` inside the block drives the table's content offset to follow.
-    private func animateHeaderHeight(_ header: UIView, to height: CGFloat, completion: (() -> Void)? = nil) {
-        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
-            header.frame.size.height = height
-            self.tableView.tableHeaderView = header
-            self.tableView.layoutIfNeeded()
-        } completion: { _ in
-            completion?()
+            installSearchHeader()
+            searchBar.becomeFirstResponder()
         }
     }
 
@@ -525,8 +502,8 @@ final class AIChatHistoryViewController: UIViewController {
 
     private func enterSelectionMode() {
         guard !isEditingChats else { return }
-        // Search and multi-select are mutually exclusive: leave search first (no animation).
-        hideSearch(animated: false)
+        // Search and multi-select are mutually exclusive: leave search first.
+        hideSearchBarIfNeeded()
         isEditingChats = true
         viewModel.editModeEntered()
         // Configure the bars before the edit animation so the Done tint is set up front.
@@ -535,19 +512,13 @@ final class AIChatHistoryViewController: UIViewController {
         tableView.setEditing(true, animated: true)
     }
 
-    private func hideSearch(animated: Bool) {
-        guard let header = tableView.tableHeaderView else { return }
+    private func hideSearchBarIfNeeded() {
+        guard tableView.tableHeaderView != nil else { return }
         searchBar.text = nil
         searchBar.setShowsCancelButton(false, animated: false)
         searchBar.resignFirstResponder()
         viewModel.updateQuery("")
-        guard animated else {
-            removeSearchHeader()
-            return
-        }
-        animateHeaderHeight(header, to: 0) { [weak self] in
-            self?.removeSearchHeader()
-        }
+        removeSearchHeader()
     }
 
     private func exitSelectionMode() {
@@ -721,14 +692,13 @@ extension AIChatHistoryViewController: UISearchBarDelegate {
     }
 
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        // Redesign: cancelling slides the on-demand search bar away.
-        if isRedesignEnabled {
-            hideSearch(animated: true)
-            return
-        }
         searchBar.text = nil
         searchBar.setShowsCancelButton(false, animated: true)
         searchBar.resignFirstResponder()
         viewModel.updateQuery("")
+        // Redesign: cancelling hides the on-demand search bar again.
+        if isRedesignEnabled {
+            removeSearchHeader()
+        }
     }
 }
