@@ -588,7 +588,9 @@ extension AIChatHistoryViewController: UITableViewDataSource {
 extension AIChatHistoryViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        // In multi-select mode a tap toggles the row's checkbox rather than opening the chat.
+        // In multi-select a tap toggles the row's checkbox instead of opening the chat. Only the
+        // redesign selects during editing (legacy leaves selection-during-editing off), so this
+        // guard is effectively redesign-only.
         if tableView.isEditing {
             updateSelectionActionButtons()
             return
