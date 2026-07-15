@@ -5874,13 +5874,14 @@ extension MainViewController: TabDelegate {
         }
         let viewModel = AIChatHistoryViewModel(
             reader: reader,
+            featureFlagger: featureFlagger,
             fireExecutor: fireExecutor,
             downloader: downloader,
             pinner: pinner,
             source: source
         )
         viewModel.delegate = self
-        let content = AIChatHistoryViewController(viewModel: viewModel, fireButtonAnimator: fireButtonAnimator, featureFlagger: featureFlagger)
+        let content = AIChatHistoryViewController(viewModel: viewModel, fireButtonAnimator: fireButtonAnimator)
         let navigationController = UINavigationController(rootViewController: content)
         navigationController.modalPresentationStyle = .automatic
         present(navigationController, animated: true)

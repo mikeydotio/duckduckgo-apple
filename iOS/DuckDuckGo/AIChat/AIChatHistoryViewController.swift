@@ -20,8 +20,6 @@
 import Combine
 import SwiftUI
 import UIKit
-import Core
-import PrivacyConfig
 import DesignResourcesKit
 import DesignResourcesKitIcons
 
@@ -29,13 +27,9 @@ final class AIChatHistoryViewController: UIViewController {
 
     private let viewModel: AIChatHistoryViewModel
     private let fireButtonAnimator: FireButtonAnimator
-    private let featureFlagger: FeatureFlagger
     private var cancellables: Set<AnyCancellable> = []
 
-    /// Gates the redesigned Chats UI (overflow menu + multi-select); off keeps the original layout.
-    private var isRedesignEnabled: Bool {
-        featureFlagger.isFeatureOn(.aiChatHistoryMultiselect)
-    }
+    private var isRedesignEnabled: Bool { viewModel.isRedesignEnabled }
 
     /// Set while a swipe-driven animation is in flight to suppress reactive reloads that
     /// would otherwise cancel the slide.
@@ -90,10 +84,9 @@ final class AIChatHistoryViewController: UIViewController {
         viewModel.isEmpty && !viewModel.effectiveQuery.isEmpty && !viewModel.loadFailed
     }
 
-    init(viewModel: AIChatHistoryViewModel, fireButtonAnimator: FireButtonAnimator, featureFlagger: FeatureFlagger) {
+    init(viewModel: AIChatHistoryViewModel, fireButtonAnimator: FireButtonAnimator) {
         self.viewModel = viewModel
         self.fireButtonAnimator = fireButtonAnimator
-        self.featureFlagger = featureFlagger
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -138,9 +131,7 @@ final class AIChatHistoryViewController: UIViewController {
 
         searchBar.delegate = self
         if isRedesignEnabled {
-            // Redesign hides the search bar until the search button is tapped.
             tableView.allowsMultipleSelectionDuringEditing = true
-            // Match the multi-select checkmark circles to the accent Done button.
             tableView.tintColor = UIColor(designSystemColor: .accentPrimary)
         } else {
             installSearchHeader()
@@ -196,7 +187,7 @@ final class AIChatHistoryViewController: UIViewController {
         navigationItem.rightBarButtonItem = edit
     }
 
-    /// Redesign nav bar: close + search + overflow menu normally; a Done check while selecting.
+    /// NavBar: close + search + overflow menu normally; a Done check while selecting.
     private func configureNavigationButtons() {
         guard isRedesignEnabled else {
             configureLegacyNavigationButtons()
