@@ -138,8 +138,15 @@ final class AIChatHistoryViewController: UIViewController {
 
         searchBar.delegate = self
         if isRedesignEnabled {
+            // Redesign hides the search bar until the search button is tapped.
             tableView.allowsMultipleSelectionDuringEditing = true
+        } else {
+            installSearchHeader()
         }
+    }
+
+    private func installSearchHeader() {
+        guard tableView.tableHeaderView == nil else { return }
         let headerHeight = searchBar.intrinsicContentSize.height
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight))
         searchBar.translatesAutoresizingMaskIntoConstraints = false
@@ -155,6 +162,10 @@ final class AIChatHistoryViewController: UIViewController {
             searchBar.bottomAnchor.constraint(equalTo: headerView.bottomAnchor)
         ])
         tableView.tableHeaderView = headerView
+    }
+
+    private func removeSearchHeader() {
+        tableView.tableHeaderView = nil
     }
 
     private lazy var closeBarButtonItem: UIBarButtonItem = {
@@ -194,8 +205,6 @@ final class AIChatHistoryViewController: UIViewController {
             navigationItem.rightBarButtonItem = makeSelectionDoneItem()
         } else {
             navigationItem.leftBarButtonItem = closeBarButtonItem
-            // Rightmost item first: overflow menu, then search to its left. A zero-width fixedSpace
-            // breaks iOS 26's shared glass background so each sits in its own circle.
             if #available(iOS 26, *) {
                 navigationItem.rightBarButtonItems = [makeOverflowMenuItem(), .fixedSpace(), makeSearchBarButtonItem()]
             } else {
@@ -433,6 +442,7 @@ final class AIChatHistoryViewController: UIViewController {
     }
 
     @objc private func searchButtonTapped() {
+        installSearchHeader()
         searchBar.becomeFirstResponder()
     }
 
@@ -665,5 +675,9 @@ extension AIChatHistoryViewController: UISearchBarDelegate {
         searchBar.setShowsCancelButton(false, animated: true)
         searchBar.resignFirstResponder()
         viewModel.updateQuery("")
+        // Redesign: cancelling hides the on-demand search bar again.
+        if isRedesignEnabled {
+            removeSearchHeader()
+        }
     }
 }
