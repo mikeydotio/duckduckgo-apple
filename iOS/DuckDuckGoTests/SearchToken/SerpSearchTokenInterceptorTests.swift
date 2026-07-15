@@ -44,4 +44,56 @@ final class SerpSearchTokenInterceptorTests: XCTestCase {
         let url = URL(string: "https://example.com/?q=privacy")!
         XCTAssertFalse(SerpSearchTokenInterceptor.isSerpURL(url))
     }
+    
+    // MARK: - signalledRequest: dindexexp param
+
+    func testSignalledRequest_appendsDindexB_forTreatment() {
+        let out = SerpSearchTokenInterceptor.signalledRequest(for: serpRequest(), isTreatment: true, token: nil)
+        XCTAssertEqual(out?.url?.getParameter(named: "dindexexp"), "b")
+    }
+
+    func testSignalledRequest_appendsDindexA_forControl() {
+        let out = SerpSearchTokenInterceptor.signalledRequest(for: serpRequest(), isTreatment: false, token: nil)
+        XCTAssertEqual(out?.url?.getParameter(named: "dindexexp"), "a")
+    }
+
+    func testSignalledRequest_nilWhenParamAlreadyPresent() {
+        let req = serpRequest("https://duckduckgo.com/?q=privacy&dindexexp=a")
+        XCTAssertNil(SerpSearchTokenInterceptor.signalledRequest(for: req, isTreatment: false, token: nil))
+    }
+
+    func testSignalledRequest_nilForNonSerpURL() {
+        let req = serpRequest("https://duckduckgo.com/about")
+        XCTAssertNil(SerpSearchTokenInterceptor.signalledRequest(for: req, isTreatment: true, token: nil))
+    }
+    
+    // MARK: - signalledRequest: X-DDG-Search-Token header
+
+    func testSignalledRequest_setsHeader_forTreatmentWithToken() {
+        let out = SerpSearchTokenInterceptor.signalledRequest(for: serpRequest(), isTreatment: true, token: "abc")
+        XCTAssertEqual(out?.value(forHTTPHeaderField: "X-DDG-Search-Token"), "abc")
+    }
+
+    func testSignalledRequest_noHeader_forControlEvenWithToken() {
+        let out = SerpSearchTokenInterceptor.signalledRequest(for: serpRequest(), isTreatment: false, token: "abc")
+        XCTAssertNil(out?.value(forHTTPHeaderField: "X-DDG-Search-Token"))
+    }
+
+    func testSignalledRequest_noHeader_forTreatmentWithoutToken() {
+        let out = SerpSearchTokenInterceptor.signalledRequest(for: serpRequest(), isTreatment: true, token: nil)
+        XCTAssertEqual(out?.url?.getParameter(named: "dindexexp"), "b")
+        XCTAssertNil(out?.value(forHTTPHeaderField: "X-DDG-Search-Token"))
+    }
+
+    func testSignalledRequest_nilWhenParamAndHeaderAlreadyPresent() {
+        var req = serpRequest("https://duckduckgo.com/?q=privacy&dindexexp=b")
+        req.setValue("abc", forHTTPHeaderField: "X-DDG-Search-Token")
+        XCTAssertNil(SerpSearchTokenInterceptor.signalledRequest(for: req, isTreatment: true, token: "abc"))
+    }
+    
+    // MARK: - Helpers
+    
+    private func serpRequest(_ string: String = "https://duckduckgo.com/?q=privacy") -> URLRequest {
+        URLRequest(url: URL(string: string)!)
+    }
 }

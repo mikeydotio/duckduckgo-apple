@@ -2762,23 +2762,17 @@ extension TabViewController: WKNavigationDelegate {
             return
         }
 
-        // Search Token experiment (subtask 2) — TEMP diagnostic: confirm SERP main-frame
-        // navigations reach this choke point, and observe which arrive as .backForward
-        // (those later phases cannot cancel+reload). Falls through — no mutation. Remove before merge.
+        // Attach Search Token experiment signals (dindexexp param + token header) to SERP navigations.
+        // Enrolled devices only, skipping back/forward so we don't wipe forward history.
         if navigationAction.isTargetingMainFrame(),
-           let url = navigationAction.request.url,
-           SerpSearchTokenInterceptor.isSerpURL(url) {
-            let typeLabel: String
-            switch navigationAction.navigationType {
-            case .linkActivated: typeLabel = "linkActivated"
-            case .formSubmitted: typeLabel = "formSubmitted"
-            case .backForward: typeLabel = "backForward"
-            case .reload: typeLabel = "reload"
-            case .formResubmitted: typeLabel = "formResubmitted"
-            case .other: typeLabel = "other"
-            @unknown default: typeLabel = "unknown"
-            }
-            Logger.general.debug("SearchToken: SERP nav type=\(typeLabel, privacy: .public) url=\(url.absoluteString, privacy: .public)")
+           navigationAction.navigationType != .backForward,
+           let cohort = featureFlagger.assignedCohort(for: FeatureFlag.searchTokenExperiment) as? FeatureFlag.SearchTokenExperimentCohort,
+           let signalled = SerpSearchTokenInterceptor.signalledRequest(for: navigationAction.request,
+                                                                       isTreatment: cohort == .treatment,
+                                                                       token: delegate?.searchToken(for: self)) {
+            wrappedHandler(.cancel)
+            load(urlRequest: signalled)
+            return
         }
 
         if navigationAction.navigationType == .linkActivated,

@@ -19,6 +19,7 @@
 
 import Foundation
 import Core
+import Common
 import AIChat
 
 /// Builds the Search Token experiment request mutations for SERP navigations. Pure and
@@ -32,5 +33,35 @@ enum SerpSearchTokenInterceptor {
     /// A DuckDuckGo search-results URL that is not a Duck AI chat query.
     static func isSerpURL(_ url: URL) -> Bool {
         url.isDuckDuckGoSearch && !url.isDuckAIURL
+    }
+
+    /// Returns a copy of `request` with the experiment signals applied, or `nil` when the
+    /// request is not a SERP navigation or already carries every signal it needs (caller then
+    /// lets the navigation proceed unchanged).
+    ///
+    /// - Parameters:
+    ///   - isTreatment: `true` = treatment arm, `false` = control. Both arms get the param.
+    ///   - token: live search token; used only for the treatment header. `nil`/expired → header skipped.
+    static func signalledRequest(for request: URLRequest,
+                                 isTreatment: Bool,
+                                 token: String?) -> URLRequest? {
+        guard let url = request.url, isSerpURL(url) else { return nil }
+
+        var mutated = request
+        var changed = false
+
+        // dindexexp — both arms: control = a, treatment = b.
+        if url.getParameter(named: dindexParam) == nil {
+            mutated.url = url.appendingParameter(name: dindexParam, value: isTreatment ? "b" : "a")
+            changed = true
+        }
+
+        // X-DDG-Search-Token — treatment only, requires a live token. (Inert until the token is wired in.)
+        if isTreatment, let token, request.value(forHTTPHeaderField: tokenHeader) == nil {
+            mutated.setValue(token, forHTTPHeaderField: tokenHeader)
+            changed = true
+        }
+
+        return changed ? mutated : nil
     }
 }
