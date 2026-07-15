@@ -496,12 +496,23 @@ final class AIChatHistoryViewController: UIViewController {
 
     private func enterSelectionMode() {
         guard !isEditingChats else { return }
+        // Search and multi-select are mutually exclusive: leave search first.
+        hideSearchBarIfNeeded()
         isEditingChats = true
         viewModel.editModeEntered()
         // Configure the bars before the edit animation so the Done tint is set up front.
         configureNavigationButtons()
         configureToolbar()
         tableView.setEditing(true, animated: true)
+    }
+
+    private func hideSearchBarIfNeeded() {
+        guard tableView.tableHeaderView != nil else { return }
+        searchBar.text = nil
+        searchBar.setShowsCancelButton(false, animated: false)
+        searchBar.resignFirstResponder()
+        viewModel.updateQuery("")
+        removeSearchHeader()
     }
 
     private func exitSelectionMode() {
@@ -654,7 +665,11 @@ extension AIChatHistoryViewController: UITableViewDelegate {
 extension AIChatHistoryViewController: UISearchBarDelegate {
 
     func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
-        searchBar.setShowsCancelButton(true, animated: true)
+        if isRedesignEnabled {
+            searchBar.setShowsCancelButton(true, animated: false)
+        } else {
+            searchBar.setShowsCancelButton(true, animated: true)
+        }
         viewModel.searchActivated()
     }
 
