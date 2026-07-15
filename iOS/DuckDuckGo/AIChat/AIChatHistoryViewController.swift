@@ -140,6 +140,8 @@ final class AIChatHistoryViewController: UIViewController {
         if isRedesignEnabled {
             // Redesign hides the search bar until the search button is tapped.
             tableView.allowsMultipleSelectionDuringEditing = true
+            // Match the multi-select checkmark circles to the accent Done button.
+            tableView.tintColor = UIColor(designSystemColor: .accentPrimary)
         } else {
             installSearchHeader()
         }
