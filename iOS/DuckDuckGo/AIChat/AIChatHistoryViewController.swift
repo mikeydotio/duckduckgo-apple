@@ -199,17 +199,19 @@ final class AIChatHistoryViewController: UIViewController {
         }
     }
 
-    /// Done uses the accent-tinted solid check glyph as a plain bar item: it's a filled disc with a
-    /// knocked-out check, so tinting it accent gives a blue disc with a light check showing through,
-    /// matching the design. Plain style applies the blue immediately (no prominent tint fade), and
-    /// it gets the same glass treatment as the X/menu buttons.
+    /// Done uses the prominent bar-button style so the whole glass background is tinted accent —
+    /// the only way to get a fully filled blue circle (a glyph/custom view sits inside the system's
+    /// larger glass platter, leaving a white ring). Trade-off: iOS 26 fades the tint in on appear.
     private func makeSelectionDoneItem() -> UIBarButtonItem {
         let item = UIBarButtonItem(
-            image: DesignSystemImages.Glyphs.Size24.checkSolid.withRenderingMode(.alwaysTemplate),
-            style: .plain,
+            image: DesignSystemImages.Glyphs.Size24.check.withRenderingMode(.alwaysTemplate),
+            style: .done,
             target: self,
             action: #selector(selectionDoneTapped)
         )
+        if #available(iOS 26, *) {
+            item.style = .prominent
+        }
         item.tintColor = UIColor(designSystemColor: .accentPrimary)
         item.accessibilityLabel = UserText.navigationTitleDone
         return item
