@@ -2194,19 +2194,32 @@ extension TabViewController: WKNavigationDelegate {
 
     func preparePreview(completion: @escaping (UIImage?) -> Void) {
         DispatchQueue.main.async { [weak self] in
-            guard let webView = self?.webView,
+            guard let self, let webView = self.webView,
                   webView.bounds.height > 0 && webView.bounds.width > 0 else { completion(nil); return }
-            
-            let size = CGSize(width: webView.frame.size.width,
-                              height: webView.frame.size.height - webView.scrollView.contentInset.top - webView.scrollView.contentInset.bottom)
+
+            // The visible content region is the web view's bounds minus its insets. Floating UI derives
+            // its own insets separately, so keep the legacy top/bottom-only calculation there. In classic
+            // chrome the web view spans full width under the notch, so use `adjustedContentInset` (which
+            // folds in the safe area) across all four edges — otherwise the landscape capture is offset
+            // toward the notch and shows an empty strip.
+            let inset: UIEdgeInsets
+            if FloatingUIManager(featureFlagger: self.featureFlagger).isFloatingUIEnabled {
+                let contentInset = webView.scrollView.contentInset
+                inset = UIEdgeInsets(top: contentInset.top, left: 0, bottom: contentInset.bottom, right: 0)
+            } else {
+                inset = webView.scrollView.adjustedContentInset
+            }
+
+            let size = CGSize(width: webView.bounds.width - inset.left - inset.right,
+                              height: webView.bounds.height - inset.top - inset.bottom)
 
             guard size.width > 0, size.height > 0 else { completion(nil); return }
 
             let renderer = UIGraphicsImageRenderer(size: size)
             let image = renderer.image { context in
-                context.cgContext.translateBy(x: 0, y: -webView.scrollView.contentInset.top)
+                context.cgContext.translateBy(x: -inset.left, y: -inset.top)
                 webView.drawHierarchy(in: webView.bounds, afterScreenUpdates: true)
-                if let jsAlertView = self?.jsAlertView {
+                if let jsAlertView = self.jsAlertView {
                     jsAlertView.drawHierarchy(in: jsAlertView.bounds, afterScreenUpdates: false)
                 }
             }
