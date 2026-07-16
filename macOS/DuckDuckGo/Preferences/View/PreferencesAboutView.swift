@@ -177,8 +177,8 @@ extension Preferences {
                             .padding(.horizontal, 6)
                             .padding(.vertical, 4)
                             .background(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.betaLabelBackground)
+                                RoundedRectangle(cornerRadius: 11)
+                                    .fill(Color(designSystemColor: .statusYellowTertiary))
                             )
                             .foregroundColor(Color.betaLabelForeground)
                     }
