@@ -1843,21 +1843,11 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: -5), in: reasoningPickerButton)
     }
 
-    /// Every reasoning-effort row — accessible or gated — goes through this one custom view (the
-    /// same `ModelMenuRowView` the model picker uses), rather than mixing native `NSMenuItem`s for
-    /// accessible efforts with a custom view only for the gated one. That split briefly existed
-    /// and didn't hold up: the two rendering paths don't agree closely enough on left margins or
-    /// hover-highlight color to sit believably in the same menu (a gated row rendered visibly
-    /// shifted right and off-color next to its native siblings).
-    ///
-    /// With the subscription-upsell feature flag on, a gated effort renders like any other row —
-    /// full color, highlights on hover, tappable anywhere — because tapping it does do something:
-    /// `reasoningEffortSelected` already routes a gated selection to the upsell dialog via
-    /// `handleReasoningEffortSelection`. The badge additionally gets its own tap target
-    /// (`ModelMenuRowView.onTapBadge`) purely so it's independently tappable within the row, not
-    /// because the row itself is disabled. With the flag off, the badge disappears in favor of a
-    /// plain PLUS/PRO label matching the model picker's own gated rows — no badge, no dialog, and
-    /// the row goes back to being genuinely inert, same as before the upsell UI shipped.
+    /// All rows go through one `ModelMenuRowView` (shared with the model picker) rather than mixing
+    /// native `NSMenuItem`s with a custom row for the gated one — the two paths don't agree on left
+    /// margins or hover color, so a gated row rendered visibly misaligned next to native siblings.
+    /// With the upsell flag on, a gated effort behaves like any actionable row (tapping it opens the
+    /// dialog via `reasoningEffortSelected`); with the flag off it's an inert PLUS/PRO row, no badge.
     private func reasoningEffortRow(for effort: AIChatReasoningEffort, requiredTier: AIChatModelPublicAccessTier?, isSelected: Bool, in menu: NSMenu) -> NSMenuItem {
         let isGated = requiredTier != nil
         let showsUpsellBadge = isGated && omnibarController.isSubscriptionUpsellEnabled

@@ -92,9 +92,8 @@ public struct AIChatGatedModel {
 }
 
 public extension AIChatModelSectionBuilder {
-    /// Groups models for a picker that shows every gated model with an upsell, rather than hiding
-    /// higher-tier models: accessible models first, then every gated model paired with its required
-    /// tier (so a Plus user still sees Pro-only models, badged, alongside an upgrade path).
+    /// Splits models into accessible and gated (each paired with its required tier), keeping gated
+    /// models visible rather than hiding higher-tier ones like `buildSections` does.
     static func buildGatedSections(models: [AIChatModel]) -> (accessible: [AIChatModel], gated: [AIChatGatedModel]) {
         let accessible = models.filter { $0.entityHasAccess }
         let gated = models.compactMap { model -> AIChatGatedModel? in
