@@ -69,7 +69,7 @@ struct SyncSetupView<ViewModel>: View where ViewModel: ManagementViewModel {
                     await model.syncWithAnotherDevicePressed()
                 }
             }
-            .buttonStyle(SyncWithAnotherDeviceButtonStyle(enabled: model.isConnectingDevicesAvailable))
+            .buttonStyle(SyncWithAnotherDeviceButtonStyle(enabled: model.isConnectingDevicesAvailable, isAppRebranded: model.isAppRebranded))
             .disabled(!model.isConnectingDevicesAvailable)
             .padding(.bottom, model.isAppRebranded ? 10 : 0)
         }
@@ -98,9 +98,11 @@ struct SyncSetupView<ViewModel>: View where ViewModel: ManagementViewModel {
 private struct SyncWithAnotherDeviceButtonStyle: ButtonStyle {
 
     public let enabled: Bool
+    public let isAppRebranded: Bool
 
-    public init(enabled: Bool) {
+    public init(enabled: Bool, isAppRebranded: Bool) {
         self.enabled = enabled
+        self.isAppRebranded = isAppRebranded
     }
 
     public func makeBody(configuration: Self.Configuration) -> some View {
@@ -116,6 +118,6 @@ private struct SyncWithAnotherDeviceButtonStyle: ButtonStyle {
             .padding(.horizontal, 24)
             .background(enabled ? enabledBackgroundColor : disabledBackgroundColor)
             .foregroundColor(labelColor)
-            .cornerRadius(8)
+            .cornerRadius(isAppRebranded ? 16 : 8)
     }
 }
