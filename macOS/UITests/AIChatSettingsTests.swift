@@ -29,12 +29,15 @@ class AIChatSettingsTests: UITestCase {
         static let showSidebarButtonInTabBarToggle = "Preferences.AIChat.showSidebarButtonInTabBarToggle"
         static let duckAITitleButton = "TabBarViewController.duckAIChromeTitleButton"
         static let sidebarButton = "TabBarViewController.duckAIChromeSidebarButton"
+        // Menu options of the Duck.ai On/Off dropdown (native AI controls layout).
+        static let duckAIEnabledOn = "On"
+        static let duckAIEnabledOff = "Off"
     }
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
-        app = XCUIApplication.setUp(featureFlags: ["aiChatChromeSidebar": true, "aiChatSidebarFloating": true])
+        app = XCUIApplication.setUp(featureFlags: ["aiChatChromeSidebar": true, "aiChatSidebarFloating": true, "aiFeaturesNativeControls": true])
 
         addressBarTextField = app.addressBar
         app.enforceSingleWindow()
@@ -135,15 +138,11 @@ class AIChatSettingsTests: UITestCase {
             showToggleCheckbox.click()
         }
 
-        // Disable the main Duck.ai setting
-        let disableButton = app.buttons[Identifiers.aiFeaturesToggle]
-        XCTAssertTrue(disableButton.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-        disableButton.click()
-
-        // Confirm in the dialog
-        let confirmButton = app.buttons["Disable Duck.ai"]
-        XCTAssertTrue(confirmButton.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-        confirmButton.click()
+        // Disable the main Duck.ai setting via the On/Off dropdown
+        let duckAIPicker = app.popUpButtons[Identifiers.aiFeaturesToggle]
+        XCTAssertTrue(duckAIPicker.waitForExistence(timeout: UITests.Timeouts.elementExistence))
+        duckAIPicker.click()
+        app.menuItems[Identifiers.duckAIEnabledOff].click()
 
         // Tab bar buttons should be hidden
         let titleButton = app.windows.firstMatch.buttons[Identifiers.duckAITitleButton]
@@ -186,12 +185,13 @@ class AIChatSettingsTests: UITestCase {
                        "Show Sidebar Button should not be in View menu when Duck.ai is disabled")
         app.typeKey(.escape, modifierFlags: [])
 
-        // Restore: re-enable Duck.ai
+        // Restore: re-enable Duck.ai via the On/Off dropdown
         app.activateAddressBar()
         addressBarTextField = app.addressBar
         addressBarTextField.typeURL(URL(string: "duck://settings/aichat")!)
-        let enableButton = app.buttons[Identifiers.aiFeaturesToggle]
-        XCTAssertTrue(enableButton.waitForExistence(timeout: UITests.Timeouts.elementExistence))
-        enableButton.click()
+        let duckAIPickerRestore = app.popUpButtons[Identifiers.aiFeaturesToggle]
+        XCTAssertTrue(duckAIPickerRestore.waitForExistence(timeout: UITests.Timeouts.elementExistence))
+        duckAIPickerRestore.click()
+        app.menuItems[Identifiers.duckAIEnabledOn].click()
     }
 }
