@@ -18,6 +18,7 @@
 
 import AppKit
 import Combine
+import DesignResourcesKit
 import PreferencesUI_macOS
 import SwiftUI
 import SwiftUIExtensions
@@ -61,7 +62,7 @@ extension Preferences {
                                 Text(UserText.moreSearchSettingsLink)
                                 Image(.externalAppScheme)
                             }
-                            .foregroundColor(Color.linkBlue)
+                            .foregroundColor(DesignSystemRebrand.isAppRebranded() ? Color(designSystemColor: .accentTextPrimary) : Color.linkBlue)
                             .cursor(.pointingHand)
                         }
                         .buttonStyle(.plain)

@@ -20,6 +20,7 @@ import PreferencesUI_macOS
 import SwiftUI
 import SwiftUIExtensions
 import PixelKit
+import DesignResourcesKit
 import DesignResourcesKitIcons
 import SERPSettings
 
@@ -60,7 +61,7 @@ extension Preferences {
                                         Text(UserText.duckAiSettingsLink)
                                         Image(.externalAppScheme)
                                     }
-                                    .foregroundColor(Color.linkBlue)
+                                    .foregroundColor(DesignSystemRebrand.isAppRebranded() ? Color(designSystemColor: .accentTextPrimary) : Color.linkBlue)
                                     .cursor(.pointingHand)
                                 }
                                 .buttonStyle(.plain)
@@ -246,7 +247,7 @@ extension Preferences {
                                     Text(UserText.searchAssistSettingsLink)
                                     Image(.externalAppScheme)
                                 }
-                                .foregroundColor(Color.linkBlue)
+                                .foregroundColor(DesignSystemRebrand.isAppRebranded() ? Color(designSystemColor: .accentTextPrimary) : Color.linkBlue)
                                 .cursor(.pointingHand)
                             }
                             .buttonStyle(.plain)
@@ -269,7 +270,7 @@ extension Preferences {
                                     Text(UserText.searchAIFeaturesSettingsLink)
                                     Image(.externalAppScheme)
                                 }
-                                .foregroundColor(Color.linkBlue)
+                                .foregroundColor(DesignSystemRebrand.isAppRebranded() ? Color(designSystemColor: .accentTextPrimary) : Color.linkBlue)
                                 .cursor(.pointingHand)
                             }
                             .buttonStyle(.plain)
