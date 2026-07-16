@@ -103,6 +103,17 @@ final class UnifiedToggleInputPasteHandlerTests: XCTestCase {
         XCTAssertTrue(delegate.presentedErrors.isEmpty)
     }
 
+    func testApplyDroppedWhenTabContextChangedDuringLoad() {
+        let delegate = MockPasteDelegate()
+        delegate.pasteContextIdentity = "tabB"
+        let handler = makeHandler(delegate)
+
+        handler.applyLoadedAttachments(makeResult(images: 1, files: 1), expectedContext: "tabA")
+
+        XCTAssertTrue(delegate.callLog.isEmpty)
+        XCTAssertTrue(delegate.presentedErrors.isEmpty)
+    }
+
     func testPasteDoesNothingWhenDisabled() {
         let delegate = MockPasteDelegate()
         delegate.support = .init(isEnabled: false, acceptsImages: true, fileTypes: [.pdf])
@@ -194,6 +205,7 @@ final class UnifiedToggleInputPasteHandlerTests: XCTestCase {
 private final class MockPasteDelegate: UnifiedToggleInputPasteDelegate {
 
     var support = UnifiedToggleInputPasteSupport(isEnabled: true, acceptsImages: true, fileTypes: [.pdf])
+    var pasteContextIdentity: String?
     var imageHeadroom = Int.max
     var capacityMessage: String?
 

@@ -54,6 +54,15 @@ struct UnifiedToggleInputPasteSupport {
     let isEnabled: Bool
     let acceptsImages: Bool
     let fileTypes: [UTType]
+    /// Per-file byte limit, used to reject an oversized paste from its size alone before reading it into memory.
+    let maxFileSizeBytes: Int?
+
+    init(isEnabled: Bool, acceptsImages: Bool, fileTypes: [UTType], maxFileSizeBytes: Int? = nil) {
+        self.isEnabled = isEnabled
+        self.acceptsImages = acceptsImages
+        self.fileTypes = fileTypes
+        self.maxFileSizeBytes = maxFileSizeBytes
+    }
 
     var acceptsAnyAttachment: Bool { acceptsImages || !fileTypes.isEmpty }
 }
@@ -62,6 +71,8 @@ struct UnifiedToggleInputPasteSupport {
 @MainActor
 protocol UnifiedToggleInputPasteDelegate: AnyObject {
     var pasteAttachmentSupport: UnifiedToggleInputPasteSupport { get }
+    /// Identity of the tab/surface the paste started on; the handler drops results if it changed during the async load.
+    var pasteContextIdentity: String? { get }
     func imageCapacityMessage() -> String?
     func pasteWillBeginExpandingIfNeeded()
     /// Adds the image if there is headroom; returns `false` when the image limit is reached.
@@ -90,20 +101,24 @@ final class UnifiedToggleInputPasteHandler: AttachmentPasteHandling {
         let support = delegate.pasteAttachmentSupport
         guard support.isEnabled, support.acceptsAnyAttachment else { return }
         let providers = pasteboard.itemProviders
+        let context = delegate.pasteContextIdentity
         delegate.pasteWillBeginExpandingIfNeeded()
         Task { [weak self] in
             let result = await PasteboardAttachmentReader.loadAttachments(
                 from: providers,
                 allowsImages: support.acceptsImages,
-                allowedFileTypes: support.fileTypes
+                allowedFileTypes: support.fileTypes,
+                maxFileSizeBytes: support.maxFileSizeBytes
             )
-            self?.applyLoadedAttachments(result)
+            self?.applyLoadedAttachments(result, expectedContext: context)
         }
     }
 
-    /// Applied after the async load; re-checks `isEnabled` since the user may have left aiChat or started generation. Files first so a rejected image's limit message (presented last) survives a following file add.
-    func applyLoadedAttachments(_ result: PasteboardAttachmentReader.Result) {
-        guard let delegate, delegate.pasteAttachmentSupport.isEnabled else { return }
+    /// Applied after the async load; drops the result if paste was disabled or the tab/surface changed during the load. Files first so a rejected image's limit message (presented last) survives a following file add.
+    func applyLoadedAttachments(_ result: PasteboardAttachmentReader.Result, expectedContext: String? = nil) {
+        guard let delegate,
+              delegate.pasteAttachmentSupport.isEnabled,
+              delegate.pasteContextIdentity == expectedContext else { return }
 
         for file in result.files {
             delegate.addPastedFile(file)
@@ -152,7 +167,8 @@ enum PasteboardAttachmentReader {
     static func loadAttachments(
         from providers: [NSItemProvider],
         allowsImages: Bool,
-        allowedFileTypes: [UTType]
+        allowedFileTypes: [UTType],
+        maxFileSizeBytes: Int? = nil
     ) async -> Result {
         var result = Result()
         for provider in providers {
@@ -161,7 +177,7 @@ enum PasteboardAttachmentReader {
                     result.images.append((image, provider.suggestedName ?? "image"))
                 }
             } else if let type = allowedFileTypes.first(where: { provider.hasItemConformingToTypeIdentifier($0.identifier) }) {
-                if let file = await loadFile(from: provider, type: type) {
+                if let file = await loadFile(from: provider, type: type, maxFileSizeBytes: maxFileSizeBytes) {
                     result.files.append(file)
                 }
             }
@@ -177,22 +193,31 @@ enum PasteboardAttachmentReader {
         }
     }
 
-    private static func loadFile(from provider: NSItemProvider, type: UTType) async -> AIChatFileAttachment? {
-        let data: Data? = await withCheckedContinuation { continuation in
-            provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
-                continuation.resume(returning: data)
-            }
-        }
-        guard let data else { return nil }
-
+    /// Loads via a file representation so an oversized file can be rejected from its size alone (empty-data attachment the policy fails on) without reading the whole file into memory — matching the picker's metadata preflight.
+    private static func loadFile(from provider: NSItemProvider, type: UTType, maxFileSizeBytes: Int?) async -> AIChatFileAttachment? {
         let baseName = provider.suggestedName ?? "file"
         let fileName = (baseName as NSString).pathExtension.isEmpty
             ? type.preferredFilenameExtension.map { "\(baseName).\($0)" } ?? baseName
             : baseName
         let mimeType = type.preferredMIMEType ?? "application/octet-stream"
 
-        return await Task.detached(priority: .userInitiated) {
-            UnifiedToggleInputAttachmentPresenter.makeFileAttachment(data: data, fileName: fileName, mimeType: mimeType)
-        }.value
+        return await withCheckedContinuation { continuation in
+            _ = provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, _ in
+                guard let url else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
+                if let maxFileSizeBytes, let fileSize, fileSize > maxFileSizeBytes {
+                    continuation.resume(returning: AIChatFileAttachment(data: Data(), fileName: fileName, mimeType: mimeType, fileSizeBytes: fileSize))
+                    return
+                }
+                guard let data = try? Data(contentsOf: url) else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: UnifiedToggleInputAttachmentPresenter.makeFileAttachment(data: data, fileName: fileName, mimeType: mimeType))
+            }
+        }
     }
 }

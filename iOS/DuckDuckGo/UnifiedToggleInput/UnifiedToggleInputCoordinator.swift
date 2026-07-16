@@ -2543,14 +2543,17 @@ private extension UnifiedToggleInputCoordinator {
 
 extension UnifiedToggleInputCoordinator: UnifiedToggleInputPasteDelegate {
 
-    /// Keys off model capability (not remaining room) so an over-limit paste is consumed and reported here rather than falling through to UIKit's inline-image insert.
+    /// Keys off model capability (not remaining room) so an over-limit paste is consumed and reported here rather than falling through to UIKit's inline-image insert. Text types are excluded so an ordinary copied string pastes as text rather than a `.txt` attachment.
     var pasteAttachmentSupport: UnifiedToggleInputPasteSupport {
         UnifiedToggleInputPasteSupport(
             isEnabled: inputMode == .aiChat && !viewController.isGenerating,
             acceptsImages: selectedModelSupportsImageUpload,
-            fileTypes: allowedFileUTTypes
+            fileTypes: allowedFileUTTypes.filter { !UTType.plainText.conforms(to: $0) },
+            maxFileSizeBytes: (modelStore.attachmentLimits?.files.maxFileSizeMB).map { $0 * 1_048_576 }
         )
     }
+
+    var pasteContextIdentity: String? { currentTabUID }
 
     func imageCapacityMessage() -> String? {
         attachmentPolicy.imageCapacityValidationMessage()
