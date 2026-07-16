@@ -1,7 +1,7 @@
 //
 //  Tab.swift
 //
-//  Copyright © 2020 DuckDuckGo. All rights reserved.
+//  Copyright ¬© 2020 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -105,7 +105,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
     private var themeCancellable: AnyCancellable?
 
     private var extensions: TabExtensions
-    // accesing TabExtensionsë Public Protocols projecting tab.extensions.extensionName to tab.extensionName
+    // accesing TabExtensions‚Äò Public Protocols projecting tab.extensions.extensionName to tab.extensionName
     // allows extending Tab functionality while maintaining encapsulation
     subscript<Extension>(dynamicMember keyPath: KeyPath<TabExtensions, Extension?>) -> Extension? {
         self.extensions[keyPath: keyPath]
@@ -620,7 +620,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
     /// see https://github.com/mozilla-mobile/firefox-ios/wiki/WKWebView-navigation-and-security-considerations
     @Published private(set) var securityOrigin: SecurityOrigin = .empty
 
-    /// Set to true when the Tabës first navigation is committed
+    /// Set to true when the Tab‚Äòs first navigation is committed
     @Published var hasCommittedContent = false
 
     @discardableResult
@@ -802,7 +802,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
     @Published private(set) var canReload: Bool = false
 
     /// Whether the current tab content is a real web page that can be reported as broken.
-    /// `.url` and `.aiChat` tabs are eligible ó internal pages such as History and Settings are not.
+    /// `.url` and `.aiChat` tabs are eligible ‚Äî internal pages such as History and Settings are not.
     var canReportBrokenSite: Bool {
         switch content {
         case .url, .aiChat: return true
@@ -831,12 +831,12 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         updateCanGoBackForward(withCurrentNavigation: navigationDelegate.currentNavigation)
     }
 
-    // published $currentNavigation emits nil before actual currentNavigation property is set to nil, thatës why default `= nil` argument canët be used here
+    // published $currentNavigation emits nil before actual currentNavigation property is set to nil, that‚Äòs why default `= nil` argument can‚Äòt be used here
     @MainActor(unsafe)
     private func updateCanGoBackForward(withCurrentNavigation currentNavigation: Navigation?) {
         dispatchPrecondition(condition: .onQueue(.main))
 
-        // ìfreezeî back-forward buttons updates when current backForwardListItem is being popped..
+        // ‚Äúfreeze‚Äù back-forward buttons updates when current backForwardListItem is being popped..
         if webView.canGoForward
             // coming back to the same backForwardList item from where started
             && (webView.backForwardList.currentItem?.identity == currentNavigation?.navigationAction.fromHistoryItemIdentity
@@ -946,7 +946,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
         }
 
         guard let backForwardNavigation else {
-            Logger.navigation.error("item `\(item.title ?? "") ñ \(item.url?.shortDescription ?? "")` is not in the backForwardList")
+            Logger.navigation.error("item `\(item.title ?? "") ‚Äì \(item.url?.shortDescription ?? "")` is not in the backForwardList")
             return nil
         }
 
@@ -1005,7 +1005,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
 
             // Use location.replace to retry the failed URL in-place without adding a back/forward
             // entry. Invoke without user gesture so the resulting navigation arrives at the policy
-            // chain as user-initiated=false .other ó PopupHandlingTabExtension would otherwise
+            // chain as user-initiated=false .other ‚Äî PopupHandlingTabExtension would otherwise
             // classify a user-initiated .other as a link activation and (for pinned, cross-origin
             // navigations) cancel it.
             let script = "location.replace('\(failingUrl.absoluteString.escapedJavaScriptString())')"
@@ -1066,7 +1066,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
 
         let source = content.source
         if url.isFileURL {
-            // WebKit wonët load local pageës external resouces even with `allowingReadAccessTo` provided
+            // WebKit won‚Äòt load local page‚Äòs external resouces even with `allowingReadAccessTo` provided
             // this could be fixed using a custom scheme handler loading local resources in future.
             let readAccessScopeURL = url
             return webView.navigator(distributedNavigationDelegate: navigationDelegate)
@@ -1103,7 +1103,7 @@ protocol TabDelegate: ContentOverlayUserScriptDelegate {
                 // reload when showing error due to connection failure
                 return true
             default:
-                // donët autoreload on other kinds of errors
+                // don‚Äòt autoreload on other kinds of errors
                 return false
             }
 
@@ -1531,7 +1531,7 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
             return
         }
 
-        // donët show an error page if the error was already handled
+        // don‚Äòt show an error page if the error was already handled
         // (by SearchNonexistentDomainNavigationResponder) or another navigation was triggered by `setContent`.
         // When comparing URL, also try removing text fragment, because WebKit may drop it from the URL on failed loads.
         guard self.content.urlForWebView == url || self.content.urlForWebView?.removingTextFragment() == url
@@ -1542,7 +1542,7 @@ extension Tab/*: NavigationResponder*/ { // to be moved to Tab+Navigation.swift
 
         self.error = error
 
-        // when already displaying the error page and reload navigation fails again: donët navigate, just update page HTML
+        // when already displaying the error page and reload navigation fails again: don‚Äòt navigate, just update page HTML
         let shouldPerformAlternateNavigation = navigation.url != webView.url || navigation.navigationAction.targetFrame?.url != .error
         loadErrorHTML(error, header: UserText.errorPageHeader, forUnreachableURL: url, alternate: shouldPerformAlternateNavigation)
     }

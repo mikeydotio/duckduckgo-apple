@@ -32,7 +32,6 @@ import PrivacyDashboard
 import SharedTestUtilities
 import SpecialErrorPages
 import Suggestions
-import WebKit
 import XCTest
 
 @testable import DuckDuckGo_Privacy_Browser
