@@ -62,27 +62,27 @@
                             "properties": {
                                 "status_reason": {
                                     "type": "string",
-                                    "description": "Reason string for the current status.",
+                                    "description": "Reason accompanying an UNKNOWN outcome. `partial_data` = a pending flow was completed after app/extension launch without enough captured data to classify it; `timeout` = the connection did not complete within the 15 minute connection window; `retried` = a still-pending connection flow was superseded by a newer connection attempt before it completed.",
                                     "enum": ["partial_data", "timeout", "retried"]
                                 },
                                 "extension_type": {
                                     "type": "string",
-                                    "description": "VPN extension type used.",
+                                    "description": "Which network extension served the connection. `app` = the in-app (App Store) extension; `system` = the system extension; `unknown` = not yet determined.",
                                     "enum": ["app", "system", "unknown"]
                                 },
                                 "startup_method": {
                                     "type": "string",
-                                    "description": "How the VPN setup or connection was initiated.",
+                                    "description": "How the tunnel was started. `automatic_on_demand` = started automatically by an on-demand rule; `manual_by_main_app` = started manually from the main app; `manual_by_the_system` = started manually by the system.",
                                     "enum": ["automatic_on_demand", "manual_by_main_app", "manual_by_the_system"]
                                 },
                                 "is_setup": {
                                     "type": "string",
-                                    "description": "Whether the current flow is setup or reconnection.",
+                                    "description": "Whether this connection is part of first-time VPN setup. `yes` = the VPN was not yet configured and this connection triggered setup (iOS: no tunnel configuration existed yet; macOS: onboarding not yet complete); `no` = the VPN was already set up before this connection began; `unknown` if it could not be determined. Previous app versions may report the legacy values `true` and `false`.",
                                     "enum": ["yes", "no", "unknown", "true", "false"]
                                 },
                                 "onboarding_status": {
                                     "type": "string",
-                                    "description": "VPN onboarding status at the time of the connection flow.",
+                                    "description": "VPN onboarding state at connection time (macOS). `needs_to_allow_extension` and `needs_to_allow_vpn_configuration` mean onboarding was still incomplete; `completed` means onboarding had finished; `unknown` if it could not be determined.",
                                     "enum": ["needs_to_allow_extension", "needs_to_allow_vpn_configuration", "completed", "unknown"]
                                 },
                                 "account_is_signed_in": {
@@ -113,78 +113,22 @@
                                         "unknown"
                                     ]
                                 },
-                                "latency_ms": { "type": "integer", "description": "Overall VPN connection latency, in milliseconds." },
-                                "browser_start_latency_ms": {
+                                "latency_ms": {
                                     "type": "integer",
-                                    "description": "Duration of the browser start step, in milliseconds."
+                                    "description": "Overall time taken to establish the connection, in milliseconds."
                                 },
                                 "controller_start_latency_ms": {
                                     "type": "integer",
-                                    "description": "Duration of the controller start step, in milliseconds."
+                                    "description": "Time taken by the controller start step, in milliseconds."
                                 },
-                                "oauth_latency_ms": { "type": "integer", "description": "Duration of the OAuth step, in milliseconds." },
+                                "oauth_latency_ms": { "type": "integer", "description": "Time taken by the OAuth step, in milliseconds." },
                                 "tunnel_start_latency_ms": {
                                     "type": "integer",
-                                    "description": "Duration of the tunnel start step, in milliseconds."
-                                },
-                                "browser_start_error": {
-                                    "type": "object",
-                                    "description": "Per-step error details for a single VPN connection step.",
-                                    "properties": {
-                                        "domain": { "type": "string", "description": "The top level error domain" },
-                                        "code": { "type": "integer", "description": "The top level error code" },
-                                        "description": { "type": "string", "description": "Additional error description" },
-                                        "underlying_domain": { "type": "string", "description": "The underlying error domain" },
-                                        "underlying_code": { "type": "integer", "description": "The underlying error code" },
-                                        "underlying_domain2": {
-                                            "type": "string",
-                                            "description": "The second nested underlying error domain"
-                                        },
-                                        "underlying_code2": { "type": "integer", "description": "The second nested underlying error code" },
-                                        "underlying_domain3": {
-                                            "type": "string",
-                                            "description": "The third nested underlying error domain"
-                                        },
-                                        "underlying_code3": { "type": "integer", "description": "The third nested underlying error code" },
-                                        "underlying_domain4": {
-                                            "type": "string",
-                                            "description": "The fourth nested underlying error domain"
-                                        },
-                                        "underlying_code4": { "type": "integer", "description": "The fourth nested underlying error code" },
-                                        "underlying_domain5": {
-                                            "type": "string",
-                                            "description": "The fifth nested underlying error domain"
-                                        },
-                                        "underlying_code5": { "type": "integer", "description": "The fifth nested underlying error code" },
-                                        "underlying_domain6": {
-                                            "type": "string",
-                                            "description": "The sixth nested underlying error domain"
-                                        },
-                                        "underlying_code6": { "type": "integer", "description": "The sixth nested underlying error code" },
-                                        "underlying_domain7": {
-                                            "type": "string",
-                                            "description": "The seventh nested underlying error domain"
-                                        },
-                                        "underlying_code7": {
-                                            "type": "integer",
-                                            "description": "The seventh nested underlying error code"
-                                        },
-                                        "underlying_domain8": {
-                                            "type": "string",
-                                            "description": "The eighth nested underlying error domain"
-                                        },
-                                        "underlying_code8": { "type": "integer", "description": "The eighth nested underlying error code" },
-                                        "underlying_domain9": {
-                                            "type": "string",
-                                            "description": "The ninth nested underlying error domain"
-                                        },
-                                        "underlying_code9": { "type": "integer", "description": "The ninth nested underlying error code" }
-                                    },
-                                    "additionalProperties": false
+                                    "description": "Time taken by the tunnel start step, in milliseconds."
                                 },
                                 "controller_start_error": {
                                     "type": "object",
-                                    "description": "Per-step error details for a single VPN connection step.",
+                                    "description": "Shared wide-event error details for nested per-step errors (uses `description` rather than `error_description`)",
                                     "properties": {
                                         "domain": { "type": "string", "description": "The top level error domain" },
                                         "code": { "type": "integer", "description": "The top level error code" },
@@ -239,7 +183,7 @@
                                 },
                                 "oauth_error": {
                                     "type": "object",
-                                    "description": "Per-step error details for a single VPN connection step.",
+                                    "description": "Shared wide-event error details for nested per-step errors (uses `description` rather than `error_description`)",
                                     "properties": {
                                         "domain": { "type": "string", "description": "The top level error domain" },
                                         "code": { "type": "integer", "description": "The top level error code" },
@@ -294,7 +238,7 @@
                                 },
                                 "tunnel_start_error": {
                                     "type": "object",
-                                    "description": "Per-step error details for a single VPN connection step.",
+                                    "description": "Shared wide-event error details for nested per-step errors (uses `description` rather than `error_description`)",
                                     "properties": {
                                         "domain": { "type": "string", "description": "The top level error domain" },
                                         "code": { "type": "integer", "description": "The top level error code" },
