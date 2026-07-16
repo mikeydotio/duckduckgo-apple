@@ -21,6 +21,7 @@ import PreferencesUI_macOS
 import SwiftUI
 import SwiftUIExtensions
 import PixelKit
+import DesignResourcesKit
 import DesignResourcesKitIcons
 
 extension Preferences {
@@ -56,7 +57,9 @@ extension Preferences {
                                 Text(UserText.isDefaultBrowser)
                             } else {
                                 HStack {
-                                    Image(.warning).foregroundColor(Color(.linkBlue))
+                                    Image(nsImage: DesignSystemImages.Glyphs.Size16.exclamation)
+                                        .foregroundStyle(DesignSystemRebrand.isAppRebranded() ? Color(.accentTextPrimary) : Color(.linkBlue))
+
                                     Text(UserText.isNotDefaultBrowser)
                                 }
                                 .padding(.trailing, 8)
@@ -87,7 +90,9 @@ extension Preferences {
                                         .padding(.trailing, 8)
                                     } else {
                                         HStack {
-                                            Image(.warning).foregroundColor(Color(.linkBlue))
+                                            Image(nsImage: DesignSystemImages.Glyphs.Size16.exclamation)
+                                                .foregroundStyle(DesignSystemRebrand.isAppRebranded() ? Color(.accentTextPrimary) : Color(.linkBlue))
+
                                             Text(UserText.isNotAddedToDock)
                                         }
                                         .padding(.trailing, 8)
