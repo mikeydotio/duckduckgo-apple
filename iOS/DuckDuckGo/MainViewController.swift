@@ -1078,7 +1078,7 @@ class MainViewController: UIViewController {
         Task {
             if let canShowVPNInUI = try? await subscriptionManager.isFeatureIncludedInSubscription(.networkProtection),
                canShowVPNInUI {
-                segueToVPN(source: .init(subscriptionFunnelOrigin: origin))
+                segueToVPN(source: .init(subscriptionFunnelOrigin: origin), subscriptionIncludesVPN: .trueValue)
             } else {
                 segueToDuckDuckGoSubscription(origin: origin.rawValue)
             }
