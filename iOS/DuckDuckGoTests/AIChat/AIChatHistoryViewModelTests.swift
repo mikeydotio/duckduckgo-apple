@@ -212,8 +212,9 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         Task { await sut.burnSelectedChats(chatIds: ["p1", "r2"]); done.fulfill() }
         wait(for: [done], timeout: 1)
 
-        XCTAssertEqual(fireExecutor.burnedChatIds, ["p1", "r2"])
-        XCTAssertEqual(fireExecutor.burnedIsFireMode, [false, false],
+        XCTAssertEqual(fireExecutor.burnedChatsBatches, [["p1", "r2"]],
+                       "selected chats must be burned in a single batch call, not one per chat")
+        XCTAssertEqual(fireExecutor.burnedIsFireMode, [false],
                        "chat-history sheet only ever deletes persistent chats; never fire-mode")
         XCTAssertEqual(fireExecutor.scheduleSyncCallCount, 1,
                        "sync must be flushed once for the whole batch, not per chat")
@@ -227,7 +228,7 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         Task { await sut.burnSelectedChats(chatIds: []); done.fulfill() }
         wait(for: [done], timeout: 1)
 
-        XCTAssertTrue(fireExecutor.burnedChatIds.isEmpty)
+        XCTAssertTrue(fireExecutor.burnedChatsBatches.isEmpty)
         XCTAssertEqual(fireExecutor.scheduleSyncCallCount, 0)
     }
 
@@ -635,6 +636,13 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         @discardableResult
         func burnChat(chatID: String, isFireMode: Bool) async -> Result<Void, Error> {
             burnedChatIds.append(chatID)
+            burnedIsFireMode.append(isFireMode)
+            return .success(())
+        }
+        private(set) var burnedChatsBatches: [[String]] = []
+        @discardableResult
+        func burnChats(chatIDs: [String], isFireMode: Bool) async -> Result<Void, Error> {
+            burnedChatsBatches.append(chatIDs)
             burnedIsFireMode.append(isFireMode)
             return .success(())
         }

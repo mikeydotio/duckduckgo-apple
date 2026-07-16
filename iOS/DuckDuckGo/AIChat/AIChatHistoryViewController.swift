@@ -541,7 +541,6 @@ final class AIChatHistoryViewController: UIViewController {
         let selectedChatIds = (tableView.indexPathsForSelectedRows ?? [])
             .compactMap { viewModel.chatId(forRowAt: $0) }
         let source: AnyObject = deleteSelectionItem?.customView ?? view
-        // No individual selection burns everything, matching the toolbar button's "Delete All" title.
         if selectedChatIds.isEmpty {
             presentDeleteChatsConfirmation(count: viewModel.totalChatCount, attachPopoverTo: source) { [weak self] in
                 self?.burnAllChats()

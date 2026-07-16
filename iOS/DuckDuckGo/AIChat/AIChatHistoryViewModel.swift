@@ -226,12 +226,11 @@ final class AIChatHistoryViewModel: ObservableObject {
         fireExecutor.scheduleSync()
     }
 
-    /// Never fire-mode (sheet only surfaces persistent chats); sync is flushed once for the batch.
+    /// Never fire-mode (sheet only surfaces persistent chats); one batch burn, sync flushed once.
     func burnSelectedChats(chatIds: [String]) async {
         guard let fireExecutor, !chatIds.isEmpty else { return }
-        for chatId in chatIds {
-            _ = await fireExecutor.burnChat(chatID: chatId, isFireMode: false)
-        }
+        let result = await fireExecutor.burnChats(chatIDs: chatIds, isFireMode: false)
+        guard case .success = result else { return }
         fireExecutor.scheduleSync()
     }
 

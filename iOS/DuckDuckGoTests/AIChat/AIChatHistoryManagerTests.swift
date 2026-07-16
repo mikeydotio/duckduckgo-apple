@@ -305,6 +305,14 @@ private final class MockHistoryCleaner: HistoryCleaning {
         deleteAIChatCalls.append(chatID)
         return deleteAIChatResult
     }
+
+    var deleteAIChatsResult: Result<Void, Error> = .success(())
+    private(set) var deleteAIChatsCalls: [[String]] = []
+
+    func deleteAIChats(chatIDs: [String]) async -> Result<Void, Error> {
+        deleteAIChatsCalls.append(chatIDs)
+        return deleteAIChatsResult
+    }
 }
 
 private func findTableView(in view: UIView?) -> UITableView? {
