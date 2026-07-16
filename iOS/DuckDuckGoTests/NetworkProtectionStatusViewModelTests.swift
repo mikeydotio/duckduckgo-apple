@@ -75,9 +75,7 @@ import Subscription
     func testWhenNetPIsEnabledThenPassesEntryContextToTunnelController() async {
         let entryContext = VPNConnectionWideEventData.EntryContext(
             source: .toolbar,
-            tokenState: .missing,
-            accountHasVPNEntitlement: .falseValue,
-            subscriptionIncludesVPN: .trueValue
+            tokenState: .missing
         )
         let viewModel = makeViewModel(entryContext: entryContext)
 

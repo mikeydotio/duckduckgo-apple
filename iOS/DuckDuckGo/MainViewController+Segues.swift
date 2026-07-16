@@ -288,13 +288,12 @@ extension MainViewController {
         }, deepLinkTarget: .subscriptionWelcome)
     }
 
-    func segueToVPN(source: VPNConnectionWideEventData.ScreenSource,
-                    subscriptionIncludesVPN: VPNConnectionWideEventData.BooleanState = .unknown) {
+    func segueToVPN(source: VPNConnectionWideEventData.ScreenSource) {
         Logger.lifecycle.debug(#function)
         hideAllHighlightsIfNeeded()
         launchSettings(completion: {
-            $0.triggerDeepLinkNavigation(to: .netP(source: source, subscriptionIncludesVPN: subscriptionIncludesVPN))
-        }, deepLinkTarget: .netP(source: source, subscriptionIncludesVPN: subscriptionIncludesVPN))
+            $0.triggerDeepLinkNavigation(to: .netP(source: source))
+        }, deepLinkTarget: .netP(source: source))
     }
 
     func segueToDataBrokerProtection() {
