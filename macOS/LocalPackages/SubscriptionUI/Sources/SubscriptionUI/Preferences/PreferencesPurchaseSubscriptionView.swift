@@ -21,6 +21,7 @@ import SwiftUI
 import SwiftUIExtensions
 import BrowserServicesKit
 import DesignResourcesKit
+import DesignResourcesKitIcons
 
 public struct PreferencesPurchaseSubscriptionView: View {
 
@@ -53,9 +54,15 @@ public struct PreferencesPurchaseSubscriptionView: View {
     @ViewBuilder
     private var purchaseSection: some View {
         HStack(alignment: .top) {
-            Image(.privacyPro)
-                .padding(4)
-                .cornerRadius(4)
+            if DesignSystemRebrand.isAppRebranded() {
+                Image(nsImage: DesignSystemImages.Color.Size16.subscription)
+                    .padding(4)
+                    .cornerRadius(4)
+            } else {
+                Image(.privacyPro)
+                    .padding(4)
+                    .cornerRadius(4)
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 TextMenuItemHeader(model.purchaseSectionHeader)
