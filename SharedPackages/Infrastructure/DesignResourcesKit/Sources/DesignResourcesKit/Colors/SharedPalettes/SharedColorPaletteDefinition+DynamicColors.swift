@@ -209,6 +209,14 @@ extension SharedColorPaletteDefinition {
         case .shadowTertiary:
             return shadowTertiary
 
+        /// Status
+        case .statusYellowPrimary:
+            return statusYellowPrimary
+        case .statusYellowSecondary:
+            return statusYellowSecondary
+        case .statusYellowTertiary:
+            return statusYellowTertiary
+
         /// Surface Colors
         case .surfaceBackdrop:
             return surfaceBackdrop
