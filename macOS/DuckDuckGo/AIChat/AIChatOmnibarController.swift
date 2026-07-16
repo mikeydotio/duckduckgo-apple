@@ -1389,7 +1389,7 @@ enum AIChatModelPickerItem {
 extension AIChatOmnibarController {
     /// Resolved picker contents (accessible first, then the gated upsell section); owns the flag, copy, ordering, and badge impression so the VC just renders.
     func modelPickerItems(selectedModelId: String?) -> [AIChatModelPickerItem] {
-        let (accessible, gated) = AIChatModelSectionBuilder.buildGatedSections(models: models)
+        let (accessible, gated) = AIChatModelSectionBuilder.groupByAccess(models: models)
         let ordered = AIChatModelSectionBuilder.orderedAccessibleModels(accessible, userTier: userTier)
 
         var items: [AIChatModelPickerItem] = ordered.map { model in

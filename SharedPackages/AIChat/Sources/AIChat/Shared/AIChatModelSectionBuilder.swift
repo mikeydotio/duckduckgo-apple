@@ -94,7 +94,7 @@ public struct AIChatGatedModel {
 public extension AIChatModelSectionBuilder {
     /// Splits models into accessible and gated (each paired with its required tier), keeping gated
     /// models visible rather than hiding higher-tier ones like `buildSections` does.
-    static func buildGatedSections(models: [AIChatModel]) -> (accessible: [AIChatModel], gated: [AIChatGatedModel]) {
+    static func groupByAccess(models: [AIChatModel]) -> (accessible: [AIChatModel], gated: [AIChatGatedModel]) {
         let accessible = models.filter { $0.entityHasAccess }
         let gated = models.compactMap { model -> AIChatGatedModel? in
             guard !model.entityHasAccess, let requiredTier = model.lowestPublicAccessTier else { return nil }
