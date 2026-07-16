@@ -1821,23 +1821,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         menu.autoenablesItems = false
         menu.minimumWidth = Self.reasoningPickerMinimumWidth
 
-        // Falls back to the first (always-accessible) effort when nothing is resolved yet — e.g.
-        // the very first time the picker is opened, before fetchModels() has returned and
-        // displayedReasoningEffort is still nil. Without this, no row shows a checkmark even
-        // though the chip itself already displays the same fallback (updateReasoningPickerVisibility
-        // applies it too) — the menu and the chip must agree on what's "current".
-        let currentEffort = omnibarController.displayedReasoningEffort ?? omnibarController.pickerReasoningEfforts.first
-        var didShowUpsellBadge = false
-        for effort in omnibarController.pickerReasoningEfforts {
-            let requiredTier = omnibarController.requiredTier(for: effort)
-            menu.addItem(reasoningEffortRow(for: effort, requiredTier: requiredTier, isSelected: effort == currentEffort, in: menu))
-            if requiredTier != nil && omnibarController.isSubscriptionUpsellEnabled {
-                didShowUpsellBadge = true
-            }
-        }
-        // One impression per menu-open, matching the model picker's header — not one per gated row.
-        if didShowUpsellBadge {
-            omnibarController.recordBadgeImpression()
+        // The controller decides what the menu shows; this only maps each item to an NSMenuItem.
+        for item in omnibarController.reasoningPickerItems() {
+            menu.addItem(reasoningEffortRow(for: item, in: menu))
         }
 
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: -5), in: reasoningPickerButton)
@@ -1848,42 +1834,28 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     /// margins or hover color, so a gated row rendered visibly misaligned next to native siblings.
     /// With the upsell flag on, a gated effort behaves like any actionable row (tapping it opens the
     /// dialog via `reasoningEffortSelected`); with the flag off it's an inert PLUS/PRO row, no badge.
-    private func reasoningEffortRow(for effort: AIChatReasoningEffort, requiredTier: AIChatModelPublicAccessTier?, isSelected: Bool, in menu: NSMenu) -> NSMenuItem {
-        let isGated = requiredTier != nil
-        let showsUpsellBadge = isGated && omnibarController.isSubscriptionUpsellEnabled
-        let badgeText = showsUpsellBadge
-            ? (omnibarController.shouldOfferFreeTrial ? UserText.aiChatModelPickerTryForFree : UserText.aiChatModelPickerUpgrade)
-            : nil
-        let item = NSMenuItem.createModelRow(
-            icon: effort.icon,
-            boldTitle: effort.title,
+    private func reasoningEffortRow(for item: AIChatReasoningPickerItem, in menu: NSMenu) -> NSMenuItem {
+        let hasUpsellBadge = item.upsellBadge != nil
+        let menuItem = NSMenuItem.createModelRow(
+            icon: item.effort.icon,
+            boldTitle: item.effort.title,
             regularTitle: "",
-            subtitle: effort.subtitle,
+            subtitle: item.effort.subtitle,
             subtitleFontSize: 11,
-            trailingText: showsUpsellBadge ? nil : Self.tierBadgeText(for: requiredTier),
-            trailingBadgeText: badgeText,
-            isBadgeMuted: omnibarController.isBadgeMuted,
+            trailingText: item.trailingText,
+            trailingBadgeText: item.upsellBadge,
+            isBadgeMuted: item.isBadgeMuted,
             emphasizesTitle: false,
-            isSelected: isSelected && !isGated,
-            isDimmed: isGated && !showsUpsellBadge,
-            isInteractive: !isGated || showsUpsellBadge,
+            isSelected: item.isSelected,
+            isDimmed: item.isGated && !hasUpsellBadge,
+            isInteractive: !item.isGated || hasUpsellBadge,
             action: #selector(reasoningEffortSelected(_:)),
-            badgeAction: showsUpsellBadge ? #selector(reasoningEffortBadgeSelected(_:)) : nil,
+            badgeAction: hasUpsellBadge ? #selector(reasoningEffortBadgeSelected(_:)) : nil,
             target: self,
             menu: menu
         )
-        item.representedObject = effort
-        return item
-    }
-
-    /// Plain PLUS/PRO trailing label for a gated reasoning effort, matching the model picker's own
-    /// gated rows. `nil` when the effort isn't gated at all.
-    private static func tierBadgeText(for requiredTier: AIChatModelPublicAccessTier?) -> String? {
-        switch requiredTier {
-        case .plus: return UserText.aiChatModelPickerTierBadgePlus
-        case .pro: return UserText.aiChatModelPickerTierBadgePro
-        case .free, .none: return nil
-        }
+        menuItem.representedObject = item.effort
+        return menuItem
     }
 
     @objc private func reasoningEffortBadgeSelected(_ sender: NSMenuItem) {

@@ -2018,6 +2018,98 @@ final class AIChatOmnibarControllerTests: XCTestCase {
         XCTAssertEqual(rows.first { $0.id == "free-b" }?.isSelected, true)
     }
 
+    // MARK: - Reasoning Picker Item Tests
+
+    /// A model whose `.medium` effort is gated to plus/pro, with `.none`/`.low` open to everyone.
+    private func gatedEffortModel() -> AIChatRemoteModel {
+        makeRemoteModel(
+            id: "reasoning-model",
+            entityHasAccess: true,
+            supportedReasoningEffort: [.none, .low, .medium],
+            reasoningEffortAccess: [
+                AIChatReasoningEffortAccess(effort: .none, accessTier: ["free", "plus", "pro"], entityHasAccess: true),
+                AIChatReasoningEffortAccess(effort: .low, accessTier: ["free", "plus", "pro"], entityHasAccess: true),
+                AIChatReasoningEffortAccess(effort: .medium, accessTier: ["plus", "pro"], entityHasAccess: false)
+            ]
+        )
+    }
+
+    func testReasoningPickerItems_freeUserUpsellOn_gatedEffortHasTryForFreeBadge() async {
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = true
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarSubscriptionUpsell.rawValue] = true
+        mockPreferences.selectedModelId = "reasoning-model"
+        await loadModels([gatedEffortModel()], tier: nil, trialEligible: true)
+
+        let items = controller.reasoningPickerItems()
+        let gated = items.first { $0.effort == .medium }
+        let open = items.first { $0.effort == .low }
+
+        XCTAssertEqual(gated?.isGated, true)
+        XCTAssertEqual(gated?.upsellBadge, UserText.aiChatModelPickerTryForFree)
+        XCTAssertNil(gated?.trailingText, "Upsell badge replaces the plain PLUS/PRO label")
+        XCTAssertEqual(gated?.isSelected, false)
+        XCTAssertEqual(open?.isGated, false)
+        XCTAssertNil(open?.upsellBadge)
+    }
+
+    func testReasoningPickerItems_freeUserTrialIneligible_gatedEffortHasUpgradeBadge() async {
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = true
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarSubscriptionUpsell.rawValue] = true
+        mockPreferences.selectedModelId = "reasoning-model"
+        await loadModels([gatedEffortModel()], tier: nil, trialEligible: false)
+
+        let gated = controller.reasoningPickerItems().first { $0.effort == .medium }
+
+        XCTAssertEqual(gated?.upsellBadge, UserText.aiChatModelPickerUpgrade)
+    }
+
+    func testReasoningPickerItems_upsellOff_gatedEffortShowsTierLabelNoBadge() async {
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = true
+        // Upsell flag left off.
+        mockPreferences.selectedModelId = "reasoning-model"
+        await loadModels([gatedEffortModel()], tier: nil, trialEligible: true)
+
+        let gated = controller.reasoningPickerItems().first { $0.effort == .medium }
+
+        XCTAssertEqual(gated?.isGated, true)
+        XCTAssertNil(gated?.upsellBadge, "No badge when the upsell is off")
+        XCTAssertEqual(gated?.trailingText, UserText.aiChatModelPickerTierBadgePlus)
+    }
+
+    func testReasoningPickerItems_recordsOneImpressionWhenUpsellBadgeShown() async {
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = true
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarSubscriptionUpsell.rawValue] = true
+        mockPreferences.selectedModelId = "reasoning-model"
+        await loadModels([gatedEffortModel()], tier: nil, trialEligible: true)
+
+        _ = controller.reasoningPickerItems()
+
+        XCTAssertEqual(mockBadgeImpressionPersistor.viewCount, 1, "One impression per open, not one per gated row")
+    }
+
+    func testReasoningPickerItems_upsellOff_recordsNoImpression() async {
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = true
+        mockPreferences.selectedModelId = "reasoning-model"
+        await loadModels([gatedEffortModel()], tier: nil, trialEligible: true)
+
+        _ = controller.reasoningPickerItems()
+
+        XCTAssertEqual(mockBadgeImpressionPersistor.viewCount, 0)
+    }
+
+    func testReasoningPickerItems_marksCurrentAccessibleEffortSelected() async {
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarReasoningEffort.rawValue] = true
+        featureFlagger.featuresStub[FeatureFlag.aiChatOmnibarSubscriptionUpsell.rawValue] = true
+        mockPreferences.selectedModelId = "reasoning-model"
+        mockPreferences.selectedReasoningEffort = "low"
+        await loadModels([gatedEffortModel()], tier: nil, trialEligible: true)
+
+        let items = controller.reasoningPickerItems()
+
+        XCTAssertEqual(items.first { $0.effort == .low }?.isSelected, true)
+        XCTAssertEqual(items.first { $0.effort == .medium }?.isSelected, false, "A gated effort is never marked selected")
+    }
+
     // MARK: - Helpers
 
     /// Creates a remote model for testing. Access is resolved locally from `accessTier`

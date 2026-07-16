@@ -1386,6 +1386,18 @@ enum AIChatModelPickerItem {
     case gatedModel(AIChatModel, badge: String?)
 }
 
+/// A fully-resolved reasoning-effort row so the view controller only maps it to an `NSMenuItem`.
+struct AIChatReasoningPickerItem {
+    let effort: AIChatReasoningEffort
+    let isSelected: Bool
+    /// PLUS/PRO label, shown for a gated effort when the upsell is off.
+    let trailingText: String?
+    /// "Try for Free"/"Upgrade" badge, shown for a gated effort when the upsell is on.
+    let upsellBadge: String?
+    let isBadgeMuted: Bool
+    let isGated: Bool
+}
+
 extension AIChatOmnibarController {
     /// Resolved picker contents (accessible first, then the gated upsell section); owns the flag, copy, ordering, and badge impression so the VC just renders.
     func modelPickerItems(selectedModelId: String?) -> [AIChatModelPickerItem] {
@@ -1420,6 +1432,43 @@ extension AIChatOmnibarController {
     /// PLUS/PRO tag for models whose minimum tier is above free (incl. already-accessible ones), else nil.
     private func trailingBadge(for model: AIChatModel) -> String? {
         switch model.lowestPublicAccessTier {
+        case .plus: return UserText.aiChatModelPickerTierBadgePlus
+        case .pro: return UserText.aiChatModelPickerTierBadgePro
+        case .free, .none: return nil
+        }
+    }
+
+    /// Resolved reasoning-effort rows; owns the current-effort fallback, the flag/eligibility/tier
+    /// decisions, and the badge impression so the VC just renders.
+    func reasoningPickerItems() -> [AIChatReasoningPickerItem] {
+        // Falls back to the first (always-accessible) effort before models load, so the menu and
+        // the chip agree on what's "current".
+        let current = displayedReasoningEffort ?? pickerReasoningEfforts.first
+        var items: [AIChatReasoningPickerItem] = []
+        var showedUpsellBadge = false
+        for effort in pickerReasoningEfforts {
+            let requiredTier = requiredTier(for: effort)
+            let isGated = requiredTier != nil
+            let showsUpsell = isGated && isSubscriptionUpsellEnabled
+            showedUpsellBadge = showedUpsellBadge || showsUpsell
+            items.append(AIChatReasoningPickerItem(
+                effort: effort,
+                isSelected: effort == current && !isGated,
+                trailingText: showsUpsell ? nil : tierBadge(for: requiredTier),
+                upsellBadge: showsUpsell ? (shouldOfferFreeTrial ? UserText.aiChatModelPickerTryForFree
+                                                                 : UserText.aiChatModelPickerUpgrade) : nil,
+                isBadgeMuted: isBadgeMuted,
+                isGated: isGated
+            ))
+        }
+        // One impression per open, matching the model picker.
+        if showedUpsellBadge { recordBadgeImpression() }
+        return items
+    }
+
+    /// PLUS/PRO tag for a gated effort's required tier, else nil.
+    private func tierBadge(for requiredTier: AIChatModelPublicAccessTier?) -> String? {
+        switch requiredTier {
         case .plus: return UserText.aiChatModelPickerTierBadgePlus
         case .pro: return UserText.aiChatModelPickerTierBadgePro
         case .free, .none: return nil
