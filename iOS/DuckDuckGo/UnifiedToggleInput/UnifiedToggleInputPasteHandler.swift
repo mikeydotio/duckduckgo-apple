@@ -101,9 +101,9 @@ final class UnifiedToggleInputPasteHandler: AttachmentPasteHandling {
         }
     }
 
-    /// Files are applied first so a rejected image's limit message (presented last) isn't cleared by a following successful file add.
+    /// Applied after the async load; re-checks `isEnabled` since the user may have left aiChat or started generation. Files first so a rejected image's limit message (presented last) survives a following file add.
     func applyLoadedAttachments(_ result: PasteboardAttachmentReader.Result) {
-        guard let delegate else { return }
+        guard let delegate, delegate.pasteAttachmentSupport.isEnabled else { return }
 
         for file in result.files {
             delegate.addPastedFile(file)
@@ -133,17 +133,18 @@ enum PasteboardAttachmentReader {
         var files: [AIChatFileAttachment] = []
     }
 
-    /// Metadata-only probe — inspects type identifiers without reading bytes, so it doesn't trigger the paste banner.
+    /// Metadata-only probe (no byte reads, so no paste banner) that mirrors `loadAttachments`' per-provider classification, so a "yes" here means the loader will actually find something.
     static func hasSupportedAttachments(
         in pasteboard: UIPasteboard,
         allowsImages: Bool,
         allowedFileTypes: [UTType]
     ) -> Bool {
-        if allowsImages, pasteboard.hasImages { return true }
-        guard !allowedFileTypes.isEmpty else { return false }
-        let identifiers = allowedFileTypes.map(\.identifier)
+        let fileIdentifiers = allowedFileTypes.map(\.identifier)
         return pasteboard.itemProviders.contains { provider in
-            identifiers.contains { provider.hasItemConformingToTypeIdentifier($0) }
+            if allowsImages, provider.canLoadObject(ofClass: UIImage.self) {
+                return true
+            }
+            return fileIdentifiers.contains { provider.hasItemConformingToTypeIdentifier($0) }
         }
     }
 

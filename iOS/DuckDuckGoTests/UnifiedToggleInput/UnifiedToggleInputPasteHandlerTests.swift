@@ -92,6 +92,17 @@ final class UnifiedToggleInputPasteHandlerTests: XCTestCase {
         XCTAssertTrue(delegate.presentedErrors.isEmpty)
     }
 
+    func testApplyDoesNothingWhenPasteDisabledDuringLoad() {
+        let delegate = MockPasteDelegate()
+        delegate.support = .init(isEnabled: false, acceptsImages: true, fileTypes: [.pdf])
+        let handler = makeHandler(delegate)
+
+        handler.applyLoadedAttachments(makeResult(images: 1, files: 1))
+
+        XCTAssertTrue(delegate.callLog.isEmpty)
+        XCTAssertTrue(delegate.presentedErrors.isEmpty)
+    }
+
     func testPasteDoesNothingWhenDisabled() {
         let delegate = MockPasteDelegate()
         delegate.support = .init(isEnabled: false, acceptsImages: true, fileTypes: [.pdf])
