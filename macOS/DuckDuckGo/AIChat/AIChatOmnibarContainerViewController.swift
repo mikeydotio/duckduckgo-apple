@@ -1771,7 +1771,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     }
 
     private func modelRow(for model: AIChatModel, trailingText: String?, isSelected: Bool, isDimmed: Bool, isInteractive: Bool, in menu: NSMenu) -> NSMenuItem {
-        let title = Self.splitModelTitle(model.name)
+        let title = model.titleComponents
         let item = NSMenuItem.createModelRow(
             icon: model.menuIcon,
             boldTitle: title.bold,
@@ -1787,13 +1787,6 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         )
         item.representedObject = model
         return item
-    }
-
-    /// Splits a model name into a bold family part and a regular remainder (e.g. "GPT-5.4 mini"
-    /// → bold "GPT-5.4", regular "mini"). Best-effort first-token split for the PoC.
-    private static func splitModelTitle(_ name: String) -> (bold: String, regular: String) {
-        guard let spaceIndex = name.firstIndex(of: " ") else { return (name, "") }
-        return (String(name[..<spaceIndex]), String(name[name.index(after: spaceIndex)...]))
     }
 
     @objc private func gatedModelSelected(_ sender: NSMenuItem) {
