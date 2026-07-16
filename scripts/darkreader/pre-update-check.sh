@@ -251,13 +251,15 @@ else
     fail "Wikipedia native dark fallback observer patch target — expected insertion point not found in inject/fallback.js"
 fi
 
-WIKIPEDIA_HOST_FALLBACK_TARGET='        wasEnabledForHost() !== false &&
-        !document.documentElement.matches('
+WIKIPEDIA_FALLBACK_CONTEXT_TARGET='        return null;
+    }
 
-if [[ -n "$NEW_FALLBACK_JS" ]] && grep -qF "$WIKIPEDIA_HOST_FALLBACK_TARGET" "$NEW_FALLBACK_JS"; then
-    pass "Wikipedia temporary fallback hostname patch target"
+    if ('
+
+if [[ -n "$NEW_FALLBACK_JS" ]] && grep -qF "$WIKIPEDIA_FALLBACK_CONTEXT_TARGET" "$NEW_FALLBACK_JS"; then
+    pass "Wikipedia fallback hostname context patch target"
 else
-    fail "Wikipedia temporary fallback hostname patch target — expected insertion point not found in inject/fallback.js"
+    fail "Wikipedia fallback hostname context patch target — expected insertion point not found in inject/fallback.js"
 fi
 
 WIKIMEDIA_DETECTOR_HINT='*.mediawiki.org
