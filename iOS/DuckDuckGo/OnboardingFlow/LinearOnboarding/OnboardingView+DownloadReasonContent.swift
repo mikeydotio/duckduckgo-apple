@@ -165,7 +165,7 @@ private extension DownloadReasonGrid {
         @Environment(\.onboardingTheme) private var onboardingTheme
         @Environment(\.colorScheme) private var colorScheme
 
-        let icon: ImageResource
+        let icon: OnboardingImageResource
         let title: String
         let isSelected: Bool
         let action: () -> Void

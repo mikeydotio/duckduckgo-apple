@@ -136,7 +136,7 @@ struct OnboardingDownloadReasonContent: Equatable {
     /// A selectable reason tile.
     struct Option: Equatable, Hashable {
         let reason: OnboardingDownloadReason
-        let icon: ImageResource
+        let icon: OnboardingImageResource
         let title: String
     }
 
@@ -155,10 +155,10 @@ extension OnboardingIntroContentProvider {
             title: UserText.Onboarding.DownloadReason.title,
             message: UserText.Onboarding.DownloadReason.message,
             options: [
-                .init(reason: .browserPrivately, icon: .VPN, title: UserText.Onboarding.DownloadReason.browsePrivately),
-                .init(reason: .privateAIChat, icon: .VPN, title: UserText.Onboarding.DownloadReason.chatWithAI),
-                .init(reason: .noAI, icon: .VPN, title: UserText.Onboarding.DownloadReason.removeAI),
-                .init(reason: .blockAds, icon: .VPN, title: UserText.Onboarding.DownloadReason.blockAds)
+                .init(reason: .browserPrivately, icon: OnboardingImageResources.DownloadReason.search, title: UserText.Onboarding.DownloadReason.browsePrivately),
+                .init(reason: .privateAIChat, icon: OnboardingImageResources.DownloadReason.aiChat, title: UserText.Onboarding.DownloadReason.chatWithAI),
+                .init(reason: .noAI, icon: OnboardingImageResources.DownloadReason.noAI, title: UserText.Onboarding.DownloadReason.removeAI),
+                .init(reason: .blockAds, icon: OnboardingImageResources.DownloadReason.blockAds, title: UserText.Onboarding.DownloadReason.blockAds)
             ],
             primaryCTA: UserText.Onboarding.DownloadReason.cta,
             daxAnimation: .wingBottom
