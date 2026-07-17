@@ -19,6 +19,7 @@
 import BrowserServicesKit
 import BrowserServicesKitTestsUtils
 import Common
+import FeatureFlags
 import FoundationExtensions
 import History
 import HistoryView
