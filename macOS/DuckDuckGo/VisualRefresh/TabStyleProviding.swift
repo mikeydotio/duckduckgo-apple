@@ -74,7 +74,7 @@ final class TabAnimationsStyleProvider: TabStyleProviding {
 
     var separatorColor: NSColor { palette.surfaceDecorationTertiary }
     var selectedTabColor: NSColor { palette.surfacePrimary }
-    var hoverTabColor: NSColor { palette.surfacePrimary }light
+    var hoverTabColor: NSColor { palette.surfacePrimary }
 
     let separatorHeight: CGFloat = 16
     let tabsScrollViewHeight: CGFloat = 38
