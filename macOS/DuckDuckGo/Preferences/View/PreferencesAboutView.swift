@@ -497,15 +497,18 @@ struct UpdateButtonStyle: ButtonStyle {
         let enabledBackgroundColor: Color
         let disabledBackgroundColor: Color
         let labelColor: Color
+        let cornerRadius: CGFloat
 
         if DesignSystemRebrand.isAppRebranded() {
             enabledBackgroundColor = configuration.isPressed ? Color(designSystemColor: .accentSecondary) : Color(designSystemColor: .accentPrimary)
             disabledBackgroundColor = Color(designSystemColor: .controlsFillTertiary)
             labelColor = enabled ? Color(designSystemColor: .accentContentPrimary) : Color(designSystemColor: .textTertiary)
+            cornerRadius = 14
         } else {
             enabledBackgroundColor = configuration.isPressed ? Color(NSColor.controlAccentColor).opacity(0.5) : Color(NSColor.controlAccentColor)
             disabledBackgroundColor = Color.gray.opacity(0.1)
             labelColor = enabled ? Color.white : Color.primary.opacity(0.3)
+            cornerRadius = 8
         }
 
         return configuration.label
@@ -514,7 +517,7 @@ struct UpdateButtonStyle: ButtonStyle {
             .padding(.horizontal, 24)
             .background(enabled ? enabledBackgroundColor : disabledBackgroundColor)
             .foregroundColor(labelColor)
-            .cornerRadius(8)
+            .cornerRadius(cornerRadius)
     }
 
 }
