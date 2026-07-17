@@ -191,7 +191,11 @@ extension MainViewController {
     
     @objc func keyboardEscape() {
         guard tabSwitcherController == nil else { return }
-        findInPageView?.done()
+        if #available(iOS 16.0, *) {
+            currentTab?.webView.findInteraction?.dismissFindNavigator()
+        } else {
+            findInPageView?.done()
+        }
         hideSuggestionTray()
         performCancel()
     }
