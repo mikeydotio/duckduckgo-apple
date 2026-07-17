@@ -1,5 +1,5 @@
 //
-//  SubscriptionPromoCoordinator.swift
+//  SubscriptionPromoExistingUserCoordinator.swift
 //  DuckDuckGo
 //
 //  Copyright © 2026 DuckDuckGo. All rights reserved.
@@ -23,27 +23,19 @@ import Foundation
 import PrivacyConfig
 import Subscription
 
-/// Coordinates the subscription promotion launch sheet for users who skipped onboarding.
+/// Coordinates the subscription promotion launch sheet for existing users who completed onboarding
+/// normally (i.e. did not skip it) and have never seen a subscription offer.
+///
+/// Complements `SubscriptionPromoCoordinator`, which targets returning users who skipped onboarding.
+/// Together, both coordinators ensure every install eventually sees a subscription offer, either
+/// during onboarding or via one of these two launch prompts.
 ///
 /// Self-contained: owns eligibility, pixel firing, and CTA navigation.
-/// Uses only stable, synchronous signals — no dependency on async product availability.
-protocol SubscriptionPromoCoordinating: AnyObject {
-    /// Per-coordinator presentation gate. Each coordinator decides independently whether the
-    /// current onboarding state permits the launch prompt to be shown.
-    func isEligibleToPresent(isOnboardingComplete: Bool) -> Bool
-    func shouldPresentLaunchPrompt() -> Bool
-    func markLaunchPromptPresented()
-    func promoTitle() -> String
-    func proceedButtonText() -> String
-    func promoMessage() -> AttributedString
-    func handleCTAAction()
-    func handleDismissAction()
-}
-
-final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
+final class SubscriptionPromoExistingUserCoordinator: SubscriptionPromoCoordinating {
 
     static let cooldownDays = 7
 
+    private var daxDialogs: any ContextualDaxDialogStatusProvider & SubscriptionPromotionCoordinating
     private let daxDialogsSettings: DaxDialogsSettings
     private let featureFlagger: FeatureFlagger
     private let tutorialSettings: TutorialSettings
@@ -52,6 +44,7 @@ final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
     private let pixelFiring: PixelFiring.Type
 
     init(
+        daxDialogs: any ContextualDaxDialogStatusProvider & SubscriptionPromotionCoordinating,
         daxDialogsSettings: DaxDialogsSettings = DefaultDaxDialogsSettings(),
         featureFlagger: FeatureFlagger,
         tutorialSettings: TutorialSettings = DefaultTutorialSettings(),
@@ -59,6 +52,7 @@ final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
         subscriptionManager: any SubscriptionManager,
         pixelFiring: PixelFiring.Type = Pixel.self
     ) {
+        self.daxDialogs = daxDialogs
         self.daxDialogsSettings = daxDialogsSettings
         self.featureFlagger = featureFlagger
         self.tutorialSettings = tutorialSettings
@@ -69,28 +63,33 @@ final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
 
     // MARK: - Eligibility
 
+    /// Softer onboarding gate: eligible when onboarding is fully complete, or when no contextual
+    /// onboarding dialog is currently visible on screen (`isShowingContextualOnboardingDialog`) —
+    /// preventing the promo from appearing on top of an active "Try a Search",
+    /// "Try Visiting a Site", or fire tutorial dialog on cold launch.
     func isEligibleToPresent(isOnboardingComplete: Bool) -> Bool {
-         daxDialogsSettings.isDismissed
+        isOnboardingComplete || !daxDialogs.isShowingContextualOnboardingDialog
     }
 
     func shouldPresentLaunchPrompt() -> Bool {
-        guard !daxDialogsSettings.subscriptionPromotionDialogShown else {
-            Logger.subscription.debug("[Subscription Promo] Promo already shown, skipping.")
+        guard !daxDialogs.subscriptionPromotionDialogSeen else {
+            Logger.subscription.debug("[Subscription Promo - Existing User] Promo already shown, skipping.")
             return false
         }
-        let shouldShow = featureFlagger.isFeatureOn(for: FeatureFlag.subscriptionPromoForReinstallers, allowOverride: true)
+        let shouldShow = featureFlagger.isFeatureOn(for: FeatureFlag.subscriptionPromoForExistingUsers, allowOverride: true)
             && featureFlagger.isFeatureOn(for: FeatureFlag.privacyProOnboardingPromotion, allowOverride: true)
-            && isReturningUser
-            && tutorialSettings.hasSkippedOnboarding
             && hasCooldownPassed()
-        Logger.subscription.debug("[Subscription Promo] shouldPresentLaunchPrompt: \(shouldShow)")
+            // Don't show for users who skipped onboarding: handled by SubscriptionPromoCoordinator
+            && !(daxDialogsSettings.isDismissed && isReturningUser && tutorialSettings.hasSkippedOnboarding)
+
+        Logger.subscription.debug("[Subscription Promo - Existing User] shouldPresentLaunchPrompt: \(shouldShow)")
         return shouldShow
     }
 
     func markLaunchPromptPresented() {
-        daxDialogsSettings.subscriptionPromotionDialogShown = true
-        Logger.subscription.debug("[Subscription Promo] Launch prompt marked as presented.")
-        firePixel(.subscriptionSkippedOnboardingPromotionImpression)
+        daxDialogs.subscriptionPromotionDialogSeen = true
+        Logger.subscription.debug("[Subscription Promo - Existing User] Launch prompt marked as presented.")
+        firePixel(.subscriptionExistingUserPromotionImpression)
     }
 
     // MARK: - Content
@@ -113,8 +112,8 @@ final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
     // MARK: - Actions
 
     func handleCTAAction() {
-        Logger.subscription.debug("[Subscription Promo] CTA action triggered.")
-        firePixel(.subscriptionSkippedOnboardingPromotionTap)
+        Logger.subscription.debug("[Subscription Promo - Existing User] CTA action triggered.")
+        firePixel(.subscriptionExistingUserPromotionTap)
 
         let origin = redirectOrigin()
         let comps = SubscriptionURL.purchaseURLComponentsWithOrigin(origin.rawValue)
@@ -123,8 +122,8 @@ final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
     }
 
     func handleDismissAction() {
-        Logger.subscription.debug("[Subscription Promo] Dismiss action triggered.")
-        firePixel(.subscriptionSkippedOnboardingPromotionDismiss)
+        Logger.subscription.debug("[Subscription Promo - Existing User] Dismiss action triggered.")
+        firePixel(.subscriptionExistingUserPromotionDismiss)
     }
 
     // MARK: - Private
@@ -155,6 +154,6 @@ final class SubscriptionPromoCoordinator: SubscriptionPromoCoordinating {
     }
 
     private func redirectOrigin() -> SubscriptionFunnelOrigin {
-        .skippedOnboarding
+        .existingUserPromo
     }
 }
