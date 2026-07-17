@@ -136,6 +136,7 @@ private struct DownloadReasonGrid: View {
                 }
             }
         }
+        .compositingGroup() // Flatten the whole grid so the container's fade can't bleed shadows through fills
     }
 
 }
