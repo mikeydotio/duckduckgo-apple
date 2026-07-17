@@ -21,6 +21,7 @@ import Common
 import FoundationExtensions
 import Foundation
 import os.log
+import DesignResourcesKit
 import DesignResourcesKitIcons
 
 final class BookmarkOutlineViewDataSource: NSObject, BookmarksOutlineViewDataSource, NSOutlineViewDelegate {
@@ -295,7 +296,7 @@ final class BookmarkOutlineViewDataSource: NSObject, BookmarksOutlineViewDataSou
             favicon = bookmark.favicon(.small) ?? DesignSystemImages.Color.Size16.bookmark
         } else if let folder = entity as? BookmarkFolder {
             title = folder.title
-            favicon = DesignSystemImages.Color.Size16.bookmarksNew
+            favicon = DesignSystemRebrand.isAppRebranded() ? DesignSystemImages.Color.Size16.bookmarksNew : .bookmarksFolder
         } else {
             assertionFailure("Unsupported entity type: \(entity)")
             return

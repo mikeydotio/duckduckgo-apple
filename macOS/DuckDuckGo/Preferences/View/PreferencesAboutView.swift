@@ -178,8 +178,8 @@ extension Preferences {
                             .padding(.horizontal, 6)
                             .padding(.vertical, 4)
                             .background(
-                                RoundedRectangle(cornerRadius: 11)
-                                    .fill(Color(designSystemColor: .statusYellowTertiary))
+                                RoundedRectangle(cornerRadius: DesignSystemRebrand.isAppRebranded() ? 11 : 4)
+                                    .fill(DesignSystemRebrand.isAppRebranded() ? Color(designSystemColor: .statusYellowTertiary) : Color.betaLabelBackground)
                             )
                             .foregroundColor(Color.betaLabelForeground)
                     }
