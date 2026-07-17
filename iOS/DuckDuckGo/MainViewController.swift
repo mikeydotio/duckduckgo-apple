@@ -6132,51 +6132,6 @@ extension MainViewController: TabDelegate {
 
 }
 
-// MARK: - AIChatHistoryViewModelDelegate
-
-extension MainViewController: AIChatHistoryViewModelDelegate {
-
-    func viewModelDidRequestOpenNewChat() {
-        dismiss(animated: true) { [weak self] in
-            self?.openAIChat()
-        }
-    }
-
-    func viewModelDidRequestOpenChat(chatId: String) {
-        let url = aiChatSettings.aiChatURL.withChatID(chatId)
-        dismiss(animated: true) { [weak self] in
-            self?.onChatHistorySelected(url: url)
-        }
-    }
-
-    func viewModelDidExportChat(filename: String) {
-        presentChatDownloadFinishedToast(DownloadActionMessageViewHelper.makeDownloadFinishedMessage(forFilename: filename))
-    }
-
-    func viewModelDidExportChats(count: Int) {
-        presentChatDownloadFinishedToast(NSAttributedString(string: UserText.aiChatHistoryDownloadCompleteMessage(count: count)))
-    }
-
-    func viewModelDidFailExport() {
-        ActionMessageView.present(
-            message: UserText.aiChatHistoryDownloadFailedMessage,
-            presentationLocation: .withBottomBar(andAddressBarBottom: appSettings.currentAddressBarPosition.isBottom)
-        )
-    }
-
-    private func presentChatDownloadFinishedToast(_ message: NSAttributedString) {
-        ActionMessageView.present(
-            message: message,
-            numberOfLines: 2,
-            actionTitle: UserText.actionGenericShow,
-            presentationLocation: .withBottomBar(andAddressBarBottom: appSettings.currentAddressBarPosition.isBottom),
-            onAction: { [weak self] in
-                self?.dismiss(animated: true) { self?.segueToDownloads() }
-            }
-        )
-    }
-}
-
 extension MainViewController: TabSwitcherDelegate {
 
     func tabSwitcher(_ tabSwitcher: TabSwitcherViewController, didFinishWithSelectedTab tab: Tab?) {
