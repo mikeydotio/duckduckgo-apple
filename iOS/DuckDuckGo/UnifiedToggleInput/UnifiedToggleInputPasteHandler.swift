@@ -18,7 +18,6 @@
 //
 
 import AIChat
-import Core
 import UIKit
 import UniformTypeIdentifiers
 
@@ -130,7 +129,6 @@ final class UnifiedToggleInputPasteHandler: AttachmentPasteHandling {
                 didExceedLimit = true
                 break
             }
-            DailyPixel.fireDailyAndCount(pixel: .unifiedToggleInputImageAttached, withAdditionalParameters: ["source": "paste"])
         }
 
         if didExceedLimit, let message = delegate.imageCapacityMessage() {

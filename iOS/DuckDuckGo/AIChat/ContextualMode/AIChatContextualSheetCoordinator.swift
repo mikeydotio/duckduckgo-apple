@@ -66,6 +66,9 @@ protocol AIChatContextualSheetCoordinatorDelegate: AnyObject {
 
     /// Called when the user confirmed deletion of the contextual chat, providing the chat ID to delete server-side.
     func aiChatContextualSheetCoordinator(_ coordinator: AIChatContextualSheetCoordinator, didRequestDeleteChatWithID chatID: String)
+
+    /// Called when the user requests a new Duck.ai voice chat.
+    func aiChatContextualSheetCoordinatorDidRequestNewVoiceChat(_ coordinator: AIChatContextualSheetCoordinator)
 }
 
 /// Coordinates the presentation and lifecycle of the contextual AI chat sheet.
@@ -197,6 +200,7 @@ final class AIChatContextualSheetCoordinator {
                       restoreURL: URL? = nil) async {
         sessionState.refreshAutoAttachSetting()
         sessionState.updateUnifiedToggleInputActive(isWebUTIEnabled, isImmediateContextual: isImmediateContextualUTIEnabled)
+        clearStaleManualContextIfNeeded()
 
         startObservingContextUpdates()
 
@@ -229,6 +233,7 @@ final class AIChatContextualSheetCoordinator {
         guard isSheetPresented else { return }
         isSheetPresented = false
         stopObservingContextUpdates()
+        sessionState.handleSheetDismissed()
         startSessionTimer()
     }
 
@@ -378,6 +383,16 @@ private extension AIChatContextualSheetCoordinator {
             self.sessionState.beginChatForUTISubmission()
             self.sheetViewController?.handleFirstUTISubmission()
         }
+        host.onPromptDelivered = { [weak self] in
+            self?.sessionState.markUTIContextDelivered()
+        }
+        host.onAIVoiceChatRequested = { [weak self] in
+            guard let self else { return }
+            self.sheetViewController?.dismiss(animated: true) { [weak self] in
+                guard let self else { return }
+                self.delegate?.aiChatContextualSheetCoordinatorDidRequestNewVoiceChat(self)
+            }
+        }
         self.persistentUTIHost = host
         return host
     }
@@ -443,6 +458,12 @@ private extension AIChatContextualSheetCoordinator {
         }
     }
 
+    func clearStaleManualContextIfNeeded() {
+        guard sessionState.clearManualContextIfStale(for: currentPageURL) else { return }
+        pageContextHandler.clearAttachedContext()
+        persistentUTIHost?.clearAttachedContext()
+    }
+
     func deliverPageContext(_ context: AIChatPageContextData?, targets: PageContextDeliveryTargets) {
         if let host = persistentUTIHost, targets.contains(.utiChip) {
             deliverToUTIChip(context, host: host)
@@ -467,7 +488,7 @@ private extension AIChatContextualSheetCoordinator {
             ? sessionState.latestContext
             : AIChatPageContext(contextData: context, favicon: nil)
         if let pageContext {
-            host.setAttachedContext(pageContext, deliveryState: .pendingSubmit)
+            host.setAttachedContext(pageContext, deliveryState: sessionState.utiChipDeliveryState(forDelivering: context))
         }
     }
 
