@@ -1829,11 +1829,8 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: -5), in: reasoningPickerButton)
     }
 
-    /// All rows go through one `ModelMenuRowView` (shared with the model picker) rather than mixing
-    /// native `NSMenuItem`s with a custom row for the gated one — the two paths don't agree on left
-    /// margins or hover color, so a gated row rendered visibly misaligned next to native siblings.
-    /// With the upsell flag on, a gated effort behaves like any actionable row (tapping it opens the
-    /// dialog via `reasoningEffortSelected`); with the flag off it's an inert PLUS/PRO row, no badge.
+    /// Maps a resolved item to a row via `ModelMenuRowView` (shared with the model picker so gated
+    /// rows stay aligned with their siblings). A gated row is interactive only when it shows a badge.
     private func reasoningEffortRow(for item: AIChatReasoningPickerItem, in menu: NSMenu) -> NSMenuItem {
         let hasUpsellBadge = item.upsellBadge != nil
         let menuItem = NSMenuItem.createModelRow(
@@ -1877,12 +1874,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         }
     }
 
-    /// Explains the subscription upsell for a gated model or reasoning effort via
-    /// `AIChatSubscriptionUpsellDialog` — a custom SwiftUI `ModalView` sheet, not an `NSAlert`.
-    /// `NSAlert` has no public API for centering its icon/title, and hacking its private view
-    /// hierarchy to force that layout proved unreliable; a plain SwiftUI `VStack` gives the same
-    /// centered look with no guessing. Both the model picker and the reasoning-effort picker route
-    /// a gated tap here rather than navigating directly (per design review).
+    /// Shows the upsell confirmation before routing to the subscription flow — both pickers route a
+    /// gated tap here rather than navigating directly (per design review). A SwiftUI `ModalView`
+    /// rather than `NSAlert`, which can't center its icon/title.
     private func presentSubscriptionUpsellDialog(requiredTier: AIChatModelPublicAccessTier, origin: SubscriptionFunnelOrigin) {
         var dialog = AIChatSubscriptionUpsellDialog()
         switch omnibarController.userTier {
