@@ -6164,6 +6164,21 @@ extension MainViewController: AIChatHistoryViewModelDelegate {
             }
         )
     }
+
+    func viewModelDidExportChats(count: Int) {
+        let message = UserText.aiChatHistoryDownloadCompleteMessage(count: count)
+        let addressBarBottom = appSettings.currentAddressBarPosition.isBottom
+        ActionMessageView.present(
+            message: message,
+            actionTitle: UserText.actionGenericShow,
+            presentationLocation: .withBottomBar(andAddressBarBottom: addressBarBottom),
+            onAction: { [weak self] in
+                self?.dismiss(animated: true) { [weak self] in
+                    self?.segueToDownloads()
+                }
+            }
+        )
+    }
 }
 
 extension MainViewController: TabSwitcherDelegate {

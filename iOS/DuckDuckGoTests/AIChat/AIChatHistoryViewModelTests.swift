@@ -289,6 +289,71 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(delegate.exportedFilenames, [])
     }
 
+    func testDownloadSelectedChats_downloadsEachSeparatelyAndNotifiesDelegateOnceWithCount() {
+        let downloader = StubDownloader()
+        let queue = DispatchQueue(label: "test.download")
+        let sut = makeSUT(chats: [chat(id: "r1", pinned: false), chat(id: "r2", pinned: false), chat(id: "r3", pinned: false)],
+                          downloader: downloader, mutationQueue: queue)
+        let delegate = MockDelegate()
+        sut.delegate = delegate
+
+        sut.downloadSelectedChats(chatIds: ["r1", "r3"])
+        queue.sync { }
+        processMainQueue()
+
+        XCTAssertEqual(downloader.requestedChatIds, ["r1", "r3"], "each selected chat is downloaded as its own file")
+        XCTAssertEqual(delegate.exportedChatCounts, [2], "the delegate is notified once with the number that saved")
+        XCTAssertEqual(delegate.exportedFilenames, [], "batch download must not fire the single-file toast")
+    }
+
+    func testDownloadSelectedChats_partialFailure_notifiesWithSuccessCountOnly() {
+        let downloader = StubDownloader()
+        downloader.failingChatIds = ["r2"]
+        let queue = DispatchQueue(label: "test.download")
+        let sut = makeSUT(chats: [chat(id: "r1", pinned: false), chat(id: "r2", pinned: false), chat(id: "r3", pinned: false)],
+                          downloader: downloader, mutationQueue: queue)
+        let delegate = MockDelegate()
+        sut.delegate = delegate
+
+        sut.downloadSelectedChats(chatIds: ["r1", "r2", "r3"])
+        queue.sync { }
+        processMainQueue()
+
+        XCTAssertEqual(downloader.requestedChatIds, ["r1", "r2", "r3"], "a failure must not abort the rest of the batch")
+        XCTAssertEqual(delegate.exportedChatCounts, [2], "count reflects only the chats that actually saved")
+    }
+
+    func testDownloadSelectedChats_allFailures_doesNotNotifyDelegate() {
+        let downloader = StubDownloader()
+        downloader.failingChatIds = ["r1", "r2"]
+        let queue = DispatchQueue(label: "test.download")
+        let sut = makeSUT(chats: [chat(id: "r1", pinned: false), chat(id: "r2", pinned: false)],
+                          downloader: downloader, mutationQueue: queue)
+        let delegate = MockDelegate()
+        sut.delegate = delegate
+
+        sut.downloadSelectedChats(chatIds: ["r1", "r2"])
+        queue.sync { }
+        processMainQueue()
+
+        XCTAssertEqual(delegate.exportedChatCounts, [], "no toast when nothing saved")
+    }
+
+    func testDownloadSelectedChats_emptyIds_isNoOp() {
+        let downloader = StubDownloader()
+        let queue = DispatchQueue(label: "test.download")
+        let sut = makeSUT(chats: [chat(id: "r1", pinned: false)], downloader: downloader, mutationQueue: queue)
+        let delegate = MockDelegate()
+        sut.delegate = delegate
+
+        sut.downloadSelectedChats(chatIds: [])
+        queue.sync { }
+        processMainQueue()
+
+        XCTAssertEqual(downloader.requestedChatIds, [])
+        XCTAssertEqual(delegate.exportedChatCounts, [])
+    }
+
     // MARK: - Pin
 
     func testIsPinned_returnsTrueForChatsInPinnedSection_falseOtherwise() {
@@ -617,10 +682,12 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         private(set) var didRequestOpenNewChat = false
         private(set) var requestedChatId: String?
         private(set) var exportedFilenames: [String] = []
+        private(set) var exportedChatCounts: [Int] = []
 
         func viewModelDidRequestOpenNewChat() { didRequestOpenNewChat = true }
         func viewModelDidRequestOpenChat(chatId: String) { requestedChatId = chatId }
         func viewModelDidExportChat(filename: String) { exportedFilenames.append(filename) }
+        func viewModelDidExportChats(count: Int) { exportedChatCounts.append(count) }
     }
 
     private final class MockChatHistoryFireExecutor: FireExecuting {
@@ -658,10 +725,15 @@ final class AIChatHistoryViewModelTests: XCTestCase {
 
     private final class StubDownloader: ChatHistoryDownloading {
         var stubbedResult: Result<URL, Error> = .success(URL(fileURLWithPath: "/tmp/stub.txt"))
+        /// Chat ids in this set throw `chatNotFound`; all others resolve to `stubbedResult`.
+        var failingChatIds: Set<String> = []
         private(set) var requestedChatIds: [String] = []
 
         func downloadChat(chatId: String) throws -> URL {
             requestedChatIds.append(chatId)
+            if failingChatIds.contains(chatId) {
+                throw ChatHistoryDownloader.DownloadError.chatNotFound
+            }
             return try stubbedResult.get()
         }
     }

@@ -252,6 +252,32 @@ final class AIChatHistoryViewModel: ObservableObject {
         }
     }
 
+    /// Downloads each selected chat as its own file (mirrors the single-swipe download), then
+    /// surfaces one aggregate toast for however many saved. Off-main — exports do storage
+    /// reads, base64 decoding, and zip writing. Tolerates partial failures.
+    func downloadSelectedChats(chatIds: [String]) {
+        guard let downloader, !chatIds.isEmpty else { return }
+        let instrumentation = instrumentation
+        mutationQueue.async { [weak self] in
+            var successCount = 0
+            for chatId in chatIds {
+                instrumentation.downloadStarted()
+                do {
+                    _ = try downloader.downloadChat(chatId: chatId)
+                    successCount += 1
+                } catch {
+                    Logger.aiChat.debug("Chat export failed: \(error.localizedDescription)")
+                    instrumentation.downloadFailed(error: error)
+                }
+            }
+            guard successCount > 0 else { return }
+            let exported = successCount
+            DispatchQueue.main.async { [weak self] in
+                self?.delegate?.viewModelDidExportChats(count: exported)
+            }
+        }
+    }
+
     func isPinned(chatId: String) -> Bool {
         pinned.contains(where: { $0.chatId == chatId })
     }
@@ -353,4 +379,9 @@ protocol AIChatHistoryViewModelDelegate: AnyObject {
     /// `filename` with a "Show" action that dismisses the sheet and opens the in-app
     /// Downloads list.
     func viewModelDidExportChat(filename: String)
+
+    /// A multi-select export finished. `count` chats were each written to disk as their own
+    /// file; present one aggregate "N chats downloaded" toast with a "Show" action that
+    /// dismisses the sheet and opens the in-app Downloads list.
+    func viewModelDidExportChats(count: Int)
 }
