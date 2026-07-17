@@ -6152,7 +6152,7 @@ extension MainViewController: TabDelegate {
     }
 
     func closeFindInPage(tab: TabViewController) {
-        if #available(iOS 16.0, *) {
+        if #available(iOS 16.0, *), featureFlagger.isFeatureOn(.systemFindInPage) {
             tab.webView.findInteraction?.dismissFindNavigator()
             return
         }

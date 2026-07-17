@@ -3724,7 +3724,7 @@ extension TabViewController: UIGestureRecognizerDelegate {
     }
 
     func requestFindInPage() {
-        if #available(iOS 16.0, *) {
+        if #available(iOS 16.0, *), featureFlagger.isFeatureOn(.systemFindInPage) {
             webView.isFindInteractionEnabled = true
             webView.findInteraction?.presentFindNavigator(showingReplace: false)
             return
