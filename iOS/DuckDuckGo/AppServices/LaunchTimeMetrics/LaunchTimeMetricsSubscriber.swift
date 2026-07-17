@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import UIKit
 import MetricKit
 import Core
 import Common
@@ -32,25 +33,48 @@ final class LaunchTimeMetricsSubscriber: NSObject, MXMetricManagerSubscriber {
     private let dateProvider: () -> Date
     private let fire: (Pixel.Event, [String: String]) -> Void
 
+    /// Serialises all report processing. Both entry points — MetricKit's system-delivered
+    /// payloads (`didReceive`) and our own drain of retained payloads (`processPastPayloads`) —
+    /// run here, off the main thread and never concurrently, so the `lastProcessedEnd`
+    /// read-modify-write can't race.
+    private let processingQueue = DispatchQueue(label: "com.duckduckgo.ios.launchTimeMetrics")
+
+    /// `deviceType` is resolved on the caller's (main) thread via its default argument,
+    /// then passed explicitly to `Pixel.fire` so the background queue never reads
+    /// `UIDevice.current`. Tests inject their own `fire` and bypass this.
     init(processor: LaunchTimeMetricsProcessor = LaunchTimeMetricsProcessor(),
          store: KeyValueStoring,
          currentAppVersion: String = AppVersion.shared.versionNumber,
+         deviceType: UIUserInterfaceIdiom = UIDevice.current.userInterfaceIdiom,
          dateProvider: @escaping () -> Date = Date.init,
-         fire: @escaping (Pixel.Event, [String: String]) -> Void = { pixel, params in
-             Pixel.fire(pixel, withAdditionalParameters: params)
-         }) {
+         fire: ((Pixel.Event, [String: String]) -> Void)? = nil) {
         self.processor = processor
         self.store = store
         self.currentAppVersion = currentAppVersion
         self.dateProvider = dateProvider
-        self.fire = fire
+        self.fire = fire ?? { pixel, params in
+            Pixel.fire(pixel: pixel, forDeviceType: deviceType, withAdditionalParameters: params)
+        }
         super.init()
     }
 
     // MARK: - MXMetricManagerSubscriber
 
     func didReceive(_ payloads: [MXMetricPayload]) {
-        process(reports: payloads.compactMap(Self.report(from:)))
+        processingQueue.async { [weak self] in
+            guard let self else { return }
+            self.process(reports: payloads.compactMap(Self.report(from:)))
+        }
+    }
+
+    /// Drains MetricKit's retained past payloads. Called on launch and on every foreground.
+    /// Reads `pastPayloads` and processes it on the serial queue, so nothing runs on the main
+    /// thread; the dedup marker makes repeated calls safe.
+    func processPastPayloads() {
+        processingQueue.async { [weak self] in
+            guard let self else { return }
+            self.process(reports: MXMetricManager.shared.pastPayloads.compactMap(Self.report(from:)))
+        }
     }
 
     // MARK: - Report handling
@@ -82,7 +106,7 @@ final class LaunchTimeMetricsSubscriber: NSObject, MXMetricManagerSubscriber {
         static let lastProcessedKey = "LaunchTimeMetrics.lastProcessedEnd"
     }
 
-    // MARK: - MetricKit adapter (thin, not unit-tested — no public MXMetricPayload initializer)
+    // MARK: - MetricKit adapter
 
     static func report(from payload: MXMetricPayload) -> LaunchMetricsReport? {
         guard let launch = payload.applicationLaunchMetrics else { return nil }

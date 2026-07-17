@@ -41,20 +41,14 @@ final class LaunchTimeMetricsService {
         let subscriber = LaunchTimeMetricsSubscriber(store: store)
         self.subscriber = subscriber
         MXMetricManager.shared.add(subscriber)
-        processPastPayloads()
+        subscriber.processPastPayloads()
     }
 
     /// Re-processes MetricKit's retained past payloads. Called on `applicationDidBecomeActive`
-    /// to pick up payloads delivered while the app was inactive.
+    /// to pick up payloads delivered while the app was inactive. The subscriber does the work
+    /// off the main thread, and its dedup marker makes repeated calls safe.
     func resume() {
-        processPastPayloads()
-    }
-
-    /// Feeds `MXMetricManager`'s retained past payloads through the subscriber. The dedup
-    /// marker prevents double-sending, so this is safe to call repeatedly.
-    private func processPastPayloads() {
-        guard let subscriber else { return }
-        subscriber.didReceive(MXMetricManager.shared.pastPayloads)
+        subscriber?.processPastPayloads()
     }
 
     deinit {
