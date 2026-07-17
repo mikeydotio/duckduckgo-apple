@@ -6157,6 +6157,13 @@ extension MainViewController: AIChatHistoryViewModelDelegate {
         presentChatDownloadFinishedToast(NSAttributedString(string: UserText.aiChatHistoryDownloadCompleteMessage(count: count)))
     }
 
+    func viewModelDidFailExport() {
+        ActionMessageView.present(
+            message: UserText.aiChatHistoryDownloadFailedMessage,
+            presentationLocation: .withBottomBar(andAddressBarBottom: appSettings.currentAddressBarPosition.isBottom)
+        )
+    }
+
     private func presentChatDownloadFinishedToast(_ message: NSAttributedString) {
         ActionMessageView.present(
             message: message,

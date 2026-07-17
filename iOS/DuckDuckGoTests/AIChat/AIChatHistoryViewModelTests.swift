@@ -274,7 +274,7 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(delegate.exportedFilenames, ["duck.ai_2026-01-01_00-00-00.txt"])
     }
 
-    func testDownloadChat_onFailure_doesNotNotifyDelegate() {
+    func testDownloadChat_onFailure_notifiesFailureAndNotSuccess() {
         let downloader = StubDownloader()
         downloader.stubbedResult = .failure(ChatHistoryDownloader.DownloadError.chatNotFound)
         let queue = DispatchQueue(label: "test.download")
@@ -286,7 +286,8 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         queue.sync { }
         processMainQueue()
 
-        XCTAssertEqual(delegate.exportedFilenames, [])
+        XCTAssertEqual(delegate.exportedFilenames, [], "a failed download must not fire the success toast")
+        XCTAssertTrue(delegate.didFailExport, "a failed single download surfaces the error toast")
     }
 
     func testDownloadSelectedChats_downloadsEachSeparatelyAndNotifiesDelegateOnceWithCount() {
@@ -321,9 +322,10 @@ final class AIChatHistoryViewModelTests: XCTestCase {
 
         XCTAssertEqual(downloader.requestedChatIds, ["r1", "r2", "r3"], "a failure must not abort the rest of the batch")
         XCTAssertEqual(delegate.exportedChatCounts, [2], "count reflects only the chats that actually saved")
+        XCTAssertFalse(delegate.didFailExport, "partial success shows the success toast, not the error")
     }
 
-    func testDownloadSelectedChats_allFailures_doesNotNotifyDelegate() {
+    func testDownloadSelectedChats_allFailures_notifiesFailure() {
         let downloader = StubDownloader()
         downloader.failingChatIds = ["r1", "r2"]
         let queue = DispatchQueue(label: "test.download")
@@ -336,7 +338,8 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         queue.sync { }
         processMainQueue()
 
-        XCTAssertEqual(delegate.exportedChatCounts, [], "no toast when nothing saved")
+        XCTAssertEqual(delegate.exportedChatCounts, [], "no success toast when nothing saved")
+        XCTAssertTrue(delegate.didFailExport, "an all-failed batch surfaces the error toast")
     }
 
     func testDownloadSelectedChats_emptyIds_isNoOp() {
@@ -352,6 +355,7 @@ final class AIChatHistoryViewModelTests: XCTestCase {
 
         XCTAssertEqual(downloader.requestedChatIds, [])
         XCTAssertEqual(delegate.exportedChatCounts, [])
+        XCTAssertFalse(delegate.didFailExport, "empty selection is a no-op, not a failure")
     }
 
     // MARK: - Pin
@@ -683,11 +687,13 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         private(set) var requestedChatId: String?
         private(set) var exportedFilenames: [String] = []
         private(set) var exportedChatCounts: [Int] = []
+        private(set) var didFailExport = false
 
         func viewModelDidRequestOpenNewChat() { didRequestOpenNewChat = true }
         func viewModelDidRequestOpenChat(chatId: String) { requestedChatId = chatId }
         func viewModelDidExportChat(filename: String) { exportedFilenames.append(filename) }
         func viewModelDidExportChats(count: Int) { exportedChatCounts.append(count) }
+        func viewModelDidFailExport() { didFailExport = true }
     }
 
     private final class MockChatHistoryFireExecutor: FireExecuting {

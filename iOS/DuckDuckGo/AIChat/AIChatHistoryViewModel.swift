@@ -261,8 +261,14 @@ final class AIChatHistoryViewModel: ObservableObject {
                     instrumentation.downloadFailed(error: error)
                 }
             }
-            guard !urls.isEmpty else { return }
-            DispatchQueue.main.async { onExported(urls) }
+            DispatchQueue.main.async { [weak self] in
+                // Chats were attempted (input was non-empty); an empty result means every one failed.
+                if urls.isEmpty {
+                    self?.delegate?.viewModelDidFailExport()
+                } else {
+                    onExported(urls)
+                }
+            }
         }
     }
 
@@ -372,4 +378,8 @@ protocol AIChatHistoryViewModelDelegate: AnyObject {
     /// file; present one aggregate "N chats downloaded" toast with a "Show" action that
     /// dismisses the sheet and opens the in-app Downloads list.
     func viewModelDidExportChats(count: Int)
+
+    /// An export produced no files — a single download failed, or every selected chat failed.
+    /// Present a "download failed" error toast. (Not called when nothing was selected.)
+    func viewModelDidFailExport()
 }
