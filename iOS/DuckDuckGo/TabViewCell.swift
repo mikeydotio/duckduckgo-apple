@@ -197,7 +197,7 @@ class TabViewCell: UICollectionViewCell {
             previewAspectRatio = nil
         }
 
-        if imageAspectRatio < containerAspectRatio {
+        if imageAspectRatio <= containerAspectRatio {
             // Wide (landscape) capture is flatter than the cell: pin all edges and let
             // scaleAspectFill centre-crop the horizontal overflow, so the cell is filled with
             // no empty space and the page stays centred.
