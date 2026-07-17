@@ -60,7 +60,11 @@ public extension DesignSystemImages {
             public static var autofill: DesignSystemImage { .init(resource: .autofillColor16) }
             public static var bitwarden: DesignSystemImage { .init(resource: .bitwardenColor16) }
             public static var bitwardenLocked: DesignSystemImage { .init(resource: .bitwardenLockedColor16) }
-            public static var bookmark: DesignSystemImage { .init(resource: .bookmarkColor16) }
+            public static var bookmark: DesignSystemImage {
+                AppRebrand.isAppRebranded()
+                    ? .init(resource: .bookmarkColor16)
+                    : .init(resource: .bookmarkColor16Legacy)
+            }
             public static var bookmarkFavorite: DesignSystemImage { .init(resource: .bookmarkFavoriteColor16) }
             public static var bookmarkImport: DesignSystemImage { .init(resource: .bookmarkImportColor16) }
             public static var bookmarksNew: DesignSystemImage { .init(resource: .bookmarksNewColor16) }
@@ -131,7 +135,11 @@ public extension DesignSystemImages {
                     ? .init(resource: .fireColor16)
                     : .init(resource: .fireColor16Legacy)
             }
-            public static var folder: DesignSystemImage { .init(resource: .folderColor16) }
+            public static var folder: DesignSystemImage {
+                AppRebrand.isAppRebranded()
+                    ? .init(resource: .folderColor16)
+                    : .init(resource: .folderColor16Legacy)
+            }
             public static var folderWin: DesignSystemImage { .init(resource: .folderWinColor16) }
             public static var globe: DesignSystemImage { .init(resource: .globeColor16) }
             public static var heart: DesignSystemImage { .init(resource: .heartColor16) }

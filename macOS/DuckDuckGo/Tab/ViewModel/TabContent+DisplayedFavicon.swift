@@ -59,7 +59,7 @@ extension TabContent {
             return .settingsMulticolor16
 
         case .bookmarks:
-            return .bookmarksFolder
+            return DesignSystemImages.Color.Size16.bookmarksNew
 
         case .onboarding:
             return .onboardingDax

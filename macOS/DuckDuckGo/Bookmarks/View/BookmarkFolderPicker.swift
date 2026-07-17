@@ -18,6 +18,7 @@
 
 import AppKit
 import SwiftUI
+import DesignResourcesKitIcons
 
 struct BookmarkFolderPicker: View {
 
@@ -34,7 +35,7 @@ struct BookmarkFolderPicker: View {
             return popUpButton
         } content: {
 
-            PopupButtonItem(icon: .bookmarksFolder, title: UserText.bookmarks)
+            PopupButtonItem(icon: DesignSystemImages.Color.Size16.bookmarksNew, title: UserText.bookmarks)
 
             PopupButtonItem.separator()
 

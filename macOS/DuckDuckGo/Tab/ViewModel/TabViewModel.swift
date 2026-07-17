@@ -29,6 +29,7 @@ import PrivacyDashboard
 import WebKit
 import DesignResourcesKitIcons
 import WebExtensions
+import DesignResourcesKitIcons
 
 final class TabViewModel: NSObject {
 
@@ -655,7 +656,7 @@ private extension NSAttributedString {
 
     static let settingsTrustedIndicator = trustedIndicatorAttributedString(with: .settingsMulticolor16,
                                                                            title: UserText.settings)
-    static let bookmarksTrustedIndicator = trustedIndicatorAttributedString(with: .bookmarksFolder,
+    static let bookmarksTrustedIndicator = trustedIndicatorAttributedString(with: DesignSystemImages.Color.Size16.bookmarksNew,
                                                                             title: UserText.bookmarks)
     static let historyTrustedIndicator = trustedIndicatorAttributedString(with: .historyFavicon,
                                                                           title: UserText.mainMenuHistory)
