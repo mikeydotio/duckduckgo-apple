@@ -6150,32 +6150,21 @@ extension MainViewController: AIChatHistoryViewModelDelegate {
     }
 
     func viewModelDidExportChat(filename: String) {
-        let message = DownloadActionMessageViewHelper.makeDownloadFinishedMessage(forFilename: filename)
-        let addressBarBottom = appSettings.currentAddressBarPosition.isBottom
+        presentChatDownloadFinishedToast(DownloadActionMessageViewHelper.makeDownloadFinishedMessage(forFilename: filename))
+    }
+
+    func viewModelDidExportChats(count: Int) {
+        presentChatDownloadFinishedToast(NSAttributedString(string: UserText.aiChatHistoryDownloadCompleteMessage(count: count)))
+    }
+
+    private func presentChatDownloadFinishedToast(_ message: NSAttributedString) {
         ActionMessageView.present(
             message: message,
             numberOfLines: 2,
             actionTitle: UserText.actionGenericShow,
-            presentationLocation: .withBottomBar(andAddressBarBottom: addressBarBottom),
+            presentationLocation: .withBottomBar(andAddressBarBottom: appSettings.currentAddressBarPosition.isBottom),
             onAction: { [weak self] in
-                self?.dismiss(animated: true) { [weak self] in
-                    self?.segueToDownloads()
-                }
-            }
-        )
-    }
-
-    func viewModelDidExportChats(count: Int) {
-        let message = UserText.aiChatHistoryDownloadCompleteMessage(count: count)
-        let addressBarBottom = appSettings.currentAddressBarPosition.isBottom
-        ActionMessageView.present(
-            message: message,
-            actionTitle: UserText.actionGenericShow,
-            presentationLocation: .withBottomBar(andAddressBarBottom: addressBarBottom),
-            onAction: { [weak self] in
-                self?.dismiss(animated: true) { [weak self] in
-                    self?.segueToDownloads()
-                }
+                self?.dismiss(animated: true) { self?.segueToDownloads() }
             }
         )
     }

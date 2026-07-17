@@ -555,8 +555,6 @@ final class AIChatHistoryViewController: UIViewController {
     }
 
     @objc private func downloadSelectedTapped() {
-        // No confirmation: download is non-destructive and just saves to Downloads, matching the
-        // single-swipe download. The toolbar item is only enabled with a selection.
         let selectedChatIds = (tableView.indexPathsForSelectedRows ?? [])
             .compactMap { viewModel.chatId(forRowAt: $0) }
         guard !selectedChatIds.isEmpty else { return }

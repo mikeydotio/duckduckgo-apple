@@ -235,46 +235,34 @@ final class AIChatHistoryViewModel: ObservableObject {
     }
 
     func downloadChat(chatId: String) {
-        // Image-gen exports do enough I/O to freeze the sheet — dispatch off-main.
-        guard let downloader else { return }
         instrumentation.downloadStarted()
-        let instrumentation = instrumentation
-        mutationQueue.async { [weak self] in
-            do {
-                let url = try downloader.downloadChat(chatId: chatId)
-                DispatchQueue.main.async { [weak self] in
-                    self?.delegate?.viewModelDidExportChat(filename: url.lastPathComponent)
-                }
-            } catch {
-                Logger.aiChat.debug("Chat export failed: \(error.localizedDescription)")
-                instrumentation.downloadFailed(error: error)
-            }
+        exportChats([chatId]) { [weak self] urls in
+            guard let filename = urls.first?.lastPathComponent else { return }
+            self?.delegate?.viewModelDidExportChat(filename: filename)
         }
     }
 
-    /// Downloads each selected chat as its own file (mirrors the single-swipe download), then
-    /// surfaces one aggregate toast for however many saved. Off-main — exports do storage
-    /// reads, base64 decoding, and zip writing. Tolerates partial failures.
     func downloadSelectedChats(chatIds: [String]) {
+        exportChats(chatIds) { [weak self] urls in
+            self?.delegate?.viewModelDidExportChats(count: urls.count)
+        }
+    }
+
+    private func exportChats(_ chatIds: [String], onExported: @escaping ([URL]) -> Void) {
         guard let downloader, !chatIds.isEmpty else { return }
         let instrumentation = instrumentation
-        mutationQueue.async { [weak self] in
-            var successCount = 0
+        mutationQueue.async {
+            var urls: [URL] = []
             for chatId in chatIds {
-                instrumentation.downloadStarted()
                 do {
-                    _ = try downloader.downloadChat(chatId: chatId)
-                    successCount += 1
+                    urls.append(try downloader.downloadChat(chatId: chatId))
                 } catch {
                     Logger.aiChat.debug("Chat export failed: \(error.localizedDescription)")
                     instrumentation.downloadFailed(error: error)
                 }
             }
-            guard successCount > 0 else { return }
-            let exported = successCount
-            DispatchQueue.main.async { [weak self] in
-                self?.delegate?.viewModelDidExportChats(count: exported)
-            }
+            guard !urls.isEmpty else { return }
+            DispatchQueue.main.async { onExported(urls) }
         }
     }
 
