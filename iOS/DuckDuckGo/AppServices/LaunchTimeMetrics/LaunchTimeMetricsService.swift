@@ -46,7 +46,7 @@ final class LaunchTimeMetricsService {
 
     /// Re-processes MetricKit's retained past payloads. Called on `applicationDidBecomeActive`
     /// to pick up payloads delivered while the app was inactive. The subscriber does the work
-    /// off the main thread, and its dedup marker makes repeated calls safe.
+    /// off the main thread, and its dedup marker makes repeated calls safe
     func resume() {
         subscriber?.processPastPayloads()
     }
