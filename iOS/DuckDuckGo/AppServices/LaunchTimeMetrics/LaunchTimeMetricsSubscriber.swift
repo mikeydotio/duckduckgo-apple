@@ -18,11 +18,11 @@
 //
 
 import Foundation
-import UIKit
 import MetricKit
 import Core
 import Common
 import Persistence
+import PixelKit
 
 @available(iOSApplicationExtension, unavailable)
 final class LaunchTimeMetricsSubscriber: NSObject, MXMetricManagerSubscriber {
@@ -31,7 +31,7 @@ final class LaunchTimeMetricsSubscriber: NSObject, MXMetricManagerSubscriber {
     private let store: KeyValueStoring
     private let currentAppVersion: String
     private let dateProvider: () -> Date
-    private let fire: (Pixel.Event, [String: String]) -> Void
+    private let fire: (LaunchTimeMetricsPixel) -> Void
 
     /// Serialises all report processing. Both entry points — MetricKit's system-delivered
     /// payloads (`didReceive`) and our own drain of retained payloads (`processPastPayloads`) —
@@ -39,22 +39,16 @@ final class LaunchTimeMetricsSubscriber: NSObject, MXMetricManagerSubscriber {
     /// read-modify-write can't race.
     private let processingQueue = DispatchQueue(label: "com.duckduckgo.ios.launchTimeMetrics")
 
-    /// `deviceType` is resolved on the caller's (main) thread via its default argument,
-    /// then passed explicitly to `Pixel.fire` so the background queue never reads
-    /// `UIDevice.current`. Tests inject their own `fire` and bypass this.
     init(processor: LaunchTimeMetricsProcessor = LaunchTimeMetricsProcessor(),
          store: KeyValueStoring,
          currentAppVersion: String = AppVersion.shared.versionNumber,
-         deviceType: UIUserInterfaceIdiom = UIDevice.current.userInterfaceIdiom,
          dateProvider: @escaping () -> Date = Date.init,
-         fire: ((Pixel.Event, [String: String]) -> Void)? = nil) {
+         fire: ((LaunchTimeMetricsPixel) -> Void)? = nil) {
         self.processor = processor
         self.store = store
         self.currentAppVersion = currentAppVersion
         self.dateProvider = dateProvider
-        self.fire = fire ?? { pixel, params in
-            Pixel.fire(pixel: pixel, forDeviceType: deviceType, withAdditionalParameters: params)
-        }
+        self.fire = fire ?? { PixelKit.fire($0) }
         super.init()
     }
 
@@ -85,10 +79,7 @@ final class LaunchTimeMetricsSubscriber: NSObject, MXMetricManagerSubscriber {
                                                              now: dateProvider(),
                                                              lastProcessedEnd: lastProcessedEnd)
         for point in dataPoints {
-            fire(point.pixelEvent, [
-                PixelParameters.launchTimeMinMs: String(Int(point.minMs.rounded())),
-                PixelParameters.launchTimeMaxMs: String(Int(point.maxMs.rounded()))
-            ])
+            fire(point.pixelKitEvent)
         }
         if let newest = processor.newestTimestamp(in: reports) {
             lastProcessedEnd = max(newest, lastProcessedEnd ?? .distantPast)
@@ -135,12 +126,44 @@ final class LaunchTimeMetricsSubscriber: NSObject, MXMetricManagerSubscriber {
     }
 }
 
+enum LaunchTimeMetricsPixel: PixelKitEvent, PixelKitEventWithCustomPrefix {
+    case firstDraw(minMs: Int, maxMs: Int)
+    case resume(minMs: Int, maxMs: Int)
+    case optimizedFirstDraw(minMs: Int, maxMs: Int)
+
+    var name: String {
+        switch self {
+        case .firstDraw: return "app-launch_metrickit_first-draw"
+        case .resume: return "app-launch_metrickit_resume"
+        case .optimizedFirstDraw: return "app-launch_metrickit_optimized-first-draw"
+        }
+    }
+
+    var parameters: [String: String]? {
+        switch self {
+        case let .firstDraw(minMs, maxMs),
+             let .resume(minMs, maxMs),
+             let .optimizedFirstDraw(minMs, maxMs):
+            return [
+                PixelParameters.launchTimeMinMs: String(minMs),
+                PixelParameters.launchTimeMaxMs: String(maxMs)
+            ]
+        }
+    }
+
+    var standardParameters: [PixelKitStandardParameter]? { nil }
+
+    var namePrefix: String { "" }
+}
+
 private extension LaunchTimeDataPoint {
-    var pixelEvent: Pixel.Event {
+    var pixelKitEvent: LaunchTimeMetricsPixel {
+        let lowerMs = Int(minMs.rounded())
+        let upperMs = Int(maxMs.rounded())
         switch launchType {
-        case .coldStart: return .launchTimeFirstDraw
-        case .resume: return .launchTimeResume
-        case .optimizedFirstDraw: return .launchTimeOptimizedFirstDraw
+        case .coldStart: return .firstDraw(minMs: lowerMs, maxMs: upperMs)
+        case .resume: return .resume(minMs: lowerMs, maxMs: upperMs)
+        case .optimizedFirstDraw: return .optimizedFirstDraw(minMs: lowerMs, maxMs: upperMs)
         }
     }
 }

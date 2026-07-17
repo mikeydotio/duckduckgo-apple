@@ -29,7 +29,7 @@ final class LaunchTimeMetricsSubscriberTests: XCTestCase {
     private let version = "7.100.0"
 
     private func makeSubscriber(store: KeyValueStoring,
-                                fired: @escaping (Pixel.Event, [String: String]) -> Void) -> LaunchTimeMetricsSubscriber {
+                                fired: @escaping (LaunchTimeMetricsPixel) -> Void) -> LaunchTimeMetricsSubscriber {
         LaunchTimeMetricsSubscriber(store: store,
                                     currentAppVersion: version,
                                     dateProvider: { self.now },
@@ -44,20 +44,21 @@ final class LaunchTimeMetricsSubscriberTests: XCTestCase {
     }
 
     func testFiresOnePixelPerDataPointWithRoundedParams() {
-        var fired: [(Pixel.Event, [String: String])] = []
-        let subscriber = makeSubscriber(store: MockKeyValueStore()) { fired.append(($0, $1)) }
+        var fired: [LaunchTimeMetricsPixel] = []
+        let subscriber = makeSubscriber(store: MockKeyValueStore()) { fired.append($0) }
 
         subscriber.process(reports: [report(count: 2)])
 
         XCTAssertEqual(fired.count, 2)
-        XCTAssertEqual(fired[0].1[PixelParameters.launchTimeMinMs], "123")
-        XCTAssertEqual(fired[0].1[PixelParameters.launchTimeMaxMs], "457")
+        XCTAssertEqual(fired[0].name, "app-launch_metrickit_first-draw")
+        XCTAssertEqual(fired[0].parameters?[PixelParameters.launchTimeMinMs], "123")
+        XCTAssertEqual(fired[0].parameters?[PixelParameters.launchTimeMaxMs], "457")
     }
 
     func testPersistsMarkerAndSuppressesDuplicateDelivery() {
         let store = MockKeyValueStore()
-        var fired: [(Pixel.Event, [String: String])] = []
-        let subscriber = makeSubscriber(store: store) { fired.append(($0, $1)) }
+        var fired: [LaunchTimeMetricsPixel] = []
+        let subscriber = makeSubscriber(store: store) { fired.append($0) }
 
         let r = report(count: 3)
         subscriber.process(reports: [r])
@@ -65,7 +66,7 @@ final class LaunchTimeMetricsSubscriberTests: XCTestCase {
 
         // A fresh subscriber sharing the same store must not re-fire the same report.
         fired.removeAll()
-        let subscriber2 = makeSubscriber(store: store) { fired.append(($0, $1)) }
+        let subscriber2 = makeSubscriber(store: store) { fired.append($0) }
         subscriber2.process(reports: [r])
         XCTAssertTrue(fired.isEmpty)
     }
