@@ -95,7 +95,7 @@ private extension NotificationServiceManager {
     
     @MainActor
     func handleVPNNotification() {
-        mainCoordinator.presentNetworkProtectionStatusSettingsModal(origin: .notificationVPN)
+        mainCoordinator.presentNetworkProtectionStatusSettingsModal(entryPoint: .notification)
     }
 
     @MainActor
