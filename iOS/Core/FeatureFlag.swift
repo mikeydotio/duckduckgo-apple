@@ -319,6 +319,12 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1204186595873227/task/1213651297612976?focus=true
     case aiChatNativeChatHistory
 
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216562593480288
+    case aiChatHistoryMultiselect
+
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216562593153043
+    case aiChatNativeSidebar
+
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216111312217462?focus=true
     case contextualSuggestedPrompts
 
@@ -462,10 +468,6 @@ public enum FeatureFlag: String {
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1214740849233380
     case icsCalendarLinks
 
-    /// Failsafe feature flag. Routes tapped .vcf contact links through CNContactViewController.
-    /// https://app.asana.com/1/137249556945/project/1215172677539195/task/1215631408578779
-    case vcardContactLinks
-
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1215169783702336
     case walletPassDownload
 
@@ -504,6 +506,10 @@ public enum FeatureFlag: String {
     /// NA experiment: attach a search token to speed up SERP by combining Index/Deep responses.
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216365830146824
     case searchTokenExperiment
+
+    /// NA Experiment: tailor the onboarding flow based on the user's download reason.
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216491579842691?focus=true
+    case onboardingFlowByDownloadReasonExperiment
 }
 
 extension FeatureFlag: FeatureFlagDescribing {
@@ -520,6 +526,12 @@ extension FeatureFlag: FeatureFlagDescribing {
     }
 
     public enum CookiePopupOptInDialogCohort: String, FeatureFlagCohortDescribing {
+        case control
+        case treatment
+    }
+
+    /// Cohorts for the onboarding-flow-by-download-reason experiment.
+    public enum OnboardingFlowByDownloadReasonExperimentCohort: String, FeatureFlagCohortDescribing {
         case control
         case treatment
     }
@@ -739,6 +751,10 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(DuckAiChatHistorySubfeature.featureEnabled))
         case .aiChatNativeChatHistory:
             Config(defaultValue: .enabled, source: .remoteReleasable(DuckAiChatHistorySubfeature.nativeChatHistory))
+        case .aiChatHistoryMultiselect:
+            Config(source: .remoteReleasable(AIChatSubfeature.historyMultiselect))
+        case .aiChatNativeSidebar:
+            Config(source: .remoteReleasable(AIChatSubfeature.nativeSidebar))
         case .contextualSuggestedPrompts:
             Config(source: .remoteReleasable(AIChatSubfeature.contextualSuggestedPrompts))
         case .showWhatsNewPromptOnDemand:
@@ -765,6 +781,8 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(source: .disabled, cohortType: UITestExperimentCohort.self)
         case .searchTokenExperiment:
             Config(source: .remoteReleasable(iOSBrowserConfigSubfeature.searchTokenExperiment), cohortType: SearchTokenExperimentCohort.self)
+        case .onboardingFlowByDownloadReasonExperiment:
+            Config(source: .disabled, cohortType: OnboardingFlowByDownloadReasonExperimentCohort.self)
         case .genericBackgroundTask:
             Config(source: .remoteReleasable(iOSBrowserConfigSubfeature.genericBackgroundTask))
         case .crashCollectionLimitCallStackTreeDepth:
@@ -825,8 +843,6 @@ extension FeatureFlag: FeatureFlagDescribing {
             Config(defaultValue: .enabled, source: .remoteReleasable(iOSBrowserConfigSubfeature.tabsSaveOptimization))
         case .icsCalendarLinks:
             Config(defaultValue: .enabled, source: .remoteReleasable(iOSBrowserConfigSubfeature.icsCalendarLinks))
-        case .vcardContactLinks:
-            Config(defaultValue: .enabled, source: .remoteReleasable(iOSBrowserConfigSubfeature.vcardContactLinks))
         case .walletPassDownload:
             Config(defaultValue: .enabled, source: .remoteReleasable(iOSBrowserConfigSubfeature.walletPassDownload))
         case .aiChatChromeShortcutIPad:
