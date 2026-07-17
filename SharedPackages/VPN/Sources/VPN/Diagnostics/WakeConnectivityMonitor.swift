@@ -42,11 +42,14 @@ public enum WakeConnectivityResult: Equatable {
 @MainActor
 protocol WakeConnectivityMonitoring: AnyObject {
     /// Opens a confirmation window for a wake that's being handled. Replaces any window already in flight.
-    func noteWake()
+    /// Returns a token identifying the window, to pass back to `noteMonitorStartFailed(forWindow:)`.
+    @discardableResult
+    func noteWake() -> Int
     /// Feeds the monitor a connection test result; ignored unless a wake window is open.
     func recordConnectionTestResult(_ result: ConnectionTestingResult)
-    /// Signals that the post-wake monitor start threw, so the tester won't produce a verdict this window.
-    func noteMonitorStartFailed()
+    /// Signals that the post-wake monitor start threw for `token`'s window, so the tester won't produce a
+    /// verdict there. Ignored if a newer window has since opened.
+    func noteMonitorStartFailed(forWindow token: Int)
     /// Cancels any open window (e.g. the device is going back to sleep).
     func cancel()
 }
@@ -108,7 +111,8 @@ final class WakeConnectivityMonitor: WakeConnectivityMonitoring {
 
     // MARK: - WakeConnectivityMonitoring
 
-    func noteWake() {
+    @discardableResult
+    func noteWake() -> Int {
         confirmationTask?.cancel()
 
         generation &+= 1
@@ -126,6 +130,8 @@ final class WakeConnectivityMonitor: WakeConnectivityMonitoring {
             guard !Task.isCancelled else { return }
             await self?.evaluate(windowGeneration: windowGeneration)
         }
+
+        return windowGeneration
     }
 
     func recordConnectionTestResult(_ result: ConnectionTestingResult) {
@@ -133,7 +139,10 @@ final class WakeConnectivityMonitor: WakeConnectivityMonitoring {
 
         switch result {
         case .connected, .reconnected:
-            // The tester confirmed traffic is flowing through the tunnel — connectivity is back.
+            // A tester "connected" while the device has no usable network is a false positive: the VPN and local
+            // probes both fail, which the tester can't distinguish from success. Don't confirm restored — let the
+            // window fall through to evaluate(), which reports networkDown if there's still no network at close.
+            guard isNetworkAvailable else { return }
             resolve(.restored)
         case .disconnected:
             // Keep waiting; the tunnel may recover before the window closes.
@@ -141,8 +150,8 @@ final class WakeConnectivityMonitor: WakeConnectivityMonitoring {
         }
     }
 
-    func noteMonitorStartFailed() {
-        guard wakeTime != nil, !resolved else { return }
+    func noteMonitorStartFailed(forWindow token: Int) {
+        guard token == generation, wakeTime != nil, !resolved else { return }
         testerStartFailed = true
     }
 

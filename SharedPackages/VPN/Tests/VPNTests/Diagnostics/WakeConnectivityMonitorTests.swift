@@ -97,8 +97,8 @@ final class WakeConnectivityMonitorTests: XCTestCase {
             expectation.fulfill()
         }
 
-        monitor.noteWake()
-        monitor.noteMonitorStartFailed()
+        let window = monitor.noteWake()
+        monitor.noteMonitorStartFailed(forWindow: window)
 
         await fulfillment(of: [expectation], timeout: 2)
         XCTAssertEqual(result, .notRestored(reason: .testerNotRunning))
@@ -128,8 +128,8 @@ final class WakeConnectivityMonitorTests: XCTestCase {
             expectation.fulfill()
         }
 
-        monitor.noteWake()
-        monitor.noteMonitorStartFailed()
+        let window = monitor.noteWake()
+        monitor.noteMonitorStartFailed(forWindow: window)
 
         await fulfillment(of: [expectation], timeout: 2)
         XCTAssertEqual(result, .notRestored(reason: .networkDown))
@@ -183,5 +183,103 @@ final class WakeConnectivityMonitorTests: XCTestCase {
 
         try? await Task.sleep(nanoseconds: 300_000_000)
         XCTAssertEqual(results, [.restored])
+    }
+
+    // MARK: - Network availability gating
+
+    func testConnectedWhileNetworkDownDoesNotResolveRestored() async {
+        let expectation = expectation(description: "result")
+        var result: WakeConnectivityResult?
+        // A full outage after wake makes the tester report `.connected` (both probes fail), which would otherwise
+        // be a false "restored". With no network, it must fall through to `networkDown` at window close instead.
+        let (monitor, _) = makeMonitor(handshake: wakeEpoch - 100, networkAvailable: false) {
+            result = $0
+            expectation.fulfill()
+        }
+
+        monitor.noteWake()
+        monitor.recordConnectionTestResult(.connected)
+
+        await fulfillment(of: [expectation], timeout: 2)
+        XCTAssertEqual(result, .notRestored(reason: .networkDown))
+    }
+
+    func testConnectedResolvesRestoredAfterNetworkRecoversMidWindow() {
+        var networkUp = false
+        var result: WakeConnectivityResult?
+        let reporter = MockHandshakeReporter()
+        reporter.mostRecentHandshake = wakeEpoch - 100
+        let monitor = WakeConnectivityMonitor(
+            handshakeReporter: reporter,
+            now: { Date(timeIntervalSince1970: self.wakeEpoch) },
+            confirmationWindow: 5, // long enough that the window doesn't close during the synchronous calls
+            networkAvailability: { networkUp },
+            onResult: { result = $0 }
+        )
+
+        monitor.noteWake()
+        // Network down: the tester's `.connected` is gated and dropped without latching any reason.
+        monitor.recordConnectionTestResult(.connected)
+        XCTAssertNil(result)
+
+        // Network recovers within the window; the next `.connected` now resolves restored.
+        networkUp = true
+        monitor.recordConnectionTestResult(.connected)
+        XCTAssertEqual(result, .restored)
+    }
+
+    // MARK: - Reason precedence
+
+    func testTesterNotRunningWinsOverTesterFailed() async {
+        let expectation = expectation(description: "result")
+        var result: WakeConnectivityResult?
+        let (monitor, _) = makeMonitor(handshake: wakeEpoch - 100, networkAvailable: true) {
+            result = $0
+            expectation.fulfill()
+        }
+
+        let window = monitor.noteWake()
+        monitor.recordConnectionTestResult(.disconnected(failureCount: 1)) // sets sawDisconnected
+        monitor.noteMonitorStartFailed(forWindow: window) // sets testerStartFailed — should win
+
+        await fulfillment(of: [expectation], timeout: 2)
+        XCTAssertEqual(result, .notRestored(reason: .testerNotRunning))
+    }
+
+    func testNetworkDownWinsOverTesterFailed() async {
+        let expectation = expectation(description: "result")
+        var result: WakeConnectivityResult?
+        let (monitor, _) = makeMonitor(handshake: wakeEpoch - 100, networkAvailable: false) {
+            result = $0
+            expectation.fulfill()
+        }
+
+        monitor.noteWake()
+        monitor.recordConnectionTestResult(.disconnected(failureCount: 1)) // sets sawDisconnected
+
+        await fulfillment(of: [expectation], timeout: 2)
+        XCTAssertEqual(result, .notRestored(reason: .networkDown))
+    }
+
+    // MARK: - Window generations
+
+    func testStaleMonitorStartFailedIgnoredAfterNewWake() async {
+        let expectation = expectation(description: "result")
+        var result: WakeConnectivityResult?
+        let (monitor, _) = makeMonitor(handshake: wakeEpoch - 100, networkAvailable: true) {
+            result = $0
+            expectation.fulfill()
+        }
+
+        let firstWindow = monitor.noteWake()
+        let secondWindow = monitor.noteWake() // supersedes the first
+        XCTAssertNotEqual(firstWindow, secondWindow)
+
+        // A late failure from the first window must not taint the second — otherwise this would report
+        // `testerNotRunning` instead of the second window's own `handshakeStale`.
+        monitor.noteMonitorStartFailed(forWindow: firstWindow)
+
+        await fulfillment(of: [expectation], timeout: 2)
+        XCTAssertEqual(result, .notRestored(reason: .handshakeStale))
     }
 }

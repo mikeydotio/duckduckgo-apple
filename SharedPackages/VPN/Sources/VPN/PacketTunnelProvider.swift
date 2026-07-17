@@ -1544,7 +1544,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         // Open a window to confirm connectivity actually returns after this wake.
-        wakeConnectivityMonitor.noteWake()
+        let wakeWindow = wakeConnectivityMonitor.noteWake()
 
         Task {
             providerEvents.fire(.tunnelWakeAttempt(.begin))
@@ -1558,7 +1558,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 Logger.networkProtection.error("🔴 Wake error: \(error.localizedDescription, privacy: .public)")
                 providerEvents.fire(.tunnelWakeAttempt(.failure(error)))
                 // Monitors (incl. the connection tester) didn't fully start, so there'll be no tester verdict this window.
-                wakeConnectivityMonitor.noteMonitorStartFailed()
+                wakeConnectivityMonitor.noteMonitorStartFailed(forWindow: wakeWindow)
             }
         }
     }

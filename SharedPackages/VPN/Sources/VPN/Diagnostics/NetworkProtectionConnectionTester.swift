@@ -47,6 +47,11 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
     ///
     private(set) var isRunning = false
 
+    /// Incremented on every `start()`. Interface resolution suspends `start()`, so a `stop()` + newer `start()`
+    /// can run before the first resumes; comparing this token lets a superseded `start()` bow out instead of
+    /// rolling back or overwriting the newer start's `isRunning`/`tunnelInterface`.
+    private var startGeneration = 0
+
     static let connectionTestQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtectionConnectionTester.connectionTestQueue")
     static let monitorQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtectionConnectionTester.monitorQueue")
     static let endpoint = NWEndpoint.hostPort(host: .name("www.duckduckgo.com", nil), port: .https)
@@ -120,6 +125,8 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
         }
 
         isRunning = true
+        startGeneration &+= 1
+        let thisStart = startGeneration
 
         Logger.networkProtectionConnectionTester.log("🟢 Starting connection tester (testImmediately: \(String(reflecting: testImmediately), privacy: .public)")
 
@@ -129,14 +136,17 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
         } catch {
             // Roll back so a failed start doesn't leave the tester flagged as running; otherwise a later
             // `start()` would no-op on the `guard !isRunning` above and we'd run without a tester silently.
-            isRunning = false
+            // Only if no newer start has superseded us — otherwise we'd clear the newer start's `isRunning`.
+            if thisStart == startGeneration {
+                isRunning = false
+            }
             throw error
         }
 
         // `stop()` can land while we were awaiting interface resolution (e.g. the device went back to sleep),
-        // flipping `isRunning` to false. Don't schedule a tester that's already been asked to stop.
-        guard isRunning else {
-            Logger.networkProtectionConnectionTester.log("Tester was stopped while resolving the interface; not scheduling")
+        // flipping `isRunning` to false; or a newer `start()` may have superseded us. Either way, don't schedule.
+        guard isRunning, thisStart == startGeneration else {
+            Logger.networkProtectionConnectionTester.log("Tester was stopped or superseded while resolving the interface; not scheduling")
             return
         }
 
