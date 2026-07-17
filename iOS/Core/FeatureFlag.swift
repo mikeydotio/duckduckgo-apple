@@ -378,7 +378,7 @@ public enum FeatureFlag: String {
     case crashCollectionLimitCallStackTreeDepth
 
     /// Enables sending MetricKit launch-time telemetry pixels.
-    /// https://app.asana.com/1/137249556945/project/1208671677432066/task/1214963974721156
+    /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1216663565461118?focus=true
     case launchTimeMetrics
 
     /// https://app.asana.com/1/137249556945/project/1211834678943996/task/1214974217398704?focus=true
