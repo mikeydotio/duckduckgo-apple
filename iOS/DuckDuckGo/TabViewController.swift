@@ -594,11 +594,17 @@ class TabViewController: UIViewController {
     let autoplaySettings: AutoplaySettings
     let duckAiNativeStorageHandler: DuckAiNativeStorageHandling?
     let duckAiFireModeStorageHandler: DuckAiNativeStorageHandling?
+
+    /// Main-frame response (URL + MIME) for the page-context gate; keyed by URL to avoid stale-MIME leaks.
+    private var lastMainFramePageContextResponse: (url: URL, mimeType: String?)?
+
     lazy var aiChatContextualSheetCoordinator: AIChatContextualSheetCoordinator = {
         let pageContextHandler = AIChatPageContextHandler(
             webViewProvider: { [weak self] in self?.webView },
             userScriptProvider: { [weak self] in self?.userScripts?.pageContextUserScript },
-            faviconProvider: { [weak self] url in self?.getFaviconBase64(for: url) }
+            faviconProvider: { [weak self] url in self?.getFaviconBase64(for: url) },
+            attachabilityPolicyProvider: { [weak self] in self?.currentPageContextAttachabilityPolicy() },
+            mimeTypeProvider: { [weak self] url in self?.lastMainFramePageContextMIMEType(for: url) }
         )
         let coordinator = AIChatContextualSheetCoordinator(
             voiceSearchHelper: voiceSearchHelper,
@@ -2023,9 +2029,27 @@ extension TabViewController: WKNavigationDelegate {
         }
     }
 
+    /// `nil` when the `aiPageContextBlocklist` config is absent/malformed (kill-switch, fail-open).
+    private func currentPageContextAttachabilityPolicy() -> PageContextAttachabilityPolicy? {
+        let settings = privacyConfigurationManager.privacyConfig.settings(for: .pageContext)
+        guard let blocklist = PageContextBlocklistSettings(blocklist: settings["aiPageContextBlocklist"]) else {
+            return nil
+        }
+        return PageContextAttachabilityPolicy(settings: blocklist)
+    }
+
+    /// `nil` unless the last observed main-frame response was for this URL.
+    private func lastMainFramePageContextMIMEType(for url: URL) -> String? {
+        lastMainFramePageContextResponse.flatMap { $0.url == url ? $0.mimeType : nil }
+    }
+
     private func handleNavigationResponse(_ navigationResponse: WKNavigationResponse) async -> WKNavigationResponsePolicy {
         let httpResponse = navigationResponse.response as? HTTPURLResponse
         let mimeType = MIMEType(from: navigationResponse.response.mimeType, fileExtension: navigationResponse.response.url?.pathExtension)
+        // Capture main-frame MIME for the page-context attachability gate.
+        if navigationResponse.isForMainFrame, let responseURL = navigationResponse.response.url {
+            lastMainFramePageContextResponse = (responseURL, navigationResponse.response.mimeType)
+        }
         let urlSchemeType = navigationResponse.response.url.map { SchemeHandler.schemeType(for: $0) } ?? .unknown
         let urlNavigationalScheme = navigationResponse.response.url?.scheme.map { URL.NavigationalScheme(rawValue: $0) }
 
