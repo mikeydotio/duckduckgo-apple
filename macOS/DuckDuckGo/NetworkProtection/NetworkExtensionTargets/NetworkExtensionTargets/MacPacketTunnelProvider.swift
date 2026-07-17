@@ -377,13 +377,20 @@ final class MacPacketTunnelProvider: PacketTunnelProvider {
             case .success:
                 Logger.networkProtection.log("🟢 Tunnel Wake attempt succeeded")
             }
-
-            switch step {
-            case .begin, .success: break
-            case .failure(let error):
+        case .wakeConnectivity(let result):
+            switch result {
+            case .restored:
+                Logger.networkProtection.log("🟢 Wake connectivity restored")
                 PixelKit.fire(
-                    NetworkProtectionPixelEvent.networkProtectionTunnelWakeFailure(error),
-                    frequency: .legacyDailyAndCount,
+                    NetworkProtectionPixelEvent.networkProtectionWakeConnectivityRestored,
+                    frequency: .dailyAndCount,
+                    includeAppVersionParameter: true)
+            case .notRestored(let reason):
+                Logger.networkProtection.error("🔴 Wake connectivity not restored: \(reason.rawValue, privacy: .public)")
+                PixelKit.fire(
+                    NetworkProtectionPixelEvent.networkProtectionWakeConnectivityNotRestored,
+                    frequency: .dailyAndCount,
+                    withAdditionalParameters: ["reason": reason.rawValue],
                     includeAppVersionParameter: true)
             }
         case .failureRecoveryAttempt(let step):

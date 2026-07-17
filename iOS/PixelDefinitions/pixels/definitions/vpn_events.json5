@@ -41,6 +41,20 @@
         "suffixes": ["legacy_daily_count", "platform", "form_factor"],
         "parameters": ["appVersion", "connectionAttemptSource"]
     },
+    "m_netp_wake_connectivity_restored": {
+        "description": "Fired once VPN connectivity is confirmed restored after the device wakes from sleep. Acts as the denominator for m_netp_wake_connectivity_not_restored.",
+        "owners": ["diegoreymendez"],
+        "triggers": ["other"],
+        "suffixes": ["first_daily_count", "platform", "form_factor"],
+        "parameters": ["appVersion", "pixelSource"]
+    },
+    "m_netp_wake_connectivity_not_restored": {
+        "description": "Fired when VPN connectivity is not confirmed restored within the confirmation window after the device wakes from sleep. The reason parameter identifies the cause.",
+        "owners": ["diegoreymendez"],
+        "triggers": ["other"],
+        "suffixes": ["first_daily_count", "platform", "form_factor"],
+        "parameters": ["appVersion", "pixelSource", "reason"]
+    },
     "m_netp_tunnel_start_attempt_on_demand_without_access_token": {
         "description": "Fired when an on-demand VPN start attempt fails before reaching the actual tunnel start, due to a prerequisite failure such as a missing or unfetchable subscription token, missing settings, or other startup errors. Error parameters identify the underlying cause.",
         "owners": ["diegoreymendez", "samsymons"],

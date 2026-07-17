@@ -1,4 +1,18 @@
 {
+    "m_mac_netp_wake_connectivity_restored": {
+        "description": "Fired once VPN connectivity is confirmed restored after the device wakes from sleep. Acts as the denominator for m_mac_netp_wake_connectivity_not_restored.",
+        "owners": ["diegoreymendez"],
+        "triggers": ["other"],
+        "suffixes": ["first_daily_count"],
+        "parameters": ["appVersion", "pixelSource"]
+    },
+    "m_mac_netp_wake_connectivity_not_restored": {
+        "description": "Fired when VPN connectivity is not confirmed restored within the confirmation window after the device wakes from sleep. The reason parameter identifies the cause.",
+        "owners": ["diegoreymendez"],
+        "triggers": ["other"],
+        "suffixes": ["first_daily_count"],
+        "parameters": ["appVersion", "pixelSource", "reason"]
+    },
     "m_mac_netp_ev_adapter_end_temporary_shutdown_state_attempt_failure": {
         "description": "Fired when the VPN adapter fails to end its temporary shutdown state on the first attempt",
         "owners": ["samsymons"],

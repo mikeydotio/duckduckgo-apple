@@ -77,6 +77,14 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
     ///
     private static let connectionTimeout: TimeInterval = .seconds(5)
 
+    /// How long we'll wait for the tunnel interface to become visible to `NWPathMonitor` before giving up.
+    ///
+    /// Right after the device wakes, the utun often isn't in the first path snapshot yet, so deciding on that
+    /// first snapshot spuriously fails. We instead keep consuming path updates for a short window so a healthy
+    /// tunnel resolves as soon as the interface appears.
+    ///
+    private static let interfaceResolutionTimeout: TimeInterval = .seconds(5)
+
     // MARK: - Test result handling
 
     private var failureCount = 0
@@ -114,7 +122,24 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
         isRunning = true
 
         Logger.networkProtectionConnectionTester.log("🟢 Starting connection tester (testImmediately: \(String(reflecting: testImmediately), privacy: .public)")
-        let tunnelInterface = try await networkInterface(forInterfaceNamed: tunnelIfName)
+
+        let tunnelInterface: NWInterface
+        do {
+            tunnelInterface = try await networkInterface(forInterfaceNamed: tunnelIfName)
+        } catch {
+            // Roll back so a failed start doesn't leave the tester flagged as running; otherwise a later
+            // `start()` would no-op on the `guard !isRunning` above and we'd run without a tester silently.
+            isRunning = false
+            throw error
+        }
+
+        // `stop()` can land while we were awaiting interface resolution (e.g. the device went back to sleep),
+        // flipping `isRunning` to false. Don't schedule a tester that's already been asked to stop.
+        guard isRunning else {
+            Logger.networkProtectionConnectionTester.log("Tester was stopped while resolving the interface; not scheduling")
+            return
+        }
+
         self.tunnelInterface = tunnelInterface
 
         await scheduleTimer(testImmediately: testImmediately)
@@ -131,30 +156,38 @@ final class NetworkProtectionConnectionTester: ConnectionTesting {
     private func networkInterface(forInterfaceNamed interfaceName: String) async throws -> NWInterface {
         try await withCheckedThrowingContinuation { continuation in
             let monitor = NWPathMonitor()
+
+            // `monitorQueue` is serial, so the path-update handler and the timeout below never run
+            // concurrently — `didResume` needs no extra synchronisation.
             var didResume = false
 
-            monitor.pathUpdateHandler = { path in
+            func resume(with result: Swift.Result<NWInterface, Error>) {
                 guard !didResume else { return }
                 didResume = true
-
-                Logger.networkProtectionConnectionTester.log("All interfaces: \(String(describing: path.availableInterfaces), privacy: .public)")
-
-                guard let tunnelInterface = path.availableInterfaces.first(where: { $0.name == interfaceName }) else {
-                    Logger.networkProtectionConnectionTester.error("Could not find VPN interface \(interfaceName, privacy: .public)")
-                    monitor.cancel()
-                    monitor.pathUpdateHandler = nil
-
-                    continuation.resume(throwing: TesterError.couldNotFindInterface(named: interfaceName))
-                    return
-                }
-
                 monitor.cancel()
                 monitor.pathUpdateHandler = nil
+                continuation.resume(with: result)
+            }
 
-                continuation.resume(returning: tunnelInterface)
+            monitor.pathUpdateHandler = { path in
+                Logger.networkProtectionConnectionTester.log("All interfaces: \(String(describing: path.availableInterfaces), privacy: .public)")
+
+                if let tunnelInterface = path.availableInterfaces.first(where: { $0.name == interfaceName }) {
+                    resume(with: .success(tunnelInterface))
+                } else {
+                    // The utun may not be visible in the first snapshot right after wake. Keep waiting for
+                    // a subsequent path update until the timeout fires below.
+                    Logger.networkProtectionConnectionTester.log("VPN interface \(interfaceName, privacy: .public) not visible yet; waiting for a path update")
+                }
             }
 
             monitor.start(queue: Self.monitorQueue)
+
+            Self.monitorQueue.asyncAfter(deadline: .now() + Self.interfaceResolutionTimeout) {
+                guard !didResume else { return }
+                Logger.networkProtectionConnectionTester.error("Could not find VPN interface \(interfaceName, privacy: .public) within \(Self.interfaceResolutionTimeout, privacy: .public)s")
+                resume(with: .failure(TesterError.couldNotFindInterface(named: interfaceName)))
+            }
         }
     }
 

@@ -54,6 +54,12 @@
         "description": "Identifies non-production pixels. 'canary' for internal users; 'dev' for alpha/review builds. Omitted for production builds.",
         "enum": ["canary", "dev"]
     },
+    "reason": {
+        "key": "reason",
+        "type": "string",
+        "description": "Why post-wake VPN connectivity could not be confirmed",
+        "enum": ["tester_not_running", "tester_failed", "handshake_stale", "network_down"]
+    },
     "errorDomain": {
         "key": "d",
         "type": "string",

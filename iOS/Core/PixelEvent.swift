@@ -706,7 +706,8 @@ extension Pixel {
         case networkProtectionTunnelUpdateSuccess
         case networkProtectionTunnelUpdateFailure
 
-        case networkProtectionTunnelWakeFailure
+        case networkProtectionWakeConnectivityRestored
+        case networkProtectionWakeConnectivityNotRestored
 
         case networkProtectionEnableAttemptConnecting
         case networkProtectionEnableAttemptSuccess
@@ -2718,7 +2719,8 @@ extension Pixel.Event {
         case .networkProtectionTunnelUpdateAttempt: return "m_netp_tunnel_update_attempt"
         case .networkProtectionTunnelUpdateSuccess: return "m_netp_tunnel_update_success"
         case .networkProtectionTunnelUpdateFailure: return "m_netp_tunnel_update_failure"
-        case .networkProtectionTunnelWakeFailure: return "m_netp_tunnel_wake_failure"
+        case .networkProtectionWakeConnectivityRestored: return "m_netp_wake_connectivity_restored"
+        case .networkProtectionWakeConnectivityNotRestored: return "m_netp_wake_connectivity_not_restored"
         case .networkProtectionEnableAttemptConnecting: return "m_netp_ev_enable_attempt"
         case .networkProtectionEnableAttemptSuccess: return "m_netp_ev_enable_attempt_success"
         case .networkProtectionEnableAttemptFailure: return "m_netp_ev_enable_attempt_failure"

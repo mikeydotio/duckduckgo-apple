@@ -307,13 +307,15 @@ final class NetworkProtectionPacketTunnelProvider: PacketTunnelProvider {
             case .success:
                 Logger.networkProtection.log("🟢 Tunnel Wake attempt succeeded")
             }
-
-            switch step {
-            case .begin, .success: break
-            case .failure(let error):
-                DailyPixel.fireDailyAndCount(pixel: .networkProtectionTunnelWakeFailure,
-                                             pixelNameSuffixes: DailyPixel.Constant.legacyDailyPixelSuffixes,
-                                             error: error)
+        case .wakeConnectivity(let result):
+            switch result {
+            case .restored:
+                Logger.networkProtection.log("🟢 Wake connectivity restored")
+                DailyPixel.fireDailyAndCount(pixel: .networkProtectionWakeConnectivityRestored)
+            case .notRestored(let reason):
+                Logger.networkProtection.error("🔴 Wake connectivity not restored: \(reason.rawValue, privacy: .public)")
+                DailyPixel.fireDailyAndCount(pixel: .networkProtectionWakeConnectivityNotRestored,
+                                             withAdditionalParameters: ["reason": reason.rawValue])
             }
         case .failureRecoveryAttempt(let step):
             switch step {

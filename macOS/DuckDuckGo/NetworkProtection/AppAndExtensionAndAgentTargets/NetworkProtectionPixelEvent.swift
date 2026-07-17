@@ -46,7 +46,8 @@ enum NetworkProtectionPixelEvent: PixelKitEvent {
     case networkProtectionTunnelUpdateSuccess
     case networkProtectionTunnelUpdateFailure(_ error: Error)
 
-    case networkProtectionTunnelWakeFailure(_ error: Error)
+    case networkProtectionWakeConnectivityRestored
+    case networkProtectionWakeConnectivityNotRestored
 
     case networkProtectionServerMigrationAttempt
     case networkProtectionServerMigrationSuccess
@@ -180,8 +181,11 @@ enum NetworkProtectionPixelEvent: PixelKitEvent {
         case .networkProtectionTunnelUpdateFailure:
             return "netp_tunnel_update_failure"
 
-        case .networkProtectionTunnelWakeFailure:
-            return "netp_tunnel_wake_failure"
+        case .networkProtectionWakeConnectivityRestored:
+            return "netp_wake_connectivity_restored"
+
+        case .networkProtectionWakeConnectivityNotRestored:
+            return "netp_wake_connectivity_not_restored"
 
         case .networkProtectionEnableAttemptConnecting:
             return "netp_ev_enable_attempt"
@@ -448,7 +452,8 @@ enum NetworkProtectionPixelEvent: PixelKitEvent {
                 .networkProtectionTunnelUpdateAttempt,
                 .networkProtectionTunnelUpdateSuccess,
                 .networkProtectionTunnelUpdateFailure,
-                .networkProtectionTunnelWakeFailure,
+                .networkProtectionWakeConnectivityRestored,
+                .networkProtectionWakeConnectivityNotRestored,
                 .networkProtectionEnableAttemptConnecting,
                 .networkProtectionEnableAttemptSuccess,
                 .networkProtectionEnableAttemptFailure,
@@ -502,7 +507,8 @@ enum NetworkProtectionPixelEvent: PixelKitEvent {
                 .networkProtectionTunnelUpdateAttempt,
                 .networkProtectionTunnelUpdateSuccess,
                 .networkProtectionTunnelUpdateFailure,
-                .networkProtectionTunnelWakeFailure,
+                .networkProtectionWakeConnectivityRestored,
+                .networkProtectionWakeConnectivityNotRestored,
                 .networkProtectionEnableAttemptConnecting,
                 .networkProtectionEnableAttemptSuccess,
                 .networkProtectionEnableAttemptFailure,

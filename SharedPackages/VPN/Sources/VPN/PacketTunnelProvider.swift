@@ -40,6 +40,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case tunnelStopAttempt(_ step: TunnelStopAttemptStep)
         case tunnelUpdateAttempt(_ step: TunnelUpdateAttemptStep)
         case tunnelWakeAttempt(_ step: TunnelWakeAttemptStep)
+        case wakeConnectivity(_ result: WakeConnectivityResult)
         case tunnelStartOnDemandWithoutAccessToken(_ error: Error)
         case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result, location: VPNSettings.SelectedLocation)
@@ -369,6 +370,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private var tunnelFailureMonitor: TunnelFailureMonitoring!
 
+    private var wakeConnectivityMonitor: WakeConnectivityMonitoring!
+
     public let latencyMonitor: LatencyMonitoring
     public let entitlementMonitor: EntitlementMonitoring
 
@@ -558,6 +561,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handshakeReporter: self.adapter
         )
 
+        self.wakeConnectivityMonitor = WakeConnectivityMonitor(
+            handshakeReporter: self.adapter,
+            onResult: { [weak self] result in
+                self?.providerEvents.fire(.wakeConnectivity(result))
+            }
+        )
+
         let resolvedFailureRecoveryHandler = failureRecoveryHandler ?? FailureRecoveryHandler(
             deviceManager: self.deviceManager,
             reassertingControl: self,
@@ -725,6 +735,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     private func handleConnectionTestResult(_ result: NetworkProtectionConnectionTester.Result) {
         let serverName = lastSelectedServerInfo?.name ?? "Unknown"
+
+        // Feeds the post-wake confirmation window (no-op unless one is open).
+        wakeConnectivityMonitor.recordConnectionTestResult(result)
 
         switch result {
         case .connected:
@@ -1513,6 +1526,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     public override func sleep() async {
         Logger.networkProtectionSleep.log("Sleep")
+        wakeConnectivityMonitor.cancel()
         stopHeartbeat()
         await stopMonitors()
     }
@@ -1529,6 +1543,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             return
         }
 
+        // Open a window to confirm connectivity actually returns after this wake. The tester result and/or a
+        // fresh handshake resolve it; a real post-wake outage surfaces as `.wakeConnectivity(.notRestored)`.
+        wakeConnectivityMonitor.noteWake()
+
         Task {
             providerEvents.fire(.tunnelWakeAttempt(.begin))
 
@@ -1540,6 +1558,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             } catch {
                 Logger.networkProtection.error("🔴 Wake error: \(error.localizedDescription, privacy: .public)")
                 providerEvents.fire(.tunnelWakeAttempt(.failure(error)))
+                // Monitors (incl. the connection tester) didn't fully start, so there'll be no tester verdict
+                // this window — the confirmation falls back to the handshake check.
+                wakeConnectivityMonitor.noteMonitorStartFailed()
             }
         }
     }
