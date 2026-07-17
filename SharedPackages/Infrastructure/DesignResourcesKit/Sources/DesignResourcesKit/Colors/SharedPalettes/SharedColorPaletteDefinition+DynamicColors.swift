@@ -45,6 +45,10 @@ extension SharedColorPaletteDefinition {
             return accentFireContentSecondary
         case .accentFireContentTertiary:
             return accentFireContentTertiary
+        case .accentFireGlowPrimary:
+            return accentFireGlowPrimary
+        case .accentFireGlowSecondary:
+            return accentFireGlowSecondary
         case .accentFireTextPrimary:
             return accentFireTextPrimary
         case .accentFireTextSecondary:

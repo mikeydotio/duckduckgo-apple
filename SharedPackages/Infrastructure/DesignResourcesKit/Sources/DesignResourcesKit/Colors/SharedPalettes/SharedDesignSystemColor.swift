@@ -32,12 +32,14 @@ public enum SharedDesignSystemColor {
     case accentFirePrimary
     case accentFireSecondary
     case accentFireTertiary
-    case accentFireTextPrimary
-    case accentFireTextSecondary
-    case accentFireTextTertiary
     case accentFireContentPrimary
     case accentFireContentSecondary
     case accentFireContentTertiary
+    case accentFireGlowPrimary
+    case accentFireGlowSecondary
+    case accentFireTextPrimary
+    case accentFireTextSecondary
+    case accentFireTextTertiary
     case accentGlowPrimary
     case accentGlowSecondary
     case accentPrimary
