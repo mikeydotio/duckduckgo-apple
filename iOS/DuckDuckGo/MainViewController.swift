@@ -1895,7 +1895,7 @@ class MainViewController: UIViewController {
         viewCoordinator.logoContainer.isHidden = false
         findInPageView?.isHidden = true
         chromeManager.detach()
-        
+
         currentTab?.dismiss()
         removeHomeScreen()
 
@@ -2417,6 +2417,7 @@ class MainViewController: UIViewController {
         guard let tab else { return }
         previousTab?.aiChatContextualSheetCoordinator.dismissSheet()
         previousTab?.tabModel.openedAfterIdle = false
+        dismissSystemFindNavigator(for: previousTab)
         previousTab?.dismiss()
         hideNotificationBarIfBrokenSitePromptShown()
 
@@ -3249,9 +3250,10 @@ class MainViewController: UIViewController {
         dismissOmniBar()
         hideNotificationBarIfBrokenSitePromptShown()
         currentTab?.aiChatContextualSheetCoordinator.dismissSheet()
-        currentTab?.dismiss()
 
         let previousTab = tabManager.current()
+        dismissSystemFindNavigator(for: previousTab)
+        currentTab?.dismiss()
 
         if reuseExisting, let existing = tabManager.firstHomeTab() {
             tabManager.select(existing, dismissCurrent: false)
@@ -3285,6 +3287,11 @@ class MainViewController: UIViewController {
         currentTab?.findInPage?.delegate = self
         findInPageView?.update(with: currentTab?.findInPage, updateTextField: true)
         findInPageView?.updateConstraints()
+    }
+
+    private func dismissSystemFindNavigator(for tab: TabViewController?) {
+        guard #available(iOS 16.0, *), featureFlagger.isFeatureOn(.systemFindInPage) else { return }
+        tab?.webView.findInteraction?.dismissFindNavigator()
     }
 
     func handleVoiceSearchOpenRequest(preferredTarget: VoiceSearchTarget? = nil) {
