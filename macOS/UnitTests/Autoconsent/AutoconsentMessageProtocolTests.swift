@@ -27,6 +27,7 @@ import PixelKit
 import PrivacyConfig
 import PrivacyConfigTestsUtils
 import PrivacyDashboard
+import WebExtensions
 import WebKit
 import XCTest
 

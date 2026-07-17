@@ -397,14 +397,13 @@ final class AutoconsentMessageProtocolTests: XCTestCase {
                                      heuristicEnabled: Bool,
                                      expectedMode: String) {
         let config = MockPrivacyConfiguration()
-        config.isSubfeatureEnabledCheck = { subfeature, _ in
+        config.isSubfeatureKeyEnabled = { subfeature, _ in
             subfeature.rawValue == AutoconsentSubfeature.cookiePopupPreferenceSetting.rawValue && preferenceSettingEnabled
         }
         let preferences = MockAutoconsentPreferences()
         preferences.cookiePopupPreference = preference
-        let featureFlagger = MockFeatureFlagger(featuresStub: [
-            FeatureFlag.heuristicAction.rawValue: heuristicEnabled,
-        ])
+        let enabledFeatureFlags: [FeatureFlag] = heuristicEnabled ? [.heuristicAction] : []
+        let featureFlagger = MockFeatureFlagger(enabledFeatureFlags: enabledFeatureFlags)
         let management = MockAutoconsentManagement()
         userScript = AutoconsentUserScript(
             config: config,
