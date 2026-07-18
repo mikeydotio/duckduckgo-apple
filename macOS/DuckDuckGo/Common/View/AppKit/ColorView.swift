@@ -20,6 +20,8 @@ import Cocoa
 
 internal class ColorView: DraggingDestinationView {
 
+    private let fillLayer = CALayer()
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
 
@@ -40,7 +42,7 @@ internal class ColorView: DraggingDestinationView {
         setupView()
     }
 
-    /// When `true` colors will be reserved agains the `effectiveAppearance` value.
+    /// When `true` colors will be reserved against the `effectiveAppearance` value.
     /// Otherwise, we'll rely on `NSApp.effectiveAppearance`
     var resolvesStyleWithEffectiveAppearance: Bool = false {
         didSet {
@@ -48,8 +50,7 @@ internal class ColorView: DraggingDestinationView {
                 return
             }
 
-            updateBackgroundColor()
-            updateBorderColor()
+            updateLayerColors()
         }
     }
 
@@ -59,12 +60,7 @@ internal class ColorView: DraggingDestinationView {
 
     @IBInspectable var backgroundColor: NSColor? = NSColor.clear {
         didSet {
-            updateBackgroundColor()
-        }
-    }
-    private func updateBackgroundColor() {
-        NSAppearance.withAppearance(targetAppearance) {
-            layer?.backgroundColor = backgroundColor?.cgColor
+            updateLayerColors()
         }
     }
 
@@ -84,16 +80,12 @@ internal class ColorView: DraggingDestinationView {
         layer?.cornerRadius = cornerRadius
         layer?.maskedCorners = roundedCorners.cornerMask
         layer?.masksToBounds = true
+        layoutFillLayer()
     }
 
     @IBInspectable var borderColor: NSColor? {
         didSet {
-            updateBorderColor()
-        }
-    }
-    private func updateBorderColor() {
-        NSAppearance.withAppearance(targetAppearance) {
-            layer?.borderColor = borderColor?.cgColor
+            updateLayerColors()
         }
     }
 
@@ -110,18 +102,45 @@ internal class ColorView: DraggingDestinationView {
 
     func setupView() {
         self.wantsLayer = true
-        updateBackgroundColor()
+
+        setupFillLayer()
+        updateLayerColors()
         updateCornerRadius()
-        updateBorderColor()
         updateBorderWidth()
     }
 
     override func updateLayer() {
         super.updateLayer()
+        updateLayerColors()
+    }
+
+    override func layout() {
+        super.layout()
+        layoutFillLayer()
+    }
+
+    private func updateLayerColors() {
         NSAppearance.withAppearance(targetAppearance) {
-            layer?.backgroundColor = backgroundColor?.cgColor
+            fillLayer.backgroundColor = backgroundColor?.cgColor
             layer?.borderColor = borderColor?.cgColor
         }
+    }
+
+    private func layoutFillLayer() {
+        fillLayer.frame = bounds.insetBy(dx: borderWidth, dy: borderWidth)
+        fillLayer.cornerRadius = max(0, cornerRadius - borderWidth)
+        fillLayer.maskedCorners = roundedCorners.cornerMask
+    }
+
+    private func setupFillLayer() {
+        fillLayer.zPosition = -1
+        fillLayer.actions = [
+            "backgroundColor": NSNull(),
+            "cornerRadius": NSNull(),
+            "bounds": NSNull(),
+            "position": NSNull()
+        ]
+        layer?.addSublayer(fillLayer)
     }
 
     // MARK: - Click Event Interception
@@ -154,6 +173,11 @@ internal class ColorView: DraggingDestinationView {
         if !interceptClickEvents {
             super.otherMouseDown(with: event)
         }
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        fillLayer.contentsScale = window?.backingScaleFactor ?? 2
     }
 }
 
