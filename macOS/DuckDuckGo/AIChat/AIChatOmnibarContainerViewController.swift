@@ -19,6 +19,7 @@
 import Cocoa
 import QuartzCore
 import Combine
+import AppKitExtensions
 import DesignResourcesKit
 import UniformTypeIdentifiers
 import DesignResourcesKitIcons
@@ -145,6 +146,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
     let omnibarController: AIChatOmnibarController
     private let duckAiNativeStorageHandler: DuckAiNativeStorageHandling?
     private let burnerMode: BurnerMode
+    private var isBurner: Bool { burnerMode.isBurner }
     var themeUpdateCancellable: AnyCancellable?
     private var appearanceCancellable: AnyCancellable?
     private var textChangeCancellable: AnyCancellable?
@@ -324,7 +326,9 @@ final class AIChatOmnibarContainerViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
         setupUI()
+        setupBurnerStyleIfNeeded()
         setupSuggestionsView()
         subscribeToThemeChanges()
         subscribeToTextChanges()
@@ -439,7 +443,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         submitButton.isEnabled = enabled
         // Tints. Both modes keep the icon constant across hover/press; only the fill animates,
         // so `mouseOverTintColor` / `mouseDownTintColor` stay nil.
-        NSAppearance.withAppAppearance {
+        NSAppearance.withAppearance(from: view) {
             if enabled {
                 if submitButtonMode == .voice {
                     submitButton.normalTintColor = NSColor(designSystemColor: .iconsPrimary)
@@ -485,7 +489,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
                 designSystemColor = .accentPrimary
             }
         }
-        NSAppearance.withAppAppearance {
+        NSAppearance.withAppearance(from: view) {
             submitButton.layer?.backgroundColor = designSystemColor.map { NSColor(designSystemColor: $0).cgColor } ?? NSColor.clear.cgColor
         }
     }
@@ -864,6 +868,16 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         modelPickerButton.trailingAnchor.constraint(equalTo: submitButton.leadingAnchor, constant: -Constants.modelPickerTrailingSpacing).isActive = true
 
         applyTheme(theme: themeManager.theme)
+    }
+
+    // MARK: - Burner Style
+
+    private func setupBurnerStyleIfNeeded() {
+        guard isBurner else { return }
+
+        let style = BurnerAppearanceStyle()
+        style.enableDarkModeOverride(in: view)
+        style.enableDarkModeOverride(in: suggestionsView)
     }
 
     // MARK: - Suggestions Setup
@@ -1950,7 +1964,7 @@ final class AIChatOmnibarContainerViewController: NSViewController {
         shadowView.shadowRadius = barStyleProvider.suggestionShadowRadius
         shadowView.cornerRadius = barStyleProvider.addressBarActiveBackgroundViewRadiusWithSuggestions
 
-        NSAppearance.withAppAppearance {
+        NSAppearance.withAppearance(from: view) {
             shadowView.shadowColor = colorsProvider.addressBarShadowColor
             imageUploadButton.hoverBackgroundColor = .buttonMouseOver
             imageUploadButton.pressedBackgroundColor = .buttonMouseDown
