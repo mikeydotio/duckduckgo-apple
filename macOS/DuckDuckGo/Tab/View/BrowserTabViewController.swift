@@ -109,6 +109,7 @@ final class BrowserTabViewController: NSViewController {
     private let adBlockingAvailability: AdBlockingAvailabilityProviding
 
     private let tld: TLD
+    private let onContentOverlayDismissalRequested: @MainActor () -> Void
 
     private var tabViewModelCancellables = Set<AnyCancellable>()
     private var activeUserDialogCancellable: Cancellable?
@@ -184,7 +185,8 @@ final class BrowserTabViewController: NSViewController {
          winBackOfferVisibilityManager: WinBackOfferVisibilityManaging = NSApp.delegateTyped.winBackOfferVisibilityManager,
          pinningManager: PinningManager,
          adBlockingAvailability: AdBlockingAvailabilityProviding = NSApp.delegateTyped.adBlockingAvailability,
-         tld: TLD = NSApp.delegateTyped.tld
+         tld: TLD = NSApp.delegateTyped.tld,
+         onContentOverlayDismissalRequested: @escaping @MainActor () -> Void = {}
     ) {
         self.tabCollectionViewModel = tabCollectionViewModel
         self.bookmarkManager = bookmarkManager
@@ -214,6 +216,7 @@ final class BrowserTabViewController: NSViewController {
         self.adBlockingAvailability = adBlockingAvailability
 
         self.tld = tld
+        self.onContentOverlayDismissalRequested = onContentOverlayDismissalRequested
         containerStackView = NSStackView()
 
         super.init(nibName: nil, bundle: nil)
@@ -1472,7 +1475,9 @@ final class BrowserTabViewController: NSViewController {
     private var contentOverlayPopover: ContentOverlayPopover?
 
     private func closeContentOverlayPopover() {
-        contentOverlayPopover?.viewController.closeContentOverlayPopover()
+        guard let contentOverlayPopover else { return }
+        onContentOverlayDismissalRequested()
+        contentOverlayPopover.viewController.closeContentOverlayPopover()
     }
 
     private func subscribeToContentOverlayWindowResize() {
