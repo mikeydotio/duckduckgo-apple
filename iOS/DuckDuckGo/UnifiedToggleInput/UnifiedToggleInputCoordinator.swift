@@ -2649,14 +2649,15 @@ private extension UnifiedToggleInputCoordinator {
 
 extension UnifiedToggleInputCoordinator: UnifiedToggleInputPasteDelegate {
 
-    /// Keys off model capability (not remaining room) so an over-limit paste is consumed and reported here rather than falling through to UIKit's inline-image insert. Text types are excluded so an ordinary copied string/table pastes as text rather than an attachment; files are only offered when the model's attachment limits are known (so the loader can preflight sizes).
+    /// Keys off model capability (not remaining room) so an over-limit paste is consumed and reported here rather than falling through to UIKit's inline-image insert. Files are only offered when the model's attachment limits are known, so the loader can preflight sizes; the loader excludes text types when a copied string is present.
     var pasteAttachmentSupport: UnifiedToggleInputPasteSupport {
         let limits = modelStore.attachmentLimits
-        let fileTypes = limits == nil ? [] : allowedFileUTTypes.filter { !$0.conforms(to: .text) }
+        let fileTypes = limits == nil ? [] : allowedFileUTTypes
         return UnifiedToggleInputPasteSupport(
             isEnabled: inputMode == .aiChat && !viewController.isGenerating,
             acceptsImages: selectedModelSupportsImageUpload,
             fileTypes: fileTypes,
+            maxImageCount: selectedModelSupportsImageUpload ? attachmentPolicy.remainingImagesForPicker : nil,
             maxFileSizeBytes: limits.map { $0.files.maxFileSizeMB * 1_048_576 },
             remainingFileCount: fileTypes.isEmpty ? nil : attachmentPolicy.remainingFilesInConversation,
             remainingTotalFileBytes: fileTypes.isEmpty ? nil : attachmentPolicy.remainingFileSizeBytes
@@ -2689,6 +2690,30 @@ extension UnifiedToggleInputCoordinator: UnifiedToggleInputPasteDelegate {
 
     func addPastedFile(_ file: AIChatFileAttachment) {
         addFileAttachment(file, source: "paste")
+    }
+
+    /// Adds a load-time-rejected file as an invalid attachment without re-validating (it was never read), so a slot freeing up mid-load can't turn it into a valid empty-byte file.
+    func addRejectedPastedFile(fileName: String, mimeType: String, fileSizeBytes: Int) {
+        let validationError = attachmentPolicy.fileMetadataValidationError(mimeType: mimeType, fileSizeBytes: fileSizeBytes)
+        let message = validationError?.message
+            ?? UserText.aiChatAttachmentFileCountLimit(maxFilesPerConversation: modelStore.attachmentLimits?.files.maxPerConversation ?? 0)
+        let reason = validationError?.reason ?? .countExceeded
+        DailyPixel.fireDailyAndCount(
+            pixel: .unifiedToggleInputFileValidationFailed,
+            withAdditionalParameters: ["reason": reason.rawValue, "surface": pixelSurface.rawValue, "source": "paste"]
+        )
+        viewController.addAttachment(.invalidFile(
+            UnifiedToggleInputInvalidFileAttachment(
+                fileName: fileName,
+                mimeType: mimeType,
+                fileSizeBytes: fileSizeBytes,
+                validationMessage: message,
+                sourceURL: nil
+            )
+        ))
+        presentAttachmentValidationError(message)
+        persistDraftToStore()
+        updateAttachButtonPresentation()
     }
 
     func presentPasteError(_ message: String) {

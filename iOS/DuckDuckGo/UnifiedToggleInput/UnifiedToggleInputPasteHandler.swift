@@ -48,11 +48,13 @@ enum AttachmentPasteRouting {
     }
 }
 
-/// What the current model accepts, independent of remaining headroom, plus whether paste is enabled in the current state.
+/// What the current model accepts plus the remaining headroom, snapshotted once per paste so the loader can preflight sizes/counts.
 struct UnifiedToggleInputPasteSupport {
     let isEnabled: Bool
     let acceptsImages: Bool
     let fileTypes: [UTType]
+    /// Number of images the loader may decode before it stops, so a paste of many photos can't over-allocate.
+    let maxImageCount: Int?
     /// Per-file byte limit, used to reject an oversized paste from its size alone before reading it into memory.
     let maxFileSizeBytes: Int?
     /// Remaining conversation file slots; the loader stops reading once exhausted so a large multi-file paste can't over-allocate.
@@ -64,6 +66,7 @@ struct UnifiedToggleInputPasteSupport {
         isEnabled: Bool,
         acceptsImages: Bool,
         fileTypes: [UTType],
+        maxImageCount: Int? = nil,
         maxFileSizeBytes: Int? = nil,
         remainingFileCount: Int? = nil,
         remainingTotalFileBytes: Int? = nil
@@ -71,6 +74,7 @@ struct UnifiedToggleInputPasteSupport {
         self.isEnabled = isEnabled
         self.acceptsImages = acceptsImages
         self.fileTypes = fileTypes
+        self.maxImageCount = maxImageCount
         self.maxFileSizeBytes = maxFileSizeBytes
         self.remainingFileCount = remainingFileCount
         self.remainingTotalFileBytes = remainingTotalFileBytes
@@ -90,6 +94,8 @@ protocol UnifiedToggleInputPasteDelegate: AnyObject {
     /// Adds the image if there is headroom; returns `false` when the image limit is reached.
     @discardableResult func addPastedImage(_ image: UIImage, fileName: String) -> Bool
     func addPastedFile(_ file: AIChatFileAttachment)
+    /// Adds a file that was rejected during load (over size/count/total) as an invalid attachment; never becomes a valid file.
+    func addRejectedPastedFile(fileName: String, mimeType: String, fileSizeBytes: Int)
     func presentPasteError(_ message: String)
 }
 
@@ -113,6 +119,7 @@ final class UnifiedToggleInputPasteHandler: AttachmentPasteHandling {
         let support = delegate.pasteAttachmentSupport
         guard support.isEnabled, support.acceptsAnyAttachment else { return }
         let providers = pasteboard.itemProviders
+        let hasStrings = pasteboard.hasStrings
         let context = delegate.pasteContextIdentity
         delegate.pasteWillBeginExpandingIfNeeded()
         Task { [weak self] in
@@ -120,15 +127,17 @@ final class UnifiedToggleInputPasteHandler: AttachmentPasteHandling {
                 from: providers,
                 allowsImages: support.acceptsImages,
                 allowedFileTypes: support.fileTypes,
+                maxImageCount: support.maxImageCount,
                 maxFileSizeBytes: support.maxFileSizeBytes,
                 remainingFileCount: support.remainingFileCount,
-                remainingTotalFileBytes: support.remainingTotalFileBytes
+                remainingTotalFileBytes: support.remainingTotalFileBytes,
+                pasteboardHasStrings: hasStrings
             )
             self?.applyLoadedAttachments(result, expectedContext: context)
         }
     }
 
-    /// Applied after the async load; drops the result if paste was disabled or the tab/surface changed during the load. Files first so a rejected image's limit message (presented last) survives a following file add.
+    /// Applied after the async load; drops the result if paste was disabled or the tab/conversation changed during the load. Files first so a rejected image's limit message (presented last) survives a following file add.
     func applyLoadedAttachments(_ result: PasteboardAttachmentReader.Result, expectedContext: String? = nil) {
         guard let delegate,
               delegate.pasteAttachmentSupport.isEnabled,
@@ -138,15 +147,19 @@ final class UnifiedToggleInputPasteHandler: AttachmentPasteHandling {
             delegate.addPastedFile(file)
         }
 
-        var didExceedLimit = false
+        if let rejected = result.rejectedFile {
+            delegate.addRejectedPastedFile(fileName: rejected.fileName, mimeType: rejected.mimeType, fileSizeBytes: rejected.fileSizeBytes)
+        }
+
+        var didExceedImageLimit = false
         for image in result.images {
             guard delegate.addPastedImage(image.image, fileName: image.fileName) else {
-                didExceedLimit = true
+                didExceedImageLimit = true
                 break
             }
         }
 
-        if didExceedLimit, let message = delegate.imageCapacityMessage() {
+        if didExceedImageLimit || result.imagesTruncated, let message = delegate.imageCapacityMessage() {
             delegate.presentPasteError(message)
         }
     }
@@ -156,18 +169,34 @@ final class UnifiedToggleInputPasteHandler: AttachmentPasteHandling {
 @MainActor
 enum PasteboardAttachmentReader {
 
+    /// A file that couldn't be accepted at load time (over size/count/total). Carried as metadata only — never read into memory and never able to become a valid file.
+    struct RejectedFile: Equatable {
+        let fileName: String
+        let mimeType: String
+        let fileSizeBytes: Int
+    }
+
     struct Result {
         var images: [(image: UIImage, fileName: String)] = []
         var files: [AIChatFileAttachment] = []
+        /// The first file that didn't fit the budget; capped at one so an exhausted capacity can't flood the strip.
+        var rejectedFile: RejectedFile?
+        /// More image providers were present than the allowance, so some were dropped without decoding.
+        var imagesTruncated = false
     }
 
-    /// Metadata-only probe (no byte reads, so no paste banner) that mirrors `loadAttachments`' per-provider classification, so a "yes" here means the loader will actually find something.
+    private enum LoadedFile {
+        case read(AIChatFileAttachment)
+        case rejected(RejectedFile)
+    }
+
+    /// Metadata-only probe (no byte reads, so no paste banner) that mirrors `loadAttachments`' per-provider classification, so a "yes" here means the loader will actually find something. Text types are ignored when the pasteboard also holds a string, so copied text/tables paste as text rather than a file.
     static func hasSupportedAttachments(
         in pasteboard: UIPasteboard,
         allowsImages: Bool,
         allowedFileTypes: [UTType]
     ) -> Bool {
-        let fileIdentifiers = allowedFileTypes.map(\.identifier)
+        let fileIdentifiers = fileTypesRoutable(from: allowedFileTypes, pasteboardHasStrings: pasteboard.hasStrings).map(\.identifier)
         return pasteboard.itemProviders.contains { provider in
             if allowsImages, provider.canLoadObject(ofClass: UIImage.self) {
                 return true
@@ -176,52 +205,70 @@ enum PasteboardAttachmentReader {
         }
     }
 
-    private enum LoadedFile {
-        /// Bytes were read into memory; counts against the running budget.
-        case read(AIChatFileAttachment)
-        /// Rejected from metadata alone (per-file/total/count) without reading bytes; the policy surfaces the error.
-        case rejected(AIChatFileAttachment)
-    }
-
-    /// Reads the pasteboard bytes (surfaces the banner) and builds attachments. Files are size/count-preflighted from
-    /// metadata against the remaining budget so a large multi-file paste only ever loads what can actually be accepted.
+    /// Reads the pasteboard bytes (surfaces the banner) and builds attachments. Images stop decoding at the allowance and files are
+    /// size/count-preflighted from metadata against the remaining budget, so a large multi-item paste only ever loads what can be accepted.
     static func loadAttachments(
         from providers: [NSItemProvider],
         allowsImages: Bool,
         allowedFileTypes: [UTType],
+        maxImageCount: Int? = nil,
         maxFileSizeBytes: Int? = nil,
         remainingFileCount: Int? = nil,
-        remainingTotalFileBytes: Int? = nil
+        remainingTotalFileBytes: Int? = nil,
+        pasteboardHasStrings: Bool = false
     ) async -> Result {
         var result = Result()
+        let routableFileTypes = fileTypesRoutable(from: allowedFileTypes, pasteboardHasStrings: pasteboardHasStrings)
+        var loadedImageCount = 0
         var readFileCount = 0
         var readFileBytes = 0
+        var fileCapacityExhausted = false
+
         for provider in providers {
             if allowsImages, provider.canLoadObject(ofClass: UIImage.self) {
+                if let maxImageCount, loadedImageCount >= maxImageCount {
+                    result.imagesTruncated = true
+                    continue
+                }
                 if let image = await loadImage(from: provider) {
                     result.images.append((image, provider.suggestedName ?? "image"))
+                    loadedImageCount += 1
                 }
-            } else if let type = allowedFileTypes.first(where: { provider.hasItemConformingToTypeIdentifier($0.identifier) }) {
-                let loaded = await loadFile(
-                    from: provider,
-                    type: type,
-                    maxFileSizeBytes: maxFileSizeBytes,
-                    remainingCount: remainingFileCount.map { $0 - readFileCount },
-                    remainingBytes: remainingTotalFileBytes.map { $0 - readFileBytes }
-                )
-                switch loaded {
+            } else if let type = routableFileTypes.first(where: { provider.hasItemConformingToTypeIdentifier($0.identifier) }) {
+                guard !fileCapacityExhausted else { continue }
+
+                let remainingCount = remainingFileCount.map { $0 - readFileCount }
+                let remainingBytes = remainingTotalFileBytes.map { $0 - readFileBytes }
+                if (remainingCount.map { $0 <= 0 } ?? false) || (remainingBytes.map { $0 <= 0 } ?? false) {
+                    fileCapacityExhausted = true
+                    recordRejection(RejectedFile(fileName: fileName(for: provider, type: type), mimeType: mimeType(for: type), fileSizeBytes: 0), in: &result)
+                    continue
+                }
+
+                switch await loadFile(from: provider, type: type, maxFileSizeBytes: maxFileSizeBytes, remainingBytes: remainingBytes) {
                 case .read(let file):
                     readFileCount += 1
                     readFileBytes += file.fileSizeBytes
                     result.files.append(file)
-                case .rejected(let file):
-                    result.files.append(file)
+                case .rejected(let rejected):
+                    recordRejection(rejected, in: &result)
                 case nil:
                     break
                 }
             }
         }
         return result
+    }
+
+    /// Text types route to a file only when the pasteboard has no string — a copied string/table becomes text, a real text file (no string) still attaches.
+    private static func fileTypesRoutable(from allowedFileTypes: [UTType], pasteboardHasStrings: Bool) -> [UTType] {
+        pasteboardHasStrings ? allowedFileTypes.filter { !$0.conforms(to: .text) } : allowedFileTypes
+    }
+
+    private static func recordRejection(_ rejected: RejectedFile, in result: inout Result) {
+        if result.rejectedFile == nil {
+            result.rejectedFile = rejected
+        }
     }
 
     private static func loadImage(from provider: NSItemProvider) async -> UIImage? {
@@ -232,21 +279,16 @@ enum PasteboardAttachmentReader {
         }
     }
 
-    /// Loads via a file representation and preflights per-file size, remaining count, and remaining total bytes from
-    /// metadata; anything over budget becomes an empty-data attachment the policy rejects, so bytes are read only for
-    /// files that can be accepted. `nil` limits mean files aren't offered at all, so a missing limit can't cause a read.
+    /// Loads via a file representation and preflights per-file size and remaining total bytes from metadata; over-budget files are
+    /// returned as rejections (metadata only, never read), so bytes are read only for files that can be accepted.
     private static func loadFile(
         from provider: NSItemProvider,
         type: UTType,
         maxFileSizeBytes: Int?,
-        remainingCount: Int?,
         remainingBytes: Int?
     ) async -> LoadedFile? {
-        let baseName = provider.suggestedName ?? "file"
-        let fileName = (baseName as NSString).pathExtension.isEmpty
-            ? type.preferredFilenameExtension.map { "\(baseName).\($0)" } ?? baseName
-            : baseName
-        let mimeType = type.preferredMIMEType ?? "application/octet-stream"
+        let fileName = fileName(for: provider, type: type)
+        let mimeType = mimeType(for: type)
 
         return await withCheckedContinuation { continuation in
             _ = provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, _ in
@@ -255,21 +297,12 @@ enum PasteboardAttachmentReader {
                     return
                 }
 
-                func reject(size: Int) {
-                    continuation.resume(returning: .rejected(AIChatFileAttachment(data: Data(), fileName: fileName, mimeType: mimeType, fileSizeBytes: size)))
-                }
-
-                if let remainingCount, remainingCount <= 0 {
-                    reject(size: 0)
-                    return
-                }
-
                 let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
                 if let fileSize {
                     let overPerFile = maxFileSizeBytes.map { fileSize > $0 } ?? false
                     let overTotal = remainingBytes.map { fileSize > $0 } ?? false
                     if overPerFile || overTotal {
-                        reject(size: fileSize)
+                        continuation.resume(returning: .rejected(RejectedFile(fileName: fileName, mimeType: mimeType, fileSizeBytes: fileSize)))
                         return
                     }
                 }
@@ -281,5 +314,15 @@ enum PasteboardAttachmentReader {
                 continuation.resume(returning: .read(UnifiedToggleInputAttachmentPresenter.makeFileAttachment(data: data, fileName: fileName, mimeType: mimeType)))
             }
         }
+    }
+
+    private static func fileName(for provider: NSItemProvider, type: UTType) -> String {
+        let baseName = provider.suggestedName ?? "file"
+        guard (baseName as NSString).pathExtension.isEmpty, let ext = type.preferredFilenameExtension else { return baseName }
+        return "\(baseName).\(ext)"
+    }
+
+    private static func mimeType(for type: UTType) -> String {
+        type.preferredMIMEType ?? "application/octet-stream"
     }
 }

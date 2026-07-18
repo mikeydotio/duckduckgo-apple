@@ -137,8 +137,8 @@ final class PasteboardAttachmentReaderTests: XCTestCase {
             from: [provider], allowsImages: false, allowedFileTypes: [.pdf], remainingFileCount: 0
         )
 
-        XCTAssertEqual(result.files.count, 1)
-        XCTAssertTrue(result.files.first?.data.isEmpty ?? false, "over-count file should not be read into memory")
+        XCTAssertTrue(result.files.isEmpty, "over-count file should not be read into memory")
+        XCTAssertNotNil(result.rejectedFile)
     }
 
     func testLoadAttachmentsRejectsFileOverRemainingBytesWithoutReading() async {
@@ -149,10 +149,8 @@ final class PasteboardAttachmentReaderTests: XCTestCase {
             from: [provider], allowsImages: false, allowedFileTypes: [.pdf], maxFileSizeBytes: 10_000, remainingTotalFileBytes: 4
         )
 
-        XCTAssertEqual(result.files.count, 1)
-        let file = result.files.first
-        XCTAssertTrue(file?.data.isEmpty ?? false, "over-total file should not be read into memory")
-        XCTAssertEqual(file?.fileSizeBytes, data.count, "sentinel keeps the real size so the policy rejects it")
+        XCTAssertTrue(result.files.isEmpty, "over-total file should not be read into memory")
+        XCTAssertEqual(result.rejectedFile?.fileSizeBytes, data.count, "rejection keeps the real size so the policy reports it")
     }
 
     func testLoadAttachmentsStopsReadingOnceBudgetExhausted() async {
@@ -163,9 +161,49 @@ final class PasteboardAttachmentReaderTests: XCTestCase {
             from: providers, allowsImages: false, allowedFileTypes: [.pdf], maxFileSizeBytes: 10_000, remainingTotalFileBytes: data.count
         )
 
-        XCTAssertEqual(result.files.count, 2)
-        XCTAssertFalse(result.files[0].data.isEmpty, "first file fits the budget and is read")
-        XCTAssertTrue(result.files[1].data.isEmpty, "second file exceeds the remaining budget and is not read")
+        XCTAssertEqual(result.files.count, 1, "only the first file fits the budget and is read")
+        XCTAssertFalse(result.files[0].data.isEmpty)
+        XCTAssertNotNil(result.rejectedFile, "the second file exceeds the remaining budget and is rejected without reading")
+    }
+
+    func testLoadAttachmentsCapsRejectionsToOne() async {
+        let data = Data("%PDF-1.4".utf8)
+        let providers = (0..<5).map { makePDFProvider(data: data, suggestedName: "f\($0)") }
+
+        let result = await PasteboardAttachmentReader.loadAttachments(
+            from: providers, allowsImages: false, allowedFileTypes: [.pdf], remainingFileCount: 0
+        )
+
+        XCTAssertTrue(result.files.isEmpty)
+        XCTAssertNotNil(result.rejectedFile, "five over-capacity files surface a single rejection, not five")
+    }
+
+    func testLoadAttachmentsExcludesTextFilesWhenPasteboardHasStrings() async {
+        // A copied table exposes CSV + a string; CSV should not route to a file.
+        let withStrings = await PasteboardAttachmentReader.loadAttachments(
+            from: [makeFileProvider(type: .commaSeparatedText, data: Data("a,b,c".utf8), suggestedName: "table")],
+            allowsImages: false, allowedFileTypes: [.commaSeparatedText], remainingFileCount: 3, remainingTotalFileBytes: 10_000, pasteboardHasStrings: true
+        )
+        XCTAssertTrue(withStrings.files.isEmpty)
+        XCTAssertNil(withStrings.rejectedFile)
+
+        // A copied .csv file (no string) still attaches.
+        let withoutStrings = await PasteboardAttachmentReader.loadAttachments(
+            from: [makeFileProvider(type: .commaSeparatedText, data: Data("a,b,c".utf8), suggestedName: "table")],
+            allowsImages: false, allowedFileTypes: [.commaSeparatedText], remainingFileCount: 3, remainingTotalFileBytes: 10_000, pasteboardHasStrings: false
+        )
+        XCTAssertEqual(withoutStrings.files.count, 1)
+    }
+
+    func testLoadAttachmentsCapsImagesToAllowanceAndFlagsTruncation() async {
+        let providers = (0..<4).map { _ in NSItemProvider(object: makeTestImage()) }
+
+        let result = await PasteboardAttachmentReader.loadAttachments(
+            from: providers, allowsImages: true, allowedFileTypes: [], maxImageCount: 2
+        )
+
+        XCTAssertEqual(result.images.count, 2, "only the allowed number of images are decoded")
+        XCTAssertTrue(result.imagesTruncated)
     }
 
     // MARK: - Helpers
@@ -178,9 +216,13 @@ final class PasteboardAttachmentReaderTests: XCTestCase {
     }
 
     private func makePDFProvider(data: Data = Data("%PDF-1.4".utf8), suggestedName: String = "doc") -> NSItemProvider {
+        makeFileProvider(type: .pdf, data: data, suggestedName: suggestedName)
+    }
+
+    private func makeFileProvider(type: UTType, data: Data, suggestedName: String) -> NSItemProvider {
         let provider = NSItemProvider()
         provider.suggestedName = suggestedName
-        provider.registerDataRepresentation(forTypeIdentifier: UTType.pdf.identifier, visibility: .all) { completion in
+        provider.registerDataRepresentation(forTypeIdentifier: type.identifier, visibility: .all) { completion in
             completion(data, nil)
             return nil
         }
