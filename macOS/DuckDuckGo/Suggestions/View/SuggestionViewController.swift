@@ -53,7 +53,9 @@ final class SuggestionViewController: NSViewController {
     var themeUpdateCancellable: AnyCancellable?
 
     private let suggestionContainerViewModel: SuggestionContainerViewModel
-    private let isBurner: Bool
+    private var isBurner: Bool {
+        suggestionContainerViewModel.isBurner
+    }
 
     private lazy var sectionDividerRowHeight: CGFloat = {
         let rebrandedHeight: CGFloat = 14
@@ -73,12 +75,10 @@ final class SuggestionViewController: NSViewController {
 
     required init?(coder: NSCoder,
                    suggestionContainerViewModel: SuggestionContainerViewModel,
-                   isBurner: Bool,
                    themeManager: ThemeManaging,
                    aiChatPreferencesStorage: AIChatPreferencesStorage,
                    featureFlagger: FeatureFlagger) {
         self.suggestionContainerViewModel = suggestionContainerViewModel
-        self.isBurner = isBurner
         self.themeManager = themeManager
         self.aiChatPreferencesStorage = aiChatPreferencesStorage
         self.featureFlagger = featureFlagger
