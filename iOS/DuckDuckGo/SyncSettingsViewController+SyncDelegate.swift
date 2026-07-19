@@ -220,7 +220,17 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
             let okAction = UIAlertAction(title: type.buttonTitle, style: .default, handler: nil)
             alertController.addAction(okAction)
 
-            if type == .unableToSyncToServer || type == .unableToSyncWithDevice || type == .unableToMergeTwoAccounts {
+            if isPresentingV2ConnectingSheet {
+                viewModel.dismissConnectingSheet { [weak self] in
+                    guard let self else {
+                        continuation.resume()
+                        return
+                    }
+                    self.present(alertController, animated: true) {
+                        continuation.resume()
+                    }
+                }
+            } else if type == .unableToSyncToServer || type == .unableToSyncWithDevice || type == .unableToMergeTwoAccounts {
                 // Gives time to the is syncing view to appear
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     self.dismissPresentedViewController { [weak self] in
