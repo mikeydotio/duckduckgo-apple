@@ -28,6 +28,29 @@ final class WebView: WKWebView {
     // Remembers the last find-in-page query so the system find navigator can be prepopulated per tab.
     var lastFindInPageQuery: String?
 
+    private var findInPageQueryObserver: NSObjectProtocol?
+
+    /// Tracks the system find navigator's query so the last term is remembered per tab, even when dismissed via the
+    /// system Done button (which bypasses our own dismissal path). The navigator's search field posts
+    /// `textDidChangeNotification` as the user types, so we snapshot the query while the navigator is visible.
+    @available(iOS 16.0, *)
+    func beginTrackingFindInPageQuery() {
+        guard findInPageQueryObserver == nil else { return }
+        findInPageQueryObserver = NotificationCenter.default.addObserver(forName: UITextField.textDidChangeNotification,
+                                                                         object: nil,
+                                                                         queue: .main) { [weak self] _ in
+            guard let self, let interaction = self.findInteraction, interaction.isFindNavigatorVisible,
+                  let query = interaction.searchText else { return }
+            self.lastFindInPageQuery = query
+        }
+    }
+
+    deinit {
+        if let findInPageQueryObserver {
+            NotificationCenter.default.removeObserver(findInPageQueryObserver)
+        }
+    }
+
     override var inputAccessoryView: UIView? {
         if inputAccessoryViewHidden {
             return nil
