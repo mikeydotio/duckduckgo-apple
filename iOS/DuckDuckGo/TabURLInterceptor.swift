@@ -44,14 +44,20 @@ final class TabURLInterceptorDefault: TabURLInterceptor {
     private let canPurchase: CanPurchaseUpdater
     private let featureFlagger: FeatureFlagger
     private let aichatFullModeFeature: AIChatFullModeFeatureProviding
+    private let isIpad: Bool
+    private let notificationCenter: NotificationCenter
 
     init(featureFlagger: FeatureFlagger,
          canPurchase: @escaping CanPurchaseUpdater,
-         aichatFullModeFeature: AIChatFullModeFeatureProviding = AIChatFullModeFeature()
+         aichatFullModeFeature: AIChatFullModeFeatureProviding = AIChatFullModeFeature(),
+         isIpad: Bool = DevicePlatform.isIpad,
+         notificationCenter: NotificationCenter = .default
     ) {
         self.canPurchase = canPurchase
         self.featureFlagger = featureFlagger
         self.aichatFullModeFeature = aichatFullModeFeature
+        self.isIpad = isIpad
+        self.notificationCenter = notificationCenter
     }
 
     static let interceptedURLs: [InterceptedURLInfo] = SubscriptionPurchaseFlowPath.allCases.map {
@@ -59,7 +65,7 @@ final class TabURLInterceptorDefault: TabURLInterceptor {
     }
     
     func allowsNavigatingTo(url: URL) -> Bool {
-        if url.isDuckAIURL && !aichatFullModeFeature.isAvailable && !DevicePlatform.isIpad {
+        if url.isDuckAIURL && !aichatFullModeFeature.isAvailable && !isIpad {
             return handleURLInterception(interceptedURLType: .aiChat, interceptedURL: url)
         }
 
@@ -105,7 +111,7 @@ extension TabURLInterceptorDefault {
                     userInfo = [TabURLInterceptorParameter.interceptedURLComponents: components as Any]
                 }
 
-                NotificationCenter.default.post(
+                notificationCenter.post(
                     name: .urlInterceptSubscription,
                     object: nil,
                     userInfo: userInfo
@@ -118,7 +124,7 @@ extension TabURLInterceptorDefault {
                 userInfo = [TabURLInterceptorParameter.interceptedURL: url]
             }
 
-            NotificationCenter.default.post(
+            notificationCenter.post(
                 name: .urlInterceptAIChat,
                 object: nil,
                 userInfo: userInfo
