@@ -206,12 +206,15 @@ struct AutofillViews {
 
     static func contentHeightExceedsScreenHeight(_ contentHeight: CGFloat) -> Bool {
         if #available(iOS 16.0, *) {
-            let topSafeAreaInset = UIApplication.shared.connectedScenes
+            // Compare against the key window's own height, not the physical screen: in Split
+            // View / Slide Over the window can be considerably shorter than the screen, and
+            // UIScreen.main.bounds would under-report how much content actually overflows.
+            let keyWindow = UIApplication.shared.connectedScenes
                 .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                .first?
-                .safeAreaInsets
-                .top ?? 0.0
-            return contentHeight > UIScreen.main.bounds.size.height - topSafeAreaInset
+                .first
+            let topSafeAreaInset = keyWindow?.safeAreaInsets.top ?? 0.0
+            let availableHeight = keyWindow?.bounds.height ?? UIScreen.main.bounds.size.height
+            return contentHeight > availableHeight - topSafeAreaInset
         } else {
             return false
         }

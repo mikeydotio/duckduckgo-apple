@@ -352,17 +352,36 @@ class TabsBarViewController: UIViewController, UIGestureRecognizerDelegate {
         }
     }
 
-    /// Half the strip, but in landscape also capped at a third of the full-screen strip so a resize
-    /// to full width eases to a third instead of snapping.
     private func maxItemWidth(forStripWidth availableWidth: CGFloat) -> CGFloat {
-        let half = availableWidth * Constants.narrowMaxItemWidthFraction
-        guard let window = view.window, let windowScene = window.windowScene,
-              windowScene.interfaceOrientation.isLandscape else {
+        guard let window = view.window, let windowScene = window.windowScene else {
+            return availableWidth * Constants.narrowMaxItemWidthFraction
+        }
+        let screenBounds = windowScene.screen.bounds
+        return Self.maxItemWidth(
+            stripWidth: availableWidth,
+            windowWidth: window.bounds.width,
+            windowHeight: window.bounds.height,
+            screenLongEdge: max(screenBounds.width, screenBounds.height)
+        )
+    }
+
+    /// Half the strip, but when the window itself is landscape-shaped also capped at a third of
+    /// the eventual full-screen strip width, so a resize toward full width eases to a third
+    /// instead of snapping.
+    ///
+    /// Gated on the window's own shape, not device/scene orientation: iPadOS 26 windowing lets a
+    /// window's aspect ratio diverge from the device's physical orientation (e.g. a narrow Slide
+    /// Over pane on a landscape-held iPad is not itself landscape-shaped), so device orientation
+    /// is the wrong signal here. `screenLongEdge` still legitimately references the physical
+    /// screen: it estimates what the strip would become if this window were later resized to fill
+    /// the whole screen, which the window's own (currently narrower, e.g. tiled) bounds can't tell us.
+    static func maxItemWidth(stripWidth: CGFloat, windowWidth: CGFloat, windowHeight: CGFloat, screenLongEdge: CGFloat) -> CGFloat {
+        let half = stripWidth * Constants.narrowMaxItemWidthFraction
+        guard windowWidth > windowHeight else {
             return half
         }
-        let chrome = window.bounds.width - availableWidth
-        let screenBounds = windowScene.screen.bounds
-        let landscapeFullStripWidth = max(screenBounds.width, screenBounds.height) - chrome
+        let chrome = windowWidth - stripWidth
+        let landscapeFullStripWidth = screenLongEdge - chrome
         return min(half, landscapeFullStripWidth * Constants.maxItemWidthFraction)
     }
 

@@ -21,6 +21,11 @@ import UIKit
 
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
+    private enum Constants {
+        /// Small enough to stay compatible with iPadOS 26's narrow Slide Over pane (~320pt wide).
+        static let minimumWindowSize = CGSize(width: 320, height: 400)
+    }
+
     var window: UIWindow?
 
     private var appStateMachine: AppStateMachine {
@@ -33,6 +38,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let window = UIWindow(windowScene: windowScene)
             self.window = window
             appStateMachine.handle(.willConnectToWindow(window: window))
+
+            // Keep the iPadOS 26 windowing system's minimum size small enough that narrow Slide
+            // Over (~320pt) stays available; the compact/phone chrome (AppWidthObserver) already
+            // renders correctly at that width. Left unset, the system default is a wider minimum
+            // that silently excludes this window from Slide Over.
+            if #available(iOS 26.0, *), UIDevice.current.userInterfaceIdiom == .pad {
+                windowScene.sizeRestrictions?.minimumSize = Constants.minimumWindowSize
+            }
         }
 
         if let shortcutItem = connectionOptions.shortcutItem {

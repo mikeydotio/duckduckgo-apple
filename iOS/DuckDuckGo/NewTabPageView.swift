@@ -161,16 +161,26 @@ private extension NewTabPageView {
         }
     }
     
+    /// The key window's own vertical midpoint, not the physical screen's: in Split View / Slide
+    /// Over the window can be considerably shorter than the screen, and anchoring to
+    /// `UIScreen.main.bounds.midY` would visibly mis-center the logo within the tile.
+    private var keyWindowMidY: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?
+            .bounds.midY ?? UIScreen.main.bounds.midY
+    }
+
     @ViewBuilder
     private var logoEmptyView: some View {
         GeometryReader { proxy in
             ZStack {
-                // Anchors the Lottie's geometric center to screen.midY - 55, so the visible duck
-                // lands at screen.midY - 72 — the splash storyboard's resting position. The
+                // Anchors the Lottie's geometric center to window.midY - 55, so the visible duck
+                // lands at window.midY - 72 — the splash storyboard's resting position. The
                 // dynamic offset compensates for the NTP body's centerY shifting based on top vs
                 // bottom omnibar chrome.
                 NewTabPageDaxLogoView()
-                    .offset(y: (UIScreen.main.bounds.midY - 55) - proxy.frame(in: .global).midY)
+                    .offset(y: (keyWindowMidY - 55) - proxy.frame(in: .global).midY)
                     .opacity(shouldShowLogoInEmptyState ? 1 : 0)
                     .allowsHitTesting(false)
 

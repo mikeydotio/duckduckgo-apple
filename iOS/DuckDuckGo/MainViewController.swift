@@ -1765,10 +1765,11 @@ class MainViewController: UIViewController {
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        if let presentedViewController {
-            return presentedViewController.supportedInterfaceOrientations
-        }
-        return needsToShowOnboardingIntro() ? [.portrait] : [.allButUpsideDown]
+        InterfaceOrientationPolicy.supportedOrientations(
+            isPad: isPad,
+            isShowingOnboarding: needsToShowOnboardingIntro(),
+            presentedInterfaceOrientations: presentedViewController?.supportedInterfaceOrientations
+        )
     }
 
     override var shouldAutorotate: Bool {
