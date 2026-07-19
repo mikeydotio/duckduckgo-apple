@@ -18,6 +18,7 @@
 //
 
 import XCTest
+import UIKit
 import OHHTTPStubs
 import OHHTTPStubsSwift
 import Networking
@@ -44,6 +45,11 @@ final class SubscriptionPixelHandlerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        // Pin the device idiom so os-distribution pixel names (which encode phone vs. tablet)
+        // are deterministic regardless of the simulator this suite runs on.
+        UIDevice.swizzleCurrent()
+        MockUIDevice.mockUserInterfaceIdiom = .phone
+
         let suiteName = "SubscriptionPixelHandlerTests.\(UUID().uuidString)"
         defaultsSuiteName = suiteName
         defaults = UserDefaults(suiteName: suiteName)!
@@ -66,6 +72,7 @@ final class SubscriptionPixelHandlerTests: XCTestCase {
     }
 
     override func tearDown() {
+        UIDevice.unswizzleCurrent()
         pixelKit = nil
         if let defaultsSuiteName {
             defaults.removePersistentDomain(forName: defaultsSuiteName)
@@ -104,11 +111,23 @@ final class SubscriptionPixelHandlerTests: XCTestCase {
     }
 
     func testOSDistributionActiveSubscription() {
+        MockUIDevice.mockUserInterfaceIdiom = .phone
         let handler = SubscriptionPixelHandler(source: subscriptionSource, pixelKit: pixelKit)
         handler.handle(pixel: .osDistributionActiveSubscription)
 
         let osMajorVersion = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
         let expectedName = "os_distribution_active_subscriptions_major_version_\(osMajorVersion)_ios_phone_monthly"
+        XCTAssertTrue(firedPixels.contains { $0.name == expectedName },
+                      "Expected \(expectedName). Fired: \(firedPixels.map(\.name))")
+    }
+
+    func testOSDistributionActiveSubscriptionOnIPad() {
+        MockUIDevice.mockUserInterfaceIdiom = .pad
+        let handler = SubscriptionPixelHandler(source: subscriptionSource, pixelKit: pixelKit)
+        handler.handle(pixel: .osDistributionActiveSubscription)
+
+        let osMajorVersion = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+        let expectedName = "os_distribution_active_subscriptions_major_version_\(osMajorVersion)_ios_tablet_monthly"
         XCTAssertTrue(firedPixels.contains { $0.name == expectedName },
                       "Expected \(expectedName). Fired: \(firedPixels.map(\.name))")
     }
