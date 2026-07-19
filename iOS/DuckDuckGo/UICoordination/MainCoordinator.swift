@@ -646,8 +646,8 @@ final class MainCoordinator {
         controller.segueToSubscriptionWelcome()
     }
 
-    func presentNetworkProtectionStatusSettingsModal(entryPoint: VPNEntryPoint) {
-        controller.presentNetworkProtectionStatusSettingsModal(entryPoint: entryPoint)
+    func presentNetworkProtectionStatusSettingsModal(entryPoint: VPNEntryPoint, scrollToStrictRouting: Bool = false) {
+        controller.presentNetworkProtectionStatusSettingsModal(entryPoint: entryPoint, scrollToStrictRouting: scrollToStrictRouting)
     }
 
     func presentDataBrokerProtectionDashboard() {

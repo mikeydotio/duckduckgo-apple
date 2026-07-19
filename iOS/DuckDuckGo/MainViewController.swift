@@ -765,7 +765,7 @@ class MainViewController: UIViewController {
 
         // Automation bypass: a UI-test override can mark onboarding already-completed without ever
         // calling onboardingCompleted(controller:), so apply the rollout Duck Player defaults here too.
-        if case .overridden(.uiTests(completed: true)) = onboardingStatus {
+        if case .overridden(.uiTests(completed: true)) = onboardingStatus, ProcessInfo.isRunningUITests {
             appSettings.applyAdBlockingRolloutDuckPlayerDefaultsIfNeeded(rolloutActive: adBlockingAvailability.areAdBlockingDefaultsActive)
         }
 
@@ -1077,11 +1077,11 @@ class MainViewController: UIViewController {
         )
     }
 
-    func presentNetworkProtectionStatusSettingsModal(entryPoint: VPNEntryPoint) {
+    func presentNetworkProtectionStatusSettingsModal(entryPoint: VPNEntryPoint, scrollToStrictRouting: Bool = false) {
         Task {
             if let canShowVPNInUI = try? await subscriptionManager.isFeatureIncludedInSubscription(.networkProtection),
                canShowVPNInUI {
-                segueToVPN(source: entryPoint.screenSource)
+                segueToVPN(source: entryPoint.screenSource, scrollToStrictRouting: scrollToStrictRouting)
             } else {
                 segueToDuckDuckGoSubscription(origin: entryPoint.subscriptionFunnelOrigin.rawValue)
             }
@@ -1401,7 +1401,10 @@ class MainViewController: UIViewController {
     @objc func refreshViewsBasedOnDuckPlayerPresentation(notification: Notification) {
         guard let isVisible = notification.userInfo?[DuckPlayerNativeUIPresenter.NotificationKeys.isVisible] as? Bool else { return }
         duckPlayerEntryPointVisible = isVisible
-        refreshViewsBasedOnAddressBarPosition(appSettings.currentAddressBarPosition)
+        // Pill visibility only drives the omnibar separator. A full address-bar refresh here would
+        // clobber scroll-hidden chrome (the bar reappears over the floating capsule) and disrupt an
+        // active UTI / the NTP.
+        updateChromeForDuckPlayer()
     }
 
     func refreshViewsBasedOnAddressBarPosition(_ position: AddressBarPosition) {
@@ -1504,6 +1507,11 @@ class MainViewController: UIViewController {
         switch position {
         case .top: break // no-op
         case .bottom:
+            // Re-assert bottom-bar spacing so the field isn't stuck in the top-glass (clear) state.
+            // A Duck Player round-trip can leave `isUsingSmallTopSpacing` stale, dropping the field's
+            // opaque fill (and its contrast) until restart.
+            viewCoordinator.omniBar.adjust(for: .bottom)
+            viewCoordinator.omniBar.barView.restoreFloatingFieldAppearance()
             // Use higher delays then refreshViewsBasedOnAddressBarPosition
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.31) {
                 if self.duckPlayerEntryPointVisible {
