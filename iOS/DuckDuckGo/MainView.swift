@@ -460,11 +460,18 @@ extension MainViewFactory {
         let navigationBarCollectionView = coordinator.navigationBarCollectionView!
         let horizontalInset: CGFloat = 0
 
+        let leadingConstraint: NSLayoutConstraint
         if #available(iOS 26, *), isPad {
-            let guide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
-            coordinator.constraints.navigationBarContainerTop = container.topAnchor.constraint(equalTo: guide.topAnchor)
+            let topGuide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
+            coordinator.constraints.navigationBarContainerTop = container.topAnchor.constraint(equalTo: topGuide.topAnchor)
+            // iPadOS 26's window controls sit over the leading edge of a windowed app; inset the
+            // omnibar so it isn't obscured. See InterfaceOrientationPolicy for the related fix
+            // that makes this window eligible for classic Split View / Slide Over in the first place.
+            let leadingGuide = superview.layoutGuide(for: .margins(cornerAdaptation: .horizontal))
+            leadingConstraint = container.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor)
         } else {
             coordinator.constraints.navigationBarContainerTop = container.constrainView(superview.safeAreaLayoutGuide, by: .top)
+            leadingConstraint = container.constrainView(superview, by: .leading)
         }
         coordinator.constraints.navigationBarContainerBottom = container.constrainView(toolbar, by: .bottom, to: .top)
         let barHeight = coordinator.omniBar.barView.expectedHeight
@@ -475,7 +482,7 @@ extension MainViewFactory {
 
         NSLayoutConstraint.activate([
             coordinator.constraints.navigationBarContainerTop,
-            container.constrainView(superview, by: .leading),
+            leadingConstraint,
             container.constrainView(superview, by: .trailing),
             coordinator.constraints.navigationBarContainerHeight,
             navigationBarCollectionView.constrainAttribute(.height, to: barHeight),
@@ -488,15 +495,21 @@ extension MainViewFactory {
     private func constrainTabBarContainer() {
         let tabBarContainer = coordinator.tabBarContainer!
 
+        let leadingConstraint: NSLayoutConstraint
         if #available(iOS 26, *), isPad {
-            let guide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
-            coordinator.constraints.tabBarContainerTop = tabBarContainer.topAnchor.constraint(equalTo: guide.topAnchor)
+            let topGuide = superview.layoutGuide(for: .margins(cornerAdaptation: .vertical))
+            coordinator.constraints.tabBarContainerTop = tabBarContainer.topAnchor.constraint(equalTo: topGuide.topAnchor)
+            // See constrainNavigationBarContainer(): the tab bar shares the top row with the
+            // omnibar, so it needs the same leading inset around the window controls.
+            let leadingGuide = superview.layoutGuide(for: .margins(cornerAdaptation: .horizontal))
+            leadingConstraint = tabBarContainer.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor)
         } else {
             coordinator.constraints.tabBarContainerTop = tabBarContainer.constrainView(superview.safeAreaLayoutGuide, by: .top)
+            leadingConstraint = tabBarContainer.constrainView(superview, by: .leading)
         }
 
         NSLayoutConstraint.activate([
-            tabBarContainer.constrainView(superview, by: .leading),
+            leadingConstraint,
             tabBarContainer.constrainView(superview, by: .trailing),
             tabBarContainer.constrainAttribute(.height, to: 40),
             coordinator.constraints.tabBarContainerTop,

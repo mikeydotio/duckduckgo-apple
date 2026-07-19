@@ -69,6 +69,23 @@ final class OnboardingIntroViewController<Content: View>: UIHostingController<Co
         return .portrait
     }
 
+    // On iPad, lock rotation to whatever orientation onboarding launched in instead of declaring
+    // a narrower supportedInterfaceOrientations mask: freezing via the lock preserves the app's
+    // Split View / Slide Over eligibility (which requires reporting .all) while still avoiding a
+    // reflow of the onboarding UI mid-flow. iPhone is unaffected — it already hard-locks to
+    // portrait via supportedInterfaceOrientations above.
+    @available(iOS 26.0, *)
+    override var prefersInterfaceOrientationLocked: Bool {
+        isPad
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if #available(iOS 26.0, *), isPad {
+            setNeedsUpdateOfPrefersInterfaceOrientationLocked()
+        }
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
         viewModel.tapped()
