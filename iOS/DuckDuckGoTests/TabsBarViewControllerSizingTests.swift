@@ -55,6 +55,44 @@ final class TabsBarViewControllerSizingTests: XCTestCase {
         XCTAssertEqual(itemWidth(900, 0, maxWidth: 300), 0, accuracy: accuracy)
     }
 
+    // MARK: - maxItemWidth(stripWidth:windowWidth:windowHeight:screenLongEdge:)
+
+    func testWhenWindowIsPortraitShapedThenReturnsHalfRegardlessOfScreenSize() {
+        // A narrow Slide Over pane is portrait-shaped even on a landscape-held iPad; the physical
+        // screen size must not leak into the result via a device/scene-orientation check.
+        let smallScreen = TabsBarViewController.maxItemWidth(stripWidth: 280, windowWidth: 320, windowHeight: 400, screenLongEdge: 50)
+        let largeScreen = TabsBarViewController.maxItemWidth(stripWidth: 280, windowWidth: 320, windowHeight: 400, screenLongEdge: 5000)
+        XCTAssertEqual(smallScreen, 140, accuracy: accuracy)
+        XCTAssertEqual(largeScreen, 140, accuracy: accuracy)
+    }
+
+    func testWhenWindowIsSquareThenReturnsHalf() {
+        XCTAssertEqual(
+            TabsBarViewController.maxItemWidth(stripWidth: 400, windowWidth: 500, windowHeight: 500, screenLongEdge: 1194),
+            200,
+            accuracy: accuracy
+        )
+    }
+
+    func testWhenWindowIsLandscapeShapedAndScreenCapBindsThenReturnsScreenCappedValue() {
+        // Full-screen iPad landscape: chrome = windowWidth - stripWidth = 194.
+        XCTAssertEqual(
+            TabsBarViewController.maxItemWidth(stripWidth: 1000, windowWidth: 1194, windowHeight: 834, screenLongEdge: 1194),
+            330,
+            accuracy: accuracy
+        )
+    }
+
+    func testWhenWindowIsLandscapeShapedAndHalfBindsThenReturnsHalf() {
+        // A narrow but landscape-shaped tile: half of the strip is still tighter than a third of
+        // the eventual full-screen strip, so half wins.
+        XCTAssertEqual(
+            TabsBarViewController.maxItemWidth(stripWidth: 200, windowWidth: 400, windowHeight: 300, screenLongEdge: 1194),
+            100,
+            accuracy: accuracy
+        )
+    }
+
     @MainActor
     func testCreateBuildsProgrammaticHierarchy() {
         let controller = TabsBarViewController.create()
