@@ -1646,7 +1646,6 @@
 		9FAB4B7D2E98D68900D8298A /* RemoteMessagingSurveyLastSearchStateRefresher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB4B7C2E98D67300D8298A /* RemoteMessagingSurveyLastSearchStateRefresher.swift */; };
 		9FABA7F72EBC677600CC25C6 /* MaliciousSiteProtectionPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FABA7F62EBC677600CC25C6 /* MaliciousSiteProtectionPerformanceTests.swift */; };
 		9FAD6C032E41D9A600C19EEA /* DefaultBrowserPromptUIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAD6C022E41D99700C19EEA /* DefaultBrowserPromptUIProvider.swift */; };
-		9FADFC4A2F5FC56400CA16F7 /* DuckSansFont in Frameworks */ = {isa = PBXBuildFile; productRef = 9FADFC492F5FC56400CA16F7 /* DuckSansFont */; };
 		9FADFC602F62385F00CA16F7 /* OnboardingView+RestorePromptDialogContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FADFC5F2F62384C00CA16F7 /* OnboardingView+RestorePromptDialogContent.swift */; };
 		9FADFCB92F68D54600CA16F7 /* Rebranded-AddToDock-tutorial.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 9FADFCB82F68D54600CA16F7 /* Rebranded-AddToDock-tutorial.mp4 */; };
 		9FB0271D2C293619009EA190 /* OnboardingIntroViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB0271C2C293619009EA190 /* OnboardingIntroViewModel.swift */; };
@@ -5449,7 +5448,6 @@
 				56D7792C2CFF476800B619EF /* StoreKit.framework in Frameworks */,
 				BB631D162DE0D9020099977D /* DesignResourcesKitIcons in Frameworks */,
 				5B6D65162FB39FA000BDCF4D /* EventKitUI.framework in Frameworks */,
-				9FADFC4A2F5FC56400CA16F7 /* DuckSansFont in Frameworks */,
 				F1D43AFA2B99C1D300BAB743 /* BareBonesBrowserKit in Frameworks */,
 				BBD9C3972E9D73610060A6E8 /* SERPSettings in Frameworks */,
 				7B2CCBA52D11ABBA00FE5852 /* VPNWidgetSupport in Frameworks */,
@@ -11865,7 +11863,6 @@
 				7B0752D82F21BFDB00ACA559 /* AutomationServer */,
 				1EC8B1892F29145C00F18679 /* WebExtensions */,
 				9FB71C972F342B4F000AD042 /* MetricBuilder */,
-				9FADFC492F5FC56400CA16F7 /* DuckSansFont */,
 				854D67922F6DDFCA008707A3 /* ScreenTimeDataCleaner */,
 				315E39642F86ABEE00D2289D /* DebugServer */,
 				3C12C8760D7AF6C888DAD36A /* AIChatDebugServer */,
@@ -12299,7 +12296,6 @@
 				9FDD72032D895D8C0016246B /* XCRemoteSwiftPackageReference "combine-schedulers" */,
 				BD0C4D872DC54508001F034F /* XCLocalSwiftPackageReference "LocalPackages/DuckUI" */,
 				7B0752DA2F21BFDB00ACA559 /* XCLocalSwiftPackageReference "../SharedPackages/AutomationServer" */,
-				9FADFC482F5FC56400CA16F7 /* XCRemoteSwiftPackageReference "native-apps-ducksans" */,
 				315E39632F86ABE100D2289D /* XCLocalSwiftPackageReference "../SharedPackages/DebugServer" */,
 			);
 			productRefGroup = 84E341931E2F7EFB00BDBA6F /* Products */;
@@ -18337,14 +18333,6 @@
 				version = 4.5.2;
 			};
 		};
-		9FADFC482F5FC56400CA16F7 /* XCRemoteSwiftPackageReference "native-apps-ducksans" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "git@github.com:duckduckgo/native-apps-ducksans.git";
-			requirement = {
-				kind = exactVersion;
-				version = 1.0.0;
-			};
-		};
 		9FDD72032D895D8C0016246B /* XCRemoteSwiftPackageReference "combine-schedulers" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/combine-schedulers.git";
@@ -18846,11 +18834,6 @@
 		9F909E382EEA6BD00057F518 /* UIKitExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = UIKitExtensions;
-		};
-		9FADFC492F5FC56400CA16F7 /* DuckSansFont */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 9FADFC482F5FC56400CA16F7 /* XCRemoteSwiftPackageReference "native-apps-ducksans" */;
-			productName = DuckSansFont;
 		};
 		9FB19C7D2E94A28700B651B1 /* RemoteMessagingTestsUtils */ = {
 			isa = XCSwiftPackageProductDependency;
