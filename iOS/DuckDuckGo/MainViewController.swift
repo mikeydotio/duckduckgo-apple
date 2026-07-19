@@ -3289,9 +3289,17 @@ class MainViewController: UIViewController {
         findInPageView?.updateConstraints()
     }
 
-    private func dismissSystemFindNavigator(for tab: TabViewController?) {
+    func dismissSystemFindNavigator(for tab: TabViewController?) {
         guard #available(iOS 16.0, *), featureFlagger.isFeatureOn(.systemFindInPage) else { return }
+        rememberFindInPageQuery(for: tab)
         tab?.webView.findInteraction?.dismissFindNavigator()
+    }
+
+    // Persist the current query so the find navigator can be prepopulated when reopened on this tab.
+    @available(iOS 16.0, *)
+    private func rememberFindInPageQuery(for tab: TabViewController?) {
+        guard let query = tab?.webView.findInteraction?.searchText, !query.isEmpty else { return }
+        (tab?.webView as? WebView)?.lastFindInPageQuery = query
     }
 
     func handleVoiceSearchOpenRequest(preferredTarget: VoiceSearchTarget? = nil) {
@@ -6160,7 +6168,7 @@ extension MainViewController: TabDelegate {
 
     func closeFindInPage(tab: TabViewController) {
         if #available(iOS 16.0, *), featureFlagger.isFeatureOn(.systemFindInPage) {
-            tab.webView.findInteraction?.dismissFindNavigator()
+            dismissSystemFindNavigator(for: tab)
             return
         }
 

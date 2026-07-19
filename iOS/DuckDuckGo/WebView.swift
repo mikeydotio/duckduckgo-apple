@@ -25,6 +25,9 @@ final class WebView: WKWebView {
     private var customAccesoryView: UIView?
     private(set) var inputAccessoryViewHidden = false
 
+    // Remembers the last find-in-page query so the system find navigator can be prepopulated per tab.
+    var lastFindInPageQuery: String?
+
     override var inputAccessoryView: UIView? {
         if inputAccessoryViewHidden {
             return nil
