@@ -447,11 +447,6 @@ public class SyncSettingsViewModel: ObservableObject {
         connectingSheetPhase = nil
     }
 
-    public func dismissConnectingSheet(then action: (() -> Void)? = nil) {
-        postConnectingSheetDismissAction = action
-        connectingSheetPhase = nil
-    }
-
     public func connectingSheetDidDismiss() {
         let action = postConnectingSheetDismissAction
         postConnectingSheetDismissAction = nil
