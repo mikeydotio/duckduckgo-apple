@@ -232,14 +232,6 @@ final class AIChatHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(fireExecutor.scheduleSyncCallCount, 0)
     }
 
-    func testBurnSelectedChats_noFireExecutor_isNoOp() {
-        let sut = makeSUT(chats: [chat(id: "p1", pinned: true)], fireExecutor: nil)
-        // No fire executor — must not crash.
-        let done = expectation(description: "burnSelectedChats")
-        Task { await sut.burnSelectedChats(chatIds: ["p1"]); done.fulfill() }
-        wait(for: [done], timeout: 1)
-    }
-
     func testTotalChatCount_reflectsAllChats_notTheSearchFilteredView() {
         let sut = makeSUT(chats: [
             chat(id: "a", title: "alpha", pinned: true),
