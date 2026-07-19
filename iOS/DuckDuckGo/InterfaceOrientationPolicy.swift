@@ -21,8 +21,12 @@ import UIKit
 
 /// Decides which interface orientations `MainViewController` should report as supported.
 ///
-/// Portrait-only during onboarding, otherwise all but upside-down; a presented view controller's
-/// own mask always wins. The single home for this rule; callers supply live values.
+/// iPad always reports every orientation (`.all`), including upside-down: iPadOS only offers
+/// classic Split View / Slide Over (e.g. dragging an app from the Dock onto another) to apps
+/// that declare full orientation support, and this app's static Info.plist declaration was
+/// already being undermined by a narrower runtime mask. iPhone keeps its existing behavior:
+/// portrait-only during onboarding, otherwise all but upside-down. A presented view controller's
+/// own mask always wins on either idiom. The single home for this rule; callers supply live values.
 enum InterfaceOrientationPolicy {
     static func supportedOrientations(
         isPad: Bool,
@@ -31,6 +35,9 @@ enum InterfaceOrientationPolicy {
     ) -> UIInterfaceOrientationMask {
         if let presentedInterfaceOrientations {
             return presentedInterfaceOrientations
+        }
+        if isPad {
+            return .all
         }
         return isShowingOnboarding ? .portrait : .allButUpsideDown
     }

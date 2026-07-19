@@ -60,7 +60,9 @@ final class OnboardingIntroViewController<Content: View>: UIHostingController<Co
     }
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return [.portrait]
+        // iPad must keep declaring full orientation support (see InterfaceOrientationPolicy) or
+        // it becomes ineligible for classic Split View / Slide Over while onboarding is on screen.
+        return isPad ? .all : [.portrait]
     }
 
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
