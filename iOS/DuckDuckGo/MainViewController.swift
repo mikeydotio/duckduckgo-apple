@@ -3298,8 +3298,8 @@ class MainViewController: UIViewController {
     // Persist the current query so the find navigator can be prepopulated when reopened on this tab.
     @available(iOS 16.0, *)
     private func rememberFindInPageQuery(for tab: TabViewController?) {
-        guard let query = tab?.webView.findInteraction?.searchText, !query.isEmpty else { return }
-        (tab?.webView as? WebView)?.lastFindInPageQuery = query
+        // Store the current query as-is (including when cleared) so a deliberate clear isn't overwritten by a stale term.
+        (tab?.webView as? WebView)?.lastFindInPageQuery = tab?.webView.findInteraction?.searchText
     }
 
     func handleVoiceSearchOpenRequest(preferredTarget: VoiceSearchTarget? = nil) {
