@@ -164,11 +164,19 @@ final class SuggestionJsonScenarioTests: XCTestCase {
         // Convert the results to test expectations format
         var expectations = testScenario.expectations
         let testResults = TestExpectations(from: actualResults, query: input.query)
-        // append "&t=ddg_ios" to duckduckgo queries for iOS
+        // Rebuild the expected phrase URIs via the exact same production call the actual
+        // results go through (Suggestion.expectedSuggestion(query:) below calls
+        // URL.makeSearchURL(query: phrase, forceSearchQuery: true) for each phrase suggestion),
+        // instead of hand-appending a hardcoded "&t=ddg_ios". That call bakes in whatever
+        // environment-derived parameters production actually emits — the device-idiom-dependent
+        // "t" source (e.g. "ddg_ios" on iPhone vs. "ddg_ios_tablet" on iPad) plus anything else
+        // (like a stored ATB) — so this assertion targets the suggestions engine's ranking and
+        // content, which is what this test exists to cover and is idiom-independent, rather than
+        // the idiom- and environment-sensitive URL-building logic covered by AppURLsTests.
         for idx in expectations.searchSuggestions.indices {
             let searchSuggestion = expectations.searchSuggestions[idx]
             if case .phrase = searchSuggestion.type {
-                expectations.searchSuggestions[idx].uri = (searchSuggestion.uri ?? "") + "&t=ddg_ios"
+                expectations.searchSuggestions[idx].uri = URL.makeSearchURL(query: searchSuggestion.title, forceSearchQuery: true)?.absoluteString
             }
         }
 

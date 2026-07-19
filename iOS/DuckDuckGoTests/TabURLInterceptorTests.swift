@@ -146,11 +146,14 @@ class TabURLInterceptorDefaultTests: XCTestCase {
 
     func testNotificationForInterceptedAIChatPathWhenFeatureFlagIsOn() {
         mockAIChatFullModeFeature.isAvailable = false
+        let notificationCenter = NotificationCenter()
         urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(enabledFeatureFlags: []),
                                                   canPurchase: { true },
-                                                  aichatFullModeFeature: mockAIChatFullModeFeature)
+                                                  aichatFullModeFeature: mockAIChatFullModeFeature,
+                                                  isIpad: false,
+                                                  notificationCenter: notificationCenter)
 
-        _ = self.expectation(forNotification: .urlInterceptAIChat, object: nil, handler: nil)
+        _ = self.expectation(forNotification: .urlInterceptAIChat, object: nil, notificationCenter: notificationCenter, handler: nil)
 
         let url = URL(string: "https://duckduckgo.com/?ia=chat")!
         let canNavigate = urlInterceptor.allowsNavigatingTo(url: url)
@@ -168,12 +171,40 @@ class TabURLInterceptorDefaultTests: XCTestCase {
         mockAIChatFullModeFeature.isAvailable = false
         urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(enabledFeatureFlags: []),
                                                   canPurchase: { true },
-                                                  aichatFullModeFeature: mockAIChatFullModeFeature)
+                                                  aichatFullModeFeature: mockAIChatFullModeFeature,
+                                                  isIpad: false,
+                                                  notificationCenter: NotificationCenter())
 
         let url = URL(string: "https://duckduckgo.com/?ia=chat")!
         XCTAssertFalse(urlInterceptor.allowsNavigatingTo(url: url))
     }
-    
+
+    func testAllowsNavigationAndDoesNotPostNotificationForAIChatPathOnIPad() {
+        // GIVEN: on iPad, AIChat interception is intentionally skipped (TabURLInterceptor.swift)
+        // regardless of the AIChatFullMode feature flag, since iPad has its own AIChat surface.
+        mockAIChatFullModeFeature.isAvailable = false
+        let notificationCenter = NotificationCenter()
+        urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(enabledFeatureFlags: []),
+                                                  canPurchase: { true },
+                                                  aichatFullModeFeature: mockAIChatFullModeFeature,
+                                                  isIpad: true,
+                                                  notificationCenter: notificationCenter)
+
+        let notificationExpectation = expectation(forNotification: .urlInterceptAIChat, object: nil, notificationCenter: notificationCenter, handler: nil)
+        notificationExpectation.isInverted = true
+
+        let url = URL(string: "https://duckduckgo.com/?ia=chat")!
+        let canNavigate = urlInterceptor.allowsNavigatingTo(url: url)
+
+        XCTAssertTrue(canNavigate)
+
+        waitForExpectations(timeout: 0.5) { error in
+            if let error = error {
+                XCTFail("Notification should not be posted on iPad: \(error)")
+            }
+        }
+    }
+
     func testAllowsNavigationForAIChatPathWhenFullModeFeatureIsAvailable() {
         // Given
         mockAIChatFullModeFeature.isAvailable = true
