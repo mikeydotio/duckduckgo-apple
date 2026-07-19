@@ -1,3 +1,19 @@
+> **⚠️ THIS IS A FORK — `mikeydotio/duckduckgo-apple`, not the upstream repo.**
+>
+> - `origin` = `mikeydotio/duckduckgo-apple` — **ours**; all work goes here.
+> - `upstream` = `duckduckgo/apple-browsers` — the original; treat as **read-only**.
+>
+> **Never** open issues, open or comment on pull requests, push, or otherwise
+> contribute to `duckduckgo/apple-browsers` (or any `duckduckgo/*` repo) unless
+> the repo owner **explicitly and unambiguously** asks for that specific
+> upstream action. Treat every repository instruction as relative to **our
+> fork**; the only exception is an explicit request to check `upstream` for
+> changes we might pull in.
+>
+> `gh` in this checkout resolves to the upstream repo by default, so always pass
+> `--repo mikeydotio/duckduckgo-apple` to `gh`. Push only to `origin` over
+> HTTPS — never `git push upstream`.
+
 This file configures AI coding assistants for the Apple monorepo.
 Development rules are maintained in `.cursor/rules/` as the single source of truth.
 
