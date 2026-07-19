@@ -39,9 +39,9 @@ final class WebView: WKWebView {
         findInPageQueryObserver = NotificationCenter.default.addObserver(forName: UITextField.textDidChangeNotification,
                                                                          object: nil,
                                                                          queue: .main) { [weak self] _ in
-            guard let self, let interaction = self.findInteraction, interaction.isFindNavigatorVisible,
-                  let query = interaction.searchText else { return }
-            self.lastFindInPageQuery = query
+            guard let self, let interaction = self.findInteraction, interaction.isFindNavigatorVisible else { return }
+            // Persist the current query as-is (including when cleared to nil) so clearing the field is remembered.
+            self.lastFindInPageQuery = interaction.searchText
         }
     }
 
