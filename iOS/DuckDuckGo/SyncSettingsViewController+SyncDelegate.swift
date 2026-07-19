@@ -700,7 +700,7 @@ extension SyncSettingsViewController: SyncManagementViewModelDelegate {
         let isConfirmed = await presentPairingV2ConfirmationAlert(message: message)
         if !isConfirmed {
             sendSyncConfirmationDeniedSetupEndedAbandonedPixel(setupRole: setupRole)
-            if useSimplifiedLayoutV2, case .receiver(.exchange, _) = setupRole {
+            if isPresentingV2ConnectingSheet {
                 viewModel.connectingSheetPhase = nil
             } else {
                 dismissPairingV2UIAfterDeniedConfirmation()

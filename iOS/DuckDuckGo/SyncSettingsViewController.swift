@@ -627,14 +627,14 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
         await showPreparingSync()
     }
     
-    private func waitForDevicesToChangeThenPresentSyncing() {
+    private func waitForDevicesToChange(then action: @escaping (SyncSettingsViewController) -> Void) {
         viewModel.$devices
             .removeDuplicates()
             .dropFirst()
             .prefix(1)
             .sink { [weak self] _ in
                 guard let self else { return }
-                self.dismissVCAndShowDeviceSyncedToast()
+                action(self)
             }.store(in: &cancellables)
     }
 
@@ -647,12 +647,13 @@ extension SyncSettingsViewController: SyncConnectionControllerDelegate {
                    withAdditionalParameters: parameters,
                    includedParameters: [.appVersion])
         pairingV2PeerKind = nil
-        if isPresentingV2ConnectingSheet {
-            presentDeviceAddedSuccessScreen()
-        } else if shouldWaitForDevicesToChange {
-            waitForDevicesToChangeThenPresentSyncing()
+        let presentResult: (SyncSettingsViewController) -> Void = isPresentingV2ConnectingSheet
+            ? { $0.presentDeviceAddedSuccessScreen() }
+            : { $0.dismissVCAndShowDeviceSyncedToast() }
+        if shouldWaitForDevicesToChange {
+            waitForDevicesToChange(then: presentResult)
         } else {
-            dismissVCAndShowDeviceSyncedToast()
+            presentResult(self)
         }
     }
     
