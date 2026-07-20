@@ -149,7 +149,6 @@ struct UserAgent {
     private let brandComponent: String
     private let applicationComponent = "DuckDuckGo/\(AppVersion.shared.majorVersionNumber)"
     private let statistics: StatisticsStore
-    private let isTesting: Bool = ProcessInfo().arguments.contains("testing")
 
     init(defaultAgent: String = Constants.fallbackDefaultAgent,
          statistics: StatisticsStore = StatisticsUserDefaults(),

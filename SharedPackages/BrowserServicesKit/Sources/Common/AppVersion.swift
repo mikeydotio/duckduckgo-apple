@@ -177,6 +177,17 @@ public struct AppVersion: OSVersionProviding {
 
     public var runType: AppRunType { Self.runType }
 
+    /// Whether the current process is an XCTest **unit-test** host — independent of which Xcode
+    /// scheme launched it, unlike the legacy `"testing"` launch argument that only some schemes
+    /// pass (e.g. `iOS Browser`, `iOS Performance Tests`) and the `iOS Unit Tests` scheme never
+    /// does. Deliberately scoped to `.unitTests` rather than `!requiresEnvironment`, so SwiftUI
+    /// previews (`.xcPreviews`, which also has `requiresEnvironment == false`) are not treated as
+    /// testing. The explicit `"testing"` argument is still honoured for schemes that opt in that
+    /// way.
+    public static var isTesting: Bool {
+        runType == .unitTests || ProcessInfo().arguments.contains("testing")
+    }
+
     /// Returns true if this is an App Store build.
     /// Returns false for DMG/Sparkle builds.
     ///

@@ -40,4 +40,18 @@ struct AppDelegateTestModeTests {
         #expect(AppDelegate.isTesting)
     }
 
+    /// Regression for #19: the same `"testing"`-argument gap in #16 was duplicated at five more
+    /// production sites, each re-inlining `ProcessInfo().arguments.contains("testing")`. Those sites
+    /// now call the shared `AppVersion.isTesting`, which must resolve `true` here for the same reason
+    /// `AppDelegate.isTesting` must.
+    @Test func sharedIsTestingHelperTrueInUnitTestHost() {
+        #expect(AppVersion.isTesting)
+    }
+
+    /// Pins `AppDelegate.isTesting` as a thin delegate to `AppVersion.isTesting` (#19), so the two can
+    /// never again drift into the kind of scheme-dependent inconsistency #16/#19 both stemmed from.
+    @Test func appDelegateIsTestingDelegatesToSharedHelper() {
+        #expect(AppDelegate.isTesting == AppVersion.isTesting)
+    }
+
 }

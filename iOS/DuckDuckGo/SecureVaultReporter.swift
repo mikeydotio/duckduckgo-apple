@@ -59,7 +59,7 @@ final class SecureVaultReporter: SecureVaultReporting {
 
     func secureVaultError(_ error: SecureStorageError) {
         #if DEBUG
-        guard !ProcessInfo().arguments.contains("testing") else { return }
+        guard !AppVersion.isTesting else { return }
         #endif
         Task {
             let isBackgrounded = await isAppBackgrounded()

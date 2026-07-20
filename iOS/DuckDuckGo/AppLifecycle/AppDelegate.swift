@@ -45,12 +45,13 @@ extension AppDelegate {
     /// ATB/statistics, and pixel activity it drives — because it is hosted inside an XCTest unit-test
     /// bundle.
     ///
-    /// Derived from the environment-based `AppVersion.runType` (`requiresEnvironment == false` ⇒
-    /// `.unitTests`) so the guard holds no matter which scheme launches the tests, unlike the legacy
-    /// `"testing"` launch argument the `iOS Unit Tests` scheme never passes (see #16). The explicit
-    /// argument is still honoured for the schemes that opt in that way.
+    /// Delegates to the shared, environment-based `AppVersion.isTesting` (see #16, #19) so the guard
+    /// holds no matter which scheme launches the tests, unlike the legacy `"testing"` launch argument
+    /// the `iOS Unit Tests` scheme never passes. `.xcPreviews` is already excluded one line above this
+    /// property's call site, so `AppVersion.isTesting`'s `.unitTests`-only scoping doesn't change
+    /// behavior here.
     static var isTesting: Bool {
-        !AppVersion.runType.requiresEnvironment || ProcessInfo().arguments.contains("testing")
+        AppVersion.isTesting
     }
 
 }
