@@ -18,230 +18,35 @@
 //
 
 import XCTest
-import Persistence
-import Bookmarks
-import DDGSync
-import History
-import BrowserServicesKit
-import RemoteMessaging
-import RemoteMessagingTestsUtils
-import DataBrokerProtection_iOS
-@testable import Configuration
-import Core
-import SubscriptionTestingUtilities
-import Common
 @testable import DuckDuckGo
-@testable import PersistenceTestingUtils
-import SystemSettingsPiPTutorialTestSupport
-import Combine
-import PrivacyConfig
-import AIChatTestingUtilities
 
-private final class MockIdleReturnEligibilityManagerForMainVC: IdleReturnEligibilityManaging {
-    func isFeatureAvailable() -> Bool { false }
-    func isEligibleForNTPAfterIdle() -> Bool { false }
-    func effectiveAfterInactivityOption() -> AfterInactivityOption { .lastUsedTab }
-    func idleThresholdSeconds() -> Int { 60 }
-    func ntpAfterIdleState() -> NTPAfterIdleState { .notEligible }
-}
-
- @MainActor
- final class OnboardingDaxFavouritesTests: XCTestCase {
+@MainActor
+final class OnboardingDaxFavouritesTests: XCTestCase {
+    private var context: MainViewControllerTestFactory.Context!
     private var sut: MainViewController!
-    private var tutorialSettingsMock: MockTutorialSettings!
-    private var contextualOnboardingLogicMock: ContextualOnboardingLogicMock!
 
-    let mockWebsiteDataManager = MockWebsiteDataManager()
-    let keyValueStore: ThrowingKeyValueStoring = MockKeyValueFileStore()
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        let db = CoreDataDatabase.bookmarksMock
-        let bookmarkDatabaseCleaner = BookmarkDatabaseCleaner(bookmarkDatabase: db, errorEvents: nil)
-        let dataProviders = SyncDataProviders(
-            privacyConfigurationManager: MockPrivacyConfigurationManager(),
-            bookmarksDatabase: db,
-            secureVaultFactory: AutofillSecureVaultFactory,
-            secureVaultErrorReporter: SecureVaultReporter(),
-            keyValueStore: keyValueStore,
-            settingHandlers: [],
-            favoritesDisplayModeStorage: MockFavoritesDisplayModeStoring(),
-            syncErrorHandler: SyncErrorHandler(),
-            faviconStoring: MockFaviconStore(),
-            tld: TLD(),
-            featureFlagger: MockFeatureFlagger()
-        )
-
-        let homePageConfiguration = HomePageConfiguration(remoteMessagingStore: MockRemoteMessagingStore(), subscriptionDataReporter: MockSubscriptionDataReporter(), isStillOnboarding: { false })
-        let tabsModel = TabsModel(desktop: true)
-        tutorialSettingsMock = MockTutorialSettings(hasSeenOnboarding: false)
-        contextualOnboardingLogicMock = ContextualOnboardingLogicMock()
-        let historyManager = MockHistoryManager()
-        let syncService = MockDDGSyncing(authState: .active, isSyncInProgress: false)
-        let syncAutoRestoreHandler = MockSyncAutoRestoreHandler()
-        let featureFlagger = MockFeatureFlagger()
-        let aiChatSettings = MockAIChatSettingsProvider()
-        let freemiumPIRDebugSettings = FreemiumPIRDebugSettings(keyValueStore: keyValueStore)
-        let freemiumDBPUserDefaults = try XCTUnwrap(UserDefaults(suiteName: "OnboardingDaxFavouritesTests.\(UUID().uuidString)"))
-        let freemiumDBPUserStateManager = DefaultFreemiumDBPUserStateManager(
-            userDefaults: freemiumDBPUserDefaults,
-            isUserAuthenticated: { false },
-            isFreemiumEnabled: { false }
-        )
-        let fireproofing = MockFireproofing()
-        let textZoomCoordinatorProvider = MockTextZoomCoordinatorProvider()
-        let subscriptionDataReporter = MockSubscriptionDataReporter()
-        let onboardingPixelReporter = OnboardingPixelReporterMock()
-        let tabsPersistence = TabsModelPersistence(normalStore: keyValueStore, fireStore: MockKeyValueFileStore(), legacyStore: MockKeyValueStore())
-        let variantManager = MockVariantManager()
-        let daxDialogsFactory = ContextualDaxDialogFactory(contextualOnboardingLogic: contextualOnboardingLogicMock,
-                                                                      contextualOnboardingPixelReporter: onboardingPixelReporter)
-        let contextualOnboardingPresenter = ContextualOnboardingPresenter(variantManager: variantManager, daxDialogsFactory: daxDialogsFactory)
-        let mockConfigManager = MockPrivacyConfigurationManager()
-
-        let mockScriptDependencies = DefaultScriptSourceProvider.Dependencies(appSettings: AppSettingsMock(),
-                                                                              sync: MockDDGSyncing(),
-                                                                              privacyConfigurationManager: mockConfigManager,
-                                                                              contentBlockingManager: ContentBlockerRulesManagerMock(),
-                                                                              fireproofing: fireproofing,
-                                                                              contentScopeExperimentsManager: MockContentScopeExperimentManager(),
-                                                                              internalUserDecider: MockInternalUserDecider(),
-                                                                              syncErrorHandler: CapturingAdapterErrorHandler(),
-                                                                              webExtensionAvailability: nil)
-
-        let fireModel = TabsModel(tabs: [], desktop: false, mode: .fire)
-        let modelProvider = TabsModelProvider(normalTabsModel: tabsModel, fireModeTabsModel: fireModel, persistence: tabsPersistence)
-        let tabManager = TabManager(tabsModelProvider: modelProvider,
-                                    previewsSource: MockTabPreviewsSource(),
-                                    interactionStateSource: nil,
-                                    privacyConfigurationManager: mockConfigManager,
-                                    bookmarksDatabase: db,
-                                    historyManager: historyManager,
-                                    syncService: syncService,
-                                    userScriptsDependencies: mockScriptDependencies,
-                                    contentBlockingAssetsPublisher: PassthroughSubject<ContentBlockingUpdating.NewContent, Never>().eraseToAnyPublisher(),
-                                    subscriptionDataReporter: subscriptionDataReporter,
-                                    contextualOnboardingPresenter: contextualOnboardingPresenter,
-                                    contextualOnboardingLogic: contextualOnboardingLogicMock,
-                                    onboardingPixelReporter: onboardingPixelReporter,
-                                    featureFlagger: featureFlagger,
-                                    contentScopeExperimentManager: MockContentScopeExperimentManager(),
-                                    appSettings: AppDependencyProvider.shared.appSettings,
-                                    textZoomCoordinatorProvider: textZoomCoordinatorProvider,
-                                    autoconsentManagementProvider: MockAutoconsentManagementProvider(),
-                                    websiteDataManager: mockWebsiteDataManager,
-                                    fireproofing: fireproofing,
-                                    favicons: Favicons(),
-                                    maliciousSiteProtectionManager: MockMaliciousSiteProtectionManager(),
-                                    maliciousSiteProtectionPreferencesManager: MockMaliciousSiteProtectionPreferencesManager(),
-                                    featureDiscovery: DefaultFeatureDiscovery(wasUsedBeforeStorage: UserDefaults.standard),
-                                    keyValueStore: MockKeyValueFileStore(),
-                                    daxDialogsManager: MockDaxDialogsManager(),
-                                    aiChatSettings: aiChatSettings,
-                                    productSurfaceTelemetry: MockProductSurfaceTelemetry(),
-                                    privacyStats: MockPrivacyStats(),
-                                    voiceSearchHelper: MockVoiceSearchHelper(),
-                                    launchSourceManager: MockLaunchSourceManager(),
-                                    darkReaderFeatureSettings: MockDarkReaderFeatureSettings(),
-                                    adBlockingAvailability: StubAdBlockingAvailability()
-        )
-        let fireExecutor = FireExecutor(tabManager: tabManager,
-                                        websiteDataManager: mockWebsiteDataManager,
-                                        daxDialogsManager: MockDaxDialogsManager(),
-                                        syncService: syncService,
-                                        bookmarksDatabaseCleaner: bookmarkDatabaseCleaner,
-                                        fireproofing: fireproofing,
-                                        favicons: Favicons(),
-                                        textZoomCoordinatorProvider: textZoomCoordinatorProvider,
-                                        autoconsentManagementProvider: MockAutoconsentManagementProvider(),
-                                        historyManager: historyManager,
-                                        featureFlagger: featureFlagger,
-                                        privacyConfigurationManager: mockConfigManager,
-                                        appSettings: AppSettingsMock(),
-                                        aiChatSyncCleaner: MockAIChatSyncCleaning())
-        sut = MainViewController(
-            privacyConfigurationManager: mockConfigManager,
-            bookmarksDatabase: db,
-            historyManager: historyManager,
-            homePageConfiguration: homePageConfiguration,
-            syncService: syncService,
-            syncDataProviders: dataProviders,
-            userScriptsDependencies: mockScriptDependencies,
-            contentBlockingAssetsPublisher: PassthroughSubject<ContentBlockingUpdating.NewContent, Never>().eraseToAnyPublisher(),
-            appSettings: AppSettingsMock(),
-            previewsSource: MockTabPreviewsSource(),
-            tabManager: tabManager,
-            syncPausedStateManager: CapturingSyncPausedStateManager(),
-            subscriptionDataReporter: subscriptionDataReporter,
-            contextualOnboardingLogic: contextualOnboardingLogicMock,
-            contextualOnboardingPixelReporter: onboardingPixelReporter,
-            tutorialSettings: tutorialSettingsMock,
-            subscriptionFeatureAvailability: SubscriptionFeatureAvailabilityMock.enabled,
-            voiceSearchHelper: MockVoiceSearchHelper(isSpeechRecognizerAvailable: true, voiceSearchEnabled: true),
-            featureFlagger: featureFlagger,
-            idleReturnEligibilityManager: MockIdleReturnEligibilityManagerForMainVC(),
-            afterInactivityOptionAdapter: AfterInactivityOptionAdapter(initialOption: .lastUsedTab, keyValueStore: keyValueStore),
-            lastTabShortcutAdapter: LastTabShortcutAdapter(keyValueStore: keyValueStore),
-            syncAutoRestoreHandler: syncAutoRestoreHandler,
-            contentScopeExperimentsManager: MockContentScopeExperimentManager(),
-            fireproofing: fireproofing,
-            favicons: Favicons(),
-            textZoomCoordinatorProvider: textZoomCoordinatorProvider,
-            websiteDataManager: mockWebsiteDataManager,
-            appDidFinishLaunchingStartTime: nil,
-            maliciousSiteProtectionPreferencesManager: MockMaliciousSiteProtectionPreferencesManager(),
-            aiChatSettings: aiChatSettings,
-            aiChatAddressBarExperience: AIChatAddressBarExperience(featureFlagger: featureFlagger,
-                                                                   aiChatSettings: aiChatSettings),
-            themeManager: MockThemeManager(),
-            keyValueStore: keyValueStore,
-            customConfigurationURLProvider: MockCustomURLProvider(),
-            systemSettingsPiPTutorialManager: MockSystemSettingsPiPTutorialManager(),
-            daxDialogsManager: MockDaxDialogsManager(),
-            dbpIOSPublicInterface: nil,
-            freemiumPIREligibilityChecker: DefaultFreemiumPIREligibilityChecker(
-                featureFlagger: featureFlagger,
-                runPrerequisitesDelegate: nil,
-                subscriptionAuthenticationStateProvider: SubscriptionManagerMock(),
-                freemiumPIRDebugSettings: freemiumPIRDebugSettings
-            ),
-            freemiumPIRDebugSettings: freemiumPIRDebugSettings,
-            freemiumDBPUserStateManager: freemiumDBPUserStateManager,
-            profileStateManager: DefaultDBPProfileStateManager(keyValueStore: freemiumDBPUserDefaults),
-            launchSourceManager: LaunchSourceManager(),
-            winBackOfferVisibilityManager: MockWinBackOfferVisibilityManager(),
-            mobileCustomization: MobileCustomization(keyValueStore: MockThrowingKeyValueStore()),
-            remoteMessagingActionHandler: MockRemoteMessagingActionHandler(),
-            remoteMessagingImageLoader: MockRemoteMessagingImageLoader(),
-            remoteMessagingPixelReporter: MockRemoteMessagingPixelReporter(),
-            productSurfaceTelemetry: MockProductSurfaceTelemetry(),
-            fireExecutor: fireExecutor,
-            remoteMessagingDebugHandler: MockRemoteMessagingDebugHandler(),
-            privacyStats: MockPrivacyStats(),
-            whatsNewRepository: MockWhatsNewMessageRepository(scheduledRemoteMessage: nil),
-            darkReaderFeatureSettings: MockDarkReaderFeatureSettings(),
-            onboardingManager: OnboardingManagerMock()
-        )
-        let window = UIWindow(frame: UIScreen.main.bounds)
-        window.rootViewController = UIViewController()
-        window.makeKeyAndVisible()
-        window.rootViewController?.present(sut, animated: false, completion: nil)
+    override func setUp() async throws {
+        try await super.setUp()
+        context = try await MainViewControllerTestFactory.make()
+        sut = context.sut
     }
 
     override func tearDownWithError() throws {
+        context.tearDown()
+        context = nil
         sut = nil
         try super.tearDownWithError()
     }
 
     func testWhenMarkOnboardingSeenIsCalled_ThenSetHasSeenOnboardingTrue() {
         // GIVEN
-        tutorialSettingsMock.hasSeenOnboarding = false
+        context.tutorialSettings.hasSeenOnboarding = false
 
         // WHEN
         sut.markOnboardingSeen()
 
         // THEN
-        XCTAssertTrue(tutorialSettingsMock.hasSeenOnboarding)
+        XCTAssertTrue(context.tutorialSettings.hasSeenOnboarding)
     }
 
     func testWhenHasSeenOnboardingIntroIsCalled_AndHasSeenOnboardingSettingIsTrue_ThenReturnFalse() throws {
@@ -257,7 +62,7 @@ private final class MockIdleReturnEligibilityManagerForMainVC: IdleReturnEligibi
 
     func testWhenHasSeenOnboardingIntroIsCalled_AndHasSeenOnboardingIsFalse_ThenReturnTrue() throws {
         // GIVEN
-        tutorialSettingsMock.hasSeenOnboarding = false
+        context.tutorialSettings.hasSeenOnboarding = false
 
         // WHEN
         let result = sut.needsToShowOnboardingIntro()
@@ -268,14 +73,14 @@ private final class MockIdleReturnEligibilityManagerForMainVC: IdleReturnEligibi
 
     func testWhenAddFavouriteIsCalled_ThenItShouldEnableAddFavouriteFlowOnContextualOnboardingLogic() {
         // GIVEN
-        contextualOnboardingLogicMock.canStartFavoriteFlow = true
-        XCTAssertFalse(contextualOnboardingLogicMock.didCallEnableAddFavoriteFlow)
+        context.contextualOnboardingLogic.canStartFavoriteFlow = true
+        XCTAssertFalse(context.contextualOnboardingLogic.didCallEnableAddFavoriteFlow)
 
         // WHEN
         sut.startAddFavoriteFlow()
 
         // THEN
-        XCTAssertTrue(contextualOnboardingLogicMock.didCallEnableAddFavoriteFlow)
+        XCTAssertTrue(context.contextualOnboardingLogic.didCallEnableAddFavoriteFlow)
     }
 
 }
