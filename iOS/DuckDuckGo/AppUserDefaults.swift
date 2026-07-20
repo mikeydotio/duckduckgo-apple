@@ -71,6 +71,7 @@ public class AppUserDefaults: AppSettings {
     }
 
     private let groupName: String
+    private let bookmarksGroupName: String
 
     struct Keys {
         static let autocompleteKey = "com.duckduckgo.app.autocompleteDisabledKey"
@@ -143,13 +144,14 @@ public class AppUserDefaults: AppSettings {
     }
 
     private var bookmarksUserDefaults: UserDefaults? {
-        UserDefaults(suiteName: "group.com.duckduckgo.bookmarks")
+        UserDefaults(suiteName: bookmarksGroupName)
     }
 
     lazy var featureFlagger = AppDependencyProvider.shared.featureFlagger
 
-    init(groupName: String = "group.com.duckduckgo.app") {
+    init(groupName: String = "group.com.duckduckgo.app", bookmarksGroupName: String = Global.bookmarksGroupName) {
         self.groupName = groupName
+        self.bookmarksGroupName = bookmarksGroupName
     }
 
     var autocomplete: Bool {

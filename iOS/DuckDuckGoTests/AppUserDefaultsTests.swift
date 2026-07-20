@@ -18,6 +18,7 @@
 //
 
 import XCTest
+import Bookmarks
 import PrivacyConfig
 
 @testable import DuckDuckGo
@@ -58,6 +59,28 @@ class AppUserDefaultsTests: XCTestCase {
 
         let appUserDefaults = AppUserDefaults(groupName: testGroupName)
         XCTAssertTrue(appUserDefaults.longPressPreviews)
+
+    }
+
+    func testWhenFavoritesDisplayModeIsSetThenItIsWrittenToTheInjectedBookmarksGroup() {
+
+        // Regression test for a defect where the shared bookmarks app-group
+        // suite name was hardcoded to "group.com.duckduckgo.bookmarks" instead
+        // of being derived from the build-time group-id prefix, so a forked
+        // build renaming that prefix would silently lose app<->widget favorites
+        // sharing. Injecting a distinguishable suite name here proves the write
+        // path uses the injected value rather than a fixed literal, regardless
+        // of what the prefix resolves to in this environment.
+        let bookmarksGroupName = "test.bookmarks.\(UUID().uuidString)"
+        let bookmarksSuite = UserDefaults(suiteName: bookmarksGroupName)!
+        bookmarksSuite.removePersistentDomain(forName: bookmarksGroupName)
+        defer { bookmarksSuite.removePersistentDomain(forName: bookmarksGroupName) }
+
+        let appUserDefaults = AppUserDefaults(groupName: testGroupName, bookmarksGroupName: bookmarksGroupName)
+        let displayMode = FavoritesDisplayMode.displayUnified(native: .desktop)
+        appUserDefaults.favoritesDisplayMode = displayMode
+
+        XCTAssertEqual(bookmarksSuite.string(forKey: "com.duckduckgo.ios.favoritesDisplayMode"), displayMode.description)
 
     }
 
