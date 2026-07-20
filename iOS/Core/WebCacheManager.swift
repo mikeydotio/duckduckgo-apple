@@ -43,7 +43,7 @@ public enum DDGWebsiteDataStoreProvider {
     // Don't call this in tests.
     @MainActor
     public static func current(fireMode: Bool, dataStoreIDManager: DataStoreIDManaging = DataStoreIDManager.shared) -> any DDGWebsiteDataStore {
-        guard !ProcessInfo().arguments.contains("testing") else {
+        guard !AppVersion.isTesting else {
             fatalError("Don't call this from tests")
         }
         if fireMode {

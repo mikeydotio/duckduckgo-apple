@@ -20,6 +20,7 @@
 import Foundation
 import MaliciousSiteProtection
 import BackgroundTasks
+import Common
 import Core
 import Combine
 import PrivacyConfig
@@ -314,7 +315,7 @@ extension MaliciousSiteProtectionDatasetsFetcher {
         // e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateExpirationForTaskWithIdentifier:@"com.duckduckgo.app.maliciousSiteProtectionHashPrefixSetRefresh"]
 
         #if targetEnvironment(simulator)
-        guard ProcessInfo().arguments.contains("testing") else { return }
+        guard AppVersion.isTesting else { return }
         performScheduleTasks()
         #else
         performScheduleTasks()

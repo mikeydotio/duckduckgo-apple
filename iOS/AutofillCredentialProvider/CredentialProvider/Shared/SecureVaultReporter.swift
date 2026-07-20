@@ -27,7 +27,7 @@ final class SecureVaultReporter: SecureVaultReporting {
 
     func secureVaultError(_ error: SecureStorage.SecureStorageError) {
 #if DEBUG
-        guard !ProcessInfo().arguments.contains("testing") else { return }
+        guard !AppVersion.isTesting else { return }
 #endif
         let pixelParams = [PixelParameters.isBackgrounded: "false",
                            PixelParameters.isExtension: "true"]
