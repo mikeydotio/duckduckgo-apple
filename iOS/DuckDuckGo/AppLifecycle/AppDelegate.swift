@@ -33,9 +33,24 @@ import Common
         // SwiftUI Previews run without the app group container, so skip app initialization to avoid crashing.
         guard AppVersion.runType != .xcPreviews else { return true }
 
-        let isTesting: Bool = ProcessInfo().arguments.contains("testing")
-        appStateMachine.handle(.didFinishLaunching(isTesting: isTesting))
+        appStateMachine.handle(.didFinishLaunching(isTesting: Self.isTesting))
         return true
+    }
+
+}
+
+extension AppDelegate {
+
+    /// Whether the app must skip its real launch/foreground state machine — and the live network,
+    /// ATB/statistics, and pixel activity it drives — because it is hosted inside an XCTest unit-test
+    /// bundle.
+    ///
+    /// Derived from the environment-based `AppVersion.runType` (`requiresEnvironment == false` ⇒
+    /// `.unitTests`) so the guard holds no matter which scheme launches the tests, unlike the legacy
+    /// `"testing"` launch argument the `iOS Unit Tests` scheme never passes (see #16). The explicit
+    /// argument is still honoured for the schemes that opt in that way.
+    static var isTesting: Bool {
+        !AppVersion.runType.requiresEnvironment || ProcessInfo().arguments.contains("testing")
     }
 
 }
