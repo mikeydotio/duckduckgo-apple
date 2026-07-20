@@ -131,7 +131,7 @@ class Provider: TimelineProvider {
     }
 
     private func fetchFavoritesDisplayMode() -> FavoritesDisplayMode {
-        let userDefaults = UserDefaults(suiteName: "group.com.duckduckgo.bookmarks")
+        let userDefaults = UserDefaults(suiteName: Global.bookmarksGroupName)
         let displayModeDescription = userDefaults?.string(forKey: "com.duckduckgo.ios.favoritesDisplayMode")
 
         if let displayModeDescription, let displayMode = FavoritesDisplayMode(displayModeDescription) {

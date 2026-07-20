@@ -12,7 +12,7 @@ Run `git submodule update --init --recursive`
 
 ### External contributors: Duck Sans package
 
-The project depends on a private `DuckSansFont` Swift package that ships our licensed Duck Sans typeface. The repository is private, so building a fork without access will fail at SPM resolution. To build as an external contributor, remove the package before building:
+The project depends on a private `DuckSansFont` Swift package that ships our licensed Duck Sans typeface. The repository is private, so building a fork without access will fail at SPM resolution. This fork has already removed the `DuckSansFont` dependency (the app falls back to the system font at runtime); if you're pulling in upstream changes that reintroduce it, remove it again before building:
 
 1. Open `iOS/DuckDuckGo-iOS.xcodeproj` (or the workspace) in Xcode.
 2. Select the project in the Project Navigator, then open the **Package Dependencies** tab.
@@ -26,6 +26,8 @@ If you're not part of the DuckDuckGo team, you should provide your Apple develop
 1. Run `cp iOS/Configuration/DuckDuckGoDeveloper.xcconfig iOS/Configuration/ExternalDeveloper.xcconfig`
 2. Edit `iOS/Configuration/ExternalDeveloper.xcconfig` and change the values of all fields
 3. Clean and rebuild the project
+
+**Note:** `Configuration.xcconfig` (and its Alpha/Experimental siblings) re-set `GROUP_ID_PREFIX` inline *after* including `ExternalDeveloper.xcconfig`, so a `GROUP_ID_PREFIX` you set there is silently discarded. Put `GROUP_ID_PREFIX` — and anything else that needs to win over that inline reassignment — in `iOS/LocalOverrides.xcconfig` instead; it's also git-ignored, and is included last. See [`docs/device-build-personal-team.md`](docs/device-build-personal-team.md) for a full worked example of building this fork for a physical device under a non-DuckDuckGo Apple Developer team.
 
 ### macOS developer details
 

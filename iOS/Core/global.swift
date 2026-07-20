@@ -38,6 +38,10 @@ public struct Global {
         groupIdPrefix + ".app-configuration"
     }()
 
+    public static let bookmarksGroupName: String = {
+        groupIdPrefix + ".bookmarks"
+    }()
+
 }
 
 /// Allows Bundle.for() calls to be made without comprising encapsulation
