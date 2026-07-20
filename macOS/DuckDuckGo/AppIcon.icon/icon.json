@@ -140,6 +140,19 @@
       "hidden" : false,
       "layers" : [
         {
+          "glass" : false,
+          "hidden" : false,
+          "image-name" : "Bee-Overlay-1024.png",
+          "name" : "Bee Badge",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
           "fill-specializations" : [
             {
               "value" : {

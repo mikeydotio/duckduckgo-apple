@@ -1,8 +1,8 @@
 /* Bundle display name */
-"CFBundleDisplayName" = "DuckDuckGo";
+"CFBundleDisplayName" = "DDG";
 
 /* Bundle name */
-"CFBundleName" = "DuckDuckGo";
+"CFBundleName" = "DDG";
 
 /* Privacy - Camera Usage Description */
 "NSCameraUsageDescription" = "Allows you to upload photographs and videos";
