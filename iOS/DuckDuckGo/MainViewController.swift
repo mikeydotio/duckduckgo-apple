@@ -214,6 +214,10 @@ class MainViewController: UIViewController {
     private var emailCancellables = Set<AnyCancellable>()
     private var urlInterceptorCancellables = Set<AnyCancellable>()
     private var settingsDeepLinkcancellables = Set<AnyCancellable>()
+    /// The center `subscribeToURLInterceptorNotifications()` and `subscribeToSettingsDeeplinkNotifications()`
+    /// subscribe on. Defaults to `.default` in production; tests should inject a private instance so a
+    /// leaked `MainViewController` can never react to another test's notifications. See #21.
+    private let notificationCenter: NotificationCenter
     private let tunnelDefaults = UserDefaults.networkProtectionGroupDefaults
     private var vpnCancellables = Set<AnyCancellable>()
     private var feedbackCancellable: AnyCancellable?
@@ -486,7 +490,8 @@ class MainViewController: UIViewController {
         toggleModeStorage: ToggleModeStoring = ToggleModeStorage(),
         onboardingResumeStepStore: (any KeyedStoring<OnboardingStoringKeys>)? = nil,
         onboardingManager: OnboardingManaging,
-        recentModalPromptStatusProvider: RecentModalPromptStatusProviding? = nil
+        recentModalPromptStatusProvider: RecentModalPromptStatusProviding? = nil,
+        notificationCenter: NotificationCenter = .default
     ) {
         self.remoteMessagingActionHandler = remoteMessagingActionHandler
         self.remoteMessagingImageLoader = remoteMessagingImageLoader
@@ -572,6 +577,7 @@ class MainViewController: UIViewController {
         self.toggleModeStorage = toggleModeStorage
         self.fireModeCapability = FireModeCapability.create()
         self.onboardingManager = onboardingManager
+        self.notificationCenter = notificationCenter
 
         super.init(nibName: nil, bundle: nil)
         
@@ -3349,7 +3355,7 @@ class MainViewController: UIViewController {
     }
 
     private func subscribeToURLInterceptorNotifications() {
-        NotificationCenter.default.publisher(for: .urlInterceptSubscription)
+        notificationCenter.publisher(for: .urlInterceptSubscription)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 let deepLinkTarget: SettingsViewModel.SettingsDeepLinkSection
@@ -3367,7 +3373,7 @@ class MainViewController: UIViewController {
             }
             .store(in: &urlInterceptorCancellables)
 
-        NotificationCenter.default.publisher(for: .dataBrokerProtectionOpenSubscriptionFlow)
+        notificationCenter.publisher(for: .dataBrokerProtectionOpenSubscriptionFlow)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 let redirectURLComponents = notification.userInfo?[
@@ -3377,7 +3383,7 @@ class MainViewController: UIViewController {
             }
             .store(in: &urlInterceptorCancellables)
 
-        NotificationCenter.default.publisher(for: .urlInterceptAIChat)
+        notificationCenter.publisher(for: .urlInterceptAIChat)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 let interceptedURL = notification.userInfo?[TabURLInterceptorParameter.interceptedURL] as? URL
@@ -3447,7 +3453,7 @@ class MainViewController: UIViewController {
     }
 
     private func subscribeToSettingsDeeplinkNotifications() {
-        NotificationCenter.default.publisher(for: .settingsDeepLinkNotification)
+        notificationCenter.publisher(for: .settingsDeepLinkNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 guard let self else { return }
