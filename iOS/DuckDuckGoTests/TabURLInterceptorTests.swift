@@ -24,10 +24,18 @@ import SubscriptionTestingUtilities
 import AIChat
 @testable import DuckDuckGo
 
+/// - Important: This suite must never emit to or observe on `NotificationCenter.default`.
+///   `TabURLInterceptorDefault` posts `.urlInterceptSubscription` / `.urlInterceptAIChat`
+///   notifications that `MainViewController` subscribes to on `.default`; if a `MainViewController`
+///   instance from another test is still alive in the shared XCTest host process, a notification
+///   posted here can reach it and trip an unrelated navigation-invariant assertion, crashing the
+///   whole test host (#15). Every test must construct its `TabURLInterceptorDefault` and bind its
+///   `expectation(forNotification:)` calls to the private `notificationCenter` below — never `.default`.
 class TabURLInterceptorDefaultTests: XCTestCase {
 
     private var mockInternalUserStoring = MockInternalUserStoring()
     private var mockAIChatFullModeFeature: MockAIChatFullModeFeatureProviding!
+    private var notificationCenter: NotificationCenter!
 
     var urlInterceptor: TabURLInterceptorDefault!
 
@@ -35,13 +43,16 @@ class TabURLInterceptorDefaultTests: XCTestCase {
         super.setUp()
         mockInternalUserStoring.isInternalUser = false
         mockAIChatFullModeFeature = MockAIChatFullModeFeatureProviding()
+        notificationCenter = NotificationCenter()
         urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStoring)),
                                                   canPurchase: { true },
-                                                  aichatFullModeFeature: mockAIChatFullModeFeature)
+                                                  aichatFullModeFeature: mockAIChatFullModeFeature,
+                                                  notificationCenter: notificationCenter)
     }
-    
+
     override func tearDown() {
         urlInterceptor = nil
+        notificationCenter = nil
         super.tearDown()
     }
     
@@ -56,7 +67,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     }
     
     func testNotificationForInterceptedSubscriptionPath() {
-        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, handler: nil)
+        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
 
         let url = URL(string: "https://duckduckgo.com/subscriptions")!
         let canNavigate = urlInterceptor.allowsNavigatingTo(url: url)
@@ -72,7 +83,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     }
 
     func testNotificationForInterceptedLegacyProPath() {
-        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, handler: nil)
+        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
 
         let url = URL(string: "https://duckduckgo.com/pro")!
         let canNavigate = urlInterceptor.allowsNavigatingTo(url: url)
@@ -87,7 +98,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     }
 
     func testNotificationForInterceptedLegacyProPlansPath() {
-        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, handler: nil)
+        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
 
         let url = URL(string: "https://duckduckgo.com/pro/plans")!
         let canNavigate = urlInterceptor.allowsNavigatingTo(url: url)
@@ -104,7 +115,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     func testWhenURLIsSubscriptionAndHasOriginQueryParameterThenNotificationUserInfoHasOriginSet() throws {
         // GIVEN
         var capturedNotification: Notification?
-        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, handler: { notification in
+        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: { notification in
             capturedNotification = notification
             return true
         })
@@ -123,7 +134,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     func testWhenURLIsSubscriptionAndDoesNotHaveOriginQueryParameterThenNotificationUserInfoDoesNotHaveOriginSet() throws {
         // GIVEN
         var capturedNotification: Notification?
-        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, handler: { notification in
+        _ = self.expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: { notification in
             capturedNotification = notification
             return true
         })
@@ -146,7 +157,6 @@ class TabURLInterceptorDefaultTests: XCTestCase {
 
     func testNotificationForInterceptedAIChatPathWhenFeatureFlagIsOn() {
         mockAIChatFullModeFeature.isAvailable = false
-        let notificationCenter = NotificationCenter()
         urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(enabledFeatureFlags: []),
                                                   canPurchase: { true },
                                                   aichatFullModeFeature: mockAIChatFullModeFeature,
@@ -173,7 +183,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
                                                   canPurchase: { true },
                                                   aichatFullModeFeature: mockAIChatFullModeFeature,
                                                   isIpad: false,
-                                                  notificationCenter: NotificationCenter())
+                                                  notificationCenter: notificationCenter)
 
         let url = URL(string: "https://duckduckgo.com/?ia=chat")!
         XCTAssertFalse(urlInterceptor.allowsNavigatingTo(url: url))
@@ -183,7 +193,6 @@ class TabURLInterceptorDefaultTests: XCTestCase {
         // GIVEN: on iPad, AIChat interception is intentionally skipped (TabURLInterceptor.swift)
         // regardless of the AIChatFullMode feature flag, since iPad has its own AIChat surface.
         mockAIChatFullModeFeature.isAvailable = false
-        let notificationCenter = NotificationCenter()
         urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(enabledFeatureFlags: []),
                                                   canPurchase: { true },
                                                   aichatFullModeFeature: mockAIChatFullModeFeature,
@@ -210,8 +219,9 @@ class TabURLInterceptorDefaultTests: XCTestCase {
         mockAIChatFullModeFeature.isAvailable = true
         urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(enabledFeatureFlags: []),
                                                   canPurchase: { true },
-                                                  aichatFullModeFeature: mockAIChatFullModeFeature)
-        
+                                                  aichatFullModeFeature: mockAIChatFullModeFeature,
+                                                  notificationCenter: notificationCenter)
+
         // When
         let url = URL(string: "https://duckduckgo.com/?ia=chat")!
         let canNavigate = urlInterceptor.allowsNavigatingTo(url: url)
@@ -225,9 +235,10 @@ class TabURLInterceptorDefaultTests: XCTestCase {
         mockAIChatFullModeFeature.isAvailable = true
         urlInterceptor = TabURLInterceptorDefault(featureFlagger: MockFeatureFlagger(enabledFeatureFlags: []),
                                                   canPurchase: { true },
-                                                  aichatFullModeFeature: mockAIChatFullModeFeature)
-        
-        let notificationExpectation = expectation(forNotification: .urlInterceptAIChat, object: nil, handler: nil)
+                                                  aichatFullModeFeature: mockAIChatFullModeFeature,
+                                                  notificationCenter: notificationCenter)
+
+        let notificationExpectation = expectation(forNotification: .urlInterceptAIChat, object: nil, notificationCenter: notificationCenter, handler: nil)
         notificationExpectation.isInverted = true
         
         // When
@@ -243,7 +254,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     }
 
     func testWhenURLBelongsToTestDomainAndInternalModeIsDisabledThenNavigationIsNotIntercepted() async throws {
-        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, handler: nil)
+        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
         notificationExpectation.isInverted = true
 
         // GIVEN
@@ -259,7 +270,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     }
 
     func testWhenURLBelongsToTestDomainAndInternalModeIsEnabledThenRedirectTriggers() async throws {
-        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, handler: nil)
+        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
 
         // GIVEN
         let url = URL(string: "https://duck.co/subscriptions")!
@@ -274,7 +285,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     }
 
     func testNotificationForInterceptedSubscriptionPlansPath() async {
-        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, handler: nil)
+        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
 
         // GIVEN
         let url = URL(string: "https://duck.co/subscriptions/plans")!
@@ -289,7 +300,7 @@ class TabURLInterceptorDefaultTests: XCTestCase {
     }
 
     func testNotificationForInterceptedSubscriptionUpgradePath() async {
-        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, handler: nil)
+        let notificationExpectation = expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
 
         // GIVEN
         let url = URL(string: "https://duckduckgo.com/subscriptions/plans?tier=pro")!
@@ -301,6 +312,21 @@ class TabURLInterceptorDefaultTests: XCTestCase {
         // THEN
         XCTAssertFalse(canNavigate)
         await fulfillment(of: [notificationExpectation], timeout: 0.5)
+    }
+
+    /// Regression for #15: subscription interception must post only to the injected
+    /// `notificationCenter`, never `NotificationCenter.default`, so a leaked `MainViewController`
+    /// subscribed on `.default` can't receive it and trip the `MainViewController+Segues` assertion.
+    func testSubscriptionInterceptionDoesNotPostToDefaultNotificationCenter() {
+        let onPrivateCenter = expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: notificationCenter, handler: nil)
+        let onDefaultCenter = expectation(forNotification: .urlInterceptSubscription, object: nil, notificationCenter: .default, handler: nil)
+        onDefaultCenter.isInverted = true
+
+        let url = URL(string: "https://duckduckgo.com/subscriptions")!
+        _ = urlInterceptor.allowsNavigatingTo(url: url)
+
+        wait(for: [onPrivateCenter], timeout: 1)
+        wait(for: [onDefaultCenter], timeout: 0.5)
     }
 
 }
