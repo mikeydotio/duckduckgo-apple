@@ -1,0 +1,20 @@
+# deployit metadata stub — NOT an xcodegen manifest.
+#
+# This fork ships committed .xcodeproj/.xcworkspace files (it does not use
+# xcodegen). deployit's layout detection, however, keys off an
+# `Apps/<Name>-<Platform>/project.yml` and reads exactly two scalars from it:
+# PRODUCT_BUNDLE_IDENTIFIER and MARKETING_VERSION. deployit NEVER runs
+# xcodegen, so this file is inert metadata only — it cannot regenerate or
+# clobber the real project.
+#
+# The actual build archives ./DuckDuckGo.xcworkspace with the "iOS Browser"
+# scheme (pass `--scheme "iOS Browser"` to `/deployit deploy`). Keep the
+# bundle id below in sync with iOS/LocalOverrides.xcconfig (APP_ID) and the
+# version in sync with iOS/Configuration/Version.xcconfig by hand — deployit
+# reads only this file. See docs/device-build-personal-team.md.
+
+name: DuckDuckGo-iOS
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: "io.mikey.DuckDuckGo"
+    MARKETING_VERSION: "7.229.0"
