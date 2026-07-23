@@ -184,6 +184,7 @@
 	<array>
 		<string>ConfigurationIntent</string>
 		<string>ASCredentialExchangeActivityType</string>
+		<string>com.duckduckgo.mobile.ios.openURLInNewWindow</string>
 	</array>
 	<key>OSLogPreferences</key>
 	<dict>

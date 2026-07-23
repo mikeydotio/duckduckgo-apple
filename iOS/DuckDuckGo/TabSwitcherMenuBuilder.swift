@@ -60,6 +60,11 @@ struct TabSwitcherLongPressMenuState {
     // See: https://app.asana.com/0/1209499866654340/1209503836757555
     var canSelect: Bool { !isEditing && pressedCount == 1 }
     var canCloseOthers: Bool { pressedCount < totalCount }
+    // Duplicates the tab's URL into a new window rather than moving the live tab session — moving
+    // a WKWebView's session (back/forward history, form state, scroll position) between windows
+    // isn't something WKWebView supports cleanly, so a single-tab "duplicate" is the safe choice.
+    // iPad-only: iPhone never offers multi-window at the OS level regardless.
+    var canOpenInNewWindow: Bool { pressedCount == 1 && pressedContainsWebPages && UIDevice.current.userInterfaceIdiom == .pad }
 }
 
 // MARK: - Actions
@@ -80,6 +85,7 @@ struct TabSwitcherLongPressMenuActions {
     var onSelect: () -> Void
     var onClose: () -> Void
     var onCloseOther: () -> Void
+    var onOpenInNewWindow: () -> Void
 }
 
 struct TabSwitcherEditMenuActions {
@@ -197,6 +203,9 @@ class DefaultTabSwitcherMenuBuilder: TabSwitcherMenuBuilding {
                 state.canSelect ? action(UserText.tabSwitcherSelectTabs(withCount: 1),
                                          DesignSystemImages.Glyphs.Size16.checkCircle,
                                          actions.onSelect) : nil,
+                state.canOpenInNewWindow ? action(UserText.actionNewWindowForUrl,
+                                                  UIImage(systemName: "macwindow"),
+                                                  actions.onOpenInNewWindow) : nil,
             ].compactMap { $0 }),
 
             UIMenu(title: "", options: .displayInline, children: [

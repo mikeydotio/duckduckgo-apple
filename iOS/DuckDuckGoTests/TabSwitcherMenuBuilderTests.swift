@@ -38,7 +38,7 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
         )
         noopEditActions = TabSwitcherEditMenuActions(onEnterSelectMode: {}, onCloseAll: {})
         noopLongPressActions = TabSwitcherLongPressMenuActions(
-            onShare: {}, onBookmark: {}, onSelect: {}, onClose: {}, onCloseOther: {}
+            onShare: {}, onBookmark: {}, onSelect: {}, onClose: {}, onCloseOther: {}, onOpenInNewWindow: {}
         )
     }
 
@@ -227,6 +227,28 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
         XCTAssertFalse(actions.contains(title: UserText.tabSwitcherCloseOtherTabs(withCount: 2)))
     }
 
+    func testLongPressMenu_singleWebPageTab_openInNewWindowMatchesIdiom() {
+        let state = TabSwitcherLongPressMenuState(
+            pressedCount: 1, totalCount: 3,
+            pressedContainsWebPages: true, isEditing: false, title: "example.com"
+        )
+        let items = builder.longPressMenuItems(state: state, actions: noopLongPressActions)
+        let actions = flatActions(items)
+
+        XCTAssertEqual(actions.contains(title: UserText.actionNewWindowForUrl), UIDevice.current.userInterfaceIdiom == .pad)
+    }
+
+    func testLongPressMenu_multipleTabsPressed_hidesOpenInNewWindow() {
+        let state = TabSwitcherLongPressMenuState(
+            pressedCount: 2, totalCount: 3,
+            pressedContainsWebPages: true, isEditing: false, title: "2 tabs"
+        )
+        let items = builder.longPressMenuItems(state: state, actions: noopLongPressActions)
+        let actions = flatActions(items)
+
+        XCTAssertFalse(actions.contains(title: UserText.actionNewWindowForUrl))
+    }
+
     func testLongPressMenu_closeIsDestructive() {
         let state = TabSwitcherLongPressMenuState(
             pressedCount: 1, totalCount: 3,
@@ -263,7 +285,7 @@ class DefaultTabSwitcherMenuBuilderTests: XCTestCase {
     func testLongPressMenu_onShareCalled() {
         var called = false
         let actions = TabSwitcherLongPressMenuActions(
-            onShare: { called = true }, onBookmark: {}, onSelect: {}, onClose: {}, onCloseOther: {}
+            onShare: { called = true }, onBookmark: {}, onSelect: {}, onClose: {}, onCloseOther: {}, onOpenInNewWindow: {}
         )
         let state = TabSwitcherLongPressMenuState(
             pressedCount: 1, totalCount: 3,
@@ -497,6 +519,28 @@ class TabSwitcherLongPressMenuStateTests: XCTestCase {
     func testWhenAllTabsPressedThenCannotCloseOthers() {
         let state = makeState(pressedCount: 3, totalCount: 3)
         XCTAssertFalse(state.canCloseOthers)
+    }
+
+    // MARK: canOpenInNewWindow
+    // Gated on UIDevice.current.userInterfaceIdiom (iPad only), so these compare against the
+    // actual running idiom rather than a hardcoded expectation — passes on both iPhone and iPad
+    // simulator destinations.
+
+    private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
+    func testWhenSingleWebPageTabPressedThenCanOpenInNewWindowMatchesIdiom() {
+        let state = makeState(pressedCount: 1, pressedContainsWebPages: true)
+        XCTAssertEqual(state.canOpenInNewWindow, isPad)
+    }
+
+    func testWhenMultipleTabsPressedThenCannotOpenInNewWindow() {
+        let state = makeState(pressedCount: 2, pressedContainsWebPages: true)
+        XCTAssertFalse(state.canOpenInNewWindow)
+    }
+
+    func testWhenSingleTabHasNoWebPageThenCannotOpenInNewWindow() {
+        let state = makeState(pressedCount: 1, pressedContainsWebPages: false)
+        XCTAssertFalse(state.canOpenInNewWindow)
     }
 
     // MARK: - Helpers

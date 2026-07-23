@@ -52,6 +52,7 @@ public struct UserText {
     public static let actionNewTabForUrl = NSLocalizedString("action.title.newTabForUrl", value: "Open in New Tab", comment: "Open in New Tab action")
     public static let actionNewFireTabForUrl = NSLocalizedString("action.title.newFireTabForUrl", value: "Open in Fire Tab", comment: "Open in New Fire Tab action")
     public static let actionNewBackgroundTabForUrl = NSLocalizedString("action.title.newBackgroundTabForUrl", value: "Open in Background", comment: "Open in New Background Tab action")
+    public static let actionNewWindowForUrl = NSLocalizedString("action.title.newWindowForUrl", value: "Open in New Window", comment: "Open in New Window action (iPad multi-window)")
     public static let actionForgetAll = NSLocalizedString("action.title.forgetAll", value: "Clear Tabs and Data", comment: "")
     public static let actionForgetAllDone = NSLocalizedString("action.title.forgetAllDone", value: "Tabs and data cleared", comment: "Confirmation message")
 
@@ -292,6 +293,7 @@ public struct UserText {
     public static let keyCommandShowAllTabs = NSLocalizedString("keyCommandShowAllTabs", value: "Show All Tabs", comment: "")
     public static let keyCommandNewTab = NSLocalizedString("keyCommandNewTab", value: "New Tab", comment: "")
     public static let keyCommandNewFireTab = NSLocalizedString("keyCommandNewFireTab", value: "New Fire Tab", comment: "Discoverability title for the keyboard command that opens a new Fire Tab")
+    public static let keyCommandNewWindow = NSLocalizedString("keyCommandNewWindow", value: "New Window", comment: "Discoverability title for the keyboard command that opens a new, independent app window (iPad multi-window)")
     public static let keyCommandCloseTab = NSLocalizedString("keyCommandCloseTab", value: "Close Tab", comment: "")
     public static let keyCommandNextTab = NSLocalizedString("keyCommandNextTab", value: "Next Tab", comment: "")
     public static let keyCommandPreviousTab = NSLocalizedString("keyCommandPreviousTab", value: "Previous Tab", comment: "")

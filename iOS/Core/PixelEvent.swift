@@ -90,6 +90,7 @@ extension Pixel {
         case tabLongPressMenuDisplayed
         case tabLongPressMenuNewFireTab
         case tabLongPressMenuNewNormalTab
+        case tabLongPressMenuNewWindow
         case tabSwitcherOpenedDaily
         case appOpenTabCountIdleNTPDaily
         case appOpenTabCountIdleLastTabDaily
@@ -2081,6 +2082,7 @@ extension Pixel {
         case linkLongPressNewTab
         case linkLongPressBackgroundTab
         case linkLongPressFireTab
+        case linkLongPressNewWindow
 
         // MARK: - Custom Product Page
         case customProductPageDuckAIOpenedAIChat
@@ -2171,6 +2173,7 @@ extension Pixel.Event {
         case .tabLongPressMenuDisplayed: return "m_tab_long_press_menu_displayed"
         case .tabLongPressMenuNewFireTab: return "m_tab_long_press_menu_new_fire_tab"
         case .tabLongPressMenuNewNormalTab: return "m_tab_long_press_menu_new_normal_tab"
+        case .tabLongPressMenuNewWindow: return "m_tab_long_press_menu_new_window"
         case .tabSwitcherOpenedDaily: return "m_tab_manager_opened_daily"
         case .appOpenTabCountIdleNTPDaily: return "m_app_open_tab_count_idle_ntp_daily"
         case .appOpenTabCountIdleLastTabDaily: return "m_app_open_tab_count_idle_last_tab_daily"
@@ -4060,6 +4063,7 @@ extension Pixel.Event {
         case .linkLongPressNewTab: return "m_link-long-press_new-tab"
         case .linkLongPressBackgroundTab: return "m_link-long-press_background-tab"
         case .linkLongPressFireTab: return "m_link-long-press_fire-tab"
+        case .linkLongPressNewWindow: return "m_link-long-press_new-window"
 
         // MARK: - Custom Product Page
         case .customProductPageDuckAIOpenedAIChat: return "m_custom-product-page_duck-ai_opened-ai-chat"

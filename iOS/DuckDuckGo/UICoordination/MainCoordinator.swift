@@ -860,6 +860,13 @@ extension MainCoordinator: UserActivityHandling {
 
     @discardableResult
     func handleUserActivity(_ userActivity: NSUserActivity) -> Bool {
+        if userActivity.activityType == NewWindowUserActivity.activityType {
+            if let url = NewWindowUserActivity.url(from: userActivity) {
+                handleURL(url)
+            }
+            return true
+        }
+
         if dataImportUserActivityHandler == nil {
             dataImportUserActivityHandler = makeDataImportUserActivityHandler()
         }

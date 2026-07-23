@@ -347,8 +347,17 @@ extension TabSwitcherViewController {
             onBookmark: { [weak self] in self?.longPressMenuBookmarkTabs(indexPaths: indexPaths) },
             onSelect: { [weak self] in self?.longPressMenuSelectTabs(indexPaths: indexPaths) },
             onClose: { [weak self] in self?.longPressMenuCloseTabs(indexPaths: indexPaths) },
-            onCloseOther: { [weak self] in self?.longPressMenuCloseOtherTabs(retainingIndexPaths: indexPaths) }
+            onCloseOther: { [weak self] in self?.longPressMenuCloseOtherTabs(retainingIndexPaths: indexPaths) },
+            onOpenInNewWindow: { [weak self] in self?.longPressMenuOpenInNewWindow(tabs: tabs) }
         ))
+    }
+
+    /// Duplicates the (single, pre-validated-by-state) tab's URL into a new window. Leaves the
+    /// original tab open here — see `TabSwitcherLongPressMenuState.canOpenInNewWindow`.
+    private func longPressMenuOpenInNewWindow(tabs: [Tab]) {
+        guard let url = tabs.first?.link?.url else { return }
+        Pixel.fire(pixel: .tabLongPressMenuNewWindow, withAdditionalParameters: [PixelParameters.source: "tab_switcher"])
+        UIApplication.shared.requestNewWindow(opening: url)
     }
 
     private func shouldShowBookmarkThisPageLongPressMenuItem(_ tab: Tab, _ bookmarksModel: MenuBookmarksViewModel) -> Bool {

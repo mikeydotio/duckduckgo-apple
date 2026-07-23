@@ -44,5 +44,20 @@
                 "enum": ["toolbar", "tab_switcher", "tabs_bar"]
             }
         ]
+    },
+    "m_tab_long_press_menu_new_window": {
+        "description": "User selected 'Open in New Window' for a single tab from the tab switcher's long-press menu (iPad multi-window only)",
+        "owners": ["mikeyward"],
+        "triggers": ["user_submitted"],
+        "suffixes": ["platform", "form_factor"],
+        "parameters": [
+            "appVersion",
+            {
+                "key": "source",
+                "type": "string",
+                "description": "Where the menu was triggered from",
+                "enum": ["tab_switcher"]
+            }
+        ]
     }
 }
