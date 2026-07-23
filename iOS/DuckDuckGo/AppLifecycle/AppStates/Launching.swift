@@ -57,14 +57,25 @@ struct Launching: LaunchingHandling {
     private let configuration: AppConfiguration
     private let services: AppServices
     private let mainCoordinator: MainCoordinator
+    private let makeMainCoordinator: (String?, CFAbsoluteTime?) throws -> MainCoordinator
     private let launchTaskManager = LaunchTaskManager()
     private let launchSourceManager = LaunchSourceManager()
     private let lastBackgroundDateStorage: any ThrowingKeyedStoring<IdleReturnLastBackgroundDateKeys>
     private let onboardingManager: OnboardingManager
+    private let sceneRegistry: SceneRegistry
 
     // MARK: - Handle application(_:didFinishLaunchingWithOptions:) logic here
 
+    /// Satisfies `LaunchingHandling`'s protocol-required plain `init() throws` (used by
+    /// `MockLaunching` in tests) by delegating to `init(sceneRegistry:)` with a fresh instance;
+    /// `Initializing` always calls `init(sceneRegistry:)` directly with `AppDelegate`'s own,
+    /// process-lifetime instance instead.
     init() throws {
+        try self.init(sceneRegistry: SceneRegistry())
+    }
+
+    init(sceneRegistry: SceneRegistry) throws {
+        self.sceneRegistry = sceneRegistry
         Logger.lifecycle.info("Launching: \(#function)")
 
         // Wire the DesignSystem rebrand singleton to the live feature flag.
@@ -302,43 +313,66 @@ struct Launching: LaunchingHandling {
         // MARK: - Main Coordinator Setup
         // Initialize the main coordinator which manages the app's primary view controller
         // This step may take some time due to loading from nibs, etc.
-
-        mainCoordinator = try MainCoordinator(privacyConfigurationManager: contentBlockingService.common.privacyConfigurationManager,
-                                              syncService: syncService,
-                                              contentBlockingService: contentBlockingService,
-                                              bookmarksDatabase: configuration.persistentStoresConfiguration.bookmarksDatabase,
-                                              remoteMessagingService: remoteMessagingService,
-                                              daxDialogs: configuration.onboardingConfiguration.daxDialogs,
-                                              reportingService: reportingService,
-                                              variantManager: configuration.atbAndVariantConfiguration.variantManager,
-                                              subscriptionService: subscriptionService,
-                                              voiceSearchHelper: voiceSearchHelper,
-                                              featureFlagger: featureFlagger,
-                                              contentScopeExperimentManager: contentScopeExperimentsManager,
-                                              aiChatSettings: aiChatSettings,
-                                              fireproofing: fireproofing,
-                                              favicons: favicons,
-                                              maliciousSiteProtectionService: maliciousSiteProtectionService,
-                                              customConfigurationURLProvider: AppDependencyProvider.shared.configurationURLProvider,
-                                              didFinishLaunchingStartTime: isAppLaunchedInBackground ? nil : didFinishLaunchingStartTime,
-                                              keyValueStore: appKeyValueFileStoreService.keyValueFilesStore,
-                                              systemSettingsPiPTutorialManager: systemSettingsPiPTutorialService.manager,
-                                              daxDialogsManager: daxDialogs,
-                                              dbpIOSPublicInterface: dbpService.dbpIOSPublicInterface,
-                                              launchSourceManager: launchSourceManager,
-                                              winBackOfferService: winBackOfferService,
-                                              freemiumPIREligibilityChecker: freemiumPIREligibilityChecker,
-                                              freemiumPIRDebugSettings: freemiumPIRDebugSettings,
-                                              freemiumDBPUserStateManager: dbpService.freemiumDBPUserStateManager,
-                                              profileStateManager: dbpService.profileStateManager,
-                                              modalPromptCoordinationService: modalPromptCoordinationService,
-                                              mobileCustomization: mobileCustomization,
-                                              productSurfaceTelemetry: productSurfaceTelemetry,
-                                              whatsNewRepository: whatsNewRepository,
-                                              sharedSecureVault: configuration.persistentStoresConfiguration.sharedSecureVault,
-                                              wideEvent: AppDependencyProvider.shared.wideEvent,
-                                              onboardingManager: onboardingManager
-        )
+        //
+        // `makeMainCoordinator` captures every shared, already-built input a `MainCoordinator`
+        // needs and is exposed via `AppDependencies` so an additional iPad scene can build its
+        // *own* coordinator (own tabs, own view controller) from the exact same app-global
+        // services, without repeating any one-time setup above. The primary scene — the only one
+        // that can ever exist until multi-window is enabled — uses it exactly once, here.
+        //
+        // The closure is stored on `self` and therefore escapes this initializer, so it must not
+        // capture `self` (Swift forbids that until every stored property is set — several of
+        // these, e.g. `services`, aren't assigned until after this point). Local aliases below
+        // ensure the closure only closes over plain values, never `self`.
+        let voiceSearchHelper = self.voiceSearchHelper
+        let fireproofing = self.fireproofing
+        let favicons = self.favicons
+        let featureFlagger = self.featureFlagger
+        let contentScopeExperimentsManager = self.contentScopeExperimentsManager
+        let aiChatSettings = self.aiChatSettings
+        let configuration = self.configuration
+        let onboardingManager = self.onboardingManager
+        let launchSourceManager = self.launchSourceManager
+        let makeMainCoordinator: (String?, CFAbsoluteTime?) throws -> MainCoordinator = { sceneID, launchStartTime in
+            try MainCoordinator(privacyConfigurationManager: contentBlockingService.common.privacyConfigurationManager,
+                               syncService: syncService,
+                               contentBlockingService: contentBlockingService,
+                               bookmarksDatabase: configuration.persistentStoresConfiguration.bookmarksDatabase,
+                               remoteMessagingService: remoteMessagingService,
+                               daxDialogs: configuration.onboardingConfiguration.daxDialogs,
+                               reportingService: reportingService,
+                               variantManager: configuration.atbAndVariantConfiguration.variantManager,
+                               subscriptionService: subscriptionService,
+                               voiceSearchHelper: voiceSearchHelper,
+                               featureFlagger: featureFlagger,
+                               contentScopeExperimentManager: contentScopeExperimentsManager,
+                               aiChatSettings: aiChatSettings,
+                               fireproofing: fireproofing,
+                               favicons: favicons,
+                               maliciousSiteProtectionService: maliciousSiteProtectionService,
+                               customConfigurationURLProvider: AppDependencyProvider.shared.configurationURLProvider,
+                               didFinishLaunchingStartTime: launchStartTime,
+                               keyValueStore: appKeyValueFileStoreService.keyValueFilesStore,
+                               systemSettingsPiPTutorialManager: systemSettingsPiPTutorialService.manager,
+                               daxDialogsManager: daxDialogs,
+                               dbpIOSPublicInterface: dbpService.dbpIOSPublicInterface,
+                               launchSourceManager: launchSourceManager,
+                               winBackOfferService: winBackOfferService,
+                               freemiumPIREligibilityChecker: freemiumPIREligibilityChecker,
+                               freemiumPIRDebugSettings: freemiumPIRDebugSettings,
+                               freemiumDBPUserStateManager: dbpService.freemiumDBPUserStateManager,
+                               profileStateManager: dbpService.profileStateManager,
+                               modalPromptCoordinationService: modalPromptCoordinationService,
+                               mobileCustomization: mobileCustomization,
+                               productSurfaceTelemetry: productSurfaceTelemetry,
+                               whatsNewRepository: whatsNewRepository,
+                               sharedSecureVault: configuration.persistentStoresConfiguration.sharedSecureVault,
+                               wideEvent: AppDependencyProvider.shared.wideEvent,
+                               onboardingManager: onboardingManager,
+                               sceneID: sceneID)
+        }
+        self.makeMainCoordinator = makeMainCoordinator
+        mainCoordinator = try makeMainCoordinator(nil, isAppLaunchedInBackground ? nil : didFinishLaunchingStartTime)
 
         // MARK: - UI-Dependent Services Setup
         // Initialize and configure services that depend on UI components
@@ -480,6 +514,7 @@ struct Launching: LaunchingHandling {
     private var appDependencies: AppDependencies {
         .init(
             mainCoordinator: mainCoordinator,
+            makeMainCoordinator: makeMainCoordinator,
             services: services,
             launchTaskManager: launchTaskManager,
             launchSourceManager: launchSourceManager,
@@ -487,7 +522,8 @@ struct Launching: LaunchingHandling {
             featureFlagger: featureFlagger,
             voiceSearchHelper: voiceSearchHelper,
             appSettings: appSettings,
-            backgroundTaskManager: BackgroundTaskManager(featureFlagger: featureFlagger)
+            backgroundTaskManager: BackgroundTaskManager(featureFlagger: featureFlagger),
+            sceneRegistry: sceneRegistry
         )
     }
 

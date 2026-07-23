@@ -19,6 +19,7 @@
 
 import UIKit
 import Subscription
+import Core
 
 extension UIApplication {
 
@@ -64,6 +65,21 @@ extension UIApplication {
 
     var firstKeyWindow: UIWindow? {
         return foregroundSceneWindows.first(where: \.isKeyWindow)
+    }
+
+    // MARK: multi-window (iPad)
+
+    /// Requests a new, independent app window/scene (⌘⌥N, tab/link "Open in New Window"). Passing
+    /// `sceneSession: nil` asks the system for a brand-new scene rather than reactivating an
+    /// existing one. `url`, when given, is delivered to the new scene as a `NewWindowUserActivity`
+    /// — the only channel `requestSceneSessionActivation` offers for handing a brand-new scene any
+    /// state — and opened there as its first tab; `nil` yields a plain, empty new window.
+    /// A no-op on iPhone, which never offers multi-window at the OS level regardless of this call.
+    func requestNewWindow(opening url: URL? = nil) {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        requestSceneSessionActivation(nil, userActivity: NewWindowUserActivity.make(url: url), options: nil) { error in
+            Logger.lifecycle.error("🔴 Failed to activate a new window: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
 }

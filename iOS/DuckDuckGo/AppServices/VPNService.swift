@@ -34,16 +34,13 @@ final class VPNService: NSObject {
 
     private let mainCoordinator: MainCoordinator
     private let subscriptionManager: any SubscriptionManager
-    private let application: UIApplication
     init(mainCoordinator: MainCoordinator,
          subscriptionManager: any SubscriptionManager = AppDependencyProvider.shared.subscriptionManager,
-         application: UIApplication = UIApplication.shared,
          notificationCenter: UNUserNotificationCenterRepresentable = UNUserNotificationCenter.current(),
          notificationServiceManager: NotificationServiceManaging,
     ) {
         self.mainCoordinator = mainCoordinator
         self.subscriptionManager = subscriptionManager
-        self.application = application
         self.notificationServiceManager = notificationServiceManager
 
         notificationCenter.delegate = notificationServiceManager
@@ -93,9 +90,11 @@ final class VPNService: NSObject {
             Pixel.fire(pixel: .vpnAccessRevokedAlertSubscribeButtonClicked)
             self.mainCoordinator.segueToDuckDuckGoSubscription(origin: SubscriptionFunnelOrigin.vpnAccessRevokedAlert.rawValue)
         }
-        guard let rootViewController = application.firstKeyWindow?.rootViewController else { return }
+        // VPNService is bound to the primary scene's coordinator for its entire lifetime (see
+        // AppDependencies.mainCoordinator) — present on it directly rather than
+        // `application.firstKeyWindow`, which could resolve to a different scene's window on iPad.
         Pixel.fire(pixel: .vpnAccessRevokedAlertShown)
-        rootViewController.present(alertController, animated: true) {
+        mainCoordinator.controller.present(alertController, animated: true) {
             self.tunnelDefaults.showEntitlementAlert = false
         }
     }

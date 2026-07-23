@@ -84,7 +84,16 @@ class ThemeManager: ThemeManaging {
 }
 
 extension ThemeManaging {
+    /// Applies the current theme to **every** window across **every** connected scene — not just
+    /// one. Theme is a shared, app-wide setting (see the multi-window ownership split), so on iPad
+    /// with two windows open, changing the theme in one must restyle both immediately, not leave
+    /// the other window on the stale style until it happens to reconnect.
     func updateUserInterfaceStyle() {
-        updateUserInterfaceStyle(window: UIApplication.shared.firstKeyWindow)
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows {
+                updateUserInterfaceStyle(window: window)
+            }
+        }
     }
 }

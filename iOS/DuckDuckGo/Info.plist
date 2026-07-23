@@ -184,6 +184,7 @@
 	<array>
 		<string>ConfigurationIntent</string>
 		<string>ASCredentialExchangeActivityType</string>
+		<string>com.duckduckgo.mobile.ios.openURLInNewWindow</string>
 	</array>
 	<key>OSLogPreferences</key>
 	<dict>
@@ -203,7 +204,7 @@
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
+		<true/>
 		<key>UISceneConfigurations</key>
 		<dict>
 			<key>UIWindowSceneSessionRoleApplication</key>

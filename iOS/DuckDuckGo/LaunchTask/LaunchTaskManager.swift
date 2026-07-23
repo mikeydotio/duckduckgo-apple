@@ -49,10 +49,19 @@ final class LaunchTaskManager: LaunchTaskManaging {
     private var hasStarted = false
     private var tasks: [LaunchTask] = []
 
+    /// Registering after `start()` used to be programmer error (asserted away, silently dropped in
+    /// release) back when exactly one scene could ever exist. With multi-window on iPad, a second
+    /// scene's `Connected.init` calls this for its own tasks — e.g. its `ClearInteractionStateTask`
+    /// — *after* the first scene has already foregrounded and started the queue. Rather than lose
+    /// that registration, run it immediately: it joins the same serial queue, so ordering relative
+    /// to already-queued tasks is preserved, just later.
     func register(task: LaunchTask) {
-        assert(!hasStarted, "Registering tasks after starting the manager has no effect.")
         Logger.lifecycle.info("📦 Registered LaunchTask: \(task.name)")
-        tasks.append(task)
+        if hasStarted {
+            queue.addOperation(LaunchOperation(task: task))
+        } else {
+            tasks.append(task)
+        }
     }
 
     func start() {

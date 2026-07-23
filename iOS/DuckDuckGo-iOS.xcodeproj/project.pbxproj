@@ -2187,6 +2187,10 @@
 		CB3B4D4E2D63910B006DAD63 /* LaunchActionHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B4D4D2D63910B006DAD63 /* LaunchActionHandlerTests.swift */; };
 		CB3B4D502D63957F006DAD63 /* UIInteractionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B4D4F2D63957F006DAD63 /* UIInteractionManagerTests.swift */; };
 		CB3B4D522D63CDA0006DAD63 /* AppStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B4D512D63CDA0006DAD63 /* AppStateMachineTests.swift */; };
+		DDEDE89D8A3F8B04BD4C3516 /* SceneRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B91733CA92B8EED87B17B2B /* SceneRegistryTests.swift */; };
+		D0DCCFB847C7C71D52D0BEAC /* NewWindowUserActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DC44C51B1BCE5E4B7345DC6 /* NewWindowUserActivityTests.swift */; };
+		04A202EDE9780E892D83D46E /* LaunchTaskManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3BCC2586748C9BBEDA80AD /* LaunchTaskManagerTests.swift */; };
+		4EA01732ADD7BBBBF0E5ACD5 /* ClearInteractionStateTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A8CB889F60674C5EE16CE41 /* ClearInteractionStateTaskTests.swift */; };
 		7D16F5483F5B98FF2607DD92 /* AppDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00B4BEBDF6BD5D23D755407 /* AppDelegateTests.swift */; };
 		CB3B4D542D648C44006DAD63 /* AuthenticationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B4D532D648C44006DAD63 /* AuthenticationServiceTests.swift */; };
 		CB3B4D562D649DC8006DAD63 /* AutoClearServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B4D552D649DC8006DAD63 /* AutoClearServiceTests.swift */; };
@@ -2195,6 +2199,7 @@
 		CB3C788A2D06D3A700A7E4ED /* Background.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0F002CFE1D54006267B8 /* Background.swift */; };
 		CB3C788B2D06D3A700A7E4ED /* Launching.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0EFA2CFE1D3F006267B8 /* Launching.swift */; };
 		CB3C788C2D06D3A700A7E4ED /* AppStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0F052CFE270D006267B8 /* AppStateMachine.swift */; };
+		9A9000DFE55D03B74C974418 /* SceneRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F518C4EAE6140116FC512BC5 /* SceneRegistry.swift */; };
 		CB3C788E2D06D3A700A7E4ED /* Initializing.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAD0EF82CFE1D35006267B8 /* Initializing.swift */; };
 		CB3CC3372D9EFFB4004D6B33 /* SiteThemeColorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3CC3362D9EFFB4004D6B33 /* SiteThemeColorManager.swift */; };
 		CB4FA44E2C78AACE00A16F5A /* SpecialErrorPageUserScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB4FA44D2C78AACE00A16F5A /* SpecialErrorPageUserScript.swift */; };
@@ -2457,6 +2462,7 @@
 		EE8594992A44791C008A6D06 /* NetworkProtectionTunnelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE8594982A44791C008A6D06 /* NetworkProtectionTunnelController.swift */; };
 		EE9D68D12AE00CF300B55EF4 /* NetworkProtectionVPNSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9D68D02AE00CF300B55EF4 /* NetworkProtectionVPNSettingsView.swift */; };
 		EE9D68D82AE15AD600B55EF4 /* UIApplicationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9D68D72AE15AD600B55EF4 /* UIApplicationExtension.swift */; };
+		BE484A4614107AB8DCCC466C /* NewWindowUserActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D40C949920543A68959A30B /* NewWindowUserActivity.swift */; };
 		EE9D68DC2AE16AE100B55EF4 /* NotificationsAuthorizationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9D68DB2AE16AE100B55EF4 /* NotificationsAuthorizationController.swift */; };
 		EE9D68DE2AE2A65600B55EF4 /* UserDefaults+NetworkProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9D68DD2AE2A65600B55EF4 /* UserDefaults+NetworkProtection.swift */; };
 		EEC02C142B0519DE0045CE11 /* NetworkProtectionVPNLocationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC02C132B0519DE0045CE11 /* NetworkProtectionVPNLocationViewModel.swift */; };
@@ -4924,6 +4930,10 @@
 		CB3B4D4D2D63910B006DAD63 /* LaunchActionHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchActionHandlerTests.swift; sourceTree = "<group>"; };
 		CB3B4D4F2D63957F006DAD63 /* UIInteractionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIInteractionManagerTests.swift; sourceTree = "<group>"; };
 		CB3B4D512D63CDA0006DAD63 /* AppStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateMachineTests.swift; sourceTree = "<group>"; };
+		1B91733CA92B8EED87B17B2B /* SceneRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneRegistryTests.swift; sourceTree = "<group>"; };
+		1DC44C51B1BCE5E4B7345DC6 /* NewWindowUserActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWindowUserActivityTests.swift; sourceTree = "<group>"; };
+		2B3BCC2586748C9BBEDA80AD /* LaunchTaskManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchTaskManagerTests.swift; sourceTree = "<group>"; };
+		5A8CB889F60674C5EE16CE41 /* ClearInteractionStateTaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearInteractionStateTaskTests.swift; sourceTree = "<group>"; };
 		A00B4BEBDF6BD5D23D755407 /* AppDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateTests.swift; sourceTree = "<group>"; };
 		CB3B4D532D648C44006DAD63 /* AuthenticationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationServiceTests.swift; sourceTree = "<group>"; };
 		CB3B4D552D649DC8006DAD63 /* AutoClearServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoClearServiceTests.swift; sourceTree = "<group>"; };
@@ -4979,6 +4989,7 @@
 		CBAD0EFC2CFE1D48006267B8 /* Foreground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Foreground.swift; sourceTree = "<group>"; };
 		CBAD0F002CFE1D54006267B8 /* Background.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Background.swift; sourceTree = "<group>"; };
 		CBAD0F052CFE270D006267B8 /* AppStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateMachine.swift; sourceTree = "<group>"; };
+		F518C4EAE6140116FC512BC5 /* SceneRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneRegistry.swift; sourceTree = "<group>"; };
 		CBAD0F0B2CFF4EDD006267B8 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
 		CBAD0F0F2D0062A3006267B8 /* ScreenshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotService.swift; sourceTree = "<group>"; };
 		CBAD0F132D01EE40006267B8 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
@@ -5221,6 +5232,7 @@
 		EE8594982A44791C008A6D06 /* NetworkProtectionTunnelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProtectionTunnelController.swift; sourceTree = "<group>"; };
 		EE9D68D02AE00CF300B55EF4 /* NetworkProtectionVPNSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProtectionVPNSettingsView.swift; sourceTree = "<group>"; };
 		EE9D68D72AE15AD600B55EF4 /* UIApplicationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIApplicationExtension.swift; sourceTree = "<group>"; };
+		1D40C949920543A68959A30B /* NewWindowUserActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWindowUserActivity.swift; sourceTree = "<group>"; };
 		EE9D68DB2AE16AE100B55EF4 /* NotificationsAuthorizationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsAuthorizationController.swift; sourceTree = "<group>"; };
 		EE9D68DD2AE2A65600B55EF4 /* UserDefaults+NetworkProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserDefaults+NetworkProtection.swift"; sourceTree = "<group>"; };
 		EEA52D94898B2BADA9904EE1 /* FireConfirmationPresenter+Suggestions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "FireConfirmationPresenter+Suggestions.swift"; sourceTree = "<group>"; };
@@ -10316,6 +10328,7 @@
 				84E341951E2F7EFB00BDBA6F /* AppDelegate.swift */,
 				CBAD0F0B2CFF4EDD006267B8 /* AppDependencies.swift */,
 				CBAD0F052CFE270D006267B8 /* AppStateMachine.swift */,
+				F518C4EAE6140116FC512BC5 /* SceneRegistry.swift */,
 				98B31291218CCB8C00E54DE1 /* AppDependencyProvider.swift */,
 				CBAD0F1A2D02EE41006267B8 /* IdleReturnEvaluator.swift */,
 				CBAD0F262D02EE4A006267B8 /* AfterInactivitySettingStorage.swift */,
@@ -11256,6 +11269,10 @@
 				3192F4572E6F1E5500FC2A95 /* LaunchSourceManagerTests.swift */,
 				CB3B4D4F2D63957F006DAD63 /* UIInteractionManagerTests.swift */,
 				CB3B4D512D63CDA0006DAD63 /* AppStateMachineTests.swift */,
+				1B91733CA92B8EED87B17B2B /* SceneRegistryTests.swift */,
+				1DC44C51B1BCE5E4B7345DC6 /* NewWindowUserActivityTests.swift */,
+				2B3BCC2586748C9BBEDA80AD /* LaunchTaskManagerTests.swift */,
+				5A8CB889F60674C5EE16CE41 /* ClearInteractionStateTaskTests.swift */,
 				A00B4BEBDF6BD5D23D755407 /* AppDelegateTests.swift */,
 				CB18A3652E2790C700BE9D8D /* UserAgentConfigurationTests.swift */,
 				4B2DF8A52E64C67000FBF11E /* WideEventServiceTests.swift */,
@@ -11471,6 +11488,7 @@
 				CBF2598C2D47B19800AC63E4 /* AppConfiguration */,
 				CBAD0F0E2D006291006267B8 /* AppServices */,
 				EE9D68D72AE15AD600B55EF4 /* UIApplicationExtension.swift */,
+				1D40C949920543A68959A30B /* NewWindowUserActivity.swift */,
 				36F2CA582E604C4700C7039D /* UNUserNotificationCenterRepresentable.swift */,
 				CB69F31A2D581CF4008550E7 /* ShortcutKey.swift */,
 				CB971BF92F1FB584006EC657 /* BackgroundTaskManager.swift */,
@@ -12970,6 +12988,7 @@
 				FB90C0DE0000000000000A01 /* PageContextExtractionPixelHandler.swift in Sources */,
 				CB3C788B2D06D3A700A7E4ED /* Launching.swift in Sources */,
 				CB3C788C2D06D3A700A7E4ED /* AppStateMachine.swift in Sources */,
+				9A9000DFE55D03B74C974418 /* SceneRegistry.swift in Sources */,
 				CB3C788E2D06D3A700A7E4ED /* Initializing.swift in Sources */,
 				854A01332A558B3A00FCC628 /* UIView+Constraints.swift in Sources */,
 				9F4D2B202FFC000100A1B2C3 /* OnboardingView+DuckAIQuerySearchContent.swift in Sources */,
@@ -13024,6 +13043,7 @@
 				856F28D72D3EC5FA00A88211 /* TabSwitcherViewController+MultiSelect.swift in Sources */,
 				853C5F6121C277C7001F7A05 /* global.swift in Sources */,
 				EE9D68D82AE15AD600B55EF4 /* UIApplicationExtension.swift in Sources */,
+				BE484A4614107AB8DCCC466C /* NewWindowUserActivity.swift in Sources */,
 				5687F64B2F31FEFD00A5C9B3 /* DefaultSubscriptionFlowsExecuter.swift in Sources */,
 				5687F64E2F31FEFD00A5C9B4 /* SubscriptionTransactionErrorAlert.swift in Sources */,
 				3666D86730017A6800B63F99 /* SubscriptionOnboardingCard.swift in Sources */,
@@ -14569,6 +14589,10 @@
 				9F06EB922D10740500905426 /* MaliciousSiteProtectionPreferencesManagerTests.swift in Sources */,
 				98983096255B5019003339A2 /* BookmarksCachingSearchTests.swift in Sources */,
 				CB3B4D522D63CDA0006DAD63 /* AppStateMachineTests.swift in Sources */,
+				DDEDE89D8A3F8B04BD4C3516 /* SceneRegistryTests.swift in Sources */,
+				D0DCCFB847C7C71D52D0BEAC /* NewWindowUserActivityTests.swift in Sources */,
+				04A202EDE9780E892D83D46E /* LaunchTaskManagerTests.swift in Sources */,
+				4EA01732ADD7BBBBF0E5ACD5 /* ClearInteractionStateTaskTests.swift in Sources */,
 				7D16F5483F5B98FF2607DD92 /* AppDelegateTests.swift in Sources */,
 				9FD6E6092DF9026300C2B032 /* AudioSessionManagerTests.swift in Sources */,
 				85F200072217032E006BB258 /* AddressDisplayHelperTests.swift in Sources */,

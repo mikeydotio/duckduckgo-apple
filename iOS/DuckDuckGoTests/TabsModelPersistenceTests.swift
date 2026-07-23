@@ -215,6 +215,98 @@ class TabsModelPersistenceTests: XCTestCase {
         }
     }
 
+    // MARK: - Secondary scene (allowsLegacyMigration = false)
+
+    func testWhenLegacyMigrationDisallowed_existingLegacyDataIsNotMigrated() throws {
+        let legacyStore = MockKeyValueStore()
+        let data = try NSKeyedArchiver.archivedData(withRootObject: model, requiringSecureCoding: false)
+        legacyStore.set(data, forKey: "com.duckduckgo.opentabs")
+
+        let secondaryPersistence = TabsModelPersistence(normalStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        fireStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        legacyStore: legacyStore,
+                                                        allowsLegacyMigration: false)
+
+        XCTAssertNil(try secondaryPersistence.getTabsModel(for: .normal))
+        // The legacy key must be left untouched for the primary scene to migrate later.
+        XCTAssertNotNil(legacyStore.object(forKey: "com.duckduckgo.opentabs"))
+    }
+
+    func testWhenLegacyMigrationDisallowed_clearAllDoesNotTouchLegacyStore() throws {
+        let legacyStore = MockKeyValueStore()
+        let data = try NSKeyedArchiver.archivedData(withRootObject: model, requiringSecureCoding: false)
+        legacyStore.set(data, forKey: "com.duckduckgo.opentabs")
+
+        let secondaryPersistence = TabsModelPersistence(normalStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        fireStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        legacyStore: legacyStore,
+                                                        allowsLegacyMigration: false)
+        secondaryPersistence.clearAll()
+
+        XCTAssertNotNil(legacyStore.object(forKey: "com.duckduckgo.opentabs"))
+    }
+
+    // MARK: - deleteFiles(forDiscardedSceneID:)
+
+    private final class RedirectingFileManager: FileManager {
+        let redirectedDirectory: URL
+        init(redirectedDirectory: URL) {
+            self.redirectedDirectory = redirectedDirectory
+            super.init()
+        }
+        override func urls(for directory: FileManager.SearchPathDirectory, in domainMask: FileManager.SearchPathDomainMask) -> [URL] {
+            [redirectedDirectory]
+        }
+    }
+
+    func testDeleteFilesForDiscardedSceneID_removesBothTabFiles() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let sceneID = "discarded-scene-123"
+        let normalFile = tempDir.appendingPathComponent("TabsModel-\(sceneID)")
+        let fireFile = tempDir.appendingPathComponent("FireTabsModel-\(sceneID)")
+        try Data().write(to: normalFile)
+        try Data().write(to: fireFile)
+
+        TabsModelPersistence.deleteFiles(forDiscardedSceneID: sceneID, fileManager: RedirectingFileManager(redirectedDirectory: tempDir))
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: normalFile.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fireFile.path))
+    }
+
+    func testDeleteFilesForDiscardedSceneID_leavesOtherScenesFilesUntouched() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let otherFile = tempDir.appendingPathComponent("TabsModel-still-open-scene")
+        try Data().write(to: otherFile)
+
+        TabsModelPersistence.deleteFiles(forDiscardedSceneID: "discarded-scene-123",
+                                         fileManager: RedirectingFileManager(redirectedDirectory: tempDir))
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: otherFile.path))
+    }
+
+    func testDeleteFilesForDiscardedSceneID_noFilesPresent_doesNotThrowOrCrash() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        // Deliberately not created — deleteFiles must tolerate a missing directory/files.
+        TabsModelPersistence.deleteFiles(forDiscardedSceneID: "never-existed",
+                                         fileManager: RedirectingFileManager(redirectedDirectory: tempDir))
+    }
+
+    func testAllowsLegacyMigrationDefaultsToTrue() throws {
+        // The designated initializer must default to `true` so every existing call site
+        // (primary-scene production code, and every test above) keeps today's behavior unchanged.
+        let data = try NSKeyedArchiver.archivedData(withRootObject: model, requiringSecureCoding: false)
+        mockLegacyStore.set(data, forKey: "com.duckduckgo.opentabs")
+
+        let loaded = try persistence.getTabsModel(for: .normal)
+        XCTAssertNotNil(loaded)
+    }
+
 }
 
 /// Counts `set` calls so tests can assert how many disk writes actually landed.

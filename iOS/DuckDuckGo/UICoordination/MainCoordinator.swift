@@ -136,7 +136,8 @@ final class MainCoordinator {
          sharedSecureVault: (any AutofillSecureVault)? = nil,
          syncAutoRestoreDecisionManager: SyncAutoRestoreDecisionManaging = AppDependencyProvider.shared.syncAutoRestoreDecisionManager,
          wideEvent: WideEventManaging,
-         onboardingManager: OnboardingManaging
+         onboardingManager: OnboardingManaging,
+         sceneID: String? = nil
     ) throws {
         self.subscriptionManager = subscriptionManager
         self.featureFlagger = featureFlagger
@@ -156,7 +157,7 @@ final class MainCoordinator {
                                                           subscriptionDataReporter: reportingService.subscriptionDataReporter,
                                                           isStillOnboarding: { daxDialogsManager.isStillOnboarding() })
         let previewsSource = DefaultTabPreviewsSource()
-        let tabsPersistence = try TabsModelPersistence()
+        let tabsPersistence = try TabsModelPersistence(sceneID: sceneID)
         let tabsModelProvider = try Self.prepareTabsModel(previewsSource: previewsSource, tabsPersistence: tabsPersistence)
         let historyManager = try Self.makeHistoryManager(tabsModel: tabsModelProvider.aggregateTabsModel)
         reportingService.subscriptionDataReporter.injectTabsModel(tabsModelProvider.aggregateTabsModel)
@@ -859,6 +860,13 @@ extension MainCoordinator: UserActivityHandling {
 
     @discardableResult
     func handleUserActivity(_ userActivity: NSUserActivity) -> Bool {
+        if userActivity.activityType == NewWindowUserActivity.activityType {
+            if let url = NewWindowUserActivity.url(from: userActivity) {
+                handleURL(url)
+            }
+            return true
+        }
+
         if dataImportUserActivityHandler == nil {
             dataImportUserActivityHandler = makeDataImportUserActivityHandler()
         }

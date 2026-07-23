@@ -81,7 +81,8 @@ struct Foreground: ForegroundHandling {
         launchAction = LaunchAction(actionToHandle: actionToHandle,
                                     lastBackgroundDate: (try? lastBackgroundDateStorage.lastBackgroundDate) ?? nil,
                                     isFirstForeground: isFirstForeground)
-        let daxDialogsManager = appDependencies.mainCoordinator.controller.daxDialogsManager
+        let mainCoordinator = sceneDependencies.mainCoordinator
+        let daxDialogsManager = mainCoordinator.controller.daxDialogsManager
         let idleReturnEligibilityManager = IdleReturnEligibilityManager(
             featureFlagger: appDependencies.featureFlagger,
             keyValueStore: appDependencies.services.keyValueFileStoreService.keyValueFilesStore,
@@ -90,19 +91,19 @@ struct Foreground: ForegroundHandling {
         )
         let idleReturnEvaluator = IdleReturnEvaluator(eligibilityManager: idleReturnEligibilityManager)
         launchActionHandler = LaunchActionHandler(
-            urlHandler: appDependencies.mainCoordinator,
-            shortcutItemHandler: appDependencies.mainCoordinator,
-            userActivityHandler: appDependencies.mainCoordinator,
-            keyboardPresenter: KeyboardPresenter(mainViewController: appDependencies.mainCoordinator.controller),
+            urlHandler: mainCoordinator,
+            shortcutItemHandler: mainCoordinator,
+            userActivityHandler: mainCoordinator,
+            keyboardPresenter: KeyboardPresenter(mainViewController: mainCoordinator.controller),
             launchSourceService: appDependencies.launchSourceManager,
             idleReturnEvaluator: idleReturnEvaluator,
-            idleReturnDelegate: appDependencies.mainCoordinator
+            idleReturnDelegate: mainCoordinator
         )
         interactionManager = UIInteractionManager(
             authenticationService: sceneDependencies.authenticationService,
             autoClearService: sceneDependencies.autoClearService,
             launchActionHandler: launchActionHandler,
-            onboardingPresenter: appDependencies.mainCoordinator
+            onboardingPresenter: mainCoordinator
         )
     }
 
@@ -123,13 +124,14 @@ struct Foreground: ForegroundHandling {
 
         configureAppearance()
 
+        let mainCoordinator = sceneDependencies.mainCoordinator
         interactionManager.start(
             launchAction: launchAction,
             /// Handle **WebView related logic** here that could be affected by `AutoClear` feature.
             /// This is called when the **app is ready to handle web navigations** after all browser data has been cleared.
             onWebViewReadyForInteractions: {
                 if #available(iOS 18.4, *) {
-                    appDependencies.mainCoordinator.loadWebExtensionsIfPending()
+                    mainCoordinator.loadWebExtensionsIfPending()
                 }
             },
             /// Handle **UI related logic** here that could be affected by Authentication screen or `AutoClear` feature
@@ -141,28 +143,33 @@ struct Foreground: ForegroundHandling {
                 // This helps distinguish database corruption from fresh installs/restores
                 BoolFileMarker(name: .hasSuccessfullyLaunchedBefore)?.mark()
 
-                // Present any eligible modal prompt
-                appDependencies.mainCoordinator.presentModalPromptIfNeeded()
+                // Present any eligible modal prompt in this scene's window
+                mainCoordinator.presentModalPromptIfNeeded()
             }
         )
 
-        services.vpnService.resume()
-        services.aiChatService.resume()
-        services.configurationService.resume()
-        services.reportingService.resume()
-        services.subscriptionService.resume()
-        services.autofillService.resume()
-        services.maliciousSiteProtectionService.resume()
-        services.syncService.resume()
-        services.remoteMessagingService.resume()
-        services.statisticsService.resume()
-        services.defaultBrowserPromptService.resume()
-        services.dbpService.resume()
-        services.inactivityNotificationSchedulerService.resume()
-        services.wideEventService.resume()
+        // App-wide services resume once, when the *first* scene becomes active — not once per
+        // scene — so a second window on iPad doesn't redundantly restart network/timer/pixel work.
+        // See `SceneRegistry`.
+        if appDependencies.sceneRegistry.sceneDidBecomeActive() {
+            services.vpnService.resume()
+            services.aiChatService.resume()
+            services.configurationService.resume()
+            services.reportingService.resume()
+            services.subscriptionService.resume()
+            services.autofillService.resume()
+            services.maliciousSiteProtectionService.resume()
+            services.syncService.resume()
+            services.remoteMessagingService.resume()
+            services.statisticsService.resume()
+            services.defaultBrowserPromptService.resume()
+            services.dbpService.resume()
+            services.inactivityNotificationSchedulerService.resume()
+            services.wideEventService.resume()
+        }
         appDependencies.launchSourceManager.handleAppAction(launchAction)
 
-        appDependencies.mainCoordinator.onForeground(isFirstForeground: isFirstForeground)
+        mainCoordinator.onForeground(isFirstForeground: isFirstForeground)
 
         appDependencies.backgroundTaskManager.endBackgroundTask()
 

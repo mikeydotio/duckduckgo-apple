@@ -130,6 +130,9 @@
 /* Open in New Tab action */
 "action.title.newTabForUrl" = "Open in New Tab";
 
+/* Open in New Window action (iPad multi-window) */
+"action.title.newWindowForUrl" = "Open in New Window";
+
 /* Open action */
 "action.title.open" = "Open";
 
@@ -2622,6 +2625,9 @@
 
 /* No comment provided by engineer. */
 "keyCommandNewTab" = "New Tab";
+
+/* Discoverability title for the keyboard command that opens a new, independent app window (iPad multi-window) */
+"keyCommandNewWindow" = "New Window";
 
 /* No comment provided by engineer. */
 "keyCommandNextTab" = "Next Tab";

@@ -26,7 +26,18 @@ import UIKit
 @MainActor
 struct Initializing: InitializingHandling {
 
+    private let sceneRegistry: SceneRegistry
+
+    /// Satisfies `InitializingHandling`'s protocol-required plain `init()` (used by
+    /// `MockInitializing` in tests) by delegating to `init(sceneRegistry:)` with a fresh instance;
+    /// `AppDelegate` always calls `init(sceneRegistry:)` directly with its own, process-lifetime
+    /// instance instead.
     init() {
+        self.init(sceneRegistry: SceneRegistry())
+    }
+
+    init(sceneRegistry: SceneRegistry) {
+        self.sceneRegistry = sceneRegistry
         Logger.lifecycle.info("Initializing: \(#function)")
         CrashHandlersConfiguration.setupCrashHandlers()
     }
@@ -36,7 +47,7 @@ struct Initializing: InitializingHandling {
 extension Initializing {
 
     func makeLaunchingState() throws -> any LaunchingHandling {
-        try Launching()
+        try Launching(sceneRegistry: sceneRegistry)
     }
 
 }

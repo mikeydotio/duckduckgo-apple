@@ -103,6 +103,17 @@ extension MainViewController {
             )
         }
 
+        // iPad-only: opens a second, independent app window. ⌘N is already "New Tab" and ⌘⇧N is
+        // already "New Fire Tab" above, so this uses ⌘⌥N instead. iPhone never offers multi-window
+        // at the OS level regardless, so the command is simply absent there.
+        var newWindowCommands: [UIKeyCommand] = []
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            newWindowCommands.append(
+                UIKeyCommand(title: "", action: #selector(keyboardNewWindow), input: "n", modifierFlags: [.command, .alternate],
+                             discoverabilityTitle: UserText.keyCommandNewWindow)
+            )
+        }
+
         let other: [UIKeyCommand] = [
             UIKeyCommand(title: "", action: #selector(keyboardNextTab), input: "]", modifierFlags: [.shift, .command],
                          discoverabilityTitle: UserText.keyCommandNextTab),
@@ -129,7 +140,7 @@ extension MainViewController {
             UIKeyCommand(title: "", action: #selector(keyboardEscape), input: UIKeyCommand.inputEscape, modifierFlags: [])
         ]
 
-        let commands = [alwaysAvailable, browsingCommands, findInPageCommands, arrowKeys, tabCommands, newFireTabCommands, other].flatMap { $0 }
+        let commands = [alwaysAvailable, browsingCommands, findInPageCommands, arrowKeys, tabCommands, newFireTabCommands, newWindowCommands, other].flatMap { $0 }
         commands.forEach {
             $0.wantsPriorityOverSystemBehavior = true
         }
@@ -205,6 +216,11 @@ extension MainViewController {
         } else {
             keyboardFind()
         }
+    }
+
+    @objc func keyboardNewWindow() {
+        guard isShortcutEnabled() else { return }
+        UIApplication.shared.requestNewWindow()
     }
 
     @objc func keyboardNewFireTab() {

@@ -22,7 +22,16 @@ import Common
 
 @UIApplicationMain class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    let appStateMachine: AppStateMachine = AppStateMachine(initialState: .initializing(Initializing()))
+    /// Owned here — not by `Launching`, which is rebuilt on every cold start — because it must
+    /// survive for the whole process lifetime and be reachable from `didDiscardSceneSessions`
+    /// regardless of which lifecycle state the app is currently in.
+    let sceneRegistry = SceneRegistry()
+    let appStateMachine: AppStateMachine
+
+    override init() {
+        appStateMachine = AppStateMachine(initialState: .initializing(Initializing(sceneRegistry: sceneRegistry)))
+        super.init()
+    }
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
@@ -35,6 +44,19 @@ import Common
 
         appStateMachine.handle(.didFinishLaunching(isTesting: Self.isTesting))
         return true
+    }
+
+    /// Called when the system permanently discards a scene's session — on iPad, this means the
+    /// user closed that window (not just backgrounded it). Cleans up that window's on-disk tabs
+    /// and its now-dead `TabManager` entry in `sceneRegistry`, which would otherwise leak the
+    /// window's entire object graph (MainCoordinator, TabManager, MainViewController, tabs) for
+    /// the rest of the process's lifetime.
+    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
+        for session in sceneSessions {
+            let sessionID = session.persistentIdentifier
+            TabsModelPersistence.deleteFiles(forDiscardedSceneID: sessionID)
+            sceneRegistry.unregisterTabManager(forSceneID: sessionID)
+        }
     }
 
 }

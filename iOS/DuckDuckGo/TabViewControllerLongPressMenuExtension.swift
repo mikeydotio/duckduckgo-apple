@@ -48,6 +48,13 @@ extension TabViewController {
             self?.onBackgroundTabAction(url: url)
         })
 
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            tabActions.append(UIAction(title: UserText.actionNewWindowForUrl,
+                                       image: UIImage(systemName: "macwindow")) { [weak self] _ in
+                self?.onNewWindowAction(url: url)
+            })
+        }
+
         sections.append(UIMenu(title: "", options: .displayInline, children: tabActions))
 
         let fireModeCapability = FireModeCapability.create()
@@ -98,6 +105,11 @@ extension TabViewController {
             PixelParameters.browsingMode: tabModel.pixelParamValue
         ])
         delegate?.tab(self, didRequestNewBackgroundTabForUrl: url, inheritingAttribution: adClickAttributionLogic.state)
+    }
+
+    private func onNewWindowAction(url: URL) {
+        Pixel.fire(pixel: .linkLongPressNewWindow)
+        UIApplication.shared.requestNewWindow(opening: url)
     }
     
     private func onOpenAction(forUrl url: URL) {

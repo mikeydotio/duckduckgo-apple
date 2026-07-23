@@ -57,16 +57,21 @@ struct Background: BackgroundHandling {
         try? lastBackgroundDateStorage.set(Date(), for: \.lastBackgroundDate)
         appDependencies.backgroundTaskManager.startBackgroundTask()
 
-        services.dbpService.onBackground()
-        services.vpnService.suspend()
-        services.aiChatService.suspend()
+        // App-wide services suspend once, when the *last* scene backgrounds — not once per scene —
+        // so backgrounding one of several windows on iPad doesn't tear down services still needed by
+        // another, still-active window. See `SceneRegistry`.
+        if appDependencies.sceneRegistry.sceneDidEnterBackground() {
+            services.dbpService.onBackground()
+            services.vpnService.suspend()
+            services.aiChatService.suspend()
+            services.autofillService.suspend()
+            services.syncService.suspend()
+            services.reportingService.suspend()
+        }
         sceneDependencies.authenticationService.suspend()
         sceneDependencies.autoClearService.suspend()
-        services.autofillService.suspend()
-        services.syncService.suspend()
-        services.reportingService.suspend()
 
-        appDependencies.mainCoordinator.onBackground()
+        sceneDependencies.mainCoordinator.onBackground()
 
         updateApplicationShortcutItems()
         cleanScreenTimeDataOniOS26()

@@ -182,6 +182,7 @@
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>ConfigurationIntent</string>
+		<string>com.duckduckgo.mobile.ios.openURLInNewWindow</string>
 	</array>
 	<key>UIApplicationShortcutItems</key>
 	<array>
@@ -261,7 +262,7 @@
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
+		<true/>
 		<key>UISceneConfigurations</key>
 		<dict>
 			<key>UIWindowSceneSessionRoleApplication</key>

@@ -32,5 +32,13 @@
         "suffixes": ["platform", "form_factor"],
         "parameters": ["appVersion"],
         "expires": "2026-08-04"
+    },
+
+    "m_link-long-press_new-window": {
+        "description": "Fired when the user opens a link in a new window via long-press menu (iPad multi-window only)",
+        "owners": ["mikeyward"],
+        "triggers": ["user_submitted"],
+        "suffixes": ["platform", "form_factor"],
+        "parameters": ["appVersion"]
     }
 }

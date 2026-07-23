@@ -236,6 +236,9 @@ final class DuckPlayerViewModel: ObservableObject {
 
     /// Updates the current interface orientation state
     func updateOrientation() {
+        // TODO(#30 follow-up): resolves to an arbitrary scene on iPad with more than one window
+        // open, rather than this player's own. `webView`/`coordinator` above aren't populated at
+        // the point this needs the answer, so there's no cheap per-scene handle here yet.
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
             let newIsLandscape = windowScene.interfaceOrientation.isLandscape
             isLandscape = newIsLandscape

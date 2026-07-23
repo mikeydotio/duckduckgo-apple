@@ -63,25 +63,46 @@ class TabsModelPersistence: TabsModelPersisting {
     private let normalStore: ThrowingKeyValueStoring
     private let fireStore: ThrowingKeyValueStoring
     private let legacyStore: KeyValueStoring
+    private let allowsLegacyMigration: Bool
 
     /// Serial queue for off-main writes. Shared by normal and fire stores so `flush()` drains both.
     /// `userInitiated` QoS so the queue does not get starved by background work and
     /// `flushPendingSave()` on terminate / resign-active does not block main on a backlog.
     private let persistQueue = DispatchQueue(label: "com.duckduckgo.tabsmodel.persist", qos: .userInitiated)
 
-    convenience init() throws {
+    /// - Parameter sceneID: `nil` for the app's primary scene, which keeps the original,
+    ///   pre-multi-window file names (`TabsModel` / `FireTabsModel`) so existing installs migrate
+    ///   with zero disruption. Any additional scene (a second iPad window) passes its
+    ///   `UISceneSession.persistentIdentifier` so its tabs persist to their own files and don't
+    ///   collide with the primary scene's — `KeyValueFileStore` throws if the same file is opened
+    ///   twice concurrently.
+    convenience init(sceneID: String? = nil) throws {
 
         guard let appSupportDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             // Move app to Terminating state
             throw TerminationError.tabsPersistence(.appSupportDirAccess)
         }
 
+        let normalStorageName: String
+        let fireStorageName: String
+        if let sceneID {
+            normalStorageName = "\(Constants.normalStorageName)-\(sceneID)"
+            fireStorageName = "\(Constants.fireStorageName)-\(sceneID)"
+        } else {
+            normalStorageName = Constants.normalStorageName
+            fireStorageName = Constants.fireStorageName
+        }
+
         do {
-            let normalStore = try KeyValueFileStore(location: appSupportDir, name: Constants.normalStorageName)
-            let fireStore = try KeyValueFileStore(location: appSupportDir, name: Constants.fireStorageName)
+            let normalStore = try KeyValueFileStore(location: appSupportDir, name: normalStorageName)
+            let fireStore = try KeyValueFileStore(location: appSupportDir, name: fireStorageName)
             self.init(normalStore: normalStore,
                       fireStore: fireStore,
-                      legacyStore: UserDefaults.app)
+                      legacyStore: UserDefaults.app,
+                      // The legacy UserDefaults migration only ever applied to the single window
+                      // that existed before multi-window support, so only the primary scene should
+                      // consult (and clear) it.
+                      allowsLegacyMigration: sceneID == nil)
         } catch {
             // Move app to Terminating state
             throw TerminationError.tabsPersistence(.storeInit)
@@ -90,10 +111,12 @@ class TabsModelPersistence: TabsModelPersisting {
 
     init(normalStore: ThrowingKeyValueStoring,
          fireStore: ThrowingKeyValueStoring,
-         legacyStore: KeyValueStoring) {
+         legacyStore: KeyValueStoring,
+         allowsLegacyMigration: Bool = true) {
         self.normalStore = normalStore
         self.fireStore = fireStore
         self.legacyStore = legacyStore
+        self.allowsLegacyMigration = allowsLegacyMigration
     }
 
     private func store(for key: TabsModelStorageKey) -> ThrowingKeyValueStoring {
@@ -128,7 +151,7 @@ class TabsModelPersistence: TabsModelPersisting {
             return unarchive(data: data)
         }
 
-        guard key == .normal else { return nil }
+        guard key == .normal, allowsLegacyMigration else { return nil }
 
         if let legacyData = legacyStore.object(forKey: Constants.legacyUDKey) as? Data,
            let model = unarchive(data: legacyData) {
@@ -145,7 +168,7 @@ class TabsModelPersistence: TabsModelPersisting {
 
     public func clear(for key: TabsModelStorageKey) {
         try? store(for: key).removeObject(forKey: Constants.storageKey)
-        if key == .normal {
+        if key == .normal, allowsLegacyMigration {
             legacyStore.removeObject(forKey: Constants.legacyUDKey)
         }
     }
@@ -153,7 +176,9 @@ class TabsModelPersistence: TabsModelPersisting {
     public func clearAll() {
         try? normalStore.removeObject(forKey: Constants.storageKey)
         try? fireStore.removeObject(forKey: Constants.storageKey)
-        legacyStore.removeObject(forKey: Constants.legacyUDKey)
+        if allowsLegacyMigration {
+            legacyStore.removeObject(forKey: Constants.legacyUDKey)
+        }
     }
 
     public func save(model: TabsModel, for key: TabsModelStorageKey) -> Result<Void, Error> {
@@ -212,6 +237,23 @@ class TabsModelPersistence: TabsModelPersisting {
         }
         return persistQueue.sync {
             self.write(data: data, into: targetStore)
+        }
+    }
+
+    /// Deletes the on-disk tab files for a scene that has been permanently discarded
+    /// (`AppDelegate.application(_:didDiscardSceneSessions:)`). Only ever called with a real scene
+    /// ID (never `nil`/the primary scene) — the primary scene's unsuffixed `TabsModel`/
+    /// `FireTabsModel` files must never be deleted this way.
+    ///
+    /// Note: this does not also delete that scene's per-tab webview-interaction cache files
+    /// (`TabInteractionStateDiskSource`) — those are keyed by tab UID, not scene ID, and by this
+    /// point the scene's own `TabsModel-<sceneID>` file (the only record of which UIDs were its)
+    /// is being deleted in this same call. That residual, bounded disk cache leftover is a known,
+    /// low-severity follow-up, not fixed here.
+    static func deleteFiles(forDiscardedSceneID sceneID: String, fileManager: FileManager = .default) {
+        guard let appSupportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        for name in [Constants.normalStorageName, Constants.fireStorageName] {
+            try? fileManager.removeItem(at: appSupportDir.appendingPathComponent("\(name)-\(sceneID)"))
         }
     }
 
