@@ -80,7 +80,21 @@ final class AppDependencyProvider: DependencyProvider {
     let contentScopeExperimentsManager: ContentScopeExperimentsManaging
 
     let storageCache = StorageCache()
+
+    /// Deliberately app-global, not per-scene, on iPad: the downloads directory and its
+    /// `downloadList` are one shared, on-disk location — a download started in one window is the
+    /// same download seen in another, matching Files/Safari conventions. Multi-window UI already
+    /// fans out correctly without extra plumbing: each scene's own `MainViewController` observes
+    /// `.downloadMenuAlertStateDidChange` independently and refreshes its own badge, and download
+    /// completion UI is presented from the originating `TabViewController`, which already belongs
+    /// to that scene's own `TabManager`.
     let downloadManager = DownloadManager()
+
+    /// Deliberately app-global, not per-scene, on iPad: an autofill unlock (Face ID/Touch ID/
+    /// passcode) is an OS-level "this is the authenticated device owner" signal, not tied to a
+    /// specific window — matching how System Settings' autofill unlock behaves for the whole app.
+    /// Unlocking in one window intentionally keeps autofill unlocked in another, for the same
+    /// user, during the same session.
     let autofillLoginSession = AutofillLoginSession()
     lazy var autofillNeverPromptWebsitesManager = AutofillNeverPromptWebsitesManager()
 
