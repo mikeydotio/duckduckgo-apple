@@ -146,20 +146,25 @@ struct Foreground: ForegroundHandling {
             }
         )
 
-        services.vpnService.resume()
-        services.aiChatService.resume()
-        services.configurationService.resume()
-        services.reportingService.resume()
-        services.subscriptionService.resume()
-        services.autofillService.resume()
-        services.maliciousSiteProtectionService.resume()
-        services.syncService.resume()
-        services.remoteMessagingService.resume()
-        services.statisticsService.resume()
-        services.defaultBrowserPromptService.resume()
-        services.dbpService.resume()
-        services.inactivityNotificationSchedulerService.resume()
-        services.wideEventService.resume()
+        // App-wide services resume once, when the *first* scene becomes active — not once per
+        // scene — so a second window on iPad doesn't redundantly restart network/timer/pixel work.
+        // See `SceneRegistry`.
+        if appDependencies.sceneRegistry.sceneDidBecomeActive() {
+            services.vpnService.resume()
+            services.aiChatService.resume()
+            services.configurationService.resume()
+            services.reportingService.resume()
+            services.subscriptionService.resume()
+            services.autofillService.resume()
+            services.maliciousSiteProtectionService.resume()
+            services.syncService.resume()
+            services.remoteMessagingService.resume()
+            services.statisticsService.resume()
+            services.defaultBrowserPromptService.resume()
+            services.dbpService.resume()
+            services.inactivityNotificationSchedulerService.resume()
+            services.wideEventService.resume()
+        }
         appDependencies.launchSourceManager.handleAppAction(launchAction)
 
         appDependencies.mainCoordinator.onForeground(isFirstForeground: isFirstForeground)

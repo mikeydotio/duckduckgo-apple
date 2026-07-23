@@ -61,6 +61,7 @@ struct Launching: LaunchingHandling {
     private let launchSourceManager = LaunchSourceManager()
     private let lastBackgroundDateStorage: any ThrowingKeyedStoring<IdleReturnLastBackgroundDateKeys>
     private let onboardingManager: OnboardingManager
+    private let sceneRegistry = SceneRegistry()
 
     // MARK: - Handle application(_:didFinishLaunchingWithOptions:) logic here
 
@@ -487,7 +488,8 @@ struct Launching: LaunchingHandling {
             featureFlagger: featureFlagger,
             voiceSearchHelper: voiceSearchHelper,
             appSettings: appSettings,
-            backgroundTaskManager: BackgroundTaskManager(featureFlagger: featureFlagger)
+            backgroundTaskManager: BackgroundTaskManager(featureFlagger: featureFlagger),
+            sceneRegistry: sceneRegistry
         )
     }
 
