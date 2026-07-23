@@ -272,7 +272,9 @@ class MainViewController: UIViewController {
     }
 
     var searchBarRect: CGRect {
-        let view = UIApplication.shared.firstKeyWindow?.rootViewController?.view
+        // `self` is always this scene's own root view controller (see Connected.configure), so
+        // `self.view` is already the correct target — no need to resolve any window at all, let
+        // alone `firstKeyWindow`, which could belong to an entirely different scene on iPad.
         return viewCoordinator.omniBar.barView.searchContainer.convert(viewCoordinator.omniBar.barView.searchContainer.bounds, to: view)
     }
 
@@ -6623,7 +6625,7 @@ extension MainViewController {
         
         fireExecutor.prepare(for: request)
         
-        fireButtonAnimator.animate {
+        fireButtonAnimator.animate(window: view.window) {
             await self.fireExecutor.burn(request: request, applicationState: .unknown)
             Instruments.shared.endTimedEvent(for: spid)
             self.daxDialogsManager.resumeRegularFlow()

@@ -78,4 +78,13 @@ class ThemeManagerTests: XCTestCase {
         manager.setThemeStyle(.systemDefault)
         XCTAssertEqual(window.overrideUserInterfaceStyle, .unspecified)
     }
+
+    // NOTE: `updateUserInterfaceStyle()` (no-arg) now loops `UIApplication.shared.connectedScenes`
+    // → every `UIWindowScene.windows`, restyling each via the single-window overload above (still
+    // covered by `testEnablingThemeOverridesUserInterfaceStyle`) — see ThemeManager.swift. A true
+    // multi-scene regression test needs a second, genuinely independent `UIWindowScene`, which
+    // XCTest cannot fabricate; a second `UIWindow` grafted onto the one real test scene doesn't
+    // reliably register as an independent, restylable window the way an actual second iPad scene
+    // does, making that variant of this test flaky for reasons unrelated to production behavior.
+    // Multi-window theming is exercised manually (see PR description) instead.
 }

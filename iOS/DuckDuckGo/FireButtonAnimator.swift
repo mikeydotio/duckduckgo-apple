@@ -125,9 +125,15 @@ class FireButtonAnimator {
                                                object: nil)
     }
         
-    func animate(onAnimationStart: @escaping () async -> Void, onTransitionCompleted: @escaping () async -> Void, completion: @escaping () async -> Void) {
+    /// - Parameter window: the window to animate over. Pass the caller's own `view.window` so the
+    ///   fire animation plays over the window the user actually tapped Fire in — important on iPad
+    ///   with more than one window open, where `UIApplication.shared.firstKeyWindow` could resolve
+    ///   to a different, unrelated window. Defaults to `firstKeyWindow` only for callers with no
+    ///   view of their own to anchor to.
+    func animate(window: UIWindow? = UIApplication.shared.firstKeyWindow,
+                 onAnimationStart: @escaping () async -> Void, onTransitionCompleted: @escaping () async -> Void, completion: @escaping () async -> Void) {
 
-        guard let window = UIApplication.shared.firstKeyWindow,
+        guard let window,
               let snapshot = window.snapshotView(afterScreenUpdates: false) else {
             Task { @MainActor in
                 await onAnimationStart()

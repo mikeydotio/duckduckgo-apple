@@ -51,8 +51,10 @@ struct FireConfirmationPresenter {
                                  browsingMode: BrowsingMode,
                                  onConfirm: @escaping (FireRequest) -> Void,
                                  onCancel: @escaping () -> Void) {
-        guard let window = UIApplication.shared.firstKeyWindow else {
-            assertionFailure("No key window available")
+        // `viewController` is already this scene's own presenting controller — anchor to its own
+        // window rather than `firstKeyWindow`, which could belong to a different scene on iPad.
+        guard let window = viewController.view.window else {
+            assertionFailure("No window available")
             return
         }
         presentScopeConfirmationSheet(on: viewController, from: window, sourceRect: sourceRect, tabViewModel: tabViewModel, pixelSource: pixelSource, fireContext: fireContext, isSingleTab: isSingleTab, browsingMode: browsingMode, onConfirm: onConfirm, onCancel: onCancel)

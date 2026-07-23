@@ -468,7 +468,7 @@ final class AIChatHistoryViewController: UIViewController {
     /// reactively falls through to its empty state without dismissing the sheet.
     private func burnAllChats() {
         let viewModel = self.viewModel
-        fireButtonAnimator.animate {
+        fireButtonAnimator.animate(window: view.window) {
             await viewModel.burnAllChats()
         } onTransitionCompleted: {
         } completion: {
