@@ -39,8 +39,33 @@ final class SceneRegistry {
 
     private(set) var activeSceneCount = 0
     private var primarySceneID: String?
+    private var tabManagersBySceneID: [String: TabManaging] = [:]
 
-    init() {}
+    // `nonisolated` so `SceneRegistry()` is usable as a default-argument expression (e.g. in
+    // `Initializing.init(sceneRegistry:)`/`Launching.init(sceneRegistry:)`) — default-argument
+    // expressions run in a nonisolated context regardless of the enclosing type's own isolation.
+    nonisolated init() {}
+
+    /// Registers `tabManager` as belonging to `sceneID`, called once from `Connected.init` for
+    /// every scene (primary and secondary alike). Lets cleanup work that scans a single, shared,
+    /// app-wide directory — e.g. `ClearInteractionStateTask`'s webview-interaction cache — compute
+    /// the union of every currently-connected scene's tabs via `allConnectedTabs`, instead of only
+    /// its own scene's, which would otherwise delete another still-open window's cached state.
+    func registerTabManager(_ tabManager: TabManaging, forSceneID sceneID: String) {
+        tabManagersBySceneID[sceneID] = tabManager
+    }
+
+    /// Called when a scene is permanently discarded (`didDiscardSceneSessions`) so its tabs stop
+    /// contributing to `allConnectedTabs` — otherwise its now-deleted tab files would be treated as
+    /// still "excluded" from cleanup forever.
+    func unregisterTabManager(forSceneID sceneID: String) {
+        tabManagersBySceneID.removeValue(forKey: sceneID)
+    }
+
+    /// The union of every currently-connected scene's tabs — see `registerTabManager`.
+    var allConnectedTabs: [Tab] {
+        tabManagersBySceneID.values.flatMap { $0.allTabsModel.tabs }
+    }
 
     /// Determines whether `sceneID` is the app's **primary** scene — the first one to ever connect
     /// in this process, and the only one that can exist until multi-window is enabled. The primary

@@ -62,11 +62,20 @@ struct Launching: LaunchingHandling {
     private let launchSourceManager = LaunchSourceManager()
     private let lastBackgroundDateStorage: any ThrowingKeyedStoring<IdleReturnLastBackgroundDateKeys>
     private let onboardingManager: OnboardingManager
-    private let sceneRegistry = SceneRegistry()
+    private let sceneRegistry: SceneRegistry
 
     // MARK: - Handle application(_:didFinishLaunchingWithOptions:) logic here
 
+    /// Satisfies `LaunchingHandling`'s protocol-required plain `init() throws` (used by
+    /// `MockLaunching` in tests) by delegating to `init(sceneRegistry:)` with a fresh instance;
+    /// `Initializing` always calls `init(sceneRegistry:)` directly with `AppDelegate`'s own,
+    /// process-lifetime instance instead.
     init() throws {
+        try self.init(sceneRegistry: SceneRegistry())
+    }
+
+    init(sceneRegistry: SceneRegistry) throws {
+        self.sceneRegistry = sceneRegistry
         Logger.lifecycle.info("Launching: \(#function)")
 
         // Wire the DesignSystem rebrand singleton to the live feature flag.

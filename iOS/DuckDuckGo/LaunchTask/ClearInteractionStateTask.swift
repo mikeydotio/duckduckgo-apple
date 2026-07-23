@@ -23,7 +23,11 @@ struct ClearInteractionStateTask: LaunchTask {
 
     let autoClearService: AutoClearServiceProtocol
     let interactionStateSource: TabInteractionStateSource?
-    let tabManager: TabManager
+    /// Not just this scene's own `TabManager`: the interaction-state cache directory is shared by
+    /// every scene, so the exclusion set must be every currently-connected scene's tabs
+    /// (`SceneRegistry.allConnectedTabs`), or a second window's cleanup task would delete a still-
+    /// open first window's cached webview state (and vice versa).
+    let sceneRegistry: SceneRegistry
 
     var name: String = "Clear Interaction State"
 
@@ -33,9 +37,9 @@ struct ClearInteractionStateTask: LaunchTask {
             return
         }
 
-        // Accessing tabManager.model.tabs must happen on the main thread
+        // Accessing tab models must happen on the main thread
         let statesToRemoveResult: Result<[URL], Error> = DispatchQueue.main.sync {
-            interactionStateSource.urlsToRemove(excluding: tabManager.allTabsModel.tabs)
+            interactionStateSource.urlsToRemove(excluding: sceneRegistry.allConnectedTabs)
         }
 
         // Perform file removal on the current background queue as it is thread-safe

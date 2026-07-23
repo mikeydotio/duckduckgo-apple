@@ -240,4 +240,21 @@ class TabsModelPersistence: TabsModelPersisting {
         }
     }
 
+    /// Deletes the on-disk tab files for a scene that has been permanently discarded
+    /// (`AppDelegate.application(_:didDiscardSceneSessions:)`). Only ever called with a real scene
+    /// ID (never `nil`/the primary scene) — the primary scene's unsuffixed `TabsModel`/
+    /// `FireTabsModel` files must never be deleted this way.
+    ///
+    /// Note: this does not also delete that scene's per-tab webview-interaction cache files
+    /// (`TabInteractionStateDiskSource`) — those are keyed by tab UID, not scene ID, and by this
+    /// point the scene's own `TabsModel-<sceneID>` file (the only record of which UIDs were its)
+    /// is being deleted in this same call. That residual, bounded disk cache leftover is a known,
+    /// low-severity follow-up, not fixed here.
+    static func deleteFiles(forDiscardedSceneID sceneID: String, fileManager: FileManager = .default) {
+        guard let appSupportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        for name in [Constants.normalStorageName, Constants.fireStorageName] {
+            try? fileManager.removeItem(at: appSupportDir.appendingPathComponent("\(name)-\(sceneID)"))
+        }
+    }
+
 }

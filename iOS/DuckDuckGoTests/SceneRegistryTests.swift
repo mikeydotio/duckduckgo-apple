@@ -18,6 +18,7 @@
 //
 
 import Testing
+import Core
 @testable import DuckDuckGo
 
 @MainActor
@@ -106,6 +107,66 @@ final class SceneRegistryTests {
         #expect(registry.isPrimaryScene(sessionID: "scene-A") == true)
         #expect(registry.isPrimaryScene(sessionID: "scene-B") == false)
         #expect(registry.isPrimaryScene(sessionID: "scene-B") == false)
+    }
+
+    // MARK: - allConnectedTabs
+
+    private func makeTab(url: String) -> Tab {
+        Tab(link: Link(title: nil, url: URL(string: url)!))
+    }
+
+    @Test("With no scenes registered, allConnectedTabs is empty")
+    func allConnectedTabsEmptyWhenNothingRegistered() {
+        #expect(registry.allConnectedTabs.isEmpty)
+    }
+
+    @Test("allConnectedTabs reflects a single registered scene's tabs")
+    func allConnectedTabsReflectsOneScene() {
+        let tabManager = MockTabManager()
+        tabManager.allTabsModel = TabsModel(tabs: [makeTab(url: "https://a.com")], desktop: true)
+        registry.registerTabManager(tabManager, forSceneID: "scene-A")
+
+        #expect(registry.allConnectedTabs.count == 1)
+    }
+
+    @Test("allConnectedTabs is the union of every registered scene's tabs")
+    func allConnectedTabsIsUnionAcrossScenes() {
+        let tabManagerA = MockTabManager()
+        tabManagerA.allTabsModel = TabsModel(tabs: [makeTab(url: "https://a.com"), makeTab(url: "https://a2.com")], desktop: true)
+        let tabManagerB = MockTabManager()
+        tabManagerB.allTabsModel = TabsModel(tabs: [makeTab(url: "https://b.com")], desktop: true)
+
+        registry.registerTabManager(tabManagerA, forSceneID: "scene-A")
+        registry.registerTabManager(tabManagerB, forSceneID: "scene-B")
+
+        #expect(registry.allConnectedTabs.count == 3)
+    }
+
+    @Test("Unregistering a scene removes only its tabs from allConnectedTabs")
+    func unregisterRemovesOnlyThatScenesTabs() {
+        let tabManagerA = MockTabManager()
+        tabManagerA.allTabsModel = TabsModel(tabs: [makeTab(url: "https://a.com")], desktop: true)
+        let tabManagerB = MockTabManager()
+        tabManagerB.allTabsModel = TabsModel(tabs: [makeTab(url: "https://b.com")], desktop: true)
+
+        registry.registerTabManager(tabManagerA, forSceneID: "scene-A")
+        registry.registerTabManager(tabManagerB, forSceneID: "scene-B")
+        registry.unregisterTabManager(forSceneID: "scene-A")
+
+        #expect(registry.allConnectedTabs.count == 1)
+    }
+
+    @Test("Re-registering the same scene ID replaces its tab manager rather than duplicating")
+    func reregisteringSameSceneIDReplaces() {
+        let firstManager = MockTabManager()
+        firstManager.allTabsModel = TabsModel(tabs: [makeTab(url: "https://a.com")], desktop: true)
+        let secondManager = MockTabManager()
+        secondManager.allTabsModel = TabsModel(tabs: [makeTab(url: "https://a.com"), makeTab(url: "https://a2.com")], desktop: true)
+
+        registry.registerTabManager(firstManager, forSceneID: "scene-A")
+        registry.registerTabManager(secondManager, forSceneID: "scene-A")
+
+        #expect(registry.allConnectedTabs.count == 2)
     }
 
 }
