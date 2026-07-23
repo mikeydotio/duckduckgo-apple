@@ -38,8 +38,26 @@ import Foundation
 final class SceneRegistry {
 
     private(set) var activeSceneCount = 0
+    private var primarySceneID: String?
 
     init() {}
+
+    /// Determines whether `sceneID` is the app's **primary** scene — the first one to ever connect
+    /// in this process, and the only one that can exist until multi-window is enabled. The primary
+    /// scene reuses the app's single, launch-built `MainCoordinator` (and everything bound to it:
+    /// sync presenter, remote-messaging navigator, VPN/notification presenters, …); every other
+    /// scene gets its own independent `MainCoordinator` — see `AppDependencies.makeMainCoordinator`.
+    ///
+    /// Idempotent for a given scene: once a scene's ID is recorded as primary, reconnecting that
+    /// *same* scene (the iOS 16 disconnect/reconnect recovery path) still reports `true` — it must
+    /// not be demoted to "secondary" just because it dropped and rejoined.
+    func isPrimaryScene(sessionID: String) -> Bool {
+        guard let primarySceneID else {
+            self.primarySceneID = sessionID
+            return true
+        }
+        return primarySceneID == sessionID
+    }
 
     /// Call when a scene's state machine transitions into `Foreground`.
     /// - Returns: `true` if this was the transition from zero to one active scenes — i.e. services

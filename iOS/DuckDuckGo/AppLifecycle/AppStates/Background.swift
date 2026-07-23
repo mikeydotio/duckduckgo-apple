@@ -71,7 +71,7 @@ struct Background: BackgroundHandling {
         sceneDependencies.authenticationService.suspend()
         sceneDependencies.autoClearService.suspend()
 
-        appDependencies.mainCoordinator.onBackground()
+        sceneDependencies.mainCoordinator.onBackground()
 
         updateApplicationShortcutItems()
         cleanScreenTimeDataOniOS26()

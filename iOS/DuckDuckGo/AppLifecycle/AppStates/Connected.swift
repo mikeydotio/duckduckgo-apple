@@ -53,7 +53,7 @@ struct Connected: ConnectedHandling {
         self.actionToHandle = actionToHandle
         self.lastBackgroundDateStorage = lastBackgroundDateStorage
 
-        let mainCoordinator = appDependencies.mainCoordinator
+        let mainCoordinator = Self.mainCoordinator(for: window, appDependencies: appDependencies)
         let overlayWindowManager = OverlayWindowManager(window: window,
                                                         appSettings: appDependencies.appSettings,
                                                         voiceSearchHelper: appDependencies.voiceSearchHelper,
@@ -72,7 +72,8 @@ struct Connected: ConnectedHandling {
         launchTaskManager.register(task: ClearInteractionStateTask(autoClearService: autoClearService,
                                                                    interactionStateSource: mainCoordinator.interactionStateSource,
                                                                    tabManager: mainCoordinator.tabManager))
-        sceneDependencies = SceneDependencies(screenshotService: screenshotService,
+        sceneDependencies = SceneDependencies(mainCoordinator: mainCoordinator,
+                                              screenshotService: screenshotService,
                                               authenticationService: authenticationService,
                                               autoClearService: autoClearService)
 
@@ -89,7 +90,7 @@ struct Connected: ConnectedHandling {
         self.actionToHandle = actionToHandle
         self.lastBackgroundDateStorage = lastBackgroundDateStorage
 
-        let mainCoordinator = appDependencies.mainCoordinator
+        let mainCoordinator = Self.mainCoordinator(for: window, appDependencies: appDependencies)
         let overlayWindowManager = OverlayWindowManager(window: window,
                                                         appSettings: appDependencies.appSettings,
                                                         voiceSearchHelper: appDependencies.voiceSearchHelper,
@@ -103,7 +104,8 @@ struct Connected: ConnectedHandling {
                                                 aiChatSyncCleaner: appDependencies.services.syncService.aiChatSyncCleaner)
         let authenticationService = AuthenticationService(overlayWindowManager: overlayWindowManager)
         let screenshotService = ScreenshotService(window: window, mainViewController: mainCoordinator.controller)
-        sceneDependencies = SceneDependencies(screenshotService: screenshotService,
+        sceneDependencies = SceneDependencies(mainCoordinator: mainCoordinator,
+                                              screenshotService: screenshotService,
                                               authenticationService: authenticationService,
                                               autoClearService: autoClearService)
         configure(window, with: mainCoordinator)
@@ -119,7 +121,7 @@ struct Connected: ConnectedHandling {
         self.actionToHandle = actionToHandle
         self.lastBackgroundDateStorage = lastBackgroundDateStorage
 
-        let mainCoordinator = appDependencies.mainCoordinator
+        let mainCoordinator = Self.mainCoordinator(for: window, appDependencies: appDependencies)
         let overlayWindowManager = OverlayWindowManager(window: window,
                                                         appSettings: appDependencies.appSettings,
                                                         voiceSearchHelper: appDependencies.voiceSearchHelper,
@@ -133,7 +135,8 @@ struct Connected: ConnectedHandling {
                                                 aiChatSyncCleaner: appDependencies.services.syncService.aiChatSyncCleaner)
         let authenticationService = AuthenticationService(overlayWindowManager: overlayWindowManager)
         let screenshotService = ScreenshotService(window: window, mainViewController: mainCoordinator.controller)
-        sceneDependencies = SceneDependencies(screenshotService: screenshotService,
+        sceneDependencies = SceneDependencies(mainCoordinator: mainCoordinator,
+                                              screenshotService: screenshotService,
                                               authenticationService: authenticationService,
                                               autoClearService: autoClearService)
         configure(window, with: mainCoordinator)
@@ -144,6 +147,33 @@ struct Connected: ConnectedHandling {
         window.rootViewController = mainCoordinator.controller
         window.makeKeyAndVisible()
         mainCoordinator.start()
+    }
+
+    /// The primary scene (the app's first-ever connected scene, and the only one that can exist
+    /// until multi-window is enabled) reuses `appDependencies.mainCoordinator`. Any additional
+    /// scene gets its own, independently-tabbed `MainCoordinator` via `makeMainCoordinator`, keyed
+    /// by that scene's `UISceneSession.persistentIdentifier`.
+    private static func mainCoordinator(for window: UIWindow, appDependencies: AppDependencies) -> MainCoordinator {
+        guard let sessionID = window.windowScene?.session.persistentIdentifier else {
+            // No scene information available — a bare `UIWindow()` as used in unit tests, or a
+            // platform where scenes genuinely don't apply. Always the primary/only coordinator.
+            return appDependencies.mainCoordinator
+        }
+
+        guard !appDependencies.sceneRegistry.isPrimaryScene(sessionID: sessionID) else {
+            return appDependencies.mainCoordinator
+        }
+
+        do {
+            return try appDependencies.makeMainCoordinator(sessionID, nil)
+        } catch {
+            // Building a second window's own MainCoordinator failed (e.g. disk pressure). Fail
+            // loud via pixel + log, then fall back to the primary coordinator so the window still
+            // opens — sharing state with the primary window is a safe degradation, a crash is not.
+            Logger.lifecycle.error("🔴 Failed to build MainCoordinator for secondary scene: \(error.localizedDescription, privacy: .public)")
+            DailyPixel.fireDailyAndCount(pixel: .secondarySceneMainCoordinatorInitError, error: error)
+            return appDependencies.mainCoordinator
+        }
     }
 
 }

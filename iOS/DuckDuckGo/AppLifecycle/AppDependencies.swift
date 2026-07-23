@@ -17,11 +17,25 @@
 //  limitations under the License.
 //
 
+import Foundation
 import PrivacyConfig
 
 struct AppDependencies {
 
+    /// The primary scene's coordinator — the one built at launch, and the only one that ever
+    /// exists until multi-window is enabled. App-global presentation hooks bound once at launch
+    /// (sync presenter, remote-messaging navigator, VPN/notification presenters, …) always target
+    /// this instance; see `Launching.init()`. Additional scenes get their own coordinator from
+    /// `makeMainCoordinator` instead and must not be confused with this one.
     let mainCoordinator: MainCoordinator
+
+    /// Builds an additional scene's own `MainCoordinator` (own tabs, own view controller) from the
+    /// same already-built app-global services `mainCoordinator` was built from, keyed by that
+    /// scene's `UISceneSession.persistentIdentifier` so its tabs persist independently. Pass `nil`
+    /// only for the primary scene (see `mainCoordinator` above) — every other caller must pass a
+    /// real scene identifier.
+    let makeMainCoordinator: (String?, CFAbsoluteTime?) throws -> MainCoordinator
+
     let services: AppServices
     let launchTaskManager: LaunchTaskManager
     let launchSourceManager: LaunchSourceManaging
@@ -60,6 +74,12 @@ struct AppServices {
 
 struct SceneDependencies {
 
+    /// This scene's own coordinator: `appDependencies.mainCoordinator` for the primary scene,
+    /// or a freshly-built, independently-tabbed one for any additional scene. Foreground/Background
+    /// must operate on this — not `appDependencies.mainCoordinator` — for anything window-specific
+    /// (tab manager, onForeground/onBackground, launch-action routing) so a second window isn't
+    /// driven by the first window's browsing state.
+    let mainCoordinator: MainCoordinator
     let screenshotService: ScreenshotService
     let authenticationService: AuthenticationService
     let autoClearService: AutoClearService

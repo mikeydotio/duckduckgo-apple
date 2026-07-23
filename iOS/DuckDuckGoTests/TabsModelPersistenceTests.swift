@@ -215,6 +215,47 @@ class TabsModelPersistenceTests: XCTestCase {
         }
     }
 
+    // MARK: - Secondary scene (allowsLegacyMigration = false)
+
+    func testWhenLegacyMigrationDisallowed_existingLegacyDataIsNotMigrated() throws {
+        let legacyStore = MockKeyValueStore()
+        let data = try NSKeyedArchiver.archivedData(withRootObject: model, requiringSecureCoding: false)
+        legacyStore.set(data, forKey: "com.duckduckgo.opentabs")
+
+        let secondaryPersistence = TabsModelPersistence(normalStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        fireStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        legacyStore: legacyStore,
+                                                        allowsLegacyMigration: false)
+
+        XCTAssertNil(try secondaryPersistence.getTabsModel(for: .normal))
+        // The legacy key must be left untouched for the primary scene to migrate later.
+        XCTAssertNotNil(legacyStore.object(forKey: "com.duckduckgo.opentabs"))
+    }
+
+    func testWhenLegacyMigrationDisallowed_clearAllDoesNotTouchLegacyStore() throws {
+        let legacyStore = MockKeyValueStore()
+        let data = try NSKeyedArchiver.archivedData(withRootObject: model, requiringSecureCoding: false)
+        legacyStore.set(data, forKey: "com.duckduckgo.opentabs")
+
+        let secondaryPersistence = TabsModelPersistence(normalStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        fireStore: try MockKeyValueFileStore(throwOnInit: nil),
+                                                        legacyStore: legacyStore,
+                                                        allowsLegacyMigration: false)
+        secondaryPersistence.clearAll()
+
+        XCTAssertNotNil(legacyStore.object(forKey: "com.duckduckgo.opentabs"))
+    }
+
+    func testAllowsLegacyMigrationDefaultsToTrue() throws {
+        // The designated initializer must default to `true` so every existing call site
+        // (primary-scene production code, and every test above) keeps today's behavior unchanged.
+        let data = try NSKeyedArchiver.archivedData(withRootObject: model, requiringSecureCoding: false)
+        mockLegacyStore.set(data, forKey: "com.duckduckgo.opentabs")
+
+        let loaded = try persistence.getTabsModel(for: .normal)
+        XCTAssertNotNil(loaded)
+    }
+
 }
 
 /// Counts `set` calls so tests can assert how many disk writes actually landed.

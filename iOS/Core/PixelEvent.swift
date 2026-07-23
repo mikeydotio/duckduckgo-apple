@@ -108,6 +108,9 @@ extension Pixel {
         case tabsStoreSaveError
         case tabsStoreReadError
 
+        // MARK: Multi-window (iPad)
+        case secondarySceneMainCoordinatorInitError
+
         // MARK: Tabswitcher improvements
         case tabSwitcherEditMenuClicked
         case tabSwitcherEditMenuSelectTabs
@@ -2155,6 +2158,8 @@ extension Pixel.Event {
         case .tabsStoreInitError: return "m_debug_tabs_store_init_error"
         case .tabsStoreSaveError: return "m_debug_tabs_store_save_error"
         case .tabsStoreReadError: return "m_debug_tabs_store_read_error"
+
+        case .secondarySceneMainCoordinatorInitError: return "m_debug_secondary_scene_main_coordinator_init_error"
 
         case .tabSwitcherListEnabled: return "m_ts_l"
         case .tabSwitcherGridEnabled: return "m_ts_g"

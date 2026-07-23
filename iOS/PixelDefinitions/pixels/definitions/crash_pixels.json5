@@ -134,6 +134,16 @@
         ],
         "parameters": ["appVersion", "errorCode", "errorDomain", "underlyingErrorCode", "underlyingErrorDomain"]
     },
+    "m_debug_secondary_scene_main_coordinator_init_error": {
+        "description": "Fires on iPad when opening an additional window fails to build that window's own MainCoordinator (tabs/browsing state); the window falls back to sharing the primary window's coordinator instead of crashing.",
+        "owners": ["mikeyward"],
+        "triggers": ["exception"],
+        "suffixes": [
+            ["daily", "platform", "form_factor"],
+            ["platform", "form_factor"]
+        ],
+        "parameters": ["appVersion", "errorCode", "errorDomain", "underlyingErrorCode", "underlyingErrorDomain"]
+    },
     "m_tab_terminated_": {
         "description": "Fires when a tab's WebKit web content process terminates, with the WebKit termination reason in the pixel name.",
         "owners": ["samsymons"],

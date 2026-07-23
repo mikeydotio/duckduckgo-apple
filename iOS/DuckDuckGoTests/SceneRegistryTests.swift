@@ -83,4 +83,29 @@ final class SceneRegistryTests {
         #expect(registry.activeSceneCount == 0)
     }
 
+    @Test("The first scene ID seen is recorded as primary")
+    func firstSceneIsPrimary() {
+        #expect(registry.isPrimaryScene(sessionID: "scene-A") == true)
+    }
+
+    @Test("A second, different scene ID is not primary")
+    func secondSceneIsNotPrimary() {
+        #expect(registry.isPrimaryScene(sessionID: "scene-A") == true)
+        #expect(registry.isPrimaryScene(sessionID: "scene-B") == false)
+    }
+
+    @Test("The primary scene reconnecting with the same ID stays primary")
+    func primarySceneReconnectStaysPrimary() {
+        #expect(registry.isPrimaryScene(sessionID: "scene-A") == true)
+        #expect(registry.isPrimaryScene(sessionID: "scene-A") == true)
+        #expect(registry.isPrimaryScene(sessionID: "scene-A") == true)
+    }
+
+    @Test("A secondary scene never becomes primary even if queried repeatedly")
+    func secondarySceneNeverBecomesPrimary() {
+        #expect(registry.isPrimaryScene(sessionID: "scene-A") == true)
+        #expect(registry.isPrimaryScene(sessionID: "scene-B") == false)
+        #expect(registry.isPrimaryScene(sessionID: "scene-B") == false)
+    }
+
 }
