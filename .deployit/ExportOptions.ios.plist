@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Project-local export options for `/deployit` iOS builds. deployit's
+  ExportOptions ladder (DEPLOYIT_EXPORT_OPTIONS_PATH env ->
+  .deployit/ExportOptions.<platform>.plist -> bundled default) picks this up
+  automatically, overriding deployit's bundled `development` iOS default.
+
+  Why `ad-hoc` (mirrors Lillist/moshtail):
+  This fork is signed under Mikey's personal team VMY8R4T742, which has an
+  **Apple Distribution** cert and a Developer ID cert, but **no Apple
+  Development cert** (his only Apple Development cert belongs to a different
+  team). deployit's bundled `development` method needs an Apple Development
+  cert, so it fails with "No Accounts" trying to mint one over SSH. `ad-hoc`
+  signs with the Apple Distribution cert we DO have, and still installs OTA on
+  **registered devices** (UDIDs baked into the ad-hoc provisioning profile), so
+  the Tailscale-served OTA flow is unchanged.
+
+  Unlike Lillist, this app declares no iCloud/CloudKit entitlements, so there is
+  no `iCloudContainerEnvironment` key.
+
+  Requires (one-time, per-contributor): an Apple Distribution cert + ad-hoc
+  provisioning profiles for io.mikey.DuckDuckGo and each embedded extension
+  (NetworkExtension, CredentialExtension, Widgets, ShareExtension, OpenAction2)
+  carrying the target device UDIDs. See docs/device-build-personal-team.md.
+-->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>ad-hoc</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>thinning</key>
+    <string>&lt;none&gt;</string>
+    <key>compileBitcode</key>
+    <false/>
+    <key>stripSwiftSymbols</key>
+    <false/>
+</dict>
+</plist>
