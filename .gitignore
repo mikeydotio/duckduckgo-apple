@@ -96,3 +96,5 @@ content-scope-scripts/
 privacy-configuration/
 .xcodebuildmcp/config.yaml
 .claude/worktrees
+
+# .storyhook/ is version-controlled project data — do not ignore
